@@ -5,12 +5,12 @@ import { sendEmail } from '@/lib/email/resend';
 import OrderPlacedEmail from '@/components/email/OrderPlacedEmail';
 import OrderShippedEmail from '@/components/email/OrderShippedEmail';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getAdminClient } from '@/lib/supabase/admin';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+    const supabase = getAdminClient();
     try {
         const { action, orderId } = await req.json();
 

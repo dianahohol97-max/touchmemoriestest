@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 // Simple in-memory rate limiting
 const rateLimitMap = new Map<string, { count: number, resetAt: number }>();
 
 export async function POST(req: Request) {
+    const supabase = getAdminClient();
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
     const now = Date.now();
 

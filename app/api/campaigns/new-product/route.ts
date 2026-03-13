@@ -4,14 +4,14 @@ import { sendEmail } from '@/lib/email/resend';
 import NewProductEmail from '@/emails/NewProductEmail';
 import { render } from '@react-email/components';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { getAdminClient } from '@/lib/supabase/admin';
+
+export const dynamic = 'force-dynamic';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function POST(request: Request) {
+    const supabase = getAdminClient();
     try {
         const { product_id, segment = 'all' } = await request.json();
 

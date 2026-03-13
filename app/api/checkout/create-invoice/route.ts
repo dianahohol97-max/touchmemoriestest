@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 const MONO_API = 'https://api.monobank.ua/api/merchant/invoice/create';
 const MONO_TOKEN = process.env.MONOBANK_API_TOKEN;
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 export async function POST(req: Request) {
+    const supabase = getAdminClient();
     try {
         const { customer, items, delivery, total, subtotal, discount, promo_id, referral_code_id, used_bonus, customer_id } = await req.json();
 

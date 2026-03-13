@@ -4,13 +4,12 @@ import { sendEmail } from '@/lib/email/resend';
 import BirthdayEmail from '@/emails/BirthdayEmail';
 import { render } from '@react-email/components';
 
-// This needs to be a Service Role key to bypass RLS in Cron jobs
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { getAdminClient } from '@/lib/supabase/admin';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+    const supabase = getAdminClient();
     // 1. Verify Vercel Cron Secret (or local testing secret)
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

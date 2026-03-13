@@ -4,13 +4,12 @@ import { sendEmail } from '@/lib/email/resend';
 import WelcomeEmail from '@/emails/WelcomeEmail';
 import { render } from '@react-email/components';
 
-// Service Role Key required as they might be bypassing RLS if it's strict, though RLS allows tracking
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { getAdminClient } from '@/lib/supabase/admin';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+    const supabase = getAdminClient();
     try {
         // Note: birthday_day and birthday_month are deprecated here
         // Birthday is now collected during user registration

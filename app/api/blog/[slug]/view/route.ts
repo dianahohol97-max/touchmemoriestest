@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request, props: { params: Promise<{ slug: string }> }) {
     const params = await props.params;
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const supabase = getAdminClient();
 
     // Call the Supabase RPC to increment the view count
     const { error } = await supabase.rpc('increment_blog_post_views', { post_slug: params.slug });

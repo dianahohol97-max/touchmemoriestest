@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 const NP_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 
@@ -12,6 +9,7 @@ export async function POST(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const supabase = getAdminClient();
     try {
         const { id: orderId } = await params;
 
