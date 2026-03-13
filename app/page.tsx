@@ -16,14 +16,12 @@ import { DynamicPromo } from '@/components/ui/DynamicPromo';
 import { PhotoPrintPromo } from '@/components/ui/PhotoPrintPromo';
 import { CustomBookPromo } from '@/components/ui/CustomBookPromo';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getAdminClient } from '@/lib/supabase/admin';
 
 export const revalidate = 3600; // ISR revalidate every hour
 
 export default async function Home() {
+  const supabase = getAdminClient();
   const { data: products } = await supabase
     .from('products')
     .select('*, categories(name, slug)')

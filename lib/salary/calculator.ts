@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getAdminClient } from '@/lib/supabase/admin';
 
 export async function calculateSalary(staffId: string, fromDate: string, toDate: string) {
+    const supabase = getAdminClient();
     // 1. Fetch Staff Data
     const { data: staff } = await supabase.from('staff').select('*').eq('id', staffId).single();
     if (!staff) throw new Error('Staff not found');

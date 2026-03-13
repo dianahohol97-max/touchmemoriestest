@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { generateChatbotReply } from './anthropic';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getAdminClient } from '@/lib/supabase/admin';
 
 export async function processReceivedMessage(platform: string, externalUserId: string, externalUsername: string, messageText: string, platformMessageId: string) {
+    const supabase = getAdminClient();
     try {
         console.log(`[Chatbot] Received message from ${platform} user ${externalUserId}: "${messageText}"`);
 

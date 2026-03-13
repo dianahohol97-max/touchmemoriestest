@@ -1,12 +1,15 @@
 import { Resend } from 'resend';
 
-// Initialize Resend
-// Note: Fallback to an empty string to prevent fatal crash if env behaves strangely,
-// but sendEmail will fail explicitly if the key is actually empty.
-export const resend = new Resend(process.env.RESEND_API_KEY || 're_mock_key');
-
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'hello@touchmemories.ua';
 const FROM_NAME = process.env.RESEND_FROM_NAME || 'TouchMemories';
+
+/**
+ * Lazy initialization of Resend client to prevent build-time errors
+ * when environment variables are not available.
+ */
+export function getResendClient() {
+    return new Resend(process.env.RESEND_API_KEY || 're_mock_key');
+}
 
 interface SendEmailParams {
     to: string;
@@ -27,6 +30,8 @@ export async function sendEmail({
     pixelId,
     unsubscribeToken
 }: SendEmailParams) {
+    const resend = getResendClient();
+
     // 1. Base URL for tracking
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 

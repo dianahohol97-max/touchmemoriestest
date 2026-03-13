@@ -1,14 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import Content from './ProductContent';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getAdminClient } from '@/lib/supabase/admin';
 
 import ProductContent from './ProductContent';
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+    const supabase = getAdminClient();
     const { slug } = await params;
     const { data: product } = await supabase
         .from('products')
