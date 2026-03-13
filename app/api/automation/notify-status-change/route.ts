@@ -3,6 +3,8 @@ import { sendStatusChangeNotification } from '@/lib/automation/email-notificatio
 import { createClient } from '@/lib/supabase/server';
 import type { OrderStatus } from '@/lib/types/automation';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+import { getResendClient } from '@/lib/email/resend';
 import DesignerBriefEmail from '@/emails/DesignerBriefEmail';
 
 /**
@@ -18,7 +18,7 @@ export async function sendBriefLinkEmail({
   const briefUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/brief/${token}`;
 
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = getResendClient();
     const { data, error } = await resend.emails.send({
       from: 'TOUCH MEMORIES <noreply@touchmemories.com.ua>',
       to: [customerEmail],
@@ -59,7 +59,7 @@ export async function sendDesignReadyEmail({
   const reviewUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/review/${reviewToken}`;
 
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = getResendClient();
     const { data, error } = await resend.emails.send({
       from: 'TOUCH MEMORIES <noreply@touchmemories.com.ua>',
       to: [customerEmail],
@@ -147,7 +147,7 @@ export async function sendRevisionsCompleteEmail({
   const reviewUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/review/${reviewToken}`;
 
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = getResendClient();
     const { data, error } = await resend.emails.send({
       from: 'TOUCH MEMORIES <noreply@touchmemories.com.ua>',
       to: [customerEmail],

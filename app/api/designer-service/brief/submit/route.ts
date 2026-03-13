@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { submitBrief } from '@/lib/designer-service/brief-helpers';
 import { triggerAIProcessing } from '@/lib/designer-service/ai-processing';
 import { sendTelegramMessage } from '@/lib/automation/telegram-notifications';
-import { Resend } from 'resend';
+import { getResendClient } from '@/lib/email/resend';
 
 
 
 export async function POST(request: NextRequest) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = getResendClient();
   try {
     const body = await request.json();
     const { token, formData } = body;

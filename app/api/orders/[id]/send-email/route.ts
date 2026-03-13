@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { Resend } from 'resend';
+import { getResendClient } from '@/lib/email/resend';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,7 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const supabase = getAdminClient();
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = getResendClient();
 
     try {
         const { id: orderId } = await params;

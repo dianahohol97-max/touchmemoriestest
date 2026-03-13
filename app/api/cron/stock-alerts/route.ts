@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
+import { getResendClient } from '@/lib/email/resend';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     const supabase = getAdminClient();
-    const resend = new Resend(process.env.RESEND_API_KEY!);
+    const resend = getResendClient();
     // 1. Verify cron secret (if vercel cron)
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

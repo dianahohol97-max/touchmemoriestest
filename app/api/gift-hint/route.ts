@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
+import { getResendClient } from '@/lib/email/resend';
 
 
 import { getAdminClient } from '@/lib/supabase/admin';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
     const supabase = getAdminClient();
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = getResendClient();
     try {
         const body = await req.json();
         const { product_id, recipient_email, recipient_name, sender_name, message } = body;

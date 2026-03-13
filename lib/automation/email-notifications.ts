@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { Resend } from 'resend';
+import { getResendClient } from '@/lib/email/resend';
 import type { OrderStatus, EmailTemplate, StatusChangeNotification } from '@/lib/types/automation';
 
 
@@ -93,7 +93,7 @@ export async function sendStatusChangeNotification(params: {
     const body = replaceTemplateVariables(template.body, variables);
 
     // Send email via Resend
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = getResendClient();
     const { data, error } = await resend.emails.send({
       from: 'TouchMemories <noreply@touchmemories.com>',
       to: params.customerEmail,
