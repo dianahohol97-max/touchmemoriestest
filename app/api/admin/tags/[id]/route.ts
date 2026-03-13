@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
     const params = await props.params;
+    const supabase = getAdminClient();
     try {
         const body = await req.json();
         const { name, color, icon } = body;
@@ -28,6 +26,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 
 export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
     const params = await props.params;
+    const supabase = getAdminClient();
     try {
         const { error } = await supabase
             .from('order_tags')

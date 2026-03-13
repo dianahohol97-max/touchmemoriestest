@@ -1,12 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
+    const supabase = getAdminClient();
     try {
         const { data, error } = await supabase
             .from('promo_codes')
@@ -22,6 +20,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+    const supabase = getAdminClient();
     try {
         const body = await request.json();
 
@@ -40,6 +39,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+    const supabase = getAdminClient();
     try {
         const body = await request.json();
         const { id, ...updateData } = body;
@@ -64,6 +64,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+    const supabase = getAdminClient();
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');

@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
 
-// Initialize a supabase client with the service role key strictly for admin actions
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
+    const supabase = getAdminClient();
     try {
         const { data, error } = await supabase
             .from('staff')
@@ -23,6 +20,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+    const supabase = getAdminClient();
     try {
         const body = await req.json();
 
@@ -46,6 +44,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+    const supabase = getAdminClient();
     try {
         const body = await req.json();
         const { id, ...updates } = body;

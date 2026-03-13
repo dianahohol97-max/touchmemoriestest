@@ -1,14 +1,12 @@
+import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+    const supabase = getAdminClient();
+    const resend = new Resend(process.env.RESEND_API_KEY);
     try {
         const { productId, newPrice, oldPrice } = await req.json();
 

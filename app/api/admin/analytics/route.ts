@@ -1,14 +1,12 @@
+import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { startOfDay, endOfDay, subDays, format, isAfter, isBefore } from 'date-fns';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
     try {
+        const supabase = getAdminClient();
         const { searchParams } = new URL(req.url);
         const period = searchParams.get('period') || 'month'; // today, week, month
 

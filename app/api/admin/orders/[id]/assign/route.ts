@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
 
-// Initialize a supabase client with the service role key strictly for admin actions
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
     const params = await props.params;
+    const supabase = getAdminClient();
     try {
         const body = await req.json();
         const { manager_id, designer_id } = body;

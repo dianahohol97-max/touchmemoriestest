@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
+    const supabase = getAdminClient();
     try {
         const { data, error } = await supabase
             .from('order_tags')
@@ -39,6 +37,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+    const supabase = getAdminClient();
     try {
         const body = await req.json();
         const { name, color, icon, sort_order } = body;
@@ -58,6 +57,7 @@ export async function POST(req: Request) {
 
 // Bulk update order (drag-and-drop)
 export async function PUT(req: Request) {
+    const supabase = getAdminClient();
     try {
         const body = await req.json();
         const { tags } = body; // Array of { id, sort_order }
