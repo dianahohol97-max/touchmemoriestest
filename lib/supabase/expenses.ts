@@ -60,6 +60,19 @@ export async function deleteExpenseCategory(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function getExpenseCategoryById(id: string): Promise<ExpenseCategory> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('expense_categories')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 // Expenses
 export async function getExpenses(filters?: {
   category_id?: string;

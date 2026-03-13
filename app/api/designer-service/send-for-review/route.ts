@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     if (existingRevision) {
       // Update existing revision
-      revisionToken = existingRevision.client_token;
+      revisionToken = (existingRevision as any).client_token;
       revisionNumber = existingRevision.revision_number;
 
       await supabase

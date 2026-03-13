@@ -38,7 +38,7 @@ export function RevenueExpenseChart({ data }: RevenueExpenseChartProps) {
           <XAxis dataKey="month" />
           <YAxis tickFormatter={(value) => formatCurrency(value)} />
           <Tooltip
-            formatter={(value: number) => formatCurrency(value)}
+            formatter={(value: any) => formatCurrency(Number(value))}
             contentStyle={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid #ccc',

@@ -8,13 +8,14 @@ const supabase = createClient(
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const { data, error } = await supabase
             .from('print_profiles')
             .select('*')
-            .eq('id', params.id)
+            .eq('id', id)
             .single();
 
         if (error) throw error;
@@ -26,14 +27,15 @@ export async function GET(
 
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const body = await req.json();
         const { data, error } = await supabase
             .from('print_profiles')
             .update(body)
-            .eq('id', params.id)
+            .eq('id', id)
             .select()
             .single();
 
@@ -46,13 +48,14 @@ export async function PUT(
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const { error } = await supabase
             .from('print_profiles')
             .delete()
-            .eq('id', params.id);
+            .eq('id', id);
 
         if (error) throw error;
         return NextResponse.json({ success: true });

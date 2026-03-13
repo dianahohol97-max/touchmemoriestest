@@ -48,10 +48,10 @@ export async function POST(request: NextRequest) {
     // Send notification
     const result = await sendStatusChangeNotification({
       orderId: order.id,
-      customerEmail: order.customer?.email || '',
-      customerName: order.customer?.name || '',
+      customerEmail: (order.customer as any)?.[0]?.email || '',
+      customerName: (order.customer as any)?.[0]?.name || '',
       orderNumber: order.order_number,
-      productTitle: order.product?.title || '',
+      productTitle: (order.product as any)?.[0]?.title || '',
       newStatus: new_status as OrderStatus,
       oldStatus: old_status as OrderStatus,
       productionDeadline: order.production_deadline

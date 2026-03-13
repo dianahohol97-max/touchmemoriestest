@@ -8,12 +8,13 @@ const supabase = createClient(
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     const { data, error } = await supabase
         .from('constructor_product_types')
         .select('*, constructor_product_templates(*)')
-        .eq('id', params.id)
+        .eq('id', id)
         .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -22,13 +23,14 @@ export async function GET(
 
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     const body = await req.json();
     const { data, error } = await supabase
         .from('constructor_product_types')
         .update(body)
-        .eq('id', params.id)
+        .eq('id', id)
         .select()
         .single();
 
@@ -38,12 +40,13 @@ export async function PUT(
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     const { error } = await supabase
         .from('constructor_product_types')
         .delete()
-        .eq('id', params.id);
+        .eq('id', id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });

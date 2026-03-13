@@ -35,7 +35,8 @@ export const PhotoboothSection: React.FC = () => {
               countdownSeconds: 3,
               delayBetweenShots: 1000,
               cameraFacing: 'user',
-            },
+              resolution: { width: 1280, height: 720 }
+            } as any,
             customization: {
               eventName: 'Touch Memories',
               textColor: '#FFD700',

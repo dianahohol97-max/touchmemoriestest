@@ -336,7 +336,7 @@ const iconBtnStyle = { width: '32px', height: '32px', display: 'flex', alignItem
 const iconBtnStyleRed = { ...iconBtnStyle, color: '#ef4444', border: '1px solid #fee2e2' };
 const smallBtnStyle = { padding: '4px 12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', fontWeight: 700, color: '#64748b', cursor: 'pointer' };
 
-const roleCardStyle = { backgroundColor: 'white', borderRadius: '24px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' };
+const roleCardStyle = { backgroundColor: 'white', borderRadius: '24px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between' };
 
 const modalOverlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const modalContentStyle: React.CSSProperties = { backgroundColor: 'white', borderRadius: '32px', width: '90%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' };

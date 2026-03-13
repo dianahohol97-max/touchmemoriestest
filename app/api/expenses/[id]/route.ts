@@ -3,10 +3,11 @@ import { getExpenseById, updateExpense, deleteExpense } from '@/lib/supabase/exp
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
-    const expense = await getExpenseById(params.id);
+    const expense = await getExpenseById(id);
     return NextResponse.json(expense);
   } catch (error) {
     console.error('Error fetching expense:', error);
@@ -19,11 +20,12 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const body = await request.json();
-    const expense = await updateExpense(params.id, body);
+    const expense = await updateExpense(id, body);
     return NextResponse.json(expense);
   } catch (error) {
     console.error('Error updating expense:', error);
@@ -36,10 +38,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
-    await deleteExpense(params.id);
+    await deleteExpense(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting expense:', error);

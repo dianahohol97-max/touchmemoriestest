@@ -3,10 +3,10 @@ import { getDesignBriefByToken, isBriefAccessible } from '@/lib/designer-service
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
 
     // Check if brief is accessible
     const isAccessible = await isBriefAccessible(token);

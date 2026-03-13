@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const customAttrs = order.custom_attributes as any;
     const pageCount = customAttrs?.page_count || 0;
     const hasExpressTag = customAttrs?.tags?.includes('⚡ Відправити швидше') || false;
-    const isVipCustomer = order.customer?.is_vip || false;
+    const isVipCustomer = (order.customer as any)?.[0]?.is_vip || false;
 
     // Get active orders count for queue load calculation
     const { data: activeOrders } = await supabase
@@ -113,8 +113,8 @@ export async function POST(request: NextRequest) {
             telegramChatId: assignedDesigner.telegram_chat_id,
             orderId: order.id,
             orderNumber: order.order_number,
-            customerName: order.customer?.name || 'N/A',
-            productTitle: order.product?.title || 'N/A',
+            customerName: (order.customer as any)?.[0]?.name || 'N/A',
+            productTitle: (order.product as any)?.[0]?.title || 'N/A',
             pageCount,
             deadline: deadline.toLocaleDateString('uk-UA'),
             isExpress: hasExpressTag,
@@ -127,10 +127,10 @@ export async function POST(request: NextRequest) {
     if (settings.notify_customer_email) {
       await sendStatusChangeNotification({
         orderId: order.id,
-        customerEmail: order.customer?.email || '',
-        customerName: order.customer?.name || '',
+        customerEmail: (order.customer as any)?.[0]?.email || '',
+        customerName: (order.customer as any)?.[0]?.name || '',
         orderNumber: order.order_number,
-        productTitle: order.product?.title || '',
+        productTitle: (order.product as any)?.[0]?.title || '',
         newStatus: 'confirmed' as OrderStatus,
         oldStatus: 'pending' as OrderStatus,
         productionDeadline: deadline.toLocaleDateString('uk-UA'),

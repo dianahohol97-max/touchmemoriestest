@@ -19,7 +19,7 @@ export function CategoryDonutChart({ data }: CategoryDonutChartProps) {
     color: item.category_color,
   }));
 
-  function formatCurrency(value: number) {
+  function formatCurrency(value: any) {
     return new Intl.NumberFormat('uk-UA', {
       style: 'currency',
       currency: 'UAH',
@@ -46,7 +46,7 @@ export function CategoryDonutChart({ data }: CategoryDonutChartProps) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number) => formatCurrency(value)}
+            formatter={(value: any) => formatCurrency(value)}
             contentStyle={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid #ccc',

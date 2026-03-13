@@ -16,7 +16,7 @@ interface Product {
     categories: {
         id: string;
         name: string;
-    };
+    }[];
 }
 
 interface Category {
@@ -129,7 +129,7 @@ export default function AdminCatalogPage() {
     // Apply filters
     let filteredProducts = products.filter(p => {
         const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchCategory = categoryFilter === 'all' || p.categories?.id === categoryFilter;
+        const matchCategory = categoryFilter === 'all' || p.categories?.some(c => c.id === categoryFilter);
 
         let matchStatus = true;
         if (statusFilter === 'published') matchStatus = p.is_active === true;
@@ -260,9 +260,9 @@ export default function AdminCatalogPage() {
                                             </div>
                                         </td>
                                         <td style={{ padding: '16px 24px', color: '#475569' }}>
-                                            {product.categories ? (
+                                            {product.categories && product.categories[0] ? (
                                                 <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}>
-                                                    {product.categories.name}
+                                                    {product.categories[0].name}
                                                 </span>
                                             ) : (
                                                 <span style={{ color: '#94a3b8' }}>Немає</span>

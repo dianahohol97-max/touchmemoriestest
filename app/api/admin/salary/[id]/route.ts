@@ -6,7 +6,8 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     try {
         const body = await req.json();
         const { status, is_locked, notes, breakdown, total_amount } = body;
@@ -24,7 +25,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         const { data, error } = await supabase
             .from('salary_calculations')
             .update(updateData)
-            .eq('id', params.id)
+            .eq('id', id)
             .select()
             .single();
 
@@ -35,7 +36,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     // Alias for full updates if needed
     return PATCH(req, { params });
 }

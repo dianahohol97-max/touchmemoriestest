@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
               telegramChatId: designer.telegram_chat_id,
               orderId: order.id,
               orderNumber: order.order_number,
-              customerName: order.customer?.name || 'N/A',
-              productTitle: order.product?.title || 'N/A',
+              customerName: (order.customer as any)?.[0]?.name || 'N/A',
+              productTitle: (order.product as any)?.[0]?.title || 'N/A',
               pageCount: customAttrs?.page_count || 0,
               deadline: new Date(order.production_deadline).toLocaleDateString('uk-UA'),
               isExpress,
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        result.designer = designer;
+        (result as any).designer = designer;
       }
     } else {
       return NextResponse.json(

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono, Open_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
@@ -48,7 +49,9 @@ export default function RootLayout({
           <CartDrawer />
           <Toaster position="top-right" richColors />
           <NewsletterPopup />
-          <AnalyticsProvider />
+          <Suspense fallback={null}>
+            <AnalyticsProvider />
+          </Suspense>
           <SpeedInsights />
         </ThemeProvider>
       </body>

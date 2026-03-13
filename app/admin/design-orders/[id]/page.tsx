@@ -6,13 +6,13 @@ import { ArrowLeft, Download, Eye } from 'lucide-react';
 import type { PhotoMetadata } from '@/lib/types/designer-service';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function DesignOrderDetailPage({ params }: PageProps) {
-  const { id } = params;
+  const { id } = await params;
   const supabase = await createClient();
 
   // Fetch brief with all related data

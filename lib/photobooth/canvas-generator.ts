@@ -85,6 +85,7 @@ export class CanvasGenerator {
       const img = new Image();
 
       img.onload = () => {
+        if (!this.ctx) return;
         this.ctx.save();
 
         // Apply rotation if specified
@@ -138,7 +139,7 @@ export class CanvasGenerator {
       const img = new Image();
 
       img.onload = () => {
-        this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+        this.ctx!.drawImage(img, 0, 0, this.canvas!.width, this.canvas!.height);
         resolve();
       };
 
@@ -152,35 +153,36 @@ export class CanvasGenerator {
 
     if (!eventName && !eventDate) return;
 
-    this.ctx.fillStyle = textColor || '#ffffff';
-    this.ctx.font = `${fontSize || 24}px ${fontFamily || 'Arial'}`;
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'top';
+    this.ctx!.fillStyle = textColor || '#ffffff';
+    if (!this.ctx) return;
+    this.ctx!.font = `${fontSize || 24}px ${fontFamily || 'Arial'}`;
+    this.ctx!.textAlign = 'center';
+    this.ctx!.textBaseline = 'top';
 
-    const centerX = this.canvas.width / 2;
+    const centerX = this.canvas!.width / 2;
     const topMargin = layout.safeMargin + 10;
 
     // Add text shadow for better readability
-    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    this.ctx.shadowBlur = 4;
-    this.ctx.shadowOffsetX = 2;
-    this.ctx.shadowOffsetY = 2;
+    this.ctx!.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    this.ctx!.shadowBlur = 4;
+    this.ctx!.shadowOffsetX = 2;
+    this.ctx!.shadowOffsetY = 2;
 
     if (eventName) {
-      this.ctx.fillText(eventName, centerX, topMargin);
+      this.ctx!.fillText(eventName, centerX, topMargin);
     }
 
     if (eventDate) {
       const dateY = eventName ? topMargin + (fontSize || 24) + 10 : topMargin;
-      this.ctx.font = `${(fontSize || 24) * 0.8}px ${fontFamily || 'Arial'}`;
-      this.ctx.fillText(eventDate, centerX, dateY);
+      this.ctx!.font = `${(fontSize || 24) * 0.8}px ${fontFamily || 'Arial'}`;
+      this.ctx!.fillText(eventDate, centerX, dateY);
     }
 
     // Reset shadow
-    this.ctx.shadowColor = 'transparent';
-    this.ctx.shadowBlur = 0;
-    this.ctx.shadowOffsetX = 0;
-    this.ctx.shadowOffsetY = 0;
+    this.ctx!.shadowColor = 'transparent';
+    this.ctx!.shadowBlur = 0;
+    this.ctx!.shadowOffsetX = 0;
+    this.ctx!.shadowOffsetY = 0;
   }
 
   private async drawLogo(logoUrl: string, layout: LayoutConfig): Promise<void> {
@@ -188,8 +190,8 @@ export class CanvasGenerator {
       const img = new Image();
 
       img.onload = () => {
-        const maxLogoWidth = this.canvas.width * 0.2;
-        const maxLogoHeight = this.canvas.height * 0.1;
+        const maxLogoWidth = this.canvas!.width * 0.2;
+        const maxLogoHeight = this.canvas!.height * 0.1;
 
         let logoWidth = img.width;
         let logoHeight = img.height;
@@ -200,10 +202,10 @@ export class CanvasGenerator {
         logoHeight *= scale;
 
         // Position logo at bottom center
-        const x = (this.canvas.width - logoWidth) / 2;
-        const y = this.canvas.height - logoHeight - layout.safeMargin - 10;
+        const x = (this.canvas!.width - logoWidth) / 2;
+        const y = this.canvas!.height - logoHeight - layout.safeMargin - 10;
 
-        this.ctx.drawImage(img, x, y, logoWidth, logoHeight);
+        this.ctx!.drawImage(img, x, y, logoWidth, logoHeight);
         resolve();
       };
 
@@ -217,22 +219,22 @@ export class CanvasGenerator {
 
   private drawBleedGuide(layout: LayoutConfig): void {
     // Draw bleed area (for debugging)
-    this.ctx.strokeStyle = '#ff0000';
-    this.ctx.lineWidth = 2;
-    this.ctx.strokeRect(
+    this.ctx!.strokeStyle = '#ff0000';
+    this.ctx!.lineWidth = 2;
+    this.ctx!.strokeRect(
       layout.bleed,
       layout.bleed,
-      this.canvas.width - layout.bleed * 2,
-      this.canvas.height - layout.bleed * 2
+      this.canvas!.width - layout.bleed * 2,
+      this.canvas!.height - layout.bleed * 2
     );
 
     // Draw safe area
-    this.ctx.strokeStyle = '#00ff00';
-    this.ctx.strokeRect(
+    this.ctx!.strokeStyle = '#00ff00';
+    this.ctx!.strokeRect(
       layout.safeMargin,
       layout.safeMargin,
-      this.canvas.width - layout.safeMargin * 2,
-      this.canvas.height - layout.safeMargin * 2
+      this.canvas!.width - layout.safeMargin * 2,
+      this.canvas!.height - layout.safeMargin * 2
     );
   }
 

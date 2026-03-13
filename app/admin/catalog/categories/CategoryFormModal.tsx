@@ -39,7 +39,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
             };
             const generatedSlug = formData.name.toLowerCase()
                 .split('')
-                .map(char => slugList[char as keyof typeof slugList] !== undefined ? slugList[char as keyof typeof slugList] : char)
+                .map((char: string) => slugList[char as keyof typeof slugList] !== undefined ? slugList[char as keyof typeof slugList] : char)
                 .join('')
                 .replace(/[^a-z0-9-]/g, '')
                 .replace(/-+/g, '-')
