@@ -5,12 +5,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (!supabaseUrl || !supabaseKey) {
-        console.warn('Sitemap: Missing Supabase credentials. Returning static routes only.');
-        return staticRoutes;
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
     const domain = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
 
     const staticRoutes: MetadataRoute.Sitemap = [
@@ -33,6 +27,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.8,
         },
     ];
+
+    if (!supabaseUrl || !supabaseKey) {
+        console.warn('Sitemap: Missing Supabase credentials. Returning static routes only.');
+        return staticRoutes;
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { data: products } = await supabase.from('products').select('slug, updated_at').eq('is_active', true);
     const productRoutes: MetadataRoute.Sitemap = (products || []).map(p => ({
