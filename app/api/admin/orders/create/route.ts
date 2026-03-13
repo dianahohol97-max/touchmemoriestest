@@ -1,0 +1,104 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+export async function POST(request: Request) {
+    try {
+        const payload = await request.json();
+        const { customer, items, delivery, totals, notes } = payload;
+
+        // Bypassing RLS for admin operations (system must use Service Role here)
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        // 1. Process Customer Info
+        // Check if customer exists by phone.
+        // We clean the phone number to just digits for search
+        const cleanPhone = customer.phone.replace(/[^0-9]/g, '');
+        let customerId;
+
+        // Perform a flexible search
+        const { data: existingCustomers } = await supabase
+            .from('customers')
+            .select('*')
+            .ilike('phone', `%${cleanPhone}%`);
+
+        if (existingCustomers && existingCustomers.length > 0) {
+            customerId = existingCustomers[0].id;
+        } else {
+            // Create a new barebones customer profile
+            const { data: newCust, error: custErr } = await supabase
+                .from('customers')
+                .insert({
+                    name: customer.name,
+                    phone: customer.phone,
+                    email: customer.email || null,
+                    telegram: customer.telegram || null,
+                    birthday: customer.birthday || null
+                })
+                .select('id')
+                .single();
+
+            if (custErr) throw custErr;
+            customerId = newCust.id;
+        }
+
+        // 2. Generate unique Order Number Order PB-[YEAR]-[RANDOM]
+        const year = new Date().getFullYear();
+        const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+        const orderNumber = `PB-${year}-${randomStr}`;
+
+        // 3. Construct initial note with Instagram Handle (if provided) that won't get lost
+        let orderNotes = customer.instagram ? `⚠️ Instagram замовлення (${customer.instagram})\n` : '';
+        orderNotes += notes;
+
+        // 4. Create the Order
+        const newOrderData = {
+            order_number: orderNumber,
+            customer_id: customerId,
+            customer_name: customer.name,
+            customer_phone: customer.phone,
+            customer_email: customer.email || null,
+            items: items,
+            subtotal: totals.subtotal,
+            delivery_cost: delivery.cost,
+            total: totals.total,
+            delivery_method: delivery.method,
+            delivery_address: delivery.address,
+            customer_telegram: customer.telegram || null,
+            customer_birthday: customer.birthday || null,
+            order_status: 'pending',
+            payment_status: 'pending',
+            fiscal_status: 'pending',
+            notes: orderNotes.trim()
+        };
+
+        const { data: order, error: orderErr } = await supabase
+            .from('orders')
+            .insert(newOrderData)
+            .select()
+            .single();
+
+        if (orderErr) throw orderErr;
+
+        // 5. Trigger Order Placed Email
+        try {
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+            await fetch(`${siteUrl}/api/email/transactional`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'placed', orderId: order.id })
+            });
+            console.log(`[Manual Order] Triggered Order Placed email for ${order.id}`);
+        } catch (emailErr) {
+            console.error('[Manual Order] Failed to trigger email:', emailErr);
+        }
+
+        return NextResponse.json({ success: true, id: order.id, order_number: order.order_number });
+
+    } catch (err: any) {
+        console.error('Error creating manual order:', err);
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}

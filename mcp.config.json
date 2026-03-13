@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "website-designer": {
+            "command": "npx",
+            "args": [
+                "ts-node",
+                "mcp/website-designer.ts"
+            ]
+        }
+    }
+}

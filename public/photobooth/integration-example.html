@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photobooth Integration Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #333;
+    }
+
+    .instructions {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 10px;
+      margin-bottom: 2rem;
+    }
+
+    .instructions h2 {
+      margin-bottom: 1rem;
+      color: #667eea;
+    }
+
+    .instructions code {
+      background: #e9ecef;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .instructions pre {
+      background: #2d3748;
+      color: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+
+    .photobooth-wrapper {
+      width: 100%;
+      height: 600px;
+      border: 2px solid #e0e0e0;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    #photobooth-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+
+      .photobooth-wrapper {
+        height: 500px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📸 Online Photobooth - Integration Example</h1>
+
+    <div class="instructions">
+      <h2>How to Integrate</h2>
+      <p>To integrate the photobooth into your website, add an iframe to your page:</p>
+
+      <pre><code>&lt;!-- Basic Integration --&gt;
+&lt;iframe
+  src="https://yourdomain.com/photobooth"
+  width="100%"
+  height="600px"
+  frameborder="0"
+  allow="camera; microphone"
+&gt;&lt;/iframe&gt;</code></pre>
+
+      <p style="margin-top: 1rem;"><strong>Required Permissions:</strong></p>
+      <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+        <li><code>allow="camera"</code> - Required for camera access</li>
+        <li>HTTPS is required for camera permissions to work</li>
+      </ul>
+
+      <h3 style="margin-top: 1.5rem;">React/Next.js Integration</h3>
+      <pre><code>import { PhotoboothEmbed } from '@/components/photobooth';
+
+function MyPage() {
+  return (
+    &lt;PhotoboothEmbed
+      initialConfig={{
+        capture: { numberOfPhotos: 4 },
+        customization: { eventName: 'My Event' }
+      }}
+      allowConfiguration={true}
+    /&gt;
+  );
+}</code></pre>
+
+      <h3 style="margin-top: 1.5rem;">WordPress Integration</h3>
+      <p>Add this shortcode to any page or post:</p>
+      <pre><code>[iframe src="https://yourdomain.com/photobooth" width="100%" height="600px" allow="camera"]</code></pre>
+    </div>
+
+    <div class="photobooth-wrapper">
+      <div id="photobooth-container">
+        <!-- Photobooth will be embedded here -->
+        <!-- In a real deployment, you would use an iframe here -->
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          text-align: center;
+          padding: 2rem;
+        ">
+          <div>
+            <h2>Photobooth Component</h2>
+            <p style="margin: 1rem 0;">This is where the photobooth would be embedded.</p>
+            <p>Visit <strong>/photobooth</strong> in your Next.js app to see it in action!</p>
+            <a href="/photobooth" style="
+              display: inline-block;
+              margin-top: 1rem;
+              padding: 1rem 2rem;
+              background: rgba(255, 255, 255, 0.2);
+              color: white;
+              text-decoration: none;
+              border-radius: 50px;
+              border: 2px solid white;
+              font-weight: 600;
+            ">Launch Photobooth</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="instructions" style="margin-top: 2rem;">
+      <h2>Configuration Options</h2>
+      <p>You can customize the photobooth by passing URL parameters:</p>
+
+      <pre><code>https://yourdomain.com/photobooth?layout=photostrip_2x6&photos=4&event=Wedding</code></pre>
+
+      <p style="margin-top: 1rem;"><strong>Available Parameters:</strong></p>
+      <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+        <li><code>layout</code> - photostrip_2x6, print_4x6_grid, square_instagram, etc.</li>
+        <li><code>photos</code> - Number of photos to capture (1-10)</li>
+        <li><code>countdown</code> - Countdown seconds (1-10)</li>
+        <li><code>event</code> - Event name to display on photos</li>
+        <li><code>camera</code> - user (front) or environment (back)</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Example: Listen for messages from the photobooth iframe
+    window.addEventListener('message', function(event) {
+      // Verify origin in production!
+      // if (event.origin !== 'https://yourdomain.com') return;
+
+      if (event.data.type === 'photobooth-complete') {
+        console.log('Photobooth session completed!');
+        console.log('Image data:', event.data.imageDataUrl);
+
+        // You can now:
+        // 1. Upload the image to your server
+        // 2. Display it on your page
+        // 3. Send it via email
+        // etc.
+      }
+    });
+  </script>
+</body>
+</html>

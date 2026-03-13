@@ -1,0 +1,34 @@
+🧪 Touch Memories - Public Pages QA Test
+=======================================
+Started: Fri Mar 13 12:46:24 EET 2026
+
+
+=== MAIN PAGES ===
+✅ Homepage - / - Status: 200
+✅ Catalog Main - /catalog - Status: 200
+✅ Photobooks - /photobooks - Status: 200
+✅ Travelbook - /travelbook - Status: 200
+✅ Shopping Cart - /cart - Status: 200
+✅ Wishlist - /wishlist - Status: 200
+=== STATIC PAGES ===
+✅ About Us (Про нас) - /pro-nas - Status: 200
+✅ Contacts (Контакти) - /kontakty - Status: 200
+✅ Payment & Delivery - /oplata-i-dostavka - Status: 200
+✅ FAQ - /faq - Status: 200
+✅ Certificates - /sertyfikaty - Status: 200
+✅ Calendar Journal - /hliantsevyi-zhurnal - Status: 200
+✅ Other Products - /inshi-tovary - Status: 200
+=== BLOG PAGES ===
+✅ Blog Main - /blog - Status: 200
+❌ Blog Category - /blog/category/photobooks - Status: 404 - NOT FOUND
+✅ Blog Tag - /blog/tag/tips - Status: 200
+=== AUTH PAGES ===
+✅ Login - /login - Status: 200
+✅ Register - /register - Status: 200
+=== ORDER PAGES ===
+✅ Track Order - /track - Status: 200
+✅ Checkout - /checkout - Status: 200
+=== PHOTOBOOTH ===
+✅ Photobooth Main - /photobooth - Status: 200
+=======================================
+Completed: Fri Mar 13 12:46:27 EET 2026
