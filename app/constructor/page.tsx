@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { Button } from '@/components/ui/button';

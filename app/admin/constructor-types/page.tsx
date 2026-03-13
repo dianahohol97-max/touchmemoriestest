@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { Loader2, Plus, Edit2, Trash2, GripVertical, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
