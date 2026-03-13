@@ -1,8 +1,9 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import {
     User,
@@ -15,10 +16,7 @@ import {
 import Link from 'next/link';
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
     const router = useRouter();
     const pathname = usePathname();
     const [isLoading, setIsLoading] = useState(true);

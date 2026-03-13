@@ -10,14 +10,11 @@ import {
     Package, Folder, Star, CreditCard, Activity,
     TrendingDown, Printer, Shield
 } from 'lucide-react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
     const router = useRouter();
 
     const handleLogout = async () => {

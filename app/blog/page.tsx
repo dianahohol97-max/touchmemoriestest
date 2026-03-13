@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, Clock, ArrowRight, User } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Footer } from '@/components/ui/Footer';
 export const revalidate = 3600;
 
 export default async function BlogHomePage({ searchParams }: { searchParams: Promise<{ category?: string, page?: string }> }) {
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const supabase = await createClient();
     const { category, page } = await searchParams;
     const currentPage = parseInt(page || '1');
     const limit = 9;

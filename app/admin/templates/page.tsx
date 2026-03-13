@@ -1,17 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
     Loader2, Plus, Edit2, Trash2, Mail,
     Save, X, Info
 } from 'lucide-react';
-
-const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const CATEGORY_COLORS: Record<string, { bg: string, text: string, label: string }> = {
     'shipping': { bg: '#dcfce7', text: '#166534', label: 'Доставка' },
@@ -21,6 +16,7 @@ const CATEGORY_COLORS: Record<string, { bg: string, text: string, label: string 
 };
 
 export default function TemplatesPage() {
+    const supabase = createClient();
     const [templates, setTemplates] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);

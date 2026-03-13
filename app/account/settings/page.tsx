@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { Settings as SettingsIcon } from 'lucide-react';
 
 export default function SettingsPage() {

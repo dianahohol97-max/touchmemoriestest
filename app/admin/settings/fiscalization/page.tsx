@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import {
     Plus,
     FileText,
@@ -16,10 +16,7 @@ import {
 import { toast } from 'sonner';
 
 export default function FiscalizationPage() {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [accounts, setAccounts] = useState<any[]>([]);
     const [rules, setRules] = useState<any[]>([]);

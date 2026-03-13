@@ -1,15 +1,12 @@
 'use client';
 import { useState, useEffect, use } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import PromoCodeForm from '@/components/admin/marketing/PromoCodeForm';
 import { Loader2 } from 'lucide-react';
 
 export default function EditPromoCodePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
     const [promo, setPromo] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 

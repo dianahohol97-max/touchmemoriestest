@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { Settings } from 'lucide-react';
 
 export default function ProfilePage() {

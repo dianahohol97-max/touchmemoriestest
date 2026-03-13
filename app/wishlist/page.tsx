@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useWishlistStore } from '@/store/wishlist-store';
 import { useCartStore } from '@/store/cart-store';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
 export default function WishlistPage() {
@@ -16,10 +16,7 @@ export default function WishlistPage() {
     const [loading, setLoading] = useState(true);
     const [isClient, setIsClient] = useState(false);
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     useEffect(() => {
         setIsClient(true);

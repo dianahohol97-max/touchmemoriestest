@@ -1,18 +1,15 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { type NextRequest } from 'next/server';
+import { updateSession } from '@/lib/supabase/middleware';
 
-export function middleware(req: NextRequest) {
-    const response = NextResponse.next();
+export async function middleware(req: NextRequest) {
+    // 1. Update Supabase Session
+    const response = await updateSession(req);
 
-    // Capture Referral Code
+    // 2. Capture Referral Code (Preserved Logic)
     const refCode = req.nextUrl.searchParams.get('ref');
     if (refCode) {
         response.cookies.set('tm_ref', refCode, { maxAge: 60 * 60 * 24 * 30 }); // 30 days
     }
-
-    // Simple path-based protection (auth checks happen at page level)
-    // Note: Full auth validation happens in the actual page components
-    // This middleware just handles basic routing
 
     return response;
 }

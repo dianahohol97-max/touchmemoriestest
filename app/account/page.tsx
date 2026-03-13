@@ -1,14 +1,12 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { ShoppingBag, Package, Calendar, Tag, ChevronRight, ExternalLink } from 'lucide-react';
 import { formatDate } from '@/lib/utils'; // Assuming this utility exists or I'll provide a fallback
 
 export default function OrdersPage() {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
     const [orders, setOrders] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 

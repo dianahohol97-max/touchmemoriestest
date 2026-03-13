@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Clock, User, ArrowLeft, Hash } from 'lucide-react';
@@ -21,7 +21,7 @@ export default async function TagPage({ params, searchParams }: { params: Promis
     const { page } = await searchParams;
     const decodedTag = decodeURIComponent(tag);
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const supabase = await createClient();
 
     const currentPage = parseInt(page || '1');
     const limit = 9;

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/email/resend';
 import WelcomeEmail from '@/emails/WelcomeEmail';
 import { render } from '@react-email/components';

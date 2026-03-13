@@ -1,14 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { Mail, Users, Ticket, Zap, Plus, Search, Calendar, RefreshCw, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function MarketingAdminPage() {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
     const [activeTab, setActiveTab] = useState<'campaigns' | 'subscribers' | 'promos' | 'automations'>('campaigns');
 
     // Data states

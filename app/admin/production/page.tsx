@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatUKDate, addWorkingDays, getDeadlineStatus } from '@/lib/date-utils';
 import { toast } from 'sonner';
@@ -11,11 +11,6 @@ import {
     Calendar, User, Box, FileText, CheckSquare, Square
 } from 'lucide-react';
 
-const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 const COLUMNS = [
     { id: 'confirmed', title: 'Очікує друку' },
     { id: 'in_production', title: 'У друці' },
@@ -24,6 +19,7 @@ const COLUMNS = [
 ];
 
 export default function ProductionKanbanPage() {
+    const supabase = createClient();
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
@@ -9,10 +9,7 @@ import { toast } from 'sonner';
 import { Suspense } from 'react';
 
 function AdminLoginContent() {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [email, setEmail] = useState('');

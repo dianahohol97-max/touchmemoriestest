@@ -1,27 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        const cookieStore = await cookies();
-
-        // This relies on the auth token being sent via cookie if using standard Next.js auth flows
-        const accessToken = cookieStore.get('sb-access-token')?.value || '';
-
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                global: {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                },
-            }
-        );
+        const supabase = await createClient();
 
         // Get authenticated user
         const { data: { user }, error: authError } = await supabase.auth.getUser();
