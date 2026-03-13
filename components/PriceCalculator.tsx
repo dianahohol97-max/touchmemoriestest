@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, useSpring, useTransform, animate } from 'framer-motion';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { ChevronDown, Plus, Minus, Wand2, Calendar, Sparkles } from 'lucide-react';
 import { calculatePrice } from '@/lib/pricing';
 import { useTheme } from '@/components/providers/ThemeProvider';
@@ -24,10 +24,7 @@ function AnimatedNumber({ value }: { value: number }) {
 
 export default function PriceCalculator() {
     const { content } = useTheme();
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [product, setProduct] = useState<any>(null);
     const [format, setFormat] = useState('20×20');

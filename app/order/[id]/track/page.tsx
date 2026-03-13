@@ -1,18 +1,16 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { motion } from 'framer-motion';
 import { Package, Truck, CheckCircle2, Clock, MapPin, ExternalLink } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const getSupabase = () => createClient();
 
 export default function TrackOrderPage() {
+    const supabase = getSupabase();
     const params = useParams();
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);

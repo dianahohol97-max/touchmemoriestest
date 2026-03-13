@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 
 type ThemeContextType = {
     theme: any;
@@ -25,10 +25,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [contentMap, setContentMap] = useState<Record<string, string>>({});
     const [isLoading, setIsLoading] = useState(true);
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     useEffect(() => {
         // 1. Initial Fetch

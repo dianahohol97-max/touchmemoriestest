@@ -1,15 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { toast } from 'sonner';
 import { Save, Bot, MessageSquare } from 'lucide-react';
+import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const getSupabase = () => createClient();
 
 export default function ChatbotSettingsPage() {
+    const supabase = getSupabase();
     const [systemPrompt, setSystemPrompt] = useState('');
     const [autoEscalate, setAutoEscalate] = useState('10');
     const [platforms, setPlatforms] = useState({ telegram: true, instagram: false, facebook: false });

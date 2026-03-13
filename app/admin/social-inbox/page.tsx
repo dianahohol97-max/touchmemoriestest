@@ -1,15 +1,14 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { Bot, User, Send, CheckCircle2, RotateCcw, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Initialize lazily to avoid build-time crashes
+const getSupabase = () => createClient();
 
 export default function SocialInboxPage() {
+    const supabase = getSupabase();
     const [conversations, setConversations] = useState<any[]>([]);
     const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
     const [messages, setMessages] = useState<any[]>([]);

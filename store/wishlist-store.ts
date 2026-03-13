@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+
+const getSupabase = () => createClient();
 
 interface WishlistItem {
     id: string; // Internal UUID
@@ -31,7 +33,7 @@ export const useWishlistStore = create<WishlistState>()(
             },
 
             toggleItem: async (productId) => {
-                const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+                const supabase = getSupabase();
                 const { data: userData } = await supabase.auth.getUser();
                 const user = userData.user;
                 const items = get().items;
@@ -88,7 +90,7 @@ export const useWishlistStore = create<WishlistState>()(
             },
 
             syncWithSupabase: async (customerId) => {
-                const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+                const supabase = getSupabase();
                 const sessionId = get().sessionId;
 
                 let query = supabase.from('wishlists').select('id, product_id, added_at');

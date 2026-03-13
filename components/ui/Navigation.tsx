@@ -4,7 +4,7 @@ import { Search, User, ShoppingCart, Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cart-store';
 import Link from 'next/link';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 
 export function Navigation() {
     const [isScrolled, setIsScrolled] = useState(false);
@@ -13,10 +13,7 @@ export function Navigation() {
     const [otherCategories, setOtherCategories] = useState<any[]>([]);
     const { items: cartItems, openDrawer } = useCartStore();
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     useEffect(() => {
         const handleScroll = () => {

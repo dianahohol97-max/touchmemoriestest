@@ -1,11 +1,9 @@
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 
-const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const getSupabase = () => createClient();
 
 export async function logCartEvent(eventType: 'add_to_cart' | 'begin_checkout' | 'purchase', productId?: string) {
+    const supabase = getSupabase();
     try {
         // Get or create session ID from localStorage
         let sessionId = localStorage.getItem('tm_session_id');

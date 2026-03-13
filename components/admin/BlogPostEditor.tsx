@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import MDEditor from '@uiw/react-md-editor';
 import { Loader2, Save, Sparkles, Image as ImageIcon, Eye, ArrowLeft, Trash2, X, Plus, GripVertical, AlignLeft, AlignCenter, AlignRight, FileText, Search } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
@@ -15,10 +15,7 @@ interface BlogPostEditorProps {
 
 export default function BlogPostEditor({ initialData, isEditMode = false }: BlogPostEditorProps) {
     const router = useRouter();
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
