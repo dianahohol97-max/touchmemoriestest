@@ -6,16 +6,17 @@ export async function updateSession(request: NextRequest) {
         request,
     })
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    if (!url || !key) {
+        console.error('Supabase env vars missing in middleware:', { url: !!url, key: !!key })
+        throw new Error(`supabaseKey is required. URL: ${url}, Key: ${key}`)
     }
 
     const supabase = createServerClient(
-        supabaseUrl,
-        supabaseKey,
+        url,
+        key,
         {
             cookies: {
                 getAll() {
