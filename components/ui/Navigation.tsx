@@ -290,7 +290,7 @@ export function Navigation() {
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', color: 'var(--primary)' }}>
                             <button aria-label="Search" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><Search size={20} /></button>
-                            <Link href="/login" aria-label="User account" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><User size={20} /></Link>
+                            <UserAuthIcon />
                             <button
                                 onClick={openDrawer}
                                 style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
@@ -303,9 +303,7 @@ export function Navigation() {
 
                     {/* Mobile Nav Toggle */}
                     <div className={`mobile-only ${styles.navFlexMobile}`} style={{ alignItems: 'center', gap: '20px', color: 'var(--primary)' }}>
-                        <Link href="/login" aria-label="User account" style={{ color: 'inherit' }}>
-                            <User size={22} />
-                        </Link>
+                        <UserAuthIcon />
                         <button
                             onClick={openDrawer}
                             style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
@@ -382,5 +380,60 @@ export function Navigation() {
             </AnimatePresence>
 
         </>
+    );
+}
+
+function UserAuthIcon() {
+    const supabase = createClient();
+    const [status, setStatus] = useState<any>(null);
+
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setStatus({
+                    avatar: session.user.user_metadata.avatar_url || session.user.user_metadata.picture,
+                    isLoggedIn: true
+                });
+            } else {
+                setStatus({ isLoggedIn: false });
+            }
+        };
+        checkUser();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session) {
+                setStatus({
+                    avatar: session.user.user_metadata.avatar_url || session.user.user_metadata.picture,
+                    isLoggedIn: true
+                });
+            } else {
+                setStatus({ isLoggedIn: false });
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [supabase]);
+
+    if (status?.isLoggedIn) {
+        return (
+            <Link href="/account" style={{ display: 'flex', alignItems: 'center' }}>
+                {status.avatar ? (
+                    <img
+                        src={status.avatar}
+                        alt="User"
+                        style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #e2e8f0' }}
+                    />
+                ) : (
+                    <User size={20} />
+                )}
+            </Link>
+        );
+    }
+
+    return (
+        <Link href="/login" aria-label="User account" style={{ color: 'inherit' }}>
+            <User size={22} />
+        </Link>
     );
 }
