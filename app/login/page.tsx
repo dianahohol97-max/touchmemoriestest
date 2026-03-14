@@ -10,12 +10,18 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    const supabase = (supabaseUrl && supabaseKey)
+        ? createBrowserClient(supabaseUrl, supabaseKey)
+        : null
 
     const handleGoogleLogin = async () => {
+        if (!supabase) {
+            setError('Supabase connection not initialized')
+            return
+        }
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -33,6 +39,10 @@ export default function LoginPage() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        if (!supabase) {
+            setError('Supabase connection not initialized')
+            return
+        }
         setLoading(true)
         setError('')
         const form = e.currentTarget

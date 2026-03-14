@@ -21,10 +21,20 @@ export default function Register() {
     const [isLoading, setIsLoading] = useState(false);
 
     const router = useRouter();
-    const supabase = createClient();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    const supabase = (supabaseUrl && supabaseKey)
+        ? createClient()
+        : null;
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!supabase) {
+            toast.error('Supabase connection not initialized');
+            return;
+        }
 
         if (password !== confirmPassword) {
             toast.error('Паролі не співпадають');
@@ -60,10 +70,15 @@ export default function Register() {
     };
 
     const handleGoogleSignUp = async () => {
-        const supabase = createBrowserClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            toast.error('Supabase connection not initialized');
+            return;
+        }
+
+        const supabase = createBrowserClient(supabaseUrl, supabaseKey)
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {

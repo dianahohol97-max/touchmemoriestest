@@ -4,42 +4,48 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 
-export default function AccountLayout({ 
-  children 
-}: { 
-  children: React.ReactNode 
+export default function AccountLayout({
+  children
+}: {
+  children: React.ReactNode
 }) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseKey) {
+      setUser(null)
+      setLoading(false)
+      return
+    }
+
+    const supabase = createBrowserClient(supabaseUrl, supabaseKey)
 
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      
+
       if (!session) {
         router.push('/login')
         return
       }
-      
+
       setUser(session.user)
       setLoading(false)
     }
-    
+
     getUser()
   }, [])
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         minHeight: '100vh',
         fontSize: '16px',
         color: '#64748b'
@@ -51,20 +57,20 @@ export default function AccountLayout({
 
   if (!user) return null
 
-  const displayName = user?.user_metadata?.full_name 
-    || user?.user_metadata?.name 
-    || user?.email?.split('@')[0] 
+  const displayName = user?.user_metadata?.full_name
+    || user?.user_metadata?.name
+    || user?.email?.split('@')[0]
     || 'Користувач'
 
-  const avatarUrl = user?.user_metadata?.avatar_url 
-    || user?.user_metadata?.picture 
+  const avatarUrl = user?.user_metadata?.avatar_url
+    || user?.user_metadata?.picture
     || null
 
   const firstLetter = displayName?.[0]?.toUpperCase() ?? 'U'
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
-      <div style={{ 
+      <div style={{
         padding: '24px 32px',
         borderBottom: '1px solid #e2e8f0',
         backgroundColor: 'white',
@@ -73,10 +79,10 @@ export default function AccountLayout({
         gap: '16px'
       }}>
         {avatarUrl ? (
-          <img 
-            src={avatarUrl} 
-            width={48} 
-            height={48} 
+          <img
+            src={avatarUrl}
+            width={48}
+            height={48}
             style={{ borderRadius: '50%' }}
             alt={displayName}
           />
