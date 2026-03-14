@@ -39,16 +39,36 @@ export default function Login() {
     };
 
     const handleGoogleLogin = async () => {
+        console.log('Google login initiated')
+        console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+
         const supabase = createBrowserClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         )
-        await supabase.auth.signInWithOAuth({
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`
+                redirectTo: window.location.origin + '/auth/callback',
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                }
             }
         })
+
+        if (error) {
+            console.error('Google login error:', error)
+            alert('Помилка входу: ' + error.message)
+            return
+        }
+
+        // data.url contains the Google OAuth URL
+        // supabase automatically redirects, but if not:
+        if (data?.url) {
+            window.location.href = data.url
+        }
     }
 
     return (
