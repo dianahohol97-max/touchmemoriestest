@@ -389,6 +389,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
 
         const payload = {
             ...restFormData,
+            category_id: restFormData.category_id === '' || restFormData.category_id === 'none' || !restFormData.category_id ? null : restFormData.category_id,
             price: lowestPrice,
             stock_quantity: stock,
             status: publish ? 'active' : 'draft',
@@ -690,7 +691,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             <div>
                                 <label style={labelStyle}>Категорія</label>
-                                <select name="category_id" value={formData.category_id} onChange={handleInputChange} style={selectInputStyle}>
+                                <select name="category_id" value={formData.category_id || ''} onChange={handleInputChange} style={selectInputStyle}>
                                     <option value="">Не вибрано</option>
                                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
