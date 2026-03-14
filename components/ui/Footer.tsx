@@ -95,7 +95,7 @@ export function Footer({ categories = [] }: FooterProps) {
                             <li><a href="/oplata-i-dostavka" style={{ color: 'white', textDecoration: 'none', opacity: 0.6 }}>Доставка та оплата</a></li>
                             <li><a href="/shipping-returns" style={{ color: 'white', textDecoration: 'none', opacity: 0.6 }}>Обмін та повернення</a></li>
                             <li><a href="/faq" style={{ color: 'white', textDecoration: 'none', opacity: 0.6 }}>Питання та відповіді</a></li>
-                            <li><a href="/constructor" style={{ color: 'white', textDecoration: 'none', opacity: 0.6 }}>Конструктор</a></li>
+                            <li><a href="/book-constructor" style={{ color: 'white', textDecoration: 'none', opacity: 0.6 }}>Конструктор</a></li>
                         </ul>
                     </div>
 
