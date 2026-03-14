@@ -131,102 +131,50 @@ function CatalogContent() {
                 </h1>
             </header>
 
-            <div className="catalog-layout" style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '40px' }}>
-                {/* Mobile Filter Button */}
-                <button
-                    className="mobile-filter-btn hidden"
-                    onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-                    style={{
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        width: '100%',
-                        padding: '16px',
-                        backgroundColor: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '12px',
-                        fontSize: '16px',
-                        fontWeight: 600,
-                        marginBottom: '24px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    <Filter size={20} /> Фільтр
-                </button>
-
-                {/* Sidebar */}
-                <aside className={`sidebar ${isMobileFilterOpen ? 'block' : 'hidden md:block'}`} style={{ position: 'sticky', top: '120px', height: 'fit-content' }}>
-                    <h2 style={{ fontSize: '14px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '24px', color: '#888' }}>
-                        Категорії
-                    </h2>
-                    {isLoading ? (
-                        <div className="animate-pulse flex flex-col gap-4">
-                            {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-6 bg-slate-200 rounded w-full"></div>)}
-                        </div>
-                    ) : (
-                        <nav style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {categories.map((cat) => (
-                                <button
-                                    key={cat.id}
-                                    onClick={() => handleCategoryChange(cat.slug)}
-                                    style={{
-                                        textAlign: 'left',
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        fontSize: '16px',
-                                        fontWeight: selectedCategory === cat.slug ? 800 : 500,
-                                        color: selectedCategory === cat.slug ? 'var(--primary)' : '#444',
-                                        padding: '8px 0',
-                                        transition: 'color 0.2s',
-                                        outline: 'none',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '12px'
-                                    }}
-                                >
-                                    {cat.display_style === 'thumbnail' && cat.cover_image && (
-                                        <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
-                                            <img src={cat.cover_image} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                        </div>
-                                    )}
-                                    {cat.name}
-                                </button>
-                            ))}
-                        </nav>
-                    )}
+            <div className="catalog-layout">
+                {/* Sidebar (Desktop) */}
+                <aside className="sidebar desktop-only">
+                    <div className="sticky-sidebar">
+                        <h2 className="sidebar-title">Категорії</h2>
+                        {isLoading ? (
+                            <div className="animate-pulse flex flex-col gap-4">
+                                {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-6 bg-slate-200 rounded w-full"></div>)}
+                            </div>
+                        ) : (
+                            <nav className="category-list">
+                                {categories.map((cat) => (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => handleCategoryChange(cat.slug)}
+                                        className={`category-item ${selectedCategory === cat.slug ? 'active' : ''}`}
+                                    >
+                                        {cat.display_style === 'thumbnail' && cat.cover_image && (
+                                            <div className="category-thumbnail">
+                                                <img src={cat.cover_image} alt={cat.name} />
+                                            </div>
+                                        )}
+                                        {cat.name}
+                                    </button>
+                                ))}
+                            </nav>
+                        )}
+                    </div>
                 </aside>
 
                 {/* Main Content */}
-                <div>
+                <div className="catalog-main">
                     {/* Category Banner */}
                     {selectedCategory !== 'all' && (() => {
                         const currentCat = categories.find(c => c.slug === selectedCategory);
                         if (currentCat?.display_style === 'banner' && currentCat.cover_image) {
                             return (
-                                <div style={{
-                                    width: '100%',
-                                    height: '200px',
-                                    borderRadius: '24px',
-                                    overflow: 'hidden',
-                                    marginBottom: '32px',
-                                    position: 'relative'
-                                }}>
+                                <div className="category-banner">
                                     <img
                                         src={currentCat.cover_image}
                                         alt={currentCat.name}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     />
-                                    <div style={{
-                                        position: 'absolute',
-                                        bottom: 0,
-                                        left: 0,
-                                        right: 0,
-                                        background: 'linear-gradient(transparent, rgba(0,0,0,0.4))',
-                                        padding: '24px',
-                                        color: 'white'
-                                    }}>
-                                        <h2 style={{ fontSize: '24px', fontWeight: 900 }}>{currentCat.name}</h2>
+                                    <div className="banner-overlay">
+                                        <h2>{currentCat.name}</h2>
                                     </div>
                                 </div>
                             );
@@ -234,37 +182,34 @@ function CatalogContent() {
                         return null;
                     })()}
 
-                    {/* Sorting Bar */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid #f0f0f0' }}>
-                        <div style={{ fontSize: '14px', color: '#666', fontWeight: 500 }}>
-                            Знайдено: <span style={{ fontWeight: 800, color: '#1e293b' }}>{isLoading ? '...' : sortedProducts.length} товарів</span>
+                    {/* Controls Bar */}
+                    <div className="controls-bar">
+                        <div className="left-controls">
+                            <button
+                                className="filter-toggle-btn"
+                                onClick={() => setIsMobileFilterOpen(true)}
+                            >
+                                <Filter size={18} />
+                                <span>Фільтри</span>
+                            </button>
+                            <div className="results-count">
+                                Знайдено: <span>{isLoading ? '...' : sortedProducts.length} товарів</span>
+                            </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{ fontSize: '14px', color: '#666' }}>Сортувати за:</span>
-                            <div style={{ position: 'relative' }}>
+                        <div className="sort-controls">
+                            <span className="sort-label">Сортувати:</span>
+                            <div className="select-wrapper">
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    style={{
-                                        appearance: 'none',
-                                        padding: '8px 40px 8px 16px',
-                                        borderRadius: '8px',
-                                        border: '1px solid #e2e8f0',
-                                        backgroundColor: 'white',
-                                        fontSize: '14px',
-                                        fontWeight: 600,
-                                        color: '#1e293b',
-                                        cursor: 'pointer',
-                                        outline: 'none'
-                                    }}
                                 >
                                     <option value="popular">Популярністю</option>
                                     <option value="price_asc">Ціною (зростання)</option>
                                     <option value="price_desc">Ціною (спадання)</option>
                                     <option value="new">Новинками</option>
                                 </select>
-                                <ChevronDown size={16} color="#666" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                                <ChevronDown className="select-icon" size={16} />
                             </div>
                         </div>
                     </div>
@@ -287,7 +232,7 @@ function CatalogContent() {
                                 </div>
                             ))}
                             {sortedProducts.length === 0 && (
-                                <div style={{ gridColumn: '1 / -1', padding: '100px 0', textAlign: 'center', color: '#888' }}>
+                                <div className="no-products">
                                     У цій категорії поки немає товарів.
                                 </div>
                             )}
@@ -296,34 +241,365 @@ function CatalogContent() {
                 </div>
             </div>
 
+            {/* Mobile Filter Drawer */}
+            {isMobileFilterOpen && (
+                <div className="mobile-drawer-overlay" onClick={() => setIsMobileFilterOpen(false)}>
+                    <div className="mobile-drawer" onClick={e => e.stopPropagation()}>
+                        <div className="drawer-header">
+                            <h3>Фільтри</h3>
+                            <button className="close-btn" onClick={() => setIsMobileFilterOpen(false)}>✕</button>
+                        </div>
+                        <div className="drawer-content">
+                            <h4 className="drawer-section-title">Категорії</h4>
+                            <nav className="drawer-category-list">
+                                {categories.map((cat) => (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => handleCategoryChange(cat.slug)}
+                                        className={`drawer-category-item ${selectedCategory === cat.slug ? 'active' : ''}`}
+                                    >
+                                        {cat.name}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style jsx>{`
+                .catalog-layout {
+                    display: flex;
+                    gap: 40px;
+                    align-items: flex-start;
+                }
+
+                .sidebar {
+                    width: 240px;
+                    flex-shrink: 0;
+                }
+
+                .sticky-sidebar {
+                    position: sticky;
+                    top: 120px;
+                    max-height: calc(100vh - 160px);
+                    overflow-y: auto;
+                    padding-right: 10px;
+                }
+
+                .sticky-sidebar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .sticky-sidebar::-webkit-scrollbar-thumb {
+                    background: #eee;
+                    border-radius: 10px;
+                }
+
+                .sidebar-title {
+                    font-size: 14px;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    margin-bottom: 24px;
+                    color: #888;
+                }
+
+                .category-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+
+                .category-item {
+                    text-align: left;
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    padding: 10px 12px;
+                    border-radius: 8px;
+                    font-size: 15px;
+                    font-weight: 500;
+                    color: #444;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    transition: all 0.2s;
+                }
+
+                .category-item:hover {
+                    background-color: #f1f5f9;
+                    color: var(--primary);
+                }
+
+                .category-item.active {
+                    background-color: #f1f5f9;
+                    font-weight: 800;
+                    color: var(--primary);
+                }
+
+                .category-thumbnail {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    overflow: hidden;
+                    flex-shrink: 0;
+                }
+
+                .category-thumbnail img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .catalog-main {
+                    flex: 1;
+                    min-width: 0;
+                }
+
+                .category-banner {
+                    width: 100%;
+                    height: 200px;
+                    border-radius: 20px;
+                    overflow: hidden;
+                    margin-bottom: 32px;
+                    position: relative;
+                }
+
+                .category-banner img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .banner-overlay {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: linear-gradient(transparent, rgba(0,0,0,0.4));
+                    padding: 24px;
+                    color: white;
+                }
+
+                .banner-overlay h2 {
+                    font-size: 24px;
+                    font-weight: 900;
+                }
+
+                .controls-bar {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 32px;
+                    padding-bottom: 16px;
+                    border-bottom: 1px solid #f1f1f1;
+                    gap: 16px;
+                    flex-wrap: wrap;
+                }
+
+                .left-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 20px;
+                }
+
+                .filter-toggle-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    height: 40px;
+                    padding: 0 16px;
+                    border-radius: 8px;
+                    border: 1px solid #e2e8f0;
+                    background-color: white;
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #1e293b;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                /* Show on mobile, keep desktop functional for drawer too or hide if not needed */
+                .desktop-only { display: block; }
+                
+                .filter-toggle-btn:hover {
+                    border-color: #cbd5e1;
+                    background-color: #f8fafc;
+                }
+
+                .results-count {
+                    font-size: 14px;
+                    color: #666;
+                    font-weight: 500;
+                }
+
+                .results-count span {
+                    font-weight: 800;
+                    color: #1e293b;
+                }
+
+                .sort-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+
+                .sort-label {
+                    font-size: 14px;
+                    color: #666;
+                }
+
+                .select-wrapper {
+                    position: relative;
+                }
+
+                .select-wrapper select {
+                    appearance: none;
+                    padding: 8px 36px 8px 16px;
+                    border-radius: 8px;
+                    border: 1px solid #e2e8f0;
+                    background-color: white;
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #1e293b;
+                    cursor: pointer;
+                    outline: none;
+                }
+
+                .select-icon {
+                    position: absolute;
+                    right: 12px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    pointer-events: none;
+                    color: #666;
+                }
+
                 .product-grid {
                     display: grid;
                     grid-template-columns: repeat(3, 1fr);
-                    gap: 32px;
+                    gap: 24px;
                 }
-                
+
+                .no-products {
+                    grid-column: 1 / -1;
+                    padding: 80px 0;
+                    text-align: center;
+                    color: #888;
+                    font-size: 16px;
+                }
+
+                /* Mobile Drawer Styles */
+                .mobile-drawer-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-color: rgba(0, 0, 0, 0.4);
+                    z-index: 1000;
+                    display: flex;
+                    align-items: flex-end;
+                }
+
+                .mobile-drawer {
+                    width: 100%;
+                    background-color: white;
+                    border-radius: 24px 24px 0 0;
+                    padding: 24px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    animation: slideUp 0.3s ease-out;
+                }
+
+                @keyframes slideUp {
+                    from { transform: translateY(100%); }
+                    to { transform: translateY(0); }
+                }
+
+                .drawer-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 24px;
+                }
+
+                .drawer-header h3 {
+                    font-size: 20px;
+                    font-weight: 800;
+                }
+
+                .close-btn {
+                    background: #f1f5f9;
+                    border: none;
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    font-size: 18px;
+                }
+
+                .drawer-section-title {
+                    font-size: 14px;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    color: #888;
+                    margin-bottom: 16px;
+                }
+
+                .drawer-category-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+
+                .drawer-category-item {
+                    text-align: left;
+                    padding: 14px 16px;
+                    border-radius: 12px;
+                    background-color: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    font-size: 16px;
+                    font-weight: 500;
+                    color: #1e293b;
+                    cursor: pointer;
+                }
+
+                .drawer-category-item.active {
+                    background-color: #f1f5f9;
+                    border-color: var(--primary);
+                    color: var(--primary);
+                    font-weight: 800;
+                }
+
                 @media (max-width: 1024px) {
                     .product-grid {
                         grid-template-columns: repeat(2, 1fr);
                     }
                 }
-                
+
                 @media (max-width: 768px) {
+                    .desktop-only {
+                        display: none;
+                    }
                     .catalog-layout {
-                        grid-template-columns: 1fr !important;
-                    }
-                    .mobile-filter-btn {
-                        display: flex !important;
-                    }
-                    .sidebar {
-                        background: #f8f9fa;
-                        padding: 24px;
-                        border-radius: 12px;
-                        margin-bottom: 24px;
+                        flex-direction: column;
+                        gap: 0;
                     }
                     .product-grid {
                         grid-template-columns: 1fr;
+                        gap: 20px;
+                    }
+                    .controls-bar {
+                        margin-bottom: 24px;
+                    }
+                    .left-controls {
+                        width: 100%;
+                        justify-content: space-between;
                     }
                 }
             `}</style>
