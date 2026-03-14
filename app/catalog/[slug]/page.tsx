@@ -192,7 +192,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             )}
                         </div>
                         {(thumbnails.length > 1 || product.video_url) && (
-                            <div className="thumbnail-container" style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }} className="custom-scrollbar">
+                            <div className="thumbnail-container custom-scrollbar" style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
                                 {thumbnails.map((src: string, idx: number) => (
                                     <button
                                         key={idx}
