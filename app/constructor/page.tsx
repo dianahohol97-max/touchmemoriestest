@@ -1,6 +1,4 @@
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const output = 'standalone';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { Button } from '@/components/ui/button';
