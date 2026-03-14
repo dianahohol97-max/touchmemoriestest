@@ -215,7 +215,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
         if (validFiles.length === 0) return;
 
         setUploading(true);
-        const uploadedUrls = [...images];
+        const newImagesBatch: string[] = [];
         const total = validFiles.length;
 
         for (let i = 0; i < total; i++) {
@@ -237,7 +237,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                     .from('products')
                     .getPublicUrl(filePath);
 
-                uploadedUrls.push(publicUrl);
+                newImagesBatch.push(publicUrl);
                 toast.dismiss(toastId);
             } catch (err: any) {
                 toast.error(`Помилка завантаження ${file.name}: ${err.message}`);
@@ -245,10 +245,38 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
             }
         }
 
-        setImages(uploadedUrls);
+        const updatedImages = [...images, ...newImagesBatch];
+        setImages(updatedImages);
+
+        // If editing, update the products table immediately 
+        if (isEditing && initialData?.id) {
+            try {
+                // Get current images array from DB to avoid overwriting recent changes
+                const { data: product } = await supabase
+                    .from('products')
+                    .select('images')
+                    .eq('id', initialData.id)
+                    .single();
+
+                const dbImages = product?.images || [];
+                const finalImages = [...dbImages, ...newImagesBatch].slice(0, 10);
+
+                const { error: updateError } = await supabase
+                    .from('products')
+                    .update({ images: finalImages })
+                    .eq('id', initialData.id);
+
+                if (updateError) throw updateError;
+                setImages(finalImages); // Sync state with DB
+            } catch (err: any) {
+                console.error('Immediate update error:', err);
+                toast.error('Помилка синхронізації з базою даних');
+            }
+        }
+
         setUploading(false);
-        toast.success('Зображення успішно оновлено');
-    }, [images, supabase]);
+        toast.success(newImagesBatch.length > 0 ? 'Зображення додано' : 'Нічого не завантажено');
+    }, [images, supabase, isEditing, initialData?.id]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
@@ -289,6 +317,17 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                 .getPublicUrl(filePath);
 
             setFormData(prev => ({ ...prev, video_url: publicUrl }));
+
+            // If editing, update database immediately
+            if (isEditing && initialData?.id) {
+                const { error: updateError } = await supabase
+                    .from('products')
+                    .update({ video_url: publicUrl })
+                    .eq('id', initialData.id);
+
+                if (updateError) throw updateError;
+            }
+
             toast.success('Відео завантажено');
         } catch (err: any) {
             toast.error(`Помилка: ${err.message}`);
@@ -504,7 +543,22 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                                                 url={url}
                                                 index={index}
                                                 isFirst={index === 0}
-                                                onRemove={(u) => setImages(images.filter(img => img !== u))}
+                                                onRemove={async (u) => {
+                                                    const newImages = images.filter(img => img !== u);
+                                                    setImages(newImages);
+
+                                                    // If editing, update database immediately
+                                                    if (isEditing && initialData?.id) {
+                                                        const { error } = await supabase
+                                                            .from('products')
+                                                            .update({ images: newImages })
+                                                            .eq('id', initialData.id);
+
+                                                        if (error) {
+                                                            toast.error('Помилка при видаленні з бази');
+                                                        }
+                                                    }
+                                                }}
                                             />
                                         ))}
                                     </div>
@@ -526,7 +580,16 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                                                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 700 }}>Відео завантажено</p>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setFormData(p => ({ ...p, video_url: '' }))}
+                                                    onClick={async () => {
+                                                        setFormData(p => ({ ...p, video_url: '' }));
+                                                        if (isEditing && initialData?.id) {
+                                                            await supabase
+                                                                .from('products')
+                                                                .update({ video_url: '' })
+                                                                .eq('id', initialData.id);
+                                                            toast.success('Відео видалено');
+                                                        }
+                                                    }}
                                                     style={{ marginTop: '8px', padding: '4px 12px', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
                                                 >
                                                     Видалити відео
