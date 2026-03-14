@@ -168,7 +168,13 @@ export function Categories() {
                 </div>
             </motion.div>
             <style jsx>{`
+        .categories-section {
+            flex-direction: row; /* Default for desktop */
+        }
         @media (max-width: 768px) {
+          .categories-section {
+            flex-direction: column; /* Stack vertically on mobile */
+          }
           .category-col { max-width: 100% !important; }
         }
       `}</style>

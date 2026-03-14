@@ -590,16 +590,28 @@ function CatalogContent() {
                         flex-direction: column;
                         gap: 0;
                     }
+                    .catalog-main {
+                        padding: 0;
+                    }
                     .product-grid {
-                        grid-template-columns: 1fr;
-                        gap: 20px;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 12px;
                     }
                     .controls-bar {
                         margin-bottom: 24px;
+                        padding-bottom: 12px;
                     }
                     .left-controls {
                         width: 100%;
                         justify-content: space-between;
+                        gap: 10px;
+                    }
+                    .filter-toggle-btn {
+                        padding: 0 12px;
+                        font-size: 13px;
+                    }
+                    .results-count {
+                        font-size: 13px;
                     }
                 }
             `}</style>

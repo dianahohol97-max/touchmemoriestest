@@ -98,15 +98,18 @@ export default async function Home() {
             const block = blocks?.find((b: any) => b.block_name === 'featured_products');
             const style = block?.style_metadata || {};
             return (
-              <section style={{
-                padding: '40px 0 20px',
-                backgroundColor: style.bg_color || 'transparent',
-                borderRadius: style.border_radius || '0px'
-              }}>
-                <div className="container" style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <section
+                className="home-section"
+                style={{
+                  padding: '80px 0 40px',
+                  backgroundColor: style.bg_color || 'transparent',
+                  borderRadius: style.border_radius || '0px'
+                }}
+              >
+                <div className="container" style={{ textAlign: 'center', marginBottom: '40px' }}>
                   <h2 style={{
                     fontFamily: 'var(--font-heading)',
-                    fontSize: '36px',
+                    fontSize: 'min(36px, 8vw)',
                     fontWeight: 900,
                     color: style.text_color || 'inherit'
                   }}>
@@ -175,6 +178,16 @@ export default async function Home() {
         </SectionWrapper>
       </main>
       <Footer categories={allCategories || []} />
+      <style jsx global>{`
+        @media (max-width: 768px) {
+          .home-section {
+            padding: 40px 0 !important;
+          }
+          .home-section .container {
+            margin-bottom: 24px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

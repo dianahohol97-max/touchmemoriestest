@@ -41,7 +41,7 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                     transition={{ duration: 0.6 }}
                     style={{ textAlign: 'center', marginBottom: '60px' }}
                 >
-                    <h2 style={{
+                    <h2 className="travel-title" style={{
                         fontFamily: 'var(--font-heading)',
                         fontSize: '48px',
                         fontWeight: 900,
@@ -49,38 +49,21 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                     }}>
                         {content['travel_title'] || 'Travel Book'}
                     </h2>
-                    <p style={{ fontSize: '18px', color: '#666', maxWidth: '600px', margin: '0 auto' }}>
+                    <p className="travel-subtitle" style={{ fontSize: '18px', color: '#666', maxWidth: '600px', margin: '0 auto' }}>
                         {content['travel_subtitle'] || 'Збережіть ваші подорожі у преміальному Travel Book'}
                     </p>
                 </motion.div>
 
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                    gap: '40px',
-                    alignItems: 'start'
-                }}>
+                <div className="travel-grid">
                     {/* Left Column - Featured Travel Article & Locations */}
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={inView ? { opacity: 1, x: 0 } : {}}
                         transition={{ duration: 0.6, delay: 0.2 }}
-                        style={{ display: 'flex', flexDirection: 'column', gap: '40px', height: '100%' }}
+                        className="travel-column travel-left"
                     >
                         {/* Top Locations Block */}
-                        <div style={{
-                            backgroundColor: 'white',
-                            borderRadius: '16px',
-                            padding: '40px',
-                            textAlign: 'center',
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                            flex: 1,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            minHeight: '300px'
-                        }}>
+                        <div className="travel-card locations-card">
                             <MapPin size={48} color="#ccc" style={{ marginBottom: '16px' }} />
                             <h3 style={{
                                 fontFamily: 'var(--font-heading)',
@@ -100,18 +83,7 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                         {travelPost ? (
                             <Link
                                 href={`/blog/${travelPost.slug}`}
-                                style={{
-                                    textDecoration: 'none',
-                                    color: 'inherit',
-                                    display: 'block',
-                                    backgroundColor: 'white',
-                                    borderRadius: '16px',
-                                    overflow: 'hidden',
-                                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                                    transition: 'transform 0.3s, box-shadow 0.3s',
-                                    flex: 1
-                                }}
-                                className="hover-lift"
+                                className="travel-card article-card hover-lift"
                             >
                                 {/* Cover Image */}
                                 <div style={{
@@ -194,19 +166,7 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                                 </div>
                             </Link>
                         ) : (
-                            <div style={{
-                                backgroundColor: 'white',
-                                borderRadius: '16px',
-                                padding: '40px',
-                                textAlign: 'center',
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                minHeight: '300px'
-                            }}>
+                            <div className="travel-card article-card placeholder">
                                 <MapPin size={48} color="#ccc" style={{ marginBottom: '16px' }} />
                                 <h3 style={{
                                     fontFamily: 'var(--font-heading)',
@@ -229,16 +189,7 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                         initial={{ opacity: 0, x: 20 }}
                         animate={inView ? { opacity: 1, x: 0 } : {}}
                         transition={{ duration: 0.6, delay: 0.4 }}
-                        style={{
-                            backgroundColor: 'white',
-                            borderRadius: '16px',
-                            padding: '40px',
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            textAlign: 'center'
-                        }}
+                        className="travel-column travel-right cta-card"
                     >
                         <h3 style={{
                             fontFamily: 'var(--font-heading)',
@@ -326,6 +277,73 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                     </motion.div>
                 </div>
             </div>
+
+            <style jsx>{`
+                .travel-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    gap: 40px;
+                    align-items: start;
+                }
+                .travel-column {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 40px;
+                    height: 100%;
+                }
+                .travel-card {
+                    background-color: white;
+                    border-radius: 16px;
+                    padding: 40px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                    text-align: center;
+                }
+                .article-card {
+                    padding: 0;
+                    overflow: hidden;
+                    text-align: left;
+                    text-decoration: none;
+                    color: inherit;
+                }
+                .cta-card {
+                    background-color: white;
+                    border-radius: 16px;
+                    padding: 40px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                    align-items: center;
+                    text-align: center;
+                }
+                @media (max-width: 768px) {
+                    .travel-grid {
+                        grid-template-columns: 1fr;
+                        gap: 24px;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .travel-left {
+                        order: 2;
+                        gap: 24px;
+                    }
+                    .travel-right {
+                        order: 1;
+                        padding: 32px 20px;
+                    }
+                    .locations-card {
+                        order: 1;
+                        padding: 32px 20px !important;
+                    }
+                    .article-card {
+                        order: 2;
+                    }
+                    .travel-title {
+                        font-size: 32px !important;
+                        margin-bottom: 8px !important;
+                    }
+                    .travel-subtitle {
+                        font-size: 16px !important;
+                    }
+                }
+            `}</style>
         </section>
     );
 }

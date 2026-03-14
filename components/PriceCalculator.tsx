@@ -93,19 +93,18 @@ export default function PriceCalculator() {
     if (activeProducts.length === 0 || !pricing) return null;
 
     return (
-        <section className="calculator-section" style={{ padding: '40px 20px 80px', background: 'white' }}>
+        <section className="calculator-section home-section" style={{ padding: '40px 20px 80px', background: 'white' }}>
             <div style={containerStyle}>
-                <div className="calculator-grid" style={gridStyle}>
+                <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                    <h2 className="calculator-title" style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: '16px' }}>
+                        {content['calc_title'] || 'Калькулятор вартості'}
+                    </h2>
+                    <p style={{ opacity: 0.6 }}>{content['calc_subtitle'] || 'Розрахуйте орієнтовну вартість вашої ідеальної фотокниги'}</p>
+                </div>
 
+                <div className="calculator-grid" style={gridStyle}>
                     {/* Controls */}
                     <div style={controlsCardStyle}>
-                        <div style={{ marginBottom: '32px' }}>
-                            <h2 style={{ fontSize: '32px', fontWeight: 900, color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                {content['calc_title'] || 'Калькулятор'} <Sparkles size={24} color="var(--primary)" />
-                            </h2>
-                            <p style={{ color: '#64748b', fontSize: '15px' }}>{content['calc_subtitle'] || 'Налаштуйте параметри та миттєво дізнайтесь ціну вашої майбутньої книги.'}</p>
-                        </div>
-
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
                             {/* Product selection (only if more than 1) */}
@@ -198,10 +197,10 @@ export default function PriceCalculator() {
                     </div>
 
                     {/* Result Display */}
-                    <div style={resultCardStyle}>
+                    <div className="result-card" style={resultCardStyle}>
                         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                            <div style={priceLabelStyle}>ВАРТІСТЬ ЗАМОВЛЕННЯ</div>
-                            <div style={priceValueStyle}>
+                            <div className="result-label" style={priceLabelStyle}>ВАРТІСТЬ ЗАМОВЛЕННЯ</div>
+                            <div className="total-price" style={priceValueStyle}>
                                 <AnimatedNumber value={pricing.total} /> <span style={{ fontSize: '32px' }}>₴</span>
                             </div>
                         </div>
@@ -242,14 +241,10 @@ export default function PriceCalculator() {
                             <Wand2 size={20} />
                         </button>
                     </div>
-
                 </div>
             </div>
 
             <style jsx>{`
-                .calculator-section {
-                    position: relative;
-                }
                 input[type=range]::-webkit-slider-thumb {
                     -webkit-appearance: none;
                     height: 24px;
@@ -261,7 +256,7 @@ export default function PriceCalculator() {
                     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
                     margin-top: -10px;
                 }
-                 input[type=range]::-webkit-slider-runnable-track {
+                input[type=range]::-webkit-slider-runnable-track {
                     width: 100%;
                     height: 4px;
                     background: #f1f5f9;
@@ -272,8 +267,11 @@ export default function PriceCalculator() {
                         grid-template-columns: 1fr !important;
                         gap: 30px !important;
                     }
-                    .calculator-grid > div {
-                        padding: 32px !important;
+                    .calculator-title {
+                        font-size: 28px !important;
+                    }
+                    .total-price {
+                        font-size: 48px !important;
                     }
                 }
             `}</style>

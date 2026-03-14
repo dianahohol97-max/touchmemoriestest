@@ -302,11 +302,14 @@ export function Navigation() {
 
                     {/* Mobile Nav Toggle */}
                     <div className="mobile-only nav-flex-mobile" style={{ alignItems: 'center', gap: '20px', color: 'var(--primary)' }}>
+                        <Link href="/login" aria-label="User account" style={{ color: 'inherit' }}>
+                            <User size={22} />
+                        </Link>
                         <button
                             onClick={openDrawer}
                             style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
                         >
-                            <ShoppingCart size={20} />
+                            <ShoppingCart size={22} />
                             <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>({cartItems.length})</span>
                         </button>
                         <button
@@ -349,54 +352,27 @@ export function Navigation() {
                                 <X size={24} />
                             </button>
                         </div>
-                        <nav style={{ display: 'flex', flexDirection: 'column', padding: '40px 20px', gap: '24px', overflowY: 'auto' }}>
-                            {mainNavLinks.map(link => (
-                                <Link key={link.name} href={link.href} onClick={() => setIsMobileMenuOpen(false)} style={{
-                                    fontFamily: 'var(--font-heading)',
-                                    fontWeight: 800,
-                                    fontSize: '1.5rem',
-                                    color: 'var(--primary)',
-                                    textDecoration: 'none'
-                                }}>
+                        <nav style={{ display: 'flex', flexDirection: 'column', padding: '30px 20px', gap: '2px', overflowY: 'auto' }}>
+                            {[
+                                ...mainNavLinks,
+                                { name: 'Інші товари', href: '/inshi-tovary' },
+                                ...aboutDropdownItems
+                            ].map(link => (
+                                <Link
+                                    key={link.name}
+                                    href={link.href}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    style={{
+                                        padding: '16px 0',
+                                        fontSize: '16px',
+                                        fontWeight: 600,
+                                        color: 'var(--primary)',
+                                        textDecoration: 'none',
+                                        borderBottom: '1px solid rgba(0,0,0,0.05)',
+                                        display: 'block'
+                                    }}
+                                >
                                     {link.name}
-                                </Link>
-                            ))}
-
-                            {otherCategories.length > 0 && (
-                                <>
-                                    <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.2rem', color: 'var(--primary)', marginTop: '16px' }}>
-                                        Інші товари
-                                    </div>
-                                    {otherCategories.map(category => (
-                                        <Link key={category.id} href={`/catalog/${category.slug}`} onClick={() => setIsMobileMenuOpen(false)} style={{
-                                            fontFamily: 'var(--font-heading)',
-                                            fontWeight: 600,
-                                            fontSize: '1.2rem',
-                                            color: 'var(--primary)',
-                                            textDecoration: 'none',
-                                            paddingLeft: '20px',
-                                            opacity: 0.8
-                                        }}>
-                                            {category.name}
-                                        </Link>
-                                    ))}
-                                </>
-                            )}
-
-                            <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.2rem', color: 'var(--primary)', marginTop: '16px' }}>
-                                Про нас
-                            </div>
-                            {aboutDropdownItems.map(item => (
-                                <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} style={{
-                                    fontFamily: 'var(--font-heading)',
-                                    fontWeight: 600,
-                                    fontSize: '1.2rem',
-                                    color: 'var(--primary)',
-                                    textDecoration: 'none',
-                                    paddingLeft: '20px',
-                                    opacity: 0.8
-                                }}>
-                                    {item.name}
                                 </Link>
                             ))}
                         </nav>
