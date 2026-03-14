@@ -35,7 +35,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 function AdminLayoutContent({ children, handleLogout }: { children: React.ReactNode, handleLogout: () => void }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { hasPermission, isLoading } = usePermissions();
 
     const menuItems = [
         { name: 'Огляд', href: '/admin', icon: <LayoutDashboard size={20} />, section: 'analytics' },
@@ -63,7 +62,10 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
         { name: 'Теги', href: '/admin/settings/tags', icon: <Tags size={20} />, section: 'settings' },
     ];
 
-    const filteredItems = menuItems.filter(item => hasPermission(item.section, 'view'));
+    // Admin/Owner always sees all items
+    // If permissions are still loading, don't show an empty sidebar to avoid flickering
+    const { hasPermission, isLoading, isAdmin } = usePermissions();
+    const filteredItems = isAdmin ? menuItems : menuItems.filter(item => hasPermission(item.section, 'view'));
 
     // Route Protection: Check if current pathname is allowed
     // Skip protection for dashboard, login, and no-access pages themselves

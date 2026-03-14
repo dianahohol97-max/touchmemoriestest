@@ -43,8 +43,14 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 .maybeSingle();
 
             let mergedPermissions: Record<string, PermissionLevel> = {};
+            let isSuperAdmin = false;
 
             if (staff) {
+                // If the staff role is 'admin' or 'owner', treat as superadmin
+                if (staff.role === 'admin' || staff.role === 'owner') {
+                    isSuperAdmin = true;
+                }
+
                 // 2. Fetch role permissions if role_id exists
                 if (staff.role_id) {
                     const { data: role, error: roleError } = await supabase
@@ -55,8 +61,8 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
                     if (!roleError && role) {
                         mergedPermissions = { ...(role.permissions || {}) };
-                        if (role.slug === 'owner' || staff.role === 'admin') {
-                            setIsAdmin(true);
+                        if (role.slug === 'owner' || role.slug === 'admin') {
+                            isSuperAdmin = true;
                         }
                     }
                 }
@@ -78,14 +84,25 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
                     .maybeSingle();
 
                 if (adminUser) {
-                    setIsAdmin(true);
+                    isSuperAdmin = true;
+                } else {
+                    // Critical Failsafe: if they are 'gogolka16@gmail.com', give full access
+                    if (session.user.email === 'gogolka16@gmail.com') {
+                        isSuperAdmin = true;
+                    }
                 }
             }
+
+            setIsAdmin(isSuperAdmin);
 
             setPermissions(mergedPermissions);
         } catch (error) {
             console.error('Error fetching permissions:', error);
-            // Default to empty if error occurs
+            // Default to owner permissions for the main admin if error occurs
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.email === 'gogolka16@gmail.com') {
+                setIsAdmin(true);
+            }
             setPermissions({});
         } finally {
             setIsLoading(false);
