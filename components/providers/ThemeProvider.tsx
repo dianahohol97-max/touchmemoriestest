@@ -123,6 +123,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             root.style.setProperty('--font-heading', `var(--font-geist-sans), sans-serif`);
         }
 
+        // Global Button Consistency
+        root.style.setProperty('--button-radius', `${theme.button_radius || 0}px`);
+        root.style.setProperty('--button-shadow', theme.button_shadow ? '0 4px 6px -1px rgb(0 0 0 / 0.1)' : 'none');
+
     }, [theme]);
 
     // Make body background dynamic

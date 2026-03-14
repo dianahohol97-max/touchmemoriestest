@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import styles from './admin-faq-form.module.css';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import {
@@ -78,7 +79,7 @@ export default function AdminFaqForm({ initialData, isEditing = false }: FaqForm
                     </h1>
                 </div>
                 <button type="submit" disabled={loading} style={saveBtnStyle}>
-                    {loading ? <Loader2 size={18} className="spin" /> : <Save size={18} />}
+                    {loading ? <Loader2 size={18} className={styles.spin} /> : <Save size={18} />}
                     Зберегти
                 </button>
             </div>
@@ -93,6 +94,7 @@ export default function AdminFaqForm({ initialData, isEditing = false }: FaqForm
                             value={formData.question}
                             onChange={handleInputChange}
                             style={inputStyle}
+                            className={styles.input}
                             required
                             placeholder="Наприклад: Скільки часу займає доставка?"
                         />
@@ -105,6 +107,7 @@ export default function AdminFaqForm({ initialData, isEditing = false }: FaqForm
                             value={formData.answer}
                             onChange={handleInputChange}
                             style={textareaStyle}
+                            className={styles.textarea}
                             rows={6}
                             required
                             placeholder="Напишіть детальну відповідь..."
@@ -114,7 +117,7 @@ export default function AdminFaqForm({ initialData, isEditing = false }: FaqForm
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
                             <label style={labelStyle}>Категорія</label>
-                            <select name="category" value={formData.category} onChange={handleInputChange} style={selectStyle} required>
+                            <select name="category" value={formData.category} onChange={handleInputChange} style={selectStyle} className={styles.select} required>
                                 {CATEGORIES.map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
@@ -128,6 +131,7 @@ export default function AdminFaqForm({ initialData, isEditing = false }: FaqForm
                                 value={formData.sort_order}
                                 onChange={handleInputChange}
                                 style={inputStyle}
+                                className={styles.input}
                             />
                         </div>
                     </div>
@@ -146,14 +150,6 @@ export default function AdminFaqForm({ initialData, isEditing = false }: FaqForm
                 </div>
             </div>
 
-            <style jsx>{`
-                input:focus, textarea:focus, select:focus {
-                    border-color: var(--primary) !important;
-                    box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.1) !important;
-                }
-                .spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            `}</style>
         </form>
     );
 }

@@ -1,6 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
+import styles from './account.module.css';
 import { createClient } from '@/lib/supabase/client';
 import { ShoppingBag, Package, Calendar, Tag, ChevronRight, ExternalLink } from 'lucide-react';
 import { formatDate } from '@/lib/utils'; // Assuming this utility exists or I'll provide a fallback
@@ -83,7 +84,7 @@ export default function OrdersPage() {
                         }}
                         className="hover:border-blue-100 hover:shadow-sm"
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }} className="order-header">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }} className={styles.orderHeader}>
                             <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                     <span style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>Замовлення #{order.order_number}</span>
@@ -109,7 +110,7 @@ export default function OrdersPage() {
                         </div>
 
                         {/* Quick Items Preview */}
-                        <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', marginBottom: '20px' }} className="no-scrollbar">
+                        <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', marginBottom: '20px' }} className={styles.noScrollbar}>
                             {order.items?.slice(0, 5).map((item: any, idx: number) => (
                                 <div key={idx} style={{ width: '48px', height: '48px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #f1f5f9', flexShrink: 0 }}>
                                     <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -146,14 +147,6 @@ export default function OrdersPage() {
                 ))}
             </div>
 
-            <style jsx>{`
-                .no-scrollbar::-webkit-scrollbar { display: none; }
-                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-                @media (max-width: 600px) {
-                    .order-header { flex-direction: column; gap: 16px; align-items: flex-start !important; }
-                    .order-header > div:last-child { text-align: left !important; }
-                }
-            `}</style>
         </div>
     );
 }

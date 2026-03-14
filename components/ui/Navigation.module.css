@@ -1,0 +1,17 @@
+.navFlex {
+    display: flex;
+}
+
+.navFlexMobile {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .navFlex {
+        display: none !important;
+    }
+
+    .navFlexMobile {
+        display: flex !important;
+    }
+}

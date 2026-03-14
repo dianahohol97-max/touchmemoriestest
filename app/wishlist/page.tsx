@@ -138,7 +138,7 @@ export default function WishlistPage() {
                             <Heart size={48} color="#e2e8f0" />
                         </div>
                         <h2 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '16px' }}>Ваш список порожній</h2>
-                        <p style={{ color: '#64748b', marginBottom: '32px' }}>Схоже, ви ще нічого не додали до списку бажань.</p>
+                        <p style={{ color: '#64748b', marginBottom: '32px' }}>Схоже, ви ще нічого не додали до спиsku бажань.</p>
                         <Link href="/catalog" style={browseBtn}>
                             Переглянути каталог <ArrowRight size={20} />
                         </Link>

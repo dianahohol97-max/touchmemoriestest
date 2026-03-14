@@ -1,0 +1,12 @@
+.galleryArrow {
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.galleryContainer:hover .galleryArrow {
+    opacity: 1;
+}
+
+.noScrollbar::-webkit-scrollbar {
+    display: none;
+}

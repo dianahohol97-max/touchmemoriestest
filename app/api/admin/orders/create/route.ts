@@ -30,7 +30,9 @@ export async function POST(request: Request) {
             const { data: newCust, error: custErr } = await supabase
                 .from('customers')
                 .insert({
-                    name: customer.name,
+                    name: `${customer.first_name} ${customer.last_name}`.trim(),
+                    first_name: customer.first_name,
+                    last_name: customer.last_name,
                     phone: customer.phone,
                     email: customer.email || null,
                     telegram: customer.telegram || null,
@@ -56,7 +58,9 @@ export async function POST(request: Request) {
         const newOrderData = {
             order_number: orderNumber,
             customer_id: customerId,
-            customer_name: customer.name,
+            customer_name: `${customer.first_name} ${customer.last_name}`.trim(),
+            customer_first_name: customer.first_name,
+            customer_last_name: customer.last_name,
             customer_phone: customer.phone,
             customer_email: customer.email || null,
             items: items,

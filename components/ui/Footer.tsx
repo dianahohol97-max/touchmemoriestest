@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
+import styles from './Footer.module.css';
 import { useInView } from 'react-intersection-observer';
+import Link from 'next/link';
 import { Mail, Phone, Send, ChevronDown } from 'lucide-react';
 import { FaInstagram, FaFacebook, FaTiktok, FaPinterest, FaThreads } from 'react-icons/fa6';
 import { useTheme } from '@/components/providers/ThemeProvider';
@@ -23,23 +25,33 @@ export function Footer({ categories = [] }: FooterProps) {
         threshold: 0.1,
     });
 
-    const { content } = useTheme();
+    const { content, blocks } = useTheme();
     const [openSection, setOpenSection] = useState<string | null>(null);
+    const footerBlock = blocks.find(b => b.block_name === 'footer');
+    const footerStyle = footerBlock?.style_metadata || {};
 
     const toggleSection = (section: string) => {
         setOpenSection(openSection === section ? null : section);
     };
 
+    // Custom product links from content or categories
+    const customLinksRaw = content['footer_product_links'];
+    let customLinks = [];
+    try {
+        if (customLinksRaw) customLinks = JSON.parse(customLinksRaw);
+    } catch (e) {
+        console.error('Failed to parse footer links', e);
+    }
+
     const footerSections = [
         {
             id: 'products',
             title: 'Продукти',
-            links: categories.length > 0 ? categories.map(c => ({ label: c.name, href: `/catalog?category=${c.slug}` })) : [
+            links: customLinks.length > 0 ? customLinks : (categories.length > 0 ? categories.map(c => ({ label: c.name, href: `/catalog?category=${c.slug}` })) : [
                 { label: 'Фотокниги', href: '/catalog?category=photobooks' },
                 { label: 'Глянцеві журнали', href: '/catalog?category=hlyantsevi-zhurnaly' },
-                { label: 'Фотодруки', href: '/catalog?category=prints' },
-                { label: 'Подарунки', href: '/catalog?category=gifts' }
-            ]
+                { label: 'Фотоdruки', href: '/catalog?category=prints' }
+            ])
         },
         {
             id: 'help',
@@ -55,19 +67,19 @@ export function Footer({ categories = [] }: FooterProps) {
             id: 'contacts',
             title: 'Контакти',
             content: (
-                <ul className="footer-list">
+                <ul className={styles.footerList}>
                     {content['footer_phone'] && (
-                        <li className="contact-item">
+                        <li className={styles.contactItem}>
                             <Phone size={16} /> {content['footer_phone']}
                         </li>
                     )}
                     {content['footer_email'] && (
-                        <li className="contact-item">
+                        <li className={styles.contactItem}>
                             <Mail size={16} /> {content['footer_email']}
                         </li>
                     )}
                     {content['footer_address'] && (
-                        <li className="contact-item">
+                        <li className={styles.contactItem}>
                             {content['footer_address']}
                         </li>
                     )}
@@ -77,17 +89,20 @@ export function Footer({ categories = [] }: FooterProps) {
     ];
 
     return (
-        <footer ref={ref} className="footer-root">
+        <footer ref={ref} className={styles.footerRoot} style={{
+            backgroundColor: footerStyle.bg_color || '#111',
+            color: footerStyle.text_color || '#fff'
+        }}>
             <div className="container">
-                <div className="footer-grid">
-                    <div className="brand-column">
-                        <h3 className="brand-title">
+                <div className={styles.footerGrid}>
+                    <div className={styles.brandColumn}>
+                        <h3 className={styles.brandTitle}>
                             {content['footer_brand_name'] || 'TOUCH.MEMORIES'}
                         </h3>
-                        <p className="brand-desc">
+                        <p className={styles.brandDesc}>
                             {content['footer_brand_desc'] || "Ми віримо, що найкращі моменти життя заслуговують бути надрукованими на папері. Створюємо преміальні фотокниги з любов'ю."}
                         </p>
-                        <div className="social-links">
+                        <div className={styles.socialLinks}>
                             {[
                                 { url: content['footer_social_insta'], icon: <FaInstagram size={20} /> },
                                 { url: content['footer_social_fb'], icon: <FaFacebook size={20} /> },
@@ -101,7 +116,7 @@ export function Footer({ categories = [] }: FooterProps) {
                                     href={social.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="social-link"
+                                    className={styles.socialLink}
                                 >
                                     {social.icon}
                                 </a>
@@ -109,15 +124,16 @@ export function Footer({ categories = [] }: FooterProps) {
                         </div>
                     </div>
 
-                    <div className="mobile-accordion">
+                    <div className={styles.mobileAccordion}>
                         {footerSections.map((section) => (
-                            <div key={section.id} className="accordion-item">
+                            <div key={section.id} className={styles.accordionItem}>
                                 <button
-                                    className="accordion-trigger"
+                                    className={styles.accordionTrigger}
                                     onClick={() => toggleSection(section.id)}
+                                    style={{ color: 'inherit' }}
                                 >
                                     <span>{section.title}</span>
-                                    <ChevronDown size={18} className={`chevron ${openSection === section.id ? 'rotate' : ''}`} />
+                                    <ChevronDown size={18} className={`${styles.chevron} ${openSection === section.id ? styles.rotate : ''}`} />
                                 </button>
                                 <AnimatePresence>
                                     {openSection === section.id && (
@@ -126,13 +142,13 @@ export function Footer({ categories = [] }: FooterProps) {
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
                                             transition={{ duration: 0.3 }}
-                                            className="accordion-content"
+                                            className={styles.accordionContent}
                                         >
                                             {section.links ? (
-                                                <ul className="footer-list">
-                                                    {section.links.map((link, idx) => (
+                                                <ul className={styles.footerList}>
+                                                    {section.links.map((link: any, idx: number) => (
                                                         <li key={idx}>
-                                                            <a href={link.href} className="footer-link">{link.label}</a>
+                                                            <Link href={link.href} className={styles.footerLink} style={{ color: 'inherit' }}>{link.label}</Link>
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -145,13 +161,13 @@ export function Footer({ categories = [] }: FooterProps) {
                     </div>
 
                     {footerSections.map((section) => (
-                        <div key={section.id} className="desktop-section">
-                            <h4 className="section-title">{section.title}</h4>
+                        <div key={section.id} className={styles.desktopSection}>
+                            <h4 className={styles.sectionTitle}>{section.title}</h4>
                             {section.links ? (
-                                <ul className="footer-list">
-                                    {section.links.map((link, idx) => (
+                                <ul className={styles.footerList}>
+                                    {section.links.map((link: any, idx: number) => (
                                         <li key={idx}>
-                                            <a href={link.href} className="footer-link">{link.label}</a>
+                                            <Link href={link.href} className={styles.footerLink} style={{ color: 'inherit' }}>{link.label}</Link>
                                         </li>
                                     ))}
                                 </ul>
@@ -160,181 +176,17 @@ export function Footer({ categories = [] }: FooterProps) {
                     ))}
                 </div>
 
-                <div className="footer-bottom">
-                    <p className="copyright">
+                <div className={styles.footerBottom}>
+                    <p className={styles.copyright} style={{ color: 'inherit', opacity: 0.4 }}>
                         &copy; 2026 {content['footer_copyright'] || 'TOUCH.MEMORIES'}. Всі права захищені.
                     </p>
-                    <div className="bottom-links">
-                        <a href="#" className="bottom-link">Політика конфіденційності</a>
-                        <a href="#" className="bottom-link">Публічна оферта</a>
+                    <div className={styles.bottomLinks}>
+                        <Link href="/privacy-policy" className={styles.bottomLink} style={{ color: 'inherit' }}>Політика конфіденційності</Link>
+                        <Link href="/public-offer" className={styles.bottomLink} style={{ color: 'inherit' }}>Публічна оферта</Link>
                     </div>
                 </div>
             </div>
 
-            <style jsx>{`
-                .footer-root {
-                    background-color: #111;
-                    color: white;
-                    padding: 80px 0 40px;
-                }
-                .footer-grid {
-                    display: grid;
-                    grid-template-columns: 1.5fr repeat(3, 1fr);
-                    gap: 60px;
-                    margin-bottom: 60px;
-                }
-                .brand-title {
-                    font-family: var(--font-heading);
-                    font-weight: 900;
-                    fontSize: 1.5rem;
-                    marginBottom: 24px;
-                    letterSpacing: 0.05em;
-                }
-                .brand-desc {
-                    opacity: 0.6;
-                    line-height: 1.8;
-                    margin-bottom: 32px;
-                }
-                .social-links {
-                    display: flex;
-                    gap: 16px;
-                    flex-wrap: wrap;
-                }
-                .social-link {
-                    color: white;
-                    opacity: 0.8;
-                    transition: opacity 0.2s;
-                }
-                .social-link:hover {
-                    opacity: 1;
-                }
-                .section-title {
-                    font-family: var(--font-heading);
-                    font-weight: 700;
-                    font-size: 14px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.1em;
-                    margin-bottom: 24px;
-                }
-                .footer-list {
-                    list-style: none;
-                    padding: 0;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-                .footer-link {
-                    color: white;
-                    text-decoration: none;
-                    opacity: 0.6;
-                    transition: opacity 0.2s;
-                }
-                .footer-link:hover {
-                    opacity: 1;
-                }
-                .contact-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    opacity: 0.6;
-                }
-                .mobile-accordion {
-                    display: none;
-                }
-                .footer-bottom {
-                    border-top: 1px solid rgba(255,255,255,0.1);
-                    padding-top: 40px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 20px;
-                }
-                .copyright {
-                    opacity: 0.4;
-                    font-size: 12px;
-                    margin: 0;
-                }
-                .bottom-links {
-                    display: flex;
-                    gap: 30px;
-                    opacity: 0.4;
-                    font-size: 12px;
-                }
-                .bottom-link {
-                    color: white;
-                    text-decoration: none;
-                }
-
-                @media (max-width: 768px) {
-                    .footer-root {
-                        padding: 60px 0 40px;
-                    }
-                    .footer-grid {
-                        grid-template-columns: 1fr;
-                        gap: 40px;
-                        margin-bottom: 40px;
-                        text-align: center;
-                    }
-                    .brand-column {
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                    }
-                    .social-links {
-                        justify-content: center;
-                        gap: 24px;
-                    }
-                    .desktop-section {
-                        display: none;
-                    }
-                    .mobile-accordion {
-                        display: block;
-                        text-align: left;
-                        border-top: 1px solid rgba(255,255,255,0.1);
-                        border-bottom: 1px solid rgba(255,255,255,0.1);
-                    }
-                    .accordion-item {
-                        border-bottom: 1px solid rgba(255,255,255,0.05);
-                    }
-                    .accordion-item:last-child {
-                        border-bottom: none;
-                    }
-                    .accordion-trigger {
-                        width: 100%;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        padding: 20px 0;
-                        background: none;
-                        border: none;
-                        color: white;
-                        font-family: var(--font-heading);
-                        font-weight: 700;
-                        font-size: 16px;
-                        cursor: pointer;
-                    }
-                    .accordion-content {
-                        overflow: hidden;
-                        padding-bottom: 20px;
-                    }
-                    .chevron {
-                        transition: transform 0.3s;
-                    }
-                    .chevron.rotate {
-                        transform: rotate(180deg);
-                    }
-                    .footer-bottom {
-                        flex-direction: column;
-                        text-align: center;
-                        padding-top: 32px;
-                    }
-                    .bottom-links {
-                        justify-content: center;
-                        gap: 20px;
-                        flex-direction: column;
-                    }
-                }
-            `}</style>
         </footer>
     );
 }

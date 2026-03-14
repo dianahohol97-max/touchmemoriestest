@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
+import styles from './production.module.css';
 import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatUKDate, addWorkingDays, getDeadlineStatus } from '@/lib/date-utils';
@@ -408,11 +409,6 @@ export default function ProductionKanbanPage() {
                 })}
             </div>
 
-            <style jsx global>{`
-                /* Hide scrollbar for kanban columns */
-                .kanban-col::-webkit-scrollbar { width: 4px; }
-                .kanban-col::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-            `}</style>
         </div>
     );
 }

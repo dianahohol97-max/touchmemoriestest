@@ -1,8 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import styles from './admin-new-order.module.css';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Loader2, Plus, Trash2, Copy, Search } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus, Trash2, Copy, Search, Tag, ChevronDown, Package } from 'lucide-react';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 
 export default function CreateOrderPage() {
     const router = useRouter();
@@ -10,7 +12,8 @@ export default function CreateOrderPage() {
 
     // Form state
     const [customer, setCustomer] = useState({
-        name: '',
+        first_name: '',
+        last_name: '',
         phone: '',
         email: '',
         instagram: '',
@@ -18,12 +21,17 @@ export default function CreateOrderPage() {
         birthday: ''
     });
 
-    const [items, setItems] = useState([
-        { id: Date.now(), name: '', price: 0, qty: 1, comment: '' }
+    const [allProducts, setAllProducts] = useState<any[]>([]);
+    const [allCategories, setAllCategories] = useState<any[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isProductDropdownOpen, setIsProductDropdownOpen] = useState<number | null>(null);
+
+    const [items, setItems] = useState<any[]>([
+        { id: Date.now(), product_id: '', variant_id: '', name: '', price: 0, cost_price: 0, qty: 1, comment: '', variants: [] }
     ]);
 
     const [delivery, setDelivery] = useState({
-        method: 'Нова Пошта (Відділення)',
+        method: 'nova_poshta_warehouse',
         city: '',
         warehouse: '',
         cost: 0
@@ -31,8 +39,20 @@ export default function CreateOrderPage() {
 
     const [notes, setNotes] = useState('');
 
+    const supabase = createClient();
+
+    useEffect(() => {
+        const fetchData = async () => {
+            const { data: catData } = await supabase.from('categories').select('*').order('sort_order');
+            const { data: prodData } = await supabase.from('products').select('*').eq('is_active', true);
+            if (catData) setAllCategories(catData);
+            if (prodData) setAllProducts(prodData);
+        };
+        fetchData();
+    }, [supabase]);
+
     const addItem = () => {
-        setItems([...items, { id: Date.now(), name: '', price: 0, qty: 1, comment: '' }]);
+        setItems([...items, { id: Date.now(), product_id: '', variant_id: '', name: '', price: 0, cost_price: 0, qty: 1, comment: '', variants: [] }]);
     };
 
     const removeItem = (id: number) => {
@@ -46,13 +66,16 @@ export default function CreateOrderPage() {
 
     // Calculate totals
     const subtotal = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
+    const subtotalCost = items.reduce((acc, item) => acc + ((item.cost_price || 0) * item.qty), 0);
     const total = subtotal + Number(delivery.cost);
+    const profit = subtotal - subtotalCost;
+    const margin = subtotal > 0 ? (profit / subtotal) * 100 : 0;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!customer.name || !customer.phone) {
-            toast.error('Ім\'я та телефон клієнта є обов\'язковими');
+        if (!customer.first_name || !customer.last_name || !customer.phone) {
+            toast.error('Ім\'я, Прізвище та телефон клієнта є обов\'язковими');
             return;
         }
 
@@ -68,8 +91,11 @@ export default function CreateOrderPage() {
             const payload = {
                 customer,
                 items: items.map(i => ({
+                    product_id: i.product_id,
+                    variant_id: i.variant_id,
                     name: i.name,
                     price: Number(i.price),
+                    cost_price: Number(i.cost_price || 0),
                     qty: Number(i.qty),
                     sum: Number(i.price) * Number(i.qty),
                     format: 'Кастомний',
@@ -130,32 +156,51 @@ export default function CreateOrderPage() {
                     <h2 style={cardTitleStyle}>Клієнт</h2>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
-                            <label style={labelStyle}>Ім'я Прізвище *</label>
+                            <label style={labelStyle}>Ім'я *</label>
                             <input
                                 required
                                 type="text"
-                                placeholder="Петро Петренко"
-                                value={customer.name}
-                                onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+                                placeholder="Петро"
+                                value={customer.first_name}
+                                onChange={(e) => setCustomer({ ...customer, first_name: e.target.value })}
+                                style={inputStyle}
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Прізвище *</label>
+                            <input
+                                required
+                                type="text"
+                                placeholder="Петренко"
+                                value={customer.last_name}
+                                onChange={(e) => setCustomer({ ...customer, last_name: e.target.value })}
                                 style={inputStyle}
                             />
                         </div>
                         <div>
                             <label style={labelStyle}>Телефон *</label>
-                            <input
-                                required
-                                type="text"
-                                placeholder="+38"
-                                value={customer.phone}
-                                onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
-                                style={inputStyle}
-                            />
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <select
+                                    style={{ ...selectStyle, width: '100px', flexShrink: 0 }}
+                                    disabled
+                                >
+                                    <option>🇺🇦 +380</option>
+                                </select>
+                                <input
+                                    required
+                                    type="tel"
+                                    placeholder="671234567"
+                                    value={customer.phone}
+                                    onChange={(e) => setCustomer({ ...customer, phone: e.target.value.replace(/\D/g, '') })}
+                                    style={inputStyle}
+                                />
+                            </div>
                         </div>
                         <div>
                             <label style={labelStyle}>Email</label>
                             <input
                                 type="email"
-                                placeholder="petro@example.com"
+                                placeholder="client@example.com"
                                 value={customer.email}
                                 onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
                                 style={inputStyle}
@@ -182,12 +227,21 @@ export default function CreateOrderPage() {
                             />
                         </div>
                         <div>
-                            <label style={labelStyle}>Дата народження (опціонально)</label>
+                            <label style={labelStyle}>Дата народження</label>
                             <input
-                                type="date"
+                                type="text"
+                                placeholder="ДД.ММ.РРРР"
                                 value={customer.birthday}
-                                onChange={(e) => setCustomer({ ...customer, birthday: e.target.value })}
+                                onChange={(e) => {
+                                    let val = e.target.value.replace(/\D/g, '');
+                                    if (val.length > 8) val = val.substring(0, 8);
+                                    let formatted = val;
+                                    if (val.length > 2) formatted = val.substring(0, 2) + '.' + val.substring(2);
+                                    if (val.length > 4) formatted = val.substring(0, 2) + '.' + val.substring(2, 4) + '.' + val.substring(4);
+                                    setCustomer({ ...customer, birthday: formatted });
+                                }}
                                 style={inputStyle}
+                                maxLength={10}
                             />
                         </div>
                     </div>
@@ -210,27 +264,81 @@ export default function CreateOrderPage() {
                                 </div>
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '12px' }}>
-                                        <div>
-                                            <label style={labelStyle}>Назва (вільне введення)</label>
-                                            <input
-                                                required
-                                                type="text"
-                                                placeholder="напр. Фотокнига 20х20, 20 стор, шкіра"
-                                                value={item.name}
-                                                onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                                                style={inputStyle}
-                                            />
+                                        <div style={{ position: 'relative' }}>
+                                            <label style={labelStyle}>Товар *</label>
+                                            <div style={{ position: 'relative' }}>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Пошук товару за назвою..."
+                                                    value={item.name}
+                                                    onChange={(e) => {
+                                                        updateItem(item.id, 'name', e.target.value);
+                                                        setIsProductDropdownOpen(index);
+                                                    }}
+                                                    onFocus={() => setIsProductDropdownOpen(index)}
+                                                    style={{ ...inputStyle, paddingLeft: '40px' }}
+                                                />
+                                                <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                            </div>
+
+                                            {isProductDropdownOpen === index && (
+                                                <div style={dropdownStyle}>
+                                                    {allCategories.map(cat => {
+                                                        const catProducts = allProducts.filter(p =>
+                                                            p.category_id === cat.id &&
+                                                            (p.name.toLowerCase().includes(item.name.toLowerCase()) || !item.name)
+                                                        );
+                                                        if (catProducts.length === 0) return null;
+                                                        return (
+                                                            <div key={cat.id}>
+                                                                <div style={categoryHeaderStyle}>── {cat.name} ──</div>
+                                                                {catProducts.map(p => (
+                                                                    <div
+                                                                        key={p.id}
+                                                                        onClick={() => {
+                                                                            updateItem(item.id, 'product_id', p.id);
+                                                                            updateItem(item.id, 'name', p.name);
+                                                                            updateItem(item.id, 'price', p.price);
+                                                                            updateItem(item.id, 'cost_price', p.cost_price || 0);
+                                                                            updateItem(item.id, 'variants', p.variants || []);
+                                                                            setIsProductDropdownOpen(null);
+                                                                        }}
+                                                                        style={dropdownItemStyle}
+                                                                    >
+                                                                        <div style={{ fontWeight: 600 }}>{p.name}</div>
+                                                                        <div style={{ fontSize: '12px', color: '#64748b' }}>від {p.price} ₴</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    <div onClick={() => setIsProductDropdownOpen(null)} style={{ padding: '8px', textAlign: 'center', fontSize: '11px', color: '#94a3b8', cursor: 'pointer', borderTop: '1px solid #f1f5f9' }}>закрити</div>
+                                                </div>
+                                            )}
                                         </div>
                                         <div>
-                                            <label style={labelStyle}>Ціна (₴)</label>
-                                            <input
-                                                required
-                                                type="number"
-                                                min="0"
-                                                value={item.price || ''}
-                                                onChange={(e) => updateItem(item.id, 'price', Number(e.target.value))}
-                                                style={inputStyle}
-                                            />
+                                            <label style={labelStyle}>Варіант</label>
+                                            {item.variants && item.variants.length > 0 ? (
+                                                <select
+                                                    value={item.variant_id}
+                                                    onChange={(e) => {
+                                                        const variant = item.variants.find((v: any) => v.id === e.target.value);
+                                                        if (variant) {
+                                                            updateItem(item.id, 'variant_id', variant.id);
+                                                            updateItem(item.id, 'price', variant.price);
+                                                            updateItem(item.id, 'cost_price', variant.cost_price || 0);
+                                                        }
+                                                    }}
+                                                    style={selectStyle}
+                                                >
+                                                    <option value="">Оберіть варіант</option>
+                                                    {item.variants.map((v: any) => (
+                                                        <option key={v.id} value={v.id}>{v.name} ({v.price} ₴)</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <div style={{ ...inputStyle, backgroundColor: '#f1f5f9', color: '#94a3b8', fontSize: '13px' }}>Немає варіантів</div>
+                                            )}
                                         </div>
                                         <div>
                                             <label style={labelStyle}>Кількість</label>
@@ -244,15 +352,27 @@ export default function CreateOrderPage() {
                                             />
                                         </div>
                                     </div>
-                                    <div>
-                                        <label style={labelStyle}>Коментар до товару</label>
-                                        <textarea
-                                            placeholder="Наприклад: імена, дати, побажання до оформлення..."
-                                            value={item.comment}
-                                            onChange={(e) => updateItem(item.id, 'comment', e.target.value)}
-                                            style={{ ...inputStyle, resize: 'vertical', minHeight: '60px' }}
-                                            rows={2}
-                                        />
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+                                        <div>
+                                            <label style={labelStyle}>Ціна (₴)</label>
+                                            <input
+                                                required
+                                                type="number"
+                                                min="0"
+                                                value={item.price || ''}
+                                                onChange={(e) => updateItem(item.id, 'price', Number(e.target.value))}
+                                                style={inputStyle}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={labelStyle}>Коментар до товару</label>
+                                            <input
+                                                placeholder="напр. Розмір, матеріал, напис..."
+                                                value={item.comment}
+                                                onChange={(e) => updateItem(item.id, 'comment', e.target.value)}
+                                                style={inputStyle}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 {items.length > 1 && (
@@ -277,11 +397,12 @@ export default function CreateOrderPage() {
                                     onChange={(e) => setDelivery({ ...delivery, method: e.target.value })}
                                     style={selectStyle}
                                 >
-                                    <option value="Нова Пошта (Відділення)">Нова Пошта (Відділення)</option>
-                                    <option value="Нова Пошта (Поштомат)">Нова Пошта (Поштомат)</option>
-                                    <option value="Кур'єр Нова Пошта">Кур'єр Нова Пошта</option>
-                                    <option value="Самовивіз">Самовивіз</option>
-                                    <option value="Міжнародна (Укрпошта)">Міжнародна (Укрпошта)</option>
+                                    <option value="nova_poshta_warehouse">Нова Пошта (Відділення)</option>
+                                    <option value="nova_poshta_poshtomat">Нова Пошта (Поштомат)</option>
+                                    <option value="nova_poshta_courier">Нова Пошта (Кур'єр)</option>
+                                    <option value="pickup">Самовивіз</option>
+                                    <option value="international">Міжнародна доставка</option>
+                                    <option value="other">Інше</option>
                                 </select>
                             </div>
                             <div>
@@ -334,14 +455,26 @@ export default function CreateOrderPage() {
 
                         <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9', marginTop: 'auto' }}>
                             <div style={totalRowStyle}>
-                                <span>Товари:</span>
+                                <span>Товари ({items.length} шт):</span>
                                 <span>{subtotal} ₴</span>
                             </div>
                             <div style={totalRowStyle}>
                                 <span>Доставка:</span>
                                 <span>{delivery.cost || 0} ₴</span>
                             </div>
-                            <div style={{ ...totalRowStyle, borderTop: '2px dashed #cbd5e1', paddingTop: '16px', marginTop: '16px', fontSize: '24px', color: 'var(--primary)', fontWeight: 900 }}>
+                            <div style={{ ...totalRowStyle, color: '#64748b', fontSize: '13px', borderTop: '1px solid #f1f5f9', paddingTop: '8px', marginTop: '8px' }}>
+                                <span>Собівартість:</span>
+                                <span>{subtotalCost} ₴</span>
+                            </div>
+                            <div style={{ ...totalRowStyle, color: '#10b981', fontSize: '13px' }}>
+                                <span>Прибуток:</span>
+                                <span>{profit} ₴</span>
+                            </div>
+                            <div style={{ ...totalRowStyle, color: '#3b82f6', fontSize: '13px' }}>
+                                <span>Маржа:</span>
+                                <span>{margin.toFixed(1)}%</span>
+                            </div>
+                            <div style={{ ...totalRowStyle, borderTop: '2px dashed #cbd5e1', paddingTop: '16px', marginTop: '16px', fontSize: '24px', color: '#1e293b', fontWeight: 900 }}>
                                 <span>Разом:</span>
                                 <span>{total} ₴</span>
                             </div>
@@ -355,16 +488,12 @@ export default function CreateOrderPage() {
                         Скасувати
                     </button>
                     <button type="submit" disabled={loading} style={btnPrimaryStyle}>
-                        {loading ? <Loader2 size={18} className="spin" /> : <Save size={18} />}
+                        {loading ? <Loader2 size={18} className={styles.spin} /> : <Save size={18} />}
                         Зберегти та створити замовлення
                     </button>
                 </div>
             </form>
 
-            <style jsx>{`
-                .spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            `}</style>
         </div>
     );
 }
@@ -373,7 +502,42 @@ export default function CreateOrderPage() {
 const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #f1f5f9', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
 const cardTitleStyle = { fontSize: '18px', fontWeight: 800, color: '#1e293b', marginBottom: '24px' };
 const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', borderRadius: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer' };
-const labelStyle = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '8px' };
+const labelStyle = { display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' };
+
+const dropdownStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    border: '1px solid #e2e8f0',
+    borderRadius: '12px',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    zIndex: 50,
+    maxHeight: '300px',
+    overflowY: 'auto'
+};
+
+const categoryHeaderStyle: React.CSSProperties = {
+    padding: '8px 12px',
+    fontSize: '11px',
+    fontWeight: 800,
+    color: '#94a3b8',
+    backgroundColor: '#f8fafc',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em'
+};
+
+const dropdownItemStyle: React.CSSProperties = {
+    padding: '10px 12px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #f1f5f9',
+    transition: 'background-color 0.2s',
+    fontSize: '14px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+};
 const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px', color: '#1e293b', backgroundColor: 'white', fontFamily: 'inherit' };
 const selectStyle = { ...inputStyle, appearance: 'none' as any, cursor: 'pointer', backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' };
 const totalRowStyle = { display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 700, color: '#475569', marginBottom: '8px' };

@@ -1,0 +1,26 @@
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.cartGrid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 60px;
+}
+
+@media (max-width: 1024px) {
+    .cartGrid {
+        grid-template-columns: 1fr !important;
+        gap: 40px !important;
+    }
+}

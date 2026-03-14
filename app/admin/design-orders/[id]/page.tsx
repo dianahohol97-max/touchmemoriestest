@@ -53,7 +53,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
           className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
-          Назад до списку
+          Назад до спиsku
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">
           Замовлення #{order?.order_number}

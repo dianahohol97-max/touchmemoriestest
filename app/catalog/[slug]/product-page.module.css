@@ -1,0 +1,71 @@
+.flexResponsive {
+    display: flex;
+    gap: 12px;
+}
+
+.customScrollbar::-webkit-scrollbar {
+    height: 6px;
+}
+
+.customScrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.customScrollbar::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
+@media (max-width: 900px) {
+    .productLayout {
+        grid-template-columns: 1fr !important;
+        gap: 32px !important;
+    }
+
+    .flexResponsive {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 768px) {
+    .mainContainer {
+        padding: 100px 16px 40px !important;
+    }
+
+    .breadcrumbs {
+        margin-bottom: 24px !important;
+        font-size: 13px !important;
+    }
+
+    .productTitleMain {
+        font-size: 28px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .mainImageContainer {
+        margin-left: -16px;
+        margin-right: -16px;
+        width: calc(100% + 32px) !important;
+        border-radius: 0 !important;
+    }
+
+    .thumbnailContainer {
+        margin-left: -16px;
+        margin-right: -16px;
+        padding-left: 16px;
+    }
+
+    .priceContainer {
+        font-size: 24px !important;
+    }
+
+    .tabBtn {
+        font-size: 16px !important;
+        padding-bottom: 12px !important;
+    }
+
+    .relatedGrid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+}

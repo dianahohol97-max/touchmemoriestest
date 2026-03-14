@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, use, useRef } from 'react';
+import styles from './customer-profile.module.css';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -82,7 +83,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
         setSaving(false);
     };
 
-    if (loading) return <div style={{ padding: '100px', display: 'flex', justifyContent: 'center' }}><Loader2 className="animate-spin" size={32} color="#94a3b8" /></div>;
+    if (loading) return <div style={{ padding: '100px', display: 'flex', justifyContent: 'center' }}><Loader2 className={styles.animateSpin} size={32} color="#94a3b8" /></div>;
     if (!customer) return <div style={{ padding: '100px', textAlign: 'center' }}>Клієнт не знайдений</div>;
 
     return (
@@ -134,11 +135,11 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b', margin: 0 }}>📌 Нотатки про клієнта</h3>
                             <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                {saving ? <><Loader2 size={12} className="animate-spin" /> Збереження...</> : <><Save size={12} /> Збережено</>}
+                                {saving ? <><Loader2 size={12} className={styles.animateSpin} /> Збереження...</> : <><Save size={12} /> Збережено</>}
                             </div>
                         </div>
                         <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', lineHeight: '1.5' }}>
-                            Ці нотатки бачать лише адміністратори. Вони відображатимуться як підказка у списку замовлень цього клієнта.
+                            Ці нотатки бачать лише адміністратори. Вони відображатимуться як підказка у спиsku замовлень цього клієнта.
                         </p>
                         <textarea
                             value={notes}
@@ -190,10 +191,6 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
 
             </div>
 
-            <style jsx>{`
-                .animate-spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            `}</style>
         </div>
     );
 }

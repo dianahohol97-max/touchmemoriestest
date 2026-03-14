@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import styles from './admin-login.module.css';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -68,6 +69,7 @@ function AdminLoginContent() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 style={inputStyle}
+                                className={styles.adminInput}
                                 placeholder="name@example.com"
                                 required
                             />
@@ -83,6 +85,7 @@ function AdminLoginContent() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 style={inputStyle}
+                                className={styles.adminInput}
                                 placeholder="••••••••"
                                 required
                             />
@@ -94,7 +97,7 @@ function AdminLoginContent() {
                         disabled={loading}
                         style={{ ...submitBtnStyle, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.8 : 1 }}
                     >
-                        {loading ? <Loader2 size={20} className="spin" /> : 'Увійти'}
+                        {loading ? <Loader2 size={20} className={styles.spin} /> : 'Увійти'}
                     </button>
                 </form>
 
@@ -103,21 +106,13 @@ function AdminLoginContent() {
                 </div>
             </motion.div>
 
-            <style jsx>{`
-                input:focus {
-                    border-color: var(--primary) !important;
-                    box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.1) !important;
-                }
-                .spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            `}</style>
         </div>
     );
 }
 
 export default function AdminLoginPage() {
     return (
-        <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}><Loader2 className="spin" color="white" size={32} /></div>}>
+        <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}><Loader2 className={styles.spin} color="white" size={32} /></div>}>
             <AdminLoginContent />
         </Suspense>
     );

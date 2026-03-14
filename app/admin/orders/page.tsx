@@ -173,7 +173,7 @@ export default function OrdersPage() {
                                 if (me.role === 'designer') setDesignerFilter(me.id);
                                 toast.success('Фільтр "Мої замовлення" застосовано');
                             } else {
-                                toast.error('Вашого облікового запису немає в списку Команди');
+                                toast.error('Вашого облікового запису немає в спиsku Команди');
                             }
                         }
                     }} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#f1f5f9', border: 'none', color: '#475569', borderRadius: '12px', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>

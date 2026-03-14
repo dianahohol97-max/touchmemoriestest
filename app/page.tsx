@@ -1,6 +1,7 @@
+import styles from './page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Hero } from '@/components/ui/Hero';
-import { ProductStrip } from '@/components/ui/ProductStrip';
+import { FeaturedProducts } from '@/components/ui/FeaturedProducts';
 import { Categories } from '@/components/ui/Categories';
 import { HowItWorks } from '@/components/ui/HowItWorks';
 import { BlogSection } from '@/components/ui/BlogSection';
@@ -94,39 +95,15 @@ export default async function Home() {
 
         {/* Featured Products */}
         <SectionWrapper name="featured_products" defaultOrder={2}>
-          {(() => {
-            const block = blocks?.find((b: any) => b.block_name === 'featured_products');
-            const style = block?.style_metadata || {};
-            return (
-              <section
-                className="home-section"
-                style={{
-                  padding: '80px 0 40px',
-                  backgroundColor: style.bg_color || 'transparent',
-                  borderRadius: style.border_radius || '0px'
-                }}
-              >
-                <div className="container" style={{ textAlign: 'center', marginBottom: '40px' }}>
-                  <h2 style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontSize: 'min(36px, 8vw)',
-                    fontWeight: 900,
-                    color: style.text_color || 'inherit'
-                  }}>
-                    <DynamicText contentKey="featured_title" fallback="Найпопулярніші товари" />
-                  </h2>
-                  <p style={{ color: style.text_color || '#666', opacity: style.text_color ? 1 : 0.8 }}>
-                    <DynamicText contentKey="featured_subtitle" fallback="" />
-                  </p>
-                </div>
-                <ProductStrip products={products || []} />
-              </section>
-            );
-          })()}
+          <FeaturedProducts products={products || []} />
         </SectionWrapper>
 
-        <SectionWrapper name="categories" defaultOrder={3}>
-          <Categories />
+        <SectionWrapper name="categories_books" defaultOrder={3}>
+          <Categories blockName="categories_books" />
+        </SectionWrapper>
+
+        <SectionWrapper name="categories_magazines" defaultOrder={4}>
+          <Categories blockName="categories_magazines" />
         </SectionWrapper>
 
         <SectionWrapper name="how_it_works" defaultOrder={4}>
@@ -153,12 +130,16 @@ export default async function Home() {
           <DynamicPromo blockName="promo_special" />
         </SectionWrapper>
 
-        <SectionWrapper name="promo_holiday" defaultOrder={25}>
+        <SectionWrapper name="promo_holiday" defaultOrder={20}>
           <DynamicPromo blockName="promo_holiday" />
         </SectionWrapper>
 
-        <SectionWrapper name="promo_holiday" defaultOrder={25}>
-          <DynamicPromo blockName="promo_holiday" />
+        <SectionWrapper name="promo_new_arrival" defaultOrder={25}>
+          <DynamicPromo blockName="promo_new_arrival" />
+        </SectionWrapper>
+
+        <SectionWrapper name="promo_sale" defaultOrder={45}>
+          <DynamicPromo blockName="promo_sale" />
         </SectionWrapper>
 
         <SectionWrapper name="social_proof" defaultOrder={40}>
@@ -169,25 +150,11 @@ export default async function Home() {
           <CustomBookPromo />
         </SectionWrapper>
 
-        <SectionWrapper name="promo_sale" defaultOrder={45}>
-          <DynamicPromo blockName="promo_sale" />
-        </SectionWrapper>
-
         <SectionWrapper name="final_cta" defaultOrder={50}>
           <FinalCTA />
         </SectionWrapper>
       </main>
       <Footer categories={allCategories || []} />
-      <style jsx global>{`
-        @media (max-width: 768px) {
-          .home-section {
-            padding: 40px 0 !important;
-          }
-          .home-section .container {
-            margin-bottom: 24px !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

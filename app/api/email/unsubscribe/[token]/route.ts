@@ -63,7 +63,7 @@ export async function GET(
                 <div style="background: white; max-width: 500px; margin: 0 auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
                     <h2 style="color: #0f172a; margin-top: 0;">Ви успішно відписалися ✅</h2>
                     <p style="color: #64748b; line-height: 1.6; margin-bottom: 30px;">
-                        Адресу <strong>${subscriber.email}</strong> було видалено з нашого списку розсилки. 
+                        Адресу <strong>${subscriber.email}</strong> було видалено з нашого спиsku розсилки. 
                         Ви більше не отримуватимете акцій та запрошень.
                     </p>
                     <p style="font-size: 14px; color: #94a3b8;">

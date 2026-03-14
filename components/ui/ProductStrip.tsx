@@ -1,5 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
+import styles from './ProductStrip.module.css';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
 
@@ -21,7 +22,7 @@ export function ProductStrip({ products = [] }: { products: Product[] }) {
     if (!products || products.length === 0) return null;
 
     return (
-        <section style={{ padding: '80px 0', overflow: 'hidden' }} ref={ref}>
+        <section style={{ overflow: 'hidden' }} ref={ref}>
             <motion.div
                 initial={{ opacity: 0, y: 40 }}
                 animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
@@ -35,47 +36,68 @@ export function ProductStrip({ products = [] }: { products: Product[] }) {
                             key={product.id}
                             href={`/catalog/${product.slug}`}
                             style={{ width: '280px', flexShrink: 0, scrollSnapAlign: 'center', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
-                            className="group"
+                            className={styles.group}
                         >
                             <div style={{
                                 position: 'relative',
-                                aspectRatio: 'var(--card-aspect-product, 1/1)',
+                                aspectRatio: '3/4',
                                 overflow: 'hidden',
                                 borderRadius: 'var(--card-radius, 12px)',
                                 marginBottom: '16px',
-                                background: 'var(--card-bg, #f0f0f0)'
+                                background: 'var(--card-bg, #f0f0f0)',
+                                border: '1px solid rgba(0,0,0,0.05)'
                             }}>
                                 <img
                                     src={product.images?.[0] || 'https://images.unsplash.com/photo-1544365511-739343940306?auto=format&fit=crop&q=80&w=800'}
                                     alt={product.name}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }}
-                                    className="product-img"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s cubic-bezier(0.2, 0, 0, 1)' }}
+                                    className={styles.productImg}
                                 />
                                 <div style={{
-                                    position: 'absolute', inset: 0, background: 'rgba(38, 58, 153, 0.2)',
-                                    opacity: 0, transition: 'opacity 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                }} className="overlay">
-                                    <span style={{ color: 'white', fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '14px' }}>
-                                        Переглянути →
-                                    </span>
+                                    position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 60%)',
+                                    opacity: 0, transition: 'opacity 0.3s'
+                                }} className={styles.overlayGradient}></div>
+
+                                <div style={{
+                                    position: 'absolute', bottom: '20px', left: '20px', right: '20px',
+                                    transform: 'translateY(10px)', opacity: 0, transition: 'all 0.3s cubic-bezier(0.2, 0, 0, 1)'
+                                }} className={styles.itemAction}>
+                                    <div style={{
+                                        height: '40px',
+                                        backgroundColor: 'var(--section-button-bg)',
+                                        color: 'var(--section-button-text)',
+                                        borderRadius: 'var(--button-radius)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        boxShadow: 'var(--button-shadow)'
+                                    }}>
+                                        Детальніше
+                                    </div>
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', color: 'var(--card-text, inherit)' }}>
-                                <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '14px', margin: 0 }}>
+                            <div style={{ padding: '0 4px' }}>
+                                <h3 style={{
+                                    fontFamily: 'var(--font-heading)',
+                                    fontWeight: 800,
+                                    fontSize: '16px',
+                                    marginBottom: '4px',
+                                    color: 'var(--section-heading-color)'
+                                }}>
                                     {product.name}
                                 </h3>
-                                <span style={{ fontSize: '14px', opacity: 0.7 }}>
-                                    {product.price_from ? 'від ' : ''}{product.price} ₴
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                                        {product.price_from ? 'від ' : ''}{product.price} ₴
+                                    </span>
+                                </div>
                             </div>
                         </Link>
                     ))}
                 </div>
             </motion.div>
-            <style jsx>{`
-        .product-img:hover { transform: scale(1.05); }
-        .group:hover .overlay { opacity: 1 !important; }
-      `}</style>
         </section>
     );
 }

@@ -2,6 +2,7 @@
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import styles from './ProductContent.module.css';
 import { trackViewItem, trackAddToCart } from '@/components/providers/AnalyticsProvider';
 
 export default function ProductContent({ product }: { product: any }) {
@@ -45,13 +46,13 @@ export default function ProductContent({ product }: { product: any }) {
             </header>
 
             <main className="container" style={{ padding: '60px 0' }}>
-                <div className="product-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px' }}>
+                <div className={styles.productGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px' }}>
                     <div>
                         <img src={product.images?.[0] || 'https://via.placeholder.com/600x600'} alt={product.name} style={{ width: '100%', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }} />
                     </div>
                     <div>
                         <div className="product-category">{product.categories?.name}</div>
-                        <h1 style={{ fontSize: '3rem', marginBottom: '20px' }}>{product.name}</h1>
+                        <h1 className={styles.title} style={{ fontSize: '3rem', marginBottom: '20px' }}>{product.name}</h1>
                         <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '20px', color: 'var(--primary)' }}>
                             від {product.price} UAH
                         </div>
@@ -120,17 +121,6 @@ export default function ProductContent({ product }: { product: any }) {
                     <p>&copy; 2026 TOUCH MEMORIES. Всі права захищені.</p>
                 </div>
             </footer>
-            <style jsx>{`
-                @media (max-width: 900px) {
-                    .product-grid {
-                        grid-template-columns: 1fr !important;
-                        gap: 30px !important;
-                    }
-                    h1 {
-                        font-size: 2.2rem !important;
-                    }
-                }
-            `}</style>
         </div>
     );
 }

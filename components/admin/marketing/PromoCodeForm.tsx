@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import styles from './promo-form.module.css';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -113,7 +114,7 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
                     </h1>
                 </div>
                 <button type="submit" disabled={loading} style={saveBtnStyle}>
-                    {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                    {loading ? <Loader2 size={20} className={styles.animateSpin} /> : <Save size={20} />}
                     Зберегти
                 </button>
             </div>
@@ -228,7 +229,7 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
 
                             {formData.applies_to === 'specific_products' && (
                                 <div style={itemSelectorGrid}>
-                                    {fetching ? <Loader2 className="animate-spin" /> : products.map(p => (
+                                    {fetching ? <Loader2 className={styles.animateSpin} /> : products.map(p => (
                                         <button
                                             key={p.id}
                                             type="button"
@@ -247,7 +248,7 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
 
                             {formData.applies_to === 'specific_categories' && (
                                 <div style={itemSelectorGrid}>
-                                    {fetching ? <Loader2 className="animate-spin" /> : categories.map(c => (
+                                    {fetching ? <Loader2 className={styles.animateSpin} /> : categories.map(c => (
                                         <button
                                             key={c.id}
                                             type="button"
@@ -337,10 +338,6 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
                 </div>
             </div>
 
-            <style jsx>{`
-                .animate-spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            `}</style>
         </form>
     );
 }

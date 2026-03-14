@@ -115,32 +115,34 @@ export function Hero() {
                         <Link href="/catalog?category=magazines" style={{
                             height: '56px',
                             padding: '0 24px',
-                            backgroundColor: 'white',
-                            color: '#000',
+                            backgroundColor: style.hero_btn_bg || 'white',
+                            color: style.hero_btn_text || '#000',
                             fontWeight: 700,
                             fontSize: '16px',
-                            borderRadius: '12px',
+                            borderRadius: 'var(--button-radius)',
+                            boxShadow: 'none',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             textDecoration: 'none',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            transition: 'transform 0.2s, background-color 0.2s',
                         }} className="hover-lift">
                             Глянцевий журнал
                         </Link>
                         <Link href="/catalog?category=photobooks" style={{
                             height: '56px',
                             padding: '0 24px',
-                            backgroundColor: 'white',
-                            color: '#000',
+                            backgroundColor: style.hero_btn_bg || 'white',
+                            color: style.hero_btn_text || '#000',
                             fontWeight: 700,
                             fontSize: '16px',
-                            borderRadius: '12px',
+                            borderRadius: 'var(--button-radius)',
+                            boxShadow: 'none',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             textDecoration: 'none',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            transition: 'transform 0.2s, background-color 0.2s',
                         }} className="hover-lift">
                             Фотокнига
                         </Link>
@@ -151,51 +153,54 @@ export function Hero() {
                         <Link href="/catalog?category=photo-print" style={{
                             height: '56px',
                             padding: '0 24px',
-                            backgroundColor: 'white',
-                            color: '#000',
+                            backgroundColor: style.hero_btn_bg || 'white',
+                            color: style.hero_btn_text || '#000',
                             fontWeight: 700,
                             fontSize: '16px',
-                            borderRadius: '12px',
+                            borderRadius: 'var(--button-radius)',
+                            boxShadow: 'none',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             textDecoration: 'none',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            transition: 'transform 0.2s, background-color 0.2s',
                         }} className="hover-lift">
                             Фотодрук
                         </Link>
                         <Link href="/catalog?category=travelbook" style={{
                             height: '56px',
                             padding: '0 24px',
-                            backgroundColor: 'white',
-                            color: '#000',
+                            backgroundColor: style.hero_btn_bg || 'white',
+                            color: style.hero_btn_text || '#000',
                             fontWeight: 700,
                             fontSize: '16px',
-                            borderRadius: '12px',
+                            borderRadius: 'var(--button-radius)',
+                            boxShadow: 'none',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             textDecoration: 'none',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            transition: 'transform 0.2s, background-color 0.2s',
                         }} className="hover-lift">
                             Travel book
                         </Link>
                     </div>
 
-                    {/* Row 3: В магазин (half width, blue) */}
+                    {/* Row 3: В магазин (half width, primary) */}
                     <Link href="/catalog" style={{
                         height: '56px',
                         padding: '0 32px',
-                        backgroundColor: 'var(--primary)',
-                        color: 'white',
+                        backgroundColor: 'var(--section-button-bg)',
+                        color: 'var(--section-button-text)',
                         fontWeight: 700,
                         fontSize: '16px',
-                        borderRadius: '12px',
+                        borderRadius: 'var(--button-radius)',
+                        boxShadow: 'none',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         textDecoration: 'none',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        transition: 'transform 0.2s, background-color 0.2s',
                         width: '50%',
                     }} className="hover-lift">
                         {buttonText}

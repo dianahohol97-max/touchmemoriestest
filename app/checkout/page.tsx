@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import styles from './checkout.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { useCartStore } from '@/store/cart-store';
@@ -170,7 +171,7 @@ export default function CheckoutPage() {
             <Navigation />
 
             <main style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '40px' }} className="checkout-grid">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '40px' }} className={styles.checkoutGrid}>
 
                     {/* Left: Form */}
                     <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '40px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
@@ -366,16 +367,6 @@ export default function CheckoutPage() {
 
             <Footer categories={[]} />
 
-            <style jsx>{`
-                @media (max-width: 900px) {
-                    .checkout-grid {
-                        grid-template-columns: 1fr !important;
-                    }
-                    .checkout-grid > div:nth-child(2) {
-                        order: -1;
-                    }
-                }
-            `}</style>
         </div>
     );
 }

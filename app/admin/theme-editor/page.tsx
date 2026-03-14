@@ -268,6 +268,20 @@ export default function ThemeEditorPage() {
                         </div>
                     </details>
 
+                    <details style={accordionStyle}>
+                        <summary style={summaryStyleWrapper}><Settings2 size={16} color="#3b82f6" /> Глобальні кнопки</summary>
+                        <div style={contentStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label style={labelStyle}>Заокруглення (px)</label>
+                                <input type="text" value={theme.button_settings?.button_radius || '16px'} onChange={(e) => setTheme({ ...theme, button_settings: { ...theme.button_settings, button_radius: e.target.value } })} style={{ ...inputStyle, width: '80px' }} />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label style={labelStyle}>Тінь (CSS shadow)</label>
+                                <input type="text" value={theme.button_settings?.button_shadow || 'none'} onChange={(e) => setTheme({ ...theme, button_settings: { ...theme.button_settings, button_shadow: e.target.value } })} style={{ ...inputStyle, width: '150px' }} />
+                            </div>
+                        </div>
+                    </details>
+
                     <h3 style={{ fontSize: '12px', fontWeight: 700, margin: '24px 0 12px 0', color: '#94a3b8', textTransform: 'uppercase' }}>Порядок та Видимість</h3>
 
                     <details style={accordionStyle} open>
@@ -280,7 +294,9 @@ export default function ThemeEditorPage() {
                                     social_proof: 'Відгуки та соцмережі',
                                     final_cta: 'Заклик в підвалі (Footer CTA)',
                                     featured_products: 'Популярні товари',
-                                    categories: 'Категорії (Фотокниги та Журнали)',
+                                    categories: 'Категорії (Всі)',
+                                    categories_books: 'Категорії: Фотокниги',
+                                    categories_magazines: 'Категорії: Журнали',
                                     travel: 'Travel Book (Подорожі)',
                                     price_calculator: 'Калькулятор ціни',
                                     blog: 'Блог: Останні статті',
@@ -289,7 +305,8 @@ export default function ThemeEditorPage() {
                                     promo_new_arrival: 'Акція (Новинка)',
                                     promo_sale: 'Акція (Розпродаж)',
                                     photo_print: 'Замовити фотодрук',
-                                    custom_book: 'Замовити книгу побажань'
+                                    custom_book: 'Замовити книгу побажань',
+                                    footer: 'Підвал (Footer)'
                                 };
                                 return (
                                     <div key={block.id} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', marginBottom: '8px' }}>
@@ -323,13 +340,49 @@ export default function ThemeEditorPage() {
                                                     <input type="color" value={block.style_metadata?.text_color || '#000000'} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, text_color: e.target.value } } : b))} style={{ width: '20px', height: '20px', border: 'none' }} />
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <label style={{ fontSize: '12px' }}>Колір заголовків</label>
+                                                    <input type="color" value={block.style_metadata?.heading_color || '#000000'} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, heading_color: e.target.value } } : b))} style={{ width: '20px', height: '20px', border: 'none' }} />
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <label style={{ fontSize: '12px' }}>Фон кнопок</label>
+                                                    <input type="color" value={block.style_metadata?.button_bg || '#000000'} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, button_bg: e.target.value } } : b))} style={{ width: '20px', height: '20px', border: 'none' }} />
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <label style={{ fontSize: '12px' }}>Колір тексту кнопок</label>
+                                                    <input type="color" value={block.style_metadata?.button_text || '#ffffff'} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, button_text: e.target.value } } : b))} style={{ width: '20px', height: '20px', border: 'none' }} />
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <label style={{ fontSize: '12px' }}>Заокруглення (px)</label>
                                                     <input type="number" value={parseInt(block.style_metadata?.border_radius) || 0} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, border_radius: e.target.value + 'px' } } : b))} style={{ width: '50px', padding: '2px', border: '1px solid #e2e8f0' }} />
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <label style={{ fontSize: '12px' }}>Розмір тексту (%)</label>
-                                                    <input type="number" value={parseInt(block.style_metadata?.font_size_modifier) || 100} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, font_size_modifier: e.target.value + '%' } } : b))} style={{ width: '50px', padding: '2px', border: '1px solid #e2e8f0' }} />
+                                                    <label style={{ fontSize: '12px' }}>Паддінг (вверх/вниз px)</label>
+                                                    <input type="number" value={parseInt(block.style_metadata?.padding_y) || 40} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, padding_y: e.target.value + 'px' } } : b))} style={{ width: '50px', padding: '2px', border: '1px solid #e2e8f0' }} />
                                                 </div>
+                                                {block.block_name === 'hero' && (
+                                                    <>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <label style={{ fontSize: '12px' }}>Фон малих кнопок Hero</label>
+                                                            <input type="color" value={block.style_metadata?.hero_btn_bg || '#ffffff'} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, hero_btn_bg: e.target.value } } : b))} style={{ width: '20px', height: '20px', border: 'none' }} />
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <label style={{ fontSize: '12px' }}>Текст малих кнопок Hero</label>
+                                                            <input type="color" value={block.style_metadata?.hero_btn_text || '#000000'} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, hero_btn_text: e.target.value } } : b))} style={{ width: '20px', height: '20px', border: 'none' }} />
+                                                        </div>
+                                                    </>
+                                                )}
+                                                {block.block_name === 'price_calculator' && (
+                                                    <>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <label style={{ fontSize: '12px' }}>Фон картки</label>
+                                                            <input type="color" value={block.style_metadata?.card_bg || '#ffffff'} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, card_bg: e.target.value } } : b))} style={{ width: '20px', height: '20px', border: 'none' }} />
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <label style={{ fontSize: '12px' }}>Тінь картки</label>
+                                                            <input type="text" value={block.style_metadata?.card_shadow || '0 20px 50px rgba(0,0,0,0.05)'} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, style_metadata: { ...b.style_metadata, card_shadow: e.target.value } } : b))} style={{ width: '100px', fontSize: '11px', padding: '2px' }} />
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -383,78 +436,51 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Категорії (Фотокниги та Журнали)</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Категорії: Фотокниги (Books)</summary>
                         <div style={contentStyle}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <div>
-                                    <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '0 0 12px 0', color: '#1e293b' }}>Ліва колонка</h4>
-                                    {renderInput('categories_title', 'Заголовок')}
-                                    {renderInput('categories_subtitle', 'Підзаголовок')}
-                                    <div style={{ marginTop: '12px' }}>
-                                        <label style={labelStyle}>Категорія</label>
-                                        <select
-                                            value={getContentValue('categories_left_slug')}
-                                            onChange={e => handleContentChange('categories_left_slug', e.target.value)}
-                                            style={inputStyle}
-                                        >
-                                            <option value="">Оберіть категорію</option>
-                                            {categories.map(cat => (
-                                                <option key={cat.id} value={cat.slug}>{cat.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div style={{ marginTop: '12px' }}>
-                                        {renderImageInput('categories_left_image', 'Фото')}
-                                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <button
-                                                onClick={() => {
-                                                    const slug = getContentValue('categories_left_slug');
-                                                    const cat = categories.find(c => c.slug === slug);
-                                                    if (cat?.cover_image) handleContentChange('categories_left_image', cat.cover_image);
-                                                    else toast.error('Для цієї категорії не встановлено стандартне фото');
-                                                }}
-                                                style={{ fontSize: '12px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                                            >
-                                                Взяти стандартне фото категорії
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                            {renderInput('categories_books_title', 'Заголовок')}
+                            {renderInput('categories_books_subtitle', 'Підзаголовок')}
+                            <div style={{ marginTop: '12px' }}>
+                                <label style={labelStyle}>Категорія</label>
+                                <select
+                                    value={getContentValue('categories_books_slug')}
+                                    onChange={e => handleContentChange('categories_books_slug', e.target.value)}
+                                    style={inputStyle}
+                                >
+                                    <option value="">Оберіть категорію</option>
+                                    {categories.map(cat => (
+                                        <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div style={{ marginTop: '12px' }}>
+                                {renderImageInput('categories_books_image', 'Фото')}
+                                {renderInput('categories_books_embed', 'Embed (iframe)', 'textarea')}
+                            </div>
+                        </div>
+                    </details>
 
-                                <div>
-                                    <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '0 0 12px 0', color: '#1e293b' }}>Права колонка</h4>
-                                    {renderInput('categories_alt_title', 'Заголовок')}
-                                    {renderInput('categories_alt_subtitle', 'Підзаголовок')}
-                                    <div style={{ marginTop: '12px' }}>
-                                        <label style={labelStyle}>Категорія</label>
-                                        <select
-                                            value={getContentValue('categories_right_slug')}
-                                            onChange={e => handleContentChange('categories_right_slug', e.target.value)}
-                                            style={inputStyle}
-                                        >
-                                            <option value="">Оберіть категорію</option>
-                                            {categories.map(cat => (
-                                                <option key={cat.id} value={cat.slug}>{cat.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div style={{ marginTop: '12px' }}>
-                                        {renderImageInput('categories_right_image', 'Фото')}
-                                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <button
-                                                onClick={() => {
-                                                    const slug = getContentValue('categories_right_slug');
-                                                    const cat = categories.find(c => c.slug === slug);
-                                                    if (cat?.cover_image) handleContentChange('categories_right_image', cat.cover_image);
-                                                    else toast.error('Для цієї категорії не встановлено стандартне фото');
-                                                }}
-                                                style={{ fontSize: '12px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                                            >
-                                                Взяти стандартне фото категорії
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                    <details style={accordionStyle}>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Категорії: Журнали (Magazines)</summary>
+                        <div style={contentStyle}>
+                            {renderInput('categories_magazines_title', 'Заголовок')}
+                            {renderInput('categories_magazines_subtitle', 'Підзаголовок')}
+                            <div style={{ marginTop: '12px' }}>
+                                <label style={labelStyle}>Категорія</label>
+                                <select
+                                    value={getContentValue('categories_magazines_slug')}
+                                    onChange={e => handleContentChange('categories_magazines_slug', e.target.value)}
+                                    style={inputStyle}
+                                >
+                                    <option value="">Оберіть категорію</option>
+                                    {categories.map(cat => (
+                                        <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div style={{ marginTop: '12px' }}>
+                                {renderImageInput('categories_magazines_image', 'Фото')}
+                                {renderInput('categories_magazines_embed', 'Embed (iframe)', 'textarea')}
                             </div>
                         </div>
                     </details>
@@ -570,6 +596,7 @@ export default function ThemeEditorPage() {
                             <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Top Locations Block</h4>
                             {renderInput('travel_locations_title', 'Заголовок локацій')}
                             {renderInput('travel_locations_desc', 'Опис локацій', 'textarea')}
+                            {renderInput('travel_embed', 'Embed (iframe)', 'textarea')}
                         </div>
                     </details>
 
@@ -578,6 +605,7 @@ export default function ThemeEditorPage() {
                         <div style={contentStyle}>
                             {renderInput('calc_title', 'Заголовок')}
                             {renderInput('calc_subtitle', 'Підзаголовок')}
+                            {renderInput('calc_embed', 'Embed (iframe)', 'textarea')}
 
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '12px 0' }} />
                             <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Продукти в калькуляторі</h4>
@@ -664,6 +692,7 @@ export default function ThemeEditorPage() {
                             {renderInput('photoprint_subtitle', 'Підзаголовок', 'textarea')}
                             {renderInput('photoprint_button_text', 'Текст кнопки')}
                             {renderInput('photoprint_button_url', 'URL кнопки')}
+                            {renderInput('photoprint_embed', 'Embed (iframe)', 'textarea')}
                             {renderImageInput('photoprint_image_url', 'Фото')}
                         </div>
                     </details>
@@ -675,6 +704,7 @@ export default function ThemeEditorPage() {
                             {renderInput('custombook_subtitle', 'Підзаголовок', 'textarea')}
                             {renderInput('custombook_button_text', 'Текст кнопки')}
                             {renderInput('custombook_button_url', 'URL кнопки')}
+                            {renderInput('custombook_embed', 'Embed (iframe)', 'textarea')}
                             {renderImageInput('custombook_image_url', 'Фото')}
                         </div>
                     </details>
@@ -705,6 +735,19 @@ export default function ThemeEditorPage() {
                             {renderInput('final_cta_subtitle', 'Підзаголовок', 'textarea')}
                             {renderInput('final_cta_button', 'Текст кнопки')}
                             {renderInput('final_cta_url', 'URL за посиланням')}
+                            {renderInput('final_cta_embed', 'Embed (iframe)', 'textarea')}
+                        </div>
+                    </details>
+
+                    <details style={accordionStyle}>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Політика та Оферта (Юридичний контент)</summary>
+                        <div style={contentStyle}>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Політика конфіденційності</h4>
+                            {renderInput('privacy_policy', 'Текст (HTML доступний)', 'textarea')}
+
+                            <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '16px 0' }} />
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Публічна оферта</h4>
+                            {renderInput('public_offer', 'Текст (HTML доступний)', 'textarea')}
                         </div>
                     </details>
 
@@ -730,6 +773,11 @@ export default function ThemeEditorPage() {
                             {renderInput('footer_social_tiktok', 'TikTok')}
                             {renderInput('footer_social_pinterest', 'Pinterest')}
                             {renderInput('footer_social_threads', 'Threads')}
+
+                            <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '16px 0' }} />
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Посилання на продукти (JSON)</h4>
+                            <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px' }}>{'Формат: [{"label": "Назва", "href": "/посилання"}]'}</p>
+                            {renderInput('footer_product_links', 'Користувацькі посилання', 'textarea')}
                         </div>
                     </details>
 

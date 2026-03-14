@@ -1,0 +1,12 @@
+.productImg:hover {
+    transform: scale(1.08);
+}
+
+.group:hover .overlayGradient {
+    opacity: 1 !important;
+}
+
+.group:hover .itemAction {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+}

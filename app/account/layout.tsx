@@ -1,6 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
+import styles from './account-layout.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { createClient } from '@/lib/supabase/client';
@@ -59,7 +60,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
             <Navigation />
 
             <main style={{ flex: 1, paddingTop: '140px', paddingBottom: '80px', maxWidth: '1200px', margin: '0 auto', width: '100%', paddingLeft: '20px', paddingRight: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '40px' }} className="account-grid">
+                <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '40px' }} className={styles.accountGrid}>
 
                     {/* Sidebar */}
                     <aside style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -138,13 +139,6 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
 
             <Footer categories={[]} />
 
-            <style jsx>{`
-                @media (max-width: 900px) {
-                    .account-grid {
-                        grid-template-columns: 1fr !important;
-                    }
-                }
-            `}</style>
         </div>
     );
 }

@@ -1,0 +1,20 @@
+.noScrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.noScrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+@media (max-width: 600px) {
+    .orderHeader {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start !important;
+    }
+
+    .orderHeader>div:last-child {
+        text-align: left !important;
+    }
+}

@@ -1,6 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
+import styles from './orders.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { motion } from 'framer-motion';
@@ -180,10 +181,6 @@ export default function AccountOrdersPage() {
                 </div>
             </main>
             <Footer />
-            <style jsx>{`
-                .spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            `}</style>
         </div>
     );
 }

@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import styles from './ProductGallery.module.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
@@ -14,7 +15,7 @@ export function ProductGallery({ images }: { images: string[] }) {
     if (!images.length) return <div style={{ aspectRatio: '1/1', background: '#f9f9f9', borderRadius: '32px' }}></div>;
 
     return (
-        <div style={{ position: 'sticky', top: '120px', height: 'fit-content' }}>
+        <div className={styles.galleryContainer} style={{ position: 'sticky', top: '120px', height: 'fit-content' }}>
 
             {/* Main Image Container */}
             <div style={{
@@ -50,14 +51,14 @@ export function ProductGallery({ images }: { images: string[] }) {
                 <button
                     onClick={(e) => { e.stopPropagation(); prevImage(); }}
                     style={arrowBtnStyle}
-                    className="gallery-arrow"
+                    className={styles.galleryArrow}
                 >
                     <ChevronLeft size={24} />
                 </button>
                 <button
                     onClick={(e) => { e.stopPropagation(); nextImage(); }}
                     style={{ ...arrowBtnStyle, right: '20px', left: 'auto' }}
-                    className="gallery-arrow"
+                    className={styles.galleryArrow}
                 >
                     <ChevronRight size={24} />
                 </button>
@@ -68,7 +69,7 @@ export function ProductGallery({ images }: { images: string[] }) {
             </div>
 
             {/* Thumbnails */}
-            <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '10px' }} className="no-scrollbar">
+            <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '10px' }} className={styles.noScrollbar}>
                 {images.map((img, idx) => (
                     <button
                         key={idx}
@@ -97,18 +98,6 @@ export function ProductGallery({ images }: { images: string[] }) {
                 ))}
             </div>
 
-            <style jsx>{`
-        .gallery-arrow {
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        div:hover .gallery-arrow {
-            opacity: 1;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-      `}</style>
         </div>
     );
 }

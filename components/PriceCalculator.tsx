@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
+import styles from './PriceCalculator.module.css';
 import { motion, useSpring, useTransform, animate } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { ChevronDown, Plus, Minus, Wand2, Calendar, Sparkles } from 'lucide-react';
@@ -23,8 +24,10 @@ function AnimatedNumber({ value }: { value: number }) {
 }
 
 export default function PriceCalculator() {
-    const { content } = useTheme();
+    const { content, blocks } = useTheme();
     const supabase = createClient();
+    const block = blocks.find(b => b.block_name === 'price_calculator');
+    const style = block?.style_metadata || {};
 
     const [product, setProduct] = useState<any>(null);
     const [format, setFormat] = useState('20×20');
@@ -61,10 +64,7 @@ export default function PriceCalculator() {
         if (calcConfig.products && calcConfig.products.length > 0) {
             return calcConfig.products;
         }
-        // Fallback to initial state if no config
         if (product) return [{ ...product, name: 'Класична фотокнига' }];
-
-        // Hard fallback to prevent section from disappearing entirely
         return [{
             name: 'Класична фотокнига',
             price: 800,
@@ -90,84 +90,95 @@ export default function PriceCalculator() {
         });
     }, [activeProducts, selectedProductIdx, pages, format, cover, quantity]);
 
-    if (activeProducts.length === 0 || !pricing) return null;
+    if (!pricing) return null;
 
     return (
-        <section className="calculator-section home-section" style={{ padding: '40px 20px 80px', background: 'white' }}>
-            <div style={containerStyle}>
+        <section className={styles.calculatorSection}>
+            <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                    <h2 className="calculator-title" style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: '16px' }}>
-                        {content['calc_title'] || 'Калькулятор вартості'}
+                    <h2 style={{
+                        fontFamily: 'var(--font-heading)',
+                        fontSize: 'clamp(28px, 5vw, 40px)',
+                        fontWeight: 900,
+                        marginBottom: '16px',
+                        color: 'var(--section-heading-color)'
+                    }}>
+                        {content['calc_title'] || 'Розрахуйте вартість'}
                     </h2>
-                    <p style={{ opacity: 0.6 }}>{content['calc_subtitle'] || 'Розрахуйте орієнтовну вартість вашої ідеальної фотокниги'}</p>
+                    <p style={{ opacity: 0.7, maxWidth: '500px', margin: '0 auto' }}>
+                        {content['calc_subtitle'] || 'Оберіть параметри вашої ідеальної фотокниги'}
+                    </p>
                 </div>
 
-                <div className="calculator-grid" style={gridStyle}>
-                    {/* Controls */}
-                    <div style={controlsCardStyle}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{
+                    backgroundColor: style.card_bg || 'white',
+                    borderRadius: style.card_radius || '32px',
+                    padding: style.card_padding || '32px',
+                    boxShadow: style.card_shadow || '0 20px 50px rgba(0,0,0,0.05)',
+                    border: '1px solid rgba(0,0,0,0.03)',
+                    color: style.text_color || 'inherit'
+                }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-                            {/* Product selection (only if more than 1) */}
-                            {activeProducts.length > 1 && (
-                                <div>
-                                    <label style={labelStyle}>Оберіть продукт</label>
-                                    <div style={selectWrapperStyle}>
-                                        <select
-                                            value={selectedProductIdx}
-                                            onChange={(e) => setSelectedProductIdx(Number(e.target.value))}
-                                            style={selectStyle}
-                                        >
-                                            {activeProducts.map((p: any, i: number) => (
-                                                <option key={i} value={i}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown size={18} style={selectIconStyle} />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Format Dropdown */}
+                        {/* Step 1: Product */}
+                        {activeProducts.length > 1 && (
                             <div>
-                                <label style={labelStyle}>Формат книги</label>
+                                <label style={labelStyle}>1. Оберіть продукт</label>
                                 <div style={selectWrapperStyle}>
                                     <select
-                                        value={format}
-                                        onChange={(e) => setFormat(e.target.value)}
+                                        value={selectedProductIdx}
+                                        onChange={(e) => setSelectedProductIdx(Number(e.target.value))}
                                         style={selectStyle}
                                     >
-                                        {FORMATS.map(f => <option key={f} value={f}>{f} см</option>)}
+                                        {activeProducts.map((p: any, i: number) => (
+                                            <option key={i} value={i}>{p.name}</option>
+                                        ))}
                                     </select>
                                     <ChevronDown size={18} style={selectIconStyle} />
                                 </div>
                             </div>
+                        )}
 
-                            {/* Cover Toggles */}
+                        {/* Step 2: Format */}
+                        <div>
+                            <label style={labelStyle}>{activeProducts.length > 1 ? '2.' : '1.'} Формат</label>
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                {FORMATS.map(f => (
+                                    <button
+                                        key={f}
+                                        onClick={() => setFormat(f)}
+                                        style={{
+                                            ...toggleButtonStyle,
+                                            flex: 1,
+                                            minWidth: '70px',
+                                            backgroundColor: format === f ? 'var(--color-primary)' : 'white',
+                                            color: format === f ? 'white' : 'inherit',
+                                            borderColor: format === f ? 'var(--color-primary)' : '#eee',
+                                        }}
+                                    >
+                                        {f}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Step 3: Cover & Pages */}
+                        <div className={styles.calcRow}>
                             <div>
                                 <label style={labelStyle}>Обкладинка</label>
-                                <div style={toggleGridStyle}>
-                                    {COVERS.map(c => (
-                                        <button
-                                            key={c}
-                                            onClick={() => setCover(c)}
-                                            style={{
-                                                ...toggleButtonStyle,
-                                                backgroundColor: cover === c ? '#1e293b' : 'white',
-                                                color: cover === c ? 'white' : '#64748b',
-                                                borderColor: cover === c ? '#1e293b' : '#e2e8f0',
-                                            }}
-                                        >
-                                            {c}
-                                        </button>
-                                    ))}
+                                <div style={selectWrapperStyle}>
+                                    <select
+                                        value={cover}
+                                        onChange={(e) => setCover(e.target.value)}
+                                        style={selectStyle}
+                                    >
+                                        {COVERS.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                    <ChevronDown size={18} style={selectIconStyle} />
                                 </div>
                             </div>
-
-                            {/* Pages Slider */}
                             <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <label style={labelStyle}>Кількість сторінок</label>
-                                    <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--primary)' }}>{pages}</span>
-                                </div>
+                                <label style={labelStyle}>Сторінок: {pages}</label>
                                 <input
                                     type="range"
                                     min="20"
@@ -176,126 +187,73 @@ export default function PriceCalculator() {
                                     value={pages}
                                     onChange={(e) => setPages(Number(e.target.value))}
                                     style={sliderStyle}
+                                    className={styles.slider}
                                 />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>
-                                    <span>20 стор.</span>
-                                    <span>100 стор.</span>
-                                </div>
                             </div>
+                        </div>
 
-                            {/* Quantity */}
+                        {/* Result Block - Integrated */}
+                        <div style={{
+                            marginTop: '12px',
+                            padding: '24px',
+                            backgroundColor: '#f8fafc',
+                            borderRadius: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '20px'
+                        }}>
                             <div>
-                                <label style={labelStyle}>ПРИМІРНИКІВ</label>
-                                <div style={qtyWrapperStyle}>
-                                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} style={qtyBtnStyle}><Minus size={16} /></button>
-                                    <span style={qtyValueStyle}>{quantity}</span>
-                                    <button onClick={() => setQuantity(quantity + 1)} style={qtyBtnStyle}><Plus size={16} /></button>
+                                <div style={{ fontSize: '12px', fontWeight: 700, opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Підсумок</div>
+                                <div style={{ fontSize: '32px', fontWeight: 900 }}>
+                                    <AnimatedNumber value={pricing.total} /> ₴
                                 </div>
                             </div>
 
-                        </div>
-                    </div>
-
-                    {/* Result Display */}
-                    <div className="result-card" style={resultCardStyle}>
-                        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                            <div className="result-label" style={priceLabelStyle}>ВАРТІСТЬ ЗАМОВЛЕННЯ</div>
-                            <div className="total-price" style={priceValueStyle}>
-                                <AnimatedNumber value={pricing.total} /> <span style={{ fontSize: '32px' }}>₴</span>
-                            </div>
-                        </div>
-
-                        <div style={breakdownListStyle}>
-                            <div style={breakdownRowStyle}>
-                                <span style={{ color: '#94a3b8' }}>Базова ціна</span>
-                                <span style={{ fontWeight: 700 }}>{pricing.breakdown.base} ₴</span>
-                            </div>
-                            <div style={breakdownRowStyle}>
-                                <span style={{ color: '#94a3b8' }}>Додаткові сторінки ({pricing.breakdown.pages})</span>
-                                <span style={{ fontWeight: 700 }}>+ {pricing.breakdown.pagesTotal} ₴</span>
-                            </div>
-                            {pricing.breakdown.cover !== 0 && (
-                                <div style={breakdownRowStyle}>
-                                    <span style={{ color: '#94a3b8' }}>Обкладинка ({cover})</span>
-                                    <span style={{ fontWeight: 700 }}>{pricing.breakdown.cover > 0 ? '+' : ''} {pricing.breakdown.cover} ₴</span>
-                                </div>
-                            )}
-                            {quantity > 1 && (
-                                <div style={breakdownRowStyle}>
-                                    <span style={{ color: '#94a3b8' }}>Кількість</span>
-                                    <span style={{ fontWeight: 700 }}>× {quantity}</span>
-                                </div>
-                            )}
+                            <button
+                                onClick={() => window.location.href = `/book-constructor?format=${format}&cover=${cover}&pages=${pages}`}
+                                style={{
+                                    height: '56px',
+                                    padding: '0 32px',
+                                    backgroundColor: 'var(--section-button-bg)',
+                                    color: 'var(--section-button-text)',
+                                    borderRadius: 'var(--button-radius)',
+                                    boxShadow: 'var(--button-shadow)',
+                                    border: 'none',
+                                    fontWeight: 700,
+                                    fontSize: '16px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px',
+                                    transition: 'transform 0.2s'
+                                }}
+                                className={styles.hoverLift}
+                            >
+                                <Wand2 size={20} />
+                                В конструктор
+                            </button>
                         </div>
 
-                        <div style={deliveryNoteStyle}>
-                            <Calendar size={16} />
-                            Готово за 5-7 робочих днів
-                        </div>
+                        {content['calc_embed'] && (
+                            <div
+                                style={{ width: '100%', marginTop: '24px' }}
+                                dangerouslySetInnerHTML={{ __html: content['calc_embed'] }}
+                            />
+                        )}
 
-                        <button
-                            onClick={() => window.location.href = `/book-constructor?format=${format}&cover=${cover}&pages=${pages}`}
-                            style={ctaButtonStyle}
-                        >
-                            Створити таку книгу
-                            <Wand2 size={20} />
-                        </button>
                     </div>
                 </div>
             </div>
 
-            <style jsx>{`
-                input[type=range]::-webkit-slider-thumb {
-                    -webkit-appearance: none;
-                    height: 24px;
-                    width: 24px;
-                    border-radius: 50%;
-                    background: #1e293b;
-                    cursor: pointer;
-                    border: 4px solid white;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-                    margin-top: -10px;
-                }
-                input[type=range]::-webkit-slider-runnable-track {
-                    width: 100%;
-                    height: 4px;
-                    background: #f1f5f9;
-                    border-radius: 2px;
-                }
-                @media (max-width: 900px) {
-                    .calculator-grid {
-                        grid-template-columns: 1fr !important;
-                        gap: 30px !important;
-                    }
-                    .calculator-title {
-                        font-size: 28px !important;
-                    }
-                    .total-price {
-                        font-size: 48px !important;
-                    }
-                }
-            `}</style>
         </section>
     );
 }
 
-const containerStyle = { maxWidth: '1200px', margin: '0 auto' };
-const gridStyle = { display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) 1fr', gap: '40px', alignItems: 'stretch' };
-const controlsCardStyle = { backgroundColor: '#f8fafc', padding: '48px', borderRadius: '48px', border: '1px solid #f1f5f9' };
-const resultCardStyle = { backgroundColor: '#1e293b', padding: '64px 48px', borderRadius: '48px', color: 'white', display: 'flex', flexDirection: 'column' as any, justifyContent: 'center', boxShadow: '0 32px 64px -16px rgba(30, 41, 59, 0.25)' };
-const labelStyle = { display: 'block', fontSize: '11px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.1em', marginBottom: '12px' };
+const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '8px', opacity: 0.8 };
 const selectWrapperStyle = { position: 'relative' as any };
-const selectStyle = { width: '100%', padding: '16px 20px', borderRadius: '16px', border: '2px solid #e2e8f0', appearance: 'none' as any, outline: 'none', fontSize: '15px', fontWeight: 700, cursor: 'pointer', backgroundColor: 'white' };
-const selectIconStyle = { position: 'absolute' as any, right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' as any, color: '#94a3b8' };
-const toggleGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' };
-const toggleButtonStyle = { padding: '14px', borderRadius: '16px', border: '2px solid', fontSize: '14px', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' };
-const sliderStyle = { width: '100%', appearance: 'none' as any, height: '4px', background: '#f1f5f9', borderRadius: '2px', outline: 'none', cursor: 'pointer' };
-const qtyWrapperStyle = { display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: 'white', padding: '8px', borderRadius: '16px', width: 'fit-content', border: '2px solid #e2e8f0' };
-const qtyBtnStyle = { width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', backgroundColor: '#f8fafc', color: '#1e293b', cursor: 'pointer', transition: 'all 0.2s' };
-const qtyValueStyle = { fontSize: '18px', fontWeight: 900, minWidth: '30px', textAlign: 'center' as any, color: '#1e293b' };
-const priceLabelStyle = { fontSize: '12px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em' };
-const priceValueStyle = { fontSize: '80px', fontWeight: 900, lineHeight: 1 };
-const breakdownListStyle = { display: 'flex', flexDirection: 'column' as any, gap: '12px', marginBottom: '40px', padding: '32px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', backgroundColor: 'rgba(0,0,0,0.1)' };
-const breakdownRowStyle = { display: 'flex', justifyContent: 'space-between', fontSize: '14px' };
-const deliveryNoteStyle = { display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center', fontSize: '14px', fontWeight: 600, color: '#94a3b8', marginBottom: '32px' };
-const ctaButtonStyle = { width: '100%', padding: '24px', borderRadius: '20px', backgroundColor: '#ef4444', color: 'white', border: 'none', fontWeight: 900, fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', transition: 'all 0.3s', boxShadow: '0 10px 30px rgba(239, 68, 68, 0.3)' };
+const selectStyle = { width: '100%', padding: '14px 16px', borderRadius: '12px', border: '1px solid #eee', appearance: 'none' as any, outline: 'none', fontSize: '15px', fontWeight: 600, cursor: 'pointer', backgroundColor: 'white' };
+const selectIconStyle = { position: 'absolute' as any, right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' as any, opacity: 0.3 };
+const toggleButtonStyle = { padding: '12px', borderRadius: '12px', border: '1px solid', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' };
+const sliderStyle = { width: '100%', appearance: 'none' as any, height: '4px', background: '#eee', borderRadius: '2px', outline: 'none', cursor: 'pointer', marginTop: '12px' };

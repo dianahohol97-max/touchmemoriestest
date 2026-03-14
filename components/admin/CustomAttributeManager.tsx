@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Tag } from 'lucide-react';
+import { toast } from 'sonner';
 import { CustomAttribute, AttributePriceModifiers } from '@/lib/types/product';
 import AddAttributeModal from './AddAttributeModal';
 
@@ -24,14 +25,12 @@ export default function CustomAttributeManager({
 
         if (priceData !== undefined) {
             if (attribute.type === 'select' && typeof priceData === 'object') {
-                // Add price modifiers for each select option
                 Object.entries(priceData).forEach(([option, price]) => {
                     if (price > 0) {
                         newModifiers[`${attribute.key}_${option}`] = price;
                     }
                 });
             } else if (attribute.type === 'boolean' && typeof priceData === 'number') {
-                // Add price modifier for boolean
                 if (priceData > 0) {
                     newModifiers[attribute.key] = priceData;
                 }
@@ -39,6 +38,7 @@ export default function CustomAttributeManager({
         }
 
         onChange(newAttributes, newModifiers);
+        toast.success('Характеристику додано');
     };
 
     const handleEditAttribute = (attribute: CustomAttribute, priceData?: number | Record<string, number>) => {
@@ -78,6 +78,7 @@ export default function CustomAttributeManager({
 
         onChange(newAttributes, newModifiers);
         setEditingIndex(null);
+        toast.success('Характеристику оновлено');
     };
 
     const handleDeleteAttribute = (index: number) => {
@@ -85,7 +86,6 @@ export default function CustomAttributeManager({
         const newAttributes = attributes.filter((_, i) => i !== index);
         const newModifiers = { ...priceModifiers };
 
-        // Remove associated price modifiers
         if (attribute.type === 'select') {
             Object.keys(newModifiers).forEach(key => {
                 if (key.startsWith(`${attribute.key}_`)) {
@@ -97,6 +97,7 @@ export default function CustomAttributeManager({
         }
 
         onChange(newAttributes, newModifiers);
+        toast.success('Характеристику видалено');
     };
 
     const getAttributePriceInfo = (attribute: CustomAttribute) => {

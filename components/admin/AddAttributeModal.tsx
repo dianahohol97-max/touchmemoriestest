@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { CustomAttribute, AttributeType } from '@/lib/types/product';
 
 interface AddAttributeModalProps {
@@ -179,7 +180,7 @@ export default function AddAttributeModal({
                             style={selectStyle}
                         >
                             <option value="boolean">Так/Ні (checkbox)</option>
-                            <option value="select">Вибір зі списку (dropdown)</option>
+                            <option value="select">Вибір зі спиsku (dropdown)</option>
                             <option value="number">Число</option>
                             <option value="text">Текст</option>
                         </select>

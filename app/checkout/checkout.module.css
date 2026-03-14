@@ -1,0 +1,9 @@
+@media (max-width: 900px) {
+    .checkoutGrid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .checkoutGrid>div:nth-child(2) {
+        order: -1;
+    }
+}

@@ -1,0 +1,12 @@
+.accountLayout {
+    min-height: 100vh;
+    background-color: #f9fafb;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 900px) {
+    .accountGrid {
+        grid-template-columns: 1fr !important;
+    }
+}

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
+import styles from './cart.module.css';
 import { useCartStore } from '@/store/cart-store';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
@@ -127,7 +128,7 @@ export default function CartPage() {
                         <a href="/catalog" style={actionBtnStyle} className="hover-lift">До каталогу</a>
                     </div>
                 ) : (
-                    <div className="cart-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '60px' }}>
+                    <div className={styles.cartGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '60px' }}>
 
                         {/* Left Column: Items & Shipping */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
@@ -208,7 +209,7 @@ export default function CartPage() {
                                                 value={citySearch}
                                                 onChange={e => { setCitySearch(e.target.value); setDeliveryInfo({ ...deliveryInfo, city: '', cityRef: '' }); }}
                                             />
-                                            {isSearchingCities && <Loader2 size={18} style={{ position: 'absolute', right: '16px', top: '16px' }} className="spin" />}
+                                            {isSearchingCities && <Loader2 size={18} style={{ position: 'absolute', right: '16px', top: '16px' }} className={styles.spin} />}
                                             {cities.length > 0 && !deliveryInfo.cityRef && (
                                                 <div style={dropdownStyle}>
                                                     {cities.map(c => (
@@ -229,7 +230,7 @@ export default function CartPage() {
                                                     <option value="">Оберіть відділення...</option>
                                                     {warehouses.map(w => <option key={w.Ref} value={w.Ref}>{w.Description}</option>)}
                                                 </select>
-                                                {isSearchingWarehouses && <Loader2 size={18} style={{ position: 'absolute', right: '32px', top: '16px' }} className="spin" />}
+                                                {isSearchingWarehouses && <Loader2 size={18} style={{ position: 'absolute', right: '32px', top: '16px' }} className={styles.spin} />}
                                             </div>
                                         )}
                                     </div>
@@ -269,7 +270,7 @@ export default function CartPage() {
                                     style={{ ...actionBtnStyle, backgroundColor: 'white', color: 'var(--primary)', width: '100%' }}
                                     className="hover-lift"
                                 >
-                                    {loading ? <Loader2 size={24} className="spin" /> : <><CreditCard size={20} /> Оплатити замовлення</>}
+                                    {loading ? <Loader2 size={24} className={styles.spin} /> : <><CreditCard size={20} /> Оплатити замовлення</>}
                                 </button>
                             </div>
                         </aside>
@@ -279,20 +280,6 @@ export default function CartPage() {
             </main>
 
             <Footer />
-            <style jsx>{`
-        .spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
-        @media (max-width: 1024px) {
-            .cart-grid {
-                grid-template-columns: 1fr !important;
-                gap: 40px !important;
-            }
-            main {
-                padding-top: 100px !important;
-            }
-        }
-      `}</style>
         </div>
     );
 }

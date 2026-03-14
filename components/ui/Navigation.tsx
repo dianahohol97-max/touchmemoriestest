@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import styles from './Navigation.module.css';
 import { Search, User, ShoppingCart, Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cart-store';
@@ -90,7 +91,7 @@ export function Navigation() {
                     </Link>
 
                     {/* Desktop Nav */}
-                    <nav style={{ alignItems: 'center', gap: '40px' }} className="desktop-only nav-flex">
+                    <nav style={{ alignItems: 'center', gap: '40px' }} className={`desktop-only ${styles.navFlex}`}>
                         <div style={{
                             display: 'flex',
                             gap: '24px',
@@ -301,7 +302,7 @@ export function Navigation() {
                     </nav>
 
                     {/* Mobile Nav Toggle */}
-                    <div className="mobile-only nav-flex-mobile" style={{ alignItems: 'center', gap: '20px', color: 'var(--primary)' }}>
+                    <div className={`mobile-only ${styles.navFlexMobile}`} style={{ alignItems: 'center', gap: '20px', color: 'var(--primary)' }}>
                         <Link href="/login" aria-label="User account" style={{ color: 'inherit' }}>
                             <User size={22} />
                         </Link>
@@ -380,14 +381,6 @@ export function Navigation() {
                 )}
             </AnimatePresence>
 
-            <style jsx>{`
-        .nav-flex { display: flex; }
-        .nav-flex-mobile { display: none; }
-        @media (max-width: 768px) {
-          .nav-flex { display: none !important; }
-          .nav-flex-mobile { display: flex !important; }
-        }
-      `}</style>
         </>
     );
 }

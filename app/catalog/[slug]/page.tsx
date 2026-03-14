@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { notFound } from 'next/navigation';
@@ -149,9 +150,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         <div style={{ minHeight: '100vh', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
             <Navigation />
 
-            <main style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+            <main className={styles.mainContainer} style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
                 {/* Breadcrumbs */}
-                <div className="breadcrumbs" style={{ fontSize: '14px', color: '#888', marginBottom: '32px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <div className={styles.breadcrumbs} style={{ fontSize: '14px', color: '#888', marginBottom: '32px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <Link href="/" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">Головна</Link>
                     <span>→</span>
                     <Link href="/catalog" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">Каталог</Link>
@@ -166,11 +167,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 </div>
 
                 {/* Two Column Layout */}
-                <div className="product-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) minmax(300px, 450px)', gap: '60px', marginBottom: '80px' }}>
+                <div className={styles.productLayout} style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) minmax(300px, 450px)', gap: '60px', marginBottom: '80px' }}>
 
                     {/* Left Column: Images */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div className="main-image-container" style={{ position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className={styles.mainImageContainer} style={{ position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {mainVideo ? (
                                 <video
                                     src={mainVideo}
@@ -192,7 +193,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             )}
                         </div>
                         {(thumbnails.length > 1 || product.video_url) && (
-                            <div className="thumbnail-container custom-scrollbar" style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
+                            <div className={`${styles.thumbnailContainer} ${styles.customScrollbar}`} style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
                                 {thumbnails.map((src: string, idx: number) => (
                                     <button
                                         key={idx}
@@ -242,7 +243,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                     {/* Right Column: Details */}
                     <div>
-                        <h1 className="product-title-main" style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: '16px', lineHeight: 1.2 }}>
+                        <h1 className={styles.productTitleMain} style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: '16px', lineHeight: 1.2 }}>
                             {product.name}
                         </h1>
                         {product.short_description && (
@@ -252,7 +253,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         )}
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
-                            <div className="price-container" style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)' }}>
+                            <div className={styles.priceContainer} style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)' }}>
                                 {product.price_from ? 'від ' : ''}{finalPrice} ₴
                             </div>
                             {product.sale_price && (
@@ -337,7 +338,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         {product.is_personalized ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
-                                    <div className="flex-responsive">
+                                    <div className={styles.flexResponsive}>
                                         <Link
                                             href="/book-constructor"
                                             style={{
@@ -422,10 +423,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                 {/* Tabs Area */}
                 <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '60px', marginBottom: '80px' }}>
-                    <div style={{ display: 'flex', gap: '40px', borderBottom: '1px solid #e2e8f0', marginBottom: '40px', overflowX: 'auto' }} className="custom-scrollbar">
+                    <div style={{ display: 'flex', gap: '40px', borderBottom: '1px solid #e2e8f0', marginBottom: '40px', overflowX: 'auto' }} className={styles.customScrollbar}>
                         <button
                             onClick={() => setActiveTab('description')}
-                            className="tab-btn"
+                            className={styles.tabBtn}
                             style={{
                                 background: 'none',
                                 border: 'none',
@@ -444,7 +445,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         {product.specs && product.specs.length > 0 && (
                             <button
                                 onClick={() => setActiveTab('specs')}
-                                className="tab-btn"
+                                className={styles.tabBtn}
                                 style={{
                                     background: 'none',
                                     border: 'none',
@@ -463,7 +464,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         )}
                         <button
                             onClick={() => setActiveTab('reviews')}
-                            className="tab-btn"
+                            className={styles.tabBtn}
                             style={{
                                 background: 'none',
                                 border: 'none',
@@ -525,7 +526,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '40px', textAlign: 'center' }}>
                             Вам також може сподобатись
                         </h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }} className="related-grid">
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }} className={styles.relatedGrid}>
                             {relatedProducts.map((p) => (
                                 <ProductCard key={p.id} product={p} />
                             ))}
@@ -537,68 +538,6 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
             <Footer categories={[]} />
 
-            <style jsx>{`
-                .flex-responsive {
-                    display: flex;
-                    gap: 12px;
-                }
-                @media (max-width: 900px) {
-                    .product-layout {
-                        grid-template-columns: 1fr !important;
-                        gap: 32px !important;
-                    }
-                    .flex-responsive {
-                        flex-direction: column;
-                    }
-                }
-                @media (max-width: 768px) {
-                    main {
-                        padding: 100px 16px 40px !important;
-                    }
-                    .breadcrumbs {
-                        margin-bottom: 24px !important;
-                        font-size: 13px !important;
-                    }
-                    .product-title-main {
-                        font-size: 28px !important;
-                        margin-bottom: 12px !important;
-                    }
-                    .main-image-container {
-                        margin-left: -16px;
-                        margin-right: -16px;
-                        width: calc(100% + 32px) !important;
-                        border-radius: 0 !important;
-                    }
-                    .thumbnail-container {
-                        margin-left: -16px;
-                        margin-right: -16px;
-                        padding-left: 16px;
-                    }
-                    .price-container {
-                        font-size: 24px !important;
-                    }
-                    .tab-btn {
-                        font-size: 16px !important;
-                        padding-bottom: 12px !important;
-                    }
-                    .related-grid {
-                        grid-template-columns: repeat(2, 1fr) !important;
-                        gap: 12px !important;
-                    }
-                }
-            `}</style>
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    height: 6px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background-color: #cbd5e1;
-                    border-radius: 20px;
-                }
-            `}</style>
         </div>
     );
 }

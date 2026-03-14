@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import styles from './admin-product-form.module.css';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import {
@@ -150,13 +151,23 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
     const [attributePriceModifiers, setAttributePriceModifiers] = useState<AttributePriceModifiers>(initialData?.attribute_price_modifiers || {});
     const [tags, setTags] = useState<string[]>(initialData?.tags || []);
     const [tagInput, setTagInput] = useState('');
+    const [allExistingTags, setAllExistingTags] = useState<string[]>([]);
+    const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
 
     useEffect(() => {
         const fetchCategories = async () => {
             const { data } = await supabase.from('categories').select('*').order('name');
             if (data) setCategories(data);
         };
+        const fetchTags = async () => {
+            const { data } = await supabase.from('products').select('tags');
+            if (data) {
+                const uniqueTags = Array.from(new Set(data.flatMap(p => p.tags || [])));
+                setAllExistingTags(uniqueTags);
+            }
+        };
         fetchCategories();
+        fetchTags();
     }, [supabase]);
 
     useEffect(() => {
@@ -217,13 +228,13 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
 
             try {
                 const { error: uploadError } = await supabase.storage
-                    .from('touch-memories-assets')
+                    .from('products')
                     .upload(filePath, file);
 
                 if (uploadError) throw uploadError;
 
                 const { data: { publicUrl } } = supabase.storage
-                    .from('touch-memories-assets')
+                    .from('products')
                     .getPublicUrl(filePath);
 
                 uploadedUrls.push(publicUrl);
@@ -268,13 +279,13 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
 
         try {
             const { error: uploadError } = await supabase.storage
-                .from('touch-memories-assets')
+                .from('videos')
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
 
             const { data: { publicUrl } } = supabase.storage
-                .from('touch-memories-assets')
+                .from('videos')
                 .getPublicUrl(filePath);
 
             setFormData(prev => ({ ...prev, video_url: publicUrl }));
@@ -335,13 +346,17 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
             ? Math.min(...variants.map(v => v.price))
             : formData.price;
 
+        const { stock, is_active, ...restFormData } = formData;
+
         const payload = {
-            ...formData,
+            ...restFormData,
             price: lowestPrice,
+            stock_quantity: stock,
+            status: publish ? 'active' : 'draft',
             is_active: publish,
             images: images,
             variants: variants,
-            custom_attributes: customAttributes,
+            characteristics: customAttributes,
             attribute_price_modifiers: attributePriceModifiers,
             tags: tags,
             updated_at: new Date().toISOString()
@@ -389,11 +404,11 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                     <button type="button" onClick={() => handleSubmit(false)} disabled={loading} style={draftBtnStyle}>
-                        {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                        {loading ? <Loader2 size={18} className={styles.animateSpin} /> : <Save size={18} />}
                         Зберегти чернетку
                     </button>
                     <button type="button" onClick={() => handleSubmit(true)} disabled={loading} style={publishBtnStyle}>
-                        {loading ? <Loader2 size={18} className="animate-spin" /> : <Globe size={18} />}
+                        {loading ? <Loader2 size={18} className={styles.animateSpin} /> : <Globe size={18} />}
                         Опублікувати
                     </button>
                 </div>
@@ -473,7 +488,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                             }}>
                                 <input {...getInputProps()} />
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                                    {uploading ? <Loader2 className="animate-spin" size={24} /> : <Upload size={24} color="#cbd5e1" />}
+                                    {uploading ? <Loader2 className={styles.animateSpin} size={24} /> : <Upload size={24} color="#cbd5e1" />}
                                     <p style={{ margin: 0, fontSize: '13px', fontWeight: 600 }}>
                                         {isDragActive ? 'Скиньте сюди' : 'Завантажити фото'}
                                     </p>
@@ -557,14 +572,14 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                         {variants.length === 0 ? (
                             <div style={emptyStateStyle}>Додайте варіації, щоб налаштувати ціни для різних розмірів чи форматів.</div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowX: 'auto' }}>
                                 <div style={variantHeaderStyle}>
-                                    <span style={{ flex: 2 }}>Назва варіації</span>
-                                    <span style={{ flex: 1 }}>Ціна (грн)</span>
-                                    <span style={{ flex: 1 }}>Собівартість</span>
-                                    <span style={{ flex: 1 }}>Маржа</span>
-                                    <span style={{ flex: 1 }}>SKU</span>
-                                    {!formData.is_personalized && <span style={{ flex: 0.8 }}>Склад</span>}
+                                    <span style={{ minWidth: '180px', flex: 2 }}>Назва варіації</span>
+                                    <span style={{ minWidth: '100px', flex: 1 }}>Ціна (грн)</span>
+                                    <span style={{ minWidth: '100px', flex: 1 }}>Собівартість</span>
+                                    <span style={{ minWidth: '80px', flex: 1 }}>Маржа</span>
+                                    <span style={{ minWidth: '100px', flex: 1 }}>SKU</span>
+                                    {!formData.is_personalized && <span style={{ minWidth: '80px', flex: 0.8 }}>Склад</span>}
                                     <span style={{ width: '40px' }}></span>
                                 </div>
                                 {variants.map((v, idx) => {
@@ -573,18 +588,18 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
 
                                     return (
                                         <div key={v.id} style={variantRowStyle}>
-                                            <input style={{ flex: 2, ...variantInputStyle }} value={v.name} onChange={e => updateVariant(v.id, 'name', e.target.value)} placeholder="напр. 20х20" />
-                                            <input style={{ flex: 1, ...variantInputStyle }} type="number" value={v.price} onChange={e => updateVariant(v.id, 'price', Number(e.target.value))} />
-                                            <input style={{ flex: 1, ...variantInputStyle }} type="number" value={v.cost_price} onChange={e => updateVariant(v.id, 'cost_price', Number(e.target.value))} />
-                                            <div style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: marginGrivna > 0 ? '#10b981' : '#f43f5e', display: 'flex', flexDirection: 'column' }}>
+                                            <input style={{ minWidth: '180px', flex: 2, ...variantInputStyle }} value={v.name} onChange={e => updateVariant(v.id, 'name', e.target.value)} placeholder="напр. 20х20" />
+                                            <input style={{ minWidth: '100px', flex: 1, ...variantInputStyle }} type="number" value={v.price} onChange={e => updateVariant(v.id, 'price', Number(e.target.value))} />
+                                            <input style={{ minWidth: '100px', flex: 1, ...variantInputStyle }} type="number" value={v.cost_price} onChange={e => updateVariant(v.id, 'cost_price', Number(e.target.value))} />
+                                            <div style={{ minWidth: '80px', flex: 1, fontSize: '12px', fontWeight: 700, color: marginGrivna > 0 ? '#10b981' : '#f43f5e', display: 'flex', flexDirection: 'column' }}>
                                                 <span>{marginGrivna.toFixed(0)} ₴</span>
                                                 <span style={{ fontSize: '10px', opacity: 0.8 }}>{marginPercent.toFixed(1)}%</span>
                                             </div>
-                                            <input style={{ flex: 1, ...variantInputStyle }} value={v.sku} onChange={e => updateVariant(v.id, 'sku', e.target.value)} placeholder="SKU" />
+                                            <input style={{ minWidth: '100px', flex: 1, ...variantInputStyle }} value={v.sku} onChange={e => updateVariant(v.id, 'sku', e.target.value)} placeholder="SKU" />
                                             {!formData.is_personalized && (
-                                                <input style={{ flex: 0.8, ...variantInputStyle }} type="number" value={v.stock} onChange={e => updateVariant(v.id, 'stock', Number(e.target.value))} />
+                                                <input style={{ minWidth: '80px', flex: 0.8, ...variantInputStyle }} type="number" value={v.stock} onChange={e => updateVariant(v.id, 'stock', Number(e.target.value))} />
                                             )}
-                                            <button type="button" onClick={() => removeVariant(v.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={18} /></button>
+                                            <button type="button" onClick={() => removeVariant(v.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={18} /></button>
                                         </div>
                                     );
                                 })}
@@ -697,11 +712,57 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                             <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Tag size={16} /></div>
                             <input
                                 value={tagInput}
-                                onChange={e => setTagInput(e.target.value)}
+                                onChange={e => {
+                                    setTagInput(e.target.value);
+                                    setIsTagDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsTagDropdownOpen(true)}
                                 onKeyDown={handleAddTag}
-                                placeholder="Додати тег (Enter)..."
+                                placeholder="Шукайте або додавайте тег..."
                                 style={{ ...inputStyle, paddingLeft: '44px' }}
                             />
+
+                            {isTagDropdownOpen && (
+                                <div style={tagDropdownStyle}>
+                                    <div style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Існуючі теги</div>
+                                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                        {allExistingTags
+                                            .filter(t => t.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(t))
+                                            .map(t => (
+                                                <div
+                                                    key={t}
+                                                    onClick={() => {
+                                                        setTags([...tags, t]);
+                                                        setTagInput('');
+                                                        setIsTagDropdownOpen(false);
+                                                    }}
+                                                    style={tagDropdownItemStyle}
+                                                >
+                                                    {t}
+                                                </div>
+                                            ))
+                                        }
+                                        {tagInput && !allExistingTags.some(t => t.toLowerCase() === tagInput.toLowerCase()) && (
+                                            <div
+                                                onClick={() => {
+                                                    setTags([...tags, tagInput.trim()]);
+                                                    setTagInput('');
+                                                    setIsTagDropdownOpen(false);
+                                                }}
+                                                style={{ ...tagDropdownItemStyle, color: '#3b82f6', borderTop: '1px solid #f1f5f9' }}
+                                            >
+                                                + Створити "{tagInput}"
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div
+                                        onClick={() => setIsTagDropdownOpen(false)}
+                                        style={{ padding: '8px', textAlign: 'center', fontSize: '11px', color: '#94a3b8', cursor: 'pointer', borderTop: '1px solid #f1f5f9' }}
+                                    >
+                                        Закрити
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -722,10 +783,6 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                 </div>
             </div>
 
-            <style jsx>{`
-                .animate-spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            `}</style>
         </div>
     );
 }
@@ -753,5 +810,7 @@ const variantInputStyle = { padding: '10px 14px', borderRadius: '12px', border: 
 const toggleRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', backgroundColor: '#f8fafc', borderRadius: '16px' };
 const checkboxStyle = { width: '20px', height: '20px', accentColor: '#3b82f6', cursor: 'pointer' };
 const tagStyle = { display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: '#eff6ff', color: '#3b82f6', borderRadius: '100px', fontSize: '13px', fontWeight: 800 };
+const tagDropdownStyle: React.CSSProperties = { position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', borderRadius: '16px', border: '1.5px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 50, marginTop: '8px', overflow: 'hidden' };
+const tagDropdownItemStyle: React.CSSProperties = { padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: '#1e293b', cursor: 'pointer', transition: 'background 0.2s' };
 const cardTitleStyle = { fontSize: '18px', fontWeight: 900 };
 

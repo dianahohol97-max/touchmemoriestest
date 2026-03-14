@@ -1,0 +1,8 @@
+.kanbanCol::-webkit-scrollbar {
+    width: 4px;
+}
+
+.kanbanCol::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}

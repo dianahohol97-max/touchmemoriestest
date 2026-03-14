@@ -1,5 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
+import styles from './SocialProof.module.css';
 import { useInView } from 'react-intersection-observer';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRef } from 'react';
@@ -87,7 +88,7 @@ export function SocialProof() {
                         cursor: 'pointer',
                         transition: 'transform 0.2s'
                     }}
-                    className="nav-btn desktop-only"
+                    className={`${styles.navBtn} ${styles.desktopOnly}`}
                     aria-label="Previous"
                 >
                     <ChevronLeft size={24} />
@@ -99,7 +100,7 @@ export function SocialProof() {
                     animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
                     transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.2 }}
                     ref={scrollContainerRef}
-                    className="no-scrollbar"
+                    className={styles.noScrollbar}
                     style={{
                         display: 'flex',
                         gap: '24px',
@@ -128,7 +129,7 @@ export function SocialProof() {
                                 src={photo.image}
                                 alt={`Customer photo by ${photo.username}`}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }}
-                                className="photo-img"
+                                className={styles.photoImg}
                             />
                             {/* Gradient Overlay */}
                             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)', opacity: 0.8 }} />
@@ -165,19 +166,12 @@ export function SocialProof() {
                         cursor: 'pointer',
                         transition: 'transform 0.2s'
                     }}
-                    className="nav-btn desktop-only"
+                    className={`${styles.navBtn} ${styles.desktopOnly}`}
                     aria-label="Next"
                 >
                     <ChevronRight size={24} />
                 </button>
             </div>
-            <style jsx>{`
-        .photo-img:hover { transform: scale(1.03); }
-        .nav-btn:hover { transform: translateY(-50%) scale(1.05) !important; }
-        @media (max-width: 768px) {
-          .desktop-only { display: none !important; }
-        }
-      `}</style>
         </section>
     );
 }

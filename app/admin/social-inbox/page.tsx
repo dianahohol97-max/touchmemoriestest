@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { Bot, User, Send, CheckCircle2, RotateCcw, AlertTriangle, Loader2 } from 'lucide-react';
+import styles from './social-inbox.module.css';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 
@@ -170,7 +171,7 @@ export default function SocialInboxPage() {
 
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                     {loadingConvs ? (
-                        <div style={{ padding: '40px', textAlign: 'center' }}><Loader2 className="spin" color="#94a3b8" /></div>
+                        <div style={{ padding: '40px', textAlign: 'center' }}><Loader2 className={styles.spin} color="#94a3b8" /></div>
                     ) : conversations.length === 0 ? (
                         <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Немає активних розмов</div>
                     ) : (
@@ -237,7 +238,7 @@ export default function SocialInboxPage() {
 
                         <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             {loadingMsgs ? (
-                                <div style={{ textAlign: 'center', padding: '20px' }}><Loader2 className="spin" color="#94a3b8" /></div>
+                                <div style={{ textAlign: 'center', padding: '20px' }}><Loader2 className={styles.spin} color="#94a3b8" /></div>
                             ) : messages.map((m, idx) => {
                                 const isCustomer = m.sender === 'customer';
                                 const isAI = m.sender === 'ai';
@@ -308,10 +309,6 @@ export default function SocialInboxPage() {
                 )}
             </div>
 
-            <style jsx>{`
-                .spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            `}</style>
         </div>
     );
 }

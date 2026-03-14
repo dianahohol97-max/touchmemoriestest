@@ -1,0 +1,17 @@
+.photoImg:hover {
+    transform: scale(1.03);
+}
+
+.navBtn:hover {
+    transform: translateY(-50%) scale(1.05) !important;
+}
+
+@media (max-width: 768px) {
+    .desktopOnly {
+        display: none !important;
+    }
+}
+
+.noScrollbar::-webkit-scrollbar {
+    display: none;
+}

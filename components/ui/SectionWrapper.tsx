@@ -13,18 +13,27 @@ export function SectionWrapper({ name, defaultOrder, children }: { name: string,
     const order = block ? block.position_order : defaultOrder;
     const style = block?.style_metadata || {};
 
+    const sectionStyles: React.CSSProperties = {
+        order,
+        width: '100%',
+        backgroundColor: style.bg_color || 'transparent',
+        color: style.text_color || 'inherit',
+        backgroundImage: style.bg_image ? `url(${style.bg_image})` : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        paddingTop: style.padding_top || '0px',
+        paddingBottom: style.padding_bottom || '0px',
+        borderRadius: style.border_radius || '0px',
+        position: 'relative',
+        overflow: 'hidden',
+        // Scoped variables for components inside this section
+        ['--section-heading-color' as any]: style.heading_color || style.text_color || 'inherit',
+        ['--section-button-bg' as any]: style.button_bg_color || 'var(--color-primary)',
+        ['--section-button-text' as any]: style.button_text_color || '#ffffff',
+    };
+
     return (
-        <div
-            data-section={name}
-            style={{
-                order,
-                width: '100%',
-                backgroundColor: style.bg_color || 'transparent',
-                color: style.text_color || 'inherit',
-                borderRadius: style.border_radius || '0px',
-                fontSize: style.font_size_modifier || '100%',
-                overflow: 'hidden'
-            }}>
+        <div data-section={name} style={sectionStyles}>
             {children}
         </div>
     );

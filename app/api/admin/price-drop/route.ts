@@ -58,7 +58,7 @@ export async function POST(req: Request) {
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; border: 1px solid #f1f5f9; border-radius: 24px; padding: 40px;">
                             <h1 style="color: #ef4444; margin-bottom: 24px;">Гарні новини, ${name}!</h1>
                             <p style="font-size: 16px; line-height: 1.6; color: #64748b;">
-                                Товар з вашого списку бажань подешевшав. Тепер це ідеальний момент, щоб його замовити!
+                                Товар з вашого спиsku бажань подешевшав. Тепер це ідеальний момент, щоб його замовити!
                             </p>
                             
                             <div style="background: #f8fafc; border-radius: 24px; padding: 24px; margin: 32px 0; display: flex; align-items: center; gap: 20px;">
