@@ -14,14 +14,12 @@ import { AccountNav } from '@/components/account/AccountNav';
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
     const supabase = await createClient();
 
-    // 4. Add session check at the beginning of the component
-    const { data: { session } } = await supabase.auth.getSession();
+    // 4. Add user check at the beginning of the component
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
         redirect('/login');
     }
-
-    const user = session.user;
 
     const menuItems = [
         { label: 'Мої замовлення', href: '/account', icon: <ShoppingBag size={20} /> },

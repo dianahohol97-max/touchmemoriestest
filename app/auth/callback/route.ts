@@ -33,7 +33,12 @@ export async function GET(request: NextRequest) {
 
         const { data: { session }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
-        if (!exchangeError && session?.user) {
+        if (exchangeError) {
+            console.error('Exchange error:', exchangeError)
+            return NextResponse.redirect(new URL('/login?error=auth_exchange_failed', request.url))
+        }
+
+        if (session?.user) {
             const user = session.user
 
             // Auto-create/sync customer record
@@ -64,10 +69,11 @@ export async function GET(request: NextRequest) {
                     last_login_at: new Date().toISOString()
                 }).eq('id', customer.id)
             }
+
+            return NextResponse.redirect(new URL('/account', request.url))
         }
     }
 
-    return NextResponse.redirect(
-        new URL('/account', request.url)
-    )
+    // Default redirect to login if no code or no session
+    return NextResponse.redirect(new URL('/login', request.url))
 }
