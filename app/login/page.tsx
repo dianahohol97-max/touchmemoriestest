@@ -1,202 +1,206 @@
-'use client';
-import { useState } from 'react';
-import { Navigation } from '@/components/ui/Navigation';
-import { Footer } from '@/components/ui/Footer';
-import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { createBrowserClient } from '@supabase/ssr';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+'use client'
 
-export default function Login() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const router = useRouter();
-    const supabase = createClient();
+import { useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
+export default function LoginPage() {
+    const router = useRouter()
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
 
-        try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
-
-            if (error) throw error;
-
-            toast.success('Вітаємо! Ви успішно увійшли.');
-            router.push('/account');
-            router.refresh();
-        } catch (error: any) {
-            toast.error('Помилка входу: ' + error.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     const handleGoogleLogin = async () => {
-        console.log('Google login initiated')
-        console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-
-        const supabase = createBrowserClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
-
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin + '/auth/callback',
-                queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent',
-                }
+                redirectTo: window.location.origin + '/auth/callback'
             }
         })
-
         if (error) {
-            console.error('Google login error:', error)
-            alert('Помилка входу: ' + error.message)
+            setError(error.message)
             return
         }
-
-        // data.url contains the Google OAuth URL
-        // supabase automatically redirects, but if not:
         if (data?.url) {
             window.location.href = data.url
         }
     }
 
-    return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f8f9fa' }}>
-            <Navigation />
-            <main style={{ flex: 1, paddingTop: '160px', paddingBottom: '80px', display: 'flex', justifyContent: 'center', paddingLeft: '20px', paddingRight: '20px' }}>
-                <div style={{
-                    backgroundColor: 'white',
-                    padding: '40px',
-                    borderRadius: '24px',
-                    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-                    width: '100%',
-                    maxWidth: '480px'
-                }}>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '8px', textAlign: 'center' }}>
-                        Увійти
-                    </h1>
-                    <p style={{ textAlign: 'center', color: '#666', marginBottom: '32px' }}>
-                        Раді бачити вас знову
-                    </p>
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        setLoading(true)
+        setError('')
+        const form = e.currentTarget
+        const email = (form.elements.namedItem('email') as HTMLInputElement).value
+        const password = (form.elements.namedItem('password') as HTMLInputElement).value
 
-                    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 700, color: '#475569' }}>Email</label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="ваша@пошта.com"
-                                required
-                                style={{
-                                    width: '100%',
-                                    padding: '14px 16px',
-                                    borderRadius: '12px',
-                                    border: '1px solid #e2e8f0',
-                                    outline: 'none',
-                                    fontSize: '16px',
-                                    transition: 'border-color 0.2s'
-                                }}
-                            />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 700, color: '#475569' }}>Пароль</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
-                                style={{
-                                    width: '100%',
-                                    padding: '14px 16px',
-                                    borderRadius: '12px',
-                                    border: '1px solid #e2e8f0',
-                                    outline: 'none',
-                                    fontSize: '16px',
-                                    transition: 'border-color 0.2s'
-                                }}
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={isLoading}
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) {
+            setError('Невірний email або пароль')
+            setLoading(false)
+        } else {
+            router.push('/account')
+        }
+    }
+
+    return (
+        <div style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#f8fafc',
+            padding: '20px'
+        }}>
+            <div style={{
+                backgroundColor: 'white',
+                borderRadius: '16px',
+                padding: '48px',
+                width: '100%',
+                maxWidth: '480px',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
+            }}>
+                <h1 style={{
+                    fontSize: '28px',
+                    fontWeight: 800,
+                    marginBottom: '8px',
+                    textAlign: 'center'
+                }}>
+                    Увійти
+                </h1>
+                <p style={{
+                    color: '#64748b',
+                    textAlign: 'center',
+                    marginBottom: '32px'
+                }}>
+                    Раді бачити вас знову
+                </p>
+
+                {error && (
+                    <div style={{
+                        backgroundColor: '#fee2e2',
+                        color: '#dc2626',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        marginBottom: '16px',
+                        fontSize: '14px'
+                    }}>
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit}>
+                    <div style={{ marginBottom: '16px' }}>
+                        <label style={{ fontSize: '14px', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                            Email
+                        </label>
+                        <input
+                            name="email"
+                            type="email"
+                            required
+                            placeholder="ваша@пошта.com"
                             style={{
                                 width: '100%',
-                                padding: '16px',
-                                backgroundColor: 'var(--primary)',
-                                color: 'white',
-                                borderRadius: '12px',
-                                border: 'none',
-                                fontSize: '16px',
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                marginTop: '8px',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
+                                padding: '12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                fontSize: '15px',
+                                boxSizing: 'border-box'
                             }}
-                        >
-                            {isLoading ? <Loader2 size={24} className="animate-spin" /> : 'Увійти'}
-                        </button>
-                    </form>
+                        />
+                    </div>
 
-                    <div style={{
-                        display: 'flex', alignItems: 'center',
-                        gap: '12px', margin: '16px 0'
-                    }}>
-                        <hr style={{ flex: 1, border: '1px solid #e2e8f0' }} />
-                        <span style={{ color: '#94a3b8', fontSize: '14px' }}>
-                            або
-                        </span>
-                        <hr style={{ flex: 1, border: '1px solid #e2e8f0' }} />
+                    <div style={{ marginBottom: '24px' }}>
+                        <label style={{ fontSize: '14px', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                            Пароль
+                        </label>
+                        <input
+                            name="password"
+                            type="password"
+                            required
+                            placeholder="••••••••"
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                fontSize: '15px',
+                                boxSizing: 'border-box'
+                            }}
+                        />
                     </div>
 
                     <button
-                        onClick={handleGoogleLogin}
+                        type="submit"
+                        disabled={loading}
                         style={{
                             width: '100%',
                             padding: '14px',
+                            backgroundColor: '#1e293b',
+                            color: 'white',
+                            border: 'none',
                             borderRadius: '12px',
-                            border: '1px solid #e2e8f0',
-                            backgroundColor: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '12px',
-                            fontSize: '15px',
-                            cursor: 'pointer',
-                            fontWeight: 500
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            marginBottom: '16px'
                         }}
                     >
-                        <img
-                            src="https://www.google.com/favicon.ico"
-                            width="20" height="20" alt="Google"
-                        />
-                        Увійти через Google
+                        {loading ? 'Завантаження...' : 'Увійти'}
                     </button>
+                </form>
 
-                    <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '14px', color: '#666' }}>
-                        Ще немає акаунту?{' '}
-                        <Link href="/register" style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>
-                            Зареєструватись
-                        </Link>
-                    </div>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    margin: '8px 0 16px'
+                }}>
+                    <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #e2e8f0' }} />
+                    <span style={{ color: '#94a3b8', fontSize: '14px' }}>або</span>
+                    <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #e2e8f0' }} />
                 </div>
-            </main>
-            <Footer categories={[]} />
+
+                <button
+                    onClick={handleGoogleLogin}
+                    style={{
+                        width: '100%',
+                        padding: '14px',
+                        backgroundColor: 'white',
+                        color: '#1e293b',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        fontSize: '15px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        marginBottom: '24px'
+                    }}
+                >
+                    <img
+                        src="https://www.google.com/favicon.ico"
+                        width="20"
+                        height="20"
+                        alt="Google"
+                    />
+                    Увійти через Google
+                </button>
+
+                <p style={{ textAlign: 'center', fontSize: '14px', color: '#64748b' }}>
+                    Ще не маєте акаунту?{' '}
+                    <Link href="/register" style={{ color: '#1e293b', fontWeight: 600 }}>
+                        Зареєструватись
+                    </Link>
+                </p>
+            </div>
         </div>
-    );
+    )
 }
