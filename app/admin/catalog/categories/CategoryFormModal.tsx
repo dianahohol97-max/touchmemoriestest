@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -104,7 +105,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
             const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `categories/${fileName}`;
 
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await supabaseAdmin.storage
                 .from('images')
                 .upload(filePath, file);
 

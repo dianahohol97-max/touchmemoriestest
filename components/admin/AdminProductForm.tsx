@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from './admin-product-form.module.css';
 import { createClient } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { useRouter } from 'next/navigation';
 import {
     Upload,
@@ -227,7 +228,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
             const filePath = `products/${fileName}`;
 
             try {
-                const { error: uploadError } = await supabase.storage
+                const { error: uploadError } = await supabaseAdmin.storage
                     .from('products')
                     .upload(filePath, file);
 
@@ -306,7 +307,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
         const filePath = `videos/${fileName}`;
 
         try {
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await supabaseAdmin.storage
                 .from('videos')
                 .upload(filePath, file);
 

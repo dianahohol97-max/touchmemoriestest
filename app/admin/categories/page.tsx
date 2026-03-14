@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import {
     Plus,
     Edit,
@@ -149,7 +150,7 @@ export default function CategoriesPage() {
         const filePath = `categories/${fileName}`;
 
         try {
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await supabaseAdmin.storage
                 .from('touch-memories-assets')
                 .upload(filePath, file);
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { Save, Settings2, Layers, Type, Paintbrush, Image as ImageIcon, Loader2, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -148,7 +149,7 @@ export default function ThemeEditorPage() {
         try {
             const ext = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
-            const { error } = await supabase.storage.from('products').upload(`site/${fileName}`, file);
+            const { error } = await supabaseAdmin.storage.from('products').upload(`site/${fileName}`, file);
             if (error) throw error;
 
             const { data } = supabase.storage.from('products').getPublicUrl(`site/${fileName}`);

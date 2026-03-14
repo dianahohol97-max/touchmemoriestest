@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { updatePhotosMetadata } from '@/lib/designer-service/brief-helpers';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { PhotoMetadata } from '@/lib/types/designer-service';
 
 export async function POST(request: NextRequest) {
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     const filePath = `design-briefs/${orderId}/${fileName}`;
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('design-briefs')
       .upload(filePath, file, {
         cacheControl: '3600',
