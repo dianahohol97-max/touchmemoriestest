@@ -47,6 +47,7 @@ export default function ExpensesPage() {
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Помилка підключення до бази даних');
     } finally {
       setIsLoading(false);
     }
