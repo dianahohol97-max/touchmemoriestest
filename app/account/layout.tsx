@@ -1,96 +1,115 @@
-export const dynamic = 'force-dynamic';
-import styles from './account-layout.module.css';
-import { Navigation } from '@/components/ui/Navigation';
-import { Footer } from '@/components/ui/Footer';
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import {
-    User,
-    ShoppingBag,
-    Settings
-} from 'lucide-react';
-import { AccountNav } from '@/components/account/AccountNav';
+'use client'
 
-export default async function AccountLayout({ children }: { children: React.ReactNode }) {
-    const supabase = await createClient();
+import { useEffect, useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { useRouter } from 'next/navigation'
 
-    // 4. Add user check at the beginning of the component
-    const { data: { user } } = await supabase.auth.getUser();
+export default function AccountLayout({
+    children
+}: {
+    children: React.ReactNode
+}) {
+    const [user, setUser] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+    const router = useRouter()
 
-    if (!user) {
-        redirect('/login');
+    const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+
+            if (!session) {
+                router.push('/login')
+                return
+            }
+
+            setUser(session.user)
+            setLoading(false)
+        }
+
+        getUser()
+    }, [])
+
+    if (loading) {
+        return (
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100vh'
+            }}>
+                Завантаження...
+            </div>
+        )
     }
 
-    const menuItems = [
-        { label: 'Мої замовлення', href: '/account', icon: <ShoppingBag size={20} /> },
-        { label: 'Профіль', href: '/account/profile', icon: <User size={20} /> },
-        { label: 'Налаштування', href: '/account/settings', icon: <Settings size={20} /> },
-    ];
+    if (!user) {
+        return null
+    }
 
-    // Helper for logout (since we are in a server component, we pass it to a client component logic)
-    // Actually, sign out should be done on client side for cookie cleanup usually, 
-    // but the AccountNav component will handle the interactive part.
+    const displayName = user?.user_metadata?.full_name
+        || user?.user_metadata?.name
+        || user?.email?.split('@')[0]
+        || 'Користувач'
+
+    const avatarUrl = user?.user_metadata?.avatar_url
+        || user?.user_metadata?.picture
+        || null
+
+    const firstLetter = displayName?.[0]?.toUpperCase() ?? 'U'
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', flexDirection: 'column' }}>
-            <Navigation />
-
-            <main style={{ flex: 1, paddingTop: '140px', paddingBottom: '80px', maxWidth: '1200px', margin: '0 auto', width: '100%', paddingLeft: '20px', paddingRight: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '40px' }} className={styles.accountGrid}>
-
-                    {/* Sidebar */}
-                    <aside style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                        <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-                                <div style={{
-                                    width: '56px',
-                                    height: '56px',
-                                    borderRadius: '50%',
-                                    backgroundColor: 'var(--primary)',
-                                    color: 'white',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '20px',
-                                    fontWeight: 800,
-                                    overflow: 'hidden'
-                                }}>
-                                    {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
-                                        <img
-                                            src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture}
-                                            alt="Avatar"
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
-                                    ) : (
-                                        // 2. Fix line 70 — add optional chaining
-                                        user?.email?.[0]?.toUpperCase() ?? '?'
-                                    )}
-                                </div>
-                                <div>
-                                    {/* 3. Fix ALL other user references in this file */}
-                                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>
-                                        {user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? 'Клієнт'}
-                                    </div>
-                                    <div style={{ fontSize: '13px', color: '#64748b' }}>
-                                        {user?.email ?? ''}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <AccountNav
-                                items={menuItems}
-                            />
-                        </div>
-                    </aside>
-
-                    {/* Content */}
-                    <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '40px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', minHeight: '600px' }}>
-                        {children}
+        <div>
+            {/* Header */}
+            <div style={{
+                padding: '24px 32px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px'
+            }}>
+                {avatarUrl ? (
+                    <img
+                        src={avatarUrl}
+                        width={48}
+                        height={48}
+                        style={{ borderRadius: '50%' }}
+                        alt={displayName}
+                    />
+                ) : (
+                    <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        backgroundColor: '#1e293b',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        fontWeight: 700
+                    }}>
+                        {firstLetter}
+                    </div>
+                )}
+                <div>
+                    <div style={{ fontWeight: 700, fontSize: '18px' }}>
+                        Привіт, {displayName}! 👋
+                    </div>
+                    <div style={{ color: '#64748b', fontSize: '14px' }}>
+                        {user?.email ?? ''}
                     </div>
                 </div>
-            </main>
+            </div>
 
-            <Footer categories={[]} />
+            {/* Content */}
+            <div style={{ padding: '32px' }}>
+                {children}
+            </div>
         </div>
-    );
+    )
 }
