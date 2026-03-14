@@ -186,7 +186,7 @@ export function Navigation() {
                                                 {otherCategories.map(category => (
                                                     <Link
                                                         key={category.id}
-                                                        href={`/catalog/${category.slug}`}
+                                                        href={`/catalog?category=${category.slug}`}
                                                         style={{
                                                             display: 'block',
                                                             padding: '12px 20px',
