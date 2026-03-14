@@ -47,7 +47,7 @@ export function FinalCTA() {
                     transition={{ duration: 0.6, delay: 0.4 }}
                     style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center' }}
                 >
-                    <Link href={content['final_cta_url'] || "/constructor"} style={{
+                    <Link href={content['final_cta_url'] || "/book-constructor"} style={{
                         height: '64px',
                         padding: '0 40px',
                         backgroundColor: 'white',

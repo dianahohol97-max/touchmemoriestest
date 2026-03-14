@@ -90,7 +90,7 @@ export default function WelcomeEmail({
                             {/* CTA */}
                             <Section className="text-center mb-[24px]">
                                 <Button
-                                    href={`${appUrl}/constructor`}
+                                    href={`${appUrl}/book-constructor`}
                                     className="bg-[#d97706] text-white px-[32px] py-[16px] rounded-lg text-[16px] font-bold no-underline w-full max-w-[280px]"
                                 >
                                     Створити фотокнигу →

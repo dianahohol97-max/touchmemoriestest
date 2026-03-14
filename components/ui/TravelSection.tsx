@@ -304,7 +304,7 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                         </p>
 
                         <Link
-                            href="/constructor?type=travel"
+                            href="/book-constructor?type=travel"
                             style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',

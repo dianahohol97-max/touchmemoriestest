@@ -207,7 +207,7 @@ export function ProductOptions({ product }: ProductOptionsProps) {
 
                     {isPhotoBook && (
                         <button
-                            onClick={() => router.push(`/constructor?product=${product.id}`)}
+                            onClick={() => router.push(`/book-constructor?product=${product.id}`)}
                             style={{ ...actionBtnStyle, backgroundColor: 'white', color: 'var(--primary)', border: '2px solid var(--primary)', padding: '14px 28px' }}
                             className="hover-glow"
                         >

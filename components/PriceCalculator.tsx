@@ -235,7 +235,7 @@ export default function PriceCalculator() {
                         </div>
 
                         <button
-                            onClick={() => window.location.href = `/constructor?format=${format}&cover=${cover}&pages=${pages}`}
+                            onClick={() => window.location.href = `/book-constructor?format=${format}&cover=${cover}&pages=${pages}`}
                             style={ctaButtonStyle}
                         >
                             Створити таку книгу
