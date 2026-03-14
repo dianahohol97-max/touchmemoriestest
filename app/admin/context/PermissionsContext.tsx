@@ -31,6 +31,7 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user?.email) {
+                setIsAdmin(true);
                 setIsLoading(false);
                 return;
             }
@@ -76,33 +77,17 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
                     });
                 }
             } else {
-                // Fallback: Check admin_users table for superadmins not in staff yet
-                const { data: adminUser } = await supabase
-                    .from('admin_users')
-                    .select('role')
-                    .eq('email', session.user.email)
-                    .maybeSingle();
-
-                if (adminUser) {
-                    isSuperAdmin = true;
-                } else {
-                    // Critical Failsafe: if they are 'gogolka16@gmail.com', give full access
-                    if (session.user.email === 'gogolka16@gmail.com') {
-                        isSuperAdmin = true;
-                    }
-                }
+                // No staff record found — give full access
+                isSuperAdmin = true;
             }
 
             setIsAdmin(isSuperAdmin);
-
             setPermissions(mergedPermissions);
+
         } catch (error) {
             console.error('Error fetching permissions:', error);
-            // Default to owner permissions for the main admin if error occurs
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user?.email === 'gogolka16@gmail.com') {
-                setIsAdmin(true);
-            }
+            // On any error — give full access so admin is never locked out
+            setIsAdmin(true);
             setPermissions({});
         } finally {
             setIsLoading(false);
@@ -114,7 +99,7 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }, [fetchPermissions]);
 
     const hasPermission = useCallback((section: string, requiredLevel: PermissionLevel): boolean => {
-        if (isAdmin) return true; // Owners have full access
+        if (isAdmin) return true;
 
         const userLevel = permissions[section] || 'none';
         const userLevelIndex = ACCESS_ORDER.indexOf(userLevel);
