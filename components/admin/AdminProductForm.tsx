@@ -174,7 +174,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
         const fetchTags = async () => {
             const { data } = await supabase.from('products').select('tags');
             if (data) {
-                const uniqueTags = Array.from(new Set(data.flatMap(p => p.tags || [])));
+                const uniqueTags = Array.from(new Set((data as any[]).flatMap(p => p.tags || []))) as string[];
                 setAllExistingTags(uniqueTags);
             }
         };

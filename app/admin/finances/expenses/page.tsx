@@ -7,6 +7,7 @@ import { Plus, TrendingUp, TrendingDown, Download } from 'lucide-react';
 import type { ExpenseMetrics, ExpenseWithCategory, ExpenseCategory } from '@/lib/types/expenses';
 import { ExpensesList } from '@/components/admin/finances/ExpensesList';
 import { AddExpenseDialog } from '@/components/admin/finances/AddExpenseDialog';
+import { toast } from 'sonner';
 import { ExpensesFilters } from '@/components/admin/finances/ExpensesFilters';
 import { CategoryDonutChart } from '@/components/admin/finances/CategoryDonutChart';
 
