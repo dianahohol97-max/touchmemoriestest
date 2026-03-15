@@ -19,7 +19,7 @@ export default function LoginPage() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + '/auth/callback'
+        redirectTo: 'https://touchmemoriestest-8ou0x8miw-dianahohol97-7159s-projects.vercel.app/auth/callback'
       }
     })
     if (error) {
@@ -96,7 +96,12 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '14px', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+            <label style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              display: 'block',
+              marginBottom: '6px'
+            }}>
               Email
             </label>
             <input
@@ -116,7 +121,12 @@ export default function LoginPage() {
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ fontSize: '14px', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+            <label style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              display: 'block',
+              marginBottom: '6px'
+            }}>
               Пароль
             </label>
             <input
@@ -141,12 +151,12 @@ export default function LoginPage() {
             style={{
               width: '100%',
               padding: '14px',
-              backgroundColor: '#1e293b',
+              backgroundColor: '#263A99',
               color: 'white',
               border: 'none',
-              borderRadius: '12px',
+              borderRadius: '3px',
               fontSize: '16px',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
               marginBottom: '16px'
             }}
@@ -172,9 +182,9 @@ export default function LoginPage() {
             width: '100%',
             padding: '14px',
             backgroundColor: 'white',
-            color: '#1e293b',
+            color: '#263A99',
             border: '1px solid #e2e8f0',
-            borderRadius: '12px',
+            borderRadius: '3px',
             fontSize: '15px',
             fontWeight: 500,
             cursor: 'pointer',
@@ -196,7 +206,7 @@ export default function LoginPage() {
 
         <p style={{ textAlign: 'center', fontSize: '14px', color: '#64748b' }}>
           Ще не маєте акаунту?{' '}
-          <Link href="/register" style={{ color: '#1e293b', fontWeight: 600 }}>
+          <Link href="/register" style={{ color: '#263A99', fontWeight: 600 }}>
             Зареєструватись
           </Link>
         </p>
