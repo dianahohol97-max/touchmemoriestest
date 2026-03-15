@@ -83,13 +83,21 @@ export default function AccountLayout({
             src={avatarUrl}
             width={48}
             height={48}
-            style={{ borderRadius: '50%' }}
+            style={{
+              borderRadius: '50%',
+              objectFit: 'cover',
+              aspectRatio: '1 / 1',
+              flexShrink: 0,
+              width: '48px',
+              height: '48px',
+            }}
             alt={displayName}
           />
         ) : (
           <div style={{
             width: '48px',
             height: '48px',
+            minWidth: '48px',
             borderRadius: '50%',
             backgroundColor: '#1e293b',
             color: 'white',
@@ -97,7 +105,8 @@ export default function AccountLayout({
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '20px',
-            fontWeight: 700
+            fontWeight: 700,
+            flexShrink: 0,
           }}>
             {firstLetter}
           </div>
