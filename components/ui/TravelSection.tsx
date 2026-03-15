@@ -139,14 +139,6 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                                 </div>
                             )}
                         </div>
-
-                        <Link
-                            href="/book-constructor?type=travel"
-                            className="bg-primary text-white px-10 py-5 rounded-[3px] font-bold text-lg hover:-translate-y-1 transition-transform duration-300 shadow-xl flex items-center gap-3 w-full sm:w-auto justify-center"
-                        >
-                            {content['travel_button_text'] || 'Створити Travel Book'}
-                            <ArrowRight size={20} />
-                        </Link>
                     </motion.div>
                 </div>
             </div>

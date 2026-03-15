@@ -33,10 +33,6 @@ export function FinalCTA() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                    <div className="inline-block px-4 py-2 bg-white/10 rounded-full mb-10 w-fit backdrop-blur-md border border-white/10 mx-auto">
-                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-white/80">Почніть зараз</span>
-                    </div>
-
                     <h2 className="text-[48px] lg:text-[72px] font-black leading-[1.0] tracking-tight mb-8">
                         {content['final_cta_title'] || content['cta_title'] || 'Save Memories'}
                     </h2>
@@ -50,7 +46,7 @@ export function FinalCTA() {
                             href={content['final_cta_url'] || "/book-constructor"}
                             className="bg-white text-primary px-10 py-5 rounded-[3px] font-bold text-lg hover:-translate-y-1 transition-transform duration-300 shadow-xl w-full sm:w-auto text-center"
                         >
-                            {content['final_cta_button'] || content['cta_button_text'] || 'Створити зараз'}
+                            {content['final_cta_button'] || content['cta_button_text'] || 'Створити фотокнигу'}
                         </Link>
                         <Link
                             href="/catalog"

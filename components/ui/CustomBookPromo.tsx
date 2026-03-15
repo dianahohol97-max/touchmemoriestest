@@ -35,10 +35,6 @@ export function CustomBookPromo() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 relative z-10">
                         {/* Content Side */}
                         <div className="p-12 lg:p-20 flex flex-col justify-center">
-                            <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-10 w-fit backdrop-blur-md border border-primary/10">
-                                <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/60">Дизайн-сервіс</span>
-                            </div>
-
                             <h2 className="text-[40px] lg:text-[56px] font-black leading-[1.05] tracking-tight mb-8">
                                 Створимо книгу за вас
                             </h2>
