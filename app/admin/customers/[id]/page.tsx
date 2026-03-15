@@ -88,7 +88,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '40px' }}>
                 <button onClick={() => router.back()} style={backBtnStyle}><ArrowLeft size={20} /></button>
                 <div>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#1e293b' }}>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99' }}>
                         Профіль клієнта
                     </h1>
                 </div>
@@ -104,7 +104,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
                             <div style={avatarBigStyle}>{customer.name?.[0]}</div>
                             <div>
-                                <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#1e293b', margin: 0 }}>{customer.name}</h2>
+                                <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#263A99', margin: 0 }}>{customer.name}</h2>
                                 <div style={{ fontSize: '12px', color: '#94a3b8' }}>ID: {customer.id.substring(0, 8)}...</div>
                             </div>
                         </div>
@@ -130,7 +130,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
                     {/* Customer Notes */}
                     <div style={{ ...cardStyle, position: 'relative' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b', margin: 0 }}>📌 Нотатки про клієнта</h3>
+                            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#263A99', margin: 0 }}>📌 Нотатки про клієнта</h3>
                             <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {saving ? <><Loader2 size={12} className={styles.animateSpin} /> Збереження...</> : <><Save size={12} /> Збережено</>}
                             </div>
@@ -151,7 +151,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
                     <div style={cardStyle}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b', marginBottom: '24px', margin: 0 }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#263A99', marginBottom: '24px', margin: 0 }}>
                             Історія замовлень ({orders.length})
                         </h3>
 
@@ -165,14 +165,14 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                         <div style={orderIconStyle}><ShoppingBag size={18} color="var(--primary)" /></div>
                                         <div>
-                                            <div style={{ fontWeight: 800, color: '#1e293b' }}>{order.order_number}</div>
+                                            <div style={{ fontWeight: 800, color: '#263A99' }}>{order.order_number}</div>
                                             <div style={{ fontSize: '13px', color: '#64748b' }}>{new Date(order.created_at).toLocaleDateString('uk-UA')}</div>
                                         </div>
                                     </div>
 
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                                         <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontWeight: 800, color: '#1e293b' }}>{order.total} ₴</div>
+                                            <div style={{ fontWeight: 800, color: '#263A99' }}>{order.total} ₴</div>
                                             <div style={{ fontSize: '12px', fontWeight: 600, color: getStatusColor(order.order_status) }}>
                                                 {getStatusLabel(order.order_status)}
                                             </div>
@@ -203,7 +203,7 @@ function getStatusLabel(status: string) {
 
 function getStatusColor(status: string) {
     const map: Record<string, string> = {
-        'pending': '#3b82f6', 'confirmed': '#14b8a6', 'in_production': '#f59e0b',
+        'pending': '#263A99', 'confirmed': '#14b8a6', 'in_production': '#f59e0b',
         'shipped': '#a855f7', 'delivered': '#22c55e', 'cancelled': '#ef4444'
     };
     return map[status] || '#64748b';
@@ -214,7 +214,7 @@ const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '32
 const avatarBigStyle = { width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#f1f5f9', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 };
 const contactRowStyle = { display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', fontWeight: 600, color: '#475569' };
 const statLabelStyle = { fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', marginBottom: '4px' };
-const statValueStyle = { fontSize: '24px', fontWeight: 900, color: '#1e293b' };
-const notesTextareaStyle = { width: '100%', padding: '16px', borderRadius: '16px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#1e293b', fontFamily: 'inherit', resize: 'vertical' as any, minHeight: '150px', backgroundColor: '#fdfbf7' };
+const statValueStyle = { fontSize: '24px', fontWeight: 900, color: '#263A99' };
+const notesTextareaStyle = { width: '100%', padding: '16px', borderRadius: '16px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#263A99', fontFamily: 'inherit', resize: 'vertical' as any, minHeight: '150px', backgroundColor: '#fdfbf7' };
 const orderRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9', textDecoration: 'none', transition: 'all 0.2s', backgroundColor: 'white' };
 const orderIconStyle = { width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' };

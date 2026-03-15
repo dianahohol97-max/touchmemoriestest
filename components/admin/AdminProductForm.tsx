@@ -89,7 +89,7 @@ function SortableImage({ url, onRemove, index, isFirst }: { url: string, onRemov
                     position: 'absolute',
                     top: '8px',
                     left: '8px',
-                    backgroundColor: '#3b82f6',
+                    backgroundColor: '#263A99',
                     color: 'white',
                     fontSize: '10px',
                     fontWeight: 800,
@@ -434,7 +434,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
     };
 
     return (
-        <div style={{ maxWidth: '1440px', margin: '0 auto', color: '#0f172a' }}>
+        <div style={{ maxWidth: '1440px', margin: '0 auto', color: '#263A99' }}>
             {/* Top Bar: Replaces the previous simple header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -467,7 +467,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                     {/* General Content Card */}
                     <div style={cardStyle}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '28px' }}>
-                            <div style={{ padding: '10px', backgroundColor: '#eff6ff', borderRadius: '12px', color: '#3b82f6' }}><FileText size={20} /></div>
+                            <div style={{ padding: '10px', backgroundColor: '#eff6ff', borderRadius: '12px', color: '#263A99' }}><FileText size={20} /></div>
                             <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0 }}>Контент та опис</h3>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -527,7 +527,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                             <div {...getRootProps()} style={{
                                 ...emptyStateStyle,
                                 cursor: 'pointer',
-                                borderColor: isDragActive ? '#3b82f6' : '#f1f5f9',
+                                borderColor: isDragActive ? '#263A99' : '#f1f5f9',
                                 backgroundColor: isDragActive ? '#f0f9ff' : '#f8fafc',
                                 border: '2px dashed #e2e8f0',
                                 padding: '24px'
@@ -832,7 +832,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                                                     setTagInput('');
                                                     setIsTagDropdownOpen(false);
                                                 }}
-                                                style={{ ...tagDropdownItemStyle, color: '#3b82f6', borderTop: '1px solid #f1f5f9' }}
+                                                style={{ ...tagDropdownItemStyle, color: '#263A99', borderTop: '1px solid #f1f5f9' }}
                                             >
                                                 + Створити "{tagInput}"
                                             </div>
@@ -877,10 +877,10 @@ const labelStyle = { display: 'block', fontSize: '11px', fontWeight: 800, color:
 const inputStyle = { width: '100%', padding: '14px 18px', borderRadius: '14px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', fontWeight: 600, transition: 'all 0.2s' };
 const textareaStyle = { width: '100%', padding: '14px 18px', borderRadius: '14px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', fontWeight: 500, resize: 'none' as any };
 const selectInputStyle = { width: '100%', padding: '14px 18px', borderRadius: '14px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', outline: 'none', fontSize: '14px', fontWeight: 700, cursor: 'pointer' };
-const sectionTitleStyle = { fontSize: '16px', fontWeight: 900, marginBottom: '24px', color: '#1e293b' };
+const sectionTitleStyle = { fontSize: '16px', fontWeight: 900, marginBottom: '24px', color: '#263A99' };
 const draftBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '14px 24px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#475569', borderRadius: '16px', fontWeight: 800, cursor: 'pointer' };
 const publishBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '14px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '16px', fontWeight: 800, cursor: 'pointer' };
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#1e293b', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: '13px', cursor: 'pointer' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#263A99', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: '13px', cursor: 'pointer' };
 const emptyStateStyle = { padding: '40px', textAlign: 'center' as any, border: '2px dashed #f1f5f9', borderRadius: '24px', color: '#94a3b8', fontWeight: 500, fontSize: '14px' };
 const imageGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '16px' };
 const imageWrapperStyle = { position: 'relative' as any, aspectRatio: '1/1', borderRadius: '16px', overflow: 'hidden', border: '1px solid #f1f5f9' };
@@ -891,9 +891,9 @@ const variantHeaderStyle = { display: 'flex', gap: '12px', padding: '0 16px', fo
 const variantRowStyle = { display: 'flex', gap: '12px', alignItems: 'center' };
 const variantInputStyle = { padding: '10px 14px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '13px', backgroundColor: '#f8fafc', fontWeight: 700 };
 const toggleRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', backgroundColor: '#f8fafc', borderRadius: '16px' };
-const checkboxStyle = { width: '20px', height: '20px', accentColor: '#3b82f6', cursor: 'pointer' };
-const tagStyle = { display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: '#eff6ff', color: '#3b82f6', borderRadius: '100px', fontSize: '13px', fontWeight: 800 };
+const checkboxStyle = { width: '20px', height: '20px', accentColor: '#263A99', cursor: 'pointer' };
+const tagStyle = { display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: '#eff6ff', color: '#263A99', borderRadius: '100px', fontSize: '13px', fontWeight: 800 };
 const tagDropdownStyle: React.CSSProperties = { position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', borderRadius: '16px', border: '1.5px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 50, marginTop: '8px', overflow: 'hidden' };
-const tagDropdownItemStyle: React.CSSProperties = { padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: '#1e293b', cursor: 'pointer', transition: 'background 0.2s' };
+const tagDropdownItemStyle: React.CSSProperties = { padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: '#263A99', cursor: 'pointer', transition: 'background 0.2s' };
 const cardTitleStyle = { fontSize: '18px', fontWeight: 900 };
 

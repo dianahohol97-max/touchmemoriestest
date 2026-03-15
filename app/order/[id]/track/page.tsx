@@ -92,7 +92,7 @@ export default function TrackOrderPage() {
                                         {step.icon}
                                     </div>
                                     <div>
-                                        <h3 style={{ fontSize: '18px', fontWeight: 800, color: isCurrent ? 'var(--primary)' : '#1e293b', marginBottom: '4px' }}>
+                                        <h3 style={{ fontSize: '18px', fontWeight: 800, color: isCurrent ? 'var(--primary)' : '#263A99', marginBottom: '4px' }}>
                                             {step.label}
                                         </h3>
                                         <p style={{ fontSize: '15px', color: '#64748b', margin: 0 }}>

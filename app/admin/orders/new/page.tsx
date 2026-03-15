@@ -142,7 +142,7 @@ export default function CreateOrderPage() {
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#1e293b' }}>
+                        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99' }}>
                             Створити замовлення
                         </h1>
                         <p style={{ color: '#64748b' }}>Ручне введення для замовлень з соцмереж (Instagram, Telegram тощо)</p>
@@ -470,11 +470,11 @@ export default function CreateOrderPage() {
                                 <span>Прибуток:</span>
                                 <span>{profit} ₴</span>
                             </div>
-                            <div style={{ ...totalRowStyle, color: '#3b82f6', fontSize: '13px' }}>
+                            <div style={{ ...totalRowStyle, color: '#263A99', fontSize: '13px' }}>
                                 <span>Маржа:</span>
                                 <span>{margin.toFixed(1)}%</span>
                             </div>
-                            <div style={{ ...totalRowStyle, borderTop: '2px dashed #cbd5e1', paddingTop: '16px', marginTop: '16px', fontSize: '24px', color: '#1e293b', fontWeight: 900 }}>
+                            <div style={{ ...totalRowStyle, borderTop: '2px dashed #cbd5e1', paddingTop: '16px', marginTop: '16px', fontSize: '24px', color: '#263A99', fontWeight: 900 }}>
                                 <span>Разом:</span>
                                 <span>{total} ₴</span>
                             </div>
@@ -500,7 +500,7 @@ export default function CreateOrderPage() {
 
 // Styling Constants
 const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #f1f5f9', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
-const cardTitleStyle = { fontSize: '18px', fontWeight: 800, color: '#1e293b', marginBottom: '24px' };
+const cardTitleStyle = { fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '24px' };
 const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', borderRadius: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer' };
 const labelStyle = { display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' };
 
@@ -538,7 +538,7 @@ const dropdownItemStyle: React.CSSProperties = {
     justifyContent: 'space-between',
     alignItems: 'center'
 };
-const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px', color: '#1e293b', backgroundColor: 'white', fontFamily: 'inherit' };
+const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px', color: '#263A99', backgroundColor: 'white', fontFamily: 'inherit' };
 const selectStyle = { ...inputStyle, appearance: 'none' as any, cursor: 'pointer', backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' };
 const totalRowStyle = { display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 700, color: '#475569', marginBottom: '8px' };
 const btnPrimaryStyle = { padding: '14px 28px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '14px', border: 'none', fontWeight: 800, fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: 1, transition: 'all 0.2s' };

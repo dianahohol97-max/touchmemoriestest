@@ -64,7 +64,7 @@ function SortableProductItem({ product, onRemove }: { product: Product, onRemove
                     )}
                 </div>
                 <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1e293b', margin: '0 0 4px 0' }}>{product.name}</h3>
+                    <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#263A99', margin: '0 0 4px 0' }}>{product.name}</h3>
                     <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)' }}>{product.price} ₴</div>
                 </div>
             </div>
@@ -208,7 +208,7 @@ export default function FeaturedProductsPage() {
     };
 
     return (
-        <div style={{ maxWidth: '900px', margin: '0 auto', color: '#0f172a' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', color: '#263A99' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -287,7 +287,7 @@ export default function FeaturedProductsPage() {
             </div>
 
             <div style={{ marginTop: '24px', padding: '16px 20px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }}></div>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#263A99' }}></div>
                 <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>Потягніть за іконку зліва, щоб змінити порядок відображення на сайті.</p>
             </div>
         </div>
@@ -296,7 +296,7 @@ export default function FeaturedProductsPage() {
 
 const counterStyle = { fontWeight: 900, fontSize: '14px', backgroundColor: 'white', padding: '10px 18px', borderRadius: '100px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' };
 const searchContainerStyle = { display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 20px', backgroundColor: 'white', borderRadius: '20px', border: '1.5px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', transition: 'all 0.2s' };
-const searchInputStyle = { flex: 1, border: 'none', outline: 'none', fontSize: '16px', fontWeight: 600, color: '#1e293b' };
+const searchInputStyle = { flex: 1, border: 'none', outline: 'none', fontSize: '16px', fontWeight: 600, color: '#263A99' };
 const resultsDropdownStyle = { position: 'absolute' as any, top: 'calc(100% + 12px)', left: 0, right: 0, backgroundColor: 'white', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', overflow: 'hidden', zIndex: 50 };
 const resultItemStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #f8fafc', transition: 'background 0.2s' };
 const smallThumbStyle = { width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#f1f5f9', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' };

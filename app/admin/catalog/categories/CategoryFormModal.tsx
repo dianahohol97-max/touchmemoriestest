@@ -147,7 +147,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                     <form id="categoryForm" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
                         <div>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>
                                 Назва категорії (UA)
                             </label>
                             <input
@@ -163,7 +163,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>
                                 Slug (URL-ідентифікатор)
                             </label>
                             <input
@@ -183,7 +183,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>
                                 Опис (короткий текст)
                             </label>
                             <textarea
@@ -199,7 +199,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>
                                 Зображення категорії
                             </label>
                             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
@@ -234,7 +234,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px' }}>
                             <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>Відображати в сайдбарі</div>
+                                <div style={{ fontSize: '15px', fontWeight: 700, color: '#263A99' }}>Відображати в сайдбарі</div>
                                 <div style={{ fontSize: '13px', color: '#64748b' }}>Якщо вимкнено, категорія буде схована з публічного каталогу</div>
                             </div>
                             <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px' }}>

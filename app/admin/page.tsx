@@ -156,7 +156,7 @@ export default function AdminDashboard() {
                             style={{
                                 ...periodBtn,
                                 backgroundColor: period === p ? 'white' : 'transparent',
-                                color: period === p ? '#1e293b' : '#64748b',
+                                color: period === p ? '#263A99' : '#64748b',
                                 boxShadow: period === p ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
                             }}
                         >
@@ -282,7 +282,7 @@ export default function AdminDashboard() {
                         {charts.topProducts.map((p: any, i: number) => (
                             <div key={p.name} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700 }}>
-                                    <span style={{ color: '#1e293b' }}>{p.name}</span>
+                                    <span style={{ color: '#263A99' }}>{p.name}</span>
                                     <span style={{ color: '#6366f1' }}>{p.revenue.toLocaleString()} ₴</span>
                                 </div>
                                 <div style={{ height: '8px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
@@ -334,7 +334,7 @@ export default function AdminDashboard() {
                             transition={{ delay: i * 0.1 }}
                             style={{
                                 ...alertCard,
-                                borderLeft: `6px solid ${alert.type === 'error' ? '#ef4444' : alert.type === 'warning' ? '#f59e0b' : '#3b82f6'}`
+                                borderLeft: `6px solid ${alert.type === 'error' ? '#ef4444' : alert.type === 'warning' ? '#f59e0b' : '#263A99'}`
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
@@ -426,7 +426,7 @@ function MetricCard({ title, value, change, icon, color, badge }: any) {
                 {badge && <span style={redBadge}>{badge}</span>}
             </div>
             <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</div>
-            <div style={{ fontSize: '28px', fontWeight: 900, color: '#1e293b' }}>{value}</div>
+            <div style={{ fontSize: '28px', fontWeight: 900, color: '#263A99' }}>{value}</div>
         </motion.div>
     );
 }
@@ -465,7 +465,7 @@ const chartCardLarge = { gridColumn: 'span 2', backgroundColor: 'white', padding
 const chartCardSmall = { backgroundColor: 'white', padding: '32px', borderRadius: '32px', border: '1.5px solid #f1f5f9' };
 
 const cardHeader = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' };
-const cardTitle = { fontSize: '18px', fontWeight: 900, color: '#1e293b', margin: 0 };
+const cardTitle = { fontSize: '18px', fontWeight: 900, color: '#263A99', margin: 0 };
 const dotStyle = { width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#6366f1' };
 
 const funnelContainer = { marginTop: '24px', display: 'flex', flexDirection: 'column' as any, gap: '20px' };

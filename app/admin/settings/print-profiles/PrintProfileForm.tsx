@@ -83,7 +83,7 @@ export default function PrintProfileForm({ profile, onClose, onSuccess }: PrintP
                     <X size={20} />
                 </button>
 
-                <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#263A99', marginBottom: '24px' }}>
                     {profile ? 'Редагувати профіль друку' : 'Створити профіль друку'}
                 </h2>
 
@@ -128,7 +128,7 @@ export default function PrintProfileForm({ profile, onClose, onSuccess }: PrintP
                     </div>
 
                     <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#263A99', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             📏 Розміри та відступи (у міліметрах)
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
@@ -203,7 +203,7 @@ export default function PrintProfileForm({ profile, onClose, onSuccess }: PrintP
                             padding: '16px',
                             borderRadius: '16px',
                             border: 'none',
-                            background: '#3b82f6',
+                            background: '#263A99',
                             color: 'white',
                             fontWeight: 700,
                             fontSize: '16px',

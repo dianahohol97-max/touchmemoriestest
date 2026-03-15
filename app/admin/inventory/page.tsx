@@ -166,7 +166,7 @@ export default function InventoryAdminPage() {
     };
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', color: '#0f172a' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', color: '#263A99' }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
@@ -185,7 +185,7 @@ export default function InventoryAdminPage() {
             {/* Stats Summary */}
             <div style={statsGridStyle}>
                 <div style={statCardStyle}>
-                    <div style={{ ...statIconStyle, backgroundColor: '#eff6ff', color: '#3b82f6' }}><Package size={20} /></div>
+                    <div style={{ ...statIconStyle, backgroundColor: '#eff6ff', color: '#263A99' }}><Package size={20} /></div>
                     <div>
                         <div style={statLabelStyle}>Всього SKU</div>
                         <div style={statValueStyle}>{products.length}</div>
@@ -378,7 +378,7 @@ export default function InventoryAdminPage() {
                                     <option>Списання</option>
                                 </select>
                             </div>
-                            <button type="submit" style={{ ...modalSubmitBtnStyle, backgroundColor: '#1e293b' }}>Оновити залишок</button>
+                            <button type="submit" style={{ ...modalSubmitBtnStyle, backgroundColor: '#263A99' }}>Оновити залишок</button>
                         </form>
                     </div>
                 </div>
@@ -437,12 +437,12 @@ const statsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
 const statCardStyle = { display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', backgroundColor: 'white', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
 const statIconStyle = { width: '48px', height: '48px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const statLabelStyle = { fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', marginBottom: '4px' };
-const statValueStyle = { fontSize: '20px', fontWeight: 900, color: '#1e293b' };
+const statValueStyle = { fontSize: '20px', fontWeight: 900, color: '#263A99' };
 const filterBarStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '20px' };
 const searchWrapperStyle = { flex: 1, display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', backgroundColor: 'white', borderRadius: '16px', border: '1.5px solid #e2e8f0' };
-const searchInputStyle = { border: 'none', outline: 'none', fontSize: '15px', fontWeight: 600, width: '100%', color: '#1e293b' };
+const searchInputStyle = { border: 'none', outline: 'none', fontSize: '15px', fontWeight: 600, width: '100%', color: '#263A99' };
 const filterTabStyle = { padding: '10px 20px', border: '1.5px solid transparent', borderRadius: '12px', backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: 800, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' };
-const activeFilterTabStyle = { backgroundColor: '#1e293b', color: 'white' };
+const activeFilterTabStyle = { backgroundColor: '#263A99', color: 'white' };
 const tableContainerStyle = { backgroundColor: 'white', borderRadius: '32px', border: '1px solid #f1f5f9', overflow: 'hidden' };
 const thStyle = { textAlign: 'left' as any, padding: '20px 24px', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.1em' };
 const trStyle = { borderBottom: '1px solid #f8fafc', transition: 'background 0.2s' };
@@ -455,5 +455,5 @@ const modalContentStyle = { backgroundColor: 'white', borderRadius: '32px', widt
 const modalHeaderStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' };
 const closeBtnStyle = { background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer' };
 const modalLabelStyle = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
-const modalInputStyle = { width: '100%', padding: '14px 20px', borderRadius: '14px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', outline: 'none', fontSize: '15px', fontWeight: 600, color: '#1e293b' };
+const modalInputStyle = { width: '100%', padding: '14px 20px', borderRadius: '14px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', outline: 'none', fontSize: '15px', fontWeight: 600, color: '#263A99' };
 const modalSubmitBtnStyle = { width: '100%', padding: '16px', borderRadius: '16px', backgroundColor: '#10b981', color: 'white', border: 'none', fontWeight: 800, fontSize: '16px', cursor: 'pointer', boxShadow: '0 10px 20px rgba(16, 185, 129, 0.2)' };

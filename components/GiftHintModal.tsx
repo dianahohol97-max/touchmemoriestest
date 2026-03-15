@@ -48,7 +48,7 @@ export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModa
                     particleCount: 150,
                     spread: 70,
                     origin: { y: 0.6 },
-                    colors: ['#ef4444', '#1e293b', '#f43f5e']
+                    colors: ['#ef4444', '#263A99', '#f43f5e']
                 });
             } else {
                 toast.error(data.error || 'Щось пішло не так');
@@ -181,11 +181,11 @@ const overlayStyle = { position: 'fixed' as any, inset: 0, backgroundColor: 'rgb
 const containerStyle = { backgroundColor: 'white', width: '100%', maxWidth: '540px', borderRadius: '40px', padding: '56px', position: 'relative' as any, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' };
 const closeBtnStyle = { position: 'absolute' as any, top: '32px', right: '32px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' };
 const iconBadgeStyle = { width: '64px', height: '64px', borderRadius: '20px', backgroundColor: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 24px' };
-const titleStyle = { fontSize: '24px', fontWeight: 900, color: '#1e293b', marginBottom: '12px' };
+const titleStyle = { fontSize: '24px', fontWeight: 900, color: '#263A99', marginBottom: '12px' };
 const subtitleStyle = { color: '#64748b', fontSize: '15px', lineHeight: 1.6 };
 const labelStyle = { fontSize: '11px', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.1em', marginBottom: '8px', display: 'block' };
 const inputWrapperStyle = { display: 'flex', alignItems: 'center', gap: '12px', border: '2px solid #f1f5f9', borderRadius: '16px', padding: '0 16px', transition: 'border-color 0.2s' };
-const inputStyle = { border: 'none', padding: '16px 0', width: '100%', outline: 'none', fontSize: '15px', fontWeight: 600, color: '#1e293b', backgroundColor: 'transparent' };
+const inputStyle = { border: 'none', padding: '16px 0', width: '100%', outline: 'none', fontSize: '15px', fontWeight: 600, color: '#263A99', backgroundColor: 'transparent' };
 const submitBtnStyle = { padding: '20px', borderRadius: '20px', color: 'white', border: 'none', fontWeight: 900, fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', boxShadow: '0 10px 15px -3px rgba(239, 68, 68, 0.3)' };
 const successIconStyle = { width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' };
-const doneBtnStyle = { marginTop: '32px', padding: '16px 40px', borderRadius: '16px', backgroundColor: '#1e293b', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer' };
+const doneBtnStyle = { marginTop: '32px', padding: '16px 40px', borderRadius: '16px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer' };

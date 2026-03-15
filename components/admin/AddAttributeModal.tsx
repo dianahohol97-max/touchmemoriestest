@@ -293,7 +293,7 @@ export default function AddAttributeModal({
                             onChange={(e) => setRequired(e.target.checked)}
                             style={{ width: '20px', height: '20px', accentColor: 'var(--primary)' }}
                         />
-                        <label htmlFor="required" style={{ fontSize: '15px', fontWeight: 600, color: '#1e293b' }}>
+                        <label htmlFor="required" style={{ fontSize: '15px', fontWeight: 600, color: '#263A99' }}>
                             Обов'язкове поле
                         </label>
                     </div>
@@ -348,7 +348,7 @@ const headerStyle: React.CSSProperties = {
 const titleStyle: React.CSSProperties = {
     fontSize: '20px',
     fontWeight: 800,
-    color: '#1e293b'
+    color: '#263A99'
 };
 
 const closeBtnStyle: React.CSSProperties = {

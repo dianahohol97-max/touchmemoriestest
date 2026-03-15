@@ -26,7 +26,7 @@ export function CustomBookPromo() {
                     animate={inView ? { opacity: 1, scale: 1 } : {}}
                     transition={{ duration: 0.7 }}
                     style={{
-                        backgroundColor: style.card_bg || '#1e293b',
+                        backgroundColor: style.card_bg || '#263A99',
                         borderRadius: style.border_radius || '32px',
                         padding: '60px 40px',
                         width: '100%',

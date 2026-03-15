@@ -53,7 +53,7 @@ export default function PrintProfilesPage() {
         <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>Профілі друку 🖨️</h1>
+                    <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Профілі друку 🖨️</h1>
                     <p style={{ color: '#64748b' }}>Налаштуйте технічні параметри для генерації файлів під різні типи продукції</p>
                 </div>
                 <button
@@ -62,7 +62,7 @@ export default function PrintProfilesPage() {
                         padding: '10px 20px',
                         borderRadius: '12px',
                         border: 'none',
-                        background: '#3b82f6',
+                        background: '#263A99',
                         color: 'white',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -98,12 +98,12 @@ export default function PrintProfilesPage() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: '#3b82f6'
+                                color: '#263A99'
                             }}>
                                 <Printer size={24} />
                             </div>
                             <div>
-                                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>{profile.name}</h3>
+                                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#263A99' }}>{profile.name}</h3>
                                 <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
                                     <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '4px', background: '#e2e8f0', color: '#475569' }}>
                                         {profile.output_format.toUpperCase()}
@@ -116,7 +116,7 @@ export default function PrintProfilesPage() {
                                     </span>
                                 </div>
                                 {profile.products && (
-                                    <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <div style={{ fontSize: '12px', color: '#263A99', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         📦 {profile.products.name}
                                     </div>
                                 )}

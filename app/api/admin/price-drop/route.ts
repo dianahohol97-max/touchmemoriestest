@@ -55,7 +55,7 @@ export async function POST(req: Request) {
                     to: email,
                     subject: `Ціна знижена на ${productName}! 🎉`,
                     html: `
-                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; border: 1px solid #f1f5f9; border-radius: 24px; padding: 40px;">
+                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #263A99; border: 1px solid #f1f5f9; border-radius: 24px; padding: 40px;">
                             <h1 style="color: #ef4444; margin-bottom: 24px;">Гарні новини, ${name}!</h1>
                             <p style="font-size: 16px; line-height: 1.6; color: #64748b;">
                                 Товар з вашого спиsku бажань подешевшав. Тепер це ідеальний момент, щоб його замовити!
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
                             <div style="background: #f8fafc; border-radius: 24px; padding: 24px; margin: 32px 0; display: flex; align-items: center; gap: 20px;">
                                 <img src="${productImage}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 16px;" />
                                 <div>
-                                    <h3 style="margin: 0; font-size: 18px; color: #1e293b;">${productName}</h3>
+                                    <h3 style="margin: 0; font-size: 18px; color: #263A99;">${productName}</h3>
                                     <div style="margin-top: 8px;">
                                         <span style="text-decoration: line-through; color: #94a3b8; font-size: 14px;">${oldPrice} ₴</span>
                                         <span style="font-size: 24px; font-weight: 900; color: #ef4444; margin-left: 10px;">${newPrice} ₴</span>
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
 
                             <div style="text-align: center;">
                                 <a href="${siteUrl}/catalog/all/${productSlug}" 
-                                   style="display: inline-block; background: #1e293b; color: white; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 800; margin-bottom: 32px;">
+                                   style="display: inline-block; background: #263A99; color: white; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 800; margin-bottom: 32px;">
                                      Замовити зараз
                                 </a>
                             </div>

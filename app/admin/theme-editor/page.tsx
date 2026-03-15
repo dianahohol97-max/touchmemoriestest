@@ -206,7 +206,7 @@ export default function ThemeEditorPage() {
                 {getContentValue(key) && (
                     <img src={getContentValue(key)} alt="" style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />
                 )}
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: '#f1f5f9', color: '#334155', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: '#f1f5f9', color: '#263A99', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                     {uploading === key ? <Loader2 size={16} className="spin" /> : <ImageIcon size={16} />}
                     {uploading === key ? 'Завантаження...' : 'Завантажити нове'}
                     <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(key, e.target.files[0]) }} />
@@ -220,8 +220,8 @@ export default function ThemeEditorPage() {
             {/* Left Sidebar Controls */}
             <div style={{ width: '380px', flexShrink: 0, borderRight: '1px solid #e2e8f0', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff' }}>
-                    <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><Paintbrush size={20} color="#3b82f6" /> Редактор</h1>
-                    <button onClick={handleSave} disabled={saving} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><Paintbrush size={20} color="#263A99" /> Редактор</h1>
+                    <button onClick={handleSave} disabled={saving} style={{ padding: '8px 16px', backgroundColor: '#263A99', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Save size={16} /> {saving ? 'Збереження...' : 'Зберегти'}
                     </button>
                 </div>
@@ -229,7 +229,7 @@ export default function ThemeEditorPage() {
                 <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Paintbrush size={16} color="#3b82f6" /> Стиль карток</summary>
+                        <summary style={summaryStyleWrapper}><Paintbrush size={16} color="#263A99" /> Стиль карток</summary>
                         <div style={contentStyle}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <label style={labelStyle}>Заокруглення (px)</label>
@@ -241,13 +241,13 @@ export default function ThemeEditorPage() {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <label style={labelStyle}>Текст картки</label>
-                                <input type="color" value={theme.card_settings?.card_text_color || '#0f172a'} onChange={(e) => setTheme({ ...theme, card_settings: { ...theme.card_settings, card_text_color: e.target.value } })} style={{ width: '30px', height: '30px', border: 'none' }} />
+                                <input type="color" value={theme.card_settings?.card_text_color || '#263A99'} onChange={(e) => setTheme({ ...theme, card_settings: { ...theme.card_settings, card_text_color: e.target.value } })} style={{ width: '30px', height: '30px', border: 'none' }} />
                             </div>
                         </div>
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Type size={16} color="#3b82f6" /> Типографія</summary>
+                        <summary style={summaryStyleWrapper}><Type size={16} color="#263A99" /> Типографія</summary>
                         <div style={contentStyle}>
                             <div>
                                 <label style={labelStyle}>Шрифт заголовків</label>
@@ -270,7 +270,7 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Settings2 size={16} color="#3b82f6" /> Глобальні кнопки</summary>
+                        <summary style={summaryStyleWrapper}><Settings2 size={16} color="#263A99" /> Глобальні кнопки</summary>
                         <div style={contentStyle}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <label style={labelStyle}>Заокруглення (px)</label>
@@ -286,7 +286,7 @@ export default function ThemeEditorPage() {
                     <h3 style={{ fontSize: '12px', fontWeight: 700, margin: '24px 0 12px 0', color: '#94a3b8', textTransform: 'uppercase' }}>Порядок та Видимість</h3>
 
                     <details style={accordionStyle} open>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Секції Головної</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Секції Головної</summary>
                         <div style={contentStyle}>
                             {blocks.sort((a, b) => a.position_order - b.position_order).map((block) => {
                                 const labels: Record<string, string> = {
@@ -322,7 +322,7 @@ export default function ThemeEditorPage() {
                                                         <ArrowDown size={14} />
                                                     </button>
                                                 </div>
-                                                <button onClick={() => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, expanded: !b.expanded } : b))} style={{ fontSize: '11px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer' }}>Едіт стилю</button>
+                                                <button onClick={() => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, expanded: !b.expanded } : b))} style={{ fontSize: '11px', color: '#263A99', background: 'none', border: 'none', cursor: 'pointer' }}>Едіт стилю</button>
                                                 <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                                                     <input type="checkbox" checked={block.is_visible} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, is_visible: e.target.checked } : b))} />
                                                     Вкл
@@ -402,7 +402,7 @@ export default function ThemeEditorPage() {
                         { id: 'promo_sale', label: 'Акція (Розпродаж)' }
                     ].map(promo => (
                         <details key={promo.id} style={accordionStyle}>
-                            <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> {promo.label}</summary>
+                            <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> {promo.label}</summary>
                             <div style={contentStyle}>
                                 {renderInput(`${promo.id}_title`, 'Заголовок')}
                                 {renderInput(`${promo.id}_subtitle`, 'Підзаголовок', 'textarea')}
@@ -417,7 +417,7 @@ export default function ThemeEditorPage() {
                     ))}
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Головний екран (Hero)</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Головний екран (Hero)</summary>
                         <div style={contentStyle}>
                             {renderInput('hero_overline', 'Надзаголовок (малий текст)')}
                             {renderInput('hero_title', 'Головний заголовок', 'textarea')}
@@ -429,7 +429,7 @@ export default function ThemeEditorPage() {
 
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Популярні Товари</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Популярні Товари</summary>
                         <div style={contentStyle}>
                             {renderInput('featured_title', 'Заголовок')}
                             {renderInput('featured_subtitle', 'Підзаголовок')}
@@ -437,7 +437,7 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Категорії: Фотокниги (Books)</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Категорії: Фотокниги (Books)</summary>
                         <div style={contentStyle}>
                             {renderInput('categories_books_title', 'Заголовок')}
                             {renderInput('categories_books_subtitle', 'Підзаголовок')}
@@ -462,7 +462,7 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Категорії: Журнали (Magazines)</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Категорії: Журнали (Magazines)</summary>
                         <div style={contentStyle}>
                             {renderInput('categories_magazines_title', 'Заголовок')}
                             {renderInput('categories_magazines_subtitle', 'Підзаголовок')}
@@ -487,30 +487,30 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Як це працює</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Як це працює</summary>
                         <div style={contentStyle}>
                             {renderInput('how_title', 'Заголовок секції')}
                             {renderInput('how_subtitle', 'Підзаголовок секції')}
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '12px 0' }} />
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Крок 1</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Крок 1</h4>
                             {renderInput('how_step1_title', 'Заголовок кроку 1')}
                             {renderInput('how_step1_text', 'Опис кроку 1', 'textarea')}
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Крок 2</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Крок 2</h4>
                             {renderInput('how_step2_title', 'Заголовок кроку 2')}
                             {renderInput('how_step2_text', 'Опис кроку 2', 'textarea')}
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Крок 3</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Крок 3</h4>
                             {renderInput('how_step3_title', 'Заголовок кроку 3')}
                             {renderInput('how_step3_text', 'Опис кроку 3', 'textarea')}
                         </div>
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Відгуки</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Відгуки</summary>
                         <div style={contentStyle}>
                             {renderInput('testimonials_title', 'Заголовок секції')}
                             {renderInput('testimonials_subtitle', 'Підзаголовок секції')}
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '12px 0' }} />
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Список відгуків</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Список відгуків</h4>
                             {testimonials.map((test: any, tIdx: number) => (
                                 <div key={tIdx} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '12px', backgroundColor: '#fcfcfc' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -584,17 +584,17 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Travel Book / Top Locations</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Travel Book / Top Locations</summary>
                         <div style={contentStyle}>
                             {renderInput('travel_title', 'Заголовок секції')}
                             {renderInput('travel_subtitle', 'Підзаголовок секції')}
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '12px 0' }} />
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Опис Travel Book</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Опис Travel Book</h4>
                             {renderInput('travel_text', 'Текст опису', 'textarea')}
                             {renderInput('travel_button_text', 'Текст кнопки')}
                             {renderImageInput('travel_image_url', 'Фото')}
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '12px 0' }} />
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Top Locations Block</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Top Locations Block</h4>
                             {renderInput('travel_locations_title', 'Заголовок локацій')}
                             {renderInput('travel_locations_desc', 'Опис локацій', 'textarea')}
                             {renderInput('travel_embed', 'Embed (iframe)', 'textarea')}
@@ -602,14 +602,14 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Калькулятор цін</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Калькулятор цін</summary>
                         <div style={contentStyle}>
                             {renderInput('calc_title', 'Заголовок')}
                             {renderInput('calc_subtitle', 'Підзаголовок')}
                             {renderInput('calc_embed', 'Embed (iframe)', 'textarea')}
 
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '12px 0' }} />
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Товари в калькуляторі</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Товари в калькуляторі</h4>
 
                             {personalizedProducts.map(prod => {
                                 const config = (calcConfig?.products || []).find((p: any) => p.id === prod.id) || { id: prod.id, isActive: false, productionTime: '3-5 робочих днів' };
@@ -657,7 +657,7 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Блог</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Блог</summary>
                         <div style={contentStyle}>
                             {renderInput('blog_title', 'Заголовок')}
                             {renderInput('blog_subtitle', 'Підзаголовок')}
@@ -665,7 +665,7 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Замовити фотодрук (Photo Print Promo)</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Замовити фотодрук (Photo Print Promo)</summary>
                         <div style={contentStyle}>
                             {renderInput('photoprint_title', 'Заголовок')}
                             {renderInput('photoprint_subtitle', 'Підзаголовок', 'textarea')}
@@ -677,7 +677,7 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Замовити книгу побажань (Custom Book Promo)</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Замовити книгу побажань (Custom Book Promo)</summary>
                         <div style={contentStyle}>
                             {renderInput('custombook_title', 'Заголовок')}
                             {renderInput('custombook_subtitle', 'Підзаголовок', 'textarea')}
@@ -689,7 +689,7 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Підвал (Footer CTA)</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Підвал (Footer CTA)</summary>
                         <div style={contentStyle}>
                             {renderInput('cta_title', 'Головний заклик')}
                             {renderInput('cta_subtitle', 'Підзаголовок', 'textarea')}
@@ -699,7 +699,7 @@ export default function ThemeEditorPage() {
 
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Social Proof / Instagram</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Social Proof / Instagram</summary>
                         <div style={contentStyle}>
                             {renderInput('social_proof_title', 'Заголовок')}
                             {renderInput('social_proof_subtitle', 'Підзаголовок', 'textarea')}
@@ -708,7 +708,7 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Final CTA (Перед підвалом)</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Final CTA (Перед підвалом)</summary>
                         <div style={contentStyle}>
                             {renderInput('final_cta_title', 'Заголовок')}
                             {renderInput('final_cta_subtitle', 'Підзаголовок', 'textarea')}
@@ -719,33 +719,33 @@ export default function ThemeEditorPage() {
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Політика та Оферта (Юридичний контент)</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Політика та Оферта (Юридичний контент)</summary>
                         <div style={contentStyle}>
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Політика конфіденційності</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Політика конфіденційності</h4>
                             {renderInput('privacy_policy', 'Текст (HTML доступний)', 'textarea')}
 
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '16px 0' }} />
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Публічна оферта</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Публічна оферта</h4>
                             {renderInput('public_offer', 'Текст (HTML доступний)', 'textarea')}
                         </div>
                     </details>
 
                     <details style={accordionStyle}>
-                        <summary style={summaryStyleWrapper}><Layers size={16} color="#3b82f6" /> Футер (Footer Content)</summary>
+                        <summary style={summaryStyleWrapper}><Layers size={16} color="#263A99" /> Футер (Footer Content)</summary>
                         <div style={contentStyle}>
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Бренд та Опис</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Бренд та Опис</h4>
                             {renderInput('footer_brand_name', 'Назва бренду')}
                             {renderInput('footer_brand_desc', 'Опис бренду', 'textarea')}
                             {renderInput('footer_copyright', 'Копірайт текст')}
 
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '16px 0' }} />
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Контакти</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Контакти</h4>
                             {renderInput('footer_phone', 'Телефон')}
                             {renderInput('footer_email', 'Email')}
                             {renderInput('footer_address', 'Адреса')}
 
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '16px 0' }} />
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Соцмережі (URL)</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Соцмережі (URL)</h4>
                             {renderInput('footer_social_insta', 'Instagram')}
                             {renderInput('footer_social_fb', 'Facebook')}
                             {renderInput('footer_social_tg', 'Telegram')}
@@ -754,7 +754,7 @@ export default function ThemeEditorPage() {
                             {renderInput('footer_social_threads', 'Threads')}
 
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '16px 0' }} />
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Посилання на продукти (JSON)</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Посилання на продукти (JSON)</h4>
                             <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px' }}>{'Формат: [{"label": "Назва", "href": "/посилання"}]'}</p>
                             {renderInput('footer_product_links', 'Користувацькі посилання', 'textarea')}
                         </div>

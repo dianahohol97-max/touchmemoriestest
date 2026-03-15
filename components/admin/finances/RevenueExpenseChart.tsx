@@ -48,7 +48,7 @@ export function RevenueExpenseChart({ data }: RevenueExpenseChartProps) {
           <Legend />
           <Bar dataKey="revenue" name="Виручка" fill="#10b981" />
           <Bar dataKey="expenses" name="Витрати" fill="#ef4444" />
-          <Bar dataKey="profit" name="Прибуток" fill="#3b82f6" />
+          <Bar dataKey="profit" name="Прибуток" fill="#263A99" />
         </BarChart>
       </ResponsiveContainer>
     </div>

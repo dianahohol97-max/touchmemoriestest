@@ -63,7 +63,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
 
             <main style={{ paddingTop: '100px', paddingBottom: '80px', maxWidth: '1200px', margin: '0 auto', padding: '100px 24px 80px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 900, color: '#1e293b', marginBottom: '16px', letterSpacing: '-0.02em' }}>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 900, color: '#263A99', marginBottom: '16px', letterSpacing: '-0.02em' }}>
                         Блог TouchMemories
                     </h1>
                     <p style={{ fontSize: '18px', color: '#64748b', maxWidth: '600px', margin: '0 auto' }}>
@@ -81,7 +81,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.9) 0%, rgba(15,23,42,0.4) 50%, transparent 100%)' }} />
                             <div style={{ position: 'relative', padding: '48px', width: '100%', maxWidth: '800px', color: 'white' }}>
                                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                                    <span style={{ backgroundColor: '#3b82f6', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    <span style={{ backgroundColor: '#263A99', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                         Featured
                                     </span>
                                     {featuredPost.blog_categories && (
@@ -112,12 +112,12 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                     <div>
                         {/* Categories Tabs */}
                         <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '16px', marginBottom: '32px', scrollbarWidth: 'none' }}>
-                            <Link href="/blog" style={{ ...tabStyle, backgroundColor: !category || category === 'all' ? '#1e293b' : 'white', color: !category || category === 'all' ? 'white' : '#64748b' }}>Всі статті</Link>
+                            <Link href="/blog" style={{ ...tabStyle, backgroundColor: !category || category === 'all' ? '#263A99' : 'white', color: !category || category === 'all' ? 'white' : '#64748b' }}>Всі статті</Link>
                             {categories?.map((cat) => (
                                 <Link
                                     key={cat.id}
                                     href={`/blog?category=${cat.slug}`}
-                                    style={{ ...tabStyle, backgroundColor: category === cat.slug ? '#1e293b' : 'white', color: category === cat.slug ? 'white' : '#64748b' }}
+                                    style={{ ...tabStyle, backgroundColor: category === cat.slug ? '#263A99' : 'white', color: category === cat.slug ? 'white' : '#64748b' }}
                                 >
                                     {cat.name}
                                 </Link>
@@ -131,13 +131,13 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                     <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: '24px', overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
                                         {post.cover_image && <Image src={post.cover_image} alt={post.title} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
                                         {post.blog_categories && (
-                                            <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '6px 14px', borderRadius: '14px', fontSize: '12px', fontWeight: 800, color: '#0f172a', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                                            <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '6px 14px', borderRadius: '14px', fontSize: '12px', fontWeight: 800, color: '#263A99', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                                                 {post.blog_categories.name}
                                             </div>
                                         )}
                                     </div>
                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#1e293b', marginBottom: '12px', lineHeight: 1.3 }}>
+                                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px', lineHeight: 1.3 }}>
                                             {post.title}
                                         </h3>
                                         <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '20px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
@@ -154,7 +154,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{post.author_name}</div>
+                                                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#263A99' }}>{post.author_name}</div>
                                                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(post.published_at).toLocaleDateString('uk-UA')}</div>
                                                 </div>
                                             </div>
@@ -174,7 +174,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                     <Link
                                         key={i}
                                         href={`/blog?page=${i + 1}${category ? `&category=${category}` : ''}`}
-                                        style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', fontWeight: 700, fontSize: '15px', textDecoration: 'none', backgroundColor: currentPage === i + 1 ? '#1e293b' : 'white', color: currentPage === i + 1 ? 'white' : '#64748b', border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0' }}
+                                        style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', fontWeight: 700, fontSize: '15px', textDecoration: 'none', backgroundColor: currentPage === i + 1 ? '#263A99' : 'white', color: currentPage === i + 1 ? 'white' : '#64748b', border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0' }}
                                     >
                                         {i + 1}
                                     </Link>
@@ -187,13 +187,13 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
                         {/* Newsletter */}
-                        <div style={{ backgroundColor: '#1e293b', borderRadius: '24px', padding: '32px', color: 'white', textAlign: 'center' }}>
+                        <div style={{ backgroundColor: '#263A99', borderRadius: '24px', padding: '32px', color: 'white', textAlign: 'center' }}>
                             <div style={{ fontSize: '32px', marginBottom: '16px' }}>💌</div>
                             <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Розсилка натхнення</h3>
                             <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '24px' }}>Ніякого спаму. Лише найцікавіші ідеї фотокниг та спеціальні пропозиції раз на місяць.</p>
                             <form style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} action="/api/newsletter" method="POST">
-                                <input type="email" placeholder="Ваш email" required style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0f172a', color: 'white', outline: 'none' }} />
-                                <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s', ':hover': { backgroundColor: '#2563eb' } } as any}>
+                                <input type="email" placeholder="Ваш email" required style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: '1px solid #263A99', backgroundColor: '#263A99', color: 'white', outline: 'none' }} />
+                                <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: '12px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s', ':hover': { backgroundColor: '#2563eb' } } as any}>
                                     Підписатись
                                 </button>
                             </form>
@@ -202,7 +202,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                         {/* Popular Posts */}
                         {popularPosts && popularPosts.length > 0 && (
                             <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '24px', border: '1px solid #f1f5f9' }}>
-                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#1e293b', marginBottom: '20px' }}>⚡ Популярне</h3>
+                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>⚡ Популярне</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     {popularPosts.map((post, index) => (
                                         <Link key={post.id} href={`/blog/${post.slug}`} style={{ display: 'flex', gap: '16px', textDecoration: 'none', color: 'inherit', alignItems: 'center' }}>
@@ -210,7 +210,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                                 0{index + 1}
                                             </div>
                                             <div>
-                                                <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#334155', marginBottom: '4px', lineHeight: 1.3 }}>{post.title}</h4>
+                                                <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#263A99', marginBottom: '4px', lineHeight: 1.3 }}>{post.title}</h4>
                                                 <span style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(post.published_at).toLocaleDateString('uk-UA')}</span>
                                             </div>
                                         </Link>
@@ -222,7 +222,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                         {/* Featured Products */}
                         {featuredProducts && featuredProducts.length > 0 && (
                             <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '24px', border: '1px solid #f1f5f9' }}>
-                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#1e293b', marginBottom: '20px' }}>🎁 Наші продукти</h3>
+                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>🎁 Наші продукти</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                     {featuredProducts.map(product => (
                                         <Link key={product.id} href={`/products/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', gap: '16px', alignItems: 'center' }}>
@@ -232,8 +232,8 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                                 )}
                                             </div>
                                             <div>
-                                                <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>{product.name}</h4>
-                                                <div style={{ fontSize: '14px', fontWeight: 700, color: '#3b82f6' }}>{product.price} ₴</div>
+                                                <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#263A99', marginBottom: '4px' }}>{product.name}</h4>
+                                                <div style={{ fontSize: '14px', fontWeight: 700, color: '#263A99' }}>{product.price} ₴</div>
                                             </div>
                                         </Link>
                                     ))}

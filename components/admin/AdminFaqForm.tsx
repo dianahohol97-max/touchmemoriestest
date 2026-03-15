@@ -145,7 +145,7 @@ export default function AdminFaqForm({ initialData, isEditing = false }: FaqForm
                             onChange={(e) => setFormData(p => ({ ...p, is_active: e.target.checked }))}
                             style={{ width: '20px', height: '20px', accentColor: 'var(--primary)', cursor: 'pointer' }}
                         />
-                        <label htmlFor="is_active" style={{ fontSize: '15px', fontWeight: 600, color: '#1e293b', cursor: 'pointer' }}>Активне (відображається на сайті)</label>
+                        <label htmlFor="is_active" style={{ fontSize: '15px', fontWeight: 600, color: '#263A99', cursor: 'pointer' }}>Активне (відображається на сайті)</label>
                     </div>
                 </div>
             </div>

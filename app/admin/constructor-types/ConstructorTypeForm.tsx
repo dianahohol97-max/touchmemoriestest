@@ -164,7 +164,7 @@ export default function ConstructorTypeForm({ typeId, onClose, onSuccess }: Cons
                                 onClick={() => setActiveTab(tab.id)}
                                 style={{
                                     ...tabBtnStyle,
-                                    backgroundColor: activeTab === tab.id ? '#1e293b' : 'transparent',
+                                    backgroundColor: activeTab === tab.id ? '#263A99' : 'transparent',
                                     color: activeTab === tab.id ? 'white' : '#64748b'
                                 }}
                             >
@@ -397,7 +397,7 @@ export default function ConstructorTypeForm({ typeId, onClose, onSuccess }: Cons
                                             onClick={() => toggleTemplate(t.id)}
                                             style={{
                                                 padding: '12px', borderRadius: '12px', border: '2px solid',
-                                                borderColor: formData.template_ids.includes(t.id) ? '#1e293b' : '#f1f5f9',
+                                                borderColor: formData.template_ids.includes(t.id) ? '#263A99' : '#f1f5f9',
                                                 cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
                                                 backgroundColor: formData.template_ids.includes(t.id) ? '#f8fafc' : 'white'
                                             }}
@@ -508,7 +508,7 @@ const tabBtnStyle: any = { display: 'flex', alignItems: 'center', gap: '10px', p
 const tabPanelStyle: any = { display: 'flex', flexDirection: 'column', gap: '20px' };
 const fieldGroup: any = { display: 'flex', flexDirection: 'column', gap: '8px' };
 const fieldRow: any = { display: 'flex', gap: '20px' };
-const labelStyle: any = { fontSize: '13px', fontWeight: 800, color: '#1e293b' };
+const labelStyle: any = { fontSize: '13px', fontWeight: 800, color: '#263A99' };
 const inputStyle: any = { padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '15px', outline: 'none', width: '100%', transition: 'border-color 0.2s' };
 const checkLabel: any = { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' };
 const cardItemStyle: any = { display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' };

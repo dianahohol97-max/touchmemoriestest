@@ -10,11 +10,11 @@ Stores the single, active configuration for the global website theme.
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `uuid` | PK, Default `uuid_generate_v4()` | Unique identifier |
-| `color_primary` | `text` | Default `'#1e293b'` | Primary brand color (hex) |
+| `color_primary` | `text` | Default `'#263A99'` | Primary brand color (hex) |
 | `color_secondary` | `text` | Default `'#f1f5f9'` | Secondary/Background color |
-| `color_accent` | `text` | Default `'#3b82f6'` | Accent/Highlight color |
+| `color_accent` | `text` | Default `'#263A99'` | Accent/Highlight color |
 | `color_background` | `text` | Default `'#ffffff'` | Main background color |
-| `color_text` | `text` | Default `'#0f172a'` | Main text color |
+| `color_text` | `text` | Default `'#263A99'` | Main text color |
 | `font_family_heading` | `text` | Default `'Inter'` | Font for h1, h2, h3 |
 | `font_family_body` | `text` | Default `'Inter'` | Font for p, span, li |
 | `font_size_h1` | `integer` | Default `48` | H1 size in px |
@@ -24,7 +24,7 @@ Stores the single, active configuration for the global website theme.
 | `spacing_unit` | `integer` | Default `8` | Base UI spacing variable in px |
 | `button_border_radius` | `integer` | Default `8` | Button rounding in px |
 | `button_text_primary` | `text` | Default `'#ffffff'` | Text color on primary buttons |
-| `button_text_secondary` | `text` | Default `'#1e293b'` | Text color on secondary buttons |
+| `button_text_secondary` | `text` | Default `'#263A99'` | Text color on secondary buttons |
 | `updated_at` | `timestamptz` | Default `now()` | Last modification timestamp |
 
 ---

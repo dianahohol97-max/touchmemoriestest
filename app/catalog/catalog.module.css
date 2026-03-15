@@ -63,7 +63,7 @@
 
 .resultsCount span {
     font-weight: 800;
-    color: #1e293b;
+    color: #263A99;
 }
 
 .sortControls {
@@ -89,7 +89,7 @@
     background-color: white;
     font-size: 14px;
     font-weight: 600;
-    color: #1e293b;
+    color: #263A99;
     cursor: pointer;
     outline: none;
 }

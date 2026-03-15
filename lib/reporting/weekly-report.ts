@@ -290,7 +290,7 @@ export function formatWeeklyReportHTML(data: WeeklyReportData): string {
     h1 { color: #1a1a1a; font-size: 24px; margin-bottom: 5px; }
     .subtitle { color: #666; font-size: 14px; margin-bottom: 30px; }
     .section { margin-bottom: 30px; }
-    .section-title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 15px; border-bottom: 2px solid #3b82f6; padding-bottom: 5px; }
+    .section-title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 15px; border-bottom: 2px solid #263A99; padding-bottom: 5px; }
     .metric { margin-bottom: 10px; }
     .metric-label { color: #666; font-size: 14px; }
     .metric-value { font-size: 18px; font-weight: 600; color: #1a1a1a; }

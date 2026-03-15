@@ -160,7 +160,7 @@ export default function MarketingAdminPage() {
     const cardStyle = { backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', overflow: 'hidden' as const };
     const thStyle = { padding: '16px', textAlign: 'left' as const, fontSize: '14px', fontWeight: 600, color: '#64748b', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' };
     const tdStyle = { padding: '16px', borderBottom: '1px solid #f1f5f9', fontSize: '14px' };
-    const btnPrimary = { padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', fontWeight: 600, borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' };
+    const btnPrimary = { padding: '8px 16px', backgroundColor: '#263A99', color: 'white', fontWeight: 600, borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' };
     const btnSecondary = { padding: '8px 16px', backgroundColor: '#fff', border: '1px solid #e2e8f0', color: '#475569', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' };
     const searchInputWrapper = { position: 'relative' as const, display: 'flex', alignItems: 'center' };
     const searchInput = { padding: '8px 16px 8px 36px', border: '1px solid #e2e8f0', borderRadius: '8px', width: '300px', fontSize: '14px', outline: 'none' };
@@ -170,7 +170,7 @@ export default function MarketingAdminPage() {
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
 
             <div style={{ marginBottom: '32px' }}>
-                <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e293b', margin: '0 0 8px 0' }}>Маркетинг</h1>
+                <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#263A99', margin: '0 0 8px 0' }}>Маркетинг</h1>
                 <p style={{ color: '#64748b', fontSize: '15px', margin: 0 }}>Управління підписками, email-розсилками та промокодами</p>
             </div>
 
@@ -242,7 +242,7 @@ export default function MarketingAdminPage() {
                                         ) : (
                                             campaigns.map(c => (
                                                 <tr key={c.id}>
-                                                    <td style={{ ...tdStyle, fontWeight: 500, color: '#1e293b' }}>{c.subject}</td>
+                                                    <td style={{ ...tdStyle, fontWeight: 500, color: '#263A99' }}>{c.subject}</td>
                                                     <td style={tdStyle}>
                                                         <span style={badgeStyle('#f3e8ff', '#7e22ce')}>{c.type}</span>
                                                     </td>
@@ -296,7 +296,7 @@ export default function MarketingAdminPage() {
                                         ) : (
                                             subscribers.map(s => (
                                                 <tr key={s.id}>
-                                                    <td style={{ ...tdStyle, fontWeight: 500, color: '#1e293b' }}>{s.email}</td>
+                                                    <td style={{ ...tdStyle, fontWeight: 500, color: '#263A99' }}>{s.email}</td>
                                                     <td style={{ ...tdStyle, color: '#64748b' }}>{s.name || '-'}</td>
                                                     <td style={tdStyle}>
                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -359,11 +359,11 @@ export default function MarketingAdminPage() {
                                                 return (
                                                     <tr key={p.id}>
                                                         <td style={tdStyle}>
-                                                            <span style={{ fontFamily: 'monospace', fontWeight: 700, backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', color: '#1e293b' }}>
+                                                            <span style={{ fontFamily: 'monospace', fontWeight: 700, backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', color: '#263A99' }}>
                                                                 {p.code}
                                                             </span>
                                                         </td>
-                                                        <td style={{ ...tdStyle, fontWeight: 600, color: '#1e293b' }}>
+                                                        <td style={{ ...tdStyle, fontWeight: 600, color: '#263A99' }}>
                                                             {p.type === 'percent' ? `-${p.value}%` : `-${p.value} грн`}
                                                         </td>
                                                         <td style={tdStyle}>
@@ -404,7 +404,7 @@ export default function MarketingAdminPage() {
                                                     <Icon size={24} />
                                                 </div>
                                                 <div>
-                                                    <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>
+                                                    <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 700, color: '#263A99' }}>
                                                         {isBirthday ? 'Привітання з Днем Народження' : 'Привітальне повідомлення'}
                                                     </h3>
                                                     <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
@@ -419,13 +419,13 @@ export default function MarketingAdminPage() {
                                         <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #f1f5f9', marginBottom: '16px', fontSize: '14px', color: '#475569' }}>
                                             {isBirthday ? (
                                                 <>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span>Знижка:</span> <span style={{ fontWeight: 600, color: '#1e293b' }}>-{auto.settings?.discount_value}{auto.settings?.discount_type === 'percent' ? '%' : ' ₴'}</span></div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Діє (днів):</span> <span style={{ fontWeight: 600, color: '#1e293b' }}>{auto.settings?.valid_days}</span></div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span>Знижка:</span> <span style={{ fontWeight: 600, color: '#263A99' }}>-{auto.settings?.discount_value}{auto.settings?.discount_type === 'percent' ? '%' : ' ₴'}</span></div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Діє (днів):</span> <span style={{ fontWeight: 600, color: '#263A99' }}>{auto.settings?.valid_days}</span></div>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span>Промокод:</span> <span style={{ fontWeight: 600, color: '#1e293b', fontFamily: 'monospace' }}>{auto.settings?.promo_code}</span></div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Знижка:</span> <span style={{ fontWeight: 600, color: '#1e293b' }}>-{auto.settings?.discount_value}{auto.settings?.discount_type === 'percent' ? '%' : ' ₴'}</span></div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span>Промокод:</span> <span style={{ fontWeight: 600, color: '#263A99', fontFamily: 'monospace' }}>{auto.settings?.promo_code}</span></div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Знижка:</span> <span style={{ fontWeight: 600, color: '#263A99' }}>-{auto.settings?.discount_value}{auto.settings?.discount_type === 'percent' ? '%' : ' ₴'}</span></div>
                                                 </>
                                             )}
                                         </div>
@@ -451,7 +451,7 @@ export default function MarketingAdminPage() {
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ ...cardStyle, width: '100%', maxWidth: '600px', padding: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#1e293b' }}>Новий промокод</h2>
+                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#263A99' }}>Новий промокод</h2>
                             <button onClick={() => setIsCreatePromoModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                                 <X size={20} />
                             </button>
@@ -536,7 +536,7 @@ export default function MarketingAdminPage() {
                                 </div>
                             </div>
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#1e293b', marginTop: '8px', cursor: 'pointer' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#263A99', marginTop: '8px', cursor: 'pointer' }}>
                                 <input type="checkbox" checked={newPromo.is_single_use} onChange={e => setNewPromo({ ...newPromo, is_single_use: e.target.checked })} style={{ width: '16px', height: '16px' }} />
                                 <span>Одне використання на клієнта</span>
                             </label>
@@ -559,7 +559,7 @@ export default function MarketingAdminPage() {
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ ...cardStyle, width: '100%', maxWidth: '700px', padding: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#1e293b' }}>Нова розсилка</h2>
+                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#263A99' }}>Нова розсилка</h2>
                             <button onClick={() => setIsCreateCampaignModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                                 <X size={20} />
                             </button>
@@ -624,7 +624,7 @@ export default function MarketingAdminPage() {
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ ...cardStyle, width: '100%', maxWidth: '500px', padding: '24px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#1e293b' }}>Налаштування автоматизації</h2>
+                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#263A99' }}>Налаштування автоматизації</h2>
                             <button onClick={() => setIsConfigAutomationModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                                 <X size={20} />
                             </button>
@@ -638,7 +638,7 @@ export default function MarketingAdminPage() {
                                     onChange={e => setEditingAutomation({ ...editingAutomation, is_active: e.target.checked })}
                                     style={{ width: '20px', height: '20px' }}
                                 />
-                                <span style={{ fontWeight: 600, color: '#1e293b' }}>Автоматизація активована</span>
+                                <span style={{ fontWeight: 600, color: '#263A99' }}>Автоматизація активована</span>
                             </label>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -722,7 +722,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean, onClick:
                 transition: 'all 0.2s'
             }}
             onMouseOver={(e) => {
-                if (!active) e.currentTarget.style.color = '#1e293b';
+                if (!active) e.currentTarget.style.color = '#263A99';
             }}
             onMouseOut={(e) => {
                 if (!active) e.currentTarget.style.color = '#64748b';

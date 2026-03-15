@@ -78,7 +78,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
     if (isLoading) {
         return (
             <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fcfcfd' }}>
-                <Activity className="animate-spin" size={40} color="#3b82f6" />
+                <Activity className="animate-spin" size={40} color="#263A99" />
             </div>
         );
     }
@@ -113,6 +113,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                             <Link
                                 key={item.href}
                                 href={item.href}
+                                className={`admin-nav-item ${isActive ? 'active' : ''}`}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -120,10 +121,9 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                                     padding: '12px 16px',
                                     borderRadius: '12px',
                                     color: isActive ? 'white' : '#94a3b8',
-                                    backgroundColor: isActive ? '#334155' : 'transparent',
+                                    backgroundColor: isActive ? '#263A99' : 'transparent',
                                     textDecoration: 'none',
                                     fontSize: '15px',
-                                    transition: 'background-color 0.2s',
                                 }}
                             >
                                 {item.icon}
@@ -133,7 +133,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                     })}
                 </nav>
 
-                <div style={{ marginTop: 'auto', borderTop: '1px solid #334155', paddingTop: '24px' }}>
+                <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '24px' }}>
                     <button
                         onClick={handleLogout}
                         style={{

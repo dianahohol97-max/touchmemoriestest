@@ -10,7 +10,7 @@ export default function TagsSettingsPage() {
 
     // New tag form
     const [newName, setNewName] = useState('');
-    const [newColor, setNewColor] = useState('#3B82F6');
+    const [newColor, setNewColor] = useState('#263A99');
     const [newIcon, setNewIcon] = useState('📌');
     const [isAdding, setIsAdding] = useState(false);
 
@@ -101,7 +101,7 @@ export default function TagsSettingsPage() {
         <div style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>Управління тегами 🏷️</h1>
+                    <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Управління тегами 🏷️</h1>
                     <p style={{ color: '#64748b' }}>Налаштуйте теги для швидкої категоризації замовлень</p>
                 </div>
             </div>
@@ -141,7 +141,7 @@ export default function TagsSettingsPage() {
                     <button
                         onClick={handleAdd}
                         disabled={isAdding || !newName.trim()}
-                        style={{ padding: '0 24px', height: '40px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        style={{ padding: '0 24px', height: '40px', borderRadius: '8px', border: 'none', background: '#263A99', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
                         {isAdding ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
                         Додати
@@ -155,7 +155,7 @@ export default function TagsSettingsPage() {
                     <button
                         onClick={saveOrder}
                         disabled={saving}
-                        style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#1e293b', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#263A99', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
                         {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                         Зберегти порядок

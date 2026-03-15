@@ -389,7 +389,7 @@ function StepIndicator({ label, active, completed }: { label: string, active: bo
             }}>
                 {completed ? <CheckCircle2 size={18} /> : (active ? '•' : '')}
             </div>
-            <span style={{ fontSize: '11px', fontWeight: active || completed ? 700 : 500, color: active || completed ? '#1e293b' : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '11px', fontWeight: active || completed ? 700 : 500, color: active || completed ? '#263A99' : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {label}
             </span>
         </div>
@@ -520,7 +520,7 @@ function PaymentOption({ id, label, active, onClick, icon }: any) {
                 {icon}
             </div>
             <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>{label}</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: '#263A99' }}>{label}</div>
             </div>
             <div style={{
                 width: '20px',

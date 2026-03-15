@@ -99,7 +99,7 @@ export default function BlogCategoriesPage() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#1e293b', marginBottom: '8px' }}>Категорії блогу</h1>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Категорії блогу</h1>
                     <p style={{ color: '#64748b' }}>Керуйте темами та розділами для блогу.</p>
                 </div>
                 <button onClick={startAdd} style={addBtnStyle}>
@@ -177,7 +177,7 @@ export default function BlogCategoriesPage() {
                                     <GripVertical size={20} color="#cbd5e1" style={{ cursor: 'move' }} />
                                     <div style={iconBoxStyle}><Folder size={20} color="var(--primary)" /></div>
                                     <div>
-                                        <div style={{ fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ fontWeight: 800, color: '#263A99', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             {cat.name}
                                             {!cat.is_active && <span style={{ fontSize: '11px', padding: '2px 6px', backgroundColor: '#e2e8f0', borderRadius: '4px', color: '#64748b' }}>Неактивна</span>}
                                         </div>
@@ -197,7 +197,7 @@ export default function BlogCategoriesPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '15px', cursor: 'pointer' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '15px', cursor: 'pointer' };
 const catRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', backgroundColor: 'white', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)' };
 const iconBoxStyle = { width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const actionBtnStyle = { padding: '10px', borderRadius: '12px', backgroundColor: '#f8fafc', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };

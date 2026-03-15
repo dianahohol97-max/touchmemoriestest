@@ -163,7 +163,7 @@ export default function SocialInboxPage() {
             {/* Conversations List */}
             <div style={{ borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '24px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: '#1e293b' }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: '#263A99' }}>
                         Соціальний Inbox
                     </h2>
                     <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>Instagram, Facebook, Telegram</p>
@@ -183,7 +183,7 @@ export default function SocialInboxPage() {
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ fontSize: '14px', fontWeight: conv.is_read ? 600 : 800, color: '#1e293b' }}>
+                                        <span style={{ fontSize: '14px', fontWeight: conv.is_read ? 600 : 800, color: '#263A99' }}>
                                             {conv.external_username || conv.external_user_id}
                                         </span>
                                         {!conv.is_read && <div style={{ width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '50%' }}></div>}
@@ -257,7 +257,7 @@ export default function SocialInboxPage() {
                                             borderBottomLeftRadius: isCustomer ? '4px' : '16px',
                                             borderBottomRightRadius: !isCustomer ? '4px' : '16px',
                                             backgroundColor: isCustomer ? 'white' : 'var(--primary)',
-                                            color: isCustomer ? '#1e293b' : 'white',
+                                            color: isCustomer ? '#263A99' : 'white',
                                             boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
                                             border: isCustomer ? '1px solid #e2e8f0' : '1px solid var(--primary)'
                                         }}>

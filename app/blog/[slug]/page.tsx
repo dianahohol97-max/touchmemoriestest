@@ -139,17 +139,17 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                 <span>→</span>
                             </>
                         )}
-                        <span style={{ color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{post.title}</span>
+                        <span style={{ color: '#263A99', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{post.title}</span>
                     </div>
 
                     {/* Header */}
                     <header style={{ marginBottom: '40px' }}>
                         {post.blog_categories && (
-                            <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ display: 'inline-block', backgroundColor: '#f1f5f9', color: '#3b82f6', padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '24px', textDecoration: 'none' }}>
+                            <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ display: 'inline-block', backgroundColor: '#f1f5f9', color: '#263A99', padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '24px', textDecoration: 'none' }}>
                                 {post.blog_categories.name}
                             </Link>
                         )}
-                        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 900, color: '#0f172a', lineHeight: 1.1, marginBottom: '24px', letterSpacing: '-0.02em' }}>
+                        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 900, color: '#263A99', lineHeight: 1.1, marginBottom: '24px', letterSpacing: '-0.02em' }}>
                             {post.title}
                         </h1>
                         <p style={{ fontSize: '20px', color: '#64748b', lineHeight: 1.6, marginBottom: '32px' }}>
@@ -167,7 +167,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                     </div>
                                 )}
                                 <div>
-                                    <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '16px' }}>{post.author_name}</div>
+                                    <div style={{ fontWeight: 800, color: '#263A99', fontSize: '16px' }}>{post.author_name}</div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#94a3b8', marginTop: '4px' }}>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> {new Date(post.published_at).toLocaleDateString('uk-UA')}</span>
                                         <span>•</span>
@@ -198,7 +198,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     )}
 
                     {/* Article Content */}
-                    <div style={{ fontSize: '18px', lineHeight: 1.8, color: '#334155', marginBottom: '60px' }}>
+                    <div style={{ fontSize: '18px', lineHeight: 1.8, color: '#263A99', marginBottom: '60px' }}>
                         <MarkdownViewer source={post.content || ''} />
                     </div>
 
@@ -216,7 +216,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     {/* Related Products */}
                     {relatedProducts.length > 0 && (
                         <div style={{ borderTop: '2px dashed #f1f5f9', paddingTop: '40px', marginBottom: '60px' }}>
-                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: '#1e293b', marginBottom: '24px' }}>
+                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: '#263A99', marginBottom: '24px' }}>
                                 Згадані товари
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
@@ -225,8 +225,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                         <div style={{ width: '100%', aspectRatio: '1/1', position: 'relative', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f8fafc', marginBottom: '16px' }}>
                                             {p.images && p.images[0] && <Image src={p.images[0]} alt={p.name} fill style={{ objectFit: 'cover' }} />}
                                         </div>
-                                        <h4 style={{ fontWeight: 800, fontSize: '15px', color: '#1e293b', marginBottom: '8px' }}>{p.name}</h4>
-                                        <div style={{ color: '#3b82f6', fontWeight: 700, fontSize: '14px', marginTop: 'auto' }}>{p.price} ₴</div>
+                                        <h4 style={{ fontWeight: 800, fontSize: '15px', color: '#263A99', marginBottom: '8px' }}>{p.name}</h4>
+                                        <div style={{ color: '#263A99', fontWeight: 700, fontSize: '14px', marginTop: 'auto' }}>{p.price} ₴</div>
                                     </Link>
                                 ))}
                             </div>
@@ -234,10 +234,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     )}
 
                     {/* CTA Banner */}
-                    <div style={{ backgroundColor: '#1e293b', borderRadius: '24px', padding: '40px', color: 'white', textAlign: 'center', marginBottom: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ backgroundColor: '#263A99', borderRadius: '24px', padding: '40px', color: 'white', textAlign: 'center', marginBottom: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, marginBottom: '16px' }}>Готові створити свою фотокнигу?</h3>
                         <p style={{ fontSize: '16px', color: '#94a3b8', marginBottom: '32px', maxWidth: '400px' }}>Спробуйте наш зручний онлайн-конструктор та збережіть свої найкращі фото на сторінках преміум фотокниги.</p>
-                        <Link href="/book-constructor" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '16px', fontWeight: 800, fontSize: '16px', textDecoration: 'none', transition: 'transform 0.2s', ':hover': { transform: 'scale(1.05)' } } as any}>
+                        <Link href="/book-constructor" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px', backgroundColor: '#263A99', color: 'white', borderRadius: '16px', fontWeight: 800, fontSize: '16px', textDecoration: 'none', transition: 'transform 0.2s', ':hover': { transform: 'scale(1.05)' } } as any}>
                             Спробувати конструктор <ArrowRight size={20} />
                         </Link>
                     </div>
@@ -248,7 +248,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 {similarPosts.length > 0 && (
                     <div style={{ backgroundColor: '#f8fafc', padding: '80px 24px' }}>
                         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, color: '#1e293b', marginBottom: '40px', textAlign: 'center' }}>
+                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, color: '#263A99', marginBottom: '40px', textAlign: 'center' }}>
                                 Читайте також
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
@@ -257,7 +257,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                         <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: '24px', overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
                                             {sp.cover_image && <Image src={sp.cover_image} alt={sp.title} fill style={{ objectFit: 'cover' }} />}
                                         </div>
-                                        <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#1e293b', marginBottom: '12px' }}>{sp.title}</h4>
+                                        <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px' }}>{sp.title}</h4>
                                         <div style={{ fontSize: '13px', color: '#94a3b8' }}>{new Date(sp.published_at).toLocaleDateString('uk-UA')}</div>
                                     </Link>
                                 ))}

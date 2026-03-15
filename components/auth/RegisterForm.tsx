@@ -242,7 +242,7 @@ const formStyle: React.CSSProperties = {
 const titleStyle: React.CSSProperties = {
     fontSize: '28px',
     fontWeight: 900,
-    color: '#1e293b',
+    color: '#263A99',
     marginBottom: '8px',
     textAlign: 'center'
 };

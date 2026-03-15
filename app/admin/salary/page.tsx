@@ -271,7 +271,7 @@ function SalaryCard({ salary, onStatusUpdate }: any) {
                                             {item.details && <span style={itemSub}>{item.details}</span>}
                                             {item.note && <span style={itemNote}>{item.note}</span>}
                                         </div>
-                                        <div style={{ ...itemValue, color: item.value < 0 ? '#ef4444' : '#1e293b' }}>
+                                        <div style={{ ...itemValue, color: item.value < 0 ? '#ef4444' : '#263A99' }}>
                                             {item.value > 0 ? '+' : ''}{item.value.toLocaleString()} ₴
                                         </div>
                                     </div>
@@ -324,10 +324,10 @@ const controlsContainer = { display: 'flex', gap: '16px', alignItems: 'center' }
 const datePickerGroup = { display: 'flex', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '16px', gap: '4px', border: '1.5px solid #e2e8f0' };
 const dateInputWrapper = { display: 'flex', flexDirection: 'column' as any, padding: '4px 12px' };
 const miniLabel = { fontSize: '10px', fontWeight: 900, color: '#94a3b8', marginBottom: '2px' };
-const dateInput = { border: 'none', background: 'transparent', fontSize: '13px', fontWeight: 700, color: '#1e293b', outline: 'none' };
+const dateInput = { border: 'none', background: 'transparent', fontSize: '13px', fontWeight: 700, color: '#263A99', outline: 'none' };
 
 const primaryBtn = { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#6366f1', color: 'white', border: 'none', padding: '14px 24px', borderRadius: '16px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', boxShadow: '0 10px 20px rgba(99, 102, 241, 0.2)' };
-const secondaryBtn = { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', color: '#1e293b', border: '1.5px solid #e2e8f0', padding: '14px 24px', borderRadius: '16px', fontWeight: 800, fontSize: '14px', cursor: 'pointer' };
+const secondaryBtn = { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', color: '#263A99', border: '1.5px solid #e2e8f0', padding: '14px 24px', borderRadius: '16px', fontWeight: 800, fontSize: '14px', cursor: 'pointer' };
 
 const mainGrid = { display: 'grid', gridTemplateColumns: '320px 1fr', gap: '40px', alignItems: 'start' };
 const sidebar = { display: 'flex', flexDirection: 'column' as any, gap: '24px', position: 'sticky' as any, top: '40px' };
@@ -354,7 +354,7 @@ const card = { ...cardBase, boxShadow: '0 4px 6px rgba(0,0,0,0.02)' };
 const cardTop = { padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
 const staffInfo = { display: 'flex', alignItems: 'center', gap: '20px' };
 const avatar = { width: '56px', height: '56px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900 };
-const staffName = { fontSize: '18px', fontWeight: 900, marginBottom: '2px', color: '#1e293b' };
+const staffName = { fontSize: '18px', fontWeight: 900, marginBottom: '2px', color: '#263A99' };
 const staffRole = { fontSize: '12px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.02em' };
 
 const cardMetrics = { display: 'flex', alignItems: 'center', gap: '40px' };
@@ -366,18 +366,18 @@ const statusGroup = { display: 'flex', alignItems: 'center', gap: '16px' };
 const expandBtn = { border: 'none', background: '#f8fafc', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' };
 
 const breakdownContainer = { padding: '0 32px 32px 32px', borderTop: '1px solid #f1f5f9', paddingTop: '32px' };
-const breakdownTitle = { fontSize: '14px', fontWeight: 900, color: '#1e293b', marginBottom: '20px', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
+const breakdownTitle = { fontSize: '14px', fontWeight: 900, color: '#263A99', marginBottom: '20px', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
 const breakdownList = { display: 'flex', flexDirection: 'column' as any, gap: '12px', marginBottom: '32px' };
 const breakdownRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', backgroundColor: '#f8fafc', borderRadius: '20px' };
 const itemInfo = { display: 'flex', flexDirection: 'column' as any, gap: '2px' };
-const itemName = { fontSize: '14px', fontWeight: 800, color: '#1e293b' };
+const itemName = { fontSize: '14px', fontWeight: 800, color: '#263A99' };
 const itemSub = { fontSize: '12px', fontWeight: 600, color: '#94a3b8' };
 const itemNote = { fontSize: '12px', fontWeight: 700, color: '#d97706', marginTop: '4px' };
 const itemValue = { fontSize: '16px', fontWeight: 900 };
 
 const actionRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #e2e8f0', paddingTop: '24px' };
-const actionBtn = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', border: 'none', backgroundColor: '#1e293b', color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' };
-const actionBtnAlt = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', border: '1.5px solid #e2e8f0', backgroundColor: 'white', color: '#1e293b', fontWeight: 700, fontSize: '13px', cursor: 'pointer' };
+const actionBtn = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', border: 'none', backgroundColor: '#263A99', color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' };
+const actionBtnAlt = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', border: '1.5px solid #e2e8f0', backgroundColor: 'white', color: '#263A99', fontWeight: 700, fontSize: '13px', cursor: 'pointer' };
 const lastUpdated = { fontSize: '12px', color: '#94a3b8', fontWeight: 600 };
 
 const emptyState = { display: 'flex', flexDirection: 'column' as any, alignItems: 'center', justifyContent: 'center', textAlign: 'center' as any, padding: '100px 20px' };

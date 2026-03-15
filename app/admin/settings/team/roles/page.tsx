@@ -144,7 +144,7 @@ export default function RolesManagementPage() {
         <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-primary)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>Ролі та права доступу</h1>
+                    <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Ролі та права доступу</h1>
                     <p style={{ color: '#64748b' }}>Керуйте рівнями доступу для вашої команди</p>
                 </div>
                 <button
@@ -171,13 +171,13 @@ export default function RolesManagementPage() {
                                         width: '44px', height: '44px', borderRadius: '14px',
                                         backgroundColor: role.is_system ? '#f8fafc' : '#eff6ff',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        color: role.is_system ? '#94a3b8' : '#3b82f6',
+                                        color: role.is_system ? '#94a3b8' : '#263A99',
                                         border: '1px solid #e2e8f0'
                                     }}>
                                         {role.is_system ? <Shield size={24} /> : <ShieldCheck size={24} />}
                                     </div>
                                     <div>
-                                        <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>{role.name}</h3>
+                                        <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#263A99' }}>{role.name}</h3>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b' }}>
                                             <Users size={14} />
                                             {role.member_count || 0} співробітників
@@ -232,7 +232,7 @@ export default function RolesManagementPage() {
                     <div style={modalContentStyle} onClick={e => e.stopPropagation()}>
                         <div style={modalHeaderStyle}>
                             <div>
-                                <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
+                                <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#263A99', marginBottom: '4px' }}>
                                     {currentRole.id ? 'Редагування ролі' : 'Нова роль'}
                                 </h2>
                                 <p style={{ color: '#64748b' }}>Налаштуйте рівні доступу до розділів системи</p>
@@ -254,7 +254,7 @@ export default function RolesManagementPage() {
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>Матриця прав</h3>
+                                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#263A99' }}>Матриця прав</h3>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <button onClick={() => setAllPermissions('full')} style={smallBtnStyle} disabled={currentRole.is_system}>Виділити все</button>
                                     <button onClick={() => setAllPermissions('none')} style={smallBtnStyle} disabled={currentRole.is_system}>Зняти все</button>
@@ -275,7 +275,7 @@ export default function RolesManagementPage() {
                                         {PERMISSION_SECTIONS.map(section => (
                                             <tr key={section.id} style={{ borderTop: '1px solid #f1f5f9' }}>
                                                 <td style={{ padding: '16px' }}>
-                                                    <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '14px' }}>{section.label}</div>
+                                                    <div style={{ fontWeight: 700, color: '#263A99', fontSize: '14px' }}>{section.label}</div>
                                                     <div style={{ fontSize: '12px', color: '#94a3b8' }}>{section.sub}</div>
                                                 </td>
                                                 {ACCESS_LEVELS.map(al => (
@@ -329,7 +329,7 @@ export default function RolesManagementPage() {
 }
 
 // Styles
-const primaryBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.2s' };
+const primaryBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.2s' };
 const primaryBtnDisabledStyle = { ...primaryBtnStyle, opacity: 0.7, cursor: 'not-allowed' };
 const secondaryBtnStyle = { padding: '12px 24px', backgroundColor: 'transparent', color: '#64748b', borderRadius: '12px', fontWeight: 700, border: '1px solid #e2e8f0', cursor: 'pointer' };
 const iconBtnStyle = { width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#64748b', cursor: 'pointer', background: 'white' };

@@ -249,7 +249,7 @@ export default function Register() {
                             width: '100%',
                             padding: '14px',
                             backgroundColor: 'white',
-                            color: '#1e293b',
+                            color: '#263A99',
                             border: '1px solid #e2e8f0',
                             borderRadius: '12px',
                             fontSize: '15px',

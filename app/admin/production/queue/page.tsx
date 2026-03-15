@@ -91,7 +91,7 @@ export default function ProductionQueuePage() {
 
   function getStatusBadgeColor(status: string): string {
     const colors: Record<string, string> = {
-      confirmed: '#3b82f6',
+      confirmed: '#263A99',
       in_production: '#f59e0b',
       quality_check: '#8b5cf6',
       shipped: '#10b981',

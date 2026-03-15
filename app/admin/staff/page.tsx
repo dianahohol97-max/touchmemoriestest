@@ -56,7 +56,7 @@ const ROLES = [
 ];
 
 const COLORS = [
-    '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#6366f1',
+    '#263A99', '#ef4444', '#10b981', '#f59e0b', '#6366f1',
     '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#84cc16'
 ];
 
@@ -168,7 +168,7 @@ export default function StaffManagementPage() {
         <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-primary)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>Команда</h1>
+                    <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Команда</h1>
                     <p style={{ color: '#64748b' }}>Управління менеджерами та дизайнерами</p>
                 </div>
                 <button
@@ -181,7 +181,7 @@ export default function StaffManagementPage() {
                         setHasIndividualOverride(false);
                         setIsFormOpen(true);
                     }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'background 0.2s', ':hover': { backgroundColor: '#2563eb' } } as any}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'background 0.2s', ':hover': { backgroundColor: '#2563eb' } } as any}
                 >
                     <Plus size={20} />
                     Додати співробітника
@@ -219,7 +219,7 @@ export default function StaffManagementPage() {
                                                 {member.initials}
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '15px' }}>{member.name}</div>
+                                                <div style={{ fontWeight: 700, color: '#263A99', fontSize: '15px' }}>{member.name}</div>
                                                 {/* Optional subtitle */}
                                             </div>
                                         </div>
@@ -249,7 +249,7 @@ export default function StaffManagementPage() {
                                                     setHasIndividualOverride(Object.keys(member.individual_permissions || {}).length > 0);
                                                     setIsFormOpen(true);
                                                 }}
-                                                style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', backgroundColor: '#f8fafc', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s', ':hover': { backgroundColor: '#e2e8f0', color: '#1e293b' } } as any}
+                                                style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', backgroundColor: '#f8fafc', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s', ':hover': { backgroundColor: '#e2e8f0', color: '#263A99' } } as any}
                                                 title="Редагувати"
                                             >
                                                 <Edit2 size={16} />
@@ -275,7 +275,7 @@ export default function StaffManagementPage() {
                 <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsFormOpen(false)}>
                     <div style={{ backgroundColor: 'white', borderRadius: '24px', width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                         <div style={{ padding: '24px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#1e293b' }}>
+                            <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#263A99' }}>
                                 {formData.id ? 'Редагувати співробітника' : 'Новий співробітник'}
                             </h2>
                             <button onClick={() => setIsFormOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}>
@@ -376,7 +376,7 @@ export default function StaffManagementPage() {
                                                 key={color}
                                                 type="button"
                                                 onClick={() => setFormData({ ...formData, color })}
-                                                style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: color, border: formData.color === color ? '3px solid #1e293b' : '3px solid transparent', cursor: 'pointer', transition: 'transform 0.2s', transform: formData.color === color ? 'scale(1.1)' : 'scale(1)' }}
+                                                style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: color, border: formData.color === color ? '3px solid #263A99' : '3px solid transparent', cursor: 'pointer', transition: 'transform 0.2s', transform: formData.color === color ? 'scale(1.1)' : 'scale(1)' }}
                                             />
                                         ))}
                                     </div>
@@ -384,7 +384,7 @@ export default function StaffManagementPage() {
 
                                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px', marginTop: '10px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                        <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b' }}>Індивідуальні налаштування доступу</h3>
+                                        <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#263A99' }}>Індивідуальні налаштування доступу</h3>
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -449,7 +449,7 @@ export default function StaffManagementPage() {
                                 <button type="button" onClick={() => setIsFormOpen(false)} style={{ padding: '12px 24px', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '12px', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
                                     Скасувати
                                 </button>
-                                <button type="submit" disabled={isSaving} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', opacity: isSaving ? 0.7 : 1 }}>
+                                <button type="submit" disabled={isSaving} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', opacity: isSaving ? 0.7 : 1 }}>
                                     {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                                     Зберегти
                                 </button>
@@ -470,7 +470,7 @@ const inputStyle = {
     border: '1px solid #e2e8f0',
     backgroundColor: '#f8fafc',
     fontSize: '14px',
-    color: '#1e293b',
+    color: '#263A99',
     outline: 'none',
     transition: 'all 0.2s'
 };

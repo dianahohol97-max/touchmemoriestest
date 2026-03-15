@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Geist, Geist_Mono, Open_Sans } from "next/font/google";
+import { Montserrat, Open_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import { AnalyticsProvider } from '@/components/providers/AnalyticsProvider';
@@ -10,19 +10,16 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { OAuthCallbackHandler } from '@/components/providers/OAuthCallbackHandler';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
+  subsets: ["latin", "cyrillic"],
+  weight: ['400', '500', '600', '700', '800', '900'],
 });
 
 const openSans = Open_Sans({
   variable: "--font-open-sans",
   subsets: ["latin", "cyrillic"],
+  weight: ['400', '500', '600', '700', '800'],
 });
 
 export const metadata: Metadata = {
@@ -44,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${openSans.variable}`} style={{ margin: 0 }}>
+      <body className={`${montserrat.variable} ${openSans.variable}`} style={{ margin: 0, fontFamily: 'var(--font-open-sans)' }}>
         <ThemeProvider>
           {children}
           <CartDrawer />

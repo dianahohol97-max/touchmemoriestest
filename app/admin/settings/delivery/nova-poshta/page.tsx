@@ -86,7 +86,7 @@ export default function NovaPoshtaSettingsPage() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: 950, color: '#1e293b', marginBottom: '8px' }}>Нова Пошта</h1>
+                    <h1 style={{ fontSize: '32px', fontWeight: 950, color: '#263A99', marginBottom: '8px' }}>Нова Пошта</h1>
                     <p style={{ color: '#64748b' }}>Налаштування декількох кабінетів Нової Пошти для відправки замовлень.</p>
                 </div>
                 <button onClick={() => { setEditingAccount(null); setIsModalOpen(true); }} style={addBtnStyle}>
@@ -97,10 +97,10 @@ export default function NovaPoshtaSettingsPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
                 {accounts.map(acc => (
-                    <div key={acc.id} style={{ ...cardStyle, border: acc.is_default ? '2px solid #3b82f6' : '1px solid #f1f5f9' }}>
+                    <div key={acc.id} style={{ ...cardStyle, border: acc.is_default ? '2px solid #263A99' : '1px solid #f1f5f9' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ padding: '8px', backgroundColor: '#eff6ff', borderRadius: '10px', color: '#3b82f6' }}><Truck size={20} /></div>
+                                <div style={{ padding: '8px', backgroundColor: '#eff6ff', borderRadius: '10px', color: '#263A99' }}><Truck size={20} /></div>
                                 <span style={{ fontWeight: 800, fontSize: '18px' }}>{acc.label}</span>
                             </div>
                             <div style={{ display: 'flex', gap: '8px' }}>
@@ -110,8 +110,8 @@ export default function NovaPoshtaSettingsPage() {
                         </div>
 
                         {acc.is_default && (
-                            <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 800, color: '#3b82f6', textTransform: 'uppercase' }}>
-                                <Star size={12} fill="#3b82f6" /> Основний аккаунт
+                            <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 800, color: '#263A99', textTransform: 'uppercase' }}>
+                                <Star size={12} fill="#263A99" /> Основний аккаунт
                             </div>
                         )}
 
@@ -182,7 +182,7 @@ export default function NovaPoshtaSettingsPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#1e293b', color: 'white', borderRadius: '14px', border: 'none', fontWeight: 700, cursor: 'pointer' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '14px', border: 'none', fontWeight: 700, cursor: 'pointer' };
 const cardStyle = { backgroundColor: 'white', padding: '24px', borderRadius: '24px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' };
 const iconBtn = { background: '#f8fafc', border: 'none', padding: '8px', borderRadius: '8px', color: '#64748b', cursor: 'pointer' };
 const infoRow = { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#475569', fontWeight: 500 };
@@ -190,4 +190,4 @@ const modalOverlay = { position: 'fixed' as any, top: 0, left: 0, right: 0, bott
 const modalContent = { backgroundColor: 'white', borderRadius: '32px', padding: '32px', width: '100%', maxWidth: '550px' };
 const formLabel = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any };
 const formInput = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '15px' };
-const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, marginTop: '10px', cursor: 'pointer' };
+const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, marginTop: '10px', cursor: 'pointer' };

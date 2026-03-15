@@ -159,7 +159,7 @@ export function NewsletterPopup() {
                                 }}>
                                     <Mail size={32} />
                                 </div>
-                                <h3 style={{ fontSize: '24px', fontWeight: 900, color: '#1e293b', marginBottom: '8px' }}>Знижка -7%</h3>
+                                <h3 style={{ fontSize: '24px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Знижка -7%</h3>
                                 <p style={{ color: '#475569', fontSize: '15px' }}>
                                     Підпишіться на наші новини та отримайте промокод на перше замовлення
                                 </p>
@@ -183,7 +183,7 @@ export function NewsletterPopup() {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                             </svg>
                                         </div>
-                                        <h4 style={{ fontSize: '20px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>Дякуємо!</h4>
+                                        <h4 style={{ fontSize: '20px', fontWeight: 700, color: '#263A99', marginBottom: '8px' }}>Дякуємо!</h4>
                                         <p style={{ color: '#475569' }}>Промокод надіслано на вашу пошту 💛</p>
                                     </div>
                                 ) : (
@@ -212,7 +212,7 @@ export function NewsletterPopup() {
                                             disabled={loading || !email}
                                             style={{
                                                 width: '100%',
-                                                backgroundColor: '#1e293b',
+                                                backgroundColor: '#263A99',
                                                 color: 'white',
                                                 fontWeight: 700,
                                                 padding: '12px 16px',
@@ -223,8 +223,8 @@ export function NewsletterPopup() {
                                                 fontSize: '16px',
                                                 transition: 'background-color 0.2s'
                                             }}
-                                            onMouseEnter={(e) => { if (!loading && email) e.currentTarget.style.backgroundColor = '#0f172a'; }}
-                                            onMouseLeave={(e) => { if (!loading && email) e.currentTarget.style.backgroundColor = '#1e293b'; }}
+                                            onMouseEnter={(e) => { if (!loading && email) e.currentTarget.style.backgroundColor = '#263A99'; }}
+                                            onMouseLeave={(e) => { if (!loading && email) e.currentTarget.style.backgroundColor = '#263A99'; }}
                                         >
                                             {loading ? 'Відправка...' : 'Отримати промокод'}
                                         </button>

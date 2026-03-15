@@ -45,7 +45,7 @@ export default function CustomersPage() {
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#1e293b', marginBottom: '8px' }}>Клієнти</h1>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Клієнти</h1>
                     <p style={{ color: '#64748b' }}>База даних покупців та їх купівельна активність.</p>
                 </div>
             </div>
@@ -60,7 +60,7 @@ export default function CustomersPage() {
                     </div>
                 </div>
                 <div style={statCardStyle}>
-                    <div style={{ ...iconWrapperStyle, backgroundColor: '#eff6ff', color: '#3b82f6' }}><ShoppingBag size={24} /></div>
+                    <div style={{ ...iconWrapperStyle, backgroundColor: '#eff6ff', color: '#263A99' }}><ShoppingBag size={24} /></div>
                     <div>
                         <div style={statLabelStyle}>Всього замовлень</div>
                         <div style={statValueStyle}>{customers.reduce((acc, c) => acc + (c.total_orders || 0), 0)}</div>
@@ -111,7 +111,7 @@ export default function CustomersPage() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <div style={avatarStyle}>{customer.name?.[0]}</div>
                                         <div>
-                                            <div style={{ fontWeight: 800, color: '#1e293b' }}>{customer.name}</div>
+                                            <div style={{ fontWeight: 800, color: '#263A99' }}>{customer.name}</div>
                                             <div style={{ fontSize: '11px', color: '#94a3b8' }}>ID: {customer.id.substring(0, 8)}...</div>
                                         </div>
                                     </div>
@@ -146,7 +146,7 @@ const statsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
 const statCardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
 const iconWrapperStyle = { width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const statLabelStyle = { fontSize: '13px', fontWeight: 700, color: '#64748b', marginBottom: '4px' };
-const statValueStyle = { fontSize: '24px', fontWeight: 900, color: '#1e293b' };
+const statValueStyle = { fontSize: '24px', fontWeight: 900, color: '#263A99' };
 const searchWrapperStyle = { display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: '16px', padding: '0 20px', marginBottom: '32px', maxWidth: '600px' };
 const searchInputStyle = { border: 'none', padding: '16px 0', outline: 'none', width: '100%', fontSize: '15px', fontWeight: 500 };
 const tableCardStyle = { backgroundColor: 'white', borderRadius: '32px', border: '1px solid #f1f5f9', overflow: 'hidden', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };

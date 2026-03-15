@@ -246,17 +246,17 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                     <Link href="/admin/blog" style={{ color: '#64748b', display: 'flex', alignItems: 'center' }}>
                         <ArrowLeft size={20} />
                     </Link>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: '#1e293b' }}>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: '#263A99' }}>
                         {isEditMode ? 'Редагувати статтю' : 'Нова стаття'}
                     </h1>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                     {isEditMode && form.is_published && (
-                        <Link href={`/blog/${form.slug}`} target="_blank" style={{ ...btnStyle, backgroundColor: '#f1f5f9', color: '#334155' }}>
+                        <Link href={`/blog/${form.slug}`} target="_blank" style={{ ...btnStyle, backgroundColor: '#f1f5f9', color: '#263A99' }}>
                             <Eye size={18} /> Переглянути
                         </Link>
                     )}
-                    <button onClick={savePost} disabled={loading} style={{ ...btnStyle, backgroundColor: '#1e293b', color: 'white' }}>
+                    <button onClick={savePost} disabled={loading} style={{ ...btnStyle, backgroundColor: '#263A99', color: 'white' }}>
                         {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                         Зберегти {isEditMode ? 'зміни' : 'статтю'}
                     </button>
@@ -273,7 +273,7 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                             placeholder="Заголовок статті..."
                             value={form.title}
                             onChange={handleTitleChange}
-                            style={{ width: '100%', fontSize: '28px', fontWeight: 800, border: 'none', outline: 'none', fontFamily: 'var(--font-heading)', color: '#0f172a', backgroundColor: 'transparent' }}
+                            style={{ width: '100%', fontSize: '28px', fontWeight: 800, border: 'none', outline: 'none', fontFamily: 'var(--font-heading)', color: '#263A99', backgroundColor: 'transparent' }}
                         />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
                             <div style={{ flex: 1 }}>
@@ -321,7 +321,7 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                             </div>
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <div {...getArticleInputProps()} />
-                                <button {...getArticleProps()} disabled={!!uploading} style={{ ...aiBtnStyle, color: '#334155', backgroundColor: '#f1f5f9' }}>
+                                <button {...getArticleProps()} disabled={!!uploading} style={{ ...aiBtnStyle, color: '#263A99', backgroundColor: '#f1f5f9' }}>
                                     {uploading === 'article' ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                                     Додати зображення
                                 </button>
@@ -362,7 +362,7 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                     <div style={cardStyle}>
                         <h3 style={sectionTitleStyle}>Публікація</h3>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '12px', marginBottom: '16px' }}>
-                            <span style={{ fontWeight: 600, fontSize: '14px', color: '#334155' }}>Статус</span>
+                            <span style={{ fontWeight: 600, fontSize: '14px', color: '#263A99' }}>Статус</span>
                             <select
                                 value={form.is_published ? 'published' : 'draft'}
                                 onChange={(e) => setForm(p => ({ ...p, is_published: e.target.value === 'published' }))}
@@ -378,9 +378,9 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                                 id="is_featured"
                                 checked={form.is_featured}
                                 onChange={(e) => setForm(p => ({ ...p, is_featured: e.target.checked }))}
-                                style={{ width: '18px', height: '18px', accentColor: '#1e293b' }}
+                                style={{ width: '18px', height: '18px', accentColor: '#263A99' }}
                             />
-                            <label htmlFor="is_featured" style={{ fontSize: '14px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>Показати на головній</label>
+                            <label htmlFor="is_featured" style={{ fontSize: '14px', fontWeight: 600, color: '#263A99', cursor: 'pointer' }}>Показати на головній</label>
                         </div>
                         <label style={labelStyle}>Дата публікації</label>
                         <input
@@ -465,8 +465,8 @@ const cardStyle = { backgroundColor: 'white', padding: '24px', borderRadius: '32
 const btnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '16px', border: 'none', fontWeight: 800, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' };
 const aiBtnStyle = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: '#8b5cf6', backgroundColor: '#f5f3ff', border: 'none', padding: '8px 14px', borderRadius: '12px', cursor: 'pointer', transition: '0.2s' };
 const labelStyle = { display: 'block', fontSize: '11px', fontWeight: 900, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any, letterSpacing: '0.08em' };
-const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '14px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', color: '#0f172a', transition: 'all 0.2s', fontFamily: 'Inter, sans-serif' };
-const sectionTitleStyle = { fontSize: '13px', fontWeight: 900, textTransform: 'uppercase' as any, color: '#1e293b', marginBottom: '20px', letterSpacing: '0.1em' };
-const miniActionStyle = { border: 'none', backgroundColor: 'rgba(255,255,255,0.95)', padding: '6px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155', transition: '0.2s' };
+const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '14px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', color: '#263A99', transition: 'all 0.2s', fontFamily: 'Inter, sans-serif' };
+const sectionTitleStyle = { fontSize: '13px', fontWeight: 900, textTransform: 'uppercase' as any, color: '#263A99', marginBottom: '20px', letterSpacing: '0.1em' };
+const miniActionStyle = { border: 'none', backgroundColor: 'rgba(255,255,255,0.95)', padding: '6px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#263A99', transition: '0.2s' };
 const tagPillStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 700 };
 const tagDeleteBtnStyle = { border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer', padding: 0, display: 'flex' };

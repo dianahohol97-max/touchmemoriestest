@@ -24,7 +24,7 @@ export async function GET(
     if (fetchErr || !subscriber) {
         return new NextResponse(
             `<html>
-                <body style="font-family: sans-serif; text-align: center; padding: 40px; color: #334155; background: #f8fafc;">
+                <body style="font-family: sans-serif; text-align: center; padding: 40px; color: #263A99; background: #f8fafc;">
                     <h2>Помилка</h2>
                     <p>Посилання недійсне або користувача не знайдено.</p>
                 </body>
@@ -59,9 +59,9 @@ export async function GET(
     // Return HTML Success Message
     return new NextResponse(
         `<html>
-            <body style="font-family: sans-serif; text-align: center; padding: 60px 20px; color: #334155; background: #f8fafc; margin: 0;">
+            <body style="font-family: sans-serif; text-align: center; padding: 60px 20px; color: #263A99; background: #f8fafc; margin: 0;">
                 <div style="background: white; max-width: 500px; margin: 0 auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
-                    <h2 style="color: #0f172a; margin-top: 0;">Ви успішно відписалися ✅</h2>
+                    <h2 style="color: #263A99; margin-top: 0;">Ви успішно відписалися ✅</h2>
                     <p style="color: #64748b; line-height: 1.6; margin-bottom: 30px;">
                         Адресу <strong>${subscriber.email}</strong> було видалено з нашого спиsku розсилки. 
                         Ви більше не отримуватимете акцій та запрошень.

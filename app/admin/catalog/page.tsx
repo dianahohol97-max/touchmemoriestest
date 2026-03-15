@@ -147,7 +147,7 @@ export default function AdminCatalogPage() {
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 800, margin: 0, fontFamily: 'var(--font-heading)', color: '#1e293b' }}>
+                    <h1 style={{ fontSize: '28px', fontWeight: 800, margin: 0, fontFamily: 'var(--font-heading)', color: '#263A99' }}>
                         Всі товари
                     </h1>
                     <p style={{ color: '#64748b', marginTop: '8px' }}>
@@ -251,7 +251,7 @@ export default function AdminCatalogPage() {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <div style={{ fontWeight: 700, color: '#1e293b' }}>{product.name}</div>
+                                                    <div style={{ fontWeight: 700, color: '#263A99' }}>{product.name}</div>
                                                     <div style={{ fontSize: '13px', color: '#94a3b8' }}>/{product.slug}</div>
                                                 </div>
                                             </div>
@@ -265,7 +265,7 @@ export default function AdminCatalogPage() {
                                                 <span style={{ color: '#94a3b8' }}>Немає</span>
                                             )}
                                         </td>
-                                        <td style={{ padding: '16px 24px', fontWeight: 600, color: '#1e293b' }}>
+                                        <td style={{ padding: '16px 24px', fontWeight: 600, color: '#263A99' }}>
                                             {product.price} ₴
                                         </td>
                                         <td style={{ padding: '16px 24px' }}>
@@ -320,14 +320,14 @@ export default function AdminCatalogPage() {
                             <button
                                 disabled={currentPage === 1}
                                 onClick={() => setCurrentPage(p => p - 1)}
-                                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: currentPage === 1 ? '#cbd5e1' : '#1e293b', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: currentPage === 1 ? '#cbd5e1' : '#263A99', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: 600 }}
                             >
                                 Попередня
                             </button>
                             <button
                                 disabled={currentPage === totalPages}
                                 onClick={() => setCurrentPage(p => p + 1)}
-                                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: currentPage === totalPages ? '#cbd5e1' : '#1e293b', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: currentPage === totalPages ? '#cbd5e1' : '#263A99', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: 600 }}
                             >
                                 Наступна
                             </button>

@@ -56,7 +56,7 @@ export default function NewProductEmail({
             <Head />
             <Preview>Новинка! {productName} вже у нас ✨</Preview>
             <Tailwind>
-                <Body className="bg-[#f8fafc] font-sans text-[#334155] m-0 p-0">
+                <Body className="bg-[#f8fafc] font-sans text-[#263A99] m-0 p-0">
                     <Container className="bg-white mx-auto my-[40px] max-w-[600px] overflow-hidden shadow-sm border border-[#e2e8f0]">
 
                         {/* Hero Image */}
@@ -66,16 +66,16 @@ export default function NewProductEmail({
 
                         {/* Content */}
                         <Section className="p-[40px] text-center">
-                            <Text className="text-[#3b82f6] text-[14px] font-bold uppercase tracking-widest mb-[8px] m-0">
+                            <Text className="text-[#263A99] text-[14px] font-bold uppercase tracking-widest mb-[8px] m-0">
                                 Нове Надходження ✨
                             </Text>
-                            <Text className="text-[28px] font-black text-[#1e293b] mt-[8px] mb-[16px] leading-tight">
+                            <Text className="text-[28px] font-black text-[#263A99] mt-[8px] mb-[16px] leading-tight">
                                 {productName}
                             </Text>
                             <Text className="text-[16px] leading-[26px] text-[#64748b] mb-[24px]">
                                 {productDescription}
                             </Text>
-                            <Text className="text-[24px] font-bold text-[#1e293b] my-[24px]">
+                            <Text className="text-[24px] font-bold text-[#263A99] my-[24px]">
                                 {productPrice}
                             </Text>
 
@@ -83,7 +83,7 @@ export default function NewProductEmail({
                             <Section className="mt-[32px] mb-[16px]">
                                 <Button
                                     href={productUrl}
-                                    className="bg-[#1e293b] text-white px-[32px] py-[16px] rounded-lg text-[16px] font-bold no-underline"
+                                    className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-lg text-[16px] font-bold no-underline"
                                 >
                                     Переглянути деталі →
                                 </Button>
@@ -93,7 +93,7 @@ export default function NewProductEmail({
                         {/* Recommended */}
                         {recommendedProducts && recommendedProducts.length > 0 && (
                             <Section className="bg-[#f1f5f9] p-[40px]">
-                                <Text className="text-center font-bold text-[18px] mb-[24px] text-[#1e293b]">
+                                <Text className="text-center font-bold text-[18px] mb-[24px] text-[#263A99]">
                                     Вам також може сподобатись
                                 </Text>
                                 <Row>
@@ -101,7 +101,7 @@ export default function NewProductEmail({
                                         <Column key={i} className={`w-1/2 ${i === 0 ? 'pr-[8px]' : 'pl-[8px]'}`}>
                                             <div className="bg-white rounded-lg p-[12px] shadow-sm">
                                                 <Img src={p.imageUrl} alt={p.name} className="w-full h-[140px] object-cover rounded mb-[12px]" />
-                                                <Text className="font-bold text-[14px] m-0 text-[#1e293b] truncate">
+                                                <Text className="font-bold text-[14px] m-0 text-[#263A99] truncate">
                                                     {p.name}
                                                 </Text>
                                                 <Text className="text-[14px] text-[#64748b] mt-[4px] mb-[12px] font-semibold">

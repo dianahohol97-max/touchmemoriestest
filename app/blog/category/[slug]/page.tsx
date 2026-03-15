@@ -54,7 +54,7 @@ export default async function CategoryPage({ params, searchParams }: { params: P
                 </Link>
 
                 <div style={{ marginBottom: '60px' }}>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', fontWeight: 900, color: '#1e293b', marginBottom: '16px', letterSpacing: '-0.02em' }}>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', fontWeight: 900, color: '#263A99', marginBottom: '16px', letterSpacing: '-0.02em' }}>
                         {category.name}
                     </h1>
                     {category.description && (
@@ -72,7 +72,7 @@ export default async function CategoryPage({ params, searchParams }: { params: P
                                     {post.cover_image && <Image src={post.cover_image} alt={post.title} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
                                 </div>
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                    <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#1e293b', marginBottom: '12px', lineHeight: 1.3 }}>
+                                    <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px', lineHeight: 1.3 }}>
                                         {post.title}
                                     </h3>
                                     <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '20px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
@@ -84,7 +84,7 @@ export default async function CategoryPage({ params, searchParams }: { params: P
                                                 <User size={14} />
                                             </div>
                                             <div>
-                                                <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{post.author_name}</div>
+                                                <div style={{ fontSize: '12px', fontWeight: 700, color: '#263A99' }}>{post.author_name}</div>
                                                 <div style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(post.published_at).toLocaleDateString('uk-UA')}</div>
                                             </div>
                                         </div>
@@ -109,7 +109,7 @@ export default async function CategoryPage({ params, searchParams }: { params: P
                             <Link
                                 key={i}
                                 href={`/blog/category/${category.slug}?page=${i + 1}`}
-                                style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', fontWeight: 700, fontSize: '15px', textDecoration: 'none', backgroundColor: currentPage === i + 1 ? '#1e293b' : 'white', color: currentPage === i + 1 ? 'white' : '#64748b', border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0' }}
+                                style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', fontWeight: 700, fontSize: '15px', textDecoration: 'none', backgroundColor: currentPage === i + 1 ? '#263A99' : 'white', color: currentPage === i + 1 ? 'white' : '#64748b', border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0' }}
                             >
                                 {i + 1}
                             </Link>

@@ -52,14 +52,14 @@ export default function ConstructorTypesPage() {
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#1e293b' }}>Типи конструктора</h1>
+                    <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#263A99' }}>Типи конструктора</h1>
                     <p style={{ color: '#64748b' }}>Керуйте різними типами продуктів та їх правилами в конструкторі.</p>
                 </div>
                 <button
                     onClick={() => { setSelectedType(null); setIsFormOpen(true); }}
                     style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '12px 24px', backgroundColor: '#1e293b',
+                        padding: '12px 24px', backgroundColor: '#263A99',
                         color: 'white', borderRadius: '12px', border: 'none',
                         fontWeight: 700, cursor: 'pointer'
                     }}

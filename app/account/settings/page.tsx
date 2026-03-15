@@ -60,7 +60,7 @@ export default function SettingsPage() {
         fontSize: '14px',
         boxSizing: 'border-box',
         fontFamily: 'inherit',
-        color: '#1e293b',
+        color: '#263A99',
     };
 
     const labelStyle: React.CSSProperties = {
@@ -75,7 +75,7 @@ export default function SettingsPage() {
 
     return (
         <div style={{ maxWidth: '560px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: '#1e293b' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: '#263A99' }}>
                 Налаштування акаунту
             </h2>
             <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '32px' }}>
@@ -90,7 +90,7 @@ export default function SettingsPage() {
                 padding: '24px',
                 marginBottom: '24px',
             }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px', color: '#1e293b' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px', color: '#263A99' }}>
                     Зміна паролю
                 </h3>
 
@@ -135,7 +135,7 @@ export default function SettingsPage() {
                             disabled={savingPassword}
                             style={{
                                 padding: '12px 28px',
-                                backgroundColor: '#1e293b',
+                                backgroundColor: '#263A99',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '10px',
@@ -159,7 +159,7 @@ export default function SettingsPage() {
                 borderRadius: '16px',
                 padding: '24px',
             }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '12px', color: '#1e293b' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>
                     Вийти з акаунту
                 </h3>
                 <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px' }}>

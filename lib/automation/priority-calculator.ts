@@ -108,7 +108,7 @@ export function getPriorityBadge(item: ProductionQueueItem): {
   } else if (item.has_express_tag) {
     return {
       label: 'Експрес',
-      color: '#3b82f6', // blue
+      color: '#263A99', // blue
       icon: '⚡',
     };
   } else if (item.is_vip_customer) {

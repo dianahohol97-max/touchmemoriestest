@@ -166,7 +166,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             <span>→</span>
                         </>
                     )}
-                    <span style={{ color: '#1e293b', fontWeight: 600 }}>{product.name}</span>
+                    <span style={{ color: '#263A99', fontWeight: 600 }}>{product.name}</span>
                 </div>
 
                 {/* Two Column Layout */}
@@ -289,7 +289,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             {/* Dynamic Options */}
                             {product.options && Array.isArray(product.options) && product.options.map((opt: any, optIdx: number) => (
                                 <div key={optIdx}>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>
+                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>
                                         {opt.name}
                                     </label>
                                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -321,14 +321,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             ))}
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e293b' }}>Кількість</label>
+                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>Кількість</label>
                                 <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: '12px', width: 'fit-content', backgroundColor: 'white' }}>
                                     <button
                                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
                                         style={{ padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}
                                         className="hover:bg-slate-50 transition"
                                     >-</button>
-                                    <span style={{ padding: '0 16px', fontWeight: 800, fontSize: '16px', minWidth: '40px', textAlign: 'center', color: '#1e293b' }}>{quantity}</span>
+                                    <span style={{ padding: '0 16px', fontWeight: 800, fontSize: '16px', minWidth: '40px', textAlign: 'center', color: '#263A99' }}>{quantity}</span>
                                     <button
                                         onClick={() => setQuantity(quantity + 1)}
                                         style={{ padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}
@@ -428,7 +428,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                                 {showPersonalizationInput && (
                                     <div style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: '#f8fafc' }}>
-                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>Опишіть вашу персоналізацію:</label>
+                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>Опишіть вашу персоналізацію:</label>
                                         <textarea
                                             value={personalizationNote}
                                             onChange={(e) => setPersonalizationNote(e.target.value)}
@@ -536,7 +536,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 paddingBottom: '16px',
                                 fontSize: '18px',
                                 fontWeight: activeTab === 'description' ? 800 : 500,
-                                color: activeTab === 'description' ? '#1e293b' : '#64748b',
+                                color: activeTab === 'description' ? '#263A99' : '#64748b',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
                                 whiteSpace: 'nowrap'
@@ -555,7 +555,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     paddingBottom: '16px',
                                     fontSize: '18px',
                                     fontWeight: activeTab === 'specs' ? 800 : 500,
-                                    color: activeTab === 'specs' ? '#1e293b' : '#64748b',
+                                    color: activeTab === 'specs' ? '#263A99' : '#64748b',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s',
                                     whiteSpace: 'nowrap'
@@ -574,7 +574,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 paddingBottom: '16px',
                                 fontSize: '18px',
                                 fontWeight: activeTab === 'reviews' ? 800 : 500,
-                                color: activeTab === 'reviews' ? '#1e293b' : '#64748b',
+                                color: activeTab === 'reviews' ? '#263A99' : '#64748b',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
                                 whiteSpace: 'nowrap'
@@ -599,7 +599,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     {product.specs.map((spec: any, idx: number) => (
                                         <tr key={idx} style={{ borderBottom: '1px solid #f0f0f0' }}>
                                             <td style={{ padding: '16px 0', color: '#64748b', width: '50%' }}>{spec.key}</td>
-                                            <td style={{ padding: '16px 0', fontWeight: 600, color: '#1e293b' }}>{spec.value}</td>
+                                            <td style={{ padding: '16px 0', fontWeight: 600, color: '#263A99' }}>{spec.value}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -614,7 +614,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             {[1, 2, 3, 4, 5].map(s => <Star key={s} size={16} fill="#fbbf24" color="#fbbf24" />)}
                                         </div>
                                         <p style={{ fontSize: '15px', color: '#475569', lineHeight: 1.6, marginBottom: '16px' }}>«Неймовірна якість! Перевершило всі мої очікування. Замовила на подарунок батькам, вони просто в захваті.»</p>
-                                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b' }}>Клієнт Touch Memories</div>
+                                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#263A99' }}>Клієнт Touch Memories</div>
                                     </div>
                                 ))}
                             </div>

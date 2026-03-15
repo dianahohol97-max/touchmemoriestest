@@ -29,7 +29,7 @@ export default function NoAccessPage() {
                 <ShieldAlert size={64} />
             </div>
 
-            <h1 style={{ fontSize: '36px', fontWeight: 800, color: '#1e293b', marginBottom: '16px' }}>
+            <h1 style={{ fontSize: '36px', fontWeight: 800, color: '#263A99', marginBottom: '16px' }}>
                 Доступ обмежено
             </h1>
 
@@ -54,7 +54,7 @@ export default function NoAccessPage() {
                     href="/admin"
                     style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '14px 28px', backgroundColor: '#1e293b', color: 'white',
+                        padding: '14px 28px', backgroundColor: '#263A99', color: 'white',
                         borderRadius: '16px', fontWeight: 700, textDecoration: 'none',
                         boxShadow: '0 10px 20px rgba(30, 41, 59, 0.2)'
                     }}

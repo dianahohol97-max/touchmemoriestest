@@ -41,14 +41,14 @@ function AdminLoginContent() {
     };
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', padding: '20px' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#263A99', padding: '20px' }}>
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 style={{ width: '100%', maxWidth: '400px', backgroundColor: 'white', padding: '48px', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
             >
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: '#1e293b', marginBottom: '8px' }}>TM ADMIN</h1>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>TM ADMIN</h1>
                     <p style={{ color: '#64748b', fontSize: '15px' }}>Вхід до панелі управління</p>
                 </div>
 
@@ -112,7 +112,7 @@ function AdminLoginContent() {
 
 export default function AdminLoginPage() {
     return (
-        <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}><Loader2 className={styles.spin} color="white" size={32} /></div>}>
+        <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#263A99' }}><Loader2 className={styles.spin} color="white" size={32} /></div>}>
             <AdminLoginContent />
         </Suspense>
     );
@@ -120,4 +120,4 @@ export default function AdminLoginPage() {
 
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
 const inputStyle = { width: '100%', padding: '14px 14px 14px 48px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', transition: 'all 0.2s', fontSize: '15px' };
-const submitBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px', borderRadius: '12px', backgroundColor: '#1e293b', color: 'white', border: 'none', fontWeight: 700, fontSize: '16px', marginTop: '12px' };
+const submitBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px', borderRadius: '12px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 700, fontSize: '16px', marginTop: '12px' };

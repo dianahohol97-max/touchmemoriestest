@@ -33,7 +33,7 @@ export default function BirthdayEmail({
             <Head />
             <Preview>З Днем Народження! Ваш особливий подарунок всередині 🎂</Preview>
             <Tailwind>
-                <Body className="bg-[#f6f9fc] font-sans text-[#334155] m-0 p-0">
+                <Body className="bg-[#f6f9fc] font-sans text-[#263A99] m-0 p-0">
                     <Container className="bg-white mx-auto my-[40px] max-w-[600px] rounded-2xl overflow-hidden shadow-sm border border-[#e2e8f0]">
 
                         {/* Header Banner - Purple / Pink Gradient */}
@@ -57,7 +57,7 @@ export default function BirthdayEmail({
                                 <Text className="text-[#ec4899] font-bold text-[16px] m-0 uppercase tracking-widest mb-[8px]">
                                     Ваша знижка на будь-яке замовлення
                                 </Text>
-                                <Text className="text-[48px] font-black text-[#1e293b] my-0 leading-none">
+                                <Text className="text-[48px] font-black text-[#263A99] my-0 leading-none">
                                     {discountValue}
                                 </Text>
                                 <Text className="text-[14px] text-[#64748b] mt-[16px] mb-0">
@@ -77,7 +77,7 @@ export default function BirthdayEmail({
                             <Section className="text-center mt-[32px]">
                                 <Button
                                     href={`${appUrl}`}
-                                    className="bg-[#1e293b] text-white px-[32px] py-[16px] rounded-xl text-[16px] font-bold no-underline"
+                                    className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-xl text-[16px] font-bold no-underline"
                                 >
                                     Створити фотокнигу зі знижкою →
                                 </Button>

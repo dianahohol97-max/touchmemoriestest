@@ -17,21 +17,21 @@ export default function OplataIDostavka() {
                         <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
                                 <div style={{ width: '48px', height: '48px', backgroundColor: '#eff6ff', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <CreditCard size={24} color="#3b82f6" />
+                                    <CreditCard size={24} color="#263A99" />
                                 </div>
                                 <h2 style={{ fontSize: '24px', fontWeight: 700 }}>Способи оплати</h2>
                             </div>
 
                             <ul style={{ listStyleType: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <li style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#3b82f6', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, marginTop: '2px' }}>1</div>
+                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#263A99', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, marginTop: '2px' }}>1</div>
                                     <div>
                                         <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>Банківською картою онлайн</h3>
                                         <p style={{ color: '#666', lineHeight: 1.5 }}>Безпечна оплата через систему Monobank. Приймаються картки Visa та MasterCard будь-якого банку.</p>
                                     </div>
                                 </li>
                                 <li style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#3b82f6', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, marginTop: '2px' }}>2</div>
+                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#263A99', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, marginTop: '2px' }}>2</div>
                                     <div>
                                         <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>Apple Pay / Google Pay</h3>
                                         <p style={{ color: '#666', lineHeight: 1.5 }}>Швидка та безпечна оплата в один клік зі смартфона або комп'ютера через сервіс Monobank.</p>

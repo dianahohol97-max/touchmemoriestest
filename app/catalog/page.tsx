@@ -178,9 +178,9 @@ function CatalogContent() {
                                         style={{
                                             padding: '8px 20px',
                                             borderRadius: '20px',
-                                            border: isActive ? '1px solid #1e293b' : '1px solid #e2e8f0',
-                                            backgroundColor: isActive ? '#1e293b' : 'white',
-                                            color: isActive ? 'white' : '#1e293b',
+                                            border: isActive ? '1px solid #263A99' : '1px solid #e2e8f0',
+                                            backgroundColor: isActive ? '#263A99' : 'white',
+                                            color: isActive ? 'white' : '#263A99',
                                             fontSize: '14px',
                                             fontWeight: 600,
                                             cursor: 'pointer',
@@ -199,7 +199,7 @@ function CatalogContent() {
                         <div className={styles.controlsBar} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                             <div className={styles.leftControls}>
                                 <div className={styles.resultsCount} style={{ fontSize: '15px', color: '#64748b', fontWeight: 500 }}>
-                                    Знайдено: <span style={{ color: '#1e293b', fontWeight: 700 }}>{isLoading ? '...' : sortedProducts.length} товарів</span>
+                                    Знайдено: <span style={{ color: '#263A99', fontWeight: 700 }}>{isLoading ? '...' : sortedProducts.length} товарів</span>
                                 </div>
                             </div>
 
@@ -216,7 +216,7 @@ function CatalogContent() {
                                             backgroundColor: 'white',
                                             fontSize: '14px',
                                             fontWeight: 600,
-                                            color: '#1e293b',
+                                            color: '#263A99',
                                             appearance: 'none',
                                             outline: 'none',
                                             cursor: 'pointer'

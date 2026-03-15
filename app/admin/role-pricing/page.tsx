@@ -105,8 +105,8 @@ export default function RolePricingPage() {
 
             <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '12px', margin: 0 }}>
-                        <DollarSign color="#3b82f6" /> B2B Роздрібні Ціни та Знижки
+                    <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#263A99', display: 'flex', alignItems: 'center', gap: '12px', margin: 0 }}>
+                        <DollarSign color="#263A99" /> B2B Роздрібні Ціни та Знижки
                     </h1>
                     <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px', marginBottom: 0 }}>
                         Встановіть фіксовані ціни або <strong>відсоток знижки</strong> для фотографів і корпоративних клієнтів.
@@ -115,7 +115,7 @@ export default function RolePricingPage() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    style={{ padding: '8px 24px', backgroundColor: '#3b82f6', color: 'white', fontWeight: 700, borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                    style={{ padding: '8px 24px', backgroundColor: '#263A99', color: 'white', fontWeight: 700, borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                     <Save size={18} /> {saving ? 'Збереження...' : 'Зберегти зміни'}
                 </button>
@@ -141,7 +141,7 @@ export default function RolePricingPage() {
                             return (
                                 <tr key={product.id} style={{ transition: 'background-color 0.2s', cursor: 'default' }}>
                                     <td style={tdStyle}>
-                                        <p style={{ fontWeight: 700, color: '#1e293b', margin: '0 0 4px 0' }}>{product.name}</p>
+                                        <p style={{ fontWeight: 700, color: '#263A99', margin: '0 0 4px 0' }}>{product.name}</p>
                                         <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Базова ціна: ₴{product.price}</p>
                                     </td>
 

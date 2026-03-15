@@ -92,14 +92,14 @@ export default function FiscalizationPage() {
     return (
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <div style={{ marginBottom: '40px' }}>
-                <h1 style={{ fontSize: '32px', fontWeight: 950, color: '#1e293b', marginBottom: '8px' }}>Фіскалізація</h1>
+                <h1 style={{ fontSize: '32px', fontWeight: 950, color: '#263A99', marginBottom: '8px' }}>Фіскалізація</h1>
                 <p style={{ color: '#64748b' }}>Налаштування інтеграції з Checkbox (checkbox.ua) та правил видачі чеків.</p>
             </div>
 
             {/* Checkbox Accounts Section */}
             <section style={{ marginBottom: '60px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#1e293b' }}>Аккаунти Checkbox</h2>
+                    <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#263A99' }}>Аккаунти Checkbox</h2>
                     <button onClick={() => { setEditingAccount(null); setIsModalOpen(true); }} style={addBtnStyle}>
                         <Plus size={18} /> Додати аккаунт
                     </button>
@@ -131,7 +131,7 @@ export default function FiscalizationPage() {
 
             {/* Fiscalization Rules Table */}
             <section>
-                <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#1e293b', marginBottom: '24px' }}>Правила фіскалізації</h2>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '24px' }}>Правила фіскалізації</h2>
                 <div style={tableContainer}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
@@ -223,15 +223,15 @@ export default function FiscalizationPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, cursor: 'pointer' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, cursor: 'pointer' };
 const accountCard = { backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' };
 const iconBtn = { background: '#f8fafc', border: 'none', padding: '8px', borderRadius: '8px', color: '#64748b', cursor: 'pointer' };
 const tableContainer = { backgroundColor: 'white', borderRadius: '24px', border: '1px solid #f1f5f9', padding: '16px', overflow: 'hidden' };
 const thStyle = { padding: '16px', color: '#64748b', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase' as any };
-const tdStyle = { padding: '20px 16px', fontSize: '15px', color: '#1e293b' };
+const tdStyle = { padding: '20px 16px', fontSize: '15px', color: '#263A99' };
 const inlineSelect = { padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' };
 const modalOverlay = { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
 const modalContent = { backgroundColor: 'white', borderRadius: '32px', padding: '32px', width: '100%', maxWidth: '450px' };
 const formLabel = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px' };
 const formInput = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '15px' };
-const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, marginTop: '10px', cursor: 'pointer' };
+const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, marginTop: '10px', cursor: 'pointer' };

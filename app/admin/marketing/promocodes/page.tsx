@@ -76,7 +76,7 @@ export default function PromoCodesPage() {
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#1e293b', marginBottom: '8px' }}>Промокоди</h1>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Промокоди</h1>
                     <p style={{ color: '#64748b' }}>Керування знижками та маркетинговими акціями.</p>
                 </div>
                 <Link href="/admin/marketing/promocodes/new" style={addBtnStyle}>
@@ -131,7 +131,7 @@ export default function PromoCodesPage() {
                                     </div>
                                 </td>
                                 <td style={tdStyle}>
-                                    <div style={{ fontWeight: 700, color: '#1e293b' }}>
+                                    <div style={{ fontWeight: 700, color: '#263A99' }}>
                                         {promo.type === 'percent' ? `${promo.value}%` : `${promo.value} ₴`}
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>
@@ -188,7 +188,7 @@ export default function PromoCodesPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#1e293b', color: 'white', borderRadius: '14px', fontWeight: 700, textDecoration: 'none', transition: 'all 0.2s', fontSize: '15px' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '14px', fontWeight: 700, textDecoration: 'none', transition: 'all 0.2s', fontSize: '15px' };
 const filterBarStyle = { display: 'flex', gap: '16px', marginBottom: '32px' };
 const searchWrapperStyle = { display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: '16px', padding: '0 20px', flex: 1, maxWidth: '500px' };
 const searchInputStyle = { border: 'none', padding: '14px 0', outline: 'none', width: '100%', fontSize: '15px', fontWeight: 500 };
@@ -196,6 +196,6 @@ const tableCardStyle = { backgroundColor: 'white', borderRadius: '32px', border:
 const thStyle = { textAlign: 'left' as any, padding: '24px', fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', fontWeight: 800 };
 const tdStyle = { padding: '24px', verticalAlign: 'middle' };
 const trStyle = { borderBottom: '1px solid #f8fafc' };
-const promoBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#1e293b', fontSize: '14px', fontFamily: 'monospace' };
+const promoBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#263A99', fontSize: '14px', fontFamily: 'monospace' };
 const statusBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: 700 };
 const iconBtnStyle = { width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'all 0.2s' };

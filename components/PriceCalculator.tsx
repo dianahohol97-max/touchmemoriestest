@@ -166,7 +166,7 @@ export default function PriceCalculator() {
                                                     <Image src={p.images[0]} alt={p.name} fill style={{ objectFit: 'cover' }} />
                                                 )}
                                             </div>
-                                            <div style={{ fontWeight: 700, fontSize: '14px', color: isSelected ? 'var(--primary)' : '#1e293b', lineHeight: 1.2 }}>
+                                            <div style={{ fontWeight: 700, fontSize: '14px', color: isSelected ? 'var(--primary)' : '#263A99', lineHeight: 1.2 }}>
                                                 {p.name}
                                             </div>
                                         </button>
@@ -287,7 +287,7 @@ export default function PriceCalculator() {
     );
 }
 
-const labelStyle = { display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e293b' };
+const labelStyle = { display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' };
 const stepHeaderStyle = { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' };
 const stepCircleStyle = { width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#f0f9ff', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '14px' };
-const stepTitleStyle = { fontSize: '18px', fontWeight: 800, margin: 0, color: '#0f172a' };
+const stepTitleStyle = { fontSize: '18px', fontWeight: 800, margin: 0, color: '#263A99' };

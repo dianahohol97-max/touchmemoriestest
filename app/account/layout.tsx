@@ -99,7 +99,7 @@ export default function AccountLayout({
             height: '48px',
             minWidth: '48px',
             borderRadius: '50%',
-            backgroundColor: '#1e293b',
+            backgroundColor: '#263A99',
             color: 'white',
             display: 'flex',
             alignItems: 'center',
@@ -112,7 +112,7 @@ export default function AccountLayout({
           </div>
         )}
         <div>
-          <div style={{ fontWeight: 700, fontSize: '18px', color: '#1e293b' }}>
+          <div style={{ fontWeight: 700, fontSize: '18px', color: '#263A99' }}>
             Привіт, {displayName}! 👋
           </div>
           <div style={{ color: '#64748b', fontSize: '14px' }}>

@@ -48,26 +48,26 @@ export async function POST(req: Request) {
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 24px;">
                     <div style="text-align: center; margin-bottom: 32px;">
-                        <h2 style="color: #1e293b; margin-bottom: 8px;">Хтось про тебе думає...</h2>
+                        <h2 style="color: #263A99; margin-bottom: 8px;">Хтось про тебе думає...</h2>
                         <p style="color: #64748b;">${sender_name ? `${sender_name} хоче, щоб ти знав/знала про цей товар` : 'Привіт! Ми отримали натяк, що цей подарунок може тебе зацікавити.'}</p>
                     </div>
 
                     <div style="background: #f8fafc; border-radius: 20px; padding: 24px; display: flex; align-items: center; gap: 20px; margin-bottom: 32px;">
                         <img src="${product.images?.[0]}" style="width: 120px; height: 120px; border-radius: 12px; object-fit: cover;" />
                         <div>
-                            <h3 style="margin: 0 0 8px 0; color: #1e293b;">${product.name}</h3>
+                            <h3 style="margin: 0 0 8px 0; color: #263A99;">${product.name}</h3>
                             <div style="font-size: 20px; font-weight: 800; color: #ef4444;">${product.price} ₴</div>
                         </div>
                     </div>
 
                     ${message ? `
                         <div style="border-left: 4px solid #ef4444; padding: 16px 24px; background: #fff5f5; margin-bottom: 32px; border-radius: 0 16px 16px 0;">
-                            <p style="margin: 0; font-style: italic; color: #1e293b;">"${message}"</p>
+                            <p style="margin: 0; font-style: italic; color: #263A99;">"${message}"</p>
                         </div>
                     ` : ''}
 
                     <div style="text-align: center; margin-bottom: 40px;">
-                        <a href="${productUrl}" style="display: inline-block; padding: 16px 32px; background: #1e293b; color: white; text-decoration: none; border-radius: 12px; font-weight: 800;">
+                        <a href="${productUrl}" style="display: inline-block; padding: 16px 32px; background: #263A99; color: white; text-decoration: none; border-radius: 12px; font-weight: 800;">
                             Подивитись товар →
                         </a>
                     </div>

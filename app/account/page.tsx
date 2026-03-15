@@ -115,7 +115,7 @@ export default function AccountPage() {
                                 </div>
                             )}
                             <div>
-                                <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#1e293b' }}>
+                                <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#263A99' }}>
                                     Привіт, {formData.first_name || user?.user_metadata?.first_name || 'Друже'}! 👋
                                 </h1>
                                 <p style={{ color: '#64748b', fontSize: '14px' }}>Ласкаво просимо до вашого кабінету</p>
@@ -184,7 +184,7 @@ function OrdersTab({ orders }: { orders: any[] }) {
                 <div style={{ width: '64px', height: '64px', backgroundColor: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                     <ShoppingBag size={32} color="#94a3b8" />
                 </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>У вас ще немає замовлень</h3>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>У вас ще немає замовлень</h3>
                 <p style={{ color: '#64748b', marginBottom: '24px' }}>Всі ваші замовлення будуть відображатися тут</p>
                 <Link href="/catalog" style={{ display: 'inline-block', padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '12px', textDecoration: 'none', fontWeight: 700 }}>
                     До каталогу
@@ -200,7 +200,7 @@ function OrdersTab({ orders }: { orders: any[] }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                                <span style={{ fontWeight: 800, color: '#1e293b' }}>Замовлення #{order.order_number}</span>
+                                <span style={{ fontWeight: 800, color: '#263A99' }}>Замовлення #{order.order_number}</span>
                                 <OrderStatusBadge status={order.order_status} />
                             </div>
                             <div style={{ fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -290,7 +290,7 @@ function ProfileTab({ formData, setFormData, onSave, isGoogle }: any) {
                 <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
                         <div>
-                            <div style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>Отримувати email розсилку</div>
+                            <div style={{ fontSize: '15px', fontWeight: 700, color: '#263A99' }}>Отримувати email розсилку</div>
                             <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>Дізнавайтеся першими про акції та новинки</div>
                         </div>
                         <input
@@ -326,7 +326,7 @@ const pInputStyle = { width: '100%', padding: '12px 16px', borderRadius: '10px',
 
 function OrderStatusBadge({ status }: { status: string }) {
     const configs: any = {
-        'new': { label: 'Нове', color: '#3b82f6', bg: '#eff6ff' },
+        'new': { label: 'Нове', color: '#263A99', bg: '#eff6ff' },
         'processing': { label: 'В роботі', color: '#8b5cf6', bg: '#f5f3ff' },
         'shipped': { label: 'Відправлено', color: '#10b981', bg: '#ecfdf5' },
         'delivered': { label: 'Доставлено', color: '#059669', bg: '#f0fdf4' },

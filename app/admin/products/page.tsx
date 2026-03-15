@@ -126,7 +126,7 @@ export default function ProductsPage() {
             {/* Header Area */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 950, color: '#1e293b', marginBottom: '8px', letterSpacing: '-0.02em' }}>Товари 📦</h1>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 950, color: '#263A99', marginBottom: '8px', letterSpacing: '-0.02em' }}>Товари 📦</h1>
                     <p style={{ color: '#64748b', fontSize: '16px' }}>Керуйте вашим асортиментом та залишками.</p>
                 </div>
                 <Link href="/admin/products/new" style={addBtnStyle}>
@@ -276,7 +276,7 @@ export default function ProductsPage() {
                                             {product.images?.[0] ? <img src={product.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={20} color="#cbd5e1" />}
                                         </div>
                                         <div>
-                                            <div style={{ fontWeight: 800, color: '#1e293b' }}>{product.name} {product.is_popular && '⭐'}</div>
+                                            <div style={{ fontWeight: 800, color: '#263A99' }}>{product.name} {product.is_popular && '⭐'}</div>
                                             <div style={{ fontSize: '12px', color: '#94a3b8' }}>{product.slug}</div>
                                         </div>
                                     </div>
@@ -285,7 +285,7 @@ export default function ProductsPage() {
                                     <span style={catBadge}>{product.categories?.name || 'Без категорії'}</span>
                                 </td>
                                 <td style={tdStyle}>
-                                    <div style={{ fontWeight: 800, color: '#1e293b' }}>{Number(product.price).toLocaleString()} ₴</div>
+                                    <div style={{ fontWeight: 800, color: '#263A99' }}>{Number(product.price).toLocaleString()} ₴</div>
                                 </td>
                                 <td style={tdStyle}>
                                     <span style={{
@@ -360,13 +360,13 @@ export default function ProductsPage() {
 }
 
 // Styles
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28px', backgroundColor: '#1e293b', color: 'white', borderRadius: '16px', textDecoration: 'none', fontWeight: 800, fontSize: '15px', boxShadow: '0 10px 20px rgba(0,0,0,0.1)' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28px', backgroundColor: '#263A99', color: 'white', borderRadius: '16px', textDecoration: 'none', fontWeight: 800, fontSize: '15px', boxShadow: '0 10px 20px rgba(0,0,0,0.1)' };
 const searchWrapperStyle = { position: 'relative' as any, display: 'flex', alignItems: 'center', backgroundColor: 'white', padding: '0 20px', borderRadius: '16px', border: '1.5px solid #e2e8f0', flex: 1, boxShadow: '0 4px 10px rgba(0,0,0,0.01)' };
-const searchInputStyle = { border: 'none', padding: '14px 0', outline: 'none', width: '100%', fontSize: '15px', marginLeft: '12px', fontWeight: 600, color: '#1e293b' };
+const searchInputStyle = { border: 'none', padding: '14px 0', outline: 'none', width: '100%', fontSize: '15px', marginLeft: '12px', fontWeight: 600, color: '#263A99' };
 const filterBtnStyle = { display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 24px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: '16px', color: '#475569', fontWeight: 700, fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s' };
 const tableCardStyle = { backgroundColor: 'white', borderRadius: '32px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9', overflow: 'hidden' };
 const thStyle = { textAlign: 'left' as any, padding: '24px', fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.1em', fontWeight: 900 };
-const tdStyle = { padding: '24px', fontSize: '15px', color: '#1e293b' };
+const tdStyle = { padding: '24px', fontSize: '15px', color: '#263A99' };
 const thumbnailWrapperStyle = { width: '56px', height: '56px', borderRadius: '14px', backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #f1f5f9' };
 const catBadge = { backgroundColor: '#f1f5f9', padding: '6px 12px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: '#444' };
 const statusBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '100px', fontSize: '12px', fontWeight: 900, border: 'none', cursor: 'pointer', textTransform: 'uppercase' as any };
@@ -376,15 +376,15 @@ const filterPanelCard = { backgroundColor: 'white', padding: '32px', borderRadiu
 const filterGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' };
 const filterItem = { display: 'flex', flexDirection: 'column' as any, gap: '8px' };
 const filterLabel = { fontSize: '12px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
-const filterInput = { padding: '14px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', fontWeight: 700, color: '#1e293b', width: '100%', backgroundColor: '#fcfcfd' };
-const applyBtn = { backgroundColor: '#1e293b', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer' };
+const filterInput = { padding: '14px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', fontWeight: 700, color: '#263A99', width: '100%', backgroundColor: '#fcfcfd' };
+const applyBtn = { backgroundColor: '#263A99', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer' };
 const resetBtn = { display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer' };
 
 const modalOverlay = { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
 const modalContent = { backgroundColor: 'white', borderRadius: '32px', padding: '40px', maxWidth: '440px', width: '90%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' };
 const modalHeader = { display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' };
 const alertIconWrapper = { width: '56px', height: '56px', borderRadius: '16px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const modalTitle = { fontSize: '22px', fontWeight: 950, color: '#1e293b', margin: 0 };
+const modalTitle = { fontSize: '22px', fontWeight: 950, color: '#263A99', margin: 0 };
 const modalText = { fontSize: '16px', color: '#64748b', lineHeight: '1.6', marginBottom: '32px' };
 const modalFooter = { display: 'flex', gap: '16px' };
 const deleteBtn = { flex: 1, backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '16px', borderRadius: '16px', fontWeight: 800, fontSize: '15px', cursor: 'pointer', boxShadow: '0 8px 16px rgba(239, 68, 68, 0.2)' };

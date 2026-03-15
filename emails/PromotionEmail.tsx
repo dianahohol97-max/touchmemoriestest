@@ -60,7 +60,7 @@ export default function PromotionEmail({
             <Head />
             {previewText && <Preview>{previewText}</Preview>}
             <Tailwind>
-                <Body className="bg-[#f1f5f9] font-sans text-[#334155] m-0 p-0">
+                <Body className="bg-[#f1f5f9] font-sans text-[#263A99] m-0 p-0">
                     <Container className="bg-white mx-auto my-[40px] max-w-[600px] rounded-xl overflow-hidden shadow border border-[#e2e8f0]">
 
                         {/* Hero Image */}
@@ -71,7 +71,7 @@ export default function PromotionEmail({
                         )}
 
                         <Section className="p-[40px] text-center">
-                            <Text className="text-[28px] font-black text-[#1e293b] mt-0 mb-[16px] leading-[34px]">
+                            <Text className="text-[28px] font-black text-[#263A99] mt-0 mb-[16px] leading-[34px]">
                                 {title}
                             </Text>
 
@@ -83,14 +83,14 @@ export default function PromotionEmail({
                             {promoCode && (
                                 <Section className="bg-[#f8fafc] border-2 border-dashed border-[#cbd5e1] rounded-xl py-[24px] px-[16px] mb-[32px]">
                                     {promoValue && (
-                                        <Text className="text-[32px] font-black text-[#3b82f6] m-0 leading-none">
+                                        <Text className="text-[32px] font-black text-[#263A99] m-0 leading-none">
                                             {promoValue}
                                         </Text>
                                     )}
                                     <Text className="text-[#64748b] text-[14px] mt-[12px] mb-[8px]">
                                         Ваш промокод:
                                     </Text>
-                                    <Text className="text-[20px] font-mono font-bold text-[#1e293b] bg-white border border-[#e2e8f0] inline-block px-[16px] py-[8px] rounded m-0 tracking-widest">
+                                    <Text className="text-[20px] font-mono font-bold text-[#263A99] bg-white border border-[#e2e8f0] inline-block px-[16px] py-[8px] rounded m-0 tracking-widest">
                                         {promoCode}
                                     </Text>
                                     {promoDetails && (
@@ -104,7 +104,7 @@ export default function PromotionEmail({
                             {/* CTA */}
                             <Button
                                 href={appUrl}
-                                className="bg-[#3b82f6] text-white px-[32px] py-[16px] rounded-lg text-[16px] font-bold no-underline inline-block w-full max-w-[300px]"
+                                className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-lg text-[16px] font-bold no-underline inline-block w-full max-w-[300px]"
                             >
                                 Перейти в каталог →
                             </Button>
@@ -113,7 +113,7 @@ export default function PromotionEmail({
                         {/* Optional Products Grid */}
                         {products && products.length > 0 && (
                             <Section className="bg-[#f8fafc] p-[40px] border-t border-[#f1f5f9]">
-                                <Text className="text-center font-bold text-[18px] mb-[24px] text-[#1e293b]">
+                                <Text className="text-center font-bold text-[18px] mb-[24px] text-[#263A99]">
                                     Акційні пропозиції
                                 </Text>
                                 <Row>
@@ -121,13 +121,13 @@ export default function PromotionEmail({
                                         <Column key={i} className={`w-1/2 ${i % 2 === 0 ? 'pr-[8px]' : 'pl-[8px]'}`}>
                                             <div className="bg-white rounded-lg p-[16px] shadow-sm border border-[#f1f5f9] mb-[16px]">
                                                 <Img src={p.imageUrl} alt={p.name} className="w-full h-[160px] object-cover rounded mb-[16px]" />
-                                                <Text className="font-bold text-[15px] m-0 text-[#1e293b] leading-tight mb-[4px]">
+                                                <Text className="font-bold text-[15px] m-0 text-[#263A99] leading-tight mb-[4px]">
                                                     {p.name}
                                                 </Text>
                                                 <Text className="text-[14px] text-[#64748b] m-0 font-semibold mb-[16px]">
                                                     {p.price}
                                                 </Text>
-                                                <Button href={p.url} className="bg-[#f1f5f9] text-[#334155] border border-[#e2e8f0] text-[13px] font-bold px-[12px] py-[8px] rounded block text-center no-underline w-full">
+                                                <Button href={p.url} className="bg-[#f1f5f9] text-[#263A99] border border-[#e2e8f0] text-[13px] font-bold px-[12px] py-[8px] rounded block text-center no-underline w-full">
                                                     Переглянути
                                                 </Button>
                                             </div>

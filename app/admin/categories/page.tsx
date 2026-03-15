@@ -79,7 +79,7 @@ function SortableCategoryItem({
                     )}
                 </div>
                 <div>
-                    <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '16px' }}>{category.name}</div>
+                    <div style={{ fontWeight: 800, color: '#263A99', fontSize: '16px' }}>{category.name}</div>
                     <div style={{ fontSize: '13px', color: '#94a3b8', fontFamily: 'monospace' }}>/{category.slug}</div>
                 </div>
             </div>
@@ -261,7 +261,7 @@ export default function CategoriesPage() {
     };
 
     return (
-        <div style={{ maxWidth: '1000px', margin: '0 auto', color: '#0f172a' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', color: '#263A99' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '8px' }}>Категорії</h1>
@@ -450,7 +450,7 @@ export default function CategoriesPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'transform 0.2s' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'transform 0.2s' };
 const catRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: 'white', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)', transition: 'all 0.2s' };
 const iconBoxStyle = { width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
 const dragHandleStyle = { padding: '8px', color: '#cbd5e1', cursor: 'grab', background: 'none', border: 'none', display: 'flex', alignItems: 'center' };

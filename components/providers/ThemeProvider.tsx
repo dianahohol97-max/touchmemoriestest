@@ -91,7 +91,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             const cs = theme.card_settings;
             root.style.setProperty('--card-radius', cs.card_border_radius || '12px');
             root.style.setProperty('--card-bg', cs.card_bg_color || '#ffffff');
-            root.style.setProperty('--card-text', cs.card_text_color || '#0f172a');
+            root.style.setProperty('--card-text', cs.card_text_color || '#263A99');
             root.style.setProperty('--card-shadow', cs.card_shadow || '0 4px 6px -1px rgb(0 0 0 / 0.1)');
             root.style.setProperty('--card-aspect-category', cs.category_card_aspect || '3/4');
             root.style.setProperty('--card-aspect-product', cs.product_card_aspect || '1/1');

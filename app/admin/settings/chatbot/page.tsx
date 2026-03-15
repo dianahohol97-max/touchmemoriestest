@@ -66,7 +66,7 @@ export default function ChatbotSettingsPage() {
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 8px 0', color: '#1e293b' }}>
+                    <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 8px 0', color: '#263A99' }}>
                         Налаштування AI Chatbot
                     </h1>
                     <p style={{ color: '#64748b', margin: 0 }}>Керування характером бота та правилами обробки повідомлень.</p>

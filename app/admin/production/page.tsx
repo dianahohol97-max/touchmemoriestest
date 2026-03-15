@@ -241,7 +241,7 @@ export default function ProductionKanbanPage() {
                     return (
                         <div key={column.id} style={{ display: 'flex', flexDirection: 'column', background: '#f8fafc', borderRadius: '20px', padding: '20px', border: '1px solid #eef2f6' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <h3 style={{ fontWeight: 800, color: '#334155' }}>{column.title}</h3>
+                                <h3 style={{ fontWeight: 800, color: '#263A99' }}>{column.title}</h3>
                                 <span style={{ background: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 800, color: '#64748b', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                                     {columnOrders.length}
                                 </span>
@@ -349,7 +349,7 @@ export default function ProductionKanbanPage() {
                                                     {order.manager && (
                                                         <div
                                                             title={`Менеджер: ${order.manager.name}`}
-                                                            style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: order.manager.color || '#3b82f6', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800, border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                                                            style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: order.manager.color || '#263A99', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800, border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
                                                         >
                                                             {order.manager.initials}
                                                         </div>

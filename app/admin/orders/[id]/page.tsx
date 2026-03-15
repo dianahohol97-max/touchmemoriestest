@@ -42,7 +42,7 @@ import {
 import { toast } from 'sonner';
 
 const STATUS_OPTS = [
-    { id: 'new', label: 'Нове', color: '#3b82f6', bg: '#eff6ff' },
+    { id: 'new', label: 'Нове', color: '#263A99', bg: '#eff6ff' },
     { id: 'confirmed', label: 'Підтверджено', color: '#14b8a6', bg: '#f0fdfa' },
     { id: 'in_production', label: 'У виробництві', color: '#f59e0b', bg: '#fffbeb' },
     { id: 'shipped', label: 'Відправлено', color: '#a855f7', bg: '#f5f3ff' },
@@ -393,7 +393,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const currentStatus = STATUS_OPTS.find(s => s.id === order.order_status) || STATUS_OPTS[0];
 
     return (
-        <div style={{ maxWidth: '1280px', margin: '0 auto', color: '#0f172a' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', color: '#263A99' }}>
             {/* Top Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -416,7 +416,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         {a.order_tags.icon} {a.order_tags.name}
                                     </span>
                                 ))}
-                                <button onClick={() => setShowTagDropdown(true)} style={{ border: 'none', background: 'none', color: '#3b82f6', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>+ Додати тег</button>
+                                <button onClick={() => setShowTagDropdown(true)} style={{ border: 'none', background: 'none', color: '#263A99', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>+ Додати тег</button>
                             </div>
                         </div>
                     </div>
@@ -544,7 +544,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <div style={cardStyle}>
                             <div style={cardHeaderStyle}>
                                 <h3 style={cardTitleStyle}><Truck size={20} /> Доставка</h3>
-                                <button onClick={() => setIsEditingTTN(!isEditingTTN)} style={{ border: 'none', background: 'none', color: '#3b82f6', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
+                                <button onClick={() => setIsEditingTTN(!isEditingTTN)} style={{ border: 'none', background: 'none', color: '#263A99', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
                                     {isEditingTTN ? 'Скасувати' : 'Змінити ТТН'}
                                 </button>
                             </div>
@@ -569,7 +569,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 {isEditingTTN ? (
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <input value={ttnValue} onChange={e => setTtnValue(e.target.value)} style={modalInputStyle} />
-                                        <button onClick={saveTTN} style={{ padding: '0 16px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '12px' }}>ОК</button>
+                                        <button onClick={saveTTN} style={{ padding: '0 16px', backgroundColor: '#263A99', color: 'white', border: 'none', borderRadius: '12px' }}>ОК</button>
                                     </div>
                                 ) : (
                                     <div style={{ ...infoValueStyle, color: '#ef4444' }}>{order.ttn || '—'}</div>
@@ -658,7 +658,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 </div>
                             )}
 
-                            <button onClick={() => setShowReplyModal(true)} style={{ ...contactLinkStyle, border: 'none', cursor: 'pointer', backgroundColor: '#eff6ff', color: '#3b82f6', width: '100%', textAlign: 'left' }}><MessageSquare size={16} /> Написати клієнту</button>
+                            <button onClick={() => setShowReplyModal(true)} style={{ ...contactLinkStyle, border: 'none', cursor: 'pointer', backgroundColor: '#eff6ff', color: '#263A99', width: '100%', textAlign: 'left' }}><MessageSquare size={16} /> Написати клієнту</button>
                         </div>
                     </div>
 
@@ -761,13 +761,13 @@ const totalsSectionStyle = { marginTop: '32px' };
 const totalRowStyle = { display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 600, color: '#64748b', marginBottom: '8px' };
 const infoBlockStyle = { backgroundColor: '#f8fafc', padding: '16px', borderRadius: '20px' };
 const infoLabelStyle = { fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, marginBottom: '4px' };
-const infoValueStyle = { fontSize: '16px', fontWeight: 700, color: '#1e293b' };
+const infoValueStyle = { fontSize: '16px', fontWeight: 700, color: '#263A99' };
 const financeMetric: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' };
 const financeLabel = { fontSize: '11px', fontWeight: 800, color: '#be185d', textTransform: 'uppercase' as any, opacity: 0.7 };
-const financeValue = { fontSize: '18px', fontWeight: 950, color: '#0f172a' };
+const financeValue = { fontSize: '18px', fontWeight: 950, color: '#263A99' };
 const miniLabel = { display: 'block', fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, marginBottom: '6px', letterSpacing: '0.05em' };
-const avatarStyle = { width: '56px', height: '56px', borderRadius: '20px', backgroundColor: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900 };
-const contactLinkStyle = { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: '#1e293b', fontWeight: 700, textDecoration: 'none', padding: '16px', borderRadius: '16px', backgroundColor: '#f8fafc' };
+const avatarStyle = { width: '56px', height: '56px', borderRadius: '20px', backgroundColor: '#eff6ff', color: '#263A99', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900 };
+const contactLinkStyle = { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: '#263A99', fontWeight: 700, textDecoration: 'none', padding: '16px', borderRadius: '16px', backgroundColor: '#f8fafc' };
 const smallLabelStyle = { display: 'block', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, marginBottom: '8px' };
 const staffSelectStyle = { width: '100%', padding: '12px 16px', borderRadius: '14px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 700, outline: 'none' };
 const notesInputStyle = { width: '100%', minHeight: '120px', padding: '16px', borderRadius: '16px', border: '1.5px solid #e2e8f0', backgroundColor: '#fffbeb', fontSize: '14px', fontWeight: 500, outline: 'none', resize: 'none' as any };

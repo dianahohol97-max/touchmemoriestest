@@ -71,7 +71,7 @@ export default function ProfilePage() {
         boxSizing: 'border-box',
         fontFamily: 'inherit',
         outline: 'none',
-        color: '#1e293b',
+        color: '#263A99',
     };
 
     const labelStyle: React.CSSProperties = {
@@ -84,7 +84,7 @@ export default function ProfilePage() {
 
     return (
         <div style={{ maxWidth: '560px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '24px', color: '#1e293b' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '24px', color: '#263A99' }}>
                 Особисті дані
             </h2>
 
@@ -155,14 +155,14 @@ export default function ProfilePage() {
             }}>
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
                     <div>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>Email розсилка</div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#263A99' }}>Email розсилка</div>
                         <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Отримувати новини та акції</div>
                     </div>
                     <input
                         type="checkbox"
                         checked={formData.email_subscribed}
                         onChange={e => setFormData({ ...formData, email_subscribed: e.target.checked })}
-                        style={{ width: '18px', height: '18px', accentColor: '#1e293b' }}
+                        style={{ width: '18px', height: '18px', accentColor: '#263A99' }}
                     />
                 </label>
             </div>
@@ -172,7 +172,7 @@ export default function ProfilePage() {
                 disabled={saving}
                 style={{
                     padding: '14px 32px',
-                    backgroundColor: '#1e293b',
+                    backgroundColor: '#263A99',
                     color: 'white',
                     border: 'none',
                     borderRadius: '12px',

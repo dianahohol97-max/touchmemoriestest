@@ -156,7 +156,7 @@ export default function FaqPage() {
                         <Link href="https://t.me/touchmemories" style={supportBtnStyle}>
                             <Send size={18} /> Telegram
                         </Link>
-                        <Link href="/contacts" style={{ ...supportBtnStyle, backgroundColor: '#f1f5f9', color: '#1e293b' }}>
+                        <Link href="/contacts" style={{ ...supportBtnStyle, backgroundColor: '#f1f5f9', color: '#263A99' }}>
                             Контакти
                         </Link>
                     </div>
@@ -184,7 +184,7 @@ function FaqItem({ faq, isOpen, onToggle }: { faq: any, isOpen: boolean, onToggl
                 onClick={onToggle}
                 style={questionBtn}
             >
-                <span style={{ fontWeight: 800, fontSize: '18px', textAlign: 'left', color: '#1e293b' }}>{faq.question}</span>
+                <span style={{ fontWeight: 800, fontSize: '18px', textAlign: 'left', color: '#263A99' }}>{faq.question}</span>
                 <motion.div
                     animate={{ rotate: isOpen ? 180 : 0 }}
                     style={{ color: isOpen ? 'var(--primary)' : '#94a3b8' }}
@@ -216,7 +216,7 @@ function FaqItem({ faq, isOpen, onToggle }: { faq: any, isOpen: boolean, onToggl
 const mainStyle = { minHeight: '100vh', backgroundColor: '#fafafa', paddingTop: '140px', paddingBottom: '120px' };
 const containerStyle = { maxWidth: '900px', margin: '0 auto', padding: '0 24px' };
 const badgeStyle = { display: 'inline-block', backgroundColor: '#f0f9ff', color: '#0369a1', padding: '6px 16px', borderRadius: '100px', fontSize: '12px', fontWeight: 900, marginBottom: '24px', letterSpacing: '0.1em' };
-const titleStyle = { fontSize: '56px', fontWeight: 900, color: '#1e293b', marginBottom: '24px', letterSpacing: '-0.02em', lineHeight: 1.1 };
+const titleStyle = { fontSize: '56px', fontWeight: 900, color: '#263A99', marginBottom: '24px', letterSpacing: '-0.02em', lineHeight: 1.1 };
 const subtitleStyle = { fontSize: '18px', color: '#64748b', maxWidth: '600px', margin: '0 auto 48px', lineHeight: 1.6 };
 
 const searchContainer = { position: 'relative' as any, maxWidth: '600px', margin: '0 auto' };
@@ -233,5 +233,5 @@ const answerText = { padding: '8px 0 24px', color: '#64748b', fontSize: '16px', 
 
 const emptyStateStyle = { textAlign: 'center' as any, padding: '80px 40px', backgroundColor: 'white', borderRadius: '32px', border: '2px dashed #f1f5f9', color: '#64748b' };
 const footerCta = { marginTop: '100px', padding: '40px', backgroundColor: 'white', borderRadius: '40px', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as any, gap: '32px' };
-const messageIconBox = { width: '64px', height: '64px', borderRadius: '22px', backgroundColor: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const messageIconBox = { width: '64px', height: '64px', borderRadius: '22px', backgroundColor: '#263A99', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const supportBtnStyle = { display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 28px', borderRadius: '16px', backgroundColor: '#0088cc', color: 'white', fontWeight: 800, textDecoration: 'none', transition: 'all 0.3s' };

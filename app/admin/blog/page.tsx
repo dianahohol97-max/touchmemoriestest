@@ -109,7 +109,7 @@ export default function AdminBlogPostsPage() {
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#1e293b', marginBottom: '8px' }}>Всі статті блогу</h1>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Всі статті блогу</h1>
                     <p style={{ color: '#64748b' }}>Керуйте вмістом блогу, чернетками та публікаціями.</p>
                 </div>
                 <Link href="/admin/blog/new" style={addBtnStyle}>
@@ -138,7 +138,7 @@ export default function AdminBlogPostsPage() {
                                 style={{
                                     padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.2s',
                                     backgroundColor: filter === f ? 'white' : 'transparent',
-                                    color: filter === f ? '#0f172a' : '#64748b',
+                                    color: filter === f ? '#263A99' : '#64748b',
                                     boxShadow: filter === f ? '0 2px 8px rgba(0,0,0,0.05)' : 'none'
                                 }}
                             >
@@ -170,7 +170,7 @@ export default function AdminBlogPostsPage() {
                                     </div>
                                 )}
                                 <div style={{ minWidth: 0 }}>
-                                    <Link href={`/admin/blog/${post.id}/edit`} style={{ fontWeight: 800, color: '#1e293b', fontSize: '15px', textDecoration: 'none', display: 'block', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    <Link href={`/admin/blog/${post.id}/edit`} style={{ fontWeight: 800, color: '#263A99', fontSize: '15px', textDecoration: 'none', display: 'block', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {post.title}
                                     </Link>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: '#64748b' }}>
@@ -206,7 +206,7 @@ export default function AdminBlogPostsPage() {
                                         <Copy size={16} color="#64748b" />
                                     </button>
                                     <Link href={`/admin/blog/${post.id}/edit`} title="Редагувати" style={{ ...actionBtnStyle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Edit size={16} color="#3b82f6" />
+                                        <Edit size={16} color="#263A99" />
                                     </Link>
                                     <button onClick={() => deletePost(post.id)} title="Видалити" style={actionBtnStyle}>
                                         <Trash2 size={16} color="#ef4444" />
@@ -221,6 +221,6 @@ export default function AdminBlogPostsPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '15px', cursor: 'pointer', textDecoration: 'none' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '15px', cursor: 'pointer', textDecoration: 'none' };
 const postRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', transition: 'all 0.2s', ':hover': { borderColor: '#e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' } };
 const actionBtnStyle = { padding: '8px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid transparent', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', ':hover': { borderColor: '#e2e8f0', backgroundColor: 'white' } };

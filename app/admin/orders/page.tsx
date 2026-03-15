@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 
 const STATUS_TABS = [
     { id: 'all', label: 'Всі', color: '#64748b' },
-    { id: 'new', label: 'Нові', color: '#3b82f6' },
+    { id: 'new', label: 'Нові', color: '#263A99' },
     { id: 'confirmed', label: 'Підтверджені', color: '#14b8a6' },
     { id: 'in_production', label: 'У виробництві', color: '#f59e0b' },
     { id: 'shipped', label: 'Відправлені', color: '#a855f7' },
@@ -156,7 +156,7 @@ export default function OrdersPage() {
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#1e293b', marginBottom: '8px' }}>Замовлення</h1>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Замовлення</h1>
                     <p style={{ color: '#64748b' }}>Повний список транзакцій та статусів у реальному часі.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
@@ -276,7 +276,7 @@ export default function OrdersPage() {
                         ) : filteredOrders.map(order => (
                             <tr key={order.id} style={trStyle}>
                                 <td style={tdStyle}>
-                                    <div style={{ fontWeight: 800, color: '#1e293b' }}>{order.order_number}</div>
+                                    <div style={{ fontWeight: 800, color: '#263A99' }}>{order.order_number}</div>
                                     <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>{new Date(order.created_at).toLocaleString('uk-UA')}</div>
                                     <div style={{ ...statusBadgeStyle, ...getStatusStyle(order.order_status) }}>
                                         {STATUS_TABS.find(t => t.id === order.order_status)?.label}

@@ -150,7 +150,7 @@ export default function BankAccountsPage() {
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: 950, color: '#1e293b', marginBottom: '8px' }}>Банківські рахунки</h1>
+                    <h1 style={{ fontSize: '32px', fontWeight: 950, color: '#263A99', marginBottom: '8px' }}>Банківські рахунки</h1>
                     <p style={{ color: '#64748b' }}>Керуйте рахунками для прийому оплат та відстеження фінансів.</p>
                 </div>
                 <button
@@ -174,7 +174,7 @@ export default function BankAccountsPage() {
                                         <Building2 size={20} color="#64748b" />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>{account.label}</div>
+                                        <div style={{ fontSize: '18px', fontWeight: 800, color: '#263A99' }}>{account.label}</div>
                                         <div style={{ fontSize: '13px', color: '#94a3b8' }}>{account.bank_name}</div>
                                     </div>
                                 </div>
@@ -185,7 +185,7 @@ export default function BankAccountsPage() {
                             </div>
 
                             <div style={{ marginBottom: '20px' }}>
-                                <div style={{ fontSize: '24px', fontWeight: 900, color: '#1e293b' }}>
+                                <div style={{ fontSize: '24px', fontWeight: 900, color: '#263A99' }}>
                                     {account.balance?.toLocaleString()} {account.currency}
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -324,7 +324,7 @@ export default function BankAccountsPage() {
 }
 
 const cardStyle = { backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#1e293b', color: 'white', borderRadius: '14px', border: 'none', fontWeight: 700, cursor: 'pointer' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '14px', border: 'none', fontWeight: 700, cursor: 'pointer' };
 const bankIconCircle = { width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const iconActionBtn = { background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' };
 const miniLabel = { fontSize: '11px', textTransform: 'uppercase' as any, fontWeight: 800, color: '#94a3b8', display: 'block', marginBottom: '4px' };
@@ -334,5 +334,5 @@ const modalOverlay = { position: 'fixed' as any, top: 0, left: 0, right: 0, bott
 const modalContent = { backgroundColor: 'white', borderRadius: '32px', padding: '32px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' };
 const formLabel = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any };
 const formInput = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px' };
-const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '16px', cursor: 'pointer', marginTop: '10px' };
+const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '16px', cursor: 'pointer', marginTop: '10px' };
 const closeBtn = { background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' };

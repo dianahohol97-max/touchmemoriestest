@@ -248,7 +248,7 @@ const headerStyle: React.CSSProperties = {
 const titleStyle: React.CSSProperties = {
     fontSize: '16px',
     fontWeight: 800,
-    color: '#1e293b',
+    color: '#263A99',
     margin: 0
 };
 
@@ -299,7 +299,7 @@ const attrHeaderStyle: React.CSSProperties = {
 const attrNameStyle: React.CSSProperties = {
     fontSize: '15px',
     fontWeight: 700,
-    color: '#1e293b'
+    color: '#263A99'
 };
 
 const attrTypeStyle: React.CSSProperties = {

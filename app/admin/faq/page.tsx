@@ -165,7 +165,7 @@ export default function AdminFaqPage() {
 }
 
 const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '32px', boxShadow: '0 4px 25px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9' };
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, fontSize: '15px', transition: 'all 0.2s' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, fontSize: '15px', transition: 'all 0.2s' };
 const searchInputStyle = { width: '100%', padding: '14px 16px 14px 48px', borderRadius: '16px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' };
 const faqRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: '#fcfcfc', borderRadius: '16px', border: '1.5px solid #f1f5f9', transition: 'all 0.2s' };
 const categoryBadgeStyle = { fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' as any, padding: '2px 8px', borderRadius: '6px', backgroundColor: '#fff1f2', color: '#ef4444', letterSpacing: '0.05em' };
