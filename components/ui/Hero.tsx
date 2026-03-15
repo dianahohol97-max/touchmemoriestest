@@ -203,7 +203,7 @@ export function Hero() {
                         transition: 'transform 0.2s, background-color 0.2s',
                         width: '50%',
                     }} className="hover-lift">
-                        {buttonText}
+                        В магазин
                     </Link>
                 </motion.div>
             </div>

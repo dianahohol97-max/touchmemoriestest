@@ -42,7 +42,6 @@ export function Navigation() {
     }, []);
 
     const mainNavLinks = [
-        { name: 'Каталог', href: '/catalog' },
         { name: 'Глянцевий журнал', href: '/hliantsevyi-zhurnal' },
         { name: 'Фотокниги', href: '/photobooks' },
         { name: 'Travel book', href: '/travelbook' },
