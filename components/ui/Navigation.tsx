@@ -1,11 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import styles from './Navigation.module.css';
+import { usePathname } from 'next/navigation';
 import { Search, User, ShoppingCart, Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cart-store';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
 
 export function Navigation() {
     const [isScrolled, setIsScrolled] = useState(false);
@@ -13,6 +15,7 @@ export function Navigation() {
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
     const [otherCategories, setOtherCategories] = useState<any[]>([]);
     const { items: cartItems, openDrawer } = useCartStore();
+    const pathname = usePathname();
 
     const supabase = createClient();
 
@@ -58,57 +61,35 @@ export function Navigation() {
     return (
         <>
             <header
-                style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 50,
-                    transition: 'background-color 0.3s, box-shadow 0.3s',
-                    backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.95)' : 'white',
-                    boxShadow: isScrolled ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    backdropFilter: isScrolled ? 'blur(10px)' : 'none',
-                    height: '80px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    borderBottom: isScrolled ? 'none' : '1px solid var(--border)',
-                    width: '100%',
-                    padding: 0,
-                    margin: 0
-                }}
+                className={cn(
+                    "fixed top-0 left-0 right-0 z-50 transition-all duration-300 h-20 flex items-center w-full",
+                    isScrolled ? "bg-white/95 shadow-sm backdrop-blur-md" : "bg-white border-b border-border"
+                )}
             >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 40px' }}>
-                    <Link href="/" style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontWeight: 800,
-                        fontSize: '1.25rem',
-                        letterSpacing: '0.05em',
-                        color: 'var(--primary)',
-                        textDecoration: 'none'
-                    }}>
+                <div className="flex justify-between items-center w-full px-10">
+                    <Link href="/" className="font-heading font-extrabold text-xl tracking-wider text-primary no-underline">
                         TOUCH.MEMORIES
                     </Link>
 
                     {/* Desktop Nav */}
-                    <nav style={{ alignItems: 'center', gap: '40px' }} className={`desktop-only ${styles.navFlex}`}>
-                        <div style={{
-                            display: 'flex',
-                            gap: '24px',
-                            fontSize: '11px',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.1em',
-                            fontWeight: 700,
-                            alignItems: 'center'
-                        }}>
+                    <nav className={cn("desktop-only items-center gap-10", styles.navFlex)}>
+                        <div className="flex gap-8 text-[12px] uppercase tracking-widest font-bold items-center font-heading">
                             {mainNavLinks.map(link => (
                                 <Link
                                     key={link.name}
                                     href={link.href}
-                                    style={{ color: 'var(--primary)', textDecoration: 'none', opacity: 0.8, transition: 'opacity 0.2s' }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.8')}
+                                    className={cn(
+                                        "text-primary no-underline transition-opacity relative",
+                                        pathname === link.href ? "opacity-100" : "opacity-80 hover:opacity-100"
+                                    )}
                                 >
                                     {link.name}
+                                    {pathname === link.href && (
+                                        <motion.div
+                                            layoutId="nav-underline"
+                                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-brand"
+                                        />
+                                    )}
                                 </Link>
                             ))}
 
@@ -125,16 +106,17 @@ export function Navigation() {
                                             border: 'none',
                                             cursor: 'pointer',
                                             color: 'var(--primary)',
-                                            fontSize: '11px',
+                                            fontSize: '12px',
                                             textTransform: 'uppercase',
                                             letterSpacing: '0.1em',
                                             fontWeight: 700,
-                                            opacity: 0.8,
+                                            opacity: activeDropdown === 'other' ? 1 : 0.8,
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '4px',
+                                            gap: '6px',
                                             transition: 'opacity 0.2s',
-                                            padding: 0
+                                            padding: 0,
+                                            fontFamily: 'var(--font-heading)'
                                         }}
                                         onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
                                         onMouseLeave={(e) => (e.currentTarget.style.opacity = activeDropdown === 'other' ? '1' : '0.8')}
@@ -157,7 +139,7 @@ export function Navigation() {
                                                     marginTop: '20px',
                                                     backgroundColor: 'white',
                                                     boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                                                    borderRadius: '3px',
+                                                    borderRadius: "3px",
                                                     minWidth: '200px',
                                                     padding: '8px 0',
                                                     zIndex: 100
@@ -222,16 +204,17 @@ export function Navigation() {
                                         border: 'none',
                                         cursor: 'pointer',
                                         color: 'var(--primary)',
-                                        fontSize: '11px',
+                                        fontSize: '12px',
                                         textTransform: 'uppercase',
                                         letterSpacing: '0.1em',
                                         fontWeight: 700,
-                                        opacity: 0.8,
+                                        opacity: activeDropdown === 'about' ? 1 : 0.8,
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '4px',
+                                        gap: '6px',
                                         transition: 'opacity 0.2s',
-                                        padding: 0
+                                        padding: 0,
+                                        fontFamily: 'var(--font-heading)'
                                     }}
                                     onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
                                     onMouseLeave={(e) => (e.currentTarget.style.opacity = activeDropdown === 'about' ? '1' : '0.8')}
@@ -254,7 +237,7 @@ export function Navigation() {
                                                 marginTop: '20px',
                                                 backgroundColor: 'white',
                                                 boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                                                borderRadius: '3px',
+                                                borderRadius: "3px",
                                                 minWidth: '200px',
                                                 padding: '8px 0',
                                                 zIndex: 100
@@ -338,16 +321,16 @@ export function Navigation() {
                             flexDirection: 'column'
                         }}
                     >
-                        <div className="container" style={{ height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-                            <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary)' }}>
+                        <div className="container" style={{ height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0' }}>
+                            <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary)', letterSpacing: '0.05em' }}>
                                 МЕНЮ
                             </span>
                             <button
                                 onClick={() => setIsMobileMenuOpen(false)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '12px', color: 'var(--primary)', display: 'flex', alignItems: 'center' }}
                                 aria-label="Close menu"
                             >
-                                <X size={24} />
+                                <X size={26} />
                             </button>
                         </div>
                         <nav style={{ display: 'flex', flexDirection: 'column', padding: '30px 20px', gap: '2px', overflowY: 'auto' }}>
@@ -421,7 +404,7 @@ function UserAuthIcon() {
                     <img
                         src={status.avatar}
                         alt="User"
-                        style={{ width: '28px', height: '28px', borderRadius: '3px', objectFit: 'cover', border: '1.5px solid #e2e8f0' }}
+                        style={{ width: '28px', height: '28px', borderRadius: "3px", objectFit: 'cover', border: '1.5px solid #e2e8f0' }}
                     />
                 ) : (
                     <User size={20} />

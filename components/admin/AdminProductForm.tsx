@@ -77,10 +77,10 @@ function SortableImage({ url, onRemove, index, isFirst }: { url: string, onRemov
                 justifyContent: 'center',
                 gap: '8px'
             }} onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')} onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}>
-                <button type="button" {...attributes} {...listeners} style={{ padding: '8px', backgroundColor: 'white', color: '#64748b', border: 'none', borderRadius: '3px', cursor: 'grab' }}>
+                <button type="button" {...attributes} {...listeners} style={{ padding: '8px', backgroundColor: 'white', color: '#64748b', border: 'none', borderRadius: "3px", cursor: 'grab' }}>
                     <GripVertical size={16} />
                 </button>
-                <button type="button" onClick={() => onRemove(url)} style={{ padding: '8px', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>
+                <button type="button" onClick={() => onRemove(url)} style={{ padding: '8px', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: "3px", cursor: 'pointer' }}>
                     <Trash2 size={16} />
                 </button>
             </div>
@@ -94,7 +94,7 @@ function SortableImage({ url, onRemove, index, isFirst }: { url: string, onRemov
                     fontSize: '10px',
                     fontWeight: 800,
                     padding: '2px 8px',
-                    borderRadius: '3px',
+                    borderRadius: "3px",
                     textTransform: 'uppercase'
                 }}>
                     Головне
@@ -467,7 +467,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                     {/* General Content Card */}
                     <div style={cardStyle}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '28px' }}>
-                            <div style={{ padding: '10px', backgroundColor: '#eff6ff', borderRadius: '3px', color: '#263A99' }}><FileText size={20} /></div>
+                            <div style={{ padding: '10px', backgroundColor: '#eff6ff', borderRadius: "3px", color: '#263A99' }}><FileText size={20} /></div>
                             <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0 }}>Контент та опис</h3>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -498,7 +498,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                             </div>
                             <div>
                                 <label style={labelStyle}>Повний опис продукту</label>
-                                <div data-color-mode="light" style={{ borderRadius: '3px', overflow: 'hidden', border: '1.5px solid #e2e8f0' }}>
+                                <div data-color-mode="light" style={{ borderRadius: "3px", overflow: 'hidden', border: '1.5px solid #e2e8f0' }}>
                                     <MDEditor
                                         value={formData.description}
                                         onChange={(val) => setFormData(p => ({ ...p, description: val || '' }))}
@@ -513,7 +513,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                     {/* Media Card */}
                     <div style={cardStyle}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '28px' }}>
-                            <div style={{ padding: '10px', backgroundColor: '#f5f3ff', borderRadius: '3px', color: '#8b5cf6' }}><ImageIcon size={20} /></div>
+                            <div style={{ padding: '10px', backgroundColor: '#f5f3ff', borderRadius: "3px", color: '#8b5cf6' }}><ImageIcon size={20} /></div>
                             <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0 }}>Зображення та Відео</h3>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -574,10 +574,10 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
 
                             <div style={{ marginTop: '20px', paddingTop: '24px', borderTop: '1px solid #f1f5f9' }}>
                                 <label style={{ ...labelStyle, marginBottom: '16px' }}>Відео-презентація (з пристрою)</label>
-                                <div style={{ backgroundColor: '#f8fafc', borderRadius: '3px', padding: '20px', border: '1px solid #f1f5f9' }}>
+                                <div style={{ backgroundColor: '#f8fafc', borderRadius: "3px", padding: '20px', border: '1px solid #f1f5f9' }}>
                                     {formData.video_url ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                            <div style={{ position: 'relative', width: '120px', aspectRatio: '16/9', borderRadius: '3px', overflow: 'hidden', backgroundColor: 'black' }}>
+                                            <div style={{ position: 'relative', width: '120px', aspectRatio: '16/9', borderRadius: "3px", overflow: 'hidden', backgroundColor: 'black' }}>
                                                 <video src={formData.video_url} style={{ width: '100%', height: '100%' }} />
                                                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
                                                     <Play size={20} color="white" />
@@ -597,7 +597,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                                                             toast.success('Відео видалено');
                                                         }
                                                     }}
-                                                    style={{ marginTop: '8px', padding: '4px 12px', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '3px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                                                    style={{ marginTop: '8px', padding: '4px 12px', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: "3px", fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
                                                 >
                                                     Видалити відео
                                                 </button>
@@ -634,7 +634,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                     <div style={cardStyle}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ padding: '10px', backgroundColor: '#fdf2f8', borderRadius: '3px', color: '#ec4899' }}><Layout size={20} /></div>
+                                <div style={{ padding: '10px', backgroundColor: '#fdf2f8', borderRadius: "3px", color: '#ec4899' }}><Layout size={20} /></div>
                                 <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0 }}>Варіації продукту</h3>
                             </div>
                             <button type="button" onClick={addVariant} style={addBtnStyle}><Plus size={18} /> Додати варіант</button>
@@ -871,29 +871,29 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
 }
 
 // Re-using bits of premium style logic from previous work
-const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
-const iconButtonStyle = { width: '48px', height: '48px', borderRadius: '3px', border: '1.5px solid #e2e8f0', background: 'white', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
+const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
+const iconButtonStyle = { width: '48px', height: '48px', borderRadius: "3px", border: '1.5px solid #e2e8f0', background: 'white', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
 const labelStyle = { display: 'block', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', marginBottom: '8px' };
-const inputStyle = { width: '100%', padding: '14px 18px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', fontWeight: 600, transition: 'all 0.2s' };
-const textareaStyle = { width: '100%', padding: '14px 18px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', fontWeight: 500, resize: 'none' as any };
-const selectInputStyle = { width: '100%', padding: '14px 18px', borderRadius: '3px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', outline: 'none', fontSize: '14px', fontWeight: 700, cursor: 'pointer' };
+const inputStyle = { width: '100%', padding: '14px 18px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', fontWeight: 600, transition: 'all 0.2s' };
+const textareaStyle = { width: '100%', padding: '14px 18px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', fontWeight: 500, resize: 'none' as any };
+const selectInputStyle = { width: '100%', padding: '14px 18px', borderRadius: "3px", border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', outline: 'none', fontSize: '14px', fontWeight: 700, cursor: 'pointer' };
 const sectionTitleStyle = { fontSize: '16px', fontWeight: 900, marginBottom: '24px', color: '#263A99' };
-const draftBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '14px 24px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#475569', borderRadius: '3px', fontWeight: 800, cursor: 'pointer' };
-const publishBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '14px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '3px', fontWeight: 800, cursor: 'pointer' };
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#263A99', borderRadius: '3px', border: 'none', fontWeight: 800, fontSize: '13px', cursor: 'pointer' };
-const emptyStateStyle = { padding: '40px', textAlign: 'center' as any, border: '2px dashed #f1f5f9', borderRadius: '3px', color: '#94a3b8', fontWeight: 500, fontSize: '14px' };
+const draftBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '14px 24px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#475569', borderRadius: "3px", fontWeight: 800, cursor: 'pointer' };
+const publishBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '14px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: "3px", fontWeight: 800, cursor: 'pointer' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#263A99', borderRadius: "3px", border: 'none', fontWeight: 800, fontSize: '13px', cursor: 'pointer' };
+const emptyStateStyle = { padding: '40px', textAlign: 'center' as any, border: '2px dashed #f1f5f9', borderRadius: "3px", color: '#94a3b8', fontWeight: 500, fontSize: '14px' };
 const imageGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '16px' };
-const imageWrapperStyle = { position: 'relative' as any, aspectRatio: '1/1', borderRadius: '3px', overflow: 'hidden', border: '1px solid #f1f5f9' };
-const removeImageBtnStyle = { position: 'absolute' as any, top: '6px', right: '6px', padding: '6px', backgroundColor: 'rgba(0,0,0,0.5)', color: 'white', borderRadius: '3px', border: 'none', cursor: 'pointer', display: 'flex' };
+const imageWrapperStyle = { position: 'relative' as any, aspectRatio: '1/1', borderRadius: "3px", overflow: 'hidden', border: '1px solid #f1f5f9' };
+const removeImageBtnStyle = { position: 'absolute' as any, top: '6px', right: '6px', padding: '6px', backgroundColor: 'rgba(0,0,0,0.5)', color: 'white', borderRadius: "3px", border: 'none', cursor: 'pointer', display: 'flex' };
 const coverLabelStyle = { position: 'absolute' as any, bottom: 0, left: 0, right: 0, padding: '4px', backgroundColor: 'rgba(16, 185, 129, 0.9)', color: 'white', fontSize: '10px', textAlign: 'center' as any, fontWeight: 900, textTransform: 'uppercase' as any };
-const uploadTriggerStyle = { aspectRatio: '1/1', borderRadius: '3px', border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#cbd5e1', backgroundColor: '#f8fafc' };
+const uploadTriggerStyle = { aspectRatio: '1/1', borderRadius: "3px", border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#cbd5e1', backgroundColor: '#f8fafc' };
 const variantHeaderStyle = { display: 'flex', gap: '12px', padding: '0 16px', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any };
 const variantRowStyle = { display: 'flex', gap: '12px', alignItems: 'center' };
-const variantInputStyle = { padding: '10px 14px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '13px', backgroundColor: '#f8fafc', fontWeight: 700 };
-const toggleRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', backgroundColor: '#f8fafc', borderRadius: '3px' };
+const variantInputStyle = { padding: '10px 14px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '13px', backgroundColor: '#f8fafc', fontWeight: 700 };
+const toggleRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', backgroundColor: '#f8fafc', borderRadius: "3px" };
 const checkboxStyle = { width: '20px', height: '20px', accentColor: '#263A99', cursor: 'pointer' };
-const tagStyle = { display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: '#eff6ff', color: '#263A99', borderRadius: '3px', fontSize: '13px', fontWeight: 800 };
-const tagDropdownStyle: React.CSSProperties = { position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', borderRadius: '3px', border: '1.5px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 50, marginTop: '8px', overflow: 'hidden' };
+const tagStyle = { display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: '#eff6ff', color: '#263A99', borderRadius: "3px", fontSize: '13px', fontWeight: 800 };
+const tagDropdownStyle: React.CSSProperties = { position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', borderRadius: "3px", border: '1.5px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 50, marginTop: '8px', overflow: 'hidden' };
 const tagDropdownItemStyle: React.CSSProperties = { padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: '#263A99', cursor: 'pointer', transition: 'background 0.2s' };
 const cardTitleStyle = { fontSize: '18px', fontWeight: 900 };
 

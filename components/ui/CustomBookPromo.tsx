@@ -49,7 +49,7 @@ export function CustomBookPromo() {
                             width: '80px',
                             height: '80px',
                             backgroundColor: 'rgba(255,255,255,0.1)',
-                            borderRadius: '3px',
+                            borderRadius: "3px",
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -90,7 +90,7 @@ export function CustomBookPromo() {
                             color: 'var(--section-button-text)',
                             fontSize: '18px',
                             fontWeight: 700,
-                            borderRadius: '3px',
+                            borderRadius: "3px",
                             textDecoration: 'none',
                             transition: 'transform 0.2s',
                             boxShadow: 'var(--button-shadow)'

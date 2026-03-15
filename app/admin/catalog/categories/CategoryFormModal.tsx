@@ -126,7 +126,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
         }}>
             <div style={{
                 backgroundColor: 'white',
-                borderRadius: '3px',
+                borderRadius: "3px",
                 width: '100%',
                 maxWidth: '600px',
                 maxHeight: '90vh',
@@ -156,7 +156,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 style={{
-                                    width: '100%', padding: '12px 16px', borderRadius: '3px',
+                                    width: '100%', padding: '12px 16px', borderRadius: "3px",
                                     border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none'
                                 }}
                             />
@@ -172,7 +172,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                                 value={formData.slug}
                                 onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
                                 style={{
-                                    width: '100%', padding: '12px 16px', borderRadius: '3px',
+                                    width: '100%', padding: '12px 16px', borderRadius: "3px",
                                     border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none',
                                     backgroundColor: '#f8fafc'
                                 }}
@@ -191,7 +191,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 rows={3}
                                 style={{
-                                    width: '100%', padding: '12px 16px', borderRadius: '3px',
+                                    width: '100%', padding: '12px 16px', borderRadius: "3px",
                                     border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none',
                                     resize: 'none'
                                 }}
@@ -204,7 +204,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                             </label>
                             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                                 <div style={{
-                                    width: '80px', height: '80px', borderRadius: '3px',
+                                    width: '80px', height: '80px', borderRadius: "3px",
                                     backgroundColor: '#f1f5f9', border: '1px dashed #cbd5e1',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     overflow: 'hidden', position: 'relative'
@@ -221,7 +221,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                                     )}
                                 </div>
                                 <label style={{
-                                    padding: '10px 20px', borderRadius: '3px',
+                                    padding: '10px 20px', borderRadius: "3px",
                                     border: '1px solid #e2e8f0', backgroundColor: 'white',
                                     cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: '#475569',
                                     display: 'inline-flex', alignItems: 'center', gap: '8px'
@@ -232,7 +232,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '3px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: "3px" }}>
                             <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: '15px', fontWeight: 700, color: '#263A99' }}>Відображати в сайдбарі</div>
                                 <div style={{ fontSize: '13px', color: '#64748b' }}>Якщо вимкнено, категорія буде схована з публічного каталогу</div>
@@ -247,12 +247,12 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                                 <span style={{
                                     position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
                                     backgroundColor: formData.is_active ? 'var(--primary)' : '#cbd5e1',
-                                    transition: '.3s', borderRadius: '3px'
+                                    transition: '.3s', borderRadius: "3px"
                                 }}>
                                     <span style={{
                                         position: 'absolute', content: '""', height: '20px', width: '20px',
                                         left: formData.is_active ? '24px' : '4px', bottom: '3px',
-                                        backgroundColor: 'white', transition: '.3s', borderRadius: '3px'
+                                        backgroundColor: 'white', transition: '.3s', borderRadius: "3px"
                                     }} />
                                 </span>
                             </label>
@@ -265,7 +265,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                     <button
                         type="button"
                         onClick={onClose}
-                        style={{ padding: '12px 24px', borderRadius: '3px', border: '1px solid #e2e8f0', background: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
+                        style={{ padding: '12px 24px', borderRadius: "3px", border: '1px solid #e2e8f0', background: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
                     >
                         Скасувати
                     </button>
@@ -274,7 +274,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
                         form="categoryForm"
                         disabled={isLoading}
                         style={{
-                            padding: '12px 24px', borderRadius: '3px', border: 'none', background: 'var(--primary)',
+                            padding: '12px 24px', borderRadius: "3px", border: 'none', background: 'var(--primary)',
                             color: 'white', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '8px'
                         }}

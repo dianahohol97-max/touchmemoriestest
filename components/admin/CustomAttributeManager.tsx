@@ -233,7 +233,7 @@ export default function CustomAttributeManager({
 const containerStyle: React.CSSProperties = {
     backgroundColor: 'white',
     padding: '32px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     boxShadow: '0 4px 25px rgba(0,0,0,0.02)',
     border: '1px solid #f1f5f9'
 };
@@ -257,7 +257,7 @@ const addBtnStyle: React.CSSProperties = {
     alignItems: 'center',
     gap: '8px',
     padding: '10px 20px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: 'none',
     backgroundColor: 'var(--primary)',
     color: 'white',
@@ -270,7 +270,7 @@ const emptyStateStyle: React.CSSProperties = {
     padding: '40px',
     textAlign: 'center',
     border: '2px dashed #e2e8f0',
-    borderRadius: '3px'
+    borderRadius: "3px"
 };
 
 const listStyle: React.CSSProperties = {
@@ -285,7 +285,7 @@ const cardStyle: React.CSSProperties = {
     gap: '16px',
     padding: '16px',
     backgroundColor: '#f8fafc',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '1px solid #e2e8f0'
 };
 
@@ -308,7 +308,7 @@ const attrTypeStyle: React.CSSProperties = {
     color: '#64748b',
     backgroundColor: 'white',
     padding: '4px 10px',
-    borderRadius: '3px'
+    borderRadius: "3px"
 };
 
 const optionsStyle: React.CSSProperties = {
@@ -324,7 +324,7 @@ const requiredBadgeStyle: React.CSSProperties = {
     color: '#dc2626',
     backgroundColor: '#fee2e2',
     padding: '4px 8px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     marginTop: '8px'
 };
 
@@ -345,7 +345,7 @@ const editBtnStyle: React.CSSProperties = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '8px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: 'none',
     backgroundColor: 'white',
     color: '#64748b',
@@ -357,7 +357,7 @@ const deleteBtnStyle: React.CSSProperties = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '8px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: 'none',
     backgroundColor: '#fee2e2',
     color: '#dc2626',

@@ -60,7 +60,7 @@ export default function PrintProfilesPage() {
                     onClick={handleCreate}
                     style={{
                         padding: '10px 20px',
-                        borderRadius: '3px',
+                        borderRadius: "3px",
                         border: 'none',
                         background: '#263A99',
                         color: 'white',
@@ -81,7 +81,7 @@ export default function PrintProfilesPage() {
                 {profiles.map(profile => (
                     <div key={profile.id} style={{
                         background: 'white',
-                        borderRadius: '3px',
+                        borderRadius: "3px",
                         padding: '20px',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
                         border: '1px solid #e2e8f0',
@@ -93,7 +93,7 @@ export default function PrintProfilesPage() {
                             <div style={{
                                 width: '48px',
                                 height: '48px',
-                                borderRadius: '3px',
+                                borderRadius: "3px",
                                 background: '#f1f5f9',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -105,10 +105,10 @@ export default function PrintProfilesPage() {
                             <div>
                                 <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#263A99' }}>{profile.name}</h3>
                                 <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                                    <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '3px', background: '#e2e8f0', color: '#475569' }}>
+                                    <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: "3px", background: '#e2e8f0', color: '#475569' }}>
                                         {profile.output_format.toUpperCase()}
                                     </span>
-                                    <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '3px', background: '#e2e8f0', color: '#475569' }}>
+                                    <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: "3px", background: '#e2e8f0', color: '#475569' }}>
                                         {profile.color_mode.toUpperCase()}
                                     </span>
                                     <span style={{ fontSize: '12px', color: '#64748b' }}>
@@ -126,14 +126,14 @@ export default function PrintProfilesPage() {
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <button
                                 onClick={() => handleEdit(profile)}
-                                style={{ padding: '8px', borderRadius: '3px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#475569' }}
+                                style={{ padding: '8px', borderRadius: "3px", border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#475569' }}
                                 title="Редагувати"
                             >
                                 <Edit2 size={18} />
                             </button>
                             <button
                                 onClick={() => handleDelete(profile.id)}
-                                style={{ padding: '8px', borderRadius: '3px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#ef4444' }}
+                                style={{ padding: '8px', borderRadius: "3px", border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#ef4444' }}
                                 title="Видалити"
                             >
                                 <Trash2 size={18} />
@@ -143,7 +143,7 @@ export default function PrintProfilesPage() {
                 ))}
 
                 {profiles.length === 0 && (
-                    <div style={{ padding: '60px', textAlign: 'center', background: '#f8fafc', borderRadius: '3px', border: '2px dashed #e2e8f0' }}>
+                    <div style={{ padding: '60px', textAlign: 'center', background: '#f8fafc', borderRadius: "3px", border: '2px dashed #e2e8f0' }}>
                         <Printer size={48} style={{ color: '#94a3b8', marginBottom: '16px' }} />
                         <h3 style={{ color: '#475569', fontWeight: 600 }}>Профілів друку ще не створено</h3>
                         <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '8px' }}>Створіть свій перший профіль для автоматичної генерації файлів</p>

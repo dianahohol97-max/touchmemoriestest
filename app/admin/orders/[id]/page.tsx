@@ -569,7 +569,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 {isEditingTTN ? (
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <input value={ttnValue} onChange={e => setTtnValue(e.target.value)} style={modalInputStyle} />
-                                        <button onClick={saveTTN} style={{ padding: '0 16px', backgroundColor: '#263A99', color: 'white', border: 'none', borderRadius: '3px' }}>ОК</button>
+                                        <button onClick={saveTTN} style={{ padding: '0 16px', backgroundColor: '#263A99', color: 'white', border: 'none', borderRadius: "3px" }}>ОК</button>
                                     </div>
                                 ) : (
                                     <div style={{ ...infoValueStyle, color: '#ef4444' }}>{order.ttn || '—'}</div>
@@ -582,7 +582,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 <h3 style={cardTitleStyle}><CreditCard size={20} /> Оплата</h3>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     {order.fiscal_url && <a href={order.fiscal_url} target="_blank" style={{ color: '#10b981' }} title="Чек"><Receipt size={18} /></a>}
-                                    <span style={{ padding: '4px 10px', borderRadius: '3px', fontSize: '11px', fontWeight: 800, backgroundColor: order.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb', color: order.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>
+                                    <span style={{ padding: '4px 10px', borderRadius: "3px", fontSize: '11px', fontWeight: 800, backgroundColor: order.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb', color: order.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>
                                         {order.payment_status?.toUpperCase()}
                                     </span>
                                 </div>
@@ -606,7 +606,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: order.fiscal_id ? '#10b981' : '#64748b' }}>
                                     <ShieldCheck size={16} /> {order.fiscal_id ? 'Фіскалізовано' : 'Не фіскалізовано'}
                                 </div>
-                                <button onClick={runFiscalization} style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '3px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>Фіскалізувати</button>
+                                <button onClick={runFiscalization} style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: "3px", fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>Фіскалізувати</button>
                             </div>
                         </div>
                     </div>
@@ -623,11 +623,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         {printProfiles.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
-                                <button onClick={generatePrintFile} disabled={isGenerating} style={{ padding: '12px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '3px', fontWeight: 700, cursor: 'pointer', display: 'flex', gap: '8px', opacity: isGenerating ? 0.6 : 1 }}>
+                                <button onClick={generatePrintFile} disabled={isGenerating} style={{ padding: '12px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: "3px", fontWeight: 700, cursor: 'pointer', display: 'flex', gap: '8px', opacity: isGenerating ? 0.6 : 1 }}>
                                     {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />} Згенерувати
                                 </button>
                             </div>
-                            {isGenerating && <div style={{ width: '100%', height: '4px', background: '#f1f5f9', borderRadius: '3px', marginTop: '12px', overflow: 'hidden' }}><div style={{ width: `${genProgress}%`, height: '100%', background: '#10b981', transition: 'width 0.3s' }} /></div>}
+                            {isGenerating && <div style={{ width: '100%', height: '4px', background: '#f1f5f9', borderRadius: "3px", marginTop: '12px', overflow: 'hidden' }}><div style={{ width: `${genProgress}%`, height: '100%', background: '#10b981', transition: 'width 0.3s' }} /></div>}
                         </div>
                     )}
                 </div>
@@ -735,7 +735,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         </div>
                         <input value={replySubject} onChange={e => setReplySubject(e.target.value)} placeholder="Тема листа" style={{ ...modalInputStyle, width: '100%', marginBottom: '12px' }} />
                         <textarea value={replyBody} onChange={e => setReplyBody(e.target.value)} placeholder="Текст листа..." style={{ ...notesInputStyle, width: '100%', height: '200px', marginBottom: '20px' }} />
-                        <button onClick={sendReply} disabled={sendingReply} style={{ width: '100%', padding: '14px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '3px', fontWeight: 800 }}>
+                        <button onClick={sendReply} disabled={sendingReply} style={{ width: '100%', padding: '14px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: "3px", fontWeight: 800 }}>
                             {sendingReply ? <Loader2 className="animate-spin" /> : <Send size={18} />} Надіслати
                         </button>
                     </div>
@@ -746,32 +746,32 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 }
 
 // Minimal Premium Styles
-const iconButtonStyle = { width: '44px', height: '44px', borderRadius: '3px', border: '1.5px solid #e2e8f0', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' };
-const actionBtnStyle = { width: '48px', height: '48px', borderRadius: '3px', border: '1.5px solid #e2e8f0', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' };
-const statusBadgeStyle = { padding: '6px 14px', borderRadius: '3px', fontSize: '13px', fontWeight: 800 };
-const selectStatusStyle = { padding: '12px 20px', borderRadius: '3px', border: '2px solid', backgroundColor: 'white', fontWeight: 800, cursor: 'pointer', outline: 'none' };
-const cardStyle = { backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', padding: '32px', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
+const iconButtonStyle = { width: '44px', height: '44px', borderRadius: "3px", border: '1.5px solid #e2e8f0', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' };
+const actionBtnStyle = { width: '48px', height: '48px', borderRadius: "3px", border: '1.5px solid #e2e8f0', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' };
+const statusBadgeStyle = { padding: '6px 14px', borderRadius: "3px", fontSize: '13px', fontWeight: 800 };
+const selectStatusStyle = { padding: '12px 20px', borderRadius: "3px", border: '2px solid', backgroundColor: 'white', fontWeight: 800, cursor: 'pointer', outline: 'none' };
+const cardStyle = { backgroundColor: 'white', borderRadius: "3px", border: '1px solid #f1f5f9', padding: '32px', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
 const cardHeaderStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' };
 const cardTitleStyle = { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 900, margin: 0 };
 const itemRowStyle = { display: 'flex', gap: '20px', padding: '24px 0', borderBottom: '1px solid #f8fafc' };
-const itemThumbStyle = { width: '80px', height: '80px', borderRadius: '3px', backgroundColor: '#f8fafc', overflow: 'hidden', border: '1px solid #f1f5f9', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const itemCommentBoxStyle = { marginTop: '16px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '3px' };
+const itemThumbStyle = { width: '80px', height: '80px', borderRadius: "3px", backgroundColor: '#f8fafc', overflow: 'hidden', border: '1px solid #f1f5f9', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const itemCommentBoxStyle = { marginTop: '16px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: "3px" };
 const itemCommentInputStyle = { width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', fontWeight: 500, color: '#475569', resize: 'none' as any, minHeight: '40px' };
 const totalsSectionStyle = { marginTop: '32px' };
 const totalRowStyle = { display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 600, color: '#64748b', marginBottom: '8px' };
-const infoBlockStyle = { backgroundColor: '#f8fafc', padding: '16px', borderRadius: '3px' };
+const infoBlockStyle = { backgroundColor: '#f8fafc', padding: '16px', borderRadius: "3px" };
 const infoLabelStyle = { fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, marginBottom: '4px' };
 const infoValueStyle = { fontSize: '16px', fontWeight: 700, color: '#263A99' };
 const financeMetric: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' };
 const financeLabel = { fontSize: '11px', fontWeight: 800, color: '#be185d', textTransform: 'uppercase' as any, opacity: 0.7 };
 const financeValue = { fontSize: '18px', fontWeight: 950, color: '#263A99' };
 const miniLabel = { display: 'block', fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, marginBottom: '6px', letterSpacing: '0.05em' };
-const avatarStyle = { width: '56px', height: '56px', borderRadius: '3px', backgroundColor: '#eff6ff', color: '#263A99', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900 };
-const contactLinkStyle = { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: '#263A99', fontWeight: 700, textDecoration: 'none', padding: '16px', borderRadius: '3px', backgroundColor: '#f8fafc' };
+const avatarStyle = { width: '56px', height: '56px', borderRadius: "3px", backgroundColor: '#eff6ff', color: '#263A99', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900 };
+const contactLinkStyle = { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: '#263A99', fontWeight: 700, textDecoration: 'none', padding: '16px', borderRadius: "3px", backgroundColor: '#f8fafc' };
 const smallLabelStyle = { display: 'block', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, marginBottom: '8px' };
-const staffSelectStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 700, outline: 'none' };
-const notesInputStyle = { width: '100%', minHeight: '120px', padding: '16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', backgroundColor: '#fffbeb', fontSize: '14px', fontWeight: 500, outline: 'none', resize: 'none' as any };
-const modalInputStyle = { padding: '10px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' };
+const staffSelectStyle = { width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 700, outline: 'none' };
+const notesInputStyle = { width: '100%', minHeight: '120px', padding: '16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', backgroundColor: '#fffbeb', fontSize: '14px', fontWeight: 500, outline: 'none', resize: 'none' as any };
+const modalInputStyle = { padding: '10px 16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' };
 const overlayStyle = { position: 'fixed' as any, inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' };
-const dropdownStyle = { backgroundColor: 'white', borderRadius: '3px', minWidth: '240px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', border: '1px solid #f1f5f9', overflow: 'hidden' };
+const dropdownStyle = { backgroundColor: 'white', borderRadius: "3px", minWidth: '240px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', border: '1px solid #f1f5f9', overflow: 'hidden' };
 const dropdownOptionStyle = { width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', border: 'none', background: 'none', textAlign: 'left' as any, cursor: 'pointer', fontSize: '14px', fontWeight: 700, transition: 'background 0.2s' };

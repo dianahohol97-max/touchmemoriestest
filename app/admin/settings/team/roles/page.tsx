@@ -168,7 +168,7 @@ export default function RolesManagementPage() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <div style={{
-                                        width: '44px', height: '44px', borderRadius: '3px',
+                                        width: '44px', height: '44px', borderRadius: "3px",
                                         backgroundColor: role.is_system ? '#f8fafc' : '#eff6ff',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         color: role.is_system ? '#94a3b8' : '#263A99',
@@ -191,14 +191,14 @@ export default function RolesManagementPage() {
                                     </div>
                                 )}
                                 {role.is_system && (
-                                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '3px', textTransform: 'uppercase' }}>Системна</span>
+                                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: "3px", textTransform: 'uppercase' }}>Системна</span>
                                 )}
                             </div>
 
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                 {Object.entries(role.permissions).slice(0, 5).map(([key, value]) => (
                                     <div key={key} style={{
-                                        fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: '3px',
+                                        fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: "3px",
                                         backgroundColor: value === 'none' ? '#f8fafc' : value === 'full' ? '#dbeafe' : '#f1f5f9',
                                         color: value === 'none' ? '#94a3b8' : value === 'full' ? '#1e40af' : '#475569'
                                     }}>
@@ -214,7 +214,7 @@ export default function RolesManagementPage() {
                                 onClick={() => handleOpenEditor(role)}
                                 style={{
                                     width: '100%', marginTop: '20px', padding: '10px',
-                                    backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '3px',
+                                    backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: "3px",
                                     fontSize: '14px', fontWeight: 700, color: '#475569', cursor: 'pointer',
                                     transition: 'all 0.2s'
                                 }}
@@ -329,21 +329,21 @@ export default function RolesManagementPage() {
 }
 
 // Styles
-const primaryBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.2s' };
+const primaryBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: "3px", fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.2s' };
 const primaryBtnDisabledStyle = { ...primaryBtnStyle, opacity: 0.7, cursor: 'not-allowed' };
-const secondaryBtnStyle = { padding: '12px 24px', backgroundColor: 'transparent', color: '#64748b', borderRadius: '3px', fontWeight: 700, border: '1px solid #e2e8f0', cursor: 'pointer' };
-const iconBtnStyle = { width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', border: '1px solid #e2e8f0', color: '#64748b', cursor: 'pointer', background: 'white' };
+const secondaryBtnStyle = { padding: '12px 24px', backgroundColor: 'transparent', color: '#64748b', borderRadius: "3px", fontWeight: 700, border: '1px solid #e2e8f0', cursor: 'pointer' };
+const iconBtnStyle = { width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: "3px", border: '1px solid #e2e8f0', color: '#64748b', cursor: 'pointer', background: 'white' };
 const iconBtnStyleRed = { ...iconBtnStyle, color: '#ef4444', border: '1px solid #fee2e2' };
-const smallBtnStyle = { padding: '4px 12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '3px', fontSize: '11px', fontWeight: 700, color: '#64748b', cursor: 'pointer' };
+const smallBtnStyle = { padding: '4px 12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: "3px", fontSize: '11px', fontWeight: 700, color: '#64748b', cursor: 'pointer' };
 
-const roleCardStyle = { backgroundColor: 'white', borderRadius: '3px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between' };
+const roleCardStyle = { backgroundColor: 'white', borderRadius: "3px", padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between' };
 
-const modalOverlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const modalContentStyle: React.CSSProperties = { backgroundColor: 'white', borderRadius: '3px', width: '90%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' };
+const modalOverlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, backgroundColor: 'rgba(38, 58, 153, 0.6)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const modalContentStyle: React.CSSProperties = { backgroundColor: 'white', borderRadius: "3px", width: '90%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' };
 const modalHeaderStyle = { padding: '32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' };
 const modalFooterStyle = { padding: '24px 32px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '16px' };
 const closeBtnStyle = { background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' };
 
-const tableCaseStyle = { border: '1px solid #f1f5f9', borderRadius: '3px', overflow: 'hidden' };
+const tableCaseStyle = { border: '1px solid #f1f5f9', borderRadius: "3px", overflow: 'hidden' };
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' };
-const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px' };
+const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px' };

@@ -205,7 +205,7 @@ export default function ProductionKanbanPage() {
                     <select
                         value={deadlineFilter}
                         onChange={e => setDeadlineFilter(e.target.value)}
-                        style={{ padding: '8px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none' }}
+                        style={{ padding: '8px 16px', borderRadius: "3px", border: '1px solid #e2e8f0', outline: 'none' }}
                     >
                         <option value="all">Усі дедлайни</option>
                         <option value="today">Сьогодні/Прострочено</option>
@@ -214,18 +214,18 @@ export default function ProductionKanbanPage() {
                     </select>
 
                     {selectedIds.size > 0 && (
-                        <div style={{ display: 'flex', gap: '8px', background: '#f8fafc', padding: '4px', borderRadius: '3px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', gap: '8px', background: '#f8fafc', padding: '4px', borderRadius: "3px", border: '1px solid #e2e8f0' }}>
                             <button
                                 onClick={handleBatchDownload}
                                 disabled={downloading}
-                                style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', background: 'white', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                                style={{ padding: '8px 16px', borderRadius: "3px", border: 'none', background: 'white', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                             >
                                 {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                                 Завантажити PDF ({selectedIds.size})
                             </button>
                             <button
                                 onClick={handleBatchMarkPrinted}
-                                style={{ padding: '8px 16px', borderRadius: '3px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer' }}
+                                style={{ padding: '8px 16px', borderRadius: "3px", border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer' }}
                             >
                                 Готово до відправки
                             </button>
@@ -239,10 +239,10 @@ export default function ProductionKanbanPage() {
                     const columnOrders = filteredOrders.filter(o => o.order_status === column.id);
 
                     return (
-                        <div key={column.id} style={{ display: 'flex', flexDirection: 'column', background: '#f8fafc', borderRadius: '3px', padding: '20px', border: '1px solid #eef2f6' }}>
+                        <div key={column.id} style={{ display: 'flex', flexDirection: 'column', background: '#f8fafc', borderRadius: "3px", padding: '20px', border: '1px solid #eef2f6' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                 <h3 style={{ fontWeight: 800, color: '#263A99' }}>{column.title}</h3>
-                                <span style={{ background: 'white', padding: '4px 10px', borderRadius: '3px', fontSize: '12px', fontWeight: 800, color: '#64748b', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                <span style={{ background: 'white', padding: '4px 10px', borderRadius: "3px", fontSize: '12px', fontWeight: 800, color: '#64748b', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                                     {columnOrders.length}
                                 </span>
                             </div>
@@ -265,7 +265,7 @@ export default function ProductionKanbanPage() {
                                                 style={{
                                                     background: 'white',
                                                     padding: '16px',
-                                                    borderRadius: '3px',
+                                                    borderRadius: "3px",
                                                     border: `1px solid ${isSelected ? 'var(--primary)' : '#e2e8f0'}`,
                                                     boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
                                                     position: 'relative'
@@ -285,7 +285,7 @@ export default function ProductionKanbanPage() {
 
                                                     {/* Deadline Badge */}
                                                     <div style={{
-                                                        display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, padding: '4px 8px', borderRadius: '3px',
+                                                        display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, padding: '4px 8px', borderRadius: "3px",
                                                         background: status === 'red' ? '#fee2e2' : status === 'yellow' ? '#fef3c7' : '#dcfce7',
                                                         color: status === 'red' ? '#ef4444' : status === 'yellow' ? '#eab308' : '#22c55e'
                                                     }}>
@@ -304,7 +304,7 @@ export default function ProductionKanbanPage() {
                                                                 <div
                                                                     key={tag.id}
                                                                     title={tag.name}
-                                                                    style={{ padding: '2px 6px', borderRadius: '3px', backgroundColor: `${tag.color}15`, display: 'inline-flex', alignItems: 'center', gap: '4px', border: `1px solid ${tag.color}40`, fontSize: '11px', color: tag.color, fontWeight: 700 }}
+                                                                    style={{ padding: '2px 6px', borderRadius: "3px", backgroundColor: `${tag.color}15`, display: 'inline-flex', alignItems: 'center', gap: '4px', border: `1px solid ${tag.color}40`, fontSize: '11px', color: tag.color, fontWeight: 700 }}
                                                                 >
                                                                     {tag.icon} {tag.name}
                                                                 </div>
@@ -315,7 +315,7 @@ export default function ProductionKanbanPage() {
 
                                                 {/* Alerts / Warnings */}
                                                 {!order.designer_id && column.id !== 'delivered' && (
-                                                    <div style={{ marginBottom: '12px', padding: '6px 10px', background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '3px', color: '#ea580c', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <div style={{ marginBottom: '12px', padding: '6px 10px', background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: "3px", color: '#ea580c', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                         <User size={12} /> Не призначено дизайнера
                                                     </div>
                                                 )}
@@ -349,7 +349,7 @@ export default function ProductionKanbanPage() {
                                                     {order.manager && (
                                                         <div
                                                             title={`Менеджер: ${order.manager.name}`}
-                                                            style={{ width: '24px', height: '24px', borderRadius: '3px', backgroundColor: order.manager.color || '#263A99', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800, border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                                                            style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.manager.color || '#263A99', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800, border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
                                                         >
                                                             {order.manager.initials}
                                                         </div>
@@ -357,7 +357,7 @@ export default function ProductionKanbanPage() {
                                                     {order.designer && (
                                                         <div
                                                             title={`Дизайнер: ${order.designer.name}`}
-                                                            style={{ width: '24px', height: '24px', borderRadius: '3px', backgroundColor: order.designer.color || '#ec4899', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800, border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginLeft: order.manager ? '-8px' : '0' }}
+                                                            style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.designer.color || '#ec4899', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800, border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginLeft: order.manager ? '-8px' : '0' }}
                                                         >
                                                             {order.designer.initials}
                                                         </div>
@@ -378,7 +378,7 @@ export default function ProductionKanbanPage() {
                                                         {column.id !== 'confirmed' && (
                                                             <button
                                                                 onClick={() => handleStatusMove(order.id, column.id, 'prev')}
-                                                                style={{ padding: '6px', borderRadius: '3px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#64748b' }}
+                                                                style={{ padding: '6px', borderRadius: "3px", border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#64748b' }}
                                                             >
                                                                 <ChevronLeft size={16} />
                                                             </button>
@@ -386,7 +386,7 @@ export default function ProductionKanbanPage() {
                                                         {column.id !== 'delivered' && (
                                                             <button
                                                                 onClick={() => handleStatusMove(order.id, column.id, 'next')}
-                                                                style={{ padding: '6px 12px', borderRadius: '3px', border: 'none', background: 'var(--primary)', color: 'white', cursor: 'pointer', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                                style={{ padding: '6px 12px', borderRadius: "3px", border: 'none', background: 'var(--primary)', color: 'white', cursor: 'pointer', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
                                                             >
                                                                 Далі <ChevronRight size={14} />
                                                             </button>

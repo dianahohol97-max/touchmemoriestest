@@ -42,7 +42,7 @@ export function RevenueExpenseChart({ data }: RevenueExpenseChartProps) {
             contentStyle={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid #ccc',
-              borderRadius: '3px',
+              borderRadius: "3px",
             }}
           />
           <Legend />

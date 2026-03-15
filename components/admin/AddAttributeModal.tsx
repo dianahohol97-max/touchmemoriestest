@@ -327,7 +327,7 @@ const overlayStyle: React.CSSProperties = {
 
 const modalStyle: React.CSSProperties = {
     backgroundColor: 'white',
-    borderRadius: '3px',
+    borderRadius: "3px",
     width: '90%',
     maxWidth: '600px',
     maxHeight: '90vh',
@@ -357,7 +357,7 @@ const closeBtnStyle: React.CSSProperties = {
     justifyContent: 'center',
     width: '36px',
     height: '36px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: 'none',
     backgroundColor: '#f8fafc',
     color: '#64748b',
@@ -393,7 +393,7 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px 16px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '1.5px solid #e2e8f0',
     outline: 'none',
     fontSize: '14px'
@@ -402,7 +402,7 @@ const inputStyle: React.CSSProperties = {
 const selectStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px 16px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '1.5px solid #e2e8f0',
     outline: 'none',
     fontSize: '14px',
@@ -414,7 +414,7 @@ const addOptionBtnStyle: React.CSSProperties = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '12px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: 'none',
     backgroundColor: 'var(--primary)',
     color: 'white',
@@ -427,7 +427,7 @@ const optionItemStyle: React.CSSProperties = {
     gap: '12px',
     padding: '12px',
     backgroundColor: '#f8fafc',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '1px solid #e2e8f0'
 };
 
@@ -436,7 +436,7 @@ const removeOptionBtnStyle: React.CSSProperties = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '6px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: 'none',
     backgroundColor: '#fee2e2',
     color: '#dc2626',
@@ -445,7 +445,7 @@ const removeOptionBtnStyle: React.CSSProperties = {
 
 const cancelBtnStyle: React.CSSProperties = {
     padding: '12px 24px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '1.5px solid #e2e8f0',
     backgroundColor: 'white',
     color: '#64748b',
@@ -455,7 +455,7 @@ const cancelBtnStyle: React.CSSProperties = {
 
 const saveBtnStyle: React.CSSProperties = {
     padding: '12px 24px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: 'none',
     backgroundColor: 'var(--primary)',
     color: 'white',

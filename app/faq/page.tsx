@@ -215,23 +215,23 @@ function FaqItem({ faq, isOpen, onToggle }: { faq: any, isOpen: boolean, onToggl
 
 const mainStyle = { minHeight: '100vh', backgroundColor: '#fafafa', paddingTop: '140px', paddingBottom: '120px' };
 const containerStyle = { maxWidth: '900px', margin: '0 auto', padding: '0 24px' };
-const badgeStyle = { display: 'inline-block', backgroundColor: '#f0f9ff', color: '#0369a1', padding: '6px 16px', borderRadius: '3px', fontSize: '12px', fontWeight: 900, marginBottom: '24px', letterSpacing: '0.1em' };
+const badgeStyle = { display: 'inline-block', backgroundColor: '#f0f9ff', color: '#263A99', padding: '6px 16px', borderRadius: "3px", fontSize: '12px', fontWeight: 900, marginBottom: '24px', letterSpacing: '0.1em' };
 const titleStyle = { fontSize: '56px', fontWeight: 900, color: '#263A99', marginBottom: '24px', letterSpacing: '-0.02em', lineHeight: 1.1 };
 const subtitleStyle = { fontSize: '18px', color: '#64748b', maxWidth: '600px', margin: '0 auto 48px', lineHeight: 1.6 };
 
 const searchContainer = { position: 'relative' as any, maxWidth: '600px', margin: '0 auto' };
-const searchInput = { width: '100%', padding: '24px 32px 24px 64px', borderRadius: '3px', border: 'none', backgroundColor: 'white', boxShadow: '0 20px 50px rgba(0,0,0,0.06)', fontSize: '18px', outline: 'none', transition: 'all 0.3s' };
+const searchInput = { width: '100%', padding: '24px 32px 24px 64px', borderRadius: "3px", border: 'none', backgroundColor: 'white', boxShadow: '0 20px 50px rgba(0,0,0,0.06)', fontSize: '18px', outline: 'none', transition: 'all 0.3s' };
 const searchIconStyle = { position: 'absolute' as any, left: '24px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' };
 
 const tabsContainer = { display: 'flex', flexWrap: 'wrap' as any, gap: '12px', justifyContent: 'center', marginBottom: '60px' };
-const tabStyle = { padding: '10px 20px', borderRadius: '3px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s', outline: 'none' };
+const tabStyle = { padding: '10px 20px', borderRadius: "3px", fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s', outline: 'none' };
 
 const faqListContainer = { display: 'flex', flexDirection: 'column' as any, gap: '16px' };
-const faqItemStyle = { borderRadius: '3px', padding: '20px 32px', cursor: 'default', transition: 'all 0.3s' };
+const faqItemStyle = { borderRadius: "3px", padding: '20px 32px', cursor: 'default', transition: 'all 0.3s' };
 const questionBtn = { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: 'none', backgroundColor: 'transparent', padding: '16px 0', cursor: 'pointer', gap: '20px' };
 const answerText = { padding: '8px 0 24px', color: '#64748b', fontSize: '16px', lineHeight: 1.7 };
 
-const emptyStateStyle = { textAlign: 'center' as any, padding: '80px 40px', backgroundColor: 'white', borderRadius: '3px', border: '2px dashed #f1f5f9', color: '#64748b' };
-const footerCta = { marginTop: '100px', padding: '40px', backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as any, gap: '32px' };
-const messageIconBox = { width: '64px', height: '64px', borderRadius: '3px', backgroundColor: '#263A99', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const supportBtnStyle = { display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 28px', borderRadius: '3px', backgroundColor: '#0088cc', color: 'white', fontWeight: 800, textDecoration: 'none', transition: 'all 0.3s' };
+const emptyStateStyle = { textAlign: 'center' as any, padding: '80px 40px', backgroundColor: 'white', borderRadius: "3px", border: '2px dashed #f1f5f9', color: '#64748b' };
+const footerCta = { marginTop: '100px', padding: '40px', backgroundColor: 'white', borderRadius: "3px", border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as any, gap: '32px' };
+const messageIconBox = { width: '64px', height: '64px', borderRadius: "3px", backgroundColor: '#263A99', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const supportBtnStyle = { display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 28px', borderRadius: "3px", backgroundColor: '#0088cc', color: 'white', fontWeight: 800, textDecoration: 'none', transition: 'all 0.3s' };

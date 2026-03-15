@@ -58,7 +58,7 @@ function SortableCategoryItem({ category, onEdit, onDelete, onToggleVisibility }
                     <GripVertical size={20} />
                 </button>
                 <div style={{
-                    width: '48px', height: '48px', borderRadius: '3px', overflow: 'hidden', backgroundColor: '#f1f5f9', flexShrink: 0
+                    width: '48px', height: '48px', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#f1f5f9', flexShrink: 0
                 }}>
                     {category.cover_image ? (
                         <img src={category.cover_image} alt={category.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -77,7 +77,7 @@ function SortableCategoryItem({ category, onEdit, onDelete, onToggleVisibility }
                     onClick={() => onToggleVisibility(category)}
                     style={{
                         padding: '8px',
-                        borderRadius: '3px',
+                        borderRadius: "3px",
                         border: 'none',
                         background: category.is_active ? '#ecfdf5' : '#f1f5f9',
                         color: category.is_active ? '#10b981' : '#94a3b8',
@@ -89,13 +89,13 @@ function SortableCategoryItem({ category, onEdit, onDelete, onToggleVisibility }
                 </button>
                 <button
                     onClick={() => onEdit(category)}
-                    style={{ padding: '8px', borderRadius: '3px', border: 'none', background: '#f8fafc', color: '#64748b', cursor: 'pointer' }}
+                    style={{ padding: '8px', borderRadius: "3px", border: 'none', background: '#f8fafc', color: '#64748b', cursor: 'pointer' }}
                 >
                     <Edit2 size={18} />
                 </button>
                 <button
                     onClick={() => onDelete(category)}
-                    style={{ padding: '8px', borderRadius: '3px', border: 'none', background: '#fef2f2', color: '#ef4444', cursor: 'pointer' }}
+                    style={{ padding: '8px', borderRadius: "3px", border: 'none', background: '#fef2f2', color: '#ef4444', cursor: 'pointer' }}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -229,7 +229,7 @@ export default function CategoriesPage() {
                     onClick={() => { setSelectedCategory(null); setIsModalOpen(true); }}
                     style={{
                         display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px',
-                        backgroundColor: 'var(--primary)', color: 'white', borderRadius: '3px',
+                        backgroundColor: 'var(--primary)', color: 'white', borderRadius: "3px",
                         fontWeight: 700, border: 'none', cursor: 'pointer'
                     }}
                 >
@@ -247,7 +247,7 @@ export default function CategoriesPage() {
                     style={{
                         width: '100%',
                         padding: '16px 16px 16px 48px',
-                        borderRadius: '3px',
+                        borderRadius: "3px",
                         border: '1px solid #e2e8f0',
                         fontSize: '16px',
                         outline: 'none',
@@ -255,7 +255,7 @@ export default function CategoriesPage() {
                 />
             </div>
 
-            <div style={{ backgroundColor: '#f8fafc', borderRadius: '3px', padding: '24px' }}>
+            <div style={{ backgroundColor: '#f8fafc', borderRadius: "3px", padding: '24px' }}>
                 {isLoading ? (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0', color: '#64748b' }}>
                         <Loader2 className="animate-spin" size={32} />

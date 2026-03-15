@@ -49,7 +49,7 @@ VALUES
   ('elegant', '{"color_primary": "#333333", "color_secondary": "#fdfbf7", "color_accent": "#c6a87c", "color_background": "#ffffff", "color_text": "#4a4a4a", "font_family_heading": "Playfair Display", "font_family_body": "Lato", "border_radius": 4, "button_border_radius": 24, "button_text_primary": "#ffffff", "button_text_secondary": "#333333"}'),
   ('bold', '{"color_primary": "#e11d48", "color_secondary": "#ffe4e6", "color_accent": "#f43f5e", "color_background": "#263A99", "color_text": "#f8fafc", "font_family_heading": "Montserrat", "font_family_body": "Roboto", "border_radius": 12, "button_border_radius": 8, "button_text_primary": "#ffffff", "button_text_secondary": "#e11d48"}'),
   ('warm', '{"color_primary": "#b45309", "color_secondary": "#fef3c7", "color_accent": "#d97706", "color_background": "#fffbeb", "color_text": "#78350f", "font_family_heading": "Lora", "font_family_body": "Inter", "border_radius": 8, "button_border_radius": 16, "button_text_primary": "#ffffff", "button_text_secondary": "#b45309"}'),
-  ('corporate', '{"color_primary": "#0284c7", "color_secondary": "#e0f2fe", "color_accent": "#0ea5e9", "color_background": "#ffffff", "color_text": "#263A99", "font_family_heading": "Roboto", "font_family_body": "Roboto", "border_radius": 4, "button_border_radius": 4, "button_text_primary": "#ffffff", "button_text_secondary": "#0284c7"}')
+  ('corporate', '{"color_primary": "#263A99", "color_secondary": "#e0f2fe", "color_accent": "#0ea5e9", "color_background": "#ffffff", "color_text": "#263A99", "font_family_heading": "Roboto", "font_family_body": "Roboto", "border_radius": 4, "button_border_radius": 4, "button_text_primary": "#ffffff", "button_text_secondary": "#263A99"}')
 ON CONFLICT (name) DO NOTHING;
 
 

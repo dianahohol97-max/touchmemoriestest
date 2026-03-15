@@ -158,7 +158,7 @@ export default function SocialInboxPage() {
     const selectedConv = conversations.find(c => c.id === selectedConvId);
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', height: 'calc(100vh - 120px)', backgroundColor: 'white', borderRadius: '3px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', height: 'calc(100vh - 120px)', backgroundColor: 'white', borderRadius: "3px", overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
 
             {/* Conversations List */}
             <div style={{ borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
@@ -186,7 +186,7 @@ export default function SocialInboxPage() {
                                         <span style={{ fontSize: '14px', fontWeight: conv.is_read ? 600 : 800, color: '#263A99' }}>
                                             {conv.external_username || conv.external_user_id}
                                         </span>
-                                        {!conv.is_read && <div style={{ width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '3px' }}></div>}
+                                        {!conv.is_read && <div style={{ width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: "3px" }}></div>}
                                     </div>
                                     <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                                         {new Date(conv.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -194,7 +194,7 @@ export default function SocialInboxPage() {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <span style={{
-                                        padding: '4px 8px', borderRadius: '3px', fontSize: '11px', fontWeight: 700,
+                                        padding: '4px 8px', borderRadius: "3px", fontSize: '11px', fontWeight: 700,
                                         backgroundColor: conv.status === 'ai_handling' ? '#dcfce7' : conv.status === 'needs_human' ? '#fee2e2' : conv.status === 'human_handling' ? '#e0e7ff' : '#f1f5f9',
                                         color: conv.status === 'ai_handling' ? '#166534' : conv.status === 'needs_human' ? '#991b1b' : conv.status === 'human_handling' ? '#3730a3' : '#475569'
                                     }}>
@@ -219,17 +219,17 @@ export default function SocialInboxPage() {
                             </div>
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 {selectedConv.status !== 'human_handling' && (
-                                    <button onClick={() => handleStatusChange('human_handling')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#e0e7ff', color: '#3730a3', border: 'none', borderRadius: '3px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+                                    <button onClick={() => handleStatusChange('human_handling')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#e0e7ff', color: '#3730a3', border: 'none', borderRadius: "3px", fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
                                         <User size={16} /> Перебрати
                                     </button>
                                 )}
                                 {selectedConv.status !== 'ai_handling' && (
-                                    <button onClick={() => handleStatusChange('ai_handling')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#dcfce7', color: '#166534', border: 'none', borderRadius: '3px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+                                    <button onClick={() => handleStatusChange('ai_handling')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#dcfce7', color: '#166534', border: 'none', borderRadius: "3px", fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
                                         <Bot size={16} /> Віддати AI
                                     </button>
                                 )}
                                 {selectedConv.status !== 'resolved' && (
-                                    <button onClick={() => handleStatusChange('resolved')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '3px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+                                    <button onClick={() => handleStatusChange('resolved')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: "3px", fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
                                         <CheckCircle2 size={16} /> Вирішено
                                     </button>
                                 )}
@@ -246,14 +246,14 @@ export default function SocialInboxPage() {
                                 return (
                                     <div key={m.id || idx} style={{ display: 'flex', justifyContent: isCustomer ? 'flex-start' : 'flex-end', alignItems: 'flex-end', gap: '8px' }}>
                                         {isCustomer && (
-                                            <div style={{ width: '32px', height: '32px', borderRadius: '3px', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: "3px", backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                 <User size={16} color="#64748b" />
                                             </div>
                                         )}
                                         <div style={{
                                             maxWidth: '70%',
                                             padding: '12px 16px',
-                                            borderRadius: '3px',
+                                            borderRadius: "3px",
                                             borderBottomLeftRadius: isCustomer ? '4px' : '16px',
                                             borderBottomRightRadius: !isCustomer ? '4px' : '16px',
                                             backgroundColor: isCustomer ? 'white' : 'var(--primary)',
@@ -276,7 +276,7 @@ export default function SocialInboxPage() {
 
                         <div style={{ padding: '20px 24px', backgroundColor: 'white', borderTop: '1px solid #e2e8f0' }}>
                             {selectedConv.status === 'ai_handling' ? (
-                                <div style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: '3px', textAlign: 'center', color: '#64748b', fontSize: '14px', border: '1px dashed #cbd5e1' }}>
+                                <div style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: "3px", textAlign: 'center', color: '#64748b', fontSize: '14px', border: '1px dashed #cbd5e1' }}>
                                     <Bot size={24} style={{ display: 'block', margin: '0 auto 8px', color: '#94a3b8' }} />
                                     AI зараз спілкується з клієнтом. Щоб відповісти вручну, натисніть "Перебрати".
                                 </div>
@@ -287,12 +287,12 @@ export default function SocialInboxPage() {
                                         value={replyText}
                                         onChange={(e) => setReplyText(e.target.value)}
                                         placeholder="Напишіть повідомлення..."
-                                        style={{ flex: 1, padding: '14px 20px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px' }}
+                                        style={{ flex: 1, padding: '14px 20px', borderRadius: "3px", border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px' }}
                                     />
                                     <button
                                         type="submit"
                                         disabled={!replyText.trim()}
-                                        style={{ width: '50px', height: '50px', borderRadius: '3px', backgroundColor: replyText.trim() ? 'var(--primary)' : '#e2e8f0', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: replyText.trim() ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}
+                                        style={{ width: '50px', height: '50px', borderRadius: "3px", backgroundColor: replyText.trim() ? 'var(--primary)' : '#e2e8f0', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: replyText.trim() ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}
                                     >
                                         <Send size={20} style={{ marginLeft: '2px' }} />
                                     </button>

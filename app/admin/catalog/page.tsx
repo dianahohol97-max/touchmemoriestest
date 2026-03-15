@@ -159,7 +159,7 @@ export default function AdminCatalogPage() {
                     href="/admin/catalog/product/new"
                     style={{
                         display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px',
-                        backgroundColor: 'var(--primary)', color: 'white', borderRadius: '3px',
+                        backgroundColor: 'var(--primary)', color: 'white', borderRadius: "3px",
                         fontWeight: 700, textDecoration: 'none'
                     }}
                 >
@@ -177,7 +177,7 @@ export default function AdminCatalogPage() {
                         value={searchQuery}
                         onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                         style={{
-                            width: '100%', padding: '14px 16px 14px 44px', borderRadius: '3px',
+                            width: '100%', padding: '14px 16px 14px 44px', borderRadius: "3px",
                             border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none'
                         }}
                     />
@@ -187,7 +187,7 @@ export default function AdminCatalogPage() {
                     value={categoryFilter}
                     onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
                     style={{
-                        padding: '14px 16px', borderRadius: '3px', border: '1px solid #e2e8f0',
+                        padding: '14px 16px', borderRadius: "3px", border: '1px solid #e2e8f0',
                         fontSize: '15px', outline: 'none', backgroundColor: 'white', minWidth: '200px'
                     }}
                 >
@@ -201,7 +201,7 @@ export default function AdminCatalogPage() {
                     value={statusFilter}
                     onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                     style={{
-                        padding: '14px 16px', borderRadius: '3px', border: '1px solid #e2e8f0',
+                        padding: '14px 16px', borderRadius: "3px", border: '1px solid #e2e8f0',
                         fontSize: '15px', outline: 'none', backgroundColor: 'white', minWidth: '180px'
                     }}
                 >
@@ -213,7 +213,7 @@ export default function AdminCatalogPage() {
             </div>
 
             {/* Products Table */}
-            <div style={{ backgroundColor: 'white', borderRadius: '3px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: "3px", border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                 <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
@@ -243,7 +243,7 @@ export default function AdminCatalogPage() {
                                     <tr key={product.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                         <td style={{ padding: '16px 24px' }}>
                                             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                                <div style={{ width: '48px', height: '48px', borderRadius: '3px', overflow: 'hidden', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <div style={{ width: '48px', height: '48px', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     {product.images && product.images[0] ? (
                                                         <img src={product.images[0]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     ) : (
@@ -258,7 +258,7 @@ export default function AdminCatalogPage() {
                                         </td>
                                         <td style={{ padding: '16px 24px', color: '#475569' }}>
                                             {product.categories && product.categories[0] ? (
-                                                <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '3px', fontSize: '13px', fontWeight: 600 }}>
+                                                <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: "3px", fontSize: '13px', fontWeight: 600 }}>
                                                     {product.categories[0].name}
                                                 </span>
                                             ) : (
@@ -272,7 +272,7 @@ export default function AdminCatalogPage() {
                                             <button
                                                 onClick={() => toggleStatus(product)}
                                                 style={{
-                                                    padding: '4px 12px', borderRadius: '3px', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer',
+                                                    padding: '4px 12px', borderRadius: "3px", fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer',
                                                     backgroundColor: product.is_active ? '#dcfce7' : '#f1f5f9',
                                                     color: product.is_active ? '#166534' : '#64748b'
                                                 }}
@@ -284,20 +284,20 @@ export default function AdminCatalogPage() {
                                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                 <button
                                                     onClick={() => togglePopular(product)}
-                                                    style={{ padding: '8px', borderRadius: '3px', border: 'none', background: product.is_popular ? '#fef3c7' : '#f8fafc', color: product.is_popular ? '#d97706' : '#94a3b8', cursor: 'pointer' }}
+                                                    style={{ padding: '8px', borderRadius: "3px", border: 'none', background: product.is_popular ? '#fef3c7' : '#f8fafc', color: product.is_popular ? '#d97706' : '#94a3b8', cursor: 'pointer' }}
                                                     title={product.is_popular ? 'Видалити з популярних' : 'Додати в популярні'}
                                                 >
                                                     <Star size={18} fill={product.is_popular ? "currentColor" : "none"} />
                                                 </button>
                                                 <Link
                                                     href={`/admin/catalog/product/${product.id}`}
-                                                    style={{ padding: '8px', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: '#64748b', cursor: 'pointer' }}
+                                                    style={{ padding: '8px', borderRadius: "3px", display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: '#64748b', cursor: 'pointer' }}
                                                 >
                                                     <Edit2 size={18} />
                                                 </Link>
                                                 <button
                                                     onClick={() => handleDelete(product)}
-                                                    style={{ padding: '8px', borderRadius: '3px', border: 'none', background: '#fef2f2', color: '#ef4444', cursor: 'pointer' }}
+                                                    style={{ padding: '8px', borderRadius: "3px", border: 'none', background: '#fef2f2', color: '#ef4444', cursor: 'pointer' }}
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
@@ -320,14 +320,14 @@ export default function AdminCatalogPage() {
                             <button
                                 disabled={currentPage === 1}
                                 onClick={() => setCurrentPage(p => p - 1)}
-                                style={{ padding: '8px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', background: 'white', color: currentPage === 1 ? '#cbd5e1' : '#263A99', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                                style={{ padding: '8px 16px', borderRadius: "3px", border: '1px solid #e2e8f0', background: 'white', color: currentPage === 1 ? '#cbd5e1' : '#263A99', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: 600 }}
                             >
                                 Попередня
                             </button>
                             <button
                                 disabled={currentPage === totalPages}
                                 onClick={() => setCurrentPage(p => p + 1)}
-                                style={{ padding: '8px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', background: 'white', color: currentPage === totalPages ? '#cbd5e1' : '#263A99', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                                style={{ padding: '8px 16px', borderRadius: "3px", border: '1px solid #e2e8f0', background: 'white', color: currentPage === totalPages ? '#cbd5e1' : '#263A99', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: 600 }}
                             >
                                 Наступна
                             </button>

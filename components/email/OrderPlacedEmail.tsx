@@ -124,7 +124,7 @@ const container = {
     backgroundColor: '#ffffff',
     margin: '40px auto',
     padding: '0',
-    borderRadius: '3px',
+    borderRadius: "3px",
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     maxWidth: '600px',
     overflow: 'hidden',
@@ -247,7 +247,7 @@ const rightColumnTotal = {
 const deliverySection = {
     backgroundColor: '#f9fafb',
     padding: '24px',
-    borderRadius: '3px',
+    borderRadius: "3px",
 };
 
 const footerText = {

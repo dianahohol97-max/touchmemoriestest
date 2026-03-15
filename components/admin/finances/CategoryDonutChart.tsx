@@ -50,7 +50,7 @@ export function CategoryDonutChart({ data }: CategoryDonutChartProps) {
             contentStyle={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid #ccc',
-              borderRadius: '3px',
+              borderRadius: "3px",
             }}
           />
           <Legend

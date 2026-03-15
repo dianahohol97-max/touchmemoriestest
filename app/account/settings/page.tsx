@@ -56,7 +56,7 @@ export default function SettingsPage() {
         width: '100%',
         padding: '12px',
         border: '1px solid #e2e8f0',
-        borderRadius: '3px',
+        borderRadius: "3px",
         fontSize: '14px',
         boxSizing: 'border-box',
         fontFamily: 'inherit',
@@ -86,7 +86,7 @@ export default function SettingsPage() {
             <div style={{
                 backgroundColor: 'white',
                 border: '1px solid #e2e8f0',
-                borderRadius: '3px',
+                borderRadius: "3px",
                 padding: '24px',
                 marginBottom: '24px',
             }}>
@@ -95,18 +95,18 @@ export default function SettingsPage() {
                 </h3>
 
                 {isGoogleUser ? (
-                    <p style={{ fontSize: '14px', color: '#64748b', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '3px' }}>
+                    <p style={{ fontSize: '14px', color: '#64748b', padding: '12px', backgroundColor: '#f8fafc', borderRadius: "3px" }}>
                         Ваш акаунт пов&apos;язаний через Google. Зміна паролю недоступна.
                     </p>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {passwordSuccess && (
-                            <div style={{ backgroundColor: '#f0fdf4', color: '#16a34a', padding: '12px', borderRadius: '3px', fontSize: '14px', fontWeight: 600 }}>
+                            <div style={{ backgroundColor: '#f0fdf4', color: '#16a34a', padding: '12px', borderRadius: "3px", fontSize: '14px', fontWeight: 600 }}>
                                 ✓ {passwordSuccess}
                             </div>
                         )}
                         {passwordError && (
-                            <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px', borderRadius: '3px', fontSize: '14px', fontWeight: 600 }}>
+                            <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px', borderRadius: "3px", fontSize: '14px', fontWeight: 600 }}>
                                 ⚠ {passwordError}
                             </div>
                         )}
@@ -138,7 +138,7 @@ export default function SettingsPage() {
                                 backgroundColor: '#263A99',
                                 color: 'white',
                                 border: 'none',
-                                borderRadius: '3px',
+                                borderRadius: "3px",
                                 fontSize: '14px',
                                 fontWeight: 700,
                                 cursor: savingPassword ? 'not-allowed' : 'pointer',
@@ -156,7 +156,7 @@ export default function SettingsPage() {
             <div style={{
                 backgroundColor: 'white',
                 border: '1px solid #e2e8f0',
-                borderRadius: '3px',
+                borderRadius: "3px",
                 padding: '24px',
             }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>
@@ -175,7 +175,7 @@ export default function SettingsPage() {
                         backgroundColor: 'white',
                         color: '#dc2626',
                         border: '2px solid #fecaca',
-                        borderRadius: '3px',
+                        borderRadius: "3px",
                         fontSize: '14px',
                         fontWeight: 700,
                         cursor: 'pointer',

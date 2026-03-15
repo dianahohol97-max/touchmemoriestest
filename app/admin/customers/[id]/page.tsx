@@ -157,7 +157,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             {orders.length === 0 ? (
-                                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '3px' }}>
+                                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: "3px" }}>
                                     Ще немає замовлень
                                 </div>
                             ) : orders.map(order => (
@@ -209,12 +209,12 @@ function getStatusColor(status: string) {
     return map[status] || '#64748b';
 }
 
-const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', borderRadius: '3px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer' };
-const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
-const avatarBigStyle = { width: '64px', height: '64px', borderRadius: '3px', backgroundColor: '#f1f5f9', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 };
+const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', borderRadius: "3px", backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer' };
+const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
+const avatarBigStyle = { width: '64px', height: '64px', borderRadius: "3px", backgroundColor: '#f1f5f9', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 };
 const contactRowStyle = { display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', fontWeight: 600, color: '#475569' };
 const statLabelStyle = { fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', marginBottom: '4px' };
 const statValueStyle = { fontSize: '24px', fontWeight: 900, color: '#263A99' };
-const notesTextareaStyle = { width: '100%', padding: '16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#263A99', fontFamily: 'inherit', resize: 'vertical' as any, minHeight: '150px', backgroundColor: '#fdfbf7' };
-const orderRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '3px', border: '1px solid #f1f5f9', textDecoration: 'none', transition: 'all 0.2s', backgroundColor: 'white' };
-const orderIconStyle = { width: '40px', height: '40px', borderRadius: '3px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const notesTextareaStyle = { width: '100%', padding: '16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#263A99', fontFamily: 'inherit', resize: 'vertical' as any, minHeight: '150px', backgroundColor: '#fdfbf7' };
+const orderRowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: "3px", border: '1px solid #f1f5f9', textDecoration: 'none', transition: 'all 0.2s', backgroundColor: 'white' };
+const orderIconStyle = { width: '40px', height: '40px', borderRadius: "3px", backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' };

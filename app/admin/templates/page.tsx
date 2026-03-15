@@ -124,7 +124,7 @@ export default function TemplatesPage() {
                 {!isEditing && (
                     <button
                         onClick={handleCreate}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '3px', background: 'var(--primary)', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: "3px", background: 'var(--primary)', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                     >
                         <Plus size={18} /> Створити шаблон
                     </button>
@@ -134,11 +134,11 @@ export default function TemplatesPage() {
             {isEditing ? (
                 <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    style={{ background: 'white', padding: '32px', borderRadius: '3px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}
+                    style={{ background: 'white', padding: '32px', borderRadius: "3px", boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}
                 >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                         <h2 style={{ fontSize: '20px', fontWeight: 700 }}>{currentTemplate.id ? 'Редагувати шаблон' : 'Новий шаблон'}</h2>
-                        <button onClick={() => setIsEditing(false)} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+                        <button onClick={() => setIsEditing(false)} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: "3px", display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
                             <X size={18} />
                         </button>
                     </div>
@@ -153,7 +153,7 @@ export default function TemplatesPage() {
                                     value={currentTemplate.name}
                                     onChange={e => setCurrentTemplate({ ...currentTemplate, name: e.target.value })}
                                     placeholder="Наприклад: Затримка 1-2 дні"
-                                    style={{ width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px' }}
+                                    style={{ width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px' }}
                                 />
                             </div>
                             <div>
@@ -161,7 +161,7 @@ export default function TemplatesPage() {
                                 <select
                                     value={currentTemplate.category}
                                     onChange={e => setCurrentTemplate({ ...currentTemplate, category: e.target.value })}
-                                    style={{ width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px', backgroundColor: 'white' }}
+                                    style={{ width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px', backgroundColor: 'white' }}
                                 >
                                     <option value="general">Загальне</option>
                                     <option value="shipping">Доставка</option>
@@ -179,7 +179,7 @@ export default function TemplatesPage() {
                                 value={currentTemplate.subject}
                                 onChange={e => setCurrentTemplate({ ...currentTemplate, subject: e.target.value })}
                                 placeholder="Ваше замовлення №{{order_number}} відправлено!"
-                                style={{ width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px' }}
+                                style={{ width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px' }}
                             />
                         </div>
 
@@ -196,15 +196,15 @@ export default function TemplatesPage() {
                                 value={currentTemplate.body}
                                 onChange={e => setCurrentTemplate({ ...currentTemplate, body: e.target.value })}
                                 placeholder="Вітаємо, {{customer_name}}..."
-                                style={{ width: '100%', padding: '16px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px', resize: 'vertical', lineHeight: '1.5' }}
+                                style={{ width: '100%', padding: '16px', borderRadius: "3px", border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px', resize: 'vertical', lineHeight: '1.5' }}
                             />
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
-                            <button type="button" onClick={() => setIsEditing(false)} style={{ padding: '12px 24px', borderRadius: '3px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>
+                            <button type="button" onClick={() => setIsEditing(false)} style={{ padding: '12px 24px', borderRadius: "3px", border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>
                                 Скасувати
                             </button>
-                            <button type="submit" style={{ padding: '12px 24px', borderRadius: '3px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button type="submit" style={{ padding: '12px 24px', borderRadius: "3px", border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Save size={18} /> Зберегти шаблон
                             </button>
                         </div>
@@ -220,11 +220,11 @@ export default function TemplatesPage() {
                                 layout
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                style={{ background: 'white', borderRadius: '3px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}
+                                style={{ background: 'white', borderRadius: "3px", padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                                     <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#263A99', margin: 0 }}>{tmpl.name}</h3>
-                                    <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 8px', borderRadius: '3px', background: cat.bg, color: cat.text }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 8px', borderRadius: "3px", background: cat.bg, color: cat.text }}>
                                         {cat.label}
                                     </span>
                                 </div>
@@ -240,13 +240,13 @@ export default function TemplatesPage() {
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
                                     <button
                                         onClick={() => handleEdit(tmpl)}
-                                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '8px', borderRadius: '3px', cursor: 'pointer', color: '#263A99' }}
+                                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '8px', borderRadius: "3px", cursor: 'pointer', color: '#263A99' }}
                                     >
                                         <Edit2 size={16} />
                                     </button>
                                     <button
                                         onClick={() => handleDelete(tmpl.id)}
-                                        style={{ background: '#fef2f2', border: '1px solid #fee2e2', padding: '8px', borderRadius: '3px', cursor: 'pointer', color: '#ef4444' }}
+                                        style={{ background: '#fef2f2', border: '1px solid #fee2e2', padding: '8px', borderRadius: "3px", cursor: 'pointer', color: '#ef4444' }}
                                     >
                                         <Trash2 size={16} />
                                     </button>
@@ -255,7 +255,7 @@ export default function TemplatesPage() {
                         );
                     })}
                     {templates.length === 0 && (
-                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#f8fafc', borderRadius: '3px', border: '1px dashed #cbd5e1' }}>
+                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#f8fafc', borderRadius: "3px", border: '1px dashed #cbd5e1' }}>
                             <Mail size={48} color="#cbd5e1" style={{ marginBottom: '16px' }} />
                             <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#263A99', marginBottom: '8px' }}>Немає шаблонів</h3>
                             <p style={{ color: '#64748b' }}>Створіть свій перший шаблон для швидких відповідей.</p>

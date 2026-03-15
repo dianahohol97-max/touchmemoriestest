@@ -323,16 +323,16 @@ export default function BankAccountsPage() {
     );
 }
 
-const cardStyle = { backgroundColor: 'white', padding: '24px', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, cursor: 'pointer' };
-const bankIconCircle = { width: '40px', height: '40px', borderRadius: '3px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const cardStyle = { backgroundColor: 'white', padding: '24px', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: "3px", border: 'none', fontWeight: 700, cursor: 'pointer' };
+const bankIconCircle = { width: '40px', height: '40px', borderRadius: "3px", backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const iconActionBtn = { background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' };
 const miniLabel = { fontSize: '11px', textTransform: 'uppercase' as any, fontWeight: 800, color: '#94a3b8', display: 'block', marginBottom: '4px' };
 const detailValue = { fontSize: '14px', color: '#475569', fontWeight: 600, display: 'flex', alignItems: 'center' };
 const detailsGrid = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
 const modalOverlay = { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
-const modalContent = { backgroundColor: 'white', borderRadius: '3px', padding: '32px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' };
+const modalContent = { backgroundColor: 'white', borderRadius: "3px", padding: '32px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' };
 const formLabel = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any };
-const formInput = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px' };
-const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, fontSize: '16px', cursor: 'pointer', marginTop: '10px' };
+const formInput = { width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px' };
+const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#263A99', color: 'white', borderRadius: "3px", border: 'none', fontWeight: 700, fontSize: '16px', cursor: 'pointer', marginTop: '10px' };
 const closeBtn = { background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' };

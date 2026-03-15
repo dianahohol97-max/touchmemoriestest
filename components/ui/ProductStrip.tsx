@@ -42,7 +42,7 @@ export function ProductStrip({ products = [] }: { products: Product[] }) {
                                 position: 'relative',
                                 aspectRatio: '3/4',
                                 overflow: 'hidden',
-                                borderRadius: '3px',
+                                borderRadius: "3px",
                                 marginBottom: '16px',
                                 background: 'var(--card-bg, #f0f0f0)',
                                 border: '1px solid rgba(0,0,0,0.05)'
@@ -66,7 +66,7 @@ export function ProductStrip({ products = [] }: { products: Product[] }) {
                                         height: '40px',
                                         backgroundColor: 'var(--section-button-bg)',
                                         color: 'var(--section-button-text)',
-                                        borderRadius: '3px',
+                                        borderRadius: "3px",
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',

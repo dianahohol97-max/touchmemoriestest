@@ -154,10 +154,10 @@ export default function AdminFaqForm({ initialData, isEditing = false }: FaqForm
     );
 }
 
-const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '3px', boxShadow: '0 4px 25px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9' };
+const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: "3px", boxShadow: '0 4px 25px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9' };
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
-const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', transition: 'all 0.2s', fontSize: '14px' };
-const textareaStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', transition: 'all 0.2s', fontSize: '14px', fontFamily: 'inherit' };
-const selectStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: 'white' };
-const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', borderRadius: '3px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer' };
-const saveBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#10b981', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '15px' };
+const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', transition: 'all 0.2s', fontSize: '14px' };
+const textareaStyle = { width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', transition: 'all 0.2s', fontSize: '14px', fontFamily: 'inherit' };
+const selectStyle = { width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: 'white' };
+const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', borderRadius: "3px", backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer' };
+const saveBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#10b981', color: 'white', borderRadius: "3px", border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '15px' };

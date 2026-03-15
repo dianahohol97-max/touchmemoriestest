@@ -182,10 +182,10 @@ export default function ThemeEditorPage() {
 
     if (loading) return <div style={{ padding: '40px', color: '#64748b' }}>Завантаження редактора...</div>;
 
-    const accordionStyle = { backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '3px', overflow: 'hidden', marginBottom: '12px' };
+    const accordionStyle = { backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: "3px", overflow: 'hidden', marginBottom: '12px' };
     const summaryStyleWrapper = { padding: '14px 16px', backgroundColor: '#f8fafc', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', borderBottom: '1px solid #e2e8f0', margin: 0 };
     const contentStyle = { padding: '16px', display: 'flex', flexDirection: 'column' as const, gap: '16px' };
-    const inputStyle = { width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '3px', fontSize: '14px', boxSizing: 'border-box' as const };
+    const inputStyle = { width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: "3px", fontSize: '14px', boxSizing: 'border-box' as const };
     const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '6px' };
 
     const renderInput = (key: string, label: string, type: 'text' | 'textarea' = 'text') => (
@@ -204,9 +204,9 @@ export default function ThemeEditorPage() {
             <label style={labelStyle}>{label}</label>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 {getContentValue(key) && (
-                    <img src={getContentValue(key)} alt="" style={{ width: '40px', height: '40px', borderRadius: '3px', objectFit: 'cover' }} />
+                    <img src={getContentValue(key)} alt="" style={{ width: '40px', height: '40px', borderRadius: "3px", objectFit: 'cover' }} />
                 )}
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: '#f1f5f9', color: '#263A99', borderRadius: '3px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: '#f1f5f9', color: '#263A99', borderRadius: "3px", fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                     {uploading === key ? <Loader2 size={16} className="spin" /> : <ImageIcon size={16} />}
                     {uploading === key ? 'Завантаження...' : 'Завантажити нове'}
                     <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(key, e.target.files[0]) }} />
@@ -221,7 +221,7 @@ export default function ThemeEditorPage() {
             <div style={{ width: '380px', flexShrink: 0, borderRight: '1px solid #e2e8f0', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff' }}>
                     <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><Paintbrush size={20} color="#263A99" /> Редактор</h1>
-                    <button onClick={handleSave} disabled={saving} style={{ padding: '8px 16px', backgroundColor: '#263A99', color: '#fff', border: 'none', borderRadius: '3px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button onClick={handleSave} disabled={saving} style={{ padding: '8px 16px', backgroundColor: '#263A99', color: '#fff', border: 'none', borderRadius: "3px", fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Save size={16} /> {saving ? 'Збереження...' : 'Зберегти'}
                     </button>
                 </div>
@@ -310,7 +310,7 @@ export default function ThemeEditorPage() {
                                     footer: 'Підвал (Footer)'
                                 };
                                 return (
-                                    <div key={block.id} style={{ border: '1px solid #e2e8f0', borderRadius: '3px', marginBottom: '8px' }}>
+                                    <div key={block.id} style={{ border: '1px solid #e2e8f0', borderRadius: "3px", marginBottom: '8px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', backgroundColor: '#f8fafc', borderBottom: block.expanded ? '1px solid #e2e8f0' : 'none' }}>
                                             <span style={{ fontSize: '13px', fontWeight: 600 }}>{labels[block.block_name] || block.block_name}</span>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -327,7 +327,7 @@ export default function ThemeEditorPage() {
                                                     <input type="checkbox" checked={block.is_visible} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, is_visible: e.target.checked } : b))} />
                                                     Вкл
                                                 </label>
-                                                <input type="number" value={block.position_order} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, position_order: parseInt(e.target.value) || 0 } : b))} style={{ width: '40px', padding: '4px', border: '1px solid #e2e8f0', borderRadius: '3px', textAlign: 'center', fontSize: '11px' }} />
+                                                <input type="number" value={block.position_order} onChange={e => setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, position_order: parseInt(e.target.value) || 0 } : b))} style={{ width: '40px', padding: '4px', border: '1px solid #e2e8f0', borderRadius: "3px", textAlign: 'center', fontSize: '11px' }} />
                                             </div>
                                         </div>
                                         {block.expanded && (
@@ -512,7 +512,7 @@ export default function ThemeEditorPage() {
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '12px 0' }} />
                             <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#263A99' }}>Список відгуків</h4>
                             {testimonials.map((test: any, tIdx: number) => (
-                                <div key={tIdx} style={{ border: '1px solid #e2e8f0', borderRadius: '3px', padding: '12px', marginBottom: '12px', backgroundColor: '#fcfcfc' }}>
+                                <div key={tIdx} style={{ border: '1px solid #e2e8f0', borderRadius: "3px", padding: '12px', marginBottom: '12px', backgroundColor: '#fcfcfc' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <input
                                             value={test.name}
@@ -576,7 +576,7 @@ export default function ThemeEditorPage() {
                                     const newTest = { name: 'Новий відгук', text: '', city: '', rating: 5 };
                                     handleTestimonialsChange([...testimonials, newTest]);
                                 }}
-                                style={{ width: '100%', padding: '10px', backgroundColor: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: '3px', color: '#475569', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
+                                style={{ width: '100%', padding: '10px', backgroundColor: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: "3px", color: '#475569', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
                             >
                                 + Додати відгук
                             </button>
@@ -626,7 +626,7 @@ export default function ThemeEditorPage() {
                                 };
 
                                 return (
-                                    <div key={prod.id} style={{ border: '1px solid #e2e8f0', borderRadius: '3px', padding: '12px', marginBottom: '12px', backgroundColor: '#fcfcfc' }}>
+                                    <div key={prod.id} style={{ border: '1px solid #e2e8f0', borderRadius: "3px", padding: '12px', marginBottom: '12px', backgroundColor: '#fcfcfc' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: config.isActive ? '12px' : '0' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <input
@@ -765,11 +765,11 @@ export default function ThemeEditorPage() {
 
             {/* Right Live Preview iframe */}
             <div style={{ flex: 1, padding: '24px', display: 'flex', justifyContent: 'center', backgroundColor: '#e2e8f0', overflow: 'hidden' }}>
-                <div style={{ width: '100%', maxWidth: '1280px', height: '100%', backgroundColor: '#fff', borderRadius: '3px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ width: '100%', maxWidth: '1280px', height: '100%', backgroundColor: '#fff', borderRadius: "3px", boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ backgroundColor: '#f1f5f9', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0' }}>
-                        <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#cbd5e1' }} />
-                        <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#cbd5e1' }} />
-                        <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#cbd5e1' }} />
+                        <div style={{ width: '12px', height: '12px', borderRadius: "3px", backgroundColor: '#cbd5e1' }} />
+                        <div style={{ width: '12px', height: '12px', borderRadius: "3px", backgroundColor: '#cbd5e1' }} />
+                        <div style={{ width: '12px', height: '12px', borderRadius: "3px", backgroundColor: '#cbd5e1' }} />
                         <span style={{ marginLeft: '16px', fontSize: '13px', color: '#64748b', fontWeight: 500 }}>Live Preview (Головна сторінка)</span>
                     </div>
                     <iframe

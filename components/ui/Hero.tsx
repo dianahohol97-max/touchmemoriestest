@@ -36,38 +36,28 @@ export function Hero() {
     };
 
     return (
-        <section style={{
-            position: 'relative',
-            minHeight: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            overflow: 'hidden',
-            paddingTop: '80px',
-            backgroundColor: style.bg_color || 'transparent',
-            borderRadius: style.border_radius || '0px'
-        }}>
+        <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-20 bg-transparent rounded-none">
             {/* Background Image */}
-            <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+            <div className="absolute inset-0 z-0">
                 <img
                     src={bgImage}
                     alt="Family reading a photo book"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+                    className="w-full h-full object-cover object-center"
                 />
                 {/* Gradient Overlay */}
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)' }}></div>
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)' }}></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent"></div>
+                <div className="absolute inset-0 bg-black/20"></div>
             </div>
 
             {/* Content */}
-            <div style={{ position: 'relative', zIndex: 10, paddingLeft: 'min(5vw, 40px)', paddingRight: '20px' }}>
+            <div className="relative z-10 pl-[min(5vw,40px)] pr-5">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, ease: easing }}
-                    style={{ marginBottom: '16px' }}
+                    className="mb-4"
                 >
-                    <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: style.text_color || 'rgba(255,255,255,0.9)' }}>
+                    <span className="text-[12px] uppercase tracking-widest font-semibold text-white/90">
                         {overlineText}
                     </span>
                 </motion.div>
@@ -76,20 +66,11 @@ export function Hero() {
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
-                    style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontWeight: 900,
-                        fontSize: 'clamp(36px, 8vw, 80px)',
-                        lineHeight: 1.05,
-                        letterSpacing: '-0.02em',
-                        color: style.text_color || 'white',
-                        marginBottom: '24px',
-                        maxWidth: '800px'
-                    }}
+                    className="font-heading font-black text-6xl md:text-6xl leading-[1.05] tracking-tight text-white mb-8 max-w-[800px]"
                 >
                     {titleText.split('\n').map((line: string, idx: number) => (
-                        <div key={idx} style={{ overflow: 'hidden', paddingBottom: '8px' }}>
-                            <motion.span variants={wordVariants} style={{ display: 'inline-block' }}>{line}</motion.span>
+                        <div key={idx} className="overflow-hidden pb-2">
+                            <motion.span variants={wordVariants} className="inline-block">{line}</motion.span>
                         </div>
                     ))}
                 </motion.h1>
@@ -98,10 +79,11 @@ export function Hero() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, ease: easing, delay: 0.3 }}
-                    style={{ fontSize: '20px', color: style.text_color || 'rgba(255,255,255,0.9)', maxWidth: '480px', marginBottom: '48px', fontWeight: 500, opacity: style.text_color ? 1 : 0.9 }}
+                    className="font-body text-lg text-white/90 max-w-[480px] mb-12 font-medium leading-relaxed"
                 >
                     {subtitleText}
                 </motion.p>
+
 
                 {/* Actions - 2+2+1 Grid */}
                 <motion.div
@@ -111,76 +93,72 @@ export function Hero() {
                     style={{ maxWidth: '500px' }}
                 >
                     {/* Row 1: Глянцевий журнал + Фотокнига */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                         <Link href="/catalog?category=magazines" style={{
-                            height: '56px',
-                            padding: '0 24px',
-                            backgroundColor: style.hero_btn_bg || 'white',
-                            color: style.hero_btn_text || '#000',
+                            height: '52px',
+                            backgroundColor: 'white',
+                            color: '#263A99',
                             fontWeight: 700,
-                            fontSize: '16px',
-                            borderRadius: '3px',
-                            boxShadow: 'none',
+                            fontSize: '15px',
+                            borderRadius: "3px",
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             textDecoration: 'none',
-                            transition: 'transform 0.2s, background-color 0.2s',
+                            transition: 'all 0.2s',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                         }} className="hover-lift">
                             Глянцевий журнал
                         </Link>
                         <Link href="/catalog?category=photobooks" style={{
-                            height: '56px',
-                            padding: '0 24px',
-                            backgroundColor: style.hero_btn_bg || 'white',
-                            color: style.hero_btn_text || '#000',
+                            height: '52px',
+                            backgroundColor: 'white',
+                            color: '#263A99',
                             fontWeight: 700,
-                            fontSize: '16px',
-                            borderRadius: '3px',
-                            boxShadow: 'none',
+                            fontSize: '15px',
+                            borderRadius: "3px",
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             textDecoration: 'none',
-                            transition: 'transform 0.2s, background-color 0.2s',
+                            transition: 'all 0.2s',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                         }} className="hover-lift">
                             Фотокнига
                         </Link>
                     </div>
 
                     {/* Row 2: Фотодрук + Travel book */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                         <Link href="/catalog?category=photo-print" style={{
-                            height: '56px',
-                            padding: '0 24px',
-                            backgroundColor: style.hero_btn_bg || 'white',
-                            color: style.hero_btn_text || '#000',
+                            height: '52px',
+                            backgroundColor: 'white',
+                            color: '#263A99',
                             fontWeight: 700,
-                            fontSize: '16px',
-                            borderRadius: '3px',
-                            boxShadow: 'none',
+                            fontSize: '15px',
+                            borderRadius: "3px",
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             textDecoration: 'none',
-                            transition: 'transform 0.2s, background-color 0.2s',
+                            transition: 'all 0.2s',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                         }} className="hover-lift">
                             Фотодрук
                         </Link>
                         <Link href="/catalog?category=travelbook" style={{
-                            height: '56px',
-                            padding: '0 24px',
-                            backgroundColor: style.hero_btn_bg || 'white',
-                            color: style.hero_btn_text || '#000',
+                            height: '52px',
+                            backgroundColor: 'white',
+                            color: '#263A99',
                             fontWeight: 700,
-                            fontSize: '16px',
-                            borderRadius: '3px',
-                            boxShadow: 'none',
+                            fontSize: '15px',
+                            borderRadius: "3px",
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             textDecoration: 'none',
-                            transition: 'transform 0.2s, background-color 0.2s',
+                            transition: 'all 0.2s',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                         }} className="hover-lift">
                             Travel book
                         </Link>
@@ -188,23 +166,24 @@ export function Hero() {
 
                     {/* Row 3: В магазин (half width, primary) */}
                     <Link href="/catalog" style={{
-                        height: '56px',
-                        padding: '0 32px',
-                        backgroundColor: 'var(--section-button-bg)',
-                        color: 'var(--section-button-text)',
+                        height: '52px',
+                        backgroundColor: '#263A99',
+                        color: 'white',
                         fontWeight: 700,
-                        fontSize: '16px',
-                        borderRadius: '3px',
-                        boxShadow: 'none',
+                        fontSize: '15px',
+                        borderRadius: "3px",
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         textDecoration: 'none',
-                        transition: 'transform 0.2s, background-color 0.2s',
+                        transition: 'background-color 0.2s',
                         width: '50%',
-                    }} className="hover-lift">
+                    }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1d2d7a'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#263A99'}
+                    >
                         В магазин
                     </Link>
+
                 </motion.div>
             </div>
         </section>

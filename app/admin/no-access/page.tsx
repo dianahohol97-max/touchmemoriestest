@@ -17,7 +17,7 @@ export default function NoAccessPage() {
             <div style={{
                 width: '120px',
                 height: '120px',
-                borderRadius: '3px',
+                borderRadius: "3px",
                 backgroundColor: '#fee2e2',
                 color: '#ef4444',
                 display: 'flex',
@@ -44,7 +44,7 @@ export default function NoAccessPage() {
                     style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         padding: '14px 28px', backgroundColor: 'white', border: '1px solid #e2e8f0',
-                        borderRadius: '3px', fontWeight: 700, color: '#475569', cursor: 'pointer'
+                        borderRadius: "3px", fontWeight: 700, color: '#475569', cursor: 'pointer'
                     }}
                 >
                     <ArrowLeft size={20} />
@@ -55,7 +55,7 @@ export default function NoAccessPage() {
                     style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         padding: '14px 28px', backgroundColor: '#263A99', color: 'white',
-                        borderRadius: '3px', fontWeight: 700, textDecoration: 'none',
+                        borderRadius: "3px", fontWeight: 700, textDecoration: 'none',
                         boxShadow: '0 10px 20px rgb(38, 58, 153)'
                     }}
                 >

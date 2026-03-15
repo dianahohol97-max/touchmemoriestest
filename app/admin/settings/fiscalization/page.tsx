@@ -119,7 +119,7 @@ export default function FiscalizationPage() {
                                 </div>
                             </div>
                             <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '3px', backgroundColor: acc.is_active ? '#10b981' : '#f43f5e' }}></div>
+                                <div style={{ width: '8px', height: '8px', borderRadius: "3px", backgroundColor: acc.is_active ? '#10b981' : '#f43f5e' }}></div>
                                 <span style={{ fontSize: '12px', fontWeight: 700, color: acc.is_active ? '#10b981' : '#f43f5e' }}>
                                     {acc.is_active ? 'Активний' : 'Неактивний'}
                                 </span>
@@ -223,15 +223,15 @@ export default function FiscalizationPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, cursor: 'pointer' };
-const accountCard = { backgroundColor: 'white', padding: '24px', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' };
-const iconBtn = { background: '#f8fafc', border: 'none', padding: '8px', borderRadius: '3px', color: '#64748b', cursor: 'pointer' };
-const tableContainer = { backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', padding: '16px', overflow: 'hidden' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#263A99', color: 'white', borderRadius: "3px", border: 'none', fontWeight: 700, cursor: 'pointer' };
+const accountCard = { backgroundColor: 'white', padding: '24px', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' };
+const iconBtn = { background: '#f8fafc', border: 'none', padding: '8px', borderRadius: "3px", color: '#64748b', cursor: 'pointer' };
+const tableContainer = { backgroundColor: 'white', borderRadius: "3px", border: '1px solid #f1f5f9', padding: '16px', overflow: 'hidden' };
 const thStyle = { padding: '16px', color: '#64748b', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase' as any };
 const tdStyle = { padding: '20px 16px', fontSize: '15px', color: '#263A99' };
-const inlineSelect = { padding: '8px 12px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' };
+const inlineSelect = { padding: '8px 12px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' };
 const modalOverlay = { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
-const modalContent = { backgroundColor: 'white', borderRadius: '3px', padding: '32px', width: '100%', maxWidth: '450px' };
+const modalContent = { backgroundColor: 'white', borderRadius: "3px", padding: '32px', width: '100%', maxWidth: '450px' };
 const formLabel = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px' };
-const formInput = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', fontSize: '15px' };
-const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, marginTop: '10px', cursor: 'pointer' };
+const formInput = { width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', fontSize: '15px' };
+const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#263A99', color: 'white', borderRadius: "3px", border: 'none', fontWeight: 700, marginTop: '10px', cursor: 'pointer' };

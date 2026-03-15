@@ -139,7 +139,7 @@ export default function CartPage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                     {items.map((item) => (
                                         <div key={item.id} style={{ display: 'flex', gap: '20px', alignItems: 'center', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
-                                            <div style={{ width: '80px', height: '80px', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
+                                            <div style={{ width: '80px', height: '80px', borderRadius: "3px", overflow: 'hidden', position: 'relative' }}>
                                                 <Image src={item.image || ''} alt={item.name} fill style={{ objectFit: 'cover' }} />
                                             </div>
                                             <div style={{ flex: 1 }}>
@@ -148,7 +148,7 @@ export default function CartPage() {
                                                     {item.options?.format} • {item.options?.cover} • {item.options?.pages} стор.
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '6px', borderRadius: '3px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '6px', borderRadius: "3px" }}>
                                                 <button onClick={() => updateQuantity(item.id, item.qty - 1)} style={qtyBtnStyle}><Minus size={14} /></button>
                                                 <span style={{ fontWeight: 700, minWidth: '20px', textAlign: 'center' }}>{item.qty}</span>
                                                 <button onClick={() => updateQuantity(item.id, item.qty + 1)} style={qtyBtnStyle}><Plus size={14} /></button>
@@ -284,8 +284,8 @@ export default function CartPage() {
     );
 }
 
-const cardStyle = { backgroundColor: 'white', padding: '40px', borderRadius: '3px', boxShadow: '0 4px 30px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' };
-const inputStyle = { width: '100%', padding: '16px', borderRadius: '3px', border: '1.5px solid #eef2f6', outline: 'none', fontSize: '15px' };
+const cardStyle = { backgroundColor: 'white', padding: '40px', borderRadius: "3px", boxShadow: '0 4px 30px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' };
+const inputStyle = { width: '100%', padding: '16px', borderRadius: "3px", border: '1.5px solid #eef2f6', outline: 'none', fontSize: '15px' };
 const sectionLabelStyle = { fontSize: '13px', fontWeight: 800, textTransform: 'uppercase' as any, letterSpacing: '0.05em', color: '#888', marginBottom: '16px' };
 const methodBtnStyle = {
     display: 'flex',
@@ -294,7 +294,7 @@ const methodBtnStyle = {
     justifyContent: 'center',
     gap: '8px',
     padding: '16px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '2.5px solid',
     fontSize: '13px',
     fontWeight: 700,
@@ -307,7 +307,7 @@ const actionBtnStyle = {
     justifyContent: 'center',
     gap: '12px',
     padding: '18px 36px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: 'none',
     backgroundColor: 'var(--primary)',
     color: 'white',
@@ -317,5 +317,5 @@ const actionBtnStyle = {
     textDecoration: 'none'
 };
 const qtyBtnStyle = { width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' };
-const dropdownStyle = { position: 'absolute' as any, top: 'calc(100% + 4px)', left: 0, right: 0, backgroundColor: 'white', borderRadius: '3px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: '1px solid #f0f0f0', zIndex: 100, maxHeight: '240px', overflowY: 'auto' as any };
+const dropdownStyle = { position: 'absolute' as any, top: 'calc(100% + 4px)', left: 0, right: 0, backgroundColor: 'white', borderRadius: "3px", boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: '1px solid #f0f0f0', zIndex: 100, maxHeight: '240px', overflowY: 'auto' as any };
 const dropdownItemStyle = { padding: '12px 20px', fontSize: '14px', cursor: 'pointer', borderBottom: '1px solid #f8fafc' };

@@ -40,8 +40,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk">
-      <body className={`${montserrat.variable} ${openSans.variable}`} style={{ margin: 0, fontFamily: 'var(--font-open-sans)' }}>
+    <html lang="uk" className={`${montserrat.variable} ${openSans.variable}`}>
+      <body className="font-body bg-background text-textPrimary antialiased">
         <ThemeProvider>
           {children}
           <CartDrawer />

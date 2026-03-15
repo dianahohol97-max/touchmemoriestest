@@ -95,15 +95,15 @@ export default function RolePricingPage() {
 
     if (loading) return <p style={{ color: '#64748b' }}>Завантаження...</p>;
 
-    const cardStyle = { backgroundColor: '#fff', borderRadius: '3px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', overflow: 'hidden' as const };
+    const cardStyle = { backgroundColor: '#fff', borderRadius: "3px", boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', overflow: 'hidden' as const };
     const thStyle = { padding: '16px', textAlign: 'left' as const, fontSize: '14px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' as const, borderBottom: '1px solid #e2e8f0' };
     const tdStyle = { padding: '16px', borderBottom: '1px solid #f1f5f9' };
-    const inputStyle = { width: '100%', padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '3px', fontSize: '14px', boxSizing: 'border-box' as const };
+    const inputStyle = { width: '100%', padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: "3px", fontSize: '14px', boxSizing: 'border-box' as const };
 
     return (
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-            <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '3px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: "3px", boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#263A99', display: 'flex', alignItems: 'center', gap: '12px', margin: 0 }}>
                         <DollarSign color="#263A99" /> B2B Роздрібні Ціни та Знижки
@@ -115,7 +115,7 @@ export default function RolePricingPage() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    style={{ padding: '8px 24px', backgroundColor: '#263A99', color: 'white', fontWeight: 700, borderRadius: '3px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                    style={{ padding: '8px 24px', backgroundColor: '#263A99', color: 'white', fontWeight: 700, borderRadius: "3px", border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                     <Save size={18} /> {saving ? 'Збереження...' : 'Зберегти зміни'}
                 </button>

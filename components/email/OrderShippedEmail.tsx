@@ -102,7 +102,7 @@ const container = {
     backgroundColor: '#ffffff',
     margin: '40px auto',
     padding: '0',
-    borderRadius: '3px',
+    borderRadius: "3px",
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     maxWidth: '600px',
     overflow: 'hidden',
@@ -143,7 +143,7 @@ const text = {
 const trackingBox = {
     backgroundColor: '#f9fafb',
     border: '1px solid #e5e7eb',
-    borderRadius: '3px',
+    borderRadius: "3px",
     padding: '24px',
     marginBottom: '24px',
     textAlign: 'center' as const,
@@ -173,7 +173,7 @@ const ttnText = {
 
 const button = {
     backgroundColor: '#263A99',
-    borderRadius: '3px',
+    borderRadius: "3px",
     color: '#fff',
     fontSize: '15px',
     fontWeight: '600',

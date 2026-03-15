@@ -102,7 +102,7 @@ export default function AccountOrdersPage() {
                         </div>
                         <button
                             onClick={() => router.push('/catalog')}
-                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '3px', fontWeight: 700, fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: "3px", fontWeight: 700, fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                         >
                             <ShoppingCart size={18} /> Створити нове замовлення
                         </button>
@@ -113,13 +113,13 @@ export default function AccountOrdersPage() {
                             <Loader2 size={32} className="spin" color="var(--primary)" />
                         </div>
                     ) : orders.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '80px 20px', backgroundColor: 'white', borderRadius: '3px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ textAlign: 'center', padding: '80px 20px', backgroundColor: 'white', borderRadius: "3px", border: '1px solid #e2e8f0' }}>
                             <Package size={48} color="#cbd5e1" style={{ margin: '0 auto 20px' }} />
                             <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px' }}>У вас ще немає замовлень</h2>
                             <p style={{ color: '#64748b', marginBottom: '24px' }}>Після оформлення першого замовлення, воно з'явиться тут.</p>
                             <button
                                 onClick={() => router.push('/catalog')}
-                                style={{ padding: '12px 24px', backgroundColor: '#263A99', color: 'white', border: 'none', borderRadius: '3px', fontWeight: 700, cursor: 'pointer' }}
+                                style={{ padding: '12px 24px', backgroundColor: '#263A99', color: 'white', border: 'none', borderRadius: "3px", fontWeight: 700, cursor: 'pointer' }}
                             >
                                 Перейти до каталогу
                             </button>
@@ -131,13 +131,13 @@ export default function AccountOrdersPage() {
                                     key={order.id}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    style={{ backgroundColor: 'white', borderRadius: '3px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}
+                                    style={{ backgroundColor: 'white', borderRadius: "3px", padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f1f5f9', paddingBottom: '20px', marginBottom: '20px' }}>
                                         <div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                                 <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#263A99', margin: 0 }}>Замовлення {order.order_number}</h3>
-                                                <span style={{ padding: '4px 10px', backgroundColor: order.order_status === 'delivered' ? '#dcfce7' : '#f1f5f9', color: order.order_status === 'delivered' ? '#166534' : '#475569', borderRadius: '3px', fontSize: '12px', fontWeight: 700 }}>
+                                                <span style={{ padding: '4px 10px', backgroundColor: order.order_status === 'delivered' ? '#dcfce7' : '#f1f5f9', color: order.order_status === 'delivered' ? '#166534' : '#475569', borderRadius: "3px", fontSize: '12px', fontWeight: 700 }}>
                                                     {order.order_status === 'delivered' ? 'Виконано' : 'В процесі'}
                                                 </span>
                                             </div>
@@ -153,7 +153,7 @@ export default function AccountOrdersPage() {
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                                         {order.items?.map((item: any, idx: number) => (
                                             <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                <div style={{ width: '48px', height: '48px', backgroundColor: '#f8fafc', borderRadius: '3px', flexShrink: 0, overflow: 'hidden' }}>
+                                                <div style={{ width: '48px', height: '48px', backgroundColor: '#f8fafc', borderRadius: "3px", flexShrink: 0, overflow: 'hidden' }}>
                                                     {item.image && <img src={item.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                                                 </div>
                                                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -168,7 +168,7 @@ export default function AccountOrdersPage() {
                                         <button
                                             onClick={() => handleRepeatOrder(order)}
                                             disabled={repeatingOrderId === order.id}
-                                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'white', border: '1.5px solid var(--primary)', color: 'var(--primary)', borderRadius: '3px', fontWeight: 700, fontSize: '14px', cursor: repeatingOrderId === order.id ? 'not-allowed' : 'pointer', opacity: repeatingOrderId === order.id ? 0.7 : 1, transition: 'all 0.2s' }}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'white', border: '1.5px solid var(--primary)', color: 'var(--primary)', borderRadius: "3px", fontWeight: 700, fontSize: '14px', cursor: repeatingOrderId === order.id ? 'not-allowed' : 'pointer', opacity: repeatingOrderId === order.id ? 0.7 : 1, transition: 'all 0.2s' }}
                                         >
                                             {repeatingOrderId === order.id ? <Loader2 size={16} className="spin" /> : <RotateCw size={16} />}
                                             Замовити знову

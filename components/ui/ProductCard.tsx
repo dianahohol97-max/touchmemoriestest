@@ -27,51 +27,50 @@ export function ProductCard({ product }: ProductCardProps) {
         <motion.div
             whileHover={{ y: -8 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className={styles.productCardRoot}
+            className="flex flex-col h-full bg-white rounded-brand border border-transparent transition-all"
         >
-            <Link href={`/catalog/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', overflow: 'hidden', backgroundColor: '#f9f9f9' }}>
+            <Link href={`/catalog/${product.slug}`} className="no-underline text-inherit flex flex-col h-full">
+                <div className="relative w-full aspect-square overflow-hidden bg-gray-50 rounded-brand">
                     <Image
                         src={product.images?.[0] || 'https://via.placeholder.com/400'}
                         alt={product.name}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                        className={styles.productImage}
+                        className="object-cover transition-transform duration-500 hover:scale-105"
                     />
-                    <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 10 }}>
+                    <div className="absolute top-3 right-3 z-10">
                         <WishlistButton productId={product.id} />
                     </div>
                 </div>
 
-                <div className={styles.productInfo}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '8px', flexWrap: 'wrap' }}>
-                        <h3 className={styles.productTitle}>{product.name}</h3>
-                        <div className={styles.productPrice}>
-                            {product.price_from ? 'від ' : ''}{product.price} ₴
-                        </div>
+                <div className="pt-6 pb-2 px-0 flex flex-col gap-1">
+                    <span className="text-[11px] text-primary font-bold uppercase opacity-70 tracking-widest">
+                        {typeof product.categories === 'object' ? product.categories?.name : 'Товар'}
+                    </span>
+                    <h3 className="font-heading text-lg font-bold m-0 text-textPrimary leading-tight">
+                        {product.name}
+                    </h3>
+
+                    <div className="text-base font-extrabold text-primary mt-3">
+                        {product.price_from ? 'від ' : ''}{product.price} ₴
                     </div>
 
-                    <p className={styles.shortDesc} style={{ fontSize: '14px', color: '#666', marginBottom: '24px', lineClamp: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    <p className="font-body text-[15px] text-gray-600 mt-4 mb-6 line-clamp-2 leading-relaxed">
                         {product.short_description || 'Преміальна якість друку та матеріалів.'}
                     </p>
 
-                    <div className={styles.cardFooter} style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span className={styles.catTag} style={{ fontSize: '12px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            {typeof product.categories === 'object' ? product.categories?.name : 'Товар'}
-                        </span>
-                        <span className={styles.moreLink} style={{ fontSize: '14px', fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div className="mt-auto">
+                        <span className="text-sm font-bold text-primary flex items-center gap-2 uppercase tracking-wider group">
                             {product.is_personalized
                                 ? 'Створити'
                                 : product.is_partially_personalized
-                                    ? 'Замовити / Персоналізувати'
+                                    ? 'Персоналізувати'
                                     : 'Замовити'}
-                            <span style={{ fontSize: '18px' }}>→</span>
+                            <span className="text-lg transition-transform group-hover:translate-x-1">→</span>
                         </span>
                     </div>
                 </div>
             </Link>
-
         </motion.div>
     );
 }

@@ -153,7 +153,7 @@ export default function PriceCalculator() {
                                                 alignItems: 'center',
                                                 gap: '12px',
                                                 padding: '12px',
-                                                borderRadius: '3px',
+                                                borderRadius: "3px",
                                                 border: isSelected ? '2px solid var(--primary)' : '1px solid #e2e8f0',
                                                 backgroundColor: isSelected ? '#f8fafc' : 'white',
                                                 cursor: 'pointer',
@@ -161,7 +161,7 @@ export default function PriceCalculator() {
                                                 textAlign: 'left'
                                             }}
                                         >
-                                            <div style={{ width: '48px', height: '48px', borderRadius: '3px', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#f1f5f9' }}>
+                                            <div style={{ width: '48px', height: '48px', borderRadius: "3px", overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#f1f5f9' }}>
                                                 {p.images && p.images.length > 0 && (
                                                     <Image src={p.images[0]} alt={p.name} fill style={{ objectFit: 'cover' }} />
                                                 )}
@@ -198,7 +198,7 @@ export default function PriceCalculator() {
                                                             onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.name]: valIdx }))}
                                                             style={{
                                                                 padding: '10px 16px',
-                                                                borderRadius: '3px',
+                                                                borderRadius: "3px",
                                                                 border: isSelected ? '2px solid var(--primary)' : '1px solid #e2e8f0',
                                                                 background: isSelected ? '#f8fafc' : 'white',
                                                                 color: isSelected ? 'var(--primary)' : '#475569',
@@ -231,7 +231,7 @@ export default function PriceCalculator() {
                             <div style={{
                                 padding: '24px',
                                 backgroundColor: '#f8fafc',
-                                borderRadius: '3px',
+                                borderRadius: "3px",
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
@@ -248,7 +248,7 @@ export default function PriceCalculator() {
                                     </div>
                                     {currentProd?.productionTime && (
                                         <div style={{ fontSize: '13px', fontWeight: 600, color: '#16a34a', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <div style={{ width: '6px', height: '6px', borderRadius: '3px', backgroundColor: '#16a34a' }}></div>
+                                            <div style={{ width: '6px', height: '6px', borderRadius: "3px", backgroundColor: '#16a34a' }}></div>
                                             Виготовлення: {currentProd.productionTime}
                                         </div>
                                     )}
@@ -261,7 +261,7 @@ export default function PriceCalculator() {
                                         padding: '0 32px',
                                         backgroundColor: 'var(--section-button-bg)',
                                         color: 'var(--section-button-text)',
-                                        borderRadius: '3px',
+                                        borderRadius: "3px",
                                         boxShadow: 'var(--button-shadow)',
                                         border: 'none',
                                         fontWeight: 700,
@@ -289,5 +289,5 @@ export default function PriceCalculator() {
 
 const labelStyle = { display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' };
 const stepHeaderStyle = { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' };
-const stepCircleStyle = { width: '28px', height: '28px', borderRadius: '3px', backgroundColor: '#f0f9ff', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '14px' };
+const stepCircleStyle = { width: '28px', height: '28px', borderRadius: "3px", backgroundColor: '#f0f9ff', color: '#263A99', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '14px' };
 const stepTitleStyle = { fontSize: '18px', fontWeight: 800, margin: 0, color: '#263A99' };

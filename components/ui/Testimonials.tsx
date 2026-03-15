@@ -67,7 +67,7 @@ export function Testimonials() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.6, delay: index * 0.15 }}
-                            style={{ backgroundColor: 'white', padding: '32px', borderRadius: '3px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', border: '1px solid #f0f0f0' }}
+                            style={{ backgroundColor: 'white', padding: '32px', borderRadius: "3px", boxShadow: '0 4px 20px rgba(0,0,0,0.02)', border: '1px solid #f0f0f0' }}
                         >
                             <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', color: '#F59E0B' }}>
                                 {[...Array(t.rating || 5)].map((_, i) => <Star key={i} size={16} fill="currentColor" />)}

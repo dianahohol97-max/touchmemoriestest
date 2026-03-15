@@ -173,7 +173,7 @@ const toggleContainerStyle: React.CSSProperties = {
     justifyContent: 'space-between',
     padding: '16px 20px',
     backgroundColor: '#f8fafc',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '2px solid #e2e8f0',
     cursor: 'pointer',
     transition: 'all 0.2s'
@@ -192,12 +192,12 @@ const priceTagStyle: React.CSSProperties = {
     color: '#10b981',
     backgroundColor: '#d1fae5',
     padding: '6px 12px',
-    borderRadius: '3px'
+    borderRadius: "3px"
 };
 
 const optionBtnStyle: React.CSSProperties = {
     padding: '12px 24px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '2px solid',
     fontSize: '15px',
     fontWeight: 600,
@@ -210,7 +210,7 @@ const optionBtnStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px 16px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '2px solid #e2e8f0',
     fontSize: '15px',
     fontWeight: 500,

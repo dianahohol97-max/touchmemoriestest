@@ -91,7 +91,7 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                             <Link
                                 href={`/blog/${travelPost.slug}`}
                                 className={`${styles.travelCard} ${styles.articleCard} hover-lift`}
-                                style={{ borderRadius: '3px' }}
+                                style={{ borderRadius: "3px" }}
                             >
                                 {/* Cover Image */}
                                 <div style={{
@@ -126,7 +126,7 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                                         backgroundColor: 'var(--color-primary)',
                                         color: 'white',
                                         padding: '6px 12px',
-                                        borderRadius: '3px',
+                                        borderRadius: "3px",
                                         fontSize: '11px',
                                         fontWeight: 700,
                                         textTransform: 'uppercase'
@@ -198,7 +198,7 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                         animate={inView ? { opacity: 1, x: 0 } : {}}
                         transition={{ duration: 0.6, delay: 0.4 }}
                         className={`${styles.travelColumn} ${styles.travelRight} ${styles.ctaCard}`}
-                        style={{ padding: '40px', borderRadius: '3px' }}
+                        style={{ padding: '40px', borderRadius: "3px" }}
                     >
                         <h3 style={{
                             fontFamily: 'var(--font-heading)',
@@ -232,7 +232,7 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                                     width: '70%',
                                     height: '85%',
                                     backgroundColor: 'white',
-                                    borderRadius: '3px',
+                                    borderRadius: "3px",
                                     boxShadow: '0 15px 40px rgba(0,0,0,0.1)',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -243,8 +243,8 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                                     border: '1px solid rgba(0,0,0,0.05)'
                                 }}>
                                     <MapPin size={48} color="var(--color-primary)" opacity={0.5} />
-                                    <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '3px' }} />
-                                    <div style={{ width: '70%', height: '8px', background: '#f1f5f9', borderRadius: '3px' }} />
+                                    <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: "3px" }} />
+                                    <div style={{ width: '70%', height: '8px', background: '#f1f5f9', borderRadius: "3px" }} />
                                 </div>
                             )}
                         </div>
@@ -269,7 +269,7 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                                 color: 'var(--section-button-text)',
                                 fontSize: '18px',
                                 fontWeight: 700,
-                                borderRadius: '3px',
+                                borderRadius: "3px",
                                 textDecoration: 'none',
                                 transition: 'transform 0.2s',
                                 boxShadow: 'var(--button-shadow)'

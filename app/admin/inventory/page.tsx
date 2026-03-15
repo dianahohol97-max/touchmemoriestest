@@ -432,28 +432,28 @@ export default function InventoryAdminPage() {
 }
 
 // Styles
-const refreshBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'white', borderRadius: '3px', border: '1.5px solid #e2e8f0', color: '#64748b', fontWeight: 800, fontSize: '14px', cursor: 'pointer' };
+const refreshBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'white', borderRadius: "3px", border: '1.5px solid #e2e8f0', color: '#64748b', fontWeight: 800, fontSize: '14px', cursor: 'pointer' };
 const statsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '40px' };
-const statCardStyle = { display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
-const statIconStyle = { width: '48px', height: '48px', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const statCardStyle = { display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', backgroundColor: 'white', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
+const statIconStyle = { width: '48px', height: '48px', borderRadius: "3px", display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const statLabelStyle = { fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', marginBottom: '4px' };
 const statValueStyle = { fontSize: '20px', fontWeight: 900, color: '#263A99' };
 const filterBarStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '20px' };
-const searchWrapperStyle = { flex: 1, display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', backgroundColor: 'white', borderRadius: '3px', border: '1.5px solid #e2e8f0' };
+const searchWrapperStyle = { flex: 1, display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', backgroundColor: 'white', borderRadius: "3px", border: '1.5px solid #e2e8f0' };
 const searchInputStyle = { border: 'none', outline: 'none', fontSize: '15px', fontWeight: 600, width: '100%', color: '#263A99' };
-const filterTabStyle = { padding: '10px 20px', border: '1.5px solid transparent', borderRadius: '3px', backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: 800, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' };
+const filterTabStyle = { padding: '10px 20px', border: '1.5px solid transparent', borderRadius: "3px", backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: 800, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' };
 const activeFilterTabStyle = { backgroundColor: '#263A99', color: 'white' };
-const tableContainerStyle = { backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', overflow: 'hidden' };
+const tableContainerStyle = { backgroundColor: 'white', borderRadius: "3px", border: '1px solid #f1f5f9', overflow: 'hidden' };
 const thStyle = { textAlign: 'left' as any, padding: '20px 24px', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.1em' };
 const trStyle = { borderBottom: '1px solid #f8fafc', transition: 'background 0.2s' };
 const tdStyle = { padding: '20px 24px' };
-const thumbStyle = { width: '44px', height: '44px', borderRadius: '3px', backgroundColor: '#f8fafc', overflow: 'hidden', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const statusBadgeStyle = { padding: '6px 12px', borderRadius: '3px', fontSize: '12px', fontWeight: 800 };
-const iconActionBtnStyle = { width: '38px', height: '38px', borderRadius: '3px', backgroundColor: '#f8fafc', border: '1px solid #f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' };
-const modalOverlayStyle = { position: 'fixed' as any, inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
-const modalContentStyle = { backgroundColor: 'white', borderRadius: '3px', width: '100%', maxWidth: '550px', padding: '40px', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', position: 'relative' as any };
+const thumbStyle = { width: '44px', height: '44px', borderRadius: "3px", backgroundColor: '#f8fafc', overflow: 'hidden', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const statusBadgeStyle = { padding: '6px 12px', borderRadius: "3px", fontSize: '12px', fontWeight: 800 };
+const iconActionBtnStyle = { width: '38px', height: '38px', borderRadius: "3px", backgroundColor: '#f8fafc', border: '1px solid #f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' };
+const modalOverlayStyle = { position: 'fixed' as any, inset: 0, backgroundColor: 'rgba(38, 58, 153, 0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
+const modalContentStyle = { backgroundColor: 'white', borderRadius: "3px", width: '100%', maxWidth: '550px', padding: '40px', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', position: 'relative' as any };
 const modalHeaderStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' };
 const closeBtnStyle = { background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer' };
 const modalLabelStyle = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
-const modalInputStyle = { width: '100%', padding: '14px 20px', borderRadius: '3px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', outline: 'none', fontSize: '15px', fontWeight: 600, color: '#263A99' };
-const modalSubmitBtnStyle = { width: '100%', padding: '16px', borderRadius: '3px', backgroundColor: '#10b981', color: 'white', border: 'none', fontWeight: 800, fontSize: '16px', cursor: 'pointer', boxShadow: '0 10px 20px rgba(16, 185, 129, 0.2)' };
+const modalInputStyle = { width: '100%', padding: '14px 20px', borderRadius: "3px", border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', outline: 'none', fontSize: '15px', fontWeight: 600, color: '#263A99' };
+const modalSubmitBtnStyle = { width: '100%', padding: '16px', borderRadius: "3px", backgroundColor: '#10b981', color: 'white', border: 'none', fontWeight: 800, fontSize: '16px', cursor: 'pointer', boxShadow: '0 10px 20px rgba(16, 185, 129, 0.2)' };

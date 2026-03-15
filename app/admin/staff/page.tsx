@@ -181,7 +181,7 @@ export default function StaffManagementPage() {
                         setHasIndividualOverride(false);
                         setIsFormOpen(true);
                     }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'background 0.2s', ':hover': { backgroundColor: '#263A99' } } as any}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: "3px", fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'background 0.2s', ':hover': { backgroundColor: '#263A99' } } as any}
                 >
                     <Plus size={20} />
                     Додати співробітника
@@ -189,7 +189,7 @@ export default function StaffManagementPage() {
             </div>
 
             {/* List */}
-            <div style={{ backgroundColor: 'white', borderRadius: '3px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: "3px", border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                 {isLoading ? (
                     <div style={{ padding: '60px', display: 'flex', justifyContent: 'center', color: '#94a3b8' }}>
                         <Loader2 className="animate-spin" size={32} />
@@ -215,7 +215,7 @@ export default function StaffManagementPage() {
                                 <tr key={member.id} style={{ borderBottom: '1px solid #f1f5f9', opacity: member.is_active ? 1 : 0.6 }}>
                                     <td style={{ padding: '16px 24px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '3px', backgroundColor: member.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
+                                            <div style={{ width: '40px', height: '40px', borderRadius: "3px", backgroundColor: member.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
                                                 {member.initials}
                                             </div>
                                             <div>
@@ -225,7 +225,7 @@ export default function StaffManagementPage() {
                                         </div>
                                     </td>
                                     <td style={{ padding: '16px 24px' }}>
-                                        <span style={{ padding: '4px 12px', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '3px', fontSize: '13px', fontWeight: 600 }}>
+                                        <span style={{ padding: '4px 12px', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: "3px", fontSize: '13px', fontWeight: 600 }}>
                                             {getRoleLabel(member)}
                                         </span>
                                     </td>
@@ -234,7 +234,7 @@ export default function StaffManagementPage() {
                                     </td>
                                     <td style={{ padding: '16px 24px' }}>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: member.is_active ? '#10b981' : '#94a3b8' }}>
-                                            <div style={{ width: '8px', height: '8px', borderRadius: '3px', backgroundColor: member.is_active ? '#10b981' : '#cbd5e1' }} />
+                                            <div style={{ width: '8px', height: '8px', borderRadius: "3px", backgroundColor: member.is_active ? '#10b981' : '#cbd5e1' }} />
                                             {member.is_active ? 'Активний' : 'Деактивовано'}
                                         </span>
                                     </td>
@@ -249,14 +249,14 @@ export default function StaffManagementPage() {
                                                     setHasIndividualOverride(Object.keys(member.individual_permissions || {}).length > 0);
                                                     setIsFormOpen(true);
                                                 }}
-                                                style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', backgroundColor: '#f8fafc', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s', ':hover': { backgroundColor: '#e2e8f0', color: '#263A99' } } as any}
+                                                style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: "3px", backgroundColor: '#f8fafc', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s', ':hover': { backgroundColor: '#e2e8f0', color: '#263A99' } } as any}
                                                 title="Редагувати"
                                             >
                                                 <Edit2 size={16} />
                                             </button>
                                             <button
                                                 onClick={() => toggleStatus(member)}
-                                                style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', backgroundColor: member.is_active ? '#fef2f2' : '#ecfdf5', color: member.is_active ? '#ef4444' : '#10b981', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: "3px", backgroundColor: member.is_active ? '#fef2f2' : '#ecfdf5', color: member.is_active ? '#ef4444' : '#10b981', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
                                                 title={member.is_active ? "Деактивувати" : "Активувати"}
                                             >
                                                 {member.is_active ? <UserX size={16} /> : <UserCheck size={16} />}
@@ -272,8 +272,8 @@ export default function StaffManagementPage() {
 
             {/* Form Modal */}
             {isFormOpen && (
-                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsFormOpen(false)}>
-                    <div style={{ backgroundColor: 'white', borderRadius: '3px', width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(38, 58, 153, 0.4)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsFormOpen(false)}>
+                    <div style={{ backgroundColor: 'white', borderRadius: "3px", width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                         <div style={{ padding: '24px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#263A99' }}>
                                 {formData.id ? 'Редагувати співробітника' : 'Новий співробітник'}
@@ -376,7 +376,7 @@ export default function StaffManagementPage() {
                                                 key={color}
                                                 type="button"
                                                 onClick={() => setFormData({ ...formData, color })}
-                                                style={{ width: '40px', height: '40px', borderRadius: '3px', backgroundColor: color, border: formData.color === color ? '3px solid #263A99' : '3px solid transparent', cursor: 'pointer', transition: 'transform 0.2s', transform: formData.color === color ? 'scale(1.1)' : 'scale(1)' }}
+                                                style={{ width: '40px', height: '40px', borderRadius: "3px", backgroundColor: color, border: formData.color === color ? '3px solid #263A99' : '3px solid transparent', cursor: 'pointer', transition: 'transform 0.2s', transform: formData.color === color ? 'scale(1.1)' : 'scale(1)' }}
                                             />
                                         ))}
                                     </div>
@@ -397,7 +397,7 @@ export default function StaffManagementPage() {
                                                 }
                                             }}
                                             style={{
-                                                fontSize: '12px', padding: '4px 12px', borderRadius: '3px', cursor: 'pointer',
+                                                fontSize: '12px', padding: '4px 12px', borderRadius: "3px", cursor: 'pointer',
                                                 backgroundColor: hasIndividualOverride ? '#fee2e2' : '#f8fafc',
                                                 color: hasIndividualOverride ? '#ef4444' : '#64748b',
                                                 border: '1px solid #e2e8f0', fontWeight: 700
@@ -408,7 +408,7 @@ export default function StaffManagementPage() {
                                     </div>
 
                                     {hasIndividualOverride && (
-                                        <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '3px', padding: '12px' }}>
+                                        <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: "3px", padding: '12px' }}>
                                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                                                 <thead>
                                                     <tr style={{ textAlign: 'left', color: '#64748b' }}>
@@ -446,10 +446,10 @@ export default function StaffManagementPage() {
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '40px' }}>
-                                <button type="button" onClick={() => setIsFormOpen(false)} style={{ padding: '12px 24px', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '3px', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+                                <button type="button" onClick={() => setIsFormOpen(false)} style={{ padding: '12px 24px', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: "3px", fontWeight: 600, border: 'none', cursor: 'pointer' }}>
                                     Скасувати
                                 </button>
-                                <button type="submit" disabled={isSaving} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', fontWeight: 600, border: 'none', cursor: 'pointer', opacity: isSaving ? 0.7 : 1 }}>
+                                <button type="submit" disabled={isSaving} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: "3px", fontWeight: 600, border: 'none', cursor: 'pointer', opacity: isSaving ? 0.7 : 1 }}>
                                     {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                                     Зберегти
                                 </button>
@@ -466,7 +466,7 @@ export default function StaffManagementPage() {
 const inputStyle = {
     width: '100%',
     padding: '12px 16px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '1px solid #e2e8f0',
     backgroundColor: '#f8fafc',
     fontSize: '14px',

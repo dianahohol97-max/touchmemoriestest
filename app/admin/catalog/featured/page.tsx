@@ -286,24 +286,24 @@ export default function FeaturedProductsPage() {
                 )}
             </div>
 
-            <div style={{ marginTop: '24px', padding: '16px 20px', backgroundColor: '#f8fafc', borderRadius: '3px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '3px', backgroundColor: '#263A99' }}></div>
+            <div style={{ marginTop: '24px', padding: '16px 20px', backgroundColor: '#f8fafc', borderRadius: "3px", border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: "3px", backgroundColor: '#263A99' }}></div>
                 <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>Потягніть за іконку зліва, щоб змінити порядок відображення на сайті.</p>
             </div>
         </div>
     );
 }
 
-const counterStyle = { fontWeight: 900, fontSize: '14px', backgroundColor: 'white', padding: '10px 18px', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' };
-const searchContainerStyle = { display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 20px', backgroundColor: 'white', borderRadius: '3px', border: '1.5px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', transition: 'all 0.2s' };
+const counterStyle = { fontWeight: 900, fontSize: '14px', backgroundColor: 'white', padding: '10px 18px', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' };
+const searchContainerStyle = { display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 20px', backgroundColor: 'white', borderRadius: "3px", border: '1.5px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', transition: 'all 0.2s' };
 const searchInputStyle = { flex: 1, border: 'none', outline: 'none', fontSize: '16px', fontWeight: 600, color: '#263A99' };
-const resultsDropdownStyle = { position: 'absolute' as any, top: 'calc(100% + 12px)', left: 0, right: 0, backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', overflow: 'hidden', zIndex: 50 };
+const resultsDropdownStyle = { position: 'absolute' as any, top: 'calc(100% + 12px)', left: 0, right: 0, backgroundColor: 'white', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', overflow: 'hidden', zIndex: 50 };
 const resultItemStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #f8fafc', transition: 'background 0.2s' };
-const smallThumbStyle = { width: '40px', height: '40px', borderRadius: '3px', backgroundColor: '#f1f5f9', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const addBadgeStyle = { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '3px', backgroundColor: '#eff6ff', color: '#263A99', fontWeight: 800, fontSize: '12px', border: 'none', cursor: 'pointer' };
-const listContainerStyle = { backgroundColor: '#f8fafc', borderRadius: '3px', padding: '24px', border: '1px solid #f1f5f9' };
-const featuredItemStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)', transition: 'all 0.2s' };
-const thumbnailStyle = { width: '56px', height: '56px', borderRadius: '3px', backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const smallThumbStyle = { width: '40px', height: '40px', borderRadius: "3px", backgroundColor: '#f1f5f9', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const addBadgeStyle = { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: "3px", backgroundColor: '#eff6ff', color: '#263A99', fontWeight: 800, fontSize: '12px', border: 'none', cursor: 'pointer' };
+const listContainerStyle = { backgroundColor: '#f8fafc', borderRadius: "3px", padding: '24px', border: '1px solid #f1f5f9' };
+const featuredItemStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: 'white', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)', transition: 'all 0.2s' };
+const thumbnailStyle = { width: '56px', height: '56px', borderRadius: "3px", backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const dragHandleStyle = { padding: '8px', color: '#cbd5e1', cursor: 'grab', background: 'none', border: 'none' };
-const removeBtnStyle = { padding: '10px', borderRadius: '3px', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer', transition: 'all 0.2s' };
+const removeBtnStyle = { padding: '10px', borderRadius: "3px", backgroundColor: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer', transition: 'all 0.2s' };
 const emptyStateStyle = { textAlign: 'center' as any, padding: '60px 20px', display: 'flex', flexDirection: 'column' as any, alignItems: 'center' };

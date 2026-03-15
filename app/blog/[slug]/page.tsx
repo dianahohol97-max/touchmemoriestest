@@ -145,7 +145,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     {/* Header */}
                     <header style={{ marginBottom: '40px' }}>
                         {post.blog_categories && (
-                            <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ display: 'inline-block', backgroundColor: '#f1f5f9', color: '#263A99', padding: '6px 16px', borderRadius: '3px', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '24px', textDecoration: 'none' }}>
+                            <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ display: 'inline-block', backgroundColor: '#f1f5f9', color: '#263A99', padding: '6px 16px', borderRadius: "3px", fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '24px', textDecoration: 'none' }}>
                                 {post.blog_categories.name}
                             </Link>
                         )}
@@ -160,9 +160,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                 {post.author_avatar ? (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={post.author_avatar} alt={post.author_name} style={{ width: '48px', height: '48px', borderRadius: '3px' }} />
+                                    <img src={post.author_avatar} alt={post.author_name} style={{ width: '48px', height: '48px', borderRadius: "3px" }} />
                                 ) : (
-                                    <div style={{ width: '48px', height: '48px', borderRadius: '3px', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: "3px", backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
                                         <User size={24} />
                                     </div>
                                 )}
@@ -192,7 +192,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
                     {/* Cover Image */}
                     {post.cover_image && (
-                        <div style={{ width: '100%', height: '500px', position: 'relative', borderRadius: '3px', overflow: 'hidden', marginBottom: '48px', backgroundColor: '#f8fafc' }}>
+                        <div style={{ width: '100%', height: '500px', position: 'relative', borderRadius: "3px", overflow: 'hidden', marginBottom: '48px', backgroundColor: '#f8fafc' }}>
                             <Image src={post.cover_image} alt={post.cover_image_alt || post.title} fill style={{ objectFit: 'cover' }} priority />
                         </div>
                     )}
@@ -206,7 +206,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     {post.tags && post.tags.length > 0 && (
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '48px' }}>
                             {post.tags.map((tag: string) => (
-                                <Link key={tag} href={`/blog/tag/${tag}`} style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '6px 16px', borderRadius: '3px', fontSize: '14px', fontWeight: 600, textDecoration: 'none', transition: 'background 0.2s', ':hover': { backgroundColor: '#e2e8f0' } } as any}>
+                                <Link key={tag} href={`/blog/tag/${tag}`} style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '6px 16px', borderRadius: "3px", fontSize: '14px', fontWeight: 600, textDecoration: 'none', transition: 'background 0.2s', ':hover': { backgroundColor: '#e2e8f0' } } as any}>
                                     #{tag}
                                 </Link>
                             ))}
@@ -221,8 +221,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
                                 {relatedProducts.map((p: any) => (
-                                    <Link key={p.id} href={`/products/${p.slug}`} style={{ border: '1px solid #f1f5f9', borderRadius: '3px', padding: '16px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', transition: 'border-color 0.2s', ':hover': { borderColor: '#cbd5e1' } } as any}>
-                                        <div style={{ width: '100%', aspectRatio: '1/1', position: 'relative', borderRadius: '3px', overflow: 'hidden', backgroundColor: '#f8fafc', marginBottom: '16px' }}>
+                                    <Link key={p.id} href={`/products/${p.slug}`} style={{ border: '1px solid #f1f5f9', borderRadius: "3px", padding: '16px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', transition: 'border-color 0.2s', ':hover': { borderColor: '#cbd5e1' } } as any}>
+                                        <div style={{ width: '100%', aspectRatio: '1/1', position: 'relative', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#f8fafc', marginBottom: '16px' }}>
                                             {p.images && p.images[0] && <Image src={p.images[0]} alt={p.name} fill style={{ objectFit: 'cover' }} />}
                                         </div>
                                         <h4 style={{ fontWeight: 800, fontSize: '15px', color: '#263A99', marginBottom: '8px' }}>{p.name}</h4>
@@ -234,10 +234,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     )}
 
                     {/* CTA Banner */}
-                    <div style={{ backgroundColor: '#263A99', borderRadius: '3px', padding: '40px', color: 'white', textAlign: 'center', marginBottom: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ backgroundColor: '#263A99', borderRadius: "3px", padding: '40px', color: 'white', textAlign: 'center', marginBottom: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, marginBottom: '16px' }}>Готові створити свою фотокнигу?</h3>
                         <p style={{ fontSize: '16px', color: '#94a3b8', marginBottom: '32px', maxWidth: '400px' }}>Спробуйте наш зручний онлайн-конструктор та збережіть свої найкращі фото на сторінках преміум фотокниги.</p>
-                        <Link href="/book-constructor" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', fontWeight: 800, fontSize: '16px', textDecoration: 'none', transition: 'transform 0.2s', ':hover': { transform: 'scale(1.05)' } } as any}>
+                        <Link href="/book-constructor" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px', backgroundColor: '#263A99', color: 'white', borderRadius: "3px", fontWeight: 800, fontSize: '16px', textDecoration: 'none', transition: 'transform 0.2s', ':hover': { transform: 'scale(1.05)' } } as any}>
                             Спробувати конструктор <ArrowRight size={20} />
                         </Link>
                     </div>
@@ -254,7 +254,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
                                 {similarPosts.map(sp => (
                                     <Link key={sp.id} href={`/blog/${sp.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                                        <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: '3px', overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
+                                        <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
                                             {sp.cover_image && <Image src={sp.cover_image} alt={sp.title} fill style={{ objectFit: 'cover' }} />}
                                         </div>
                                         <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px' }}>{sp.title}</h4>
@@ -272,4 +272,4 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     );
 }
 
-const shareBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '3px', backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s' };
+const shareBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: "3px", backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s' };

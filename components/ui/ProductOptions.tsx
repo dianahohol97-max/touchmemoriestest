@@ -183,9 +183,9 @@ export function ProductOptions({ product }: ProductOptionsProps) {
             )}
 
             {/* Quantity & Summary */}
-            <div style={{ marginTop: '16px', padding: '32px', backgroundColor: '#f8fafc', borderRadius: '3px', border: '1px solid #eef2f6' }}>
+            <div style={{ marginTop: '16px', padding: '32px', backgroundColor: '#f8fafc', borderRadius: "3px", border: '1px solid #eef2f6' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', backgroundColor: 'white', padding: '8px', borderRadius: '3px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', backgroundColor: 'white', padding: '8px', borderRadius: "3px", border: '1px solid #e2e8f0' }}>
                         <button onClick={() => setQuantity(Math.max(1, quantity - 1))} style={qtyBtnStyle}><Minus size={18} /></button>
                         <span style={{ fontWeight: 800, minWidth: '24px', textAlign: 'center' }}>{quantity}</span>
                         <button onClick={() => setQuantity(quantity + 1)} style={qtyBtnStyle}><Plus size={18} /></button>
@@ -238,7 +238,7 @@ export function ProductOptions({ product }: ProductOptionsProps) {
                 }}
             />
 
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '3px', color: '#0369a1', fontSize: '14px' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: "3px", color: '#263A99', fontSize: '14px' }}>
                 <Info size={18} />
                 <span>Термін виготовлення: 3-5 робочих днів</span>
             </div>
@@ -250,7 +250,7 @@ export function ProductOptions({ product }: ProductOptionsProps) {
 const labelStyle = { fontSize: '14px', fontWeight: 800, textTransform: 'uppercase' as any, letterSpacing: '0.05em', color: '#888', marginBottom: '16px' };
 const optionBtnStyle = {
     padding: '12px 24px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '2px solid',
     fontSize: '15px',
     fontWeight: 600,
@@ -274,7 +274,7 @@ const actionBtnStyle = {
     justifyContent: 'center',
     gap: '12px',
     padding: '16px 32px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: 'none',
     fontSize: '16px',
     fontWeight: 700,

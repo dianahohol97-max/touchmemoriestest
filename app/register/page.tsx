@@ -101,7 +101,7 @@ export default function Register() {
                 <div style={{
                     backgroundColor: 'white',
                     padding: '40px',
-                    borderRadius: '3px',
+                    borderRadius: "3px",
                     boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
                     width: '100%',
                     maxWidth: '520px'
@@ -221,7 +221,7 @@ export default function Register() {
                                 padding: '16px',
                                 backgroundColor: agreePrivacy ? 'var(--primary)' : '#cbd5e1',
                                 color: 'white',
-                                borderRadius: '3px',
+                                borderRadius: "3px",
                                 border: 'none',
                                 fontSize: '16px',
                                 fontWeight: 800,
@@ -251,7 +251,7 @@ export default function Register() {
                             backgroundColor: 'white',
                             color: '#263A99',
                             border: '1px solid #e2e8f0',
-                            borderRadius: '3px',
+                            borderRadius: "3px",
                             fontSize: '15px',
                             fontWeight: 500,
                             cursor: 'pointer',
@@ -287,7 +287,7 @@ export default function Register() {
 const inputStyle = {
     width: '100%',
     padding: '14px 16px',
-    borderRadius: '3px',
+    borderRadius: "3px",
     border: '1px solid #e2e8f0',
     outline: 'none',
     fontSize: '16px',

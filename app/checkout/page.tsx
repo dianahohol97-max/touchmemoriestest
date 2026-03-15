@@ -130,7 +130,7 @@ export default function CheckoutPage() {
                         <div style={{
                             width: '80px',
                             height: '80px',
-                            borderRadius: '3px',
+                            borderRadius: "3px",
                             backgroundColor: '#dcfce7',
                             display: 'flex',
                             alignItems: 'center',
@@ -151,7 +151,7 @@ export default function CheckoutPage() {
                                 backgroundColor: 'var(--primary)',
                                 color: 'white',
                                 border: 'none',
-                                borderRadius: '3px',
+                                borderRadius: "3px",
                                 fontSize: '16px',
                                 fontWeight: 700,
                                 cursor: 'pointer'
@@ -174,7 +174,7 @@ export default function CheckoutPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '40px' }} className={styles.checkoutGrid}>
 
                     {/* Left: Form */}
-                    <div style={{ backgroundColor: 'white', borderRadius: '3px', padding: '40px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <div style={{ backgroundColor: 'white', borderRadius: "3px", padding: '40px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                         {/* Stepper Header */}
                         <div style={{ display: 'flex', gap: '12px', marginBottom: '40px' }}>
                             <StepIndicator label="Контакти" active={currentStep === 'info'} completed={currentStep !== 'info'} />
@@ -292,7 +292,7 @@ export default function CheckoutPage() {
                                                 backgroundColor: 'var(--primary)',
                                                 color: 'white',
                                                 border: 'none',
-                                                borderRadius: '3px',
+                                                borderRadius: "3px",
                                                 fontSize: '16px',
                                                 fontWeight: 800,
                                                 cursor: 'pointer',
@@ -316,7 +316,7 @@ export default function CheckoutPage() {
 
                     {/* Right: Summary */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        <div style={{ backgroundColor: 'white', borderRadius: '3px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                        <div style={{ backgroundColor: 'white', borderRadius: "3px", padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
                                 <ShoppingBag size={20} color="var(--primary)" />
                                 <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Ваше замовлення</h3>
@@ -325,7 +325,7 @@ export default function CheckoutPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', maxHeight: '400px', overflowY: 'auto' }}>
                                 {items.map(item => (
                                     <div key={item.id} style={{ display: 'flex', gap: '12px' }}>
-                                        <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '3px', overflow: 'hidden', flexShrink: 0 }}>
+                                        <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: "3px", overflow: 'hidden', flexShrink: 0 }}>
                                             <Image src={item.image || ''} alt={item.name} fill style={{ objectFit: 'cover' }} />
                                         </div>
                                         <div style={{ flex: 1 }}>
@@ -355,9 +355,9 @@ export default function CheckoutPage() {
                             </div>
                         </div>
 
-                        <div style={{ backgroundColor: '#f0f9ff', borderRadius: '3px', padding: '24px', border: '1px solid #e0f2fe', display: 'flex', gap: '12px' }}>
-                            <ShieldCheck size={24} color="#0369a1" />
-                            <p style={{ fontSize: '13px', color: '#0369a1', lineHeight: 1.5, margin: 0 }}>
+                        <div style={{ backgroundColor: '#f0f9ff', borderRadius: "3px", padding: '24px', border: '1px solid #e0f2fe', display: 'flex', gap: '12px' }}>
+                            <ShieldCheck size={24} color="#263A99" />
+                            <p style={{ fontSize: '13px', color: '#263A99', lineHeight: 1.5, margin: 0 }}>
                                 <strong>Безпечна оплата.</strong> Ваші дані захищені. Ми використовуємо сучасні стандарти безпеки.
                             </p>
                         </div>
@@ -378,7 +378,7 @@ function StepIndicator({ label, active, completed }: { label: string, active: bo
             <div style={{
                 width: '32px',
                 height: '32px',
-                borderRadius: '3px',
+                borderRadius: "3px",
                 backgroundColor: completed ? '#dcfce7' : (active ? 'var(--primary)' : '#f3f4f6'),
                 color: completed ? '#16a34a' : (active ? 'white' : '#9ca3af'),
                 display: 'flex',
@@ -408,7 +408,7 @@ function InputField({ label, icon, ...props }: any) {
                         width: '100%',
                         padding: `14px 16px ${icon ? '14px 44px' : '14px 16px'}`,
                         paddingLeft: icon ? '44px' : '16px',
-                        borderRadius: '3px',
+                        borderRadius: "3px",
                         border: '1px solid #e2e8f0',
                         fontSize: '15px',
                         outline: 'none',
@@ -431,7 +431,7 @@ function NextButton({ onClick }: { onClick: () => void }) {
                 backgroundColor: 'var(--primary)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '3px',
+                borderRadius: "3px",
                 fontSize: '16px',
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -458,7 +458,7 @@ function BackButton({ onClick }: { onClick: () => void }) {
                 backgroundColor: 'transparent',
                 color: '#64748b',
                 border: 'none',
-                borderRadius: '3px',
+                borderRadius: "3px",
                 fontSize: '16px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -496,7 +496,7 @@ function PaymentOption({ id, label, active, onClick, icon }: any) {
             onClick={onClick}
             style={{
                 padding: '20px',
-                borderRadius: '3px',
+                borderRadius: "3px",
                 border: active ? '2px solid var(--primary)' : '1px solid #e2e8f0',
                 backgroundColor: active ? '#f8fafc' : 'white',
                 display: 'flex',
@@ -509,7 +509,7 @@ function PaymentOption({ id, label, active, onClick, icon }: any) {
             <div style={{
                 width: '48px',
                 height: '48px',
-                borderRadius: '3px',
+                borderRadius: "3px",
                 backgroundColor: active ? 'white' : '#f8fafc',
                 display: 'flex',
                 alignItems: 'center',
@@ -525,7 +525,7 @@ function PaymentOption({ id, label, active, onClick, icon }: any) {
             <div style={{
                 width: '20px',
                 height: '20px',
-                borderRadius: '3px',
+                borderRadius: "3px",
                 border: active ? '6px solid var(--primary)' : '2px solid #e2e8f0',
                 transition: 'all 0.2s'
             }} />
