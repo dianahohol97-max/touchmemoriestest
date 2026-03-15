@@ -92,18 +92,7 @@ function SortableCategoryItem({
 }
 
 export default function CategoriesPage() {
-    let supabase: any;
-    try {
-        supabase = createClient();
-    } catch (e) {
-        console.error('Supabase client error:', e);
-        return (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                <h2 style={{ fontWeight: 800, color: '#1e293b' }}>Помилка підключення</h2>
-                <p>Не вдалося ініціалізувати Supabase. Перевірте змінні середовища.</p>
-            </div>
-        );
-    }
+    const supabase = createClient();
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState<string | null>(null);

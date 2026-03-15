@@ -119,18 +119,7 @@ interface ProductFormProps {
 }
 
 export default function AdminProductForm({ initialData, isEditing = false }: ProductFormProps) {
-    let supabase: any;
-    try {
-        supabase = createClient();
-    } catch (e) {
-        console.error('Supabase client error:', e);
-        return (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                <h2 style={{ fontWeight: 800, color: '#1e293b' }}>Помилка підключення</h2>
-                <p>Не вдалося ініціалізувати Supabase. Перевірте змінні середовища.</p>
-            </div>
-        );
-    }
+    const supabase = createClient();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState<any[]>([]);
