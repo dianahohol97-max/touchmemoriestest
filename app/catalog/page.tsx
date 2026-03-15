@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { ProductCard } from '@/components/ui/ProductCard';
-import { Filter, ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 
 interface Category {
     id: string;
@@ -49,7 +49,6 @@ function CatalogContent() {
 
     const [selectedCategory, setSelectedCategory] = useState(queryCategory);
     const [sortBy, setSortBy] = useState('popular');
-    const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
     useEffect(() => {
         // Sync state with URL if it changes externally
@@ -87,12 +86,6 @@ function CatalogContent() {
 
         fetchCatalogData();
     }, [supabase]);
-
-    const handleCategoryChange = (slug: string) => {
-        setSelectedCategory(slug);
-        setIsMobileFilterOpen(false);
-        router.push(slug === 'all' ? '/catalog' : `/catalog?category=${slug}`, { scroll: false });
-    };
 
     // Filter products
     const filteredProducts = products.filter(p =>
@@ -133,35 +126,6 @@ function CatalogContent() {
             </header>
 
             <div className={styles.catalogLayout}>
-                {/* Sidebar (Desktop) */}
-                <aside className={`${styles.sidebar} ${styles.desktopOnly}`}>
-                    <div className={styles.stickySidebar}>
-                        <h2 className={styles.sidebarTitle}>Категорії</h2>
-                        {isLoading ? (
-                            <div className="animate-pulse flex flex-col gap-4">
-                                {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-6 bg-slate-200 rounded w-full"></div>)}
-                            </div>
-                        ) : (
-                            <nav className={styles.categoryList}>
-                                {categories.map((cat) => (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => handleCategoryChange(cat.slug)}
-                                        className={`${styles.categoryItem} ${selectedCategory === cat.slug ? styles.active : ''}`}
-                                    >
-                                        {cat.display_style === 'thumbnail' && cat.cover_image && (
-                                            <div className={styles.categoryThumbnail}>
-                                                <img src={cat.cover_image} alt={cat.name} />
-                                            </div>
-                                        )}
-                                        {cat.name}
-                                    </button>
-                                ))}
-                            </nav>
-                        )}
-                    </div>
-                </aside>
-
                 {/* Main Content */}
                 <div className={styles.catalogMain}>
                     {/* Category Banner */}
@@ -186,13 +150,6 @@ function CatalogContent() {
                     {/* Controls Bar */}
                     <div className={styles.controlsBar}>
                         <div className={styles.leftControls}>
-                            <button
-                                className={styles.filterToggleBtn}
-                                onClick={() => setIsMobileFilterOpen(true)}
-                            >
-                                <Filter size={18} />
-                                <span>Фільтри</span>
-                            </button>
                             <div className={styles.resultsCount}>
                                 Знайдено: <span>{isLoading ? '...' : sortedProducts.length} товарів</span>
                             </div>
@@ -206,8 +163,8 @@ function CatalogContent() {
                                     onChange={(e) => setSortBy(e.target.value)}
                                 >
                                     <option value="popular">Популярністю</option>
-                                    <option value="price_asc">Ціною (зростання)</option>
-                                    <option value="price_desc">Ціною (спадання)</option>
+                                    <option value="price_asc">Ціною: від низької до високої</option>
+                                    <option value="price_desc">Ціною: від високої до низької</option>
                                     <option value="new">Новинками</option>
                                 </select>
                                 <ChevronDown className={styles.selectIcon} size={16} />
@@ -241,33 +198,6 @@ function CatalogContent() {
                     )}
                 </div>
             </div>
-
-            {/* Mobile Filter Drawer */}
-            {isMobileFilterOpen && (
-                <div className={styles.mobileDrawerOverlay} onClick={() => setIsMobileFilterOpen(false)}>
-                    <div className={styles.mobileDrawer} onClick={e => e.stopPropagation()}>
-                        <div className={styles.drawerHeader}>
-                            <h3>Фільтри</h3>
-                            <button className={styles.closeBtn} onClick={() => setIsMobileFilterOpen(false)}>✕</button>
-                        </div>
-                        <div className={styles.drawerContent}>
-                            <h4 className={styles.drawerSectionTitle}>Категорії</h4>
-                            <nav className={styles.drawerCategoryList}>
-                                {categories.map((cat) => (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => handleCategoryChange(cat.slug)}
-                                        className={`${styles.drawerCategoryItem} ${selectedCategory === cat.slug ? styles.active : ''}`}
-                                    >
-                                        {cat.name}
-                                    </button>
-                                ))}
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            )}
-
         </main>
     );
 }
