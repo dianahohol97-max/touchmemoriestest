@@ -1,10 +1,14 @@
 'use client';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Image from 'next/image';
 import Link from 'next/link';
+import { GiftQuiz } from './GiftQuiz';
+import { HelpCircle } from 'lucide-react';
 
 export function GiftIdeas() {
+    const [quizOpen, setQuizOpen] = useState(false);
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,
@@ -23,7 +27,7 @@ export function GiftIdeas() {
     ];
 
     return (
-        <section ref={ref} className="relative w-full min-h-[600px] flex items-center justify-center overflow-hidden py-24">
+        <section ref={ref} className="relative w-full min-h-[700px] flex items-center justify-center overflow-hidden py-24">
             {/* Background Image */}
             <Image
                 src="/images/promo/gift_ideas_bg.png"
@@ -33,43 +37,73 @@ export function GiftIdeas() {
                 priority
             />
             {/* Dark Overlay for better contrast */}
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" />
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
 
             <div className="container relative z-10">
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={inView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-                    className="text-center mb-16"
-                >
-                    <h2 className="text-[40px] lg:text-[64px] font-black leading-none tracking-tight text-white drop-shadow-lg mb-4">
-                        Ідеї для подарунків
-                    </h2>
-                    <p className="text-white/90 text-lg lg:text-xl font-medium max-w-2xl mx-auto drop-shadow-md">
-                        Підібрані колекції для найважливіших людей у вашому житті
-                    </p>
-                </motion.div>
+                <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-8 max-w-4xl mx-auto">
-                    {buttons.map((btn, idx) => (
-                        <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={inView ? { opacity: 1, scale: 1 } : {}}
-                            transition={{ duration: 0.5, delay: idx * 0.05 + 0.3 }}
-                        >
-                            <Link
-                                href={`/catalog?collection=${btn.slug}`}
-                                className="group relative flex items-center justify-center p-6 lg:p-8 bg-white/10 backdrop-blur-md border border-white/20 rounded-[12px] text-white font-bold text-lg lg:text-xl uppercase tracking-widest transition-all duration-500 hover:bg-white/30 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:-translate-y-1 text-center"
+                    {/* Left Column: Side Card */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -40 }}
+                        animate={inView ? { opacity: 1, x: 0 } : {}}
+                        transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+                        className="w-full lg:w-1/3"
+                    >
+                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 lg:p-12 rounded-[32px] shadow-2xl">
+                            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-8">
+                                <HelpCircle size={32} className="text-white" />
+                            </div>
+                            <h2 className="text-3xl lg:text-4xl font-black text-white leading-tight mb-8">
+                                Не знаєш що обрати на подарунок?
+                            </h2>
+                            <button
+                                onClick={() => setQuizOpen(true)}
+                                className="w-full py-5 bg-white text-primary font-black text-lg lg:text-xl uppercase tracking-widest rounded-[16px] transition-all duration-300 hover:bg-primary hover:text-white hover:shadow-[0_15px_30px_rgba(38,58,153,0.3)] group"
                             >
-                                <span className="relative z-10 transition-transform duration-500 group-hover:scale-110">
-                                    {btn.label}
-                                </span>
-                            </Link>
+                                Пройти тест
+                                <span className="inline-block transition-transform duration-300 group-hover:translate-x-1 ml-2">→</span>
+                            </button>
+                        </div>
+                    </motion.div>
+
+                    {/* Right Column: Grid */}
+                    <div className="w-full lg:w-2/3">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={inView ? { opacity: 1, y: 0 } : {}}
+                            transition={{ duration: 0.8, delay: 0.2 }}
+                            className="mb-12"
+                        >
+                            <h2 className="text-[32px] lg:text-[48px] font-black leading-none tracking-tight text-white drop-shadow-lg mb-4">
+                                Ідеї для подарунків
+                            </h2>
+                            <p className="text-white/80 text-lg font-medium drop-shadow-md">
+                                Підібрані колекції для ваших найважливіших людей
+                            </p>
                         </motion.div>
-                    ))}
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
+                            {buttons.map((btn, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={inView ? { opacity: 1, scale: 1 } : {}}
+                                    transition={{ duration: 0.5, delay: idx * 0.05 + 0.4 }}
+                                >
+                                    <Link
+                                        href={`/catalog?collection=${btn.slug}`}
+                                        className="group relative flex items-center justify-center p-5 lg:p-7 bg-white/10 backdrop-blur-md border border-white/10 rounded-[16px] text-white font-bold text-base lg:text-lg uppercase tracking-widest transition-all duration-500 hover:bg-white/25 hover:border-white/40 hover:shadow-xl hover:-translate-y-1 text-center"
+                                    >
+                                        {btn.label}
+                                    </Link>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <GiftQuiz open={quizOpen} onOpenChange={setQuizOpen} />
         </section>
     );
 }
