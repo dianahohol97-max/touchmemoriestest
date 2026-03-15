@@ -39,25 +39,19 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
     const embed = content['travel_embed'];
 
     return (
-        <section ref={ref} style={{ padding: '40px 0', backgroundColor: style.bg_color || '#f8f9fa', color: style.text_color || 'inherit' }}>
+        <section ref={ref} className="section-padding bg-premium-gradient">
             <div className="container">
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 30 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.6 }}
-                    style={{ textAlign: 'center', marginBottom: '40px' }}
+                    transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
+                    className="text-center mb-24"
                 >
-                    <h2 className="travel-title" style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontSize: 'clamp(32px, 8vw, 48px)',
-                        fontWeight: 900,
-                        marginBottom: '12px',
-                        color: 'var(--section-heading-color)'
-                    }}>
+                    <h2 className="section-title text-center">
                         {content['travel_title'] || 'Travel Book'}
                     </h2>
-                    <p className="travel-subtitle" style={{ fontSize: '18px', opacity: 0.7, maxWidth: '600px', margin: '0 auto' }}>
-                        {content['travel_subtitle'] || 'Збережіть ваші подорожі у преміальному Travel Book'}
+                    <p className="section-subtitle text-center">
+                        {content['travel_subtitle'] || 'Збережіть ваші подорожі у преміальному Travel Book — витворі мистецтва, який приємно тримати в руках'}
                     </p>
                 </motion.div>
 

@@ -17,6 +17,12 @@ import { DynamicPromo } from '@/components/ui/DynamicPromo';
 import { PhotoPrintPromo } from '@/components/ui/PhotoPrintPromo';
 import { CustomBookPromo } from '@/components/ui/CustomBookPromo';
 
+// New Redesign Components
+import { RealExamples } from '@/components/ui/RealExamples';
+import { GiftIdeas } from '@/components/ui/GiftIdeas';
+import { InspirationGallery } from '@/components/ui/InspirationGallery';
+import { GeneralCTA } from '@/components/ui/GeneralCTA';
+
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const revalidate = 3600; // ISR revalidate every hour
@@ -102,52 +108,69 @@ export default async function Home() {
           <Categories blockName="categories_books" />
         </SectionWrapper>
 
-        <SectionWrapper name="categories_magazines" defaultOrder={4}>
-          <Categories blockName="categories_magazines" />
+        {/* Storytelling: Gift Ideas */}
+        <SectionWrapper name="gift_ideas" defaultOrder={3.5}>
+          <GiftIdeas />
         </SectionWrapper>
 
         <SectionWrapper name="how_it_works" defaultOrder={4}>
           <HowItWorks />
         </SectionWrapper>
 
-        <SectionWrapper name="photo_print" defaultOrder={29}>
-          <PhotoPrintPromo />
-        </SectionWrapper>
-
-        <SectionWrapper name="blog" defaultOrder={30}>
-          <BlogSection posts={blogPosts || []} />
-        </SectionWrapper>
-
-        <SectionWrapper name="travel" defaultOrder={5}>
-          <TravelSection travelPost={travelPost} />
+        {/* Storytelling: Real Examples */}
+        <SectionWrapper name="real_examples" defaultOrder={4.5}>
+          <RealExamples />
         </SectionWrapper>
 
         <SectionWrapper name="price_calculator" defaultOrder={6}>
           <PriceCalculator />
         </SectionWrapper>
 
-        <SectionWrapper name="promo_special" defaultOrder={15}>
-          <DynamicPromo blockName="promo_special" />
+        {/* Mid-page Conversion CTA */}
+        <SectionWrapper name="mid_cta" defaultOrder={10}>
+          <GeneralCTA
+            title="Ваші спогади варті більшого, ніж просто пам'ять у смартфоні"
+            description="Створіть свою першу фотокнигу Touch.Memories за лічені хвилини. Ми подбаємо про кожну деталь."
+            ctaText="Почати створення"
+            ctaLink="/catalog"
+            variant="subtle"
+          />
         </SectionWrapper>
 
-        <SectionWrapper name="promo_holiday" defaultOrder={20}>
-          <DynamicPromo blockName="promo_holiday" />
+        <SectionWrapper name="travel" defaultOrder={5}>
+          <TravelSection travelPost={travelPost} />
         </SectionWrapper>
 
-        <SectionWrapper name="promo_new_arrival" defaultOrder={25}>
-          <DynamicPromo blockName="promo_new_arrival" />
-        </SectionWrapper>
-
-        <SectionWrapper name="promo_sale" defaultOrder={45}>
-          <DynamicPromo blockName="promo_sale" />
+        <SectionWrapper name="photo_print" defaultOrder={29}>
+          <PhotoPrintPromo />
         </SectionWrapper>
 
         <SectionWrapper name="social_proof" defaultOrder={40}>
           <SocialProof />
         </SectionWrapper>
 
+        {/* Storytelling: Inspiration Gallery */}
+        <SectionWrapper name="inspiration_gallery" defaultOrder={40.5}>
+          <InspirationGallery />
+        </SectionWrapper>
+
         <SectionWrapper name="custom_book" defaultOrder={41}>
           <CustomBookPromo />
+        </SectionWrapper>
+
+        <SectionWrapper name="blog" defaultOrder={30}>
+          <BlogSection posts={blogPosts || []} />
+        </SectionWrapper>
+
+        {/* Final Strong Conversion Block */}
+        <SectionWrapper name="final_strong_cta" defaultOrder={49}>
+          <GeneralCTA
+            title="Готові зберегти свої емоції назавжди?"
+            description="Оберіть свій формат та почніть історію просто зараз. Безкоштовна доставка при замовленні від 2500 ₴."
+            ctaText="Створити книгу"
+            ctaLink="/catalog"
+            variant="primary"
+          />
         </SectionWrapper>
 
         <SectionWrapper name="final_cta" defaultOrder={50}>

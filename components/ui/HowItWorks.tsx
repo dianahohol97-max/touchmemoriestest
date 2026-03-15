@@ -41,22 +41,20 @@ export function HowItWorks() {
         >
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
 
-            <div className="container" style={{ textAlign: 'center' }}>
+            <div className="container text-center">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
                 >
-                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-8">
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/50">Процес</span>
+                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-10">
+                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/50">Процес</span>
                     </div>
 
-                    <h2 className="text-[32px] lg:text-[42px] font-black leading-[1.05] tracking-tight text-primary mb-8 max-w-3xl mx-auto">
+                    <h2 className="section-title text-center max-w-3xl mx-auto mb-10">
                         <DynamicText contentKey="how_it_works_title" fallback="Створити свою книгу — легко" />
                     </h2>
-
-                    <div className="w-24 h-1 bg-primary/10 mx-auto mb-24 rounded-full" />
                 </motion.div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-left mb-20">

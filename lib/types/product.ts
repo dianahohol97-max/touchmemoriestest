@@ -52,7 +52,11 @@ export interface Product {
   cost_price?: number;
   cost_price_currency?: string;
   custom_attributes?: CustomAttribute[];
+  characteristics?: any[]; // For dynamic attributes
+  options?: any[]; // For product options/variants
   attribute_price_modifiers?: AttributePriceModifiers;
+  price_from?: boolean;
+  popular_order?: number;
   created_at?: string;
   updated_at?: string;
 }

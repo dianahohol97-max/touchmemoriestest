@@ -1,293 +1,277 @@
 'use client';
+
 import { useState, useEffect, useMemo } from 'react';
 import styles from './PriceCalculator.module.css';
-import { motion, useSpring, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowRight } from 'lucide-react';
-import { useTheme } from '@/components/providers/ThemeProvider';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import Image from 'next/image';
+import { Product, CustomAttribute } from '@/lib/types/product';
 
 function AnimatedNumber({ value }: { value: number }) {
-    const spring = useSpring(value, { mass: 0.8, stiffness: 75, damping: 15 });
-    const display = useTransform(spring, (current) =>
-        Math.round(current).toLocaleString('uk-UA')
-    );
+    const [displayValue, setDisplayValue] = useState(value);
 
     useEffect(() => {
-        spring.set(value);
-    }, [value, spring]);
+        const timeout = setTimeout(() => {
+            setDisplayValue(value);
+        }, 50);
+        return () => clearTimeout(timeout);
+    }, [value]);
 
-    return <motion.span>{display}</motion.span>;
+    return (
+        <span>{Math.round(displayValue).toLocaleString('uk-UA')}</span>
+    );
 }
 
 export default function PriceCalculator() {
-    const { content, blocks } = useTheme();
     const supabase = createClient();
-    const block = blocks.find(b => b.block_name === 'price_calculator');
-    const style = block?.style_metadata || {};
-
-    const [allProducts, setAllProducts] = useState<any[]>([]);
+    const [allProducts, setAllProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [step, setStep] = useState(1); // 1: Select, 2: Configure
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [selections, setSelections] = useState<Record<string, any>>({});
 
     useEffect(() => {
         async function fetchProducts() {
+            setLoading(true);
             const { data } = await supabase
                 .from('products')
-                .select('id, name, slug, price, price_from, options, images')
-                .eq('is_personalized', true)
+                .select('*')
                 .eq('is_active', true)
                 .order('name');
 
-            if (data) setAllProducts(data);
+            if (data) {
+                // Filter products that are configurable
+                const configurable = data.filter((p: Product) => {
+                    const hasVariants = p.variants && p.variants.length > 0;
+                    const hasOptions = p.options && Array.isArray(p.options) && p.options.length > 0;
+                    const hasCustomAttributes = p.custom_attributes && Array.isArray(p.custom_attributes) && p.custom_attributes.length > 0;
+                    const hasCharacteristics = p.characteristics && Array.isArray(p.characteristics) && p.characteristics.length > 0;
+
+                    return p.is_personalized || hasVariants || hasOptions || hasCustomAttributes || hasCharacteristics;
+                });
+                setAllProducts(configurable);
+            }
+            setLoading(false);
         }
         fetchProducts();
     }, [supabase]);
 
-    const calcConfig = useMemo(() => {
-        if (content['calculator_config']) {
-            try {
-                return JSON.parse(content['calculator_config']);
-            } catch (e) {
-                console.error('Failed to parse calculator config', e);
+    const handleProductSelect = (product: Product) => {
+        setSelectedProduct(product);
+        setSelections({});
+        setStep(2);
+
+        // Auto-select first options if available
+        const initialSelections: Record<string, any> = {};
+        const attributes = [
+            ...(Array.isArray(product.custom_attributes) ? product.custom_attributes : []),
+            ...(Array.isArray(product.characteristics) ? product.characteristics : [])
+        ];
+
+        attributes.forEach((attr: any) => {
+            if (attr.type === 'select' && attr.options && attr.options.length > 0) {
+                initialSelections[attr.key] = attr.options[0];
+            } else if (attr.type === 'boolean') {
+                initialSelections[attr.key] = false;
             }
-        }
-        return { products: [] };
-    }, [content]);
+        });
 
-    const activeProducts = useMemo(() => {
-        const configProducts = Array.isArray(calcConfig?.products) ? calcConfig.products : [];
-        const enabledConfigs = configProducts.filter((p: any) => p.isActive);
-
-        if (enabledConfigs.length > 0) {
-            // map and preserve config data
-            return enabledConfigs.map((cp: any) => {
-                const prod = allProducts.find(p => p.id === cp.id);
-                if (prod) return { ...prod, productionTime: cp.productionTime };
-                return null;
-            }).filter(Boolean);
-        }
-        return allProducts;
-    }, [calcConfig, allProducts]);
-
-    const [selectedProductIdx, setSelectedProductIdx] = useState(0);
-    const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
-
-    // Ensure valid index if activeProducts shrinks
-    const currentIdx = selectedProductIdx >= activeProducts.length ? 0 : selectedProductIdx;
-    const currentProd = activeProducts[currentIdx];
-
-    // Reset selected options when product changes
-    useEffect(() => {
-        if (currentProd?.options && Array.isArray(currentProd.options)) {
-            const defaultOptions: Record<string, number> = {};
-            currentProd.options.forEach((opt: any) => {
-                if (opt.values && opt.values.length > 0) {
-                    defaultOptions[opt.name] = 0;
-                }
-            });
-            setSelectedOptions(defaultOptions);
-        } else {
-            setSelectedOptions({});
-        }
-    }, [currentProd]);
+        setSelections(initialSelections);
+    };
 
     const finalPrice = useMemo(() => {
-        if (!currentProd) return 0;
-        let p = currentProd.price || 0;
-        if (currentProd.options && Array.isArray(currentProd.options)) {
-            currentProd.options.forEach((opt: any) => {
-                const selectedIdx = selectedOptions[opt.name];
-                if (selectedIdx !== undefined && opt.values[selectedIdx]) {
-                    p += (opt.values[selectedIdx].priceModifier || 0);
-                }
-            });
-        }
-        return p;
-    }, [currentProd, selectedOptions]);
+        if (!selectedProduct) return 0;
+        let price = selectedProduct.price || 0;
 
-    if (activeProducts.length === 0) return null;
+        // Apply attribute modifiers
+        const modifiers = selectedProduct.attribute_price_modifiers || {};
+        Object.entries(selections).forEach(([key, value]) => {
+            if (typeof value === 'boolean') {
+                if (value && modifiers[key]) {
+                    price += modifiers[key];
+                }
+            } else if (typeof value === 'string') {
+                const modifierKey = `${key}_${value}`;
+                if (modifiers[modifierKey]) {
+                    price += modifiers[modifierKey];
+                }
+            }
+        });
+
+        return price;
+    }, [selectedProduct, selections]);
+
+    const isStep2Complete = useMemo(() => {
+        if (!selectedProduct) return false;
+        const requiredAttributes = [
+            ...(Array.isArray(selectedProduct.custom_attributes) ? selectedProduct.custom_attributes : []),
+            ...(Array.isArray(selectedProduct.characteristics) ? selectedProduct.characteristics : [])
+        ].filter(a => a.required);
+
+        return requiredAttributes.every(attr => selections[attr.key] !== undefined && selections[attr.key] !== '');
+    }, [selectedProduct, selections]);
+
+    if (loading) return (
+        <section className={styles.calculatorSection} style={{ padding: '80px 0' }}>
+            <div style={{ textAlign: 'center' }}>Завантаження конфігуратора...</div>
+        </section>
+    );
 
     return (
-        <section className={styles.calculatorSection} style={{ backgroundColor: style.bg_color || 'transparent', paddingTop: style.padding_top || '80px', paddingBottom: style.padding_bottom || '80px' }}>
-            <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px' }}>
-                <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                    <h2 style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontSize: 'clamp(28px, 5vw, 40px)',
-                        fontWeight: 900,
-                        marginBottom: '16px',
-                        color: 'var(--section-heading-color)'
-                    }}>
-                        {content['calc_title'] || 'Розрахуйте вартість'}
-                    </h2>
-                    <p style={{ opacity: 0.7, maxWidth: '500px', margin: '0 auto' }}>
-                        {content['calc_subtitle'] || 'Оберіть параметри вашої ідеальної фотокниги'}
-                    </p>
+        <section className={styles.calculatorSection} style={{ padding: '144px 0' }}>
+            <div className="container">
+                <div style={{ textAlign: 'center', marginBottom: '64px' }}>
+                    <h2 className="section-title">Конфігуратор продукції</h2>
+                    <p className="section-subtitle">Створіть свій ідеальний продукт та дізнайтесь вартість миттєво</p>
                 </div>
 
-                <div style={{
-                    backgroundColor: style.card_bg || 'white',
-                    borderRadius: style.card_radius || '32px',
-                    padding: '32px',
-                    boxShadow: style.card_shadow || '0 20px 50px rgba(0,0,0,0.05)',
-                    border: '1px solid rgba(0,0,0,0.03)',
-                    color: style.text_color || 'inherit'
-                }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-
-                        {/* Step 1: Product Selector */}
-                        <div>
-                            <div style={stepHeaderStyle}>
-                                <div style={stepCircleStyle}>1</div>
-                                <h3 style={stepTitleStyle}>Оберіть продукт</h3>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-                                {activeProducts.map((p: any, i: number) => {
-                                    const isSelected = i === currentIdx;
-                                    return (
-                                        <button
-                                            key={p.id}
-                                            onClick={() => setSelectedProductIdx(i)}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '12px',
-                                                padding: '12px',
-                                                borderRadius: "3px",
-                                                border: isSelected ? '2px solid var(--primary)' : '1px solid #e2e8f0',
-                                                backgroundColor: isSelected ? '#f8fafc' : 'white',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s',
-                                                textAlign: 'left'
-                                            }}
-                                        >
-                                            <div style={{ width: '48px', height: '48px', borderRadius: "3px", overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#f1f5f9' }}>
-                                                {p.images && p.images.length > 0 && (
-                                                    <Image src={p.images[0]} alt={p.name} fill style={{ objectFit: 'cover' }} />
-                                                )}
-                                            </div>
-                                            <div style={{ fontWeight: 700, fontSize: '14px', color: isSelected ? 'var(--primary)' : '#263A99', lineHeight: 1.2 }}>
-                                                {p.name}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        <hr style={{ borderColor: '#f1f5f9', margin: '0' }} />
-
-                        {/* Step 2: Characteristics */}
-                        {currentProd?.options && currentProd.options.length > 0 && (
-                            <div>
-                                <div style={stepHeaderStyle}>
-                                    <div style={stepCircleStyle}>2</div>
-                                    <h3 style={stepTitleStyle}>Характеристики</h3>
+                <div className={styles.configCard}>
+                    <AnimatePresence mode="wait">
+                        {step === 1 ? (
+                            <motion.div
+                                key="step1"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                            >
+                                <div className={styles.stepHeader}>
+                                    <div className={styles.stepNumber}>1</div>
+                                    <h3 className={styles.stepTitle}>Оберіть тип продукту</h3>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                    {currentProd.options.map((opt: any, optIdx: number) => (
-                                        <div key={optIdx}>
-                                            <label style={labelStyle}>{opt.name}</label>
-                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                                {opt.values.map((val: any, valIdx: number) => {
-                                                    const isSelected = selectedOptions[opt.name] === valIdx;
-                                                    return (
-                                                        <button
-                                                            key={valIdx}
-                                                            onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.name]: valIdx }))}
-                                                            style={{
-                                                                padding: '10px 16px',
-                                                                borderRadius: "3px",
-                                                                border: isSelected ? '2px solid var(--primary)' : '1px solid #e2e8f0',
-                                                                background: isSelected ? '#f8fafc' : 'white',
-                                                                color: isSelected ? 'var(--primary)' : '#475569',
-                                                                fontWeight: 600,
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.2s',
-                                                                fontSize: '14px'
-                                                            }}
-                                                        >
-                                                            {val.name}
-                                                        </button>
-                                                    )
-                                                })}
+                                <div className={styles.productGrid}>
+                                    {allProducts.map((p) => (
+                                        <div
+                                            key={p.id}
+                                            className={styles.productCard}
+                                            onClick={() => handleProductSelect(p)}
+                                        >
+                                            <div className={styles.productImageWrapper}>
+                                                {p.images && p.images[0] && (
+                                                    <Image
+                                                        src={p.images[0]}
+                                                        alt={p.name}
+                                                        fill
+                                                        style={{ objectFit: 'cover' }}
+                                                        sizes="(max-width: 768px) 100vw, 33vw"
+                                                    />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className={styles.productName}>{p.name}</div>
+                                                <div style={{ fontSize: '14px', opacity: 0.6, marginTop: '4px' }}>
+                                                    {p.price > 0 ? `Від ${p.price} ₴` : 'Ціна за запитом'}
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-                        )}
-
-                        <hr style={{ borderColor: '#f1f5f9', margin: '0' }} />
-
-                        {/* Step 3: Result */}
-                        <div>
-                            <div style={stepHeaderStyle}>
-                                <div style={stepCircleStyle}>3</div>
-                                <h3 style={stepTitleStyle}>Підсумок</h3>
-                            </div>
-
-                            <div style={{
-                                padding: '24px',
-                                backgroundColor: '#f8fafc',
-                                borderRadius: "3px",
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                flexWrap: 'wrap',
-                                gap: '20px',
-                                border: '1px solid #f1f5f9'
-                            }}>
-                                <div>
-                                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
-                                        Вартість:
+                                {allProducts.length === 0 && (
+                                    <div style={{ textAlign: 'center', padding: '40px', opacity: 0.5 }}>
+                                        Немає доступних продуктів для конфігурації.
                                     </div>
-                                    <div style={{ fontSize: '32px', fontWeight: 900, color: 'var(--primary)' }}>
-                                        {currentProd?.price_from ? 'від ' : ''}<AnimatedNumber value={finalPrice} /> ₴
-                                    </div>
-                                    {currentProd?.productionTime && (
-                                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#16a34a', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <div style={{ width: '6px', height: '6px', borderRadius: "3px", backgroundColor: '#16a34a' }}></div>
-                                            Виготовлення: {currentProd.productionTime}
-                                        </div>
-                                    )}
+                                )}
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="step2"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                            >
+                                <button className={styles.backButton} onClick={() => setStep(1)}>
+                                    <ArrowLeft size={16} /> Назад до вибору
+                                </button>
+
+                                <div className={styles.stepHeader}>
+                                    <div className={styles.stepNumber}>2</div>
+                                    <h3 className={styles.stepTitle}>Налаштуйте параметри</h3>
                                 </div>
 
-                                <button
-                                    onClick={() => window.location.href = `/catalog/${currentProd?.slug}`}
-                                    style={{
-                                        height: '56px',
-                                        padding: '0 32px',
-                                        backgroundColor: 'var(--section-button-bg)',
-                                        color: 'var(--section-button-text)',
-                                        borderRadius: "3px",
-                                        boxShadow: 'var(--button-shadow)',
-                                        border: 'none',
-                                        fontWeight: 700,
-                                        fontSize: '16px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '12px',
-                                        transition: 'transform 0.2s'
-                                    }}
-                                    className={styles.hoverLift}
-                                >
-                                    Замовити
-                                    <ArrowRight size={20} />
-                                </button>
-                            </div>
-                        </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '40px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '24px', paddingBottom: '32px', borderBottom: '1px solid #f1f5f9' }}>
+                                        <div style={{ width: '80px', height: '80px', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
+                                            <Image src={selectedProduct?.images?.[0] || ''} alt="" fill style={{ objectFit: 'cover' }} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 800, fontSize: '20px', color: 'var(--primary)' }}>{selectedProduct?.name}</div>
+                                            <div style={{ opacity: 0.6, fontSize: '14px' }}>Персоналізація продукту</div>
+                                        </div>
+                                    </div>
 
-                    </div>
+                                    <div>
+                                        {[
+                                            ...(Array.isArray(selectedProduct?.custom_attributes) ? selectedProduct!.custom_attributes! : []),
+                                            ...(Array.isArray(selectedProduct?.characteristics) ? selectedProduct!.characteristics! : [])
+                                        ].map((attr, idx) => (
+                                            <div key={idx} className={styles.attributeGroup}>
+                                                <label className={styles.attributeLabel}>{attr.label}</label>
+
+                                                {attr.type === 'select' && (
+                                                    <div className={styles.optionGrid}>
+                                                        {attr.options?.map((opt: string) => (
+                                                            <button
+                                                                key={opt}
+                                                                className={`${styles.optionButton} ${selections[attr.key] === opt ? styles.optionButtonActive : ''}`}
+                                                                onClick={() => setSelections(prev => ({ ...prev, [attr.key]: opt }))}
+                                                            >
+                                                                {opt}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {attr.type === 'boolean' && (
+                                                    <div className={styles.optionGrid}>
+                                                        <button
+                                                            className={`${styles.optionButton} ${selections[attr.key] === true ? styles.optionButtonActive : ''}`}
+                                                            onClick={() => setSelections(prev => ({ ...prev, [attr.key]: true }))}
+                                                        >
+                                                            Так
+                                                        </button>
+                                                        <button
+                                                            className={`${styles.optionButton} ${selections[attr.key] === false ? styles.optionButtonActive : ''}`}
+                                                            onClick={() => setSelections(prev => ({ ...prev, [attr.key]: false }))}
+                                                        >
+                                                            Ні
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+
+                                        {/* Fallback if no attributes but is_personalized */}
+                                        {selectedProduct?.is_personalized &&
+                                            !(selectedProduct.custom_attributes?.length || selectedProduct.characteristics?.length) && (
+                                                <div style={{ padding: '24px', background: '#f8fafc', borderRadius: '3px', marginBottom: '32px' }}>
+                                                    Цей товар налаштовується індивідуально після замовлення. Базова ціна залишається незмінною.
+                                                </div>
+                                            )}
+                                    </div>
+
+                                    <div className={styles.summaryBlock}>
+                                        <div className={styles.priceDisplay}>
+                                            <span className={styles.priceLabel}>Орієнтовна вартість</span>
+                                            <div className={styles.priceValue}>
+                                                <AnimatedNumber value={finalPrice} /> ₴
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            className={styles.orderButton}
+                                            disabled={!isStep2Complete}
+                                            onClick={() => window.location.href = `/catalog/${selectedProduct?.slug}`}
+                                        >
+                                            Замовити <ArrowRight size={20} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
         </section>
     );
 }
-
-const labelStyle = { display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' };
-const stepHeaderStyle = { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' };
-const stepCircleStyle = { width: '28px', height: '28px', borderRadius: "3px", backgroundColor: '#f0f9ff', color: '#263A99', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '14px' };
-const stepTitleStyle = { fontSize: '18px', fontWeight: 800, margin: 0, color: '#263A99' };

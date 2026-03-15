@@ -67,19 +67,19 @@ export function Footer({ categories = [] }: FooterProps) {
     ];
 
     return (
-        <footer ref={ref} className="bg-white border-t border-primary/5 pt-32 pb-12 relative overflow-hidden">
+        <footer ref={ref} className="bg-premium-gradient border-t border-primary/5 pt-32 pb-12 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
 
             <div className="container mx-auto px-6 lg:px-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 lg:gap-24">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-24 lg:gap-32">
                     {/* Brand Section */}
-                    <div className="flex flex-col gap-8">
+                    <div className="flex flex-col gap-10">
                         <Link href="/" className="inline-block group">
-                            <h2 className="font-heading font-black text-[22px] tracking-[0.25em] text-primary uppercase leading-tight m-0 transition-transform group-hover:scale-105 origin-left">
+                            <h2 className="font-heading font-black text-[24px] tracking-[0.25em] text-primary uppercase leading-tight m-0 transition-transform group-hover:scale-105 origin-left">
                                 {content['footer_brand_name'] || 'Touch.Memories'}
                             </h2>
                         </Link>
-                        <p className="text-[15px] text-primary/40 font-body leading-relaxed max-w-xs">
+                        <p className="text-[16px] text-primary/40 font-body leading-relaxed max-w-xs">
                             {content['footer_brand_desc'] || "Зберігаємо ваші найцінніші спогади у преміальних фотокнигах та продуктах з 2018 року."}
                         </p>
                         <div className="flex gap-4">
@@ -93,7 +93,7 @@ export function Footer({ categories = [] }: FooterProps) {
                                     href={social.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="w-10 h-10 rounded-brand border border-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white hover:border-primary transition-all cursor-pointer shadow-sm"
+                                    className="w-12 h-12 rounded-brand border border-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white hover:border-primary transition-all cursor-pointer shadow-sm hover:shadow-md"
                                 >
                                     {social.icon}
                                 </a>
@@ -103,14 +103,14 @@ export function Footer({ categories = [] }: FooterProps) {
 
                     {/* Desktop Navigation Columns */}
                     {sections.map((section) => (
-                        <div key={section.id} className="hidden lg:flex flex-col gap-8">
-                            <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/30 m-0">
+                        <div key={section.id} className="hidden lg:flex flex-col gap-10">
+                            <h4 className="text-[12px] font-black uppercase tracking-[0.3em] text-primary/30 m-0">
                                 {section.title}
                             </h4>
-                            <ul className="list-none p-0 m-0 flex flex-col gap-5">
+                            <ul className="list-none p-0 m-0 flex flex-col gap-6">
                                 {section.links.map((link: any, idx: number) => (
                                     <li key={idx}>
-                                        <Link href={link.href} className="text-[15px] font-bold text-primary/50 hover:text-primary hover:translate-x-1 inline-block transition-all">
+                                        <Link href={link.href} className="text-[16px] font-medium text-primary/50 hover:text-primary hover:translate-x-1 inline-block transition-all no-underline">
                                             {link.label}
                                         </Link>
                                     </li>
@@ -120,12 +120,12 @@ export function Footer({ categories = [] }: FooterProps) {
                     ))}
 
                     {/* Mobile Navigation Column */}
-                    <div className="lg:hidden flex flex-col gap-4">
+                    <div className="lg:hidden flex flex-col gap-6">
                         {sections.map((section) => (
                             <div key={section.id} className="border-b border-primary/5 last:border-none">
                                 <button
                                     onClick={() => toggleSection(section.id)}
-                                    className="w-full flex justify-between items-center py-4 text-left font-black text-[11px] uppercase tracking-[0.3em] text-primary/40"
+                                    className="w-full flex justify-between items-center py-6 text-left font-black text-[12px] uppercase tracking-[0.3em] text-primary/40"
                                 >
                                     <span>{section.title}</span>
                                     <ChevronDown size={14} className={cn("transition-transform", openSection === section.id ? "rotate-180" : "")} />
@@ -136,12 +136,12 @@ export function Footer({ categories = [] }: FooterProps) {
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
-                                            className="overflow-hidden pb-6"
+                                            className="overflow-hidden pb-8"
                                         >
-                                            <ul className="list-none p-0 m-0 flex flex-col gap-4">
+                                            <ul className="list-none p-0 m-0 flex flex-col gap-5">
                                                 {section.links.map((link: any, idx: number) => (
                                                     <li key={idx}>
-                                                        <Link href={link.href} className="text-[15px] font-bold text-primary/60">{link.label}</Link>
+                                                        <Link href={link.href} className="text-[16px] font-medium text-primary/60">{link.label}</Link>
                                                     </li>
                                                 ))}
                                             </ul>
@@ -153,22 +153,22 @@ export function Footer({ categories = [] }: FooterProps) {
                     </div>
 
                     {/* Newsletter */}
-                    <div className="flex flex-col gap-8">
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/30 m-0">
+                    <div className="flex flex-col gap-10">
+                        <h4 className="text-[12px] font-black uppercase tracking-[0.3em] text-primary/30 m-0">
                             Newsletter
                         </h4>
-                        <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-6">
                             <div className="relative group">
                                 <input
                                     type="email"
                                     placeholder="Ваш email"
-                                    className="w-full bg-white border border-primary/10 rounded-brand px-6 py-4 text-[14px] outline-none shadow-[var(--shadow-premium)] focus:border-primary/20 transition-all text-primary font-medium"
+                                    className="w-full bg-white border border-primary/5 rounded-brand px-6 py-5 text-[15px] outline-none shadow-[var(--shadow-premium)] focus:border-primary/20 transition-all text-primary font-medium"
                                 />
-                                <button className="absolute right-2 top-2 bottom-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-5 rounded-brand hover:bg-primary/90 transition-all">
+                                <button className="absolute right-2 top-2 bottom-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-6 rounded-brand hover:bg-primary/90 transition-all">
                                     OK
                                 </button>
                             </div>
-                            <p className="text-[12px] text-primary/30 font-body leading-relaxed max-w-[240px]">
+                            <p className="text-[13px] text-primary/30 font-body leading-relaxed max-w-[260px]">
                                 Отримуйте новини про акції та нові продукти першими.
                             </p>
                         </div>
@@ -176,8 +176,8 @@ export function Footer({ categories = [] }: FooterProps) {
                 </div>
 
                 {/* Bottom Bar */}
-                <div className="mt-32 pt-12 border-t border-primary/5 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <p className="text-[12px] text-primary/20 font-bold tracking-tight m-0">
+                <div className="mt-32 pt-16 border-t border-primary/5 flex flex-col md:flex-row justify-between items-center gap-10">
+                    <p className="text-[13px] text-primary/20 font-medium tracking-tight m-0">
                         © {new Date().getFullYear()} {content['footer_copyright'] || 'Touch.Memories'}. Всі права захищено.
                     </p>
                     <div className="flex gap-12">
@@ -185,7 +185,7 @@ export function Footer({ categories = [] }: FooterProps) {
                             { label: 'Політика конфіденційності', href: '/privacy-policy' },
                             { label: 'Публічна оферта', href: '/public-offer' }
                         ].map((link) => (
-                            <Link key={link.label} href={link.href} className="text-[12px] text-primary/20 hover:text-primary transition-colors font-bold">
+                            <Link key={link.label} href={link.href} className="text-[13px] text-primary/20 hover:text-primary transition-colors font-medium no-underline">
                                 {link.label}
                             </Link>
                         ))}

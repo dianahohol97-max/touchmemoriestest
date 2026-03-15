@@ -41,23 +41,21 @@ export function SocialProof() {
                 borderRadius: style.border_radius || '0px'
             }}
         >
-            <div className="container" style={{ textAlign: 'center' }}>
+            <div className="container text-center">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                     transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
                 >
-                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-8">
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/50">Відгуки</span>
+                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-10">
+                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/50">Відгуки клієнтів</span>
                     </div>
 
-                    <h2 className="text-[32px] lg:text-[42px] font-black leading-[1.05] tracking-tight text-primary mb-8 max-w-3xl mx-auto">
+                    <h2 className="section-title text-center max-w-3xl mx-auto mb-10">
                         <DynamicText contentKey="social_proof_title" fallback="Ваші історії в наших книгах" />
                     </h2>
 
-                    <div className="w-24 h-1 bg-primary/10 mx-auto mb-10 rounded-full" />
-
-                    <p className="text-[17px] lg:text-[19px] text-primary/40 max-w-2xl mx-auto font-body leading-relaxed mb-20 px-4">
+                    <p className="section-subtitle text-center mb-24 px-4">
                         <DynamicText contentKey="social_proof_subtitle" fallback="Ми щасливі бути частиною ваших найтепліших спогадів. Погляньте, як наші клієнти зберігають свої моменти." />
                     </p>
                 </motion.div>

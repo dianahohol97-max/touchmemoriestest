@@ -21,19 +21,31 @@
   --font-body: 'Open Sans', sans-serif;
   --font-heading: 'Montserrat', sans-serif;
   --size-h1: 56px;
-  --size-h2: 42px;
-  --size-h3: 26px;
-  --size-body: 17px;
+  --size-h2: 40px;
+  /* Reduced from 42px as requested */
+  --size-h3: 28px;
+  /* Increased from 26px as requested */
+  --size-body: 16px;
+  /* Optimized for premium readability */
   --size-small: 14px;
 
-  /* Spacing & Radius */
+  /* Spacing Scale - Strictly for 4px/8px grid */
+  --space-8: 8px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --section-spacing: 144px;
+
+  /* Radius */
   --radius-base: 3px;
   --radius: 3px;
-  --spacing-base: 4px;
 
   /* Shadows - Multi-layered for depth */
-  --shadow-premium: 0 20px 60px -15px rgba(38, 58, 153, 0.12), 0 10px 30px -10px rgba(0, 0, 0, 0.05);
-  --shadow-hover: 0 40px 80px -20px rgba(38, 58, 153, 0.2);
+  --shadow-premium: 0 10px 40px -10px rgba(38, 58, 153, 0.1), 0 5px 20px -5px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 30px 60px -15px rgba(38, 58, 153, 0.15), 0 15px 30px -10px rgba(0, 0, 0, 0.05);
+  --shadow-subtle: 0 4px 12px rgba(38, 58, 153, 0.03);
 
   /* Support vars */
   --primary-foreground: 255 255 255;
@@ -63,7 +75,8 @@ h1 {
   margin-bottom: 24px;
 }
 
-h2 {
+h2,
+.section-title {
   font-family: var(--font-heading);
   font-size: var(--size-h2);
   font-weight: 800;
@@ -71,6 +84,15 @@ h2 {
   letter-spacing: -0.03em;
   color: var(--primary);
   margin-bottom: 32px;
+}
+
+.section-subtitle {
+  font-size: var(--size-body);
+  color: var(--text-primary);
+  opacity: 0.5;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
 }
 
 h3 {
@@ -189,10 +211,23 @@ a:hover {
   border: 1px solid rgba(38, 58, 153, 0.1);
 }
 
+/* Premium Layers & Gradients */
+.bg-premium-subtle {
+  background-color: #fcfdfe;
+}
+
+.bg-premium-gradient {
+  background: linear-gradient(180deg, #FFFFFF 0%, #f8fafc 100%);
+}
+
+.bg-primary-subtle {
+  background-color: rgba(38, 58, 153, 0.02);
+}
+
 /* Section Spacing */
 .section-padding {
-  padding-top: 144px;
-  padding-bottom: 144px;
+  padding-top: var(--section-spacing);
+  padding-bottom: var(--section-spacing);
 }
 
 @media (max-width: 768px) {
@@ -203,6 +238,7 @@ a:hover {
 }
 
 /* Force 3px border radius for all rounded elements to ensure boxy aesthetic */
+/* Unless it's a specific rounded-full case */
 [class*='rounded-']:not(.rounded-full) {
   border-radius: 3px !important;
 }
