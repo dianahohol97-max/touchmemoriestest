@@ -19,7 +19,7 @@ export default function LoginPage() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://touchmemoriestest-8ou0x8miw-dianahohol97-7159s-projects.vercel.app/auth/callback'
+        redirectTo: 'https://touchmemoriestest-ajha3c1uy-dianahohol97-7159s-projects.vercel.app/auth/callback'
       }
     })
     if (error) {
