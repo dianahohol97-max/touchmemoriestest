@@ -36,88 +36,70 @@ export function Hero() {
     };
 
     return (
-        <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-20 bg-transparent rounded-none section-padding">
-            {/* Background Image */}
-            <div className="absolute inset-0 z-0">
-                <img
-                    src={bgImage}
-                    alt="Family reading a photo book"
-                    className="w-full h-full object-cover object-center"
-                />
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent"></div>
-                <div className="absolute inset-0 bg-black/20"></div>
-            </div>
+        <section className="relative min-h-screen flex items-center overflow-hidden bg-white pt-20">
+            <div className="container mx-auto px-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                {/* Left: Content */}
+                <div className="relative z-10 order-2 lg:order-1">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, ease: easing }}
+                        className="mb-8"
+                    >
+                        <span className="text-[14px] uppercase tracking-[0.2em] font-extrabold text-primary/60">
+                            {overlineText}
+                        </span>
+                    </motion.div>
 
-            {/* Content */}
-            <div className="relative z-10 pl-[min(5vw,40px)] pr-5">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: easing }}
-                    className="mb-4"
-                >
-                    <span className="text-[12px] uppercase tracking-widest font-semibold text-white/90">
-                        {overlineText}
-                    </span>
-                </motion.div>
+                    <motion.h1
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="font-heading font-extrabold text-5xl md:text-7xl lg:text-[72px] leading-[1.05] tracking-tight text-primary mb-10"
+                    >
+                        {titleText.split('\n').map((line: string, idx: number) => (
+                            <div key={idx} className="overflow-hidden pb-1">
+                                <motion.span variants={wordVariants} className="inline-block tracking-[-0.04em]">{line}</motion.span>
+                            </div>
+                        ))}
+                    </motion.h1>
 
-                <motion.h1
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="font-heading font-black text-6xl md:text-6xl leading-[1.05] tracking-tight text-white mb-8 max-w-[800px]"
-                >
-                    {titleText.split('\n').map((line: string, idx: number) => (
-                        <div key={idx} className="overflow-hidden pb-1">
-                            <motion.span variants={wordVariants} className="inline-block tracking-[-0.03em]">{line}</motion.span>
-                        </div>
-                    ))}
-                </motion.h1>
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, ease: easing, delay: 0.3 }}
+                        className="font-body text-lg text-primary/70 max-w-[480px] mb-12 font-medium leading-relaxed"
+                    >
+                        {subtitleText}
+                    </motion.p>
 
-                <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: easing, delay: 0.3 }}
-                    className="font-body text-lg text-white/90 max-w-[480px] mb-12 font-medium leading-relaxed"
-                >
-                    {subtitleText}
-                </motion.p>
-
-
-                {/* Actions - 2+2+1 Grid */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.5 }}
-                    className="max-w-[600px]"
-                >
-                    {/* Row 1: Глянцевий журнал + Фотокнига */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <Link href="/catalog?category=magazines" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Глянцевий журнал
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, ease: easing, delay: 0.5 }}
+                        className="flex flex-col sm:flex-row gap-4"
+                    >
+                        <Link href="/catalog?category=photobooks" className="btn-primary">
+                            Створити фотокнигу
                         </Link>
-                        <Link href="/catalog?category=photobooks" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Фотокнига
+                        <Link href="/catalog" className="btn-secondary">
+                            Переглянути каталог
                         </Link>
-                    </div>
+                    </motion.div>
+                </div>
 
-                    {/* Row 2: Фотодрук + Travel book */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <Link href="/catalog?category=photo-print" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Фотодрук
-                        </Link>
-                        <Link href="/catalog?category=travelbook" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Travel book
-                        </Link>
-                    </div>
-
-                    {/* Row 3: В магазин (half width, primary) */}
-                    <Link href="/catalog" className="btn-primary w-1/2 h-[56px] text-[15px] shadow-[0_4px_12px_rgba(38,58,153,0.2)] hover:shadow-[0_8px_24px_rgba(38,58,153,0.3)]">
-                        В магазин
-                    </Link>
-
-                </motion.div>
+                {/* Right: Product Visual Focus */}
+                <div className="relative order-1 lg:order-2 h-[400px] lg:h-[600px] rounded-brand overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] group">
+                    <motion.img
+                        initial={{ scale: 1.1, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                        src={bgImage}
+                        alt="Touch Memories Premium Book"
+                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-primary/5 group-hover:bg-transparent transition-colors"></div>
+                </div>
             </div>
         </section>
     );

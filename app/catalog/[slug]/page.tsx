@@ -246,7 +246,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                     {/* Right Column: Details */}
                     <div>
-                        <h1 className={styles.productTitleMain} style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: '16px', lineHeight: 1.2 }}>
+                        <h1 className={styles.productTitleMain} style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 800, marginBottom: '24px', lineHeight: 1.1, letterSpacing: '-0.02em', color: '#263A99' }}>
                             {product.name}
                         </h1>
                         {product.short_description && (
@@ -637,6 +637,20 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 )}
 
             </main>
+
+            {/* Mobile Sticky CTA */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-primary/5 z-50 flex items-center justify-between gap-4 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+                <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-primary/40">Ціна</span>
+                    <span className="text-[18px] font-black text-primary">{finalPrice} ₴</span>
+                </div>
+                <button
+                    onClick={handleAddToCart}
+                    className="flex-1 bg-primary text-white py-4 px-6 rounded-brand font-bold text-[15px] shadow-[0_10px_20px_rgba(38,58,153,0.15)] active:scale-[0.98] transition-all"
+                >
+                    {product.is_personalized ? 'Створити' : 'Замовити'}
+                </button>
+            </div>
 
             <Footer categories={[]} />
 

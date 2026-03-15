@@ -21,7 +21,7 @@
   --font-body: 'Open Sans', sans-serif;
   --font-heading: 'Montserrat', sans-serif;
   --size-h1: 16px;
-  --size-h2: 64px;
+  --size-h2: 72px;
   --size-body: 16px;
 
   /* Spacing & Radius */
@@ -50,9 +50,9 @@ body {
 h1 {
   font-family: var(--font-heading);
   font-size: var(--size-h1);
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.2em;
   color: var(--primary);
   margin-bottom: 16px;
 }
@@ -62,8 +62,8 @@ h2 {
   font-size: var(--size-h2);
   font-weight: 800;
   /* Slightly lighter for Montserrat to look more Apple-like */
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
   /* Tighter tracking for large titles */
   color: var(--primary);
   margin-bottom: 32px;
@@ -108,7 +108,7 @@ a:hover {
 .btn-primary {
   background: var(--primary);
   color: white;
-  padding: 12px 24px;
+  padding: 14px 28px;
   border-radius: var(--radius);
   font-weight: 700;
   font-family: var(--font-heading);
@@ -129,7 +129,7 @@ a:hover {
 .btn-secondary {
   background: transparent;
   color: var(--primary);
-  padding: 12px 24px;
+  padding: 14px 28px;
   border-radius: var(--radius);
   font-weight: 700;
   font-family: var(--font-heading);
@@ -171,16 +171,16 @@ a:hover {
   border: 1px solid rgba(38, 58, 153, 0.1);
 }
 
-/* Section Spacing */
+/* Section Spacing - Dramatic Vertical Air */
 .section-padding {
-  padding-top: 128px;
-  padding-bottom: 128px;
+  padding-top: 144px;
+  padding-bottom: 144px;
 }
 
 @media (max-width: 768px) {
   .section-padding {
-    padding-top: 64px;
-    padding-bottom: 64px;
+    padding-top: 80px;
+    padding-bottom: 80px;
   }
 }
 
