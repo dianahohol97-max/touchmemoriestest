@@ -100,7 +100,7 @@ export default async function Home() {
           <FeaturedProducts products={products || []} />
         </SectionWrapper>
 
-        <SectionWrapper name="constructor_selection" defaultOrder={3}>
+        <SectionWrapper name="categories_books" defaultOrder={25}>
           <ConstructorSelection />
         </SectionWrapper>
 
