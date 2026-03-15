@@ -36,7 +36,7 @@ export function Hero() {
     };
 
     return (
-        <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-20 bg-transparent rounded-none">
+        <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-20 bg-transparent rounded-none section-padding">
             {/* Background Image */}
             <div className="absolute inset-0 z-0">
                 <img
@@ -69,8 +69,8 @@ export function Hero() {
                     className="font-heading font-black text-6xl md:text-6xl leading-[1.05] tracking-tight text-white mb-8 max-w-[800px]"
                 >
                     {titleText.split('\n').map((line: string, idx: number) => (
-                        <div key={idx} className="overflow-hidden pb-2">
-                            <motion.span variants={wordVariants} className="inline-block">{line}</motion.span>
+                        <div key={idx} className="overflow-hidden pb-1">
+                            <motion.span variants={wordVariants} className="inline-block tracking-[-0.03em]">{line}</motion.span>
                         </div>
                     ))}
                 </motion.h1>
@@ -90,97 +90,30 @@ export function Hero() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.5 }}
-                    style={{ maxWidth: '500px' }}
+                    className="max-w-[600px]"
                 >
                     {/* Row 1: Глянцевий журнал + Фотокнига */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                        <Link href="/catalog?category=magazines" style={{
-                            height: '52px',
-                            backgroundColor: 'white',
-                            color: '#263A99',
-                            fontWeight: 700,
-                            fontSize: '15px',
-                            borderRadius: "3px",
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            textDecoration: 'none',
-                            transition: 'all 0.2s',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                        }} className="hover-lift">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <Link href="/catalog?category=magazines" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
                             Глянцевий журнал
                         </Link>
-                        <Link href="/catalog?category=photobooks" style={{
-                            height: '52px',
-                            backgroundColor: 'white',
-                            color: '#263A99',
-                            fontWeight: 700,
-                            fontSize: '15px',
-                            borderRadius: "3px",
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            textDecoration: 'none',
-                            transition: 'all 0.2s',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                        }} className="hover-lift">
+                        <Link href="/catalog?category=photobooks" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
                             Фотокнига
                         </Link>
                     </div>
 
                     {/* Row 2: Фотодрук + Travel book */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                        <Link href="/catalog?category=photo-print" style={{
-                            height: '52px',
-                            backgroundColor: 'white',
-                            color: '#263A99',
-                            fontWeight: 700,
-                            fontSize: '15px',
-                            borderRadius: "3px",
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            textDecoration: 'none',
-                            transition: 'all 0.2s',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                        }} className="hover-lift">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <Link href="/catalog?category=photo-print" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
                             Фотодрук
                         </Link>
-                        <Link href="/catalog?category=travelbook" style={{
-                            height: '52px',
-                            backgroundColor: 'white',
-                            color: '#263A99',
-                            fontWeight: 700,
-                            fontSize: '15px',
-                            borderRadius: "3px",
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            textDecoration: 'none',
-                            transition: 'all 0.2s',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                        }} className="hover-lift">
+                        <Link href="/catalog?category=travelbook" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
                             Travel book
                         </Link>
                     </div>
 
                     {/* Row 3: В магазин (half width, primary) */}
-                    <Link href="/catalog" style={{
-                        height: '52px',
-                        backgroundColor: '#263A99',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '15px',
-                        borderRadius: "3px",
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textDecoration: 'none',
-                        transition: 'background-color 0.2s',
-                        width: '50%',
-                    }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1d2d7a'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#263A99'}
-                    >
+                    <Link href="/catalog" className="btn-primary w-1/2 h-[56px] text-[15px] shadow-[0_4px_12px_rgba(38,58,153,0.2)] hover:shadow-[0_8px_24px_rgba(38,58,153,0.3)]">
                         В магазин
                     </Link>
 

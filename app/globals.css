@@ -60,11 +60,14 @@ h1 {
 h2 {
   font-family: var(--font-heading);
   font-size: var(--size-h2);
-  font-weight: 900;
+  font-weight: 800;
+  /* Slightly lighter for Montserrat to look more Apple-like */
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  /* Tighter tracking for large titles */
   color: var(--primary);
-  margin-bottom: 24px;
+  margin-bottom: 32px;
+  /* Increased from 24px */
 }
 
 h3,
@@ -94,9 +97,11 @@ a:hover {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1280px;
+  /* Increased from 1200px */
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 32px;
+  /* Increased from 24px for more breathing room */
 }
 
 /* Centralized Button System */
@@ -156,6 +161,27 @@ a:hover {
 
 .rounded-brand {
   border-radius: var(--radius);
+}
+
+/* Glass Card Utility */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(38, 58, 153, 0.1);
+}
+
+/* Section Spacing */
+.section-padding {
+  padding-top: 128px;
+  padding-bottom: 128px;
+}
+
+@media (max-width: 768px) {
+  .section-padding {
+    padding-top: 64px;
+    padding-bottom: 64px;
+  }
 }
 
 /* Force 3px border radius for all rounded elements to ensure boxy aesthetic */
