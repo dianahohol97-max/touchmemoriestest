@@ -18,6 +18,7 @@ export default function ThemeEditorPage() {
     const [blocks, setBlocks] = useState<any[]>([]);
     const [content, setContent] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
+    const [personalizedProducts, setPersonalizedProducts] = useState<any[]>([]);
     const [calcConfig, setCalcConfig] = useState<any>({ products: [] });
     const [testimonials, setTestimonials] = useState<any[]>([]);
 
@@ -26,11 +27,12 @@ export default function ThemeEditorPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [themeRes, blocksRes, contentRes, categoriesRes] = await Promise.all([
+                const [themeRes, blocksRes, contentRes, categoriesRes, productsRes] = await Promise.all([
                     supabase.from('theme_settings').select('*').limit(1).single(),
                     supabase.from('site_blocks').select('*').order('position_order', { ascending: true }),
                     supabase.from('site_content').select('*'),
-                    supabase.from('categories').select('*').eq('is_active', true).order('sort_order', { ascending: true })
+                    supabase.from('categories').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+                    supabase.from('products').select('*').eq('is_personalized', true).eq('is_active', true).order('name', { ascending: true })
                 ]);
 
                 if (themeRes.data) setTheme(themeRes.data);
@@ -47,6 +49,7 @@ export default function ThemeEditorPage() {
                     }
                 }
                 if (categoriesRes.data) setCategories(categoriesRes.data);
+                if (productsRes?.data) setPersonalizedProducts(productsRes.data);
             } catch (error) {
                 console.error('Failed to load theme data:', error);
                 toast.error('Помилка завантаження даних');
@@ -606,72 +609,50 @@ export default function ThemeEditorPage() {
                             {renderInput('calc_embed', 'Embed (iframe)', 'textarea')}
 
                             <hr style={{ borderColor: '#f1f5f9', width: '100%', margin: '12px 0' }} />
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Продукти в калькуляторі</h4>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '8px 0', color: '#1e293b' }}>Товари в калькуляторі</h4>
 
-                            {calcConfig.products?.map((prod: any, pIdx: number) => (
-                                <div key={pIdx} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '12px', backgroundColor: '#fcfcfc' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                        <input
-                                            value={prod.name}
-                                            onChange={e => {
-                                                const newProds = [...calcConfig.products];
-                                                newProds[pIdx].name = e.target.value;
-                                                handleCalcConfigChange({ ...calcConfig, products: newProds });
-                                            }}
-                                            placeholder="Назва продукту"
-                                            style={{ ...inputStyle, fontWeight: 700, width: 'auto' }}
-                                        />
-                                        <button
-                                            onClick={() => {
-                                                const newProds = calcConfig.products.filter((_: any, i: number) => i !== pIdx);
-                                                handleCalcConfigChange({ ...calcConfig, products: newProds });
-                                            }}
-                                            style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px' }}
-                                        >
-                                            Видалити
-                                        </button>
-                                    </div>
+                            {personalizedProducts.map(prod => {
+                                const config = (calcConfig?.products || []).find((p: any) => p.id === prod.id) || { id: prod.id, isActive: false, productionTime: '3-5 робочих днів' };
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                        <div>
-                                            <label style={labelStyle}>Базова ціна</label>
-                                            <input
-                                                type="number"
-                                                value={prod.base_price}
-                                                onChange={e => {
-                                                    const newProds = [...calcConfig.products];
-                                                    newProds[pIdx].base_price = Number(e.target.value);
-                                                    handleCalcConfigChange({ ...calcConfig, products: newProds });
-                                                }}
-                                                style={inputStyle}
-                                            />
+                                const handleUpdate = (updates: any) => {
+                                    const newProds = [...(calcConfig?.products || [])];
+                                    const existingIdx = newProds.findIndex((p: any) => p.id === prod.id);
+                                    if (existingIdx >= 0) {
+                                        newProds[existingIdx] = { ...newProds[existingIdx], ...updates };
+                                    } else {
+                                        newProds.push({ id: prod.id, ...updates });
+                                    }
+                                    handleCalcConfigChange({ ...calcConfig, products: newProds });
+                                };
+
+                                return (
+                                    <div key={prod.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '12px', backgroundColor: '#fcfcfc' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: config.isActive ? '12px' : '0' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={config.isActive}
+                                                    onChange={e => handleUpdate({ isActive: e.target.checked, productionTime: config.productionTime || '3-5 робочих днів' })}
+                                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                                />
+                                                <span style={{ fontWeight: 700, fontSize: '14px' }}>{prod.name}</span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label style={labelStyle}>Ціна за стор.</label>
-                                            <input
-                                                type="number"
-                                                value={prod.page_price}
-                                                onChange={e => {
-                                                    const newProds = [...calcConfig.products];
-                                                    newProds[pIdx].page_price = Number(e.target.value);
-                                                    handleCalcConfigChange({ ...calcConfig, products: newProds });
-                                                }}
-                                                style={inputStyle}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
 
-                            <button
-                                onClick={() => {
-                                    const newProd = { name: 'Новий продукт', base_price: 450, page_price: 25, formats: [], covers: [] };
-                                    handleCalcConfigChange({ ...calcConfig, products: [...(calcConfig.products || []), newProd] });
-                                }}
-                                style={{ width: '100%', padding: '10px', backgroundColor: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#475569', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
-                            >
-                                + Додати продукт
-                            </button>
+                                        {config.isActive && (
+                                            <div>
+                                                <label style={labelStyle}>Термін виготовлення</label>
+                                                <input
+                                                    value={config.productionTime || ''}
+                                                    onChange={e => handleUpdate({ productionTime: e.target.value, isActive: true })}
+                                                    placeholder="Напр. 3-5 робочих днів"
+                                                    style={inputStyle}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </details>
 
