@@ -15,6 +15,8 @@ interface ProductCardProps {
         slug: string;
         categories?: { name: string; slug: string } | any;
         short_description?: string;
+        is_personalized?: boolean;
+        is_partially_personalized?: boolean;
     };
 }
 
@@ -59,7 +61,12 @@ export function ProductCard({ product }: ProductCardProps) {
                             {typeof product.categories === 'object' ? product.categories?.name : 'Товар'}
                         </span>
                         <span className={styles.moreLink} style={{ fontSize: '14px', fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            Детальніше <span style={{ fontSize: '18px' }}>→</span>
+                            {product.is_personalized
+                                ? 'Створити'
+                                : product.is_partially_personalized
+                                    ? 'Замовити / Персоналізувати'
+                                    : 'Замовити'}
+                            <span style={{ fontSize: '18px' }}>→</span>
                         </span>
                     </div>
                 </div>

@@ -73,7 +73,7 @@ function CatalogContent() {
             // Fetch products
             const { data: prodData } = await supabase
                 .from('products')
-                .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, categories(name, slug)')
+                .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, is_personalized, is_partially_personalized, categories(name, slug)')
                 .eq('is_active', true);
 
             if (prodData) {

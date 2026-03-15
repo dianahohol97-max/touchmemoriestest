@@ -12,6 +12,7 @@ export interface CartItem {
     product_id?: string;
     category_slug?: string;
     slug?: string;
+    personalization_note?: string;
 }
 
 interface CartState {

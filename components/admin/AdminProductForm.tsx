@@ -143,6 +143,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
         video_url: initialData?.video_url || '',
         is_popular: initialData?.is_popular ?? false,
         sku: initialData?.sku || '',
+        is_partially_personalized: initialData?.is_partially_personalized ?? false,
     });
 
     const [variants, setVariants] = useState<ProductVariant[]>(initialData?.variants || []);
@@ -188,8 +189,11 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
             setFormData(prev => ({
                 ...prev,
                 [name]: val,
-                track_inventory: val === true ? false : true
+                track_inventory: val === true ? false : true,
+                is_partially_personalized: val === true ? false : prev.is_partially_personalized
             }));
+        } else if (name === 'is_partially_personalized') {
+            setFormData(prev => ({ ...prev, [name]: val }));
         } else {
             setFormData(prev => ({ ...prev, [name]: val }));
         }
@@ -400,6 +404,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
             characteristics: customAttributes,
             attribute_price_modifiers: attributePriceModifiers,
             tags: tags,
+            is_partially_personalized: formData.is_partially_personalized,
             updated_at: new Date().toISOString()
         };
 
@@ -721,6 +726,19 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
                                     </div>
                                 </div>
                             </div>
+                            {!formData.is_personalized && (
+                                <div style={toggleRowStyle}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <input type="checkbox" name="is_partially_personalized" checked={formData.is_partially_personalized} onChange={handleInputChange} style={checkboxStyle} />
+                                        <div>
+                                            <span style={{ fontSize: '14px', fontWeight: 800 }}>Частково персоналізований</span>
+                                            <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0 0 0' }}>
+                                                Товар можна замовити як є, або додати індивідуальне оформлення за бажанням клієнта.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

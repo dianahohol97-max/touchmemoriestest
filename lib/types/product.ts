@@ -46,6 +46,7 @@ export interface Product {
   meta_title?: string;
   meta_description?: string;
   is_personalized?: boolean;
+  is_partially_personalized?: boolean;
   track_inventory?: boolean;
   low_stock_threshold?: number;
   cost_price?: number;

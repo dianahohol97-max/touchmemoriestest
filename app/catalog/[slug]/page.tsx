@@ -32,6 +32,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
     // Store selected options -> mapping from option Name to selected value index
     const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
+    const [personalizationNote, setPersonalizationNote] = useState('');
+    const [showPersonalizationInput, setShowPersonalizationInput] = useState(false);
     const { addItem } = useCartStore();
 
     useEffect(() => {
@@ -140,7 +142,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             qty: quantity,
             image: mainImage,
             options: itemOptions,
-            slug: product.slug
+            slug: product.slug,
+            personalization_note: personalizationNote
         });
 
         toast.success('Товар додано до кошика');
@@ -338,7 +341,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         {product.is_personalized ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
-                                    <div className={styles.flexResponsive}>
+                                    <div className={styles.flexResponsive} style={{ display: 'flex', gap: '12px' }}>
                                         <Link
                                             href="/book-constructor"
                                             style={{
@@ -382,18 +385,117 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     </p>
                                 </div>
                             </div>
+                        ) : product.is_partially_personalized ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
+                                <div style={{ display: 'flex', gap: '12px' }} className={styles.flexResponsive}>
+                                    <button
+                                        onClick={handleAddToCart}
+                                        style={{
+                                            flex: 1,
+                                            padding: '18px',
+                                            backgroundColor: 'white',
+                                            color: 'var(--primary)',
+                                            border: '2px solid var(--primary)',
+                                            borderRadius: '12px',
+                                            fontSize: '16px',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        className="hover:bg-blue-50"
+                                    >
+                                        Замовити відразу
+                                    </button>
+                                    <button
+                                        onClick={() => setShowPersonalizationInput(!showPersonalizationInput)}
+                                        style={{
+                                            flex: 1.2,
+                                            padding: '18px',
+                                            backgroundColor: 'var(--primary)',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            fontSize: '16px',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            transition: 'background-color 0.2s'
+                                        }}
+                                        className="hover:bg-blue-700"
+                                    >
+                                        Додати персоналізацію та замовити
+                                    </button>
+                                </div>
+
+                                {showPersonalizationInput && (
+                                    <div style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: '#f8fafc' }}>
+                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>Опишіть вашу персоналізацію:</label>
+                                        <textarea
+                                            value={personalizationNote}
+                                            onChange={(e) => setPersonalizationNote(e.target.value)}
+                                            placeholder="напр. Напис 'Keep Memories' на обкладинці..."
+                                            style={{
+                                                width: '100%',
+                                                minHeight: '100px',
+                                                padding: '12px',
+                                                borderRadius: '8px',
+                                                border: '1px solid #cbd5e1',
+                                                fontSize: '14px',
+                                                fontFamily: 'inherit',
+                                                marginBottom: '12px'
+                                            }}
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                if (!personalizationNote.trim()) {
+                                                    toast.error('Будь ласка, введіть опис персоналізації');
+                                                    return;
+                                                }
+                                                handleAddToCart();
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px',
+                                                backgroundColor: 'var(--primary)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                fontSize: '14px',
+                                                fontWeight: 700,
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Додати до замовлення
+                                        </button>
+                                    </div>
+                                )}
+
+                                <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
+                                    Персоналізація — це індивідуальний надпис або оформлення на ваш вибір 💛
+                                </p>
+                            </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <button
                                     onClick={handleAddToCart}
-                                    style={{ width: '100%', padding: '18px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 700, cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '18px',
+                                        backgroundColor: 'var(--primary)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        fontSize: '16px',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s'
+                                    }}
                                     className="hover:bg-blue-700"
                                 >
-                                    В кошик — {finalPrice * quantity} ₴
+                                    Замовити відразу
                                 </button>
-                                <button style={{ width: '100%', padding: '18px', backgroundColor: 'white', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', fontWeight: 700, cursor: 'pointer', transition: 'background-color 0.2s' }} className="hover:bg-slate-50">
-                                    Замовити в 1 клік
-                                </button>
+                                <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
+                                    Швидке оформлення замовлення без зайвих кліків 🚀
+                                </p>
                             </div>
                         )}
 
