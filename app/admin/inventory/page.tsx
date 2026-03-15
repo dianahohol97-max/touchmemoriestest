@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import {
     Box,
     RefreshCw,
@@ -23,10 +23,7 @@ import {
 import { toast } from 'sonner';
 
 export default function InventoryAdminPage() {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);

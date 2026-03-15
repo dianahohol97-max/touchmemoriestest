@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, use, useRef } from 'react';
 import styles from './customer-profile.module.css';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -12,10 +12,7 @@ import { toast } from 'sonner';
 
 export default function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
     const router = useRouter();
 
     const [customer, setCustomer] = useState<any>(null);

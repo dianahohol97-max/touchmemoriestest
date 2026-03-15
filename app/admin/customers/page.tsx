@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import {
     Search,
@@ -14,10 +14,7 @@ import {
 } from 'lucide-react';
 
 export default function CustomersPage() {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);

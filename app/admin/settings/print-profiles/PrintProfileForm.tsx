@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Loader2, Save, X, Info } from 'lucide-react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
 interface PrintProfileFormProps {
@@ -11,10 +11,7 @@ interface PrintProfileFormProps {
 }
 
 export default function PrintProfileForm({ profile, onClose, onSuccess }: PrintProfileFormProps) {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
     const [loading, setLoading] = useState(false);
     const [products, setProducts] = useState<any[]>([]);
     const [formData, setFormData] = useState({

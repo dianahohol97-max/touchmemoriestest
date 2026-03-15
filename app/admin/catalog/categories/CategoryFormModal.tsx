@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -12,10 +12,7 @@ interface CategoryFormModalProps {
 }
 
 export function CategoryFormModal({ category, onClose, onSave }: CategoryFormModalProps) {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { Plus, GripVertical, Eye, EyeOff, Edit2, Trash2, Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -105,10 +105,7 @@ function SortableCategoryItem({ category, onEdit, onDelete, onToggleVisibility }
 }
 
 export default function CategoriesPage() {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(true);

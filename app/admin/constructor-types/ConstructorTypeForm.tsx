@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Save, X, Info, Plus, Trash2, Layout, Image as ImageIcon, Type, Palette, Sparkles, CircleDollarSign, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { TEMPLATES } from '@/utils/templates';
 
 interface ConstructorTypeFormProps {
@@ -12,10 +12,7 @@ interface ConstructorTypeFormProps {
 }
 
 export default function ConstructorTypeForm({ typeId, onClose, onSuccess }: ConstructorTypeFormProps) {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);

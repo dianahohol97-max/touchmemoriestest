@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import {
     Plus,
     CreditCard,
@@ -26,10 +26,7 @@ const BANK_LOGOS: Record<string, string> = {
 };
 
 export default function BankAccountsPage() {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [accounts, setAccounts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);

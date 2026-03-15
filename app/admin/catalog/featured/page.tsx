@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import {
     GripVertical,
     Search,
@@ -81,10 +81,7 @@ function SortableProductItem({ product, onRemove }: { product: Product, onRemove
 }
 
 export default function FeaturedProductsPage() {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [featured, setFeatured] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);

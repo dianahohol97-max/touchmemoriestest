@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import BlogPostEditor from '@/components/admin/BlogPostEditor';
 import { useParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
@@ -10,10 +10,7 @@ export default function EditBlogPostPage() {
     const id = params.id as string;
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     useEffect(() => {
         if (!id) return;
