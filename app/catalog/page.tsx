@@ -147,27 +147,88 @@ function CatalogContent() {
                         return null;
                     })()}
 
-                    {/* Controls Bar */}
-                    <div className={styles.controlsBar}>
-                        <div className={styles.leftControls}>
-                            <div className={styles.resultsCount}>
-                                Знайдено: <span>{isLoading ? '...' : sortedProducts.length} товарів</span>
-                            </div>
+                    {/* Controls Bar & Category Chips */}
+                    <div className={styles.controlsBarWrapper} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
+
+                        {/* Category Chips Bar */}
+                        <div className={styles.categoryChipsBar} style={{
+                            display: 'flex',
+                            gap: '8px',
+                            overflowX: 'auto',
+                            paddingBottom: '8px',
+                            msOverflowStyle: 'none',  /* IE and Edge */
+                            scrollbarWidth: 'none'    /* Firefox */
+                        }}>
+                            {/* Hide scrollbar for webkit browsers as well in global CSS if needed, or via inline styles if supported, but usually better in CSS. For inline scrolling: */}
+                            <style jsx>{`
+                                .${styles.categoryChipsBar}::-webkit-scrollbar {
+                                    display: none;
+                                }
+                            `}</style>
+
+                            {categories.map((cat) => {
+                                const isActive = selectedCategory === cat.slug;
+                                return (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => {
+                                            router.push(`/catalog?category=${cat.slug}`);
+                                            setSelectedCategory(cat.slug);
+                                        }}
+                                        style={{
+                                            padding: '8px 20px',
+                                            borderRadius: '20px',
+                                            border: isActive ? '1px solid #1e293b' : '1px solid #e2e8f0',
+                                            backgroundColor: isActive ? '#1e293b' : 'white',
+                                            color: isActive ? 'white' : '#1e293b',
+                                            fontSize: '14px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap',
+                                            transition: 'all 0.2s ease',
+                                        }}
+                                        className="hover:opacity-90"
+                                    >
+                                        {cat.name}
+                                    </button>
+                                );
+                            })}
                         </div>
 
-                        <div className={styles.sortControls}>
-                            <span className={styles.sortLabel}>Сортувати:</span>
-                            <div className={styles.selectWrapper}>
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                >
-                                    <option value="popular">Популярністю</option>
-                                    <option value="price_asc">Ціною: від низької до високої</option>
-                                    <option value="price_desc">Ціною: від високої до низької</option>
-                                    <option value="new">Новинками</option>
-                                </select>
-                                <ChevronDown className={styles.selectIcon} size={16} />
+                        {/* Results Count & Sort */}
+                        <div className={styles.controlsBar} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                            <div className={styles.leftControls}>
+                                <div className={styles.resultsCount} style={{ fontSize: '15px', color: '#64748b', fontWeight: 500 }}>
+                                    Знайдено: <span style={{ color: '#1e293b', fontWeight: 700 }}>{isLoading ? '...' : sortedProducts.length} товарів</span>
+                                </div>
+                            </div>
+
+                            <div className={styles.sortControls} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span className={styles.sortLabel} style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>Сортувати:</span>
+                                <div className={styles.selectWrapper} style={{ position: 'relative' }}>
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        style={{
+                                            padding: '8px 32px 8px 16px',
+                                            borderRadius: '20px',
+                                            border: '1px solid #e2e8f0',
+                                            backgroundColor: 'white',
+                                            fontSize: '14px',
+                                            fontWeight: 600,
+                                            color: '#1e293b',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <option value="popular">Популярністю</option>
+                                        <option value="price_asc">Ціною: від низької до високої</option>
+                                        <option value="price_desc">Ціною: від високої до низької</option>
+                                        <option value="new">Новинками</option>
+                                    </select>
+                                    <ChevronDown className={styles.selectIcon} size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94a3b8' }} />
+                                </div>
                             </div>
                         </div>
                     </div>
