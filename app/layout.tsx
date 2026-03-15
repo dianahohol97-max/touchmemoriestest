@@ -8,6 +8,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NewsletterPopup } from '@/components/ui/NewsletterPopup';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import CartDrawer from '@/components/cart/CartDrawer';
+import { OAuthCallbackHandler } from '@/components/providers/OAuthCallbackHandler';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,6 +54,9 @@ export default function RootLayout({
             <AnalyticsProvider />
           </Suspense>
           <SpeedInsights />
+          <Suspense fallback={null}>
+            <OAuthCallbackHandler />
+          </Suspense>
         </ThemeProvider>
       </body>
     </html>
