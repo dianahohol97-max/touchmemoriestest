@@ -110,11 +110,11 @@ export function ProductOptions({ product }: ProductOptionsProps) {
                             <button
                                 key={i}
                                 onClick={() => setSelectedFormat(f)}
+                                className="px-5 py-3 rounded-brand border-2 text-[14px] font-bold transition-all"
                                 style={{
-                                    ...optionBtnStyle,
                                     borderColor: selectedFormat?.name === f.name ? 'var(--primary)' : '#e2e8f0',
-                                    backgroundColor: selectedFormat?.name === f.name ? '#f8fafc' : 'white',
-                                    color: selectedFormat?.name === f.name ? 'var(--primary)' : '#444',
+                                    backgroundColor: selectedFormat?.name === f.name ? 'rgba(38, 58, 153, 0.03)' : 'white',
+                                    color: selectedFormat?.name === f.name ? 'var(--primary)' : '#64748b',
                                 }}
                             >
                                 {f.name}
@@ -133,11 +133,11 @@ export function ProductOptions({ product }: ProductOptionsProps) {
                             <button
                                 key={i}
                                 onClick={() => setSelectedCover(c)}
+                                className="px-5 py-3 rounded-brand border-2 text-[14px] font-bold transition-all"
                                 style={{
-                                    ...optionBtnStyle,
                                     borderColor: selectedCover?.name === c.name ? 'var(--primary)' : '#e2e8f0',
-                                    backgroundColor: selectedCover?.name === c.name ? '#f8fafc' : 'white',
-                                    color: selectedCover?.name === c.name ? 'var(--primary)' : '#444',
+                                    backgroundColor: selectedCover?.name === c.name ? 'rgba(38, 58, 153, 0.03)' : 'white',
+                                    color: selectedCover?.name === c.name ? 'var(--primary)' : '#64748b',
                                 }}
                             >
                                 {c.name}
@@ -183,24 +183,27 @@ export function ProductOptions({ product }: ProductOptionsProps) {
             )}
 
             {/* Quantity & Summary */}
-            <div style={{ marginTop: '16px', padding: '32px', backgroundColor: '#f8fafc', borderRadius: "3px", border: '1px solid #eef2f6' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', backgroundColor: 'white', padding: '8px', borderRadius: "3px", border: '1px solid #e2e8f0' }}>
-                        <button onClick={() => setQuantity(Math.max(1, quantity - 1))} style={qtyBtnStyle}><Minus size={18} /></button>
-                        <span style={{ fontWeight: 800, minWidth: '24px', textAlign: 'center' }}>{quantity}</span>
-                        <button onClick={() => setQuantity(quantity + 1)} style={qtyBtnStyle}><Plus size={18} /></button>
+            <div className="mt-8 p-10 bg-gray-50/50 rounded-brand border border-black/[0.03] shadow-sm">
+                <div className="flex justify-between items-center mb-10">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-primary opacity-40">Кількість</label>
+                        <div className="flex items-center gap-4 bg-white p-1 rounded-brand border border-primary/10 shadow-sm w-fit">
+                            <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center text-primary/60 hover:bg-primary/5 rounded-brand transition-colors"><Minus size={16} /></button>
+                            <span className="font-extrabold text-primary min-w-[32px] text-center text-lg">{quantity}</span>
+                            <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 flex items-center justify-center text-primary/60 hover:bg-primary/5 rounded-brand transition-colors"><Plus size={16} /></button>
+                        </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '4px' }}>Підсумок</div>
-                        <div style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)' }}>{totalPrice} ₴</div>
+
+                    <div className="text-right">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-primary opacity-40 mb-1">Підсумок</div>
+                        <div className="text-[32px] font-black text-primary tracking-tighter">{totalPrice} ₴</div>
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="flex flex-col gap-3">
                     <button
                         onClick={handleAddToCart}
-                        style={{ ...actionBtnStyle, backgroundColor: 'var(--primary)', color: 'white' }}
-                        className="hover-lift"
+                        className="w-full py-5 bg-primary text-white rounded-brand font-bold text-[16px] shadow-[0_10px_30px_-5px_rgba(38,58,153,0.3)] hover:translate-y-[-2px] hover:shadow-[0_15px_35px_-5px_rgba(38,58,153,0.4)] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                     >
                         <ShoppingCart size={20} /> Додати у кошик
                     </button>
@@ -208,22 +211,21 @@ export function ProductOptions({ product }: ProductOptionsProps) {
                     {isPhotoBook && (
                         <button
                             onClick={() => router.push(`/book-constructor?product=${product.id}`)}
-                            style={{ ...actionBtnStyle, backgroundColor: 'white', color: 'var(--primary)', border: '2px solid var(--primary)', padding: '14px 28px' }}
-                            className="hover-glow"
+                            className="w-full py-5 bg-white text-primary border-2 border-primary rounded-brand font-bold text-[16px] hover:bg-primary/5 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                         >
                             <Edit3 size={20} /> Створити в конструкторі
                         </button>
                     )}
 
-                    <button
-                        onClick={() => setIsHintModalOpen(true)}
-                        style={{ ...actionBtnStyle, backgroundColor: 'transparent', color: '#64748b', border: '2px solid #e2e8f0' }}
-                        className="hover-lift"
-                    >
-                        💝 Натякнути близьким
-                    </button>
-
-                    <WishlistButton productId={product.id} variant="full" className="w-full" />
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setIsHintModalOpen(true)}
+                            className="flex-1 py-4 bg-transparent text-primary/60 border border-primary/10 rounded-brand font-bold text-[13px] hover:bg-white hover:text-primary transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                        >
+                            💝 Натякнути
+                        </button>
+                        <WishlistButton productId={product.id} variant="full" className="flex-1" />
+                    </div>
                 </div>
             </div>
 

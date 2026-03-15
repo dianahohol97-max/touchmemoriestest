@@ -92,29 +92,29 @@ export function Footer({ categories = [] }: FooterProps) {
     return (
         <footer ref={ref} className="bg-white border-t border-border pt-20 pb-10 text-textPrimary">
             <div className="container mx-auto px-10">
-                <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 md:gap-16 mb-16">
+                <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-12 lg:gap-24 mb-20">
                     <div className="flex flex-col">
-                        <h3 className="font-heading font-black text-2xl mb-6 tracking-wider text-primary uppercase">
+                        <h3 className="font-heading font-black text-[22px] mb-8 tracking-[0.25em] text-primary uppercase leading-none">
                             {content['footer_brand_name'] || 'TOUCH.MEMORIES'}
                         </h3>
-                        <p className="font-body text-[15px] leading-relaxed opacity-70 mb-8 max-w-sm">
+                        <p className="font-body text-[15px] leading-relaxed text-primary/60 mb-10 max-w-sm">
                             {content['footer_brand_desc'] || "Ми віримо, що найкращі моменти життя заслуговують бути надрукованими на папері. Створюємо преміальні фотокниги з любов'ю."}
                         </p>
-                        <div className="flex gap-5 flex-wrap">
+                        <div className="flex gap-6 flex-wrap">
                             {[
-                                { url: content['footer_social_insta'], icon: <FaInstagram size={18} /> },
-                                { url: content['footer_social_fb'], icon: <FaFacebook size={18} /> },
-                                { url: content['footer_social_tg'], icon: <Send size={18} /> },
-                                { url: content['footer_social_tiktok'], icon: <FaTiktok size={18} /> },
-                                { url: content['footer_social_pinterest'], icon: <FaPinterest size={18} /> },
-                                { url: content['footer_social_threads'], icon: <FaThreads size={18} /> }
+                                { url: content['footer_social_insta'], icon: <FaInstagram size={20} /> },
+                                { url: content['footer_social_fb'], icon: <FaFacebook size={20} /> },
+                                { url: content['footer_social_tg'], icon: <Send size={20} /> },
+                                { url: content['footer_social_tiktok'], icon: <FaTiktok size={20} /> },
+                                { url: content['footer_social_pinterest'], icon: <FaPinterest size={20} /> },
+                                { url: content['footer_social_threads'], icon: <FaThreads size={20} /> }
                             ].map((social, i) => social.url ? (
                                 <a
                                     key={i}
                                     href={social.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-primary opacity-80 hover:opacity-100 transition-opacity"
+                                    className="text-primary/60 hover:text-primary transition-all hover:scale-110 active:scale-95"
                                 >
                                     {social.icon}
                                 </a>

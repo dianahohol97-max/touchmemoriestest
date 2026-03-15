@@ -34,28 +34,17 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                 borderRadius: style.border_radius || '0px'
             }}
         >
-            <div className="container" style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <div className="container py-24" style={{ textAlign: 'center' }}>
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
                 >
-                    <h2 style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontSize: 'min(36px, 8vw)',
-                        fontWeight: 900,
-                        color: 'var(--section-heading-color)',
-                        marginBottom: '12px'
-                    }}>
+                    <h2 className="text-[36px] lg:text-[44px] font-extrabold leading-tight tracking-tight text-primary mb-6">
                         <DynamicText contentKey="featured_title" fallback="Найпопулярніші товари" />
                     </h2>
-                    <p style={{
-                        color: 'inherit',
-                        opacity: 0.8,
-                        maxWidth: '600px',
-                        margin: '0 auto'
-                    }}>
-                        <DynamicText contentKey="featured_subtitle" fallback="Відкрийте для себе наші найкращі пропозиції" />
+                    <p className="text-[16px] lg:text-[18px] text-primary/60 max-w-2xl mx-auto font-body leading-relaxed">
+                        <DynamicText contentKey="featured_subtitle" fallback="Відкрийте для себе наші найкращі пропозиції, що стали улюбленими серед сотень клієнтів" />
                     </p>
                 </motion.div>
             </div>

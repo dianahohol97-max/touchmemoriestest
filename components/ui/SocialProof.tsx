@@ -33,10 +33,7 @@ export function SocialProof() {
     };
 
     return (
-        <section ref={ref} style={{
-            padding: '60px 0',
-            overflow: 'hidden',
-            position: 'relative',
+        <section ref={ref} className="py-24 lg:py-32 overflow-hidden relative" style={{
             backgroundColor: style.bg_color || 'transparent',
             borderRadius: style.border_radius || '0px'
         }}>
@@ -46,20 +43,14 @@ export function SocialProof() {
                 transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
                 style={{ marginBottom: '48px', textAlign: 'center', padding: '0 20px' }}
             >
-                <h2 style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontWeight: 600,
-                    fontSize: 'clamp(28px, 5vw, 40px)',
-                    color: style.text_color || 'var(--primary)',
-                    margin: 0
-                }}>
+                <h2 className="text-[28px] lg:text-[44px] font-extrabold leading-tight tracking-tight text-primary m-0">
                     {content['social_proof_title'] || content['social_title'] || 'Наші клієнти діляться своїми відгуками'}
                 </h2>
-                <p style={{ color: style.text_color || '#666', fontSize: '18px', marginTop: '16px', opacity: style.text_color ? 1 : 0.8 }}>
+                <p className="text-[16px] lg:text-[18px] text-primary/60 mt-6 font-body leading-relaxed max-w-2xl mx-auto">
                     {content['social_proof_subtitle'] || content['social_subtitle'] || content['social_handle'] || ''}
                 </p>
                 {content['social_proof_handle'] && (
-                    <div style={{ marginTop: '12px', fontWeight: 700, color: 'var(--primary)' }}>
+                    <div className="mt-4 font-black text-xs uppercase tracking-[0.2em] text-primary/40">
                         {content['social_proof_handle']}
                     </div>
                 )}

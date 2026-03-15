@@ -53,37 +53,15 @@ export function Categories({ blockName = 'categories' }: { blockName?: string })
                     color: style.text_color || 'inherit'
                 }}
             >
-                <h2 style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontWeight: 900,
-                    fontSize: 'clamp(32px, 5vw, 56px)',
-                    lineHeight: 1.1,
-                    marginBottom: '24px',
-                    color: 'var(--section-heading-color)'
-                }}>
+                <h2 className="text-[32px] lg:text-[44px] font-extrabold leading-[1.1] tracking-tight mb-8 text-primary">
                     {title}
                 </h2>
-                <p style={{
-                    fontSize: '18px',
-                    opacity: 0.8,
-                    maxWidth: '480px',
-                    marginBottom: '40px',
-                    lineHeight: 1.6
-                }}>
+                <p className="text-[16px] lg:text-[18px] opacity-70 max-w-sm mb-12 font-body leading-relaxed">
                     {subtitle}
                 </p>
-                <a href={`/catalog?category=${slug}`} style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontWeight: 700,
-                    fontSize: '16px',
-                    color: 'inherit',
-                    textDecoration: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
-                }}>
+                <a href={`/catalog?category=${slug}`} className="font-heading font-black text-xs uppercase tracking-[0.25em] text-primary flex items-center gap-3 no-underline group">
                     Обрати формат
-                    <span style={{ transition: 'transform 0.2s' }} className={styles.arrow}>→</span>
+                    <span className="transition-transform duration-300 group-hover:translate-x-2">→</span>
                 </a>
             </motion.div>
 

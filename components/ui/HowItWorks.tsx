@@ -37,17 +37,11 @@ export function HowItWorks() {
             borderRadius: style.border_radius || '0px'
         }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-                    <h2 style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontSize: 'clamp(32px, 5vw, 48px)',
-                        fontWeight: 900,
-                        marginBottom: '16px',
-                        color: style.text_color || 'inherit'
-                    }}>
+                <div className="text-center mb-24">
+                    <h2 className="text-[32px] lg:text-[44px] font-extrabold leading-tight tracking-tight text-primary mb-6">
                         {title}
                     </h2>
-                    <p style={{ color: style.text_color || '#666', fontSize: '18px', maxWidth: '600px', margin: '0 auto', opacity: style.text_color ? 1 : 0.8 }}>
+                    <p className="text-[16px] lg:text-[18px] text-primary/60 max-w-2xl mx-auto font-body leading-relaxed">
                         {content['how_subtitle'] || 'Три простих кроки до вашої ідеальної фотокниги'}
                     </p>
                 </div>
@@ -58,25 +52,14 @@ export function HowItWorks() {
                             key={index}
                             initial={{ opacity: 0, y: 30 }}
                             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-                            transition={{ duration: 0.6, delay: index * 0.2 }}
-                            style={{ textAlign: 'center', padding: '40px', borderRadius: "3px", backgroundColor: '#fcfcfc', border: '1px solid #f0f0f0' }}
+                            transition={{ duration: 0.8, delay: index * 0.1, ease: [0.23, 1, 0.32, 1] }}
+                            className="text-center p-12 rounded-brand bg-white border border-black/[0.03] shadow-[0_20px_40px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_60px_rgba(0,0,0,0.08)] transition-all group"
                         >
-                            <div style={{
-                                width: '80px',
-                                height: '80px',
-                                backgroundColor: 'var(--primary)',
-                                color: 'white',
-                                borderRadius: "3px",
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                margin: '0 auto 24px',
-                                boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
-                            }}>
+                            <div className="w-16 h-16 bg-primary text-white rounded-brand flex items-center justify-center mx-auto mb-10 shadow-[0_10px_20px_rgba(38,58,153,0.15)] group-hover:scale-110 group-hover:shadow-[0_15px_30px_rgba(38,58,153,0.3)] transition-all">
                                 {step.icon}
                             </div>
-                            <h3 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '16px', color: style.text_color || 'inherit' }}>{step.title}</h3>
-                            <p style={{ color: style.text_color || '#666', lineHeight: 1.6, opacity: style.text_color ? 1 : 0.8 }}>{step.description}</p>
+                            <h3 className="text-[20px] font-extrabold mb-4 text-primary tracking-tight">{step.title}</h3>
+                            <p className="text-[15px] text-primary/60 leading-relaxed font-body">{step.description}</p>
                         </motion.div>
                     ))}
                 </div>

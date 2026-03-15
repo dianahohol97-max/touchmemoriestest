@@ -17,12 +17,14 @@
   --text-primary: #263A99;
   --link: #263A99;
 
-  /* Typography Scale */
+  /* Typography Scale - Normalized for Premium E-com */
   --font-body: 'Open Sans', sans-serif;
   --font-heading: 'Montserrat', sans-serif;
-  --size-h1: 16px;
-  --size-h2: 64px;
+  --size-h1: 64px;
+  --size-h2: 44px;
+  --size-h3: 28px;
   --size-body: 16px;
+  --size-small: 14px;
 
   /* Spacing & Radius */
   --radius-base: 3px;
@@ -50,27 +52,31 @@ body {
 h1 {
   font-family: var(--font-heading);
   font-size: var(--size-h1);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
   color: var(--primary);
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 h2 {
   font-family: var(--font-heading);
   font-size: var(--size-h2);
-  font-weight: 800;
-  /* Slightly lighter for Montserrat to look more Apple-like */
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  /* Tighter tracking for large titles */
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
   color: var(--primary);
   margin-bottom: 32px;
-  /* Increased from 24px */
 }
 
-h3,
+h3 {
+  font-family: var(--font-heading);
+  font-size: var(--size-h3);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--primary);
+}
+
 h4,
 h5,
 h6 {
@@ -79,10 +85,18 @@ h6 {
   font-weight: 700;
 }
 
-/* Responsive adjustments for large H2 */
+/* Responsive adjustments */
 @media (max-width: 768px) {
+  h1 {
+    font-size: 40px;
+  }
+
   h2 {
-    font-size: 36px;
+    font-size: 32px;
+  }
+
+  h3 {
+    font-size: 24px;
   }
 }
 
