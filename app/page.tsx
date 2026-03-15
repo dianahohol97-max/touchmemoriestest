@@ -16,6 +16,7 @@ import { DynamicText } from '@/components/ui/DynamicText';
 import { DynamicPromo } from '@/components/ui/DynamicPromo';
 import { PhotoPrintPromo } from '@/components/ui/PhotoPrintPromo';
 import { CustomBookPromo } from '@/components/ui/CustomBookPromo';
+import { ConstructorSelection } from '@/components/ui/ConstructorSelection';
 
 
 import { getAdminClient } from '@/lib/supabase/admin';
@@ -99,8 +100,8 @@ export default async function Home() {
           <FeaturedProducts products={products || []} />
         </SectionWrapper>
 
-        <SectionWrapper name="categories_books" defaultOrder={3}>
-          <Categories blockName="categories_books" />
+        <SectionWrapper name="constructor_selection" defaultOrder={3}>
+          <ConstructorSelection />
         </SectionWrapper>
 
 
