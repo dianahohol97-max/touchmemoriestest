@@ -14,94 +14,51 @@ export function FinalCTA() {
     const embed = content['final_cta_embed'];
 
     return (
-        <section ref={ref} style={{
-            padding: '40px 20px',
-            backgroundColor: style.bg_color || 'var(--color-primary)',
-            color: style.text_color || 'white',
-            overflow: 'hidden',
-            position: 'relative',
-            borderRadius: style.border_radius || '0px'
-        }}>
-            <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 10 }}>
+        <section ref={ref} className={`section-padding ${style.bg_color ? '' : 'bg-primary'} text-white overflow-hidden relative rounded-[3px]`}>
+            {/* Decorative Background Patterns */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 pointer-events-none" />
+            <div className="absolute -top-64 -right-64 w-[800px] h-[800px] bg-white/5 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="container relative z-10 text-center max-w-4xl mx-auto py-12 lg:py-24">
                 {embed && (
                     <div
                         dangerouslySetInnerHTML={{ __html: embed }}
-                        style={{ width: '100%', marginBottom: '32px', display: 'flex', justifyContent: 'center' }}
-                        className={styles.embedContainer}
+                        className="w-full mb-12 flex justify-center"
                     />
                 )}
 
-                <motion.h2
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                    style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontSize: 'clamp(32px, 6vw, 56px)',
-                        fontWeight: 900,
-                        marginBottom: '24px',
-                        lineHeight: 1.1,
-                        color: 'var(--section-heading-color)'
-                    }}
-                >
-                    {content['final_cta_title'] || content['cta_title'] || 'Save Memories'}
-                </motion.h2>
-
-                <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                    style={{
-                        fontSize: '20px',
-                        opacity: 0.8,
-                        marginBottom: '48px',
-                        maxWidth: '600px',
-                        margin: '0 auto 48px',
-                        color: 'inherit'
-                    }}
-                >
-                    {content['final_cta_subtitle'] || content['cta_subtitle'] || 'Почніть створювати свою першу фотокнигу вже сьогодні.'}
-                </motion.p>
-
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                    transition={{ duration: 0.6, delay: 0.4 }}
-                    style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center' }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                    <Link href={content['final_cta_url'] || "/book-constructor"} style={{
-                        height: '60px',
-                        padding: '0 40px',
-                        backgroundColor: 'var(--section-button-bg)',
-                        color: 'var(--section-button-text)',
-                        fontWeight: 700,
-                        fontSize: '18px',
-                        borderRadius: "3px",
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textDecoration: 'none',
-                        boxShadow: 'var(--button-shadow)'
-                    }} className="hover-lift">
-                        {content['final_cta_button'] || content['cta_button_text'] || 'Створити зараз'}
-                    </Link>
-                    <Link href="/catalog" style={{
-                        height: '60px',
-                        padding: '0 40px',
-                        backgroundColor: 'transparent',
-                        color: 'inherit',
-                        fontWeight: 700,
-                        fontSize: '18px',
-                        borderRadius: "3px",
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textDecoration: 'none',
-                        border: '2px solid currentColor',
-                        opacity: 0.7
-                    }} className="hover-lift">
-                        Каталог
-                    </Link>
+                    <div className="inline-block px-4 py-2 bg-white/10 rounded-full mb-10 w-fit backdrop-blur-md border border-white/10 mx-auto">
+                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-white/80">Почніть зараз</span>
+                    </div>
+
+                    <h2 className="text-[48px] lg:text-[72px] font-black leading-[1.0] tracking-tight mb-8">
+                        {content['final_cta_title'] || content['cta_title'] || 'Save Memories'}
+                    </h2>
+
+                    <p className="text-[20px] lg:text-[24px] opacity-80 mb-16 font-body leading-relaxed max-w-2xl mx-auto">
+                        {content['final_cta_subtitle'] || content['cta_subtitle'] || 'Почніть створювати свою першу фотокнигу вже сьогодні. Це займає лише кілька хвилин.'}
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                        <Link
+                            href={content['final_cta_url'] || "/book-constructor"}
+                            className="bg-white text-primary px-10 py-5 rounded-[3px] font-bold text-lg hover:-translate-y-1 transition-transform duration-300 shadow-xl w-full sm:w-auto text-center"
+                        >
+                            {content['final_cta_button'] || content['cta_button_text'] || 'Створити зараз'}
+                        </Link>
+                        <Link
+                            href="/catalog"
+                            className="bg-transparent border-2 border-white/30 text-white px-10 py-5 rounded-[3px] font-bold text-lg hover:border-white hover:bg-white/5 transition-all duration-300 w-full sm:w-auto text-center"
+                        >
+                            Каталог товарів
+                        </Link>
+                    </div>
                 </motion.div>
             </div>
         </section>

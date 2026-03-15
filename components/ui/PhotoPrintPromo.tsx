@@ -19,88 +19,64 @@ export function PhotoPrintPromo() {
     const embed = content['photoprint_embed'];
 
     return (
-        <section ref={ref} style={{ padding: '40px 0', position: 'relative', overflow: 'hidden' }}>
-            <div className="container" style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={inView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.6 }}
-                    style={{
-                        backgroundColor: style.card_bg || 'white',
-                        borderRadius: style.border_radius || '32px',
-                        padding: '60px 40px',
-                        width: '100%',
-                        boxShadow: '0 20px 40px rgba(0,0,0,0.05)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        textAlign: 'center',
-                        color: style.text_color || 'inherit'
-                    }}
-                >
-                    {embed ? (
-                        <div
-                            dangerouslySetInnerHTML={{ __html: embed }}
-                            style={{ width: '100%', marginBottom: '32px', display: 'flex', justifyContent: 'center' }}
-                            className={styles.embedContainer}
-                        />
-                    ) : (
-                        <div style={{
-                            width: '80px',
-                            height: '80px',
-                            backgroundColor: 'rgba(0,0,0,0.03)',
-                            borderRadius: "3px",
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginBottom: '24px'
-                        }}>
-                            <ImageIcon size={40} opacity={0.5} />
-                        </div>
-                    )}
+        <section ref={ref} className="section-padding bg-white overflow-hidden">
+            <div className="container relative">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
 
-                    <h2 style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontSize: 'min(40px, 10vw)',
-                        fontWeight: 900,
-                        color: 'var(--section-heading-color)',
-                        marginBottom: '16px'
-                    }}>
-                        {content['photoprint_title'] || 'Замовити фотодрук'}
-                    </h2>
-
-                    <p style={{
-                        fontSize: '18px',
-                        opacity: 0.8,
-                        maxWidth: '600px',
-                        marginBottom: '40px',
-                        lineHeight: 1.6
-                    }}>
-                        {content['photoprint_subtitle'] || 'Збережіть улюблені моменти не лише в пам’яті, а й на папері.'}
-                    </p>
-
-                    <Link
-                        href={content['photoprint_button_url'] || "/catalog?category=photo-print"}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            padding: '18px 40px',
-                            backgroundColor: 'var(--section-button-bg)',
-                            color: 'var(--section-button-text)',
-                            fontSize: '18px',
-                            fontWeight: 700,
-                            borderRadius: "3px",
-                            textDecoration: 'none',
-                            transition: 'transform 0.2s',
-                            boxShadow: 'var(--button-shadow)'
-                        }}
-                        className="hover-lift"
+                    {/* Content Column */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -40 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        className="lg:col-span-5 flex flex-col justify-center"
                     >
-                        {content['photoprint_button_text'] || 'Замовити'}
-                        <ArrowRight size={20} />
-                    </Link>
-                </motion.div>
+                        <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-8 self-start">
+                            <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/50">Фотодрук</span>
+                        </div>
+
+                        <h2 className="text-[40px] lg:text-[56px] font-black leading-[1.05] tracking-tight mb-8 text-primary">
+                            {content['photoprint_title'] || 'Оживіть свої фотографії'}
+                        </h2>
+
+                        <p className="text-[18px] opacity-70 mb-12 font-body leading-relaxed max-w-md">
+                            {content['photoprint_subtitle'] || 'Збережіть улюблені моменти не лише в пам’яті, а й на якісному фотопапері.'}
+                        </p>
+
+                        <Link
+                            href={content['photoprint_button_url'] || "/catalog?category=photo-print"}
+                            className="btn-primary w-fit group"
+                        >
+                            {content['photoprint_button_text'] || 'Замовити друк'}
+                            <ArrowRight size={20} className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
+                        </Link>
+                    </motion.div>
+
+                    {/* Media Column */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        className="lg:col-span-7 relative w-full aspect-[4/3] lg:aspect-[16/10] rounded-[3px] overflow-hidden shadow-[var(--shadow-premium)]"
+                    >
+                        {embed ? (
+                            <div
+                                dangerouslySetInnerHTML={{ __html: embed }}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <img
+                                src="https://images.unsplash.com/photo-1541996271295-8eaf5d8f61ce?w=1200"
+                                alt="Photo Print"
+                                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                            />
+                        )}
+                        {/* Decorative Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-black/10 to-transparent mix-blend-overlay pointer-events-none" />
+                    </motion.div>
+
+                </div>
             </div>
         </section>
     );

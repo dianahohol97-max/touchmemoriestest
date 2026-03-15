@@ -34,59 +34,37 @@ export function SocialProof() {
     };
 
     return (
-        <section
-            ref={ref}
-            className="section-padding bg-white"
-            style={{
-                borderRadius: style.border_radius || '0px'
-            }}
-        >
+        <section ref={ref} className="section-padding bg-white overflow-hidden relative">
+            {/* Decorative Background Pattern */}
+            <div className="absolute top-0 right-0 w-1/2 h-full bg-slate-50 -z-10 rounded-bl-[100px]" />
+            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gray-200 to-transparent -z-10" />
+
             <div className="container text-center">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                     transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
                 >
-                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-10">
-                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/50">Відгуки клієнтів</span>
+                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-10 w-fit backdrop-blur-md">
+                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/60">Спільнота клієнтів</span>
                     </div>
 
-                    <h2 className="section-title text-center max-w-3xl mx-auto mb-10">
+                    <h2 className="text-[40px] lg:text-[56px] font-black leading-[1.05] tracking-tight mb-8">
                         <DynamicText contentKey="social_proof_title" fallback="Ваші історії в наших книгах" />
                     </h2>
 
-                    <p className="section-subtitle text-center mb-24 px-4">
+                    <p className="text-[18px] opacity-70 mb-16 font-body leading-relaxed max-w-2xl mx-auto">
                         <DynamicText contentKey="social_proof_subtitle" fallback="Ми щасливі бути частиною ваших найтепліших спогадів. Погляньте, як наші клієнти зберігають свої моменти." />
                     </p>
                 </motion.div>
             </div>
 
             <div className="container relative">
-                <div className="absolute top-1/2 left-0 w-full h-1/2 bg-gray-50/50 -z-10 translate-y-24" />
-                <div style={{ position: 'relative', maxWidth: '1400px', margin: '0 auto', padding: '0 20px' }}>
+                <div className="relative max-w-[1400px] mx-auto px-5 lg:px-12">
                     {/* Left Arrow */}
                     <button
                         onClick={() => scroll('left')}
-                        style={{
-                            position: 'absolute',
-                            left: '20px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            zIndex: 10,
-                            width: '48px',
-                            height: '48px',
-                            backgroundColor: 'white',
-                            borderRadius: "3px",
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'var(--primary)',
-                            border: 'none',
-                            cursor: 'pointer',
-                            transition: 'transform 0.2s'
-                        }}
-                        className={`${styles.navBtn} ${styles.desktopOnly}`}
+                        className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-[3px] shadow-[var(--shadow-premium)] flex items-center justify-center text-primary border border-gray-100 hover:bg-gray-50 transition-colors ${styles.desktopOnly}`}
                         aria-label="Previous"
                     >
                         <ChevronLeft size={24} />
@@ -98,45 +76,30 @@ export function SocialProof() {
                         animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
                         transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.2 }}
                         ref={scrollContainerRef}
-                        className={styles.noScrollbar}
-                        style={{
-                            display: 'flex',
-                            gap: '24px',
-                            overflowX: 'auto',
-                            WebkitOverflowScrolling: 'touch',
-                            scrollSnapType: 'x mandatory',
-                            paddingBottom: '32px'
-                        }}
+                        className={`flex gap-6 overflow-x-auto pb-12 snap-x snap-mandatory ${styles.noScrollbar}`}
                     >
                         {photos.map((photo) => (
                             <div
                                 key={photo.id}
-                                style={{
-                                    flexShrink: 0,
-                                    width: 'min(75vw, 320px)',
-                                    aspectRatio: '3/4',
-                                    scrollSnapAlign: 'center',
-                                    overflow: 'hidden',
-                                    borderRadius: "3px",
-                                    cursor: 'pointer',
-                                    position: 'relative'
-                                }}
-                                className="group"
+                                className="flex-none w-[min(75vw,320px)] aspect-[3/4] snap-center overflow-hidden rounded-[3px] cursor-pointer relative group bg-gray-100 shadow-[var(--shadow-premium)] border border-white/20"
                             >
                                 <img
                                     src={photo.image}
                                     alt={`Customer photo by ${photo.username}`}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }}
-                                    className={styles.photoImg}
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                 />
                                 {/* Gradient Overlay */}
-                                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)', opacity: 0.8 }} />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
 
                                 {/* Username */}
-                                <div style={{ position: 'absolute', bottom: '32px', left: 0, right: 0, textAlign: 'center' }}>
-                                    <span style={{ fontSize: '15px', color: '#E5D5C5', fontFamily: 'var(--font-sans)' }}>
+                                <div className="absolute bottom-8 left-0 right-0 text-center px-4 transform transition-transform duration-300 group-hover:translate-y-[-8px]">
+                                    <span className="text-[15px] text-[#E5D5C5] font-sans font-bold tracking-wide">
                                         {photo.username}
                                     </span>
+                                </div>
+                                {/* Instagram Style Overlay */}
+                                <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-white text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    Instagram
                                 </div>
                             </div>
                         ))}
@@ -145,26 +108,7 @@ export function SocialProof() {
                     {/* Right Arrow */}
                     <button
                         onClick={() => scroll('right')}
-                        style={{
-                            position: 'absolute',
-                            right: '20px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            zIndex: 10,
-                            width: '48px',
-                            height: '48px',
-                            backgroundColor: 'white',
-                            borderRadius: "3px",
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'var(--primary)',
-                            border: 'none',
-                            cursor: 'pointer',
-                            transition: 'transform 0.2s'
-                        }}
-                        className={`${styles.navBtn} ${styles.desktopOnly}`}
+                        className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-[3px] shadow-[var(--shadow-premium)] flex items-center justify-center text-primary border border-gray-100 hover:bg-gray-50 transition-colors ${styles.desktopOnly}`}
                         aria-label="Next"
                     >
                         <ChevronRight size={24} />

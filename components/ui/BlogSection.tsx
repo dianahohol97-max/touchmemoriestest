@@ -42,24 +42,19 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
     };
 
     return (
-        <section ref={ref} style={{ padding: '60px 0', backgroundColor: 'white' }}>
+        <section ref={ref} className="section-padding bg-gray-50/50">
             <div className="container">
                 {/* Section Header */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 30 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.6 }}
-                    style={{ textAlign: 'center', marginBottom: '60px' }}
+                    transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    className="text-center mb-16"
                 >
-                    <h2 style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontSize: '48px',
-                        fontWeight: 900,
-                        marginBottom: '16px'
-                    }}>
+                    <h2 className="section-title text-center">
                         {content['blog_title'] || 'Блог'}
                     </h2>
-                    <p style={{ fontSize: '18px', color: '#666', maxWidth: '600px', margin: '0 auto' }}>
+                    <p className="section-subtitle text-center">
                         {content['blog_subtitle'] || 'Натхнення, ідеї та поради від команди Touch Memories'}
                     </p>
                 </motion.div>
@@ -67,12 +62,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                 {/* Blog Posts Grid */}
                 {posts.length > 0 ? (
                     <>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-                            gap: '32px',
-                            marginBottom: '60px'
-                        }}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
                             {posts.map((post, index) => (
                                 <motion.div
                                     key={post.id}
@@ -82,111 +72,46 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                                 >
                                     <Link
                                         href={`/blog/${post.slug}`}
-                                        style={{
-                                            textDecoration: 'none',
-                                            color: 'inherit',
-                                            backgroundColor: 'white',
-                                            borderRadius: "3px",
-                                            overflow: 'hidden',
-                                            border: '1px solid #e0e0e0',
-                                            transition: 'transform 0.3s, box-shadow 0.3s',
-                                            height: '100%',
-                                            display: 'flex',
-                                            flexDirection: 'column'
-                                        }}
-                                        className="hover-lift"
+                                        className="bg-white rounded-[3px] overflow-hidden border border-gray-100 transition-all duration-300 hover:-translate-y-2 hover:shadow-[var(--shadow-premium)] h-full flex flex-col group block"
                                     >
                                         {/* Cover Image */}
-                                        <div style={{
-                                            position: 'relative',
-                                            width: '100%',
-                                            height: '240px',
-                                            backgroundColor: '#e0e0e0',
-                                            overflow: 'hidden'
-                                        }}>
+                                        <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
                                             {post.cover_image ? (
                                                 <Image
                                                     src={post.cover_image}
                                                     alt={post.cover_image_alt || post.title}
                                                     fill
-                                                    style={{ objectFit: 'cover' }}
+                                                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                                                 />
                                             ) : (
-                                                <div style={{
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    backgroundColor: '#e0e0e0',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    fontSize: '14px',
-                                                    color: '#999'
-                                                }}>
+                                                <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
                                                     Зображення відсутнє
                                                 </div>
                                             )}
                                             {post.category && (
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    top: '16px',
-                                                    left: '16px',
-                                                    backgroundColor: 'var(--primary)',
-                                                    color: 'white',
-                                                    padding: '6px 12px',
-                                                    borderRadius: "3px",
-                                                    fontSize: '12px',
-                                                    fontWeight: 600,
-                                                    textTransform: 'uppercase'
-                                                }}>
+                                                <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1.5 rounded-[3px] text-[10px] font-black uppercase tracking-widest z-10">
                                                     {post.category.name}
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Content */}
-                                        <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                            <h3 style={{
-                                                fontFamily: 'var(--font-heading)',
-                                                fontSize: '22px',
-                                                fontWeight: 700,
-                                                marginBottom: '12px',
-                                                lineHeight: 1.3,
-                                                display: '-webkit-box',
-                                                WebkitLineClamp: 2,
-                                                WebkitBoxOrient: 'vertical',
-                                                overflow: 'hidden'
-                                            }}>
+                                        <div className="p-8 flex-1 flex flex-col">
+                                            <h3 className="font-heading text-2xl font-bold mb-4 leading-tight line-clamp-2 text-primary group-hover:text-primary/70 transition-colors">
                                                 {post.title}
                                             </h3>
 
-                                            <p style={{
-                                                color: '#666',
-                                                lineHeight: 1.6,
-                                                marginBottom: '16px',
-                                                flex: 1,
-                                                display: '-webkit-box',
-                                                WebkitLineClamp: 3,
-                                                WebkitBoxOrient: 'vertical',
-                                                overflow: 'hidden'
-                                            }}>
+                                            <p className="text-gray-500 leading-relaxed mb-6 flex-1 line-clamp-3">
                                                 {post.excerpt}
                                             </p>
 
                                             {/* Meta Info */}
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '16px',
-                                                fontSize: '14px',
-                                                color: '#999',
-                                                paddingTop: '16px',
-                                                borderTop: '1px solid #e0e0e0'
-                                            }}>
-                                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <div className="flex items-center gap-6 text-sm text-gray-400 pt-6 border-t border-gray-100">
+                                                <span className="flex items-center gap-2">
                                                     <Calendar size={14} />
                                                     {formatDate(post.published_at)}
                                                 </span>
-                                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <span className="flex items-center gap-2">
                                                     <Clock size={14} />
                                                     {post.reading_time} хв
                                                 </span>
@@ -201,36 +126,12 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={inView ? { opacity: 1, y: 0 } : {}}
-                            transition={{ duration: 0.6, delay: 0.7 }}
-                            style={{ textAlign: 'center' }}
+                            transition={{ duration: 0.6, delay: 0.4 }}
+                            className="text-center"
                         >
-                            <Link
-                                href="/blog"
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '16px 32px',
-                                    backgroundColor: 'white',
-                                    color: 'var(--primary)',
-                                    fontSize: '16px',
-                                    fontWeight: 700,
-                                    borderRadius: "3px",
-                                    textDecoration: 'none',
-                                    border: '2px solid var(--primary)',
-                                    transition: 'all 0.3s',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'var(--primary)';
-                                    e.currentTarget.style.color = 'white';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'white';
-                                    e.currentTarget.style.color = 'var(--primary)';
-                                }}
-                            >
+                            <Link href="/blog" className="btn-secondary">
                                 Читати всі статті
-                                <ArrowRight size={20} />
+                                <ArrowRight size={20} className="ml-2" />
                             </Link>
                         </motion.div>
                     </>
@@ -239,14 +140,9 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                         initial={{ opacity: 0 }}
                         animate={inView ? { opacity: 1 } : {}}
                         transition={{ duration: 0.6 }}
-                        style={{
-                            textAlign: 'center',
-                            padding: '60px 20px',
-                            backgroundColor: '#f8f9fa',
-                            borderRadius: "3px"
-                        }}
+                        className="text-center py-20 bg-white rounded-[3px] border border-dashed border-gray-200"
                     >
-                        <p style={{ fontSize: '18px', color: '#999' }}>
+                        <p className="text-lg text-gray-400">
                             Скоро тут з'являться цікаві статті
                         </p>
                     </motion.div>
