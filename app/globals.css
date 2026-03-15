@@ -229,3 +229,8 @@ h6,
   background-color: #263A99 !important;
   color: white !important;
 }
+
+/* Force 3px border radius for all rounded elements to ensure boxy aesthetic */
+[class*='rounded-']:not(.rounded-full) {
+  border-radius: 3px !important;
+}

@@ -59,14 +59,14 @@ export function HowItWorks() {
                             initial={{ opacity: 0, y: 30 }}
                             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                             transition={{ duration: 0.6, delay: index * 0.2 }}
-                            style={{ textAlign: 'center', padding: '40px', borderRadius: '32px', backgroundColor: '#fcfcfc', border: '1px solid #f0f0f0' }}
+                            style={{ textAlign: 'center', padding: '40px', borderRadius: '3px', backgroundColor: '#fcfcfc', border: '1px solid #f0f0f0' }}
                         >
                             <div style={{
                                 width: '80px',
                                 height: '80px',
                                 backgroundColor: 'var(--primary)',
                                 color: 'white',
-                                borderRadius: '24px',
+                                borderRadius: '3px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',

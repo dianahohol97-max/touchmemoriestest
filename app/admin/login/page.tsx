@@ -45,7 +45,7 @@ function AdminLoginContent() {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                style={{ width: '100%', maxWidth: '400px', backgroundColor: 'white', padding: '48px', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
+                style={{ width: '100%', maxWidth: '400px', backgroundColor: 'white', padding: '48px', borderRadius: '3px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
             >
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>TM ADMIN</h1>
@@ -53,7 +53,7 @@ function AdminLoginContent() {
                 </div>
 
                 {error && (
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', color: '#dc2626', fontSize: '14px', marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '3px', color: '#dc2626', fontSize: '14px', marginBottom: '24px' }}>
                         <AlertCircle size={18} />
                         <span>{error}</span>
                     </div>
@@ -119,5 +119,5 @@ export default function AdminLoginPage() {
 }
 
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
-const inputStyle = { width: '100%', padding: '14px 14px 14px 48px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', transition: 'all 0.2s', fontSize: '15px' };
-const submitBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px', borderRadius: '12px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 700, fontSize: '16px', marginTop: '12px' };
+const inputStyle = { width: '100%', padding: '14px 14px 14px 48px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', transition: 'all 0.2s', fontSize: '15px' };
+const submitBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px', borderRadius: '3px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 700, fontSize: '16px', marginTop: '12px' };

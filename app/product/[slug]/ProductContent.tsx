@@ -48,7 +48,7 @@ export default function ProductContent({ product }: { product: any }) {
             <main className="container" style={{ padding: '60px 0' }}>
                 <div className={styles.productGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px' }}>
                     <div>
-                        <img src={product.images?.[0] || 'https://via.placeholder.com/600x600'} alt={product.name} style={{ width: '100%', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }} />
+                        <img src={product.images?.[0] || 'https://via.placeholder.com/600x600'} alt={product.name} style={{ width: '100%', borderRadius: '3px', boxShadow: 'var(--shadow)' }} />
                     </div>
                     <div>
                         <div className="product-category">{product.categories?.name}</div>
@@ -60,11 +60,11 @@ export default function ProductContent({ product }: { product: any }) {
                             {product.description}
                         </p>
 
-                        <div style={{ background: '#f9f9f9', padding: '30px', borderRadius: 'var(--radius)', marginBottom: '30px' }}>
+                        <div style={{ background: '#f9f9f9', padding: '30px', borderRadius: '3px', marginBottom: '30px' }}>
                             <h4 style={{ marginBottom: '15px' }}>Оберіть параметри:</h4>
                             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                                 {['15x15', '20x20', '30x30'].map(f => (
-                                    <button key={f} style={{ padding: '10px 20px', border: '1px solid var(--border)', borderRadius: '4px', background: f === '20x20' ? 'var(--primary)' : 'white', color: f === '20x20' ? 'white' : 'black' }}>{f}</button>
+                                    <button key={f} style={{ padding: '10px 20px', border: '1px solid var(--border)', borderRadius: '3px', background: f === '20x20' ? 'var(--primary)' : 'white', color: f === '20x20' ? 'white' : 'black' }}>{f}</button>
                                 ))}
                             </div>
                             <p style={{ fontSize: '0.9rem' }}>Мінімум сторінок: {product.min_pages}</p>
@@ -74,7 +74,7 @@ export default function ProductContent({ product }: { product: any }) {
                             <div style={{
                                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                 padding: '25px',
-                                borderRadius: 'var(--radius)',
+                                borderRadius: '3px',
                                 marginBottom: '20px',
                                 color: 'white'
                             }}>

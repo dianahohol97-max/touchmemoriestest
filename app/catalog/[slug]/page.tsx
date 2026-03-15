@@ -174,7 +174,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                     {/* Left Column: Images */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div className={styles.mainImageContainer} style={{ position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className={styles.mainImageContainer} style={{ position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: '3px', overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {mainVideo ? (
                                 <video
                                     src={mainVideo}
@@ -208,7 +208,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             position: 'relative',
                                             width: '80px',
                                             height: '80px',
-                                            borderRadius: '8px',
+                                            borderRadius: '3px',
                                             overflow: 'hidden',
                                             border: mainImage === src && !mainVideo ? '2px solid var(--primary)' : '2px solid transparent',
                                             cursor: 'pointer',
@@ -226,7 +226,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             position: 'relative',
                                             width: '80px',
                                             height: '80px',
-                                            borderRadius: '8px',
+                                            borderRadius: '3px',
                                             overflow: 'hidden',
                                             border: mainVideo === product.video_url ? '2px solid var(--primary)' : '2px solid transparent',
                                             cursor: 'pointer',
@@ -274,13 +274,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 padding: '8px 14px',
                                 backgroundColor: '#fff7ed',
                                 color: '#c2410c',
-                                borderRadius: '10px',
+                                borderRadius: '3px',
                                 fontSize: '13px',
                                 fontWeight: 800,
                                 marginBottom: '24px',
                                 border: '1px solid #ffedd5'
                             }}>
-                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f97316' }}></span>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '3px', backgroundColor: '#f97316' }}></span>
                                 Виготовляється під замовлення
                             </div>
                         )}
@@ -301,7 +301,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                     onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.name]: valIdx }))}
                                                     style={{
                                                         padding: '10px 16px',
-                                                        borderRadius: '8px',
+                                                        borderRadius: '3px',
                                                         border: isSelected ? '2px solid var(--primary)' : '1px solid #e2e8f0',
                                                         background: isSelected ? '#f8fafc' : 'white',
                                                         color: isSelected ? 'var(--primary)' : '#475569',
@@ -322,7 +322,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                             <div>
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>Кількість</label>
-                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: '12px', width: 'fit-content', backgroundColor: 'white' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: '3px', width: 'fit-content', backgroundColor: 'white' }}>
                                     <button
                                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
                                         style={{ padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}
@@ -350,7 +350,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 backgroundColor: 'var(--primary)',
                                                 color: 'white',
                                                 textDecoration: 'none',
-                                                borderRadius: '12px',
+                                                borderRadius: '3px',
                                                 fontSize: '16px',
                                                 fontWeight: 700,
                                                 textAlign: 'center',
@@ -369,7 +369,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 color: 'var(--primary)',
                                                 textDecoration: 'none',
                                                 border: '2px solid var(--primary)',
-                                                borderRadius: '12px',
+                                                borderRadius: '3px',
                                                 fontSize: '16px',
                                                 fontWeight: 700,
                                                 textAlign: 'center',
@@ -396,7 +396,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             backgroundColor: 'white',
                                             color: 'var(--primary)',
                                             border: '2px solid var(--primary)',
-                                            borderRadius: '12px',
+                                            borderRadius: '3px',
                                             fontSize: '16px',
                                             fontWeight: 700,
                                             cursor: 'pointer',
@@ -414,7 +414,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             backgroundColor: 'var(--primary)',
                                             color: 'white',
                                             border: 'none',
-                                            borderRadius: '12px',
+                                            borderRadius: '3px',
                                             fontSize: '16px',
                                             fontWeight: 700,
                                             cursor: 'pointer',
@@ -427,7 +427,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 </div>
 
                                 {showPersonalizationInput && (
-                                    <div style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: '#f8fafc' }}>
+                                    <div style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '3px', backgroundColor: '#f8fafc' }}>
                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>Опишіть вашу персоналізацію:</label>
                                         <textarea
                                             value={personalizationNote}
@@ -437,7 +437,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 width: '100%',
                                                 minHeight: '100px',
                                                 padding: '12px',
-                                                borderRadius: '8px',
+                                                borderRadius: '3px',
                                                 border: '1px solid #cbd5e1',
                                                 fontSize: '14px',
                                                 fontFamily: 'inherit',
@@ -458,7 +458,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 backgroundColor: 'var(--primary)',
                                                 color: 'white',
                                                 border: 'none',
-                                                borderRadius: '8px',
+                                                borderRadius: '3px',
                                                 fontSize: '14px',
                                                 fontWeight: 700,
                                                 cursor: 'pointer'
@@ -483,7 +483,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         backgroundColor: 'var(--primary)',
                                         color: 'white',
                                         border: 'none',
-                                        borderRadius: '12px',
+                                        borderRadius: '3px',
                                         fontSize: '16px',
                                         fontWeight: 700,
                                         cursor: 'pointer',
@@ -500,21 +500,21 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         )}
 
                         {/* Delivery Info */}
-                        <div style={{ backgroundColor: '#f8fafc', padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '16px', border: '1px solid #f1f5f9' }}>
+                        <div style={{ backgroundColor: '#f8fafc', padding: '24px', borderRadius: '3px', display: 'flex', flexDirection: 'column', gap: '16px', border: '1px solid #f1f5f9' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#475569', fontWeight: 500 }}>
-                                <div style={{ background: '#dcfce7', padding: '6px', borderRadius: '50%' }}>
+                                <div style={{ background: '#dcfce7', padding: '6px', borderRadius: '3px' }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
                                 Швидка та безпечна доставка Новою Поштою
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#475569', fontWeight: 500 }}>
-                                <div style={{ background: '#dcfce7', padding: '6px', borderRadius: '50%' }}>
+                                <div style={{ background: '#dcfce7', padding: '6px', borderRadius: '3px' }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
                                 Оплата при отриманні або онлайн (Apple Pay/Google Pay)
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#475569', fontWeight: 500 }}>
-                                <div style={{ background: '#dcfce7', padding: '6px', borderRadius: '50%' }}>
+                                <div style={{ background: '#dcfce7', padding: '6px', borderRadius: '3px' }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
                                 Швидке виготовлення 3–5 робочих днів
@@ -609,7 +609,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         {activeTab === 'reviews' && (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} style={{ backgroundColor: '#f8f9fa', padding: '24px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                                    <div key={i} style={{ backgroundColor: '#f8f9fa', padding: '24px', borderRadius: '3px', border: '1px solid #f1f5f9' }}>
                                         <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
                                             {[1, 2, 3, 4, 5].map(s => <Star key={s} size={16} fill="#fbbf24" color="#fbbf24" />)}
                                         </div>

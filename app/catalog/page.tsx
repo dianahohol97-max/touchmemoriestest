@@ -177,7 +177,7 @@ function CatalogContent() {
                                         }}
                                         style={{
                                             padding: '8px 20px',
-                                            borderRadius: '20px',
+                                            borderRadius: '3px',
                                             border: isActive ? '1px solid #263A99' : '1px solid #e2e8f0',
                                             backgroundColor: isActive ? '#263A99' : 'white',
                                             color: isActive ? 'white' : '#263A99',
@@ -211,7 +211,7 @@ function CatalogContent() {
                                         onChange={(e) => setSortBy(e.target.value)}
                                         style={{
                                             padding: '8px 32px 8px 16px',
-                                            borderRadius: '20px',
+                                            borderRadius: '3px',
                                             border: '1px solid #e2e8f0',
                                             backgroundColor: 'white',
                                             fontSize: '14px',

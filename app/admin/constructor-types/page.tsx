@@ -60,7 +60,7 @@ export default function ConstructorTypesPage() {
                     style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         padding: '12px 24px', backgroundColor: '#263A99',
-                        color: 'white', borderRadius: '12px', border: 'none',
+                        color: 'white', borderRadius: '3px', border: 'none',
                         fontWeight: 700, cursor: 'pointer'
                     }}
                 >
@@ -76,7 +76,7 @@ export default function ConstructorTypesPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
                     {types.map((type) => (
                         <div key={type.id} style={{
-                            backgroundColor: 'white', padding: '24px', borderRadius: '20px',
+                            backgroundColor: 'white', padding: '24px', borderRadius: '3px',
                             border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '24px',
                             boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
                         }}>
@@ -86,7 +86,7 @@ export default function ConstructorTypesPage() {
                                     <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{type.name}</h3>
                                     <span style={{
                                         fontSize: '11px', fontWeight: 800, padding: '4px 8px',
-                                        borderRadius: '8px', backgroundColor: '#f1f5f9', color: '#64748b'
+                                        borderRadius: '3px', backgroundColor: '#f1f5f9', color: '#64748b'
                                     }}>
                                         {type.slug}
                                     </span>
@@ -124,7 +124,7 @@ export default function ConstructorTypesPage() {
                         </div>
                     ))}
                     {types.length === 0 && (
-                        <div style={{ textAlign: 'center', padding: '80px', background: '#f8fafc', borderRadius: '24px', color: '#94a3b8' }}>
+                        <div style={{ textAlign: 'center', padding: '80px', background: '#f8fafc', borderRadius: '3px', color: '#94a3b8' }}>
                             Немає створених типів конструктора
                         </div>
                     )}
@@ -150,7 +150,7 @@ function Badge({ children, status }: { children: any, status: 'active' | 'draft'
     return (
         <span style={{
             fontSize: '11px', fontWeight: 800, padding: '4px 10px',
-            borderRadius: '20px', backgroundColor: colors[status].bg, color: colors[status].text,
+            borderRadius: '3px', backgroundColor: colors[status].bg, color: colors[status].text,
             display: 'flex', alignItems: 'center', gap: '4px'
         }}>
             {status === 'active' ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
@@ -160,6 +160,6 @@ function Badge({ children, status }: { children: any, status: 'active' | 'draft'
 }
 
 const actionBtnStyle = {
-    padding: '10px', borderRadius: '12px', backgroundColor: '#f8fafc',
+    padding: '10px', borderRadius: '3px', backgroundColor: '#f8fafc',
     border: 'none', color: '#64748b', cursor: 'pointer', transition: 'all 0.2s'
 };

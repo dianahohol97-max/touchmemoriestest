@@ -84,7 +84,7 @@ export default function AccountLayout({
             width={48}
             height={48}
             style={{
-              borderRadius: '50%',
+              borderRadius: '3px',
               objectFit: 'cover',
               aspectRatio: '1 / 1',
               flexShrink: 0,
@@ -98,7 +98,7 @@ export default function AccountLayout({
             width: '48px',
             height: '48px',
             minWidth: '48px',
-            borderRadius: '50%',
+            borderRadius: '3px',
             backgroundColor: '#263A99',
             color: 'white',
             display: 'flex',

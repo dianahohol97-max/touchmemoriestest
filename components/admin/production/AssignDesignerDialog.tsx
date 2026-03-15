@@ -78,7 +78,7 @@ export function AssignDesignerDialog({ open, onOpenChange, order, onSuccess }: A
                     ) : designers.map(designer => (
                         <div
                             key={designer.designer_id}
-                            className="flex items-center justify-between p-3 border rounded-xl hover:bg-slate-50 cursor-pointer"
+                            className="flex items-center justify-between p-3 border rounded-[3px] hover:bg-slate-50 cursor-pointer"
                             onClick={() => handleAssign(designer.designer_id)}
                         >
                             <div className="flex items-center gap-3">

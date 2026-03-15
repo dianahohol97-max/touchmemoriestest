@@ -258,8 +258,8 @@ export default function CreateOrderPage() {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {items.map((item, index) => (
-                            <div key={item.id} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                                <div style={{ width: '32px', height: '32px', backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: '#64748b', flexShrink: 0 }}>
+                            <div key={item.id} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '3px', border: '1px solid #f1f5f9' }}>
+                                <div style={{ width: '32px', height: '32px', backgroundColor: '#e2e8f0', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: '#64748b', flexShrink: 0 }}>
                                     {index + 1}
                                 </div>
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -376,7 +376,7 @@ export default function CreateOrderPage() {
                                     </div>
                                 </div>
                                 {items.length > 1 && (
-                                    <button type="button" onClick={() => removeItem(item.id)} style={{ padding: '8px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '8px', cursor: 'pointer', marginTop: '24px' }}>
+                                    <button type="button" onClick={() => removeItem(item.id)} style={{ padding: '8px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '3px', cursor: 'pointer', marginTop: '24px' }}>
                                         <Trash2 size={18} />
                                     </button>
                                 )}
@@ -453,7 +453,7 @@ export default function CreateOrderPage() {
                             </div>
                         </div>
 
-                        <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9', marginTop: 'auto' }}>
+                        <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '3px', border: '1px solid #f1f5f9', marginTop: 'auto' }}>
                             <div style={totalRowStyle}>
                                 <span>Товари ({items.length} шт):</span>
                                 <span>{subtotal} ₴</span>
@@ -499,9 +499,9 @@ export default function CreateOrderPage() {
 }
 
 // Styling Constants
-const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #f1f5f9', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
+const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
 const cardTitleStyle = { fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '24px' };
-const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', borderRadius: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer' };
+const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', borderRadius: '3px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer' };
 const labelStyle = { display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' };
 
 const dropdownStyle: React.CSSProperties = {
@@ -511,7 +511,7 @@ const dropdownStyle: React.CSSProperties = {
     right: 0,
     backgroundColor: '#fff',
     border: '1px solid #e2e8f0',
-    borderRadius: '12px',
+    borderRadius: '3px',
     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     zIndex: 50,
     maxHeight: '300px',
@@ -538,8 +538,8 @@ const dropdownItemStyle: React.CSSProperties = {
     justifyContent: 'space-between',
     alignItems: 'center'
 };
-const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px', color: '#263A99', backgroundColor: 'white', fontFamily: 'inherit' };
+const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px', color: '#263A99', backgroundColor: 'white', fontFamily: 'inherit' };
 const selectStyle = { ...inputStyle, appearance: 'none' as any, cursor: 'pointer', backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' };
 const totalRowStyle = { display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 700, color: '#475569', marginBottom: '8px' };
-const btnPrimaryStyle = { padding: '14px 28px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '14px', border: 'none', fontWeight: 800, fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: 1, transition: 'all 0.2s' };
-const btnSecondaryStyle = { padding: '14px 24px', backgroundColor: 'white', color: '#475569', borderRadius: '14px', border: '1.5px solid #e2e8f0', fontWeight: 700, fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' };
+const btnPrimaryStyle = { padding: '14px 28px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 800, fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: 1, transition: 'all 0.2s' };
+const btnSecondaryStyle = { padding: '14px 24px', backgroundColor: 'white', color: '#475569', borderRadius: '3px', border: '1.5px solid #e2e8f0', fontWeight: 700, fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' };

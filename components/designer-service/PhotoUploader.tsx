@@ -138,7 +138,7 @@ export default function PhotoUploader({
       <div
         {...getRootProps()}
         className={`
-          border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
+          border-2 border-dashed rounded-[3px] p-12 text-center cursor-pointer
           transition-colors
           ${
             isDragActive
@@ -166,7 +166,7 @@ export default function PhotoUploader({
 
       {/* Upload Progress */}
       {uploading && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-[3px] p-4">
           <div className="flex items-center gap-3 mb-2">
             <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
             <span className="text-sm font-medium text-blue-900">
@@ -184,7 +184,7 @@ export default function PhotoUploader({
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+        <div className="bg-red-50 border border-red-200 rounded-[3px] p-4 flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-red-800">{error}</p>
         </div>
@@ -207,7 +207,7 @@ export default function PhotoUploader({
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {photos.map((photo) => (
             <div key={photo.id} className="relative group">
-              <div className="aspect-square relative rounded-lg overflow-hidden bg-gray-100">
+              <div className="aspect-square relative rounded-[3px] overflow-hidden bg-gray-100">
                 <Image
                   src={photo.url}
                   alt={photo.filename}

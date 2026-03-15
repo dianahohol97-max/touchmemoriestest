@@ -136,7 +136,7 @@ export default function ReviewPageClient({
         </div>
 
         {/* Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 max-w-4xl mx-auto">
+        <div className="bg-blue-50 border border-blue-200 rounded-[3px] p-4 mb-6 max-w-4xl mx-auto">
           <p className="text-sm text-blue-800">
             💡 <strong>Як працювати з дизайном:</strong> Клацайте на сторінки,
             щоб залишити коментарі. Після перегляду ви можете затвердити дизайн
@@ -153,7 +153,7 @@ export default function ReviewPageClient({
         {/* Comments Summary */}
         {pageComments.length > 0 && (
           <div className="max-w-4xl mx-auto mb-6">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-[3px] shadow p-6">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
                 Ваші коментарі ({pageComments.length})
@@ -177,7 +177,7 @@ export default function ReviewPageClient({
 
         {/* General Feedback */}
         <div className="max-w-4xl mx-auto mb-6">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-[3px] shadow p-6">
             <h3 className="font-semibold text-gray-900 mb-3">
               Загальний відгук (опціонально)
             </h3>
@@ -186,19 +186,19 @@ export default function ReviewPageClient({
               onChange={(e) => setGeneralFeedback(e.target.value)}
               placeholder="Ваші загальні враження від дизайну, додаткові побажання..."
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-[3px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
 
         {/* Actions */}
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-[3px] shadow p-6">
             <div className="flex flex-col md:flex-row gap-4">
               <button
                 onClick={handleApprove}
                 disabled={submitting}
-                className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-lg font-semibold text-lg transition-colors ${
+                className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-[3px] font-semibold text-lg transition-colors ${
                   submitting
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-green-600 text-white hover:bg-green-700'
@@ -211,7 +211,7 @@ export default function ReviewPageClient({
               <button
                 onClick={handleRequestRevisions}
                 disabled={submitting || remainingRevisions === 0}
-                className={`flex-1 px-6 py-4 rounded-lg font-semibold text-lg transition-colors ${
+                className={`flex-1 px-6 py-4 rounded-[3px] font-semibold text-lg transition-colors ${
                   submitting || remainingRevisions === 0
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -236,7 +236,7 @@ export default function ReviewPageClient({
 
         {/* Help */}
         <div className="max-w-4xl mx-auto mt-6">
-          <div className="bg-gray-100 rounded-lg p-4 text-center">
+          <div className="bg-gray-100 rounded-[3px] p-4 text-center">
             <p className="text-sm text-gray-600">
               Потрібна допомога?{' '}
               <a

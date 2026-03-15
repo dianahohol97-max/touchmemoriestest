@@ -160,7 +160,7 @@ export default function OrdersPage() {
                     <p style={{ color: '#64748b' }}>Повний список транзакцій та статусів у реальному часі.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <Link href="/admin/orders/new" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '12px', fontWeight: 700, fontSize: '15px', textDecoration: 'none' }}>
+                    <Link href="/admin/orders/new" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '3px', fontWeight: 700, fontSize: '15px', textDecoration: 'none' }}>
                         <Plus size={20} /> Створити замовлення
                     </Link>
                     <button onClick={async () => {
@@ -176,7 +176,7 @@ export default function OrdersPage() {
                                 toast.error('Вашого облікового запису немає в спиsku Команди');
                             }
                         }
-                    }} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#f1f5f9', border: 'none', color: '#475569', borderRadius: '12px', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
+                    }} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#f1f5f9', border: 'none', color: '#475569', borderRadius: '3px', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
                         <User size={20} /> Мої замовлення
                     </button>
                     <button onClick={exportToExcel} style={exportBtnStyle}>
@@ -290,7 +290,7 @@ export default function OrdersPage() {
                                                     <div
                                                         key={tag.id}
                                                         title={tag.name}
-                                                        style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: `${tag.color}15`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${tag.color}40`, fontSize: '13px', cursor: 'help' }}
+                                                        style={{ width: '22px', height: '22px', borderRadius: '3px', backgroundColor: `${tag.color}15`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${tag.color}40`, fontSize: '13px', cursor: 'help' }}
                                                     >
                                                         {tag.icon}
                                                     </div>
@@ -316,13 +316,13 @@ export default function OrdersPage() {
                                 <td style={{ ...tdStyle, width: '200px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: order.manager?.color || '#f1f5f9', color: order.manager ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px' }}>
+                                            <div style={{ width: '24px', height: '24px', borderRadius: '3px', backgroundColor: order.manager?.color || '#f1f5f9', color: order.manager ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px' }}>
                                                 {order.manager?.initials || <User size={12} />}
                                             </div>
                                             <span style={{ color: order.manager ? '#475569' : '#94a3b8', fontWeight: 600 }}>{order.manager?.name || 'Менеджер'}</span>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: order.designer?.color || '#f1f5f9', color: order.designer ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px' }}>
+                                            <div style={{ width: '24px', height: '24px', borderRadius: '3px', backgroundColor: order.designer?.color || '#f1f5f9', color: order.designer ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px' }}>
                                                 {order.designer?.initials || <User size={12} />}
                                             </div>
                                             <span style={{ color: order.designer ? '#475569' : '#94a3b8', fontWeight: 600 }}>{order.designer?.name || 'Дизайнер'}</span>
@@ -346,7 +346,7 @@ export default function OrdersPage() {
                                         color: order.payment_status === 'paid' ? '#16a34a' : '#f59e0b',
                                         backgroundColor: order.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb',
                                         padding: '4px 8px',
-                                        borderRadius: '6px',
+                                        borderRadius: '3px',
                                         display: 'inline-block'
                                     }}>
                                         {order.payment_status === 'paid' ? 'ОПЛАЧЕНО' : 'ОЧІКУЄ'}
@@ -366,19 +366,19 @@ export default function OrdersPage() {
     );
 }
 
-const exportBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#475569', borderRadius: '12px', fontWeight: 700, fontSize: '15px', cursor: 'pointer' };
+const exportBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#475569', borderRadius: '3px', fontWeight: 700, fontSize: '15px', cursor: 'pointer' };
 const tabsWrapperStyle = { display: 'flex', gap: '12px', marginBottom: '32px', overflowX: 'auto' as any, paddingBottom: '8px' };
-const tabButtonStyle = { padding: '10px 20px', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' as any };
-const countBadgeStyle = { padding: '2px 8px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.2)', fontSize: '10px', fontWeight: 900 };
+const tabButtonStyle = { padding: '10px 20px', borderRadius: '3px', border: '1.5px solid #e2e8f0', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' as any };
+const countBadgeStyle = { padding: '2px 8px', borderRadius: '3px', backgroundColor: 'rgba(255,255,255,0.2)', fontSize: '10px', fontWeight: 900 };
 const filtersGridStyle = { display: 'grid', gridTemplateColumns: '1fr auto', gap: '24px', marginBottom: '32px', alignItems: 'center' };
-const searchWrapperStyle = { position: 'relative' as any, display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '0 16px', flex: 1 };
+const searchWrapperStyle = { position: 'relative' as any, display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: '3px', padding: '0 16px', flex: 1 };
 const searchInputStyle = { border: 'none', padding: '12px 0', outline: 'none', width: '100%', fontSize: '14px', fontWeight: 500 };
-const dateInputStyle = { border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '8px 12px', fontSize: '13px', color: '#475569', outline: 'none', backgroundColor: 'white' };
-const selectInputStyle = { border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', fontSize: '13px', color: '#475569', outline: 'none', backgroundColor: 'white', fontWeight: 600, cursor: 'pointer' };
-const tableCardStyle = { backgroundColor: 'white', borderRadius: '32px', boxShadow: '0 4px 25px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9', overflow: 'hidden' };
+const dateInputStyle = { border: '1.5px solid #e2e8f0', borderRadius: '3px', padding: '8px 12px', fontSize: '13px', color: '#475569', outline: 'none', backgroundColor: 'white' };
+const selectInputStyle = { border: '1.5px solid #e2e8f0', borderRadius: '3px', padding: '10px 12px', fontSize: '13px', color: '#475569', outline: 'none', backgroundColor: 'white', fontWeight: 600, cursor: 'pointer' };
+const tableCardStyle = { backgroundColor: 'white', borderRadius: '3px', boxShadow: '0 4px 25px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9', overflow: 'hidden' };
 const thStyle = { textAlign: 'left' as any, padding: '20px', fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', fontWeight: 800 };
 const tdStyle = { padding: '20px', verticalAlign: 'middle' };
 const trStyle = { borderBottom: '1px solid #f8fafc', transition: 'background 0.1s' };
-const avatarStyle = { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, color: '#64748b' };
-const statusBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 800 };
-const actionBtnStyle = { width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none' };
+const avatarStyle = { width: '32px', height: '32px', borderRadius: '3px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, color: '#64748b' };
+const statusBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '3px', fontSize: '11px', fontWeight: 800 };
+const actionBtnStyle = { width: '36px', height: '36px', borderRadius: '3px', backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none' };

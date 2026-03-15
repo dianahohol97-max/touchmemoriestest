@@ -23,7 +23,7 @@ export default async function BriefPage({ params }: PageProps) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="bg-white rounded-[3px] shadow-md p-8 text-center">
             <div className="text-6xl mb-4">✅</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Бриф вже відправлено
@@ -32,7 +32,7 @@ export default async function BriefPage({ params }: PageProps) {
               Дякуємо! Ми вже отримали ваш бриф і працюємо над вашим дизайном.
             </p>
             {brief.status === 'brief_received' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-[3px] p-4">
                 <p className="text-sm text-blue-800">
                   Наш AI-дизайнер зараз аналізує ваші фото. Незабаром дизайнер
                   доопрацює чернетку і надішле вам на перегляд.
@@ -40,14 +40,14 @@ export default async function BriefPage({ params }: PageProps) {
               </div>
             )}
             {brief.status === 'ai_processing' && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-[3px] p-4">
                 <p className="text-sm text-yellow-800">
                   AI обробляє ваші фото... Це може зайняти кілька хвилин.
                 </p>
               </div>
             )}
             {(brief.status === 'ai_done' || brief.status === 'in_design') && (
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="bg-purple-50 border border-purple-200 rounded-[3px] p-4">
                 <p className="text-sm text-purple-800">
                   Дизайнер працює над вашим альбомом. Ми повідомимо вас, коли
                   дизайн буде готовий для перегляду.
@@ -55,7 +55,7 @@ export default async function BriefPage({ params }: PageProps) {
               </div>
             )}
             {brief.status === 'sent_for_review' && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="bg-green-50 border border-green-200 rounded-[3px] p-4">
                 <p className="text-sm text-green-800">
                   Дизайн готовий! Перевірте вашу електронну пошту для посилання
                   на перегляд.
@@ -74,7 +74,7 @@ export default async function BriefPage({ params }: PageProps) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="bg-white rounded-[3px] shadow-md p-8 text-center">
             <div className="text-6xl mb-4">⚠️</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Доступ обмежено

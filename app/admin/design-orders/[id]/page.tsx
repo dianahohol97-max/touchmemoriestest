@@ -67,7 +67,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
         {/* Left Column - Brief Details */}
         <div className="lg:col-span-2 space-y-6">
           {/* Status Card */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-[3px] shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Статус</h2>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -93,7 +93,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
                 </div>
               )}
               {brief.ai_error && (
-                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-[3px]">
                   <p className="text-sm text-red-800">
                     <strong>AI помилка:</strong> {brief.ai_error}
                   </p>
@@ -103,7 +103,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
           </div>
 
           {/* Brief Information */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-[3px] shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Інформація з брифу
             </h2>
@@ -152,7 +152,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
           </div>
 
           {/* Photos Gallery */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-[3px] shadow p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">
                 Фотографії ({photos.length})
@@ -171,7 +171,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
               <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
                 {photos.map((photo) => (
                   <div key={photo.id} className="group relative">
-                    <div className="aspect-square relative rounded-lg overflow-hidden bg-gray-100">
+                    <div className="aspect-square relative rounded-[3px] overflow-hidden bg-gray-100">
                       <Image
                         src={photo.url}
                         alt={photo.filename}
@@ -206,7 +206,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
 
           {/* AI Analysis Results */}
           {brief.ai_analysis_result && (
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-[3px] shadow p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Результати AI-аналізу
               </h2>
@@ -221,7 +221,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
 
           {/* Layout Plan */}
           {brief.ai_layout_plan && (
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-[3px] shadow p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 План розкладки ({(brief.ai_layout_plan as any).total_pages} сторінок)
               </h2>
@@ -239,7 +239,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
         {/* Right Column - Order Info & Actions */}
         <div className="space-y-6">
           {/* Customer Info */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-[3px] shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Клієнт</h2>
             <dl className="space-y-2">
               <div>
@@ -263,7 +263,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
 
           {/* Product Info */}
           {productInfo && (
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-[3px] shadow p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Продукт</h2>
               <p className="text-sm text-gray-900 font-medium mb-2">
                 {productInfo.title}
@@ -273,7 +273,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
           )}
 
           {/* Actions */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-[3px] shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Дії</h2>
             <div className="space-y-2">
               {brief.status === 'waiting_brief' && (
@@ -281,23 +281,23 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
                   href={`/brief/${brief.token}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700"
+                  className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-[3px] hover:bg-blue-700"
                 >
                   Відкрити бриф
                 </a>
               )}
               {['ai_done', 'in_design'].includes(brief.status) && (
-                <button className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                <button className="w-full px-4 py-2 bg-purple-600 text-white rounded-[3px] hover:bg-purple-700">
                   Відкрити в редакторі
                 </button>
               )}
               {brief.status === 'in_design' && (
-                <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                <button className="w-full px-4 py-2 bg-green-600 text-white rounded-[3px] hover:bg-green-700">
                   Надіслати на перегляд
                 </button>
               )}
               {brief.ai_error && (
-                <button className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
+                <button className="w-full px-4 py-2 bg-yellow-600 text-white rounded-[3px] hover:bg-yellow-700">
                   Повторити AI обробку
                 </button>
               )}
@@ -305,7 +305,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
           </div>
 
           {/* Quick Stats */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-[3px] shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Статистика</h2>
             <dl className="space-y-2">
               <div className="flex items-center justify-between">

@@ -234,7 +234,7 @@ const formStyle: React.CSSProperties = {
     margin: '0 auto',
     padding: '40px 32px',
     backgroundColor: 'white',
-    borderRadius: '24px',
+    borderRadius: '3px',
     boxShadow: '0 4px 25px rgba(0,0,0,0.08)',
     border: '1px solid #f1f5f9'
 };
@@ -273,7 +273,7 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px 16px',
-    borderRadius: '12px',
+    borderRadius: '3px',
     border: '1.5px solid #e2e8f0',
     fontSize: '15px',
     outline: 'none',
@@ -283,7 +283,7 @@ const inputStyle: React.CSSProperties = {
 const selectStyle: React.CSSProperties = {
     flex: 1,
     padding: '12px 16px',
-    borderRadius: '12px',
+    borderRadius: '3px',
     border: '1.5px solid #e2e8f0',
     fontSize: '15px',
     outline: 'none',
@@ -306,7 +306,7 @@ const eyeButtonStyle: React.CSSProperties = {
 const birthdaySectionStyle: React.CSSProperties = {
     padding: '20px',
     backgroundColor: '#f0f9ff',
-    borderRadius: '16px',
+    borderRadius: '3px',
     border: '1.5px solid #bae6fd',
     marginBottom: '24px'
 };
@@ -329,7 +329,7 @@ const submitButtonStyle: React.CSSProperties = {
     backgroundColor: 'var(--primary)',
     color: 'white',
     border: 'none',
-    borderRadius: '12px',
+    borderRadius: '3px',
     fontSize: '16px',
     fontWeight: 700,
     cursor: 'pointer',

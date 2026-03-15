@@ -34,7 +34,7 @@ export function DynamicPromo({ blockName }: { blockName: string }) {
                                 whileInView={{ opacity: 1, x: 0 }}
                                 src={imageUrl}
                                 alt={title}
-                                className="w-full h-auto rounded-2xl shadow-xl"
+                                className="w-full h-auto rounded-[3px] shadow-xl"
                                 style={{ borderRadius: style.image_radius || '1rem' }}
                             />
                         </div>

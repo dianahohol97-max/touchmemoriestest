@@ -56,11 +56,11 @@ export default function WelcomeEmail({
                             </Text>
 
                             {/* Promo Block */}
-                            <Section className="bg-[#fffbeb] border border-[#fde68a] rounded-xl text-center py-[24px] mb-[32px]">
+                            <Section className="bg-[#fffbeb] border border-[#fde68a] rounded-[3px] text-center py-[24px] mb-[32px]">
                                 <Text className="text-[#d97706] font-bold text-[14px] m-0 uppercase tracking-wide mb-[8px]">
                                     Промокод на перше замовлення
                                 </Text>
-                                <div className="bg-white border border-[#fcd34d] inline-block px-[24px] py-[12px] rounded-lg mt-[4px]">
+                                <div className="bg-white border border-[#fcd34d] inline-block px-[24px] py-[12px] rounded-[3px] mt-[4px]">
                                     <Text className="text-[24px] font-mono font-black text-[#d97706] m-0 tracking-widest">
                                         {promoCode}
                                     </Text>
@@ -91,7 +91,7 @@ export default function WelcomeEmail({
                             <Section className="text-center mb-[24px]">
                                 <Button
                                     href={`${appUrl}/book-constructor`}
-                                    className="bg-[#d97706] text-white px-[32px] py-[16px] rounded-lg text-[16px] font-bold no-underline w-full max-w-[280px]"
+                                    className="bg-[#d97706] text-white px-[32px] py-[16px] rounded-[3px] text-[16px] font-bold no-underline w-full max-w-[280px]"
                                 >
                                     Створити фотокнигу →
                                 </Button>

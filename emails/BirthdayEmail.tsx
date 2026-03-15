@@ -34,7 +34,7 @@ export default function BirthdayEmail({
             <Preview>З Днем Народження! Ваш особливий подарунок всередині 🎂</Preview>
             <Tailwind>
                 <Body className="bg-[#f6f9fc] font-sans text-[#263A99] m-0 p-0">
-                    <Container className="bg-white mx-auto my-[40px] max-w-[600px] rounded-2xl overflow-hidden shadow-sm border border-[#e2e8f0]">
+                    <Container className="bg-white mx-auto my-[40px] max-w-[600px] rounded-[3px] overflow-hidden shadow-sm border border-[#e2e8f0]">
 
                         {/* Header Banner - Purple / Pink Gradient */}
                         <Section className="bg-gradient-to-r from-[#9333ea] to-[#ec4899] py-[40px] text-center">
@@ -53,7 +53,7 @@ export default function BirthdayEmail({
                             </Text>
 
                             {/* Promo Block */}
-                            <Section className="bg-[#fdf2f8] border border-[#fbcfe8] rounded-xl text-center py-[32px] my-[32px]">
+                            <Section className="bg-[#fdf2f8] border border-[#fbcfe8] rounded-[3px] text-center py-[32px] my-[32px]">
                                 <Text className="text-[#ec4899] font-bold text-[16px] m-0 uppercase tracking-widest mb-[8px]">
                                     Ваша знижка на будь-яке замовлення
                                 </Text>
@@ -63,7 +63,7 @@ export default function BirthdayEmail({
                                 <Text className="text-[14px] text-[#64748b] mt-[16px] mb-0">
                                     Ваш персональний промокод:
                                 </Text>
-                                <div className="bg-white border-2 border-dashed border-[#ec4899] inline-block px-[24px] py-[12px] rounded-lg mt-[12px]">
+                                <div className="bg-white border-2 border-dashed border-[#ec4899] inline-block px-[24px] py-[12px] rounded-[3px] mt-[12px]">
                                     <Text className="text-[20px] font-mono font-bold text-[#ec4899] m-0 tracking-widest">
                                         {promoCode}
                                     </Text>
@@ -77,7 +77,7 @@ export default function BirthdayEmail({
                             <Section className="text-center mt-[32px]">
                                 <Button
                                     href={`${appUrl}`}
-                                    className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-xl text-[16px] font-bold no-underline"
+                                    className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-[3px] text-[16px] font-bold no-underline"
                                 >
                                     Створити фотокнигу зі знижкою →
                                 </Button>

@@ -12,7 +12,7 @@ export function ProductGallery({ images }: { images: string[] }) {
     const nextImage = () => setActiveIndex((prev) => (prev + 1) % images.length);
     const prevImage = () => setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
 
-    if (!images.length) return <div style={{ aspectRatio: '1/1', background: '#f9f9f9', borderRadius: '32px' }}></div>;
+    if (!images.length) return <div style={{ aspectRatio: '1/1', background: '#f9f9f9', borderRadius: '3px' }}></div>;
 
     return (
         <div className={styles.galleryContainer} style={{ position: 'sticky', top: '120px', height: 'fit-content' }}>
@@ -21,7 +21,7 @@ export function ProductGallery({ images }: { images: string[] }) {
             <div style={{
                 position: 'relative',
                 aspectRatio: '1/1',
-                borderRadius: '32px',
+                borderRadius: '3px',
                 overflow: 'hidden',
                 backgroundColor: '#f9f9f9',
                 boxShadow: '0 10px 40px rgba(0,0,0,0.05)',
@@ -63,7 +63,7 @@ export function ProductGallery({ images }: { images: string[] }) {
                     <ChevronRight size={24} />
                 </button>
 
-                <div style={{ position: 'absolute', top: '20px', right: '20px', padding: '10px', backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(4px)', borderRadius: '12px', color: '#333' }}>
+                <div style={{ position: 'absolute', top: '20px', right: '20px', padding: '10px', backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(4px)', borderRadius: '3px', color: '#333' }}>
                     <Maximize2 size={18} />
                 </div>
             </div>
@@ -78,7 +78,7 @@ export function ProductGallery({ images }: { images: string[] }) {
                             position: 'relative',
                             width: '80px',
                             height: '80px',
-                            borderRadius: '16px',
+                            borderRadius: '3px',
                             overflow: 'hidden',
                             flexShrink: 0,
                             border: activeIndex === idx ? '2px solid var(--primary)' : '2px solid transparent',
@@ -109,7 +109,7 @@ const arrowBtnStyle = {
     transform: 'translateY(-50%)',
     width: '48px',
     height: '48px',
-    borderRadius: '50%',
+    borderRadius: '3px',
     backgroundColor: 'rgba(255,255,255,0.9)',
     backdropFilter: 'blur(4px)',
     border: 'none',

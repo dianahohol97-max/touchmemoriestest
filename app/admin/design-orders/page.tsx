@@ -74,17 +74,17 @@ export default async function DesignOrdersPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-[3px] shadow p-4">
           <div className="text-sm text-gray-500 mb-1">Всього</div>
           <div className="text-2xl font-bold text-gray-900">{designOrders.length}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-[3px] shadow p-4">
           <div className="text-sm text-gray-500 mb-1">Очікують бриф</div>
           <div className="text-2xl font-bold text-yellow-600">
             {designOrders.filter((o) => o.status === 'waiting_brief').length}
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-[3px] shadow p-4">
           <div className="text-sm text-gray-500 mb-1">У роботі</div>
           <div className="text-2xl font-bold text-blue-600">
             {designOrders.filter((o) =>
@@ -92,7 +92,7 @@ export default async function DesignOrdersPage() {
             ).length}
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-[3px] shadow p-4">
           <div className="text-sm text-gray-500 mb-1">На перегляді</div>
           <div className="text-2xl font-bold text-purple-600">
             {designOrders.filter((o) =>
@@ -103,7 +103,7 @@ export default async function DesignOrdersPage() {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-[3px] shadow overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

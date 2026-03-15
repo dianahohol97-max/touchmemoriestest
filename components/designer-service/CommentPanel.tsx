@@ -37,7 +37,7 @@ export default function CommentPanel({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+      <div className="bg-white rounded-[3px] shadow-xl max-w-lg w-full p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -58,7 +58,7 @@ export default function CommentPanel({
             onChange={(e) => setComment(e.target.value)}
             placeholder="Напишіть ваш коментар або побажання щодо цієї сторінки..."
             rows={6}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            className="w-full px-4 py-3 border border-gray-300 rounded-[3px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
             autoFocus
           />
           <p className="mt-2 text-sm text-gray-500">
@@ -86,7 +86,7 @@ export default function CommentPanel({
             <button
               onClick={handleSave}
               disabled={!comment.trim()}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex items-center gap-2 px-6 py-2 rounded-[3px] font-medium transition-colors ${
                 comment.trim()
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'

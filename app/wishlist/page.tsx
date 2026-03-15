@@ -162,12 +162,12 @@ export default function WishlistPage() {
 
 const mainStyle = { minHeight: '100vh', backgroundColor: '#fafafa', paddingTop: '100px', paddingBottom: '100px' };
 const containerStyle = { maxWidth: '1200px', margin: '0 auto', padding: '0 24px' };
-const badgeStyle = { display: 'inline-block', backgroundColor: '#fff1f2', color: '#ef4444', padding: '6px 16px', borderRadius: '100px', fontSize: '12px', fontWeight: 900, marginBottom: '24px', letterSpacing: '0.05em' };
+const badgeStyle = { display: 'inline-block', backgroundColor: '#fff1f2', color: '#ef4444', padding: '6px 16px', borderRadius: '3px', fontSize: '12px', fontWeight: 900, marginBottom: '24px', letterSpacing: '0.05em' };
 const titleStyle = { fontSize: '48px', fontWeight: 900, color: '#263A99', marginBottom: '20px', letterSpacing: '-0.02em' };
 const subtitleStyle = { color: '#64748b', fontSize: '18px', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 };
 
 const wishlistGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '32px' };
-const wishlistCard = { backgroundColor: 'white', borderRadius: '32px', overflow: 'hidden', display: 'flex', flexDirection: 'column' as any, border: '1px solid #f1f5f9', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' };
+const wishlistCard = { backgroundColor: 'white', borderRadius: '3px', overflow: 'hidden', display: 'flex', flexDirection: 'column' as any, border: '1px solid #f1f5f9', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' };
 const imageContainer = { position: 'relative' as any, width: '100%', aspectRatio: '16/10', overflow: 'hidden' };
 const contentArea = { padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' as any };
 const productName = { fontSize: '18px', fontWeight: 800, color: '#263A99' };
@@ -175,14 +175,14 @@ const priceStyle = { fontWeight: 900, fontSize: '18px', color: 'var(--primary)' 
 const shortDesc = { fontSize: '14px', color: '#64748b', marginBottom: '24px', flex: 1 };
 const actionsRow = { display: 'flex', gap: '12px' };
 
-const addToCartBtn = { flex: 1, backgroundColor: '#263A99', color: 'white', border: 'none', borderRadius: '16px', fontWeight: 800, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' };
-const notifyBtn = { flex: 1, backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '16px', fontWeight: 800, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' };
-const removeBtn = { width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px', border: '2px solid #f1f5f9', color: '#94a3b8', cursor: 'pointer', transition: 'all 0.2s' };
+const addToCartBtn = { flex: 1, backgroundColor: '#263A99', color: 'white', border: 'none', borderRadius: '3px', fontWeight: 800, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' };
+const notifyBtn = { flex: 1, backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '3px', fontWeight: 800, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' };
+const removeBtn = { width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', border: '2px solid #f1f5f9', color: '#94a3b8', cursor: 'pointer', transition: 'all 0.2s' };
 const outOfStockOverlay = { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, color: '#263A99', letterSpacing: '0.1em' };
 
-const emptyState = { textAlign: 'center' as any, padding: '100px 24px', backgroundColor: 'white', borderRadius: '48px', border: '2px dashed #e2e8f0' };
-const emptyIconWrapper = { width: '100px', height: '100px', borderRadius: '50%', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px' };
-const browseBtn = { display: 'inline-flex', alignItems: 'center', gap: '12px', padding: '18px 36px', borderRadius: '20px', backgroundColor: '#ef4444', color: 'white', fontWeight: 900, fontSize: '18px', textDecoration: 'none', boxShadow: '0 10px 30px rgba(239, 68, 68, 0.3)' };
+const emptyState = { textAlign: 'center' as any, padding: '100px 24px', backgroundColor: 'white', borderRadius: '3px', border: '2px dashed #e2e8f0' };
+const emptyIconWrapper = { width: '100px', height: '100px', borderRadius: '3px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px' };
+const browseBtn = { display: 'inline-flex', alignItems: 'center', gap: '12px', padding: '18px 36px', borderRadius: '3px', backgroundColor: '#ef4444', color: 'white', fontWeight: 900, fontSize: '18px', textDecoration: 'none', boxShadow: '0 10px 30px rgba(239, 68, 68, 0.3)' };
 
-const viralBanner = { marginTop: '80px', padding: '40px', backgroundColor: '#fffafb', borderRadius: '32px', border: '1px solid #ffeff2' };
-const sparkleBox = { width: '56px', height: '56px', borderRadius: '18px', backgroundColor: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const viralBanner = { marginTop: '80px', padding: '40px', backgroundColor: '#fffafb', borderRadius: '3px', border: '1px solid #ffeff2' };
+const sparkleBox = { width: '56px', height: '56px', borderRadius: '3px', backgroundColor: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center' };

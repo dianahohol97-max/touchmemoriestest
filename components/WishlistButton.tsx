@@ -40,7 +40,7 @@ export default function WishlistButton({ productId, variant = 'minimal', classNa
         return (
             <button
                 onClick={handleToggle}
-                className={`flex items-center gap-2 px-6 py-4 rounded-2xl font-bold transition-all duration-300 ${active
+                className={`flex items-center gap-2 px-6 py-4 rounded-[3px] font-bold transition-all duration-300 ${active
                         ? 'bg-red-50 text-red-500 border-2 border-red-100'
                         : 'bg-slate-50 text-slate-600 border-2 border-slate-100 hover:border-slate-200'
                     } ${className}`}

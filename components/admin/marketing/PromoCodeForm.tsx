@@ -304,7 +304,7 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
                                 style={{
                                     width: '50px',
                                     height: '26px',
-                                    borderRadius: '13px',
+                                    borderRadius: '3px',
                                     backgroundColor: formData.is_active ? '#22c55e' : '#cbd5e1',
                                     position: 'relative',
                                     cursor: 'pointer',
@@ -314,7 +314,7 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
                                 <div style={{
                                     width: '20px',
                                     height: '20px',
-                                    borderRadius: '50%',
+                                    borderRadius: '3px',
                                     backgroundColor: 'white',
                                     position: 'absolute',
                                     top: '3px',
@@ -342,12 +342,12 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
     );
 }
 
-const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', borderRadius: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer' };
-const saveBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '14px', fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: '15px' };
-const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #f1f5f9', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
+const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', borderRadius: '3px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer' };
+const saveBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: '15px' };
+const cardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
 const cardTitleStyle = { fontSize: '16px', fontWeight: 800, color: '#263A99', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 };
 const labelStyle = { fontSize: '14px', fontWeight: 700, color: '#475569' };
-const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px', color: '#263A99', transition: 'border-color 0.2s' };
+const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '15px', color: '#263A99', transition: 'border-color 0.2s' };
 const hintStyle = { fontSize: '12px', color: '#94a3b8', marginTop: '4px' };
 const itemSelectorGrid = { display: 'flex', flexWrap: 'wrap' as any, gap: '8px', maxHeight: '300px', overflowY: 'auto' as any, padding: '4px' };
-const selectorItemStyle = { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer', transition: 'all 0.2s' };
+const selectorItemStyle = { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '3px', border: '1.5px solid #e2e8f0', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer', transition: 'all 0.2s' };

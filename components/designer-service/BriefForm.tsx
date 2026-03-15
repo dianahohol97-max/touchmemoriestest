@@ -206,7 +206,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
                   type="button"
                   onClick={() => updateField('occasion', occasion.value)}
                   className={`
-                    p-4 rounded-lg border-2 text-left transition-all
+                    p-4 rounded-[3px] border-2 text-left transition-all
                     ${
                       formData.occasion === occasion.value
                         ? 'border-blue-500 bg-blue-50'
@@ -234,7 +234,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
                   type="button"
                   onClick={() => updateField('style_preference', style.value)}
                   className={`
-                    p-4 rounded-lg border-2 text-left transition-all
+                    p-4 rounded-[3px] border-2 text-left transition-all
                     ${
                       formData.style_preference === style.value
                         ? 'border-blue-500 bg-blue-50'
@@ -264,7 +264,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
               value={formData.title_text}
               onChange={(e) => updateField('title_text', e.target.value)}
               placeholder='Наприклад: "Наше весілля 2024" або "Сімейні спогади"'
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-[3px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
@@ -278,7 +278,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
               onChange={(e) => updateField('important_photos', e.target.value)}
               placeholder="Наприклад: обручки, перший танець, групове фото з усіма гостями"
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-[3px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
@@ -291,7 +291,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
               {photoOrders.map((order) => (
                 <label
                   key={order.value}
-                  className="flex items-start p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
+                  className="flex items-start p-3 border-2 border-gray-200 rounded-[3px] cursor-pointer hover:bg-gray-50"
                 >
                   <input
                     type="radio"
@@ -320,7 +320,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
               onChange={(e) => updateField('additional_notes', e.target.value)}
               placeholder="Будь-які інші побажання щодо дизайну, кольорів, розташування..."
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-[3px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
@@ -336,7 +336,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
             </p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+          <div className="bg-gray-50 rounded-[3px] p-6 space-y-4">
             <div>
               <div className="text-sm text-gray-500 mb-1">Кількість фото</div>
               <div className="font-medium">{photos.length} фото</div>
@@ -390,7 +390,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-[3px] p-4">
             <p className="text-sm text-blue-800">
               <strong>Що далі?</strong> Після відправки брифу наш AI-дизайнер проаналізує
               ваші фото та створить чернетку дизайну. Потім наш дизайнер доопрацює її та
@@ -406,7 +406,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
           onClick={() => setStep(step - 1)}
           disabled={step === 1}
           className={`
-            flex items-center gap-2 px-6 py-3 rounded-lg font-medium
+            flex items-center gap-2 px-6 py-3 rounded-[3px] font-medium
             transition-colors
             ${
               step === 1
@@ -424,7 +424,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
             onClick={() => setStep(step + 1)}
             disabled={!canProceed()}
             className={`
-              flex items-center gap-2 px-6 py-3 rounded-lg font-medium
+              flex items-center gap-2 px-6 py-3 rounded-[3px] font-medium
               transition-colors
               ${
                 canProceed()
@@ -441,7 +441,7 @@ export default function BriefForm({ token, orderId, initialPhotos = [], onSubmit
             onClick={handleSubmit}
             disabled={submitting}
             className={`
-              px-8 py-3 rounded-lg font-medium text-white
+              px-8 py-3 rounded-[3px] font-medium text-white
               transition-colors
               ${
                 submitting

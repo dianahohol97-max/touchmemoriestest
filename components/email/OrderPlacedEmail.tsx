@@ -124,14 +124,14 @@ const container = {
     backgroundColor: '#ffffff',
     margin: '40px auto',
     padding: '0',
-    borderRadius: '16px',
+    borderRadius: '3px',
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     maxWidth: '600px',
     overflow: 'hidden',
 };
 
 const header = {
-    backgroundColor: '#111827',
+    backgroundColor: '#263A99',
     padding: '32px 40px',
     textAlign: 'center' as const,
 };
@@ -150,14 +150,14 @@ const content = {
 
 const heading = {
     fontSize: '24px',
-    color: '#111827',
+    color: '#263A99',
     fontWeight: '700',
     margin: '0 0 16px',
 };
 
 const subheading = {
     fontSize: '16px',
-    color: '#111827',
+    color: '#263A99',
     fontWeight: '600',
     margin: '0 0 12px',
 };
@@ -196,7 +196,7 @@ const itemColPrice = {
 
 const itemName = {
     fontSize: '15px',
-    color: '#111827',
+    color: '#263A99',
     fontWeight: '500',
     margin: '0 0 4px',
 };
@@ -209,7 +209,7 @@ const itemSubText = {
 
 const itemPrice = {
     fontSize: '15px',
-    color: '#111827',
+    color: '#263A99',
     fontWeight: '600',
     margin: '0',
 };
@@ -226,20 +226,20 @@ const leftColumn = {
 
 const rightColumn = {
     fontSize: '14px',
-    color: '#111827',
+    color: '#263A99',
     textAlign: 'right' as const,
     paddingBottom: '8px',
 };
 
 const leftColumnTotal = {
     fontSize: '16px',
-    color: '#111827',
+    color: '#263A99',
     paddingTop: '8px',
 };
 
 const rightColumnTotal = {
     fontSize: '18px',
-    color: '#111827',
+    color: '#263A99',
     textAlign: 'right' as const,
     paddingTop: '8px',
 };
@@ -247,7 +247,7 @@ const rightColumnTotal = {
 const deliverySection = {
     backgroundColor: '#f9fafb',
     padding: '24px',
-    borderRadius: '12px',
+    borderRadius: '3px',
 };
 
 const footerText = {

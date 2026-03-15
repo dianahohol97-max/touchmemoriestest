@@ -146,7 +146,7 @@ export default function RecurringExpensesPage() {
               <p className="text-muted-foreground">Регулярних витрат не знайдено</p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-[3px] border">
               <Table>
                 <TableHeader>
                   <TableRow>

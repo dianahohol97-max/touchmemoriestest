@@ -78,7 +78,7 @@ export function SocialProof() {
                         width: '48px',
                         height: '48px',
                         backgroundColor: 'white',
-                        borderRadius: '50%',
+                        borderRadius: '3px',
                         boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
                         display: 'flex',
                         alignItems: 'center',
@@ -119,7 +119,7 @@ export function SocialProof() {
                                 aspectRatio: '3/4',
                                 scrollSnapAlign: 'center',
                                 overflow: 'hidden',
-                                borderRadius: '32px',
+                                borderRadius: '3px',
                                 cursor: 'pointer',
                                 position: 'relative'
                             }}
@@ -156,7 +156,7 @@ export function SocialProof() {
                         width: '48px',
                         height: '48px',
                         backgroundColor: 'white',
-                        borderRadius: '50%',
+                        borderRadius: '3px',
                         boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
                         display: 'flex',
                         alignItems: 'center',

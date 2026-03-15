@@ -179,7 +179,7 @@ export default function BlogCategoriesPage() {
                                     <div>
                                         <div style={{ fontWeight: 800, color: '#263A99', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             {cat.name}
-                                            {!cat.is_active && <span style={{ fontSize: '11px', padding: '2px 6px', backgroundColor: '#e2e8f0', borderRadius: '4px', color: '#64748b' }}>Неактивна</span>}
+                                            {!cat.is_active && <span style={{ fontSize: '11px', padding: '2px 6px', backgroundColor: '#e2e8f0', borderRadius: '3px', color: '#64748b' }}>Неактивна</span>}
                                         </div>
                                         <div style={{ fontSize: '13px', color: '#94a3b8' }}>/blog/category/{cat.slug}</div>
                                     </div>
@@ -197,13 +197,13 @@ export default function BlogCategoriesPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '15px', cursor: 'pointer' };
-const catRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', backgroundColor: 'white', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)' };
-const iconBoxStyle = { width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const actionBtnStyle = { padding: '10px', borderRadius: '12px', backgroundColor: '#f8fafc', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const formCardStyle = { backgroundColor: '#f8fafc', padding: '32px', borderRadius: '24px', border: '2px dashed #e2e8f0', marginBottom: '16px' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, fontSize: '15px', cursor: 'pointer' };
+const catRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)' };
+const iconBoxStyle = { width: '44px', height: '44px', borderRadius: '3px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const actionBtnStyle = { padding: '10px', borderRadius: '3px', backgroundColor: '#f8fafc', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const formCardStyle = { backgroundColor: '#f8fafc', padding: '32px', borderRadius: '3px', border: '2px dashed #e2e8f0', marginBottom: '16px' };
 const labelStyle = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
-const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: 'white' };
-const textareaStyle = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: 'white', fontFamily: 'inherit' };
-const saveBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#10b981', color: 'white', borderRadius: '10px', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '14px' };
-const cancelBtnStyle = { padding: '10px 20px', backgroundColor: 'transparent', color: '#64748b', borderRadius: '10px', border: '1.5px solid #e2e8f0', fontWeight: 700, cursor: 'pointer', fontSize: '14px' };
+const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: 'white' };
+const textareaStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: 'white', fontFamily: 'inherit' };
+const saveBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#10b981', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '14px' };
+const cancelBtnStyle = { padding: '10px 20px', backgroundColor: 'transparent', color: '#64748b', borderRadius: '3px', border: '1.5px solid #e2e8f0', fontWeight: 700, cursor: 'pointer', fontSize: '14px' };

@@ -74,16 +74,16 @@ export default function ChatbotSettingsPage() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px', backgroundColor: 'var(--primary)', color: 'white', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '3px', backgroundColor: 'var(--primary)', color: 'white', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
                 >
                     <Save size={18} />
                     {saving ? 'Збереження...' : 'Зберегти зміни'}
                 </button>
             </div>
 
-            <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '24px' }}>
+            <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '3px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3730a3' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '3px', backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3730a3' }}>
                         <Bot size={24} />
                     </div>
                     <div>
@@ -94,14 +94,14 @@ export default function ChatbotSettingsPage() {
                 <textarea
                     value={systemPrompt}
                     onChange={e => setSystemPrompt(e.target.value)}
-                    style={{ width: '100%', minHeight: '300px', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', lineHeight: 1.6, outline: 'none', fontFamily: 'monospace', resize: 'vertical' }}
+                    style={{ width: '100%', minHeight: '300px', padding: '16px', borderRadius: '3px', border: '1px solid #e2e8f0', fontSize: '14px', lineHeight: 1.6, outline: 'none', fontFamily: 'monospace', resize: 'vertical' }}
                 />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '3px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#991b1b' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '3px', backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#991b1b' }}>
                             <MessageSquare size={20} />
                         </div>
                         <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>Ескалація</h2>
@@ -111,14 +111,14 @@ export default function ChatbotSettingsPage() {
                         type="number"
                         value={autoEscalate}
                         onChange={e => setAutoEscalate(e.target.value)}
-                        style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none' }}
+                        style={{ width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none' }}
                         min="1" max="50"
                     />
                 </div>
 
-                <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '3px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '3px', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
                             <Bot size={20} />
                         </div>
                         <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>Робочі години бота</h2>
@@ -130,7 +130,7 @@ export default function ChatbotSettingsPage() {
                                 type="time"
                                 value={workingHours.start}
                                 onChange={e => setWorkingHours({ ...workingHours, start: e.target.value })}
-                                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none' }}
+                                style={{ width: '100%', padding: '12px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none' }}
                             />
                         </div>
                         <div style={{ flex: 1 }}>
@@ -139,7 +139,7 @@ export default function ChatbotSettingsPage() {
                                 type="time"
                                 value={workingHours.end}
                                 onChange={e => setWorkingHours({ ...workingHours, end: e.target.value })}
-                                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none' }}
+                                style={{ width: '100%', padding: '12px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none' }}
                             />
                         </div>
                     </div>

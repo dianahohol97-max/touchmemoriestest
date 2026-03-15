@@ -102,14 +102,14 @@ const container = {
     backgroundColor: '#ffffff',
     margin: '40px auto',
     padding: '0',
-    borderRadius: '16px',
+    borderRadius: '3px',
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     maxWidth: '600px',
     overflow: 'hidden',
 };
 
 const header = {
-    backgroundColor: '#111827',
+    backgroundColor: '#263A99',
     padding: '32px 40px',
     textAlign: 'center' as const,
 };
@@ -128,7 +128,7 @@ const content = {
 
 const heading = {
     fontSize: '24px',
-    color: '#111827',
+    color: '#263A99',
     fontWeight: '700',
     margin: '0 0 16px',
 };
@@ -143,7 +143,7 @@ const text = {
 const trackingBox = {
     backgroundColor: '#f9fafb',
     border: '1px solid #e5e7eb',
-    borderRadius: '12px',
+    borderRadius: '3px',
     padding: '24px',
     marginBottom: '24px',
     textAlign: 'center' as const,
@@ -159,21 +159,21 @@ const trackingTitle = {
 
 const trackingInfo = {
     fontSize: '14px',
-    color: '#111827',
+    color: '#263A99',
     margin: '0 0 8px',
 };
 
 const ttnText = {
     fontSize: '28px',
     fontWeight: '800',
-    color: '#111827',
+    color: '#263A99',
     letterSpacing: '2px',
     margin: '8px 0 24px',
 };
 
 const button = {
-    backgroundColor: '#111827',
-    borderRadius: '8px',
+    backgroundColor: '#263A99',
+    borderRadius: '3px',
     color: '#fff',
     fontSize: '15px',
     fontWeight: '600',

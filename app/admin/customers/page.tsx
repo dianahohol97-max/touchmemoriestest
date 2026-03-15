@@ -143,16 +143,16 @@ export default function CustomersPage() {
 }
 
 const statsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '32px', marginBottom: '48px' };
-const statCardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
-const iconWrapperStyle = { width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const statCardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: '3px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
+const iconWrapperStyle = { width: '56px', height: '56px', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const statLabelStyle = { fontSize: '13px', fontWeight: 700, color: '#64748b', marginBottom: '4px' };
 const statValueStyle = { fontSize: '24px', fontWeight: 900, color: '#263A99' };
-const searchWrapperStyle = { display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: '16px', padding: '0 20px', marginBottom: '32px', maxWidth: '600px' };
+const searchWrapperStyle = { display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: '3px', padding: '0 20px', marginBottom: '32px', maxWidth: '600px' };
 const searchInputStyle = { border: 'none', padding: '16px 0', outline: 'none', width: '100%', fontSize: '15px', fontWeight: 500 };
-const tableCardStyle = { backgroundColor: 'white', borderRadius: '32px', border: '1px solid #f1f5f9', overflow: 'hidden', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
+const tableCardStyle = { backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', overflow: 'hidden', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
 const thStyle = { textAlign: 'left' as any, padding: '24px', fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', fontWeight: 800 };
 const tdStyle = { padding: '24px', verticalAlign: 'middle' };
 const trStyle = { borderBottom: '1px solid #f8fafc' };
-const avatarStyle = { width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 900 };
+const avatarStyle = { width: '40px', height: '40px', borderRadius: '3px', backgroundColor: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 900 };
 const contactLinkStyle = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b', fontWeight: 600 };
-const actionBtnStyle = { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '10px', backgroundColor: '#f8fafc', color: '#475569', fontSize: '13px', fontWeight: 700, textDecoration: 'none', transition: 'all 0.2s' };
+const actionBtnStyle = { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '3px', backgroundColor: '#f8fafc', color: '#475569', fontSize: '13px', fontWeight: 700, textDecoration: 'none', transition: 'all 0.2s' };

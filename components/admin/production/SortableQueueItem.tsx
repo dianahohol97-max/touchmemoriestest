@@ -46,7 +46,7 @@ export function SortableQueueItem({ item, index, onAssignDesigner, onClearOverri
         <div
             ref={setNodeRef}
             style={style}
-            className="group bg-white border border-slate-200 rounded-xl p-4 mb-2 flex items-center gap-4 hover:border-slate-300 hover:shadow-sm transition-all"
+            className="group bg-white border border-slate-200 rounded-[3px] p-4 mb-2 flex items-center gap-4 hover:border-slate-300 hover:shadow-sm transition-all"
         >
             <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-slate-600">
                 <GripVertical size={20} />
@@ -96,7 +96,7 @@ export function SortableQueueItem({ item, index, onAssignDesigner, onClearOverri
 
                 <div className="w-[180px]">
                     {item.assigned_designer_id ? (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-[3px] border border-slate-100">
                             <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600">
                                 {item.assigned_designer_name?.[0]}
                             </div>

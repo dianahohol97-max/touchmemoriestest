@@ -70,7 +70,7 @@ export default function CartDrawer() {
                                 <span style={{
                                     backgroundColor: '#f0f0f0',
                                     padding: '2px 8px',
-                                    borderRadius: '12px',
+                                    borderRadius: '3px',
                                     fontSize: '12px',
                                     fontWeight: 700
                                 }}>
@@ -84,7 +84,7 @@ export default function CartDrawer() {
                                     border: 'none',
                                     cursor: 'pointer',
                                     padding: '8px',
-                                    borderRadius: '50%',
+                                    borderRadius: '3px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -119,7 +119,7 @@ export default function CartDrawer() {
                                     <div style={{
                                         width: '80px',
                                         height: '80px',
-                                        borderRadius: '50%',
+                                        borderRadius: '3px',
                                         backgroundColor: '#f9f9f9',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -151,7 +151,7 @@ export default function CartDrawer() {
                                             position: 'relative',
                                             width: '90px',
                                             height: '90px',
-                                            borderRadius: '12px',
+                                            borderRadius: '3px',
                                             overflow: 'hidden',
                                             backgroundColor: '#f9f9f9',
                                             flexShrink: 0
@@ -189,7 +189,7 @@ export default function CartDrawer() {
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     border: '1px solid #f0f0f0',
-                                                    borderRadius: '8px',
+                                                    borderRadius: '3px',
                                                     padding: '2px'
                                                 }}>
                                                     <button
@@ -243,7 +243,7 @@ export default function CartDrawer() {
                                         padding: '18px',
                                         backgroundColor: 'var(--primary)',
                                         color: 'white',
-                                        borderRadius: '16px',
+                                        borderRadius: '3px',
                                         textDecoration: 'none',
                                         fontWeight: 800,
                                         fontSize: '16px',

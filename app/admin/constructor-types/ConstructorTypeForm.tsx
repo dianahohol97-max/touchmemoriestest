@@ -396,7 +396,7 @@ export default function ConstructorTypeForm({ typeId, onClose, onSuccess }: Cons
                                             key={t.id}
                                             onClick={() => toggleTemplate(t.id)}
                                             style={{
-                                                padding: '12px', borderRadius: '12px', border: '2px solid',
+                                                padding: '12px', borderRadius: '3px', border: '2px solid',
                                                 borderColor: formData.template_ids.includes(t.id) ? '#263A99' : '#f1f5f9',
                                                 cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
                                                 backgroundColor: formData.template_ids.includes(t.id) ? '#f8fafc' : 'white'
@@ -414,7 +414,7 @@ export default function ConstructorTypeForm({ typeId, onClose, onSuccess }: Cons
                             <div style={tabPanelStyle}>
                                 <div style={fieldGroup}>
                                     <label style={labelStyle}>Фон за замовчуванням</label>
-                                    <input type="color" style={{ width: '100%', height: '40px', padding: '0', border: 'none', borderRadius: '10px' }} value={formData.background_color} onChange={e => setFormData({ ...formData, background_color: e.target.value })} />
+                                    <input type="color" style={{ width: '100%', height: '40px', padding: '0', border: 'none', borderRadius: '3px' }} value={formData.background_color} onChange={e => setFormData({ ...formData, background_color: e.target.value })} />
                                 </div>
                                 <div style={fieldGroup}>
                                     <label style={labelStyle}>Дозволений відступ від краю (мм)</label>
@@ -498,21 +498,21 @@ export default function ConstructorTypeForm({ typeId, onClose, onSuccess }: Cons
 
 // Styles
 const overlayStyle: any = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' };
-const modalStyle: any = { backgroundColor: 'white', width: '900px', maxWidth: '95vw', height: '80vh', borderRadius: '32px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' };
+const modalStyle: any = { backgroundColor: 'white', width: '900px', maxWidth: '95vw', height: '80vh', borderRadius: '3px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' };
 const headerStyle: any = { padding: '24px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
 const sidebarContainerStyle: any = { flex: 1, display: 'flex', overflow: 'hidden' };
 const sidebarStyle: any = { width: '220px', borderRight: '1px solid #f1f5f9', padding: '20px', display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: '#fcfcfd' };
 const contentStyle: any = { flex: 1, padding: '32px', overflowY: 'auto', backgroundColor: '#fff' };
 const footerStyle: any = { padding: '20px 32px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: '#fcfcfd' };
-const tabBtnStyle: any = { display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderRadius: '12px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '14px', fontWeight: 700, transition: 'all 0.2s' };
+const tabBtnStyle: any = { display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderRadius: '3px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '14px', fontWeight: 700, transition: 'all 0.2s' };
 const tabPanelStyle: any = { display: 'flex', flexDirection: 'column', gap: '20px' };
 const fieldGroup: any = { display: 'flex', flexDirection: 'column', gap: '8px' };
 const fieldRow: any = { display: 'flex', gap: '20px' };
 const labelStyle: any = { fontSize: '13px', fontWeight: 800, color: '#263A99' };
-const inputStyle: any = { padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '15px', outline: 'none', width: '100%', transition: 'border-color 0.2s' };
+const inputStyle: any = { padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', fontSize: '15px', outline: 'none', width: '100%', transition: 'border-color 0.2s' };
 const checkLabel: any = { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' };
-const cardItemStyle: any = { display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' };
-const addMoreBtn: any = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', border: '1.5px dashed #cbd5e1', borderRadius: '12px', background: 'none', color: '#64748b', fontSize: '13px', fontWeight: 700, cursor: 'pointer', justifyContent: 'center' };
-const saveBtnStyle: any = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '12px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 800, cursor: 'pointer' };
-const cancelBtnStyle: any = { padding: '12px 24px', borderRadius: '12px', border: 'none', backgroundColor: 'transparent', color: '#64748b', fontWeight: 700, cursor: 'pointer' };
-const closeBtnStyle: any = { padding: '8px', borderRadius: '10px', backgroundColor: '#f1f5f9', border: 'none', color: '#64748b', cursor: 'pointer' };
+const cardItemStyle: any = { display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '16px', borderRadius: '3px', border: '1px solid #f1f5f9' };
+const addMoreBtn: any = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', border: '1.5px dashed #cbd5e1', borderRadius: '3px', background: 'none', color: '#64748b', fontSize: '13px', fontWeight: 700, cursor: 'pointer', justifyContent: 'center' };
+const saveBtnStyle: any = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '3px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 800, cursor: 'pointer' };
+const cancelBtnStyle: any = { padding: '12px 24px', borderRadius: '3px', border: 'none', backgroundColor: 'transparent', color: '#64748b', fontWeight: 700, cursor: 'pointer' };
+const closeBtnStyle: any = { padding: '8px', borderRadius: '3px', backgroundColor: '#f1f5f9', border: 'none', color: '#64748b', cursor: 'pointer' };

@@ -83,7 +83,7 @@ export default function NewProductEmail({
                             <Section className="mt-[32px] mb-[16px]">
                                 <Button
                                     href={productUrl}
-                                    className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-lg text-[16px] font-bold no-underline"
+                                    className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-[3px] text-[16px] font-bold no-underline"
                                 >
                                     Переглянути деталі →
                                 </Button>
@@ -99,7 +99,7 @@ export default function NewProductEmail({
                                 <Row>
                                     {recommendedProducts.map((p, i) => (
                                         <Column key={i} className={`w-1/2 ${i === 0 ? 'pr-[8px]' : 'pl-[8px]'}`}>
-                                            <div className="bg-white rounded-lg p-[12px] shadow-sm">
+                                            <div className="bg-white rounded-[3px] p-[12px] shadow-sm">
                                                 <Img src={p.imageUrl} alt={p.name} className="w-full h-[140px] object-cover rounded mb-[12px]" />
                                                 <Text className="font-bold text-[14px] m-0 text-[#263A99] truncate">
                                                     {p.name}

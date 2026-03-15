@@ -188,14 +188,14 @@ export default function PromoCodesPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '14px', fontWeight: 700, textDecoration: 'none', transition: 'all 0.2s', fontSize: '15px' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', fontWeight: 700, textDecoration: 'none', transition: 'all 0.2s', fontSize: '15px' };
 const filterBarStyle = { display: 'flex', gap: '16px', marginBottom: '32px' };
-const searchWrapperStyle = { display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: '16px', padding: '0 20px', flex: 1, maxWidth: '500px' };
+const searchWrapperStyle = { display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: '3px', padding: '0 20px', flex: 1, maxWidth: '500px' };
 const searchInputStyle = { border: 'none', padding: '14px 0', outline: 'none', width: '100%', fontSize: '15px', fontWeight: 500 };
-const tableCardStyle = { backgroundColor: 'white', borderRadius: '32px', border: '1px solid #f1f5f9', overflow: 'hidden', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
+const tableCardStyle = { backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', overflow: 'hidden', boxShadow: '0 4px 25px rgba(0,0,0,0.02)' };
 const thStyle = { textAlign: 'left' as any, padding: '24px', fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', fontWeight: 800 };
 const tdStyle = { padding: '24px', verticalAlign: 'middle' };
 const trStyle = { borderBottom: '1px solid #f8fafc' };
-const promoBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#263A99', fontSize: '14px', fontFamily: 'monospace' };
-const statusBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: 700 };
-const iconBtnStyle = { width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'all 0.2s' };
+const promoBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '3px', color: '#263A99', fontSize: '14px', fontFamily: 'monospace' };
+const statusBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '3px', fontSize: '12px', fontWeight: 700 };
+const iconBtnStyle = { width: '36px', height: '36px', borderRadius: '3px', backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'all 0.2s' };

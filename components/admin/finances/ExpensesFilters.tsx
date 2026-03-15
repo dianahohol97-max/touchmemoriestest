@@ -57,7 +57,7 @@ export function ExpensesFilters({ filters, categories, onFiltersChange }: Expens
   }
 
   return (
-    <div className="bg-muted/50 p-4 rounded-lg mb-6 space-y-4">
+    <div className="bg-muted/50 p-4 rounded-[3px] mb-6 space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <Label htmlFor="category_filter">Категорія</Label>

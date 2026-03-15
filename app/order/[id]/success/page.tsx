@@ -67,9 +67,9 @@ export default function OrderSuccessPage() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
-                    style={{ backgroundColor: 'white', padding: '60px 40px', borderRadius: '32px', boxShadow: '0 4px 30px rgba(0,0,0,0.05)' }}
+                    style={{ backgroundColor: 'white', padding: '60px 40px', borderRadius: '3px', boxShadow: '0 4px 30px rgba(0,0,0,0.05)' }}
                 >
-                    <div style={{ display: 'inline-flex', padding: '20px', backgroundColor: isPaid ? '#ECFDF5' : '#FEF3C7', borderRadius: '50%', color: isPaid ? '#10B981' : '#F59E0B', marginBottom: '32px' }}>
+                    <div style={{ display: 'inline-flex', padding: '20px', backgroundColor: isPaid ? '#ECFDF5' : '#FEF3C7', borderRadius: '3px', color: isPaid ? '#10B981' : '#F59E0B', marginBottom: '32px' }}>
                         <CheckCircle size={48} />
                     </div>
 
@@ -97,7 +97,7 @@ export default function OrderSuccessPage() {
                         </div>
                     </div>
 
-                    <div style={{ textAlign: 'left', marginBottom: '40px', backgroundColor: '#f9f9f9', padding: '32px', borderRadius: '24px' }}>
+                    <div style={{ textAlign: 'left', marginBottom: '40px', backgroundColor: '#f9f9f9', padding: '32px', borderRadius: '3px' }}>
                         <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '24px' }}>Ваше замовлення</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             {order.items?.map((item: any, idx: number) => (
@@ -125,9 +125,9 @@ export default function OrderSuccessPage() {
                                 gap: '12px',
                                 padding: '20px',
                                 backgroundColor: '#EFF6FF',
-                                borderRadius: '16px',
+                                borderRadius: '3px',
                                 textDecoration: 'none',
-                                color: '#2563EB',
+                                color: '#263A99',
                                 fontWeight: 600,
                                 border: '1px solid #DBEAFE',
                                 marginBottom: '16px'
@@ -150,7 +150,7 @@ export default function OrderSuccessPage() {
                                 gap: '12px',
                                 padding: '20px',
                                 backgroundColor: '#F8FAFC',
-                                borderRadius: '16px',
+                                borderRadius: '3px',
                                 textDecoration: 'none',
                                 color: 'var(--primary)',
                                 fontWeight: 600,
@@ -176,7 +176,7 @@ export default function OrderSuccessPage() {
     );
 }
 
-const infoBlockStyle = { backgroundColor: '#f9f9f9', padding: '20px', borderRadius: '20px', display: 'flex', gap: '16px', alignItems: 'center' };
+const infoBlockStyle = { backgroundColor: '#f9f9f9', padding: '20px', borderRadius: '3px', display: 'flex', gap: '16px', alignItems: 'center' };
 const iconWrapperStyle = { color: 'var(--primary)', opacity: 0.6 };
 const infoLabelStyle = { fontSize: '12px', color: '#888', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
 const infoValueStyle = { fontWeight: 600, fontSize: '15px' };

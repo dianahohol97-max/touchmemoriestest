@@ -192,7 +192,7 @@ const stepsContainer = {
   margin: '32px 0',
   padding: '24px',
   backgroundColor: '#f8f9fa',
-  borderRadius: '8px',
+  borderRadius: '3px',
 };
 
 const step = {
@@ -207,7 +207,7 @@ const stepNumber = {
   display: 'inline-block',
   width: '32px',
   height: '32px',
-  borderRadius: '50%',
+  borderRadius: '3px',
   backgroundColor: '#667eea',
   color: '#ffffff',
   textAlign: 'center' as const,
@@ -228,7 +228,7 @@ const buttonContainer = {
 
 const button = {
   backgroundColor: '#667eea',
-  borderRadius: '8px',
+  borderRadius: '3px',
   color: '#fff',
   fontSize: '18px',
   fontWeight: 'bold',

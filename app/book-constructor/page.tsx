@@ -11,7 +11,7 @@ export default function ConstructorPlaceholderPage() {
             <Navigation />
 
             <main className="flex-1 flex flex-col items-center justify-center p-4 text-center mt-20">
-                <div className="bg-gray-50 p-12 rounded-3xl max-w-2xl w-full border border-gray-100 shadow-sm">
+                <div className="bg-gray-50 p-12 rounded-[3px] max-w-2xl w-full border border-gray-100 shadow-sm">
                     <div className="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Wrench className="h-10 w-10 text-blue-600" />
                     </div>

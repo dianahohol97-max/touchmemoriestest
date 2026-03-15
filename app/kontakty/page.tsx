@@ -13,7 +13,7 @@ export default function Kontakty() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '40px' }}>
                         {/* Info Block */}
-                        <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                        <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '3px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '24px' }}>Зв'яжіться з нами</h2>
 
                             <div style={{ marginBottom: '20px' }}>
@@ -31,28 +31,28 @@ export default function Kontakty() {
                                 <p style={{ fontSize: '18px', fontWeight: 600 }}>м. Київ, вул. Хрещатик, 1</p>
                             </div>
 
-                            <div style={{ marginTop: '32px', height: '200px', backgroundColor: '#e2e8f0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ marginTop: '32px', height: '200px', backgroundColor: '#e2e8f0', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <span style={{ color: '#64748b' }}>Мапа (Placeholder)</span>
                             </div>
                         </div>
 
                         {/* Contact Form */}
-                        <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                        <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '3px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '24px' }}>Напишіть нам</h2>
                             <form style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Ім'я</label>
-                                    <input type="text" placeholder="Ваше ім'я" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '16px' }} />
+                                    <input type="text" placeholder="Ваше ім'я" style={{ width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '16px' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Email</label>
-                                    <input type="email" placeholder="ваша@пошта.com" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '16px' }} />
+                                    <input type="email" placeholder="ваша@пошта.com" style={{ width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '16px' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Повідомлення</label>
-                                    <textarea rows={5} placeholder="Як ми можемо допомогти?" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '16px', resize: 'vertical' }} />
+                                    <textarea rows={5} placeholder="Як ми можемо допомогти?" style={{ width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '16px', resize: 'vertical' }} />
                                 </div>
-                                <button type="button" style={{ width: '100%', padding: '16px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '8px', border: 'none', fontSize: '16px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}>
+                                <button type="button" style={{ width: '100%', padding: '16px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '3px', border: 'none', fontSize: '16px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}>
                                     Надіслати
                                 </button>
                             </form>

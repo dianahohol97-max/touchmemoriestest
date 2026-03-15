@@ -144,12 +144,12 @@ export default function TrackPage() {
                                                     <motion.div
                                                         animate={{
                                                             scale: isActive ? [1, 1.2, 1] : 1,
-                                                            backgroundColor: isDone ? '#ef4444' : '#fff'
+                                                            backgroundColor: isDone ? '#263A99' : '#fff'
                                                         }}
                                                         transition={{ repeat: isActive ? Infinity : 0, duration: 2 }}
                                                         style={{
                                                             ...stepIconWrapper,
-                                                            borderColor: isDone ? '#ef4444' : '#e2e8f0',
+                                                            borderColor: isDone ? '#263A99' : '#e2e8f0',
                                                             color: isDone ? '#fff' : '#94a3b8'
                                                         }}
                                                     >
@@ -183,7 +183,7 @@ export default function TrackPage() {
                                     </div>
                                     <div style={summaryRowStyle}>
                                         <span>СУМА ДО ОПЛАТИ:</span>
-                                        <span style={{ fontSize: '20px', fontWeight: 900, color: '#ef4444' }}>{order.total} ₴</span>
+                                        <span style={{ fontSize: '20px', fontWeight: 900, color: '#263A99' }}>{order.total} ₴</span>
                                     </div>
                                 </div>
 
@@ -234,37 +234,37 @@ export default function TrackPage() {
 
 const mainStyle = { minHeight: '100vh', backgroundColor: '#fafafa', paddingTop: '100px', paddingBottom: '100px' };
 const containerStyle = { maxWidth: '1000px', margin: '0 auto', padding: '0 24px' };
-const badgeStyle = { display: 'inline-block', backgroundColor: '#f1f5f9', color: '#64748b', padding: '6px 16px', borderRadius: '100px', fontSize: '12px', fontWeight: 900, marginBottom: '24px', letterSpacing: '0.05em' };
+const badgeStyle = { display: 'inline-block', backgroundColor: '#f1f5f9', color: '#64748b', padding: '6px 16px', borderRadius: '3px', fontSize: '12px', fontWeight: 900, marginBottom: '24px', letterSpacing: '0.05em' };
 const titleStyle = { fontSize: '48px', fontWeight: 900, color: '#263A99', marginBottom: '20px', letterSpacing: '-0.02em' };
 const subtitleStyle = { color: '#64748b', fontSize: '18px', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 };
 
-const searchCardStyle = { backgroundColor: 'white', padding: '48px', borderRadius: '40px', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', marginBottom: '64px' };
+const searchCardStyle = { backgroundColor: 'white', padding: '48px', borderRadius: '3px', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', marginBottom: '64px' };
 const formGridStyle = { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.2fr) auto', gap: '24px', alignItems: 'flex-end' };
 const inputGroupStyle = { display: 'flex', flexDirection: 'column' as any, gap: '10px' };
 const labelStyle = { fontSize: '11px', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.05em' };
-const inputStyle = { padding: '16px 20px', borderRadius: '16px', border: '2px solid #f1f5f9', fontSize: '16px', fontWeight: 600, outline: 'none', transition: 'border-color 0.2s', width: '100%' };
-const searchBtnStyle = { height: '58px', padding: '0 32px', borderRadius: '16px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 800, fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 20px rgba(30, 41, 59, 0.15)' };
-const errorBoxStyle = { marginTop: '24px', padding: '16px', backgroundColor: '#fff1f2', borderRadius: '12px', color: '#e11d48', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' };
+const inputStyle = { padding: '16px 20px', borderRadius: '3px', border: '2px solid #f1f5f9', fontSize: '16px', fontWeight: 600, outline: 'none', transition: 'border-color 0.2s', width: '100%' };
+const searchBtnStyle = { height: '58px', padding: '0 32px', borderRadius: '3px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 800, fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 20px rgb(38, 58, 153)' };
+const errorBoxStyle = { marginTop: '24px', padding: '16px', backgroundColor: '#fff1f2', borderRadius: '3px', color: '#e11d48', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' };
 
-const resultCardStyle = { backgroundColor: 'white', padding: '40px', borderRadius: '32px', border: '1px solid #f1f5f9' };
-const liveBadgeStyle = { padding: '6px 12px', backgroundColor: '#f0fdf4', color: '#22c55e', borderRadius: '6px', fontSize: '11px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '6px' };
+const resultCardStyle = { backgroundColor: 'white', padding: '40px', borderRadius: '3px', border: '1px solid #f1f5f9' };
+const liveBadgeStyle = { padding: '6px 12px', backgroundColor: '#f0fdf4', color: '#22c55e', borderRadius: '3px', fontSize: '11px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '6px' };
 
 const progressWrapperStyle = { position: 'relative' as any, padding: '40px 0 20px' };
-const progressLineBackground = { position: 'absolute' as any, top: '60px', left: '0', right: '0', height: '4px', backgroundColor: '#f1f5f9', borderRadius: '2px' };
-const progressLineActive = { position: 'absolute' as any, top: '60px', left: '0', height: '4px', backgroundColor: '#ef4444', borderRadius: '2px', zIndex: 1 };
+const progressLineBackground = { position: 'absolute' as any, top: '60px', left: '0', right: '0', height: '4px', backgroundColor: '#f1f5f9', borderRadius: '3px' };
+const progressLineActive = { position: 'absolute' as any, top: '60px', left: '0', height: '4px', backgroundColor: '#263A99', borderRadius: '3px', zIndex: 1 };
 const stepsGrid = { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', position: 'relative' as any, zIndex: 2 };
 const stepContainer = { display: 'flex', flexDirection: 'column' as any, alignItems: 'center', textAlign: 'center' as any };
-const stepIconWrapper = { width: '44px', height: '44px', borderRadius: '14px', border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', backgroundColor: 'white' };
+const stepIconWrapper = { width: '44px', height: '44px', borderRadius: '3px', border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', backgroundColor: 'white' };
 const stepLabelStyle = { fontSize: '13px', marginBottom: '4px' };
 const stepTimeStyle = { fontSize: '11px', color: '#94a3b8', fontWeight: 500 };
 
 const detailsGridStyle = { display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' };
 const sectionTitleStyle = { fontSize: '18px', fontWeight: 900, color: '#263A99', marginBottom: '24px' };
 const itemRowStyle = { display: 'flex', gap: '16px', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #f8fafc' };
-const itemImageStyle = { width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover' as any, border: '1px solid #f1f5f9' };
-const summaryRowStyle = { marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', backgroundColor: '#fafafa', borderRadius: '20px', fontWeight: 900, fontSize: '14px', color: '#64748b' };
+const itemImageStyle = { width: '56px', height: '56px', borderRadius: '3px', objectFit: 'cover' as any, border: '1px solid #f1f5f9' };
+const summaryRowStyle = { marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', backgroundColor: '#fafafa', borderRadius: '3px', fontWeight: 900, fontSize: '14px', color: '#64748b' };
 
-const deliveryIconBox = { width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
-const ttnBoxStyle = { padding: '24px', backgroundColor: '#f8fafc', borderRadius: '20px', border: '1px solid #f1f5f9' };
-const ttnBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '12px', backgroundColor: '#ef4444', color: 'white', textDecoration: 'none', fontWeight: 800, fontSize: '14px', boxShadow: '0 8px 15px rgba(239, 68, 68, 0.2)' };
-const supportBtnStyle = { display: 'block', padding: '14px', textAlign: 'center' as any, borderRadius: '12px', backgroundColor: '#0088cc', color: 'white', textDecoration: 'none', fontWeight: 800, fontSize: '14px' };
+const deliveryIconBox = { width: '48px', height: '48px', borderRadius: '3px', backgroundColor: 'rgba(38, 58, 153, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
+const ttnBoxStyle = { padding: '24px', backgroundColor: '#f8fafc', borderRadius: '3px', border: '1px solid #f1f5f9' };
+const ttnBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '3px', backgroundColor: '#263A99', color: 'white', textDecoration: 'none', fontWeight: 800, fontSize: '14px', boxShadow: '0 8px 15px rgba(38, 58, 153, 0.2)' };
+const supportBtnStyle = { display: 'block', padding: '14px', textAlign: 'center' as any, borderRadius: '3px', backgroundColor: '#263A99', color: 'white', textDecoration: 'none', fontWeight: 800, fontSize: '14px' };

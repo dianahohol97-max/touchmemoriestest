@@ -94,7 +94,7 @@ export const PhotoboothEmbed: React.FC<PhotoboothEmbedProps> = ({
             zIndex: 100,
             background: 'rgba(255, 255, 255, 0.9)',
             border: 'none',
-            borderRadius: '50%',
+            borderRadius: '3px',
             width: '48px',
             height: '48px',
             cursor: 'pointer',

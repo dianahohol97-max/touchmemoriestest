@@ -331,7 +331,7 @@ export default function CategoriesPage() {
                                         <img
                                             src={editForm.cover_image}
                                             alt="Preview"
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '3px' }}
                                         />
                                         <button
                                             type="button"
@@ -418,7 +418,7 @@ export default function CategoriesPage() {
                 )}
 
                 {loading && !isAdding && !isEditing ? (
-                    <div style={{ textAlign: 'center', padding: '100px', backgroundColor: 'white', borderRadius: '32px' }}>
+                    <div style={{ textAlign: 'center', padding: '100px', backgroundColor: 'white', borderRadius: '3px' }}>
                         <Loader2 size={40} className="animate-spin" style={{ color: '#cbd5e1', marginBottom: '16px' }} />
                         <p style={{ fontWeight: 600, color: '#94a3b8' }}>Завантаження категорій...</p>
                     </div>
@@ -450,17 +450,17 @@ export default function CategoriesPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'transform 0.2s' };
-const catRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: 'white', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)', transition: 'all 0.2s' };
-const iconBoxStyle = { width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'transform 0.2s' };
+const catRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)', transition: 'all 0.2s' };
+const iconBoxStyle = { width: '48px', height: '48px', borderRadius: '3px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
 const dragHandleStyle = { padding: '8px', color: '#cbd5e1', cursor: 'grab', background: 'none', border: 'none', display: 'flex', alignItems: 'center' };
-const actionBtnStyle = { padding: '10px', borderRadius: '12px', backgroundColor: '#f8fafc', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const formCardStyle = { backgroundColor: 'white', padding: '40px', borderRadius: '32px', border: '1px solid #f1f5f9', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', marginBottom: '32px' };
+const actionBtnStyle = { padding: '10px', borderRadius: '3px', backgroundColor: '#f8fafc', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const formCardStyle = { backgroundColor: 'white', padding: '40px', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', marginBottom: '32px' };
 const labelStyle = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
-const inputStyle = { width: '100%', padding: '14px 16px', borderRadius: '14px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', transition: 'border-color 0.2s' };
-const textareaStyle = { width: '100%', padding: '14px 16px', borderRadius: '14px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', fontFamily: 'inherit' };
-const saveBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#10b981', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '15px' };
-const emptyStateStyle = { textAlign: 'center' as any, padding: '80px 40px', backgroundColor: 'white', borderRadius: '32px', border: '2px dashed #e2e8f0', display: 'flex', flexDirection: 'column' as any, alignItems: 'center' };
-const dropzoneStyle = { border: '2px dashed #e2e8f0', borderRadius: '16px', padding: '16px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const radioBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', borderRadius: '12px', border: '1.5px solid #e2e8f0', cursor: 'pointer', fontSize: '14px', fontWeight: 700, transition: 'all 0.2s' };
-const deleteImgBtnStyle = { position: 'absolute' as any, top: '-8px', right: '-8px', width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#ef4444', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' };
+const inputStyle = { width: '100%', padding: '14px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', transition: 'border-color 0.2s' };
+const textareaStyle = { width: '100%', padding: '14px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', fontFamily: 'inherit' };
+const saveBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#10b981', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '15px' };
+const emptyStateStyle = { textAlign: 'center' as any, padding: '80px 40px', backgroundColor: 'white', borderRadius: '3px', border: '2px dashed #e2e8f0', display: 'flex', flexDirection: 'column' as any, alignItems: 'center' };
+const dropzoneStyle = { border: '2px dashed #e2e8f0', borderRadius: '3px', padding: '16px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const radioBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', borderRadius: '3px', border: '1.5px solid #e2e8f0', cursor: 'pointer', fontSize: '14px', fontWeight: 700, transition: 'all 0.2s' };
+const deleteImgBtnStyle = { position: 'absolute' as any, top: '-8px', right: '-8px', width: '24px', height: '24px', borderRadius: '3px', backgroundColor: '#ef4444', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' };

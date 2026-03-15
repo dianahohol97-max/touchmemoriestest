@@ -66,7 +66,7 @@ export default function TrackOrderPage() {
                     </p>
                 </header>
 
-                <div style={{ backgroundColor: 'white', padding: '48px', borderRadius: '32px', boxShadow: '0 4px 30px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
+                <div style={{ backgroundColor: 'white', padding: '48px', borderRadius: '3px', boxShadow: '0 4px 30px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}>
 
                     {/* Status Timeline */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', position: 'relative' }}>
@@ -81,7 +81,7 @@ export default function TrackOrderPage() {
                                     <div style={{
                                         width: '48px',
                                         height: '48px',
-                                        borderRadius: '16px',
+                                        borderRadius: '3px',
                                         backgroundColor: isCompleted ? '#ECFDF5' : (isCurrent ? 'var(--primary)' : '#f8fafc'),
                                         display: 'flex',
                                         alignItems: 'center',
@@ -106,7 +106,7 @@ export default function TrackOrderPage() {
 
                     {/* Delivery Details */}
                     {order.ttn && (
-                        <div style={{ marginTop: '60px', padding: '32px', backgroundColor: '#f0f9ff', borderRadius: '24px', border: '1px solid #e0f2fe' }}>
+                        <div style={{ marginTop: '60px', padding: '32px', backgroundColor: '#f0f9ff', borderRadius: '3px', border: '1px solid #e0f2fe' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <div style={{ fontSize: '13px', color: '#0369a1', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
@@ -125,7 +125,7 @@ export default function TrackOrderPage() {
                                         backgroundColor: '#0369a1',
                                         color: 'white',
                                         padding: '12px 24px',
-                                        borderRadius: '12px',
+                                        borderRadius: '3px',
                                         textDecoration: 'none',
                                         fontWeight: 700,
                                         fontSize: '15px'

@@ -47,7 +47,7 @@ export default async function TagPage({ params, searchParams }: { params: Promis
                 </Link>
 
                 <div style={{ marginBottom: '60px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ width: '64px', height: '64px', borderRadius: '20px', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '3px', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
                         <Hash size={32} />
                     </div>
                     <div>
@@ -64,7 +64,7 @@ export default async function TagPage({ params, searchParams }: { params: Promis
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '32px' }}>
                         {posts.map((post: any) => (
                             <Link key={post.id} href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' } as any}>
-                                <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: '24px', overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
+                                <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: '3px', overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
                                     {post.cover_image && <Image src={post.cover_image} alt={post.title} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
                                 </div>
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -76,7 +76,7 @@ export default async function TagPage({ params, searchParams }: { params: Promis
                                     </p>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                                            <div style={{ width: '28px', height: '28px', borderRadius: '3px', backgroundColor: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                                                 <User size={14} />
                                             </div>
                                             <div>
@@ -101,7 +101,7 @@ export default async function TagPage({ params, searchParams }: { params: Promis
                             <Link
                                 key={i}
                                 href={`/blog/tag/${encodeURIComponent(decodedTag)}?page=${i + 1}`}
-                                style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', fontWeight: 700, fontSize: '15px', textDecoration: 'none', backgroundColor: currentPage === i + 1 ? '#263A99' : 'white', color: currentPage === i + 1 ? 'white' : '#64748b', border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0' }}
+                                style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', fontWeight: 700, fontSize: '15px', textDecoration: 'none', backgroundColor: currentPage === i + 1 ? '#263A99' : 'white', color: currentPage === i + 1 ? 'white' : '#64748b', border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0' }}
                             >
                                 {i + 1}
                             </Link>

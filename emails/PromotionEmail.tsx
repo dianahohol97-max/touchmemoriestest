@@ -61,7 +61,7 @@ export default function PromotionEmail({
             {previewText && <Preview>{previewText}</Preview>}
             <Tailwind>
                 <Body className="bg-[#f1f5f9] font-sans text-[#263A99] m-0 p-0">
-                    <Container className="bg-white mx-auto my-[40px] max-w-[600px] rounded-xl overflow-hidden shadow border border-[#e2e8f0]">
+                    <Container className="bg-white mx-auto my-[40px] max-w-[600px] rounded-[3px] overflow-hidden shadow border border-[#e2e8f0]">
 
                         {/* Hero Image */}
                         {heroImageUrl && (
@@ -81,7 +81,7 @@ export default function PromotionEmail({
 
                             {/* Promo Code Block */}
                             {promoCode && (
-                                <Section className="bg-[#f8fafc] border-2 border-dashed border-[#cbd5e1] rounded-xl py-[24px] px-[16px] mb-[32px]">
+                                <Section className="bg-[#f8fafc] border-2 border-dashed border-[#cbd5e1] rounded-[3px] py-[24px] px-[16px] mb-[32px]">
                                     {promoValue && (
                                         <Text className="text-[32px] font-black text-[#263A99] m-0 leading-none">
                                             {promoValue}
@@ -104,7 +104,7 @@ export default function PromotionEmail({
                             {/* CTA */}
                             <Button
                                 href={appUrl}
-                                className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-lg text-[16px] font-bold no-underline inline-block w-full max-w-[300px]"
+                                className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-[3px] text-[16px] font-bold no-underline inline-block w-full max-w-[300px]"
                             >
                                 Перейти в каталог →
                             </Button>
@@ -119,7 +119,7 @@ export default function PromotionEmail({
                                 <Row>
                                     {products.map((p, i) => (
                                         <Column key={i} className={`w-1/2 ${i % 2 === 0 ? 'pr-[8px]' : 'pl-[8px]'}`}>
-                                            <div className="bg-white rounded-lg p-[16px] shadow-sm border border-[#f1f5f9] mb-[16px]">
+                                            <div className="bg-white rounded-[3px] p-[16px] shadow-sm border border-[#f1f5f9] mb-[16px]">
                                                 <Img src={p.imageUrl} alt={p.name} className="w-full h-[160px] object-cover rounded mb-[16px]" />
                                                 <Text className="font-bold text-[15px] m-0 text-[#263A99] leading-tight mb-[4px]">
                                                     {p.name}

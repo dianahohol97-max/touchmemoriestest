@@ -118,7 +118,7 @@ export default function AdminBlogPostsPage() {
                 </Link>
             </div>
 
-            <div style={{ backgroundColor: 'white', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)', padding: '24px', marginBottom: '24px' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)', padding: '24px', marginBottom: '24px' }}>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                     <div style={{ position: 'relative', flex: 1 }}>
                         <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -127,16 +127,16 @@ export default function AdminBlogPostsPage() {
                             placeholder="Пошук за заголовком..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            style={{ width: '100%', padding: '12px 16px 12px 44px', borderRadius: '12px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc' }}
+                            style={{ width: '100%', padding: '12px 16px 12px 44px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc' }}
                         />
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f8fafc', padding: '4px', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f8fafc', padding: '4px', borderRadius: '3px', border: '1.5px solid #e2e8f0' }}>
                         {(['all', 'published', 'drafts'] as const).map(f => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
                                 style={{
-                                    padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                                    padding: '8px 16px', borderRadius: '3px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.2s',
                                     backgroundColor: filter === f ? 'white' : 'transparent',
                                     color: filter === f ? '#263A99' : '#64748b',
                                     boxShadow: filter === f ? '0 2px 8px rgba(0,0,0,0.05)' : 'none'
@@ -153,7 +153,7 @@ export default function AdminBlogPostsPage() {
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '60px' }}><Loader2 size={32} className="animate-spin" color="#cbd5e1" style={{ margin: '0 auto' }} /></div>
                 ) : filteredPosts.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '60px', color: '#64748b', backgroundColor: 'white', borderRadius: '24px', border: '1px dashed #cbd5e1' }}>
+                    <div style={{ textAlign: 'center', padding: '60px', color: '#64748b', backgroundColor: 'white', borderRadius: '3px', border: '1px dashed #cbd5e1' }}>
                         Статей не знайдено.
                     </div>
                 ) : (
@@ -161,11 +161,11 @@ export default function AdminBlogPostsPage() {
                         <div key={post.id} style={postRowStyle}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
                                 {post.cover_image ? (
-                                    <div style={{ width: '80px', height: '60px', borderRadius: '8px', overflow: 'hidden', position: 'relative', backgroundColor: '#e2e8f0', flexShrink: 0 }}>
+                                    <div style={{ width: '80px', height: '60px', borderRadius: '3px', overflow: 'hidden', position: 'relative', backgroundColor: '#e2e8f0', flexShrink: 0 }}>
                                         <Image src={post.cover_image} alt={post.title} fill style={{ objectFit: 'cover' }} />
                                     </div>
                                 ) : (
-                                    <div style={{ width: '80px', height: '60px', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexShrink: 0 }}>
+                                    <div style={{ width: '80px', height: '60px', borderRadius: '3px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexShrink: 0 }}>
                                         <FileLock2 size={24} />
                                     </div>
                                 )}
@@ -174,7 +174,7 @@ export default function AdminBlogPostsPage() {
                                         {post.title}
                                     </Link>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: '#64748b' }}>
-                                        <span style={{ backgroundColor: '#f8fafc', padding: '2px 8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontWeight: 600 }}>
+                                        <span style={{ backgroundColor: '#f8fafc', padding: '2px 8px', borderRadius: '3px', border: '1px solid #e2e8f0', fontWeight: 600 }}>
                                             {post.blog_categories?.name || 'Без категорії'}
                                         </span>
                                         <span>👁 {post.views_count} переглядів</span>
@@ -186,11 +186,11 @@ export default function AdminBlogPostsPage() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                                 <div style={{ width: '100px', textAlign: 'center' }}>
                                     {post.is_published ? (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10b981', fontSize: '12px', fontWeight: 700, backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '6px' }}>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10b981', fontSize: '12px', fontWeight: 700, backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '3px' }}>
                                             <Globe size={14} /> Опубліковано
                                         </span>
                                     ) : (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#f59e0b', fontSize: '12px', fontWeight: 700, backgroundColor: '#fef3c7', padding: '4px 8px', borderRadius: '6px' }}>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#f59e0b', fontSize: '12px', fontWeight: 700, backgroundColor: '#fef3c7', padding: '4px 8px', borderRadius: '3px' }}>
                                             <FileLock2 size={14} /> Чернетка
                                         </span>
                                     )}
@@ -221,6 +221,6 @@ export default function AdminBlogPostsPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, fontSize: '15px', cursor: 'pointer', textDecoration: 'none' };
-const postRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', transition: 'all 0.2s', ':hover': { borderColor: '#e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' } };
-const actionBtnStyle = { padding: '8px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid transparent', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', ':hover': { borderColor: '#e2e8f0', backgroundColor: 'white' } };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, fontSize: '15px', cursor: 'pointer', textDecoration: 'none' };
+const postRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', backgroundColor: 'white', borderRadius: '3px', border: '1px solid #f1f5f9', transition: 'all 0.2s', ':hover': { borderColor: '#e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' } };
+const actionBtnStyle = { padding: '8px', borderRadius: '3px', backgroundColor: '#f8fafc', border: '1px solid transparent', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', ':hover': { borderColor: '#e2e8f0', backgroundColor: 'white' } };

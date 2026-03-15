@@ -100,7 +100,7 @@ export default function NovaPoshtaSettingsPage() {
                     <div key={acc.id} style={{ ...cardStyle, border: acc.is_default ? '2px solid #263A99' : '1px solid #f1f5f9' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ padding: '8px', backgroundColor: '#eff6ff', borderRadius: '10px', color: '#263A99' }}><Truck size={20} /></div>
+                                <div style={{ padding: '8px', backgroundColor: '#eff6ff', borderRadius: '3px', color: '#263A99' }}><Truck size={20} /></div>
                                 <span style={{ fontWeight: 800, fontSize: '18px' }}>{acc.label}</span>
                             </div>
                             <div style={{ display: 'flex', gap: '8px' }}>
@@ -120,7 +120,7 @@ export default function NovaPoshtaSettingsPage() {
                             <div style={infoRow}><MapPin size={14} /> {acc.sender_city_ref ? 'City Ref set' : 'Адреса за замовчуванням'}</div>
                         </div>
 
-                        <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '10px', fontSize: '12px', color: '#64748b', fontFamily: 'monospace' }}>
+                        <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '3px', fontSize: '12px', color: '#64748b', fontFamily: 'monospace' }}>
                             API Key: {acc.api_key.substring(0, 4)}...{acc.api_key.substring(acc.api_key.length - 4)}
                         </div>
                     </div>
@@ -182,12 +182,12 @@ export default function NovaPoshtaSettingsPage() {
     );
 }
 
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '14px', border: 'none', fontWeight: 700, cursor: 'pointer' };
-const cardStyle = { backgroundColor: 'white', padding: '24px', borderRadius: '24px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' };
-const iconBtn = { background: '#f8fafc', border: 'none', padding: '8px', borderRadius: '8px', color: '#64748b', cursor: 'pointer' };
+const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, cursor: 'pointer' };
+const cardStyle = { backgroundColor: 'white', padding: '24px', borderRadius: '3px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' };
+const iconBtn = { background: '#f8fafc', border: 'none', padding: '8px', borderRadius: '3px', color: '#64748b', cursor: 'pointer' };
 const infoRow = { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#475569', fontWeight: 500 };
 const modalOverlay = { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
-const modalContent = { backgroundColor: 'white', borderRadius: '32px', padding: '32px', width: '100%', maxWidth: '550px' };
+const modalContent = { backgroundColor: 'white', borderRadius: '3px', padding: '32px', width: '100%', maxWidth: '550px' };
 const formLabel = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any };
-const formInput = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '15px' };
-const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#263A99', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 700, marginTop: '10px', cursor: 'pointer' };
+const formInput = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', fontSize: '15px' };
+const submitBtn = { width: '100%', padding: '14px', backgroundColor: '#263A99', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 700, marginTop: '10px', cursor: 'pointer' };

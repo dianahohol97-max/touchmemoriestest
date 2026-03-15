@@ -59,7 +59,7 @@ export default function LoginPage() {
     }}>
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '16px',
+        borderRadius: '3px',
         padding: '48px',
         width: '100%',
         maxWidth: '480px',
@@ -86,7 +86,7 @@ export default function LoginPage() {
             backgroundColor: '#fee2e2',
             color: '#dc2626',
             padding: '12px',
-            borderRadius: '8px',
+            borderRadius: '3px',
             marginBottom: '16px',
             fontSize: '14px'
           }}>
@@ -113,7 +113,7 @@ export default function LoginPage() {
                 width: '100%',
                 padding: '12px',
                 border: '1px solid #e2e8f0',
-                borderRadius: '8px',
+                borderRadius: '3px',
                 fontSize: '15px',
                 boxSizing: 'border-box'
               }}
@@ -138,7 +138,7 @@ export default function LoginPage() {
                 width: '100%',
                 padding: '12px',
                 border: '1px solid #e2e8f0',
-                borderRadius: '8px',
+                borderRadius: '3px',
                 fontSize: '15px',
                 boxSizing: 'border-box'
               }}

@@ -157,14 +157,14 @@ export default function MarketingAdminPage() {
     };
 
     // Shared styles
-    const cardStyle = { backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', overflow: 'hidden' as const };
+    const cardStyle = { backgroundColor: '#fff', borderRadius: '3px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9', overflow: 'hidden' as const };
     const thStyle = { padding: '16px', textAlign: 'left' as const, fontSize: '14px', fontWeight: 600, color: '#64748b', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' };
     const tdStyle = { padding: '16px', borderBottom: '1px solid #f1f5f9', fontSize: '14px' };
-    const btnPrimary = { padding: '8px 16px', backgroundColor: '#263A99', color: 'white', fontWeight: 600, borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' };
-    const btnSecondary = { padding: '8px 16px', backgroundColor: '#fff', border: '1px solid #e2e8f0', color: '#475569', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' };
+    const btnPrimary = { padding: '8px 16px', backgroundColor: '#263A99', color: 'white', fontWeight: 600, borderRadius: '3px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' };
+    const btnSecondary = { padding: '8px 16px', backgroundColor: '#fff', border: '1px solid #e2e8f0', color: '#475569', fontWeight: 600, borderRadius: '3px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' };
     const searchInputWrapper = { position: 'relative' as const, display: 'flex', alignItems: 'center' };
-    const searchInput = { padding: '8px 16px 8px 36px', border: '1px solid #e2e8f0', borderRadius: '8px', width: '300px', fontSize: '14px', outline: 'none' };
-    const badgeStyle = (bg: string, text: string) => ({ backgroundColor: bg, color: text, padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' as const, display: 'inline-block' });
+    const searchInput = { padding: '8px 16px 8px 36px', border: '1px solid #e2e8f0', borderRadius: '3px', width: '300px', fontSize: '14px', outline: 'none' };
+    const badgeStyle = (bg: string, text: string) => ({ backgroundColor: bg, color: text, padding: '4px 8px', borderRadius: '3px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' as const, display: 'inline-block' });
 
     return (
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
@@ -301,7 +301,7 @@ export default function MarketingAdminPage() {
                                                     <td style={tdStyle}>
                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                                                             {s.segments?.map((seg: string) => (
-                                                                <span key={seg} style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>
+                                                                <span key={seg} style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '3px', fontSize: '12px' }}>
                                                                     {seg}
                                                                 </span>
                                                             )) || '-'}
@@ -359,7 +359,7 @@ export default function MarketingAdminPage() {
                                                 return (
                                                     <tr key={p.id}>
                                                         <td style={tdStyle}>
-                                                            <span style={{ fontFamily: 'monospace', fontWeight: 700, backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', color: '#263A99' }}>
+                                                            <span style={{ fontFamily: 'monospace', fontWeight: 700, backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '3px', color: '#263A99' }}>
                                                                 {p.code}
                                                             </span>
                                                         </td>
@@ -393,14 +393,14 @@ export default function MarketingAdminPage() {
                             {automations.map(auto => {
                                 const isBirthday = auto.type === 'birthday';
                                 const Icon = isBirthday ? Calendar : Users;
-                                const color = isBirthday ? '#9333ea' : '#2563eb';
+                                const color = isBirthday ? '#9333ea' : '#263A99';
                                 const bg = isBirthday ? '#f3e8ff' : '#eff6ff';
 
                                 return (
                                     <div key={auto.id} style={{ ...cardStyle, padding: '24px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                                <div style={{ backgroundColor: bg, color: color, padding: '12px', borderRadius: '12px' }}>
+                                                <div style={{ backgroundColor: bg, color: color, padding: '12px', borderRadius: '3px' }}>
                                                     <Icon size={24} />
                                                 </div>
                                                 <div>
@@ -416,7 +416,7 @@ export default function MarketingAdminPage() {
                                                 {auto.is_active ? 'Увімкнено' : 'Вимкнено'}
                                             </span>
                                         </div>
-                                        <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #f1f5f9', marginBottom: '16px', fontSize: '14px', color: '#475569' }}>
+                                        <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '3px', border: '1px solid #f1f5f9', marginBottom: '16px', fontSize: '14px', color: '#475569' }}>
                                             {isBirthday ? (
                                                 <>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><span>Знижка:</span> <span style={{ fontWeight: 600, color: '#263A99' }}>-{auto.settings?.discount_value}{auto.settings?.discount_type === 'percent' ? '%' : ' ₴'}</span></div>
@@ -434,7 +434,7 @@ export default function MarketingAdminPage() {
                                                 setEditingAutomation({ ...auto });
                                                 setIsConfigAutomationModalOpen(true);
                                             }}
-                                            style={{ width: '100%', padding: '10px', border: '2px solid #e2e8f0', backgroundColor: '#fff', color: '#475569', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', fontSize: '15px' }}
+                                            style={{ width: '100%', padding: '10px', border: '2px solid #e2e8f0', backgroundColor: '#fff', color: '#475569', fontWeight: 600, borderRadius: '3px', cursor: 'pointer', fontSize: '15px' }}
                                         >
                                             Налаштувати
                                         </button>
@@ -496,7 +496,7 @@ export default function MarketingAdminPage() {
 
                             <div>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Діє для товарів (опціонально)</label>
-                                <div style={{ maxHeight: '100px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px' }}>
+                                <div style={{ maxHeight: '100px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '3px', padding: '8px' }}>
                                     {products.map(p => (
                                         <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', marginBottom: '4px', cursor: 'pointer' }}>
                                             <input
@@ -517,7 +517,7 @@ export default function MarketingAdminPage() {
 
                             <div>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Діє для категорій (опціонально)</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', border: '1px solid #e2e8f0', borderRadius: '3px', padding: '8px' }}>
                                     {categories.map(c => (
                                         <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
                                             <input
@@ -631,7 +631,7 @@ export default function MarketingAdminPage() {
                         </div>
 
                         <form onSubmit={handleSaveAutomation} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '3px', cursor: 'pointer' }}>
                                 <input
                                     type="checkbox"
                                     checked={editingAutomation.is_active}
@@ -713,10 +713,10 @@ function TabButton({ active, onClick, icon, label }: { active: boolean, onClick:
                 padding: '12px 16px',
                 fontSize: '15px',
                 fontWeight: 600,
-                color: active ? '#2563eb' : '#64748b',
+                color: active ? '#263A99' : '#64748b',
                 backgroundColor: 'transparent',
                 border: 'none',
-                borderBottom: active ? '2px solid #2563eb' : '2px solid transparent',
+                borderBottom: active ? '2px solid #263A99' : '2px solid transparent',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.2s'

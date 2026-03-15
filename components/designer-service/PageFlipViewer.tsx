@@ -48,7 +48,7 @@ export default function PageFlipViewer({ pages, onPageClick }: PageFlipViewerPro
       {/* Main Viewer */}
       <div className="relative w-full max-w-6xl">
         {/* Book Container */}
-        <div className="relative flex items-center justify-center bg-gray-100 rounded-lg shadow-2xl p-8">
+        <div className="relative flex items-center justify-center bg-gray-100 rounded-[3px] shadow-2xl p-8">
           {/* Navigation Buttons */}
           <button
             onClick={handlePrevious}

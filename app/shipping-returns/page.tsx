@@ -20,8 +20,8 @@ export default function ShippingReturnsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
                         {/* Policy Section 1 */}
-                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <div className="bg-blue-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6">
+                        <div className="bg-white p-8 rounded-[3px] shadow-sm border border-gray-100">
+                            <div className="bg-blue-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
                                 <ShieldCheck className="h-7 w-7 text-blue-600" />
                             </div>
                             <h2 className="text-2xl font-bold text-gray-900 mb-4">Гарантія якості</h2>
@@ -31,8 +31,8 @@ export default function ShippingReturnsPage() {
                         </div>
 
                         {/* Policy Section 2 */}
-                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <div className="bg-purple-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6">
+                        <div className="bg-white p-8 rounded-[3px] shadow-sm border border-gray-100">
+                            <div className="bg-purple-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
                                 <RefreshCcw className="h-7 w-7 text-purple-600" />
                             </div>
                             <h2 className="text-2xl font-bold text-gray-900 mb-4">Повернення товарів</h2>
@@ -42,8 +42,8 @@ export default function ShippingReturnsPage() {
                         </div>
 
                         {/* Policy Section 3 */}
-                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <div className="bg-green-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6">
+                        <div className="bg-white p-8 rounded-[3px] shadow-sm border border-gray-100">
+                            <div className="bg-green-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
                                 <Package className="h-7 w-7 text-green-600" />
                             </div>
                             <h2 className="text-2xl font-bold text-gray-900 mb-4">Процедура обміну</h2>
@@ -53,8 +53,8 @@ export default function ShippingReturnsPage() {
                         </div>
 
                         {/* Policy Section 4 */}
-                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <div className="bg-orange-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6">
+                        <div className="bg-white p-8 rounded-[3px] shadow-sm border border-gray-100">
+                            <div className="bg-orange-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
                                 <Clock className="h-7 w-7 text-orange-600" />
                             </div>
                             <h2 className="text-2xl font-bold text-gray-900 mb-4">Терміни розгляду</h2>
@@ -64,7 +64,7 @@ export default function ShippingReturnsPage() {
                         </div>
                     </div>
 
-                    <div className="bg-blue-600 rounded-3xl p-10 text-white text-center">
+                    <div className="bg-blue-600 rounded-[3px] p-10 text-white text-center">
                         <h3 className="text-2xl font-bold mb-4">Виникли запитання?</h3>
                         <p className="mb-8 opacity-90 text-lg">Напишіть нам у Telegram або зателефонуйте, ми завжди на зв'язку.</p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">

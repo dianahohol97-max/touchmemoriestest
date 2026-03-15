@@ -78,7 +78,7 @@ export function ExpensesList({ expenses, categories, onUpdate }: ExpensesListPro
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-[3px] border">
         <Table>
           <TableHeader>
             <TableRow>

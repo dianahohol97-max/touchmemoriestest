@@ -177,15 +177,15 @@ const SparkleIcon = ({ size, color }: { size: number, color: string }) => (
     </svg>
 );
 
-const overlayStyle = { position: 'fixed' as any, inset: 0, backgroundColor: 'rgba(30, 41, 59, 0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backdropFilter: 'blur(8px)' };
-const containerStyle = { backgroundColor: 'white', width: '100%', maxWidth: '540px', borderRadius: '40px', padding: '56px', position: 'relative' as any, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' };
+const overlayStyle = { position: 'fixed' as any, inset: 0, backgroundColor: 'rgb(38, 58, 153)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backdropFilter: 'blur(8px)' };
+const containerStyle = { backgroundColor: 'white', width: '100%', maxWidth: '540px', borderRadius: '3px', padding: '56px', position: 'relative' as any, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' };
 const closeBtnStyle = { position: 'absolute' as any, top: '32px', right: '32px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' };
-const iconBadgeStyle = { width: '64px', height: '64px', borderRadius: '20px', backgroundColor: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 24px' };
+const iconBadgeStyle = { width: '64px', height: '64px', borderRadius: '3px', backgroundColor: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 24px' };
 const titleStyle = { fontSize: '24px', fontWeight: 900, color: '#263A99', marginBottom: '12px' };
 const subtitleStyle = { color: '#64748b', fontSize: '15px', lineHeight: 1.6 };
 const labelStyle = { fontSize: '11px', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.1em', marginBottom: '8px', display: 'block' };
-const inputWrapperStyle = { display: 'flex', alignItems: 'center', gap: '12px', border: '2px solid #f1f5f9', borderRadius: '16px', padding: '0 16px', transition: 'border-color 0.2s' };
+const inputWrapperStyle = { display: 'flex', alignItems: 'center', gap: '12px', border: '2px solid #f1f5f9', borderRadius: '3px', padding: '0 16px', transition: 'border-color 0.2s' };
 const inputStyle = { border: 'none', padding: '16px 0', width: '100%', outline: 'none', fontSize: '15px', fontWeight: 600, color: '#263A99', backgroundColor: 'transparent' };
-const submitBtnStyle = { padding: '20px', borderRadius: '20px', color: 'white', border: 'none', fontWeight: 900, fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', boxShadow: '0 10px 15px -3px rgba(239, 68, 68, 0.3)' };
-const successIconStyle = { width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' };
-const doneBtnStyle = { marginTop: '32px', padding: '16px 40px', borderRadius: '16px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer' };
+const submitBtnStyle = { padding: '20px', borderRadius: '3px', color: 'white', border: 'none', fontWeight: 900, fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', boxShadow: '0 10px 15px -3px rgba(239, 68, 68, 0.3)' };
+const successIconStyle = { width: '80px', height: '80px', borderRadius: '3px', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' };
+const doneBtnStyle = { marginTop: '32px', padding: '16px 40px', borderRadius: '3px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer' };

@@ -157,7 +157,7 @@ export function Navigation() {
                                                     marginTop: '20px',
                                                     backgroundColor: 'white',
                                                     boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                                                    borderRadius: '8px',
+                                                    borderRadius: '3px',
                                                     minWidth: '200px',
                                                     padding: '8px 0',
                                                     zIndex: 100
@@ -254,7 +254,7 @@ export function Navigation() {
                                                 marginTop: '20px',
                                                 backgroundColor: 'white',
                                                 boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                                                borderRadius: '8px',
+                                                borderRadius: '3px',
                                                 minWidth: '200px',
                                                 padding: '8px 0',
                                                 zIndex: 100
@@ -421,7 +421,7 @@ function UserAuthIcon() {
                     <img
                         src={status.avatar}
                         alt="User"
-                        style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #e2e8f0' }}
+                        style={{ width: '28px', height: '28px', borderRadius: '3px', objectFit: 'cover', border: '1.5px solid #e2e8f0' }}
                     />
                 ) : (
                     <User size={20} />

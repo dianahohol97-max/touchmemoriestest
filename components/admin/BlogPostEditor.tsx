@@ -329,9 +329,9 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                         </div>
 
                         {articleMedia.length > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '12px', marginBottom: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1.5px dashed #e2e8f0' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '12px', marginBottom: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '3px', border: '1.5px dashed #e2e8f0' }}>
                                 {articleMedia.map((url, i) => (
-                                    <div key={i} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', border: '2px solid transparent', transition: '0.2s' }} className="group">
+                                    <div key={i} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: '3px', overflow: 'hidden', cursor: 'pointer', border: '2px solid transparent', transition: '0.2s' }} className="group">
                                         <img src={url} alt={`Media ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '4px', opacity: 0, transition: '0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')} onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}>
                                             <div style={{ display: 'flex', gap: '4px' }}>
@@ -361,12 +361,12 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     <div style={cardStyle}>
                         <h3 style={sectionTitleStyle}>Публікація</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '12px', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '3px', marginBottom: '16px' }}>
                             <span style={{ fontWeight: 600, fontSize: '14px', color: '#263A99' }}>Статус</span>
                             <select
                                 value={form.is_published ? 'published' : 'draft'}
                                 onChange={(e) => setForm(p => ({ ...p, is_published: e.target.value === 'published' }))}
-                                style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', fontWeight: 600, outline: 'none', backgroundColor: 'white' }}
+                                style={{ padding: '6px 12px', borderRadius: '3px', border: '1px solid #e2e8f0', fontSize: '13px', fontWeight: 600, outline: 'none', backgroundColor: 'white' }}
                             >
                                 <option value="draft">Чернетка</option>
                                 <option value="published">Опубліковано</option>
@@ -399,7 +399,7 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                             )}
                         </div>
 
-                        <div {...getCoverProps()} style={{ position: 'relative', width: '100%', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f8fafc', border: '2.5px dashed #e2e8f0', cursor: 'pointer', transition: '0.2s', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '12px' }}>
+                        <div {...getCoverProps()} style={{ position: 'relative', width: '100%', borderRadius: '3px', overflow: 'hidden', backgroundColor: '#f8fafc', border: '2.5px dashed #e2e8f0', cursor: 'pointer', transition: '0.2s', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '12px' }}>
                             <input {...getCoverInputProps()} />
                             {uploading === 'cover' ? (
                                 <Loader2 size={32} className="animate-spin text-slate-400" />
@@ -461,12 +461,12 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
     );
 }
 
-const cardStyle = { backgroundColor: 'white', padding: '24px', borderRadius: '32px', border: '1.5px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)' };
-const btnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '16px', border: 'none', fontWeight: 800, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' };
-const aiBtnStyle = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: '#8b5cf6', backgroundColor: '#f5f3ff', border: 'none', padding: '8px 14px', borderRadius: '12px', cursor: 'pointer', transition: '0.2s' };
+const cardStyle = { backgroundColor: 'white', padding: '24px', borderRadius: '3px', border: '1.5px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)' };
+const btnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '3px', border: 'none', fontWeight: 800, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' };
+const aiBtnStyle = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: '#8b5cf6', backgroundColor: '#f5f3ff', border: 'none', padding: '8px 14px', borderRadius: '3px', cursor: 'pointer', transition: '0.2s' };
 const labelStyle = { display: 'block', fontSize: '11px', fontWeight: 900, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any, letterSpacing: '0.08em' };
-const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '14px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', color: '#263A99', transition: 'all 0.2s', fontFamily: 'Inter, sans-serif' };
+const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', color: '#263A99', transition: 'all 0.2s', fontFamily: 'Inter, sans-serif' };
 const sectionTitleStyle = { fontSize: '13px', fontWeight: 900, textTransform: 'uppercase' as any, color: '#263A99', marginBottom: '20px', letterSpacing: '0.1em' };
-const miniActionStyle = { border: 'none', backgroundColor: 'rgba(255,255,255,0.95)', padding: '6px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#263A99', transition: '0.2s' };
-const tagPillStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 700 };
+const miniActionStyle = { border: 'none', backgroundColor: 'rgba(255,255,255,0.95)', padding: '6px', borderRadius: '3px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#263A99', transition: '0.2s' };
+const tagPillStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '3px', fontSize: '12px', fontWeight: 700 };
 const tagDeleteBtnStyle = { border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer', padding: 0, display: 'flex' };

@@ -86,7 +86,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                                             textDecoration: 'none',
                                             color: 'inherit',
                                             backgroundColor: 'white',
-                                            borderRadius: '16px',
+                                            borderRadius: '3px',
                                             overflow: 'hidden',
                                             border: '1px solid #e0e0e0',
                                             transition: 'transform 0.3s, box-shadow 0.3s',
@@ -133,7 +133,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                                                     backgroundColor: 'var(--primary)',
                                                     color: 'white',
                                                     padding: '6px 12px',
-                                                    borderRadius: '6px',
+                                                    borderRadius: '3px',
                                                     fontSize: '12px',
                                                     fontWeight: 600,
                                                     textTransform: 'uppercase'
@@ -215,7 +215,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                                     color: 'var(--primary)',
                                     fontSize: '16px',
                                     fontWeight: 700,
-                                    borderRadius: '12px',
+                                    borderRadius: '3px',
                                     textDecoration: 'none',
                                     border: '2px solid var(--primary)',
                                     transition: 'all 0.3s',
@@ -243,7 +243,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                             textAlign: 'center',
                             padding: '60px 20px',
                             backgroundColor: '#f8f9fa',
-                            borderRadius: '16px'
+                            borderRadius: '3px'
                         }}
                     >
                         <p style={{ fontSize: '18px', color: '#999' }}>

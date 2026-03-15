@@ -243,7 +243,7 @@ export default function AdminDashboard() {
                                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={15} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(v) => `${v / 1000}k`} />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+                                    contentStyle={{ borderRadius: '3px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
                                     formatter={(v: any) => [`${v.toLocaleString()} ₴`, 'Виручка']}
                                 />
                                 <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorRevenue)" />
@@ -285,11 +285,11 @@ export default function AdminDashboard() {
                                     <span style={{ color: '#263A99' }}>{p.name}</span>
                                     <span style={{ color: '#6366f1' }}>{p.revenue.toLocaleString()} ₴</span>
                                 </div>
-                                <div style={{ height: '8px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div style={{ height: '8px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${(p.revenue / charts.topProducts[0].revenue) * 100}%` }}
-                                        style={{ height: '100%', backgroundColor: COLORS[i % COLORS.length], borderRadius: '4px' }}
+                                        style={{ height: '100%', backgroundColor: COLORS[i % COLORS.length], borderRadius: '3px' }}
                                     />
                                 </div>
                             </div>
@@ -314,7 +314,7 @@ export default function AdminDashboard() {
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                                     ))}
                                 </Pie>
-                                <Tooltip contentStyle={{ borderRadius: '12px' }} />
+                                <Tooltip contentStyle={{ borderRadius: '3px' }} />
                                 <Legend verticalAlign="bottom" height={36} iconType="circle" />
                             </PieChart>
                         </ResponsiveContainer>
@@ -345,7 +345,7 @@ export default function AdminDashboard() {
                         </motion.div>
                     ))}
                     {alerts.length === 0 && (
-                        <div style={{ padding: '40px', textAlign: 'center', backgroundColor: '#ecfdf5', borderRadius: '24px', border: '1px solid #d1fae5' }}>
+                        <div style={{ padding: '40px', textAlign: 'center', backgroundColor: '#ecfdf5', borderRadius: '3px', border: '1px solid #d1fae5' }}>
                             <p style={{ color: '#065f46', fontWeight: 700, margin: 0 }}>Всі показники в нормі ✅</p>
                         </div>
                     )}
@@ -404,7 +404,7 @@ function MetricCard({ title, value, change, icon, color, badge }: any) {
             style={metricCardStyle}
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <div style={{ backgroundColor: `${color}15`, color: color, padding: '12px', borderRadius: '16px' }}>
+                <div style={{ backgroundColor: `${color}15`, color: color, padding: '12px', borderRadius: '3px' }}>
                     {icon}
                 </div>
                 {change !== undefined && (
@@ -417,7 +417,7 @@ function MetricCard({ title, value, change, icon, color, badge }: any) {
                         color: change >= 0 ? '#10b981' : '#ef4444',
                         backgroundColor: change >= 0 ? '#ecfdf5' : '#fef2f2',
                         padding: '4px 10px',
-                        borderRadius: '100px'
+                        borderRadius: '3px'
                     }}>
                         {change >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                         {Math.abs(Math.round(change))}%
@@ -433,7 +433,7 @@ function MetricCard({ title, value, change, icon, color, badge }: any) {
 
 function StatusBadge({ status }: { status: string }) {
     const config: Record<string, any> = {
-        'new': { label: 'Нове', bg: '#eff6ff', color: '#2563eb' },
+        'new': { label: 'Нове', bg: '#eff6ff', color: '#263A99' },
         'confirmed': { label: 'Підтверджено', bg: '#f0fdf4', color: '#16a34a' },
         'in_production': { label: 'Виробництво', bg: '#fff7ed', color: '#ea580c' },
         'shipped': { label: 'Відправлено', bg: '#faf5ff', color: '#9333ea' },
@@ -444,7 +444,7 @@ function StatusBadge({ status }: { status: string }) {
     return (
         <span style={{
             padding: '6px 14px',
-            borderRadius: '100px',
+            borderRadius: '3px',
             fontSize: '12px',
             fontWeight: 800,
             backgroundColor: s.bg,
@@ -457,27 +457,27 @@ function StatusBadge({ status }: { status: string }) {
 
 // Styles
 const statsGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '48px' };
-const metricCardStyle = { backgroundColor: 'white', padding: '28px', borderRadius: '32px', border: '1.5px solid #f1f5f9', position: 'relative' as any };
-const redBadge = { position: 'absolute' as any, top: '24px', right: '24px', backgroundColor: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 900, padding: '2px 8px', borderRadius: '100px', boxShadow: '0 4px 10px rgba(239, 68, 68, 0.3)' };
+const metricCardStyle = { backgroundColor: 'white', padding: '28px', borderRadius: '3px', border: '1.5px solid #f1f5f9', position: 'relative' as any };
+const redBadge = { position: 'absolute' as any, top: '24px', right: '24px', backgroundColor: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 900, padding: '2px 8px', borderRadius: '3px', boxShadow: '0 4px 10px rgba(239, 68, 68, 0.3)' };
 
 const chartsLayout = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '48px' };
-const chartCardLarge = { gridColumn: 'span 2', backgroundColor: 'white', padding: '32px', borderRadius: '32px', border: '1.5px solid #f1f5f9' };
-const chartCardSmall = { backgroundColor: 'white', padding: '32px', borderRadius: '32px', border: '1.5px solid #f1f5f9' };
+const chartCardLarge = { gridColumn: 'span 2', backgroundColor: 'white', padding: '32px', borderRadius: '3px', border: '1.5px solid #f1f5f9' };
+const chartCardSmall = { backgroundColor: 'white', padding: '32px', borderRadius: '3px', border: '1.5px solid #f1f5f9' };
 
 const cardHeader = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' };
 const cardTitle = { fontSize: '18px', fontWeight: 900, color: '#263A99', margin: 0 };
-const dotStyle = { width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#6366f1' };
+const dotStyle = { width: '8px', height: '8px', borderRadius: '3px', backgroundColor: '#6366f1' };
 
 const funnelContainer = { marginTop: '24px', display: 'flex', flexDirection: 'column' as any, gap: '20px' };
-const funnelStep = { padding: '12px 16px', borderRadius: '12px', color: 'white', fontSize: '14px', transition: 'all 0.3s' };
+const funnelStep = { padding: '12px 16px', borderRadius: '3px', color: 'white', fontSize: '14px', transition: 'all 0.3s' };
 
 const bottomGrid = { display: 'grid', gridTemplateColumns: '380px 1fr', gap: '48px' };
-const alertCard = { padding: '20px 24px', backgroundColor: 'white', borderRadius: '24px', border: '1.5px solid #f1f5f9' };
-const ordersSection = { backgroundColor: 'white', padding: '40px', borderRadius: '40px', border: '1.5px solid #f1f5f9' };
+const alertCard = { padding: '20px 24px', backgroundColor: 'white', borderRadius: '3px', border: '1.5px solid #f1f5f9' };
+const ordersSection = { backgroundColor: 'white', padding: '40px', borderRadius: '3px', border: '1.5px solid #f1f5f9' };
 const orderRow = { backgroundColor: '#fcfcfc', borderBottom: '1.5px solid #f8fafc' };
 
-const periodSwitcher = { display: 'flex', padding: '6px', backgroundColor: '#f1f5f9', borderRadius: '16px', gap: '4px' };
-const periodBtn = { padding: '8px 20px', borderRadius: '12px', border: 'none', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' };
+const periodSwitcher = { display: 'flex', padding: '6px', backgroundColor: '#f1f5f9', borderRadius: '3px', gap: '4px' };
+const periodBtn = { padding: '8px 20px', borderRadius: '3px', border: 'none', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' };
 const viewAllBtn = { fontSize: '14px', fontWeight: 800, color: '#6366f1', textDecoration: 'none' };
 
 const thStyle = { textAlign: 'left' as any, padding: '16px' };

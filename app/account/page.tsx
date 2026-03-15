@@ -107,10 +107,10 @@ export default function AccountPage() {
                                 <img
                                     src={customer?.avatar_url || user?.user_metadata?.avatar_url}
                                     alt="Avatar"
-                                    style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    style={{ width: '64px', height: '64px', borderRadius: '3px', objectFit: 'cover', border: '2px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                                 />
                             ) : (
-                                <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                <div style={{ width: '64px', height: '64px', borderRadius: '3px', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
                                     <User size={32} />
                                 </div>
                             )}
@@ -123,18 +123,18 @@ export default function AccountPage() {
                         </div>
                         <button
                             onClick={handleLogout}
-                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#64748b', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '3px', border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#64748b', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
                         >
                             <LogOut size={18} /> Вийти
                         </button>
                     </div>
 
                     {/* Tabs */}
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '32px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '16px', width: 'fit-content' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '32px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '3px', width: 'fit-content' }}>
                         <button
                             onClick={() => setActiveTab('orders')}
                             style={{
-                                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: '12px',
+                                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: '3px',
                                 border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '14px',
                                 backgroundColor: activeTab === 'orders' ? 'white' : 'transparent',
                                 color: activeTab === 'orders' ? 'var(--primary)' : '#64748b',
@@ -146,7 +146,7 @@ export default function AccountPage() {
                         <button
                             onClick={() => setActiveTab('profile')}
                             style={{
-                                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: '12px',
+                                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: '3px',
                                 border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '14px',
                                 backgroundColor: activeTab === 'profile' ? 'white' : 'transparent',
                                 color: activeTab === 'profile' ? 'var(--primary)' : '#64748b',
@@ -158,7 +158,7 @@ export default function AccountPage() {
                     </div>
 
                     {/* Content */}
-                    <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}>
+                    <div style={{ backgroundColor: 'white', borderRadius: '3px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}>
                         {activeTab === 'orders' ? (
                             <OrdersTab orders={orders} />
                         ) : (
@@ -181,12 +181,12 @@ function OrdersTab({ orders }: { orders: any[] }) {
     if (orders.length === 0) {
         return (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ width: '64px', height: '64px', backgroundColor: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <div style={{ width: '64px', height: '64px', backgroundColor: '#f8fafc', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                     <ShoppingBag size={32} color="#94a3b8" />
                 </div>
                 <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>У вас ще немає замовлень</h3>
                 <p style={{ color: '#64748b', marginBottom: '24px' }}>Всі ваші замовлення будуть відображатися тут</p>
-                <Link href="/catalog" style={{ display: 'inline-block', padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '12px', textDecoration: 'none', fontWeight: 700 }}>
+                <Link href="/catalog" style={{ display: 'inline-block', padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '3px', textDecoration: 'none', fontWeight: 700 }}>
                     До каталогу
                 </Link>
             </div>
@@ -196,7 +196,7 @@ function OrdersTab({ orders }: { orders: any[] }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {orders.map((order) => (
-                <div key={order.id} style={{ border: '1px solid #f1f5f9', borderRadius: '16px', padding: '20px', transition: 'border-color 0.2s' }}>
+                <div key={order.id} style={{ border: '1px solid #f1f5f9', borderRadius: '3px', padding: '20px', transition: 'border-color 0.2s' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
@@ -287,7 +287,7 @@ function ProfileTab({ formData, setFormData, onSave, isGoogle }: any) {
                     </div>
                 </div>
 
-                <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px' }}>
+                <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '3px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
                         <div>
                             <div style={{ fontSize: '15px', fontWeight: 700, color: '#263A99' }}>Отримувати email розсилку</div>
@@ -305,7 +305,7 @@ function ProfileTab({ formData, setFormData, onSave, isGoogle }: any) {
                 <div style={{ marginTop: '12px' }}>
                     <button
                         onClick={onSave}
-                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '3px', border: 'none', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}
                     >
                         <Save size={18} /> Зберегти зміни
                     </button>
@@ -322,7 +322,7 @@ function ProfileTab({ formData, setFormData, onSave, isGoogle }: any) {
 }
 
 const pLabelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' };
-const pInputStyle = { width: '100%', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', transition: 'border-color 0.2s' };
+const pInputStyle = { width: '100%', padding: '12px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', transition: 'border-color 0.2s' };
 
 function OrderStatusBadge({ status }: { status: string }) {
     const configs: any = {
@@ -334,7 +334,7 @@ function OrderStatusBadge({ status }: { status: string }) {
     };
     const c = configs[status] || configs['new'];
     return (
-        <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', backgroundColor: c.bg, color: c.color, textTransform: 'uppercase' }}>
+        <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '3px', backgroundColor: c.bg, color: c.color, textTransform: 'uppercase' }}>
             {c.label}
         </span>
     );

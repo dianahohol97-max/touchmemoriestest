@@ -64,7 +64,7 @@ export default function SendForReviewButton({
     <button
       onClick={handleSendForReview}
       disabled={sending || !projectId}
-      className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+      className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-[3px] font-medium transition-colors ${
         sending || !projectId
           ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
           : 'bg-green-600 text-white hover:bg-green-700'

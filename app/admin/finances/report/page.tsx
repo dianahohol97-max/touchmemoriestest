@@ -330,7 +330,7 @@ export default function PLReportPage() {
                     {formatCurrency(report.profit.operational)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center bg-muted p-3 rounded-lg">
+                <div className="flex justify-between items-center bg-muted p-3 rounded-[3px]">
                   <span className="font-medium">Маржинальність</span>
                   <span className="font-bold">{formatPercent(report.profit.margin)}</span>
                 </div>
