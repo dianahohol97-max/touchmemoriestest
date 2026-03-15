@@ -54,18 +54,19 @@ export function ProductStrip({ products = [] }: { products: Product[] }) {
                                     className={styles.productImg}
                                 />
                                 <div style={{
-                                    position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 60%)',
-                                    opacity: 0, transition: 'opacity 0.3s'
+                                    position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)',
+                                    opacity: 0.6, transition: 'opacity 0.3s'
                                 }} className={styles.overlayGradient}></div>
 
                                 <div style={{
                                     position: 'absolute', bottom: '20px', left: '20px', right: '20px',
-                                    transform: 'translateY(10px)', opacity: 0, transition: 'all 0.3s cubic-bezier(0.2, 0, 0, 1)'
+                                    transition: 'all 0.3s cubic-bezier(0.2, 0, 0, 1)',
+                                    zIndex: 10
                                 }} className={styles.itemAction}>
                                     <div style={{
                                         height: '40px',
-                                        backgroundColor: 'var(--section-button-bg)',
-                                        color: 'var(--section-button-text)',
+                                        backgroundColor: '#263A99',
+                                        color: '#ffffff',
                                         borderRadius: "3px",
                                         display: 'flex',
                                         alignItems: 'center',
@@ -88,11 +89,6 @@ export function ProductStrip({ products = [] }: { products: Product[] }) {
                                 }}>
                                     {product.name}
                                 </h3>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-primary)' }}>
-                                        {product.price_from ? 'від ' : ''}{product.price} ₴
-                                    </span>
-                                </div>
                             </div>
                         </Link>
                     ))}

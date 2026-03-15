@@ -35,7 +35,8 @@
   --space-32: 32px;
   --space-48: 48px;
   --space-64: 64px;
-  --section-spacing: 144px;
+  --section-spacing: 48px;
+  /* Standardizing spacing between sections */
 
   /* Radius */
   --radius-base: 3px;
@@ -231,8 +232,8 @@ a:hover {
 
 @media (max-width: 768px) {
   .section-padding {
-    padding-top: 64px;
-    padding-bottom: 64px;
+    padding-top: 32px;
+    padding-bottom: 32px;
   }
 }
 

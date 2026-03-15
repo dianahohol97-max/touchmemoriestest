@@ -27,7 +27,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
     return (
         <section
             ref={ref}
-            className="section-padding bg-gray-50/30"
+            className="pt-4 pb-4 bg-gray-50/30"
             style={{
                 borderRadius: style.border_radius || '0px'
             }}
@@ -36,19 +36,11 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
+                    transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
                 >
-                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-10">
-                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/50">Вибране для вас</span>
-                    </div>
-
-                    <h2 className="section-title text-center max-w-3xl mx-auto mb-10">
-                        <DynamicText contentKey="featured_title" fallback="Найпопулярніші товари, що зберігають ваші спогади" />
+                    <h2 className="font-heading text-[40px] font-black leading-[1.1] text-primary mb-12">
+                        Найпопулярніші товари
                     </h2>
-
-                    <p className="section-subtitle text-center mb-24 px-4">
-                        <DynamicText contentKey="featured_subtitle" fallback="Відкрийте для себе наші найкращі пропозиції, що стали улюбленими серед сотень клієнтів за якість та емоційність." />
-                    </p>
                 </motion.div>
             </div>
             <div className="container">

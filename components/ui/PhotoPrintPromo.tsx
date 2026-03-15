@@ -31,17 +31,9 @@ export function PhotoPrintPromo() {
                         transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                         className="lg:col-span-5 flex flex-col justify-center"
                     >
-                        <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-8 self-start">
-                            <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/50">Фотодрук</span>
-                        </div>
-
-                        <h2 className="text-[40px] lg:text-[56px] font-black leading-[1.05] tracking-tight mb-8 text-primary">
-                            {content['photoprint_title'] || 'Оживіть свої фотографії'}
+                        <h2 className="text-[28px] lg:text-[32px] font-black leading-[1.2] tracking-tight mb-8 text-primary">
+                            Оживіть свої фотографії. Збережіть улюблені моменти не лише в пам’яті, а й на якісному фотопапері.
                         </h2>
-
-                        <p className="text-[18px] opacity-70 mb-12 font-body leading-relaxed max-w-md">
-                            {content['photoprint_subtitle'] || 'Збережіть улюблені моменти не лише в пам’яті, а й на якісному фотопапері.'}
-                        </p>
 
                         <Link
                             href={content['photoprint_button_url'] || "/catalog?category=photo-print"}

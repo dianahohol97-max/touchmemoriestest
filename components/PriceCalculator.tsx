@@ -119,11 +119,10 @@ export default function PriceCalculator() {
     );
 
     return (
-        <section className={styles.calculatorSection} style={{ padding: '144px 0' }}>
+        <section className={styles.calculatorSection} style={{ padding: '48px 0' }}>
             <div className="container">
-                <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-                    <h2 className="section-title">Конфігуратор продукції</h2>
-                    <p className="section-subtitle">Створіть свій ідеальний продукт та дізнайтесь вартість миттєво</p>
+                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                    <h2 className="section-title">Калькулятор вартості</h2>
                 </div>
 
                 <div className={styles.configCard}>

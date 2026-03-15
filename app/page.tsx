@@ -28,7 +28,7 @@ export default async function Home() {
     .from('products')
     .select('*, categories(name, slug)')
     .eq('is_active', true)
-    .eq('is_popular', true)
+    .or('is_popular.eq.true,slug.eq.hliantsevyi-zhurnal')
     .order('popular_order', { ascending: true })
     .limit(8);
 
@@ -134,7 +134,6 @@ export default async function Home() {
         <SectionWrapper name="blog" defaultOrder={30}>
           <BlogSection posts={blogPosts || []} />
         </SectionWrapper>
-
 
         <SectionWrapper name="final_cta" defaultOrder={50}>
           <FinalCTA />

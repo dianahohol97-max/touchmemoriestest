@@ -44,13 +44,10 @@ export function SocialProof() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                     transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
+                    className="mb-8"
                 >
-                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-10 w-fit backdrop-blur-md">
-                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/60">Спільнота клієнтів</span>
-                    </div>
-
-                    <h2 className="text-[40px] lg:text-[56px] font-black leading-[1.05] tracking-tight mb-8">
-                        <DynamicText contentKey="social_proof_title" fallback="Ваші історії в наших книгах" />
+                    <h2 className="text-[40px] lg:text-[48px] font-black leading-[1.05] tracking-tight mb-4 text-primary">
+                        Ваші відгуки
                     </h2>
 
                     <p className="text-[18px] opacity-70 mb-16 font-body leading-relaxed max-w-2xl mx-auto">

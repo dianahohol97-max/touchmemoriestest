@@ -42,20 +42,12 @@ export function Categories({ blockName = 'categories' }: { blockName?: string })
                         transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                         className={`flex flex-col justify-center ${isAlt ? 'lg:order-2' : 'lg:order-1'}`}
                     >
-                        <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-8 self-start">
-                            <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/50">Формат</span>
-                        </div>
-
-                        <h2 className="text-[40px] lg:text-[56px] font-black leading-[1.05] tracking-tight mb-8 text-primary">
-                            {title}
+                        <h2 className="text-[32px] lg:text-[40px] font-black leading-[1.05] tracking-tight mb-12 text-primary max-w-md">
+                            Класичний формат для найвaжливіших подій
                         </h2>
 
-                        <p className="text-[18px] opacity-70 mb-12 font-body leading-relaxed max-w-md">
-                            {subtitle}
-                        </p>
-
                         <a href={`/catalog?category=${slug}`} className="btn-secondary w-fit group">
-                            Обрати формат
+                            До каталогу
                             <span className="transition-transform duration-300 group-hover:translate-x-1 ml-2">→</span>
                         </a>
                     </motion.div>

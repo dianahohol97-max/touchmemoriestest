@@ -48,12 +48,8 @@ export function HowItWorks() {
                     viewport={{ once: true }}
                     transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
                 >
-                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-10">
-                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/50">Процес</span>
-                    </div>
-
                     <h2 className="section-title text-center max-w-3xl mx-auto mb-10">
-                        <DynamicText contentKey="how_it_works_title" fallback="Створити свою книгу — легко" />
+                        Створити свою фотокнигу легко
                     </h2>
                 </motion.div>
 

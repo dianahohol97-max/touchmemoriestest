@@ -26,21 +26,21 @@ export function CustomBookPromo() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                    className="relative overflow-hidden rounded-[3px] shadow-[var(--shadow-premium)] bg-slate-900 text-white"
+                    className="relative overflow-hidden rounded-[3px] shadow-[var(--shadow-premium)] bg-white text-primary border border-gray-100"
                 >
                     {/* Decorative Background Elements */}
-                    <div className="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-l from-white/10 to-transparent pointer-events-none" />
-                    <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
+                    <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 relative z-10">
                         {/* Content Side */}
                         <div className="p-12 lg:p-20 flex flex-col justify-center">
-                            <div className="inline-block px-4 py-2 bg-white/10 rounded-full mb-10 w-fit backdrop-blur-md border border-white/10">
-                                <span className="text-[11px] font-black uppercase tracking-[0.4em] text-white/80">Індивідуальний дизайн</span>
+                            <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-10 w-fit backdrop-blur-md border border-primary/10">
+                                <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/60">Дизайн-сервіс</span>
                             </div>
 
                             <h2 className="text-[40px] lg:text-[56px] font-black leading-[1.05] tracking-tight mb-8">
-                                {content['custombook_title'] || 'Створимо книгу за вас'}
+                                Створимо книгу за вас
                             </h2>
 
                             <p className="text-[18px] opacity-80 mb-12 font-body leading-relaxed max-w-md">
@@ -49,10 +49,10 @@ export function CustomBookPromo() {
 
                             <Link
                                 href={content['custombook_button_url'] || "/catalog"}
-                                className="bg-white text-slate-900 font-bold px-8 py-4 rounded-[3px] w-fit flex items-center gap-3 transition-transform duration-300 hover:-translate-y-1 shadow-xl"
+                                className="btn-primary w-fit group"
                             >
                                 {content['custombook_button_text'] || 'Детальніше'}
-                                <ArrowRight size={20} />
+                                <ArrowRight size={20} className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                             </Link>
                         </div>
 

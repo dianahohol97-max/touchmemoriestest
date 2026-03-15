@@ -39,24 +39,17 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
     const embed = content['travel_embed'];
 
     return (
-        <section ref={ref} className="section-padding bg-slate-900 text-white pb-32">
+        <section ref={ref} className="section-padding bg-gray-50/50 pb-20">
             <div className="container">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
-                    className="text-center mb-24"
+                    transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+                    className="text-center mb-16"
                 >
-                    <div className="inline-block px-4 py-2 bg-white/10 rounded-full mb-10 w-fit backdrop-blur-md border border-white/10 mx-auto">
-                        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-white/80">Подорожі</span>
-                    </div>
-
-                    <h2 className="text-[48px] lg:text-[72px] font-black leading-[1.0] tracking-tight mb-8">
-                        {content['travel_title'] || 'Travel Book'}
+                    <h2 className="text-[40px] lg:text-[56px] font-black leading-[1.0] tracking-tight text-primary">
+                        Travelbook
                     </h2>
-                    <p className="text-[20px] opacity-80 max-w-2xl mx-auto font-body leading-relaxed">
-                        {content['travel_subtitle'] || 'Збережіть ваші подорожі у преміальному Travel Book — витворі мистецтва, який приємно тримати в руках'}
-                    </p>
                 </motion.div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
@@ -69,12 +62,12 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                         className="lg:col-span-5 flex flex-col gap-8"
                     >
                         {/* Top Locations Block */}
-                        <div className="bg-white/5 border border-white/10 rounded-[3px] p-10 flex flex-col items-center text-center justify-center">
-                            <MapPin size={48} className="text-white/30 mb-6" />
-                            <h3 className="font-heading text-2xl font-bold mb-4">
+                        <div className="bg-white border border-gray-100 rounded-[3px] p-10 flex flex-col items-center text-center justify-center shadow-[var(--shadow-subtle)]">
+                            <MapPin size={48} className="text-primary/30 mb-6" />
+                            <h3 className="font-heading text-2xl font-bold mb-4 text-primary">
                                 {content['travel_locations_title'] || 'Top Locations'}
                             </h3>
-                            <p className="text-white/60 leading-relaxed text-sm">
+                            <p className="text-primary/60 leading-relaxed text-sm">
                                 {content['travel_locations_desc'] || 'Найкращі локації для ваших подорожей та фотосесій. Створюйте неймовірні кадри.'}
                             </p>
                         </div>
@@ -104,12 +97,12 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                                     )}
                                 </div>
 
-                                <div className="p-10 flex flex-col flex-1 text-center justify-center">
-                                    <h3 className="font-heading text-2xl font-bold mb-4 leading-tight">
+                                <div className="p-10 flex flex-col flex-1 text-center justify-center bg-white border border-gray-100 border-t-0 rounded-b-[3px]">
+                                    <h3 className="font-heading text-2xl font-bold mb-4 leading-tight text-primary">
                                         {travelPost.title}
                                     </h3>
-                                    <div className="flex items-center justify-center gap-2 text-white/50 text-sm mt-auto">
-                                        <span className="font-bold flex items-center gap-2 group-hover:text-white transition-colors">
+                                    <div className="flex items-center justify-center gap-2 text-primary/50 text-sm mt-auto">
+                                        <span className="font-bold flex items-center gap-2 group-hover:text-primary transition-colors">
                                             Читати історію <ArrowRight size={14} />
                                         </span>
                                     </div>
@@ -124,13 +117,9 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.8, delay: 0.4 }}
-                        className="lg:col-span-7 bg-white text-slate-900 rounded-[3px] p-12 lg:p-20 flex flex-col justify-center items-center text-center shadow-[var(--shadow-premium)] relative overflow-hidden"
+                        className="lg:col-span-7 bg-white text-primary rounded-[3px] p-12 lg:p-20 flex flex-col justify-center items-center text-center shadow-[var(--shadow-premium)] relative overflow-hidden"
                     >
                         <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-
-                        <h3 className="text-[40px] font-black leading-[1.05] tracking-tight mb-8">
-                            Замовити Travel Book
-                        </h3>
 
                         {/* Media Display */}
                         <div className="relative w-full max-w-md aspect-[4/3] mb-12 flex items-center justify-center">
@@ -150,10 +139,6 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                                 </div>
                             )}
                         </div>
-
-                        <p className="text-[18px] opacity-70 mb-12 font-body leading-relaxed max-w-sm">
-                            {content['travel_text'] || 'Створіть унікальну книгу ваших подорожей з фотографіями, нотатками та спогадами'}
-                        </p>
 
                         <Link
                             href="/book-constructor?type=travel"
