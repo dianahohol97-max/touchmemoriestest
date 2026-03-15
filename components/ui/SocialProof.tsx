@@ -33,6 +33,39 @@ export function SocialProof() {
         }
     };
 
+    const reviews = [
+        {
+            id: 1,
+            author: '@maybe_natasha',
+            image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600",
+            category: 'Весільна книга'
+        },
+        {
+            id: 2,
+            author: '@nasstya.ss',
+            image: "https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?w=600",
+            category: 'Travel Book'
+        },
+        {
+            id: 3,
+            author: '@ann_surovtseva',
+            image: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600",
+            category: 'Family Album'
+        },
+        {
+            id: 4,
+            author: '@shcherbakova_mladshaya',
+            image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=600",
+            category: 'Design Service'
+        },
+        {
+            id: 5,
+            author: '@nataplushcheva',
+            image: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600",
+            category: 'Photo Print'
+        }
+    ];
+
     return (
         <section ref={ref} className="section-padding bg-white overflow-hidden relative">
             {/* Decorative Background Pattern */}
@@ -51,7 +84,7 @@ export function SocialProof() {
                     </h2>
 
                     <p className="text-[18px] opacity-70 mb-16 font-body leading-relaxed max-w-2xl mx-auto">
-                        <DynamicText contentKey="social_proof_subtitle" fallback="Ми щасливі бути частиною ваших найтепліших спогадів. Погляньте, як наші клієнти зберігають свої моменти." />
+                        Ми щасливі бути частиною ваших найтепліших спогадів. Погляньте, як наші клієнти зберігають свої моменти.
                     </p>
                 </motion.div>
             </div>
@@ -75,14 +108,14 @@ export function SocialProof() {
                         ref={scrollContainerRef}
                         className={`flex gap-6 overflow-x-auto pb-12 snap-x snap-mandatory ${styles.noScrollbar}`}
                     >
-                        {photos.map((photo) => (
+                        {reviews.map((review) => (
                             <div
-                                key={photo.id}
+                                key={review.id}
                                 className="flex-none w-[min(75vw,320px)] aspect-[3/4] snap-center overflow-hidden rounded-[3px] cursor-pointer relative group bg-gray-100 shadow-[var(--shadow-premium)] border border-white/20"
                             >
                                 <img
-                                    src={photo.image}
-                                    alt={`Customer photo by ${photo.username}`}
+                                    src={review.image}
+                                    alt={`Customer photo by ${review.author}`}
                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                 />
                                 {/* Gradient Overlay */}
@@ -91,7 +124,7 @@ export function SocialProof() {
                                 {/* Username */}
                                 <div className="absolute bottom-8 left-0 right-0 text-center px-4 transform transition-transform duration-300 group-hover:translate-y-[-8px]">
                                     <span className="text-[15px] text-[#E5D5C5] font-sans font-bold tracking-wide">
-                                        {photo.username}
+                                        {review.author}
                                     </span>
                                 </div>
                                 {/* Instagram Style Overlay */}

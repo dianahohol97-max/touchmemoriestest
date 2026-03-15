@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import styles from './PhotoPrintPromo.module.css';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
 
@@ -58,9 +59,10 @@ export function PhotoPrintPromo() {
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <img
-                                src="https://images.unsplash.com/photo-1541996271295-8eaf5d8f61ce?w=1200"
-                                alt="Photo Print"
+                            <Image
+                                src="/images/promo/photo_print_premium.png"
+                                alt="Фотодрук"
+                                fill
                                 className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                             />
                         )}

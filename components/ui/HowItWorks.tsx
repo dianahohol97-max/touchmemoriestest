@@ -66,12 +66,14 @@ export function HowItWorks() {
                             <span className="text-[64px] font-black text-primary/5 absolute top-4 right-8 select-none group-hover:text-primary/10 transition-colors">
                                 0{index + 1}
                             </span>
-
                             <div className="w-16 h-16 bg-primary text-white rounded-brand flex items-center justify-center mb-10 shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-500">
                                 <span className="text-2xl">{step.icon}</span>
                             </div>
 
                             <h3 className="text-2xl font-black text-primary mb-5 m-0 tracking-tight leading-none">{step.title}</h3>
+                            <div className="absolute -top-12 -left-6 text-[120px] font-black text-primary/10 select-none pointer-events-none transition-colors group-hover:text-primary/15">
+                                {`0${index + 1}`}
+                            </div>
                             <p className="text-[15px] text-primary/40 font-body leading-relaxed m-0">
                                 {step.description}
                             </p>

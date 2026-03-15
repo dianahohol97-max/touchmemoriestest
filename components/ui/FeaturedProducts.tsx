@@ -46,17 +46,18 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                     </h2>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 justify-center">
                     {products?.map((product, idx) => (
                         <motion.div
                             key={product.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={inView ? { opacity: 1, y: 0 } : {}}
                             transition={{ duration: 0.5, delay: idx * 0.1 }}
+                            className="flex justify-center"
                         >
                             <Link
                                 href={`/product/${product.slug}`}
-                                className="group flex flex-col h-full bg-white rounded-[12px] overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border border-gray-100/50"
+                                className="group flex flex-col w-full max-w-[320px] bg-white rounded-[12px] overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] border border-gray-100/50"
                             >
                                 <div className="aspect-[4/5] relative overflow-hidden bg-gray-50">
                                     {product.images?.[0] ? (

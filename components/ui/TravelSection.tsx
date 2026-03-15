@@ -122,22 +122,13 @@ export function TravelSection({ travelPost }: TravelSectionProps) {
                         <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
                         {/* Media Display */}
-                        <div className="relative w-full max-w-md aspect-[4/3] mb-12 flex items-center justify-center">
-                            {embed ? (
-                                <div
-                                    dangerouslySetInnerHTML={{ __html: embed }}
-                                    className="w-full h-full"
-                                />
-                            ) : (
-                                <div className="relative w-3/4 aspect-[3/4] bg-gray-50 rounded-[3px] shadow-2xl flex flex-col items-center justify-center p-8 border border-gray-100 rotate-2 hover:rotate-0 transition-transform duration-500">
-                                    <MapPin size={48} className="text-primary/30 mb-8" />
-                                    <div className="w-full h-2 bg-gray-200 rounded-[3px] mb-4" />
-                                    <div className="w-2/3 h-2 bg-gray-200 rounded-[3px]" />
-
-                                    {/* Decorative photo stacks */}
-                                    <div className="absolute -z-10 w-full h-full bg-white border border-gray-200 rounded-[3px] -rotate-6 top-2 left-2 shadow-xl" />
-                                </div>
-                            )}
+                        <div className="relative w-full aspect-[4/3] mb-12 flex items-center justify-center rounded-[3px] overflow-hidden shadow-[var(--shadow-premium)]">
+                            <Image
+                                src="/images/promo/travel_book_premium.png"
+                                alt="Travel Book"
+                                fill
+                                className="object-cover transition-transform duration-700 hover:scale-105"
+                            />
                         </div>
                     </motion.div>
                 </div>

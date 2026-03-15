@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import styles from './CustomBookPromo.module.css';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
+import Image from 'next/image';
 import { BookOpen, Sparkles, ArrowRight } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
 
@@ -53,18 +54,13 @@ export function CustomBookPromo() {
                         </div>
 
                         {/* Visual Side */}
-                        <div className="relative min-h-[400px] lg:min-h-full flex items-center justify-center bg-black/20 p-12">
-                            {embed ? (
-                                <div
-                                    dangerouslySetInnerHTML={{ __html: embed }}
-                                    className="w-full h-full flex items-center justify-center"
-                                />
-                            ) : (
-                                <div className="text-center">
-                                    <Sparkles size={64} className="mx-auto mb-6 opacity-30 text-white" />
-                                    <p className="font-heading text-xl font-bold opacity-50 uppercase tracking-widest">Premium Service</p>
-                                </div>
-                            )}
+                        <div className="relative h-full min-h-[400px] lg:min-h-[600px] bg-gray-50 overflow-hidden">
+                            <Image
+                                src="/images/promo/design_service_premium.png"
+                                alt="Дизайн сервіс"
+                                fill
+                                className="object-cover transition-transform duration-700 hover:scale-105"
+                            />
                         </div>
                     </div>
                 </motion.div>
