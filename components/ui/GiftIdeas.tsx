@@ -4,74 +4,68 @@ import { useInView } from 'react-intersection-observer';
 import Image from 'next/image';
 import Link from 'next/link';
 
-const IDEAS = [
-    {
-        id: 'travel',
-        title: 'Для мандрівників',
-        subtitle: 'Збережіть кожне місто, кожен краєвид у панорамному альбомі.',
-        image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=800',
-        cta: 'Створити Travel Book',
-        link: '/catalog/travel-books'
-    },
-    {
-        id: 'family',
-        title: 'Сімейне дерево',
-        subtitle: 'Історія поколінь, захована в преміальному текстилі.',
-        image: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?q=80&w=800',
-        cta: 'Оглянути альбоми',
-        link: '/catalog/family-albums'
-    },
-    {
-        id: 'gift',
-        title: 'Ідеальний дарунок',
-        subtitle: 'Сертифікати на друк емоцій — подарунок, що не тьмяніє.',
-        image: 'https://images.unsplash.com/photo-1549465220-1d8c9d9c6703?q=80&w=800',
-        cta: 'Детальніше',
-        link: '/catalog/gifts'
-    }
-];
-
 export function GiftIdeas() {
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,
     });
 
-    return (
-        <section ref={ref} className="section-padding bg-premium-gradient">
-            <div className="container">
-                <div className="max-w-3xl mb-24">
-                    <h2 className="section-title text-left">Мистецтво дарування</h2>
-                    <p className="section-subtitle text-left m-0">Знайдіть натхнення для особливих моментів життя. Ми створили колекції, які допоможуть вам обрати найкращий спосіб зберегти спогади.</p>
-                </div>
+    const buttons = [
+        { label: 'для неї', slug: 'for-her' },
+        { label: 'для нього', slug: 'for-him' },
+        { label: 'для мами', slug: 'for-mom' },
+        { label: 'для бабусі', slug: 'for-grandma' },
+        { label: 'для тата', slug: 'for-dad' },
+        { label: 'для дідуся', slug: 'for-grandpa' },
+        { label: 'для подруги', slug: 'for-friend' },
+        { label: 'для боса', slug: 'for-boss' },
+        { label: 'для пари', slug: 'for-couple' },
+    ];
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
-                    {IDEAS.map((idea, idx) => (
+    return (
+        <section ref={ref} className="relative w-full min-h-[600px] flex items-center justify-center overflow-hidden py-24">
+            {/* Background Image */}
+            <Image
+                src="/images/promo/gift_ideas_bg.png"
+                alt="Ідеї для подарунків"
+                fill
+                className="object-cover"
+                priority
+            />
+            {/* Dark Overlay for better contrast */}
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" />
+
+            <div className="container relative z-10">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={inView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+                    className="text-center mb-16"
+                >
+                    <h2 className="text-[40px] lg:text-[64px] font-black leading-none tracking-tight text-white drop-shadow-lg mb-4">
+                        Ідеї для подарунків
+                    </h2>
+                    <p className="text-white/90 text-lg lg:text-xl font-medium max-w-2xl mx-auto drop-shadow-md">
+                        Підібрані колекції для найважливіших людей у вашому житті
+                    </p>
+                </motion.div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-8 max-w-4xl mx-auto">
+                    {buttons.map((btn, idx) => (
                         <motion.div
-                            key={idea.id}
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-                            transition={{ duration: 0.8, delay: idx * 0.2 }}
-                            className="flex flex-col gap-8 group"
+                            key={idx}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={inView ? { opacity: 1, scale: 1 } : {}}
+                            transition={{ duration: 0.5, delay: idx * 0.05 + 0.3 }}
                         >
-                            <div className="relative aspect-[3/4] overflow-hidden rounded-brand shadow-[var(--shadow-premium)] group-hover:shadow-[var(--shadow-hover)] transition-all">
-                                <Image
-                                    src={idea.image}
-                                    alt={idea.title}
-                                    fill
-                                    className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                                />
-                            </div>
-                            <div className="flex flex-col gap-4">
-                                <h3 className="text-2xl font-bold text-primary">{idea.title}</h3>
-                                <p className="text-[15px] text-primary/60 leading-relaxed font-body">{idea.subtitle}</p>
-                                <Link
-                                    href={idea.link}
-                                    className="text-[11px] font-black uppercase tracking-[0.3em] text-primary mt-4 flex items-center gap-4 group-hover:gap-6 transition-all no-underline"
-                                >
-                                    {idea.cta} <span className="text-xl font-light">→</span>
-                                </Link>
-                            </div>
+                            <Link
+                                href={`/catalog?collection=${btn.slug}`}
+                                className="group relative flex items-center justify-center p-6 lg:p-8 bg-white/10 backdrop-blur-md border border-white/20 rounded-[12px] text-white font-bold text-lg lg:text-xl uppercase tracking-widest transition-all duration-500 hover:bg-white/30 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:-translate-y-1 text-center"
+                            >
+                                <span className="relative z-10 transition-transform duration-500 group-hover:scale-110">
+                                    {btn.label}
+                                </span>
+                            </Link>
                         </motion.div>
                     ))}
                 </div>

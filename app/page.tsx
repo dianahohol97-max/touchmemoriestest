@@ -17,6 +17,7 @@ import { DynamicPromo } from '@/components/ui/DynamicPromo';
 import { PhotoPrintPromo } from '@/components/ui/PhotoPrintPromo';
 import { CustomBookPromo } from '@/components/ui/CustomBookPromo';
 import { ConstructorSelection } from '@/components/ui/ConstructorSelection';
+import { GiftIdeas } from '@/components/ui/GiftIdeas';
 
 
 import { getAdminClient } from '@/lib/supabase/admin';
@@ -121,6 +122,10 @@ export default async function Home() {
 
         <SectionWrapper name="photo_print" defaultOrder={29}>
           <PhotoPrintPromo />
+        </SectionWrapper>
+
+        <SectionWrapper name="gift_ideas" defaultOrder={35}>
+          <GiftIdeas />
         </SectionWrapper>
 
         <SectionWrapper name="social_proof" defaultOrder={40}>
