@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Upload, Edit3, Truck } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import { DynamicText } from './DynamicText';
 
 export function HowItWorks() {
     const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
@@ -31,35 +32,55 @@ export function HowItWorks() {
     ];
 
     return (
-        <section ref={ref} style={{
-            padding: '120px 20px 40px',
-            backgroundColor: style.bg_color || '#fff',
-            borderRadius: style.border_radius || '0px'
-        }}>
-            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <div className="text-center mb-24">
-                    <h2 className="text-[32px] lg:text-[44px] font-extrabold leading-tight tracking-tight text-primary mb-6">
-                        {title}
-                    </h2>
-                    <p className="text-[16px] lg:text-[18px] text-primary/60 max-w-2xl mx-auto font-body leading-relaxed">
-                        {content['how_subtitle'] || 'Три простих кроки до вашої ідеальної фотокниги'}
-                    </p>
-                </div>
+        <section
+            ref={ref}
+            className="section-padding bg-gray-50/50 relative overflow-hidden"
+            style={{
+                borderRadius: style.border_radius || '0px'
+            }}
+        >
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
+            <div className="container" style={{ textAlign: 'center' }}>
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
+                >
+                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-8">
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/50">Процес</span>
+                    </div>
+
+                    <h2 className="text-[32px] lg:text-[42px] font-black leading-[1.05] tracking-tight text-primary mb-8 max-w-3xl mx-auto">
+                        <DynamicText contentKey="how_it_works_title" fallback="Створити свою книгу — легко" />
+                    </h2>
+
+                    <div className="w-24 h-1 bg-primary/10 mx-auto mb-24 rounded-full" />
+                </motion.div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-left mb-20">
                     {steps.map((step, index) => (
                         <motion.div
                             key={index}
                             initial={{ opacity: 0, y: 30 }}
-                            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-                            transition={{ duration: 0.8, delay: index * 0.1, ease: [0.23, 1, 0.32, 1] }}
-                            className="text-center p-12 rounded-brand bg-white border border-black/[0.03] shadow-[0_20px_40px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_60px_rgba(0,0,0,0.08)] transition-all group"
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.8, delay: index * 0.2, ease: [0.23, 1, 0.32, 1] }}
+                            className="group relative p-12 bg-white rounded-brand shadow-[var(--shadow-premium)] hover:shadow-[var(--shadow-hover)] transition-all hover:translate-y-[-8px] flex flex-col items-start min-h-[320px]"
                         >
-                            <div className="w-16 h-16 bg-primary text-white rounded-brand flex items-center justify-center mx-auto mb-10 shadow-[0_10px_20px_rgba(38,58,153,0.15)] group-hover:scale-110 group-hover:shadow-[0_15px_30px_rgba(38,58,153,0.3)] transition-all">
-                                {step.icon}
+                            <span className="text-[64px] font-black text-primary/5 absolute top-4 right-8 select-none group-hover:text-primary/10 transition-colors">
+                                0{index + 1}
+                            </span>
+
+                            <div className="w-16 h-16 bg-primary text-white rounded-brand flex items-center justify-center mb-10 shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-500">
+                                <span className="text-2xl">{step.icon}</span>
                             </div>
-                            <h3 className="text-[20px] font-extrabold mb-4 text-primary tracking-tight">{step.title}</h3>
-                            <p className="text-[15px] text-primary/60 leading-relaxed font-body">{step.description}</p>
+
+                            <h3 className="text-2xl font-black text-primary mb-5 m-0 tracking-tight leading-none">{step.title}</h3>
+                            <p className="text-[15px] text-primary/40 font-body leading-relaxed m-0">
+                                {step.description}
+                            </p>
                         </motion.div>
                     ))}
                 </div>

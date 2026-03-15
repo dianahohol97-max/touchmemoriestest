@@ -182,45 +182,57 @@ export function ProductOptions({ product }: ProductOptionsProps) {
                 />
             )}
 
-            {/* Quantity & Summary */}
-            <div className="mt-8 p-10 bg-gray-50/50 rounded-brand border border-black/[0.03] shadow-sm">
+            {/* Quantity & Summary Sticky Panel */}
+            <div className="mt-12 p-10 bg-white rounded-brand border border-primary/10 shadow-[var(--shadow-premium)] relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 bg-primary h-full" />
+
                 <div className="flex justify-between items-center mb-10">
-                    <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-primary opacity-40">Кількість</label>
-                        <div className="flex items-center gap-4 bg-white p-1 rounded-brand border border-primary/10 shadow-sm w-fit">
-                            <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center text-primary/60 hover:bg-primary/5 rounded-brand transition-colors"><Minus size={16} /></button>
-                            <span className="font-extrabold text-primary min-w-[32px] text-center text-lg">{quantity}</span>
-                            <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 flex items-center justify-center text-primary/60 hover:bg-primary/5 rounded-brand transition-colors"><Plus size={16} /></button>
+                    <div className="flex flex-col gap-3">
+                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary opacity-30">Параметри замовлення</label>
+                        <div className="flex items-center gap-6 bg-gray-50/50 p-1.5 rounded-full border border-primary/5 w-fit">
+                            <button
+                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                className="w-10 h-10 flex items-center justify-center bg-white text-primary shadow-sm rounded-full hover:bg-primary hover:text-white transition-all active:scale-95"
+                            >
+                                <Minus size={16} />
+                            </button>
+                            <span className="font-black text-primary min-w-[32px] text-center text-xl tracking-tighter">{quantity}</span>
+                            <button
+                                onClick={() => setQuantity(quantity + 1)}
+                                className="w-10 h-10 flex items-center justify-center bg-white text-primary shadow-sm rounded-full hover:bg-primary hover:text-white transition-all active:scale-95"
+                            >
+                                <Plus size={16} />
+                            </button>
                         </div>
                     </div>
 
                     <div className="text-right">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-primary opacity-40 mb-1">Підсумок</div>
-                        <div className="text-[32px] font-black text-primary tracking-tighter">{totalPrice} ₴</div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.3em] text-primary opacity-30 mb-2">Загальна вартість</div>
+                        <div className="text-[42px] font-black text-primary tracking-[-0.05em] leading-none">{totalPrice} ₴</div>
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-4">
                     <button
                         onClick={handleAddToCart}
-                        className="w-full py-5 bg-primary text-white rounded-brand font-bold text-[16px] shadow-[0_10px_30px_-5px_rgba(38,58,153,0.3)] hover:translate-y-[-2px] hover:shadow-[0_15px_35px_-5px_rgba(38,58,153,0.4)] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                        className="w-full py-6 bg-primary text-white rounded-brand font-black text-[16px] uppercase tracking-[0.15em] shadow-[0_20px_40px_-10px_rgba(38,58,153,0.3)] hover:translate-y-[-4px] hover:shadow-[0_30px_60px_-10px_rgba(38,58,153,0.4)] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                     >
-                        <ShoppingCart size={20} /> Додати у кошик
+                        <ShoppingCart size={20} strokeWidth={3} /> Додати у кошик
                     </button>
 
                     {isPhotoBook && (
                         <button
                             onClick={() => router.push(`/book-constructor?product=${product.id}`)}
-                            className="w-full py-5 bg-white text-primary border-2 border-primary rounded-brand font-bold text-[16px] hover:bg-primary/5 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                            className="w-full py-6 bg-white text-primary border-2 border-primary/20 rounded-brand font-black text-[15px] uppercase tracking-[0.1em] hover:bg-primary hover:text-white hover:border-primary transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                         >
                             <Edit3 size={20} /> Створити в конструкторі
                         </button>
                     )}
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-4 mt-2">
                         <button
                             onClick={() => setIsHintModalOpen(true)}
-                            className="flex-1 py-4 bg-transparent text-primary/60 border border-primary/10 rounded-brand font-bold text-[13px] hover:bg-white hover:text-primary transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                            className="flex-1 py-4 bg-gray-50 text-primary/40 rounded-brand font-bold text-[12px] uppercase tracking-widest hover:bg-primary/5 hover:text-primary transition-all flex items-center justify-center gap-2"
                         >
                             💝 Натякнути
                         </button>

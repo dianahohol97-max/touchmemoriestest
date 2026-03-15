@@ -27,28 +27,35 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
     return (
         <section
             ref={ref}
-            className="home-section"
+            className="section-padding bg-gray-50/30"
             style={{
-                backgroundColor: style.bg_color || 'transparent',
-                color: style.text_color || 'inherit',
                 borderRadius: style.border_radius || '0px'
             }}
         >
-            <div className="container py-24" style={{ textAlign: 'center' }}>
+            <div className="container" style={{ textAlign: 'center' }}>
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                    transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
                 >
-                    <h2 className="text-[36px] lg:text-[44px] font-extrabold leading-tight tracking-tight text-primary mb-6">
-                        <DynamicText contentKey="featured_title" fallback="Найпопулярніші товари" />
+                    <div className="inline-block px-4 py-2 bg-primary/5 rounded-full mb-8">
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/50">Вибране для вас</span>
+                    </div>
+
+                    <h2 className="text-[32px] lg:text-[42px] font-black leading-[1.05] tracking-tight text-primary mb-8 max-w-3xl mx-auto">
+                        <DynamicText contentKey="featured_title" fallback="Найпопулярніші товари, що зберігають ваші спогади" />
                     </h2>
-                    <p className="text-[16px] lg:text-[18px] text-primary/60 max-w-2xl mx-auto font-body leading-relaxed">
-                        <DynamicText contentKey="featured_subtitle" fallback="Відкрийте для себе наші найкращі пропозиції, що стали улюбленими серед сотень клієнтів" />
+
+                    <div className="w-24 h-1 bg-primary/10 mx-auto mb-10 rounded-full" />
+
+                    <p className="text-[17px] lg:text-[19px] text-primary/40 max-w-2xl mx-auto font-body leading-relaxed mb-20 px-4">
+                        <DynamicText contentKey="featured_subtitle" fallback="Відкрийте для себе наші найкращі пропозиції, що стали улюбленими серед сотень клієнтів за якість та емоційність." />
                     </p>
                 </motion.div>
             </div>
-            <ProductStrip products={products} />
+            <div className="container">
+                <ProductStrip products={products} />
+            </div>
         </section>
     );
 }

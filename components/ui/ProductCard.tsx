@@ -25,48 +25,58 @@ export function ProductCard({ product }: ProductCardProps) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            whileHover={{ y: -8 }}
-            transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-            className="group flex flex-col h-full bg-white rounded-brand border border-black/[0.03] transition-all hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] overflow-hidden"
+            whileHover={{ y: -12 }}
+            transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+            className="group flex flex-col h-full bg-white rounded-brand border border-primary/[0.05] shadow-[var(--shadow-premium)] hover:shadow-[var(--shadow-hover)] transition-all overflow-hidden"
         >
             <Link href={`/catalog/${product.slug}`} className="no-underline text-inherit flex flex-col h-full">
-                <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-50">
+                <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-50 border-b border-primary/[0.03]">
                     <Image
                         src={product.images?.[0] || 'https://via.placeholder.com/400'}
                         alt={product.name}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover transition-transform duration-1000 ease-[0.23,1,0.32,1] group-hover:scale-110"
+                        className="object-cover transition-transform duration-1000 ease-[0.23,1,0.32,1] group-hover:scale-110 group-hover:rotate-1"
                     />
-                    <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute top-5 right-5 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
                         <WishlistButton productId={product.id} />
                     </div>
+                    {product.is_personalized && (
+                        <div className="absolute bottom-4 left-4 z-10">
+                            <span className="bg-primary text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
+                                Створити свій
+                            </span>
+                        </div>
+                    )}
                 </div>
 
-                <div className="pt-8 pb-6 px-6 flex flex-col flex-1 gap-2">
+                <div className="pt-10 pb-8 px-8 flex flex-col flex-1 gap-3">
                     <div className="flex justify-between items-start">
-                        <span className="text-[10px] text-primary font-bold uppercase tracking-[0.2em] opacity-40">
+                        <span className="text-[10px] text-primary font-black uppercase tracking-[0.3em] opacity-30">
                             {product.categories?.name || 'Товар'}
                         </span>
                     </div>
 
-                    <h3 className="font-heading text-lg font-bold m-0 text-primary leading-tight tracking-tight group-hover:text-primary/80 transition-colors">
+                    <h3 className="font-heading text-xl font-bold m-0 text-primary leading-tight tracking-tight group-hover:text-primary transition-colors">
                         {product.name}
                     </h3>
 
-                    <div className="text-[16px] font-bold text-primary mt-auto pt-4 flex items-center justify-between">
-                        <span>
-                            {product.price_from ? <span className="text-xs opacity-40 font-normal mr-1 lowercase tracking-normal">від</span> : ''}
-                            {product.price} ₴
-                        </span>
+                    <p className="text-[14px] text-primary/40 leading-relaxed font-body line-clamp-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        {product.short_description || 'Відкрийте для себе преміальну якість друку та матеріалів.'}
+                    </p>
 
-                        <span className="text-[10px] font-black text-primary opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0 transition-all duration-500 uppercase tracking-widest flex items-center gap-2">
-                            {product.is_personalized ? 'Створити' : 'Замовити'}
-                            <span className="text-sm font-normal">→</span>
-                        </span>
+                    <div className="text-[18px] font-black text-primary mt-auto pt-6 flex items-center justify-between">
+                        <div className="flex flex-col">
+                            {product.price_from && <span className="text-[10px] opacity-30 uppercase font-black tracking-widest mb-1">від</span>}
+                            <span>{product.price} ₴</span>
+                        </div>
+
+                        <div className="w-12 h-12 rounded-full border border-primary/20 flex items-center justify-center group-hover:bg-primary group-hover:border-primary group-hover:text-white transition-all duration-500">
+                            <span className="text-xl font-light">→</span>
+                        </div>
                     </div>
                 </div>
             </Link>

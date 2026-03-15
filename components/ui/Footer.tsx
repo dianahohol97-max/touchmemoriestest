@@ -35,7 +35,7 @@ export function Footer({ categories = [] }: FooterProps) {
         setOpenSection(openSection === section ? null : section);
     };
 
-    // Custom product links from content or categories
+    // Parse links
     const customLinksRaw = content['footer_product_links'];
     let customLinks = [];
     try {
@@ -44,7 +44,7 @@ export function Footer({ categories = [] }: FooterProps) {
         console.error('Failed to parse footer links', e);
     }
 
-    const footerSections = [
+    const sections = [
         {
             id: 'products',
             title: 'Продукти',
@@ -63,58 +63,37 @@ export function Footer({ categories = [] }: FooterProps) {
                 { label: 'Питання та відповіді', href: '/faq' },
                 { label: 'Конструктор', href: '/book-constructor' }
             ]
-        },
-        {
-            id: 'contacts',
-            title: 'Контакти',
-            content: (
-                <ul className={styles.footerList}>
-                    {content['footer_phone'] && (
-                        <li className={styles.contactItem}>
-                            <Phone size={16} /> {content['footer_phone']}
-                        </li>
-                    )}
-                    {content['footer_email'] && (
-                        <li className={styles.contactItem}>
-                            <Mail size={16} /> {content['footer_email']}
-                        </li>
-                    )}
-                    {content['footer_address'] && (
-                        <li className={styles.contactItem}>
-                            {content['footer_address']}
-                        </li>
-                    )}
-                </ul>
-            )
         }
     ];
 
     return (
-        <footer ref={ref} className="bg-white border-t border-border pt-20 pb-10 text-textPrimary">
-            <div className="container mx-auto px-10">
-                <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-12 lg:gap-24 mb-20">
-                    <div className="flex flex-col">
-                        <h3 className="font-heading font-black text-[22px] mb-8 tracking-[0.25em] text-primary uppercase leading-none">
-                            {content['footer_brand_name'] || 'TOUCH.MEMORIES'}
-                        </h3>
-                        <p className="font-body text-[15px] leading-relaxed text-primary/60 mb-10 max-w-sm">
-                            {content['footer_brand_desc'] || "Ми віримо, що найкращі моменти життя заслуговують бути надрукованими на папері. Створюємо преміальні фотокниги з любов'ю."}
+        <footer ref={ref} className="bg-white border-t border-primary/5 pt-32 pb-12 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
+
+            <div className="container mx-auto px-6 lg:px-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 lg:gap-24">
+                    {/* Brand Section */}
+                    <div className="flex flex-col gap-8">
+                        <Link href="/" className="inline-block group">
+                            <h2 className="font-heading font-black text-[22px] tracking-[0.25em] text-primary uppercase leading-tight m-0 transition-transform group-hover:scale-105 origin-left">
+                                {content['footer_brand_name'] || 'Touch.Memories'}
+                            </h2>
+                        </Link>
+                        <p className="text-[15px] text-primary/40 font-body leading-relaxed max-w-xs">
+                            {content['footer_brand_desc'] || "Зберігаємо ваші найцінніші спогади у преміальних фотокнигах та продуктах з 2018 року."}
                         </p>
-                        <div className="flex gap-6 flex-wrap">
+                        <div className="flex gap-4">
                             {[
-                                { url: content['footer_social_insta'], icon: <FaInstagram size={20} /> },
-                                { url: content['footer_social_fb'], icon: <FaFacebook size={20} /> },
-                                { url: content['footer_social_tg'], icon: <Send size={20} /> },
-                                { url: content['footer_social_tiktok'], icon: <FaTiktok size={20} /> },
-                                { url: content['footer_social_pinterest'], icon: <FaPinterest size={20} /> },
-                                { url: content['footer_social_threads'], icon: <FaThreads size={20} /> }
+                                { url: content['footer_social_insta'], icon: <FaInstagram size={18} /> },
+                                { url: content['footer_social_fb'], icon: <FaFacebook size={18} /> },
+                                { url: content['footer_social_tg'], icon: <Send size={18} /> }
                             ].map((social, i) => social.url ? (
                                 <a
                                     key={i}
                                     href={social.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-primary/60 hover:text-primary transition-all hover:scale-110 active:scale-95"
+                                    className="w-10 h-10 rounded-brand border border-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white hover:border-primary transition-all cursor-pointer shadow-sm"
                                 >
                                     {social.icon}
                                 </a>
@@ -122,15 +101,34 @@ export function Footer({ categories = [] }: FooterProps) {
                         </div>
                     </div>
 
-                    <div className="md:hidden space-y-2 border-y border-border py-4">
-                        {footerSections.map((section) => (
-                            <div key={section.id} className="border-b border-border/50 last:border-none">
+                    {/* Desktop Navigation Columns */}
+                    {sections.map((section) => (
+                        <div key={section.id} className="hidden lg:flex flex-col gap-8">
+                            <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/30 m-0">
+                                {section.title}
+                            </h4>
+                            <ul className="list-none p-0 m-0 flex flex-col gap-5">
+                                {section.links.map((link: any, idx: number) => (
+                                    <li key={idx}>
+                                        <Link href={link.href} className="text-[15px] font-bold text-primary/50 hover:text-primary hover:translate-x-1 inline-block transition-all">
+                                            {link.label}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+
+                    {/* Mobile Navigation Column */}
+                    <div className="lg:hidden flex flex-col gap-4">
+                        {sections.map((section) => (
+                            <div key={section.id} className="border-b border-primary/5 last:border-none">
                                 <button
-                                    className="w-full flex justify-between items-center py-4 text-left font-heading font-bold text-sm uppercase tracking-widest text-primary"
                                     onClick={() => toggleSection(section.id)}
+                                    className="w-full flex justify-between items-center py-4 text-left font-black text-[11px] uppercase tracking-[0.3em] text-primary/40"
                                 >
                                     <span>{section.title}</span>
-                                    <ChevronDown size={18} className={cn("transition-transform duration-300", openSection === section.id ? "rotate-180" : "")} />
+                                    <ChevronDown size={14} className={cn("transition-transform", openSection === section.id ? "rotate-180" : "")} />
                                 </button>
                                 <AnimatePresence>
                                     {openSection === section.id && (
@@ -138,22 +136,15 @@ export function Footer({ categories = [] }: FooterProps) {
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.3 }}
-                                            className="overflow-hidden pb-4"
+                                            className="overflow-hidden pb-6"
                                         >
-                                            {section.links ? (
-                                                <ul className="flex flex-col gap-3">
-                                                    {section.links.map((link: any, idx: number) => (
-                                                        <li key={idx}>
-                                                            <Link href={link.href} className="font-body text-[14px] text-textPrimary/70 hover:text-primary no-underline transition-colors">{link.label}</Link>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            ) : (
-                                                <div className="text-[14px] text-textPrimary/70">
-                                                    {section.content}
-                                                </div>
-                                            )}
+                                            <ul className="list-none p-0 m-0 flex flex-col gap-4">
+                                                {section.links.map((link: any, idx: number) => (
+                                                    <li key={idx}>
+                                                        <Link href={link.href} className="text-[15px] font-bold text-primary/60">{link.label}</Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -161,37 +152,43 @@ export function Footer({ categories = [] }: FooterProps) {
                         ))}
                     </div>
 
-                    {footerSections.map((section) => (
-                        <div key={section.id} className="hidden md:block">
-                            <h4 className="font-heading font-bold text-[13px] uppercase tracking-widest text-primary mb-8">
-                                {section.title}
-                            </h4>
-                            {section.links ? (
-                                <ul className="flex flex-col gap-4">
-                                    {section.links.map((link: any, idx: number) => (
-                                        <li key={idx}>
-                                            <Link href={link.href} className="font-body text-[14px] text-textPrimary/70 hover:text-primary no-underline transition-colors">
-                                                {link.label}
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <div className="text-[14px] text-textPrimary/70">
-                                    {section.content}
-                                </div>
-                            )}
+                    {/* Newsletter */}
+                    <div className="flex flex-col gap-8">
+                        <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/30 m-0">
+                            Newsletter
+                        </h4>
+                        <div className="flex flex-col gap-5">
+                            <div className="relative group">
+                                <input
+                                    type="email"
+                                    placeholder="Ваш email"
+                                    className="w-full bg-white border border-primary/10 rounded-brand px-6 py-4 text-[14px] outline-none shadow-[var(--shadow-premium)] focus:border-primary/20 transition-all text-primary font-medium"
+                                />
+                                <button className="absolute right-2 top-2 bottom-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-5 rounded-brand hover:bg-primary/90 transition-all">
+                                    OK
+                                </button>
+                            </div>
+                            <p className="text-[12px] text-primary/30 font-body leading-relaxed max-w-[240px]">
+                                Отримуйте новини про акції та нові продукти першими.
+                            </p>
                         </div>
-                    ))}
+                    </div>
                 </div>
 
-                <div className="pt-10 border-t border-border flex flex-col md:flex-row justify-between items-center gap-6">
-                    <p className="text-[12px] text-textPrimary/40 m-0">
-                        &copy; 2026 {content['footer_copyright'] || 'TOUCH.MEMORIES'}. Всі права захищені.
+                {/* Bottom Bar */}
+                <div className="mt-32 pt-12 border-t border-primary/5 flex flex-col md:flex-row justify-between items-center gap-8">
+                    <p className="text-[12px] text-primary/20 font-bold tracking-tight m-0">
+                        © {new Date().getFullYear()} {content['footer_copyright'] || 'Touch.Memories'}. Всі права захищено.
                     </p>
-                    <div className="flex gap-8 text-[12px] text-textPrimary/40">
-                        <Link href="/privacy-policy" className="hover:text-primary transition-colors no-underline">Політика конфіденційності</Link>
-                        <Link href="/public-offer" className="hover:text-primary transition-colors no-underline">Публічна оферта</Link>
+                    <div className="flex gap-12">
+                        {[
+                            { label: 'Політика конфіденційності', href: '/privacy-policy' },
+                            { label: 'Публічна оферта', href: '/public-offer' }
+                        ].map((link) => (
+                            <Link key={link.label} href={link.href} className="text-[12px] text-primary/20 hover:text-primary transition-colors font-bold">
+                                {link.label}
+                            </Link>
+                        ))}
                     </div>
                 </div>
             </div>

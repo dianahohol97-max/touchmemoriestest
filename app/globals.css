@@ -20,16 +20,20 @@
   /* Typography Scale - Normalized for Premium E-com */
   --font-body: 'Open Sans', sans-serif;
   --font-heading: 'Montserrat', sans-serif;
-  --size-h1: 64px;
-  --size-h2: 44px;
-  --size-h3: 28px;
-  --size-body: 16px;
+  --size-h1: 56px;
+  --size-h2: 42px;
+  --size-h3: 26px;
+  --size-body: 17px;
   --size-small: 14px;
 
   /* Spacing & Radius */
   --radius-base: 3px;
   --radius: 3px;
   --spacing-base: 4px;
+
+  /* Shadows - Multi-layered for depth */
+  --shadow-premium: 0 20px 60px -15px rgba(38, 58, 153, 0.12), 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+  --shadow-hover: 0 40px 80px -20px rgba(38, 58, 153, 0.2);
 
   /* Support vars */
   --primary-foreground: 255 255 255;
@@ -53,8 +57,8 @@ h1 {
   font-family: var(--font-heading);
   font-size: var(--size-h1);
   font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
   color: var(--primary);
   margin-bottom: 24px;
 }
@@ -62,9 +66,9 @@ h1 {
 h2 {
   font-family: var(--font-heading);
   font-size: var(--size-h2);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
   color: var(--primary);
   margin-bottom: 32px;
 }
@@ -187,8 +191,8 @@ a:hover {
 
 /* Section Spacing */
 .section-padding {
-  padding-top: 128px;
-  padding-bottom: 128px;
+  padding-top: 144px;
+  padding-bottom: 144px;
 }
 
 @media (max-width: 768px) {
