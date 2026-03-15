@@ -17,11 +17,6 @@ import { DynamicPromo } from '@/components/ui/DynamicPromo';
 import { PhotoPrintPromo } from '@/components/ui/PhotoPrintPromo';
 import { CustomBookPromo } from '@/components/ui/CustomBookPromo';
 
-// New Redesign Components
-import { RealExamples } from '@/components/ui/RealExamples';
-import { GiftIdeas } from '@/components/ui/GiftIdeas';
-import { InspirationGallery } from '@/components/ui/InspirationGallery';
-import { GeneralCTA } from '@/components/ui/GeneralCTA';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 
@@ -108,34 +103,16 @@ export default async function Home() {
           <Categories blockName="categories_books" />
         </SectionWrapper>
 
-        {/* Storytelling: Gift Ideas */}
-        <SectionWrapper name="gift_ideas" defaultOrder={3.5}>
-          <GiftIdeas />
-        </SectionWrapper>
 
         <SectionWrapper name="how_it_works" defaultOrder={4}>
           <HowItWorks />
         </SectionWrapper>
 
-        {/* Storytelling: Real Examples */}
-        <SectionWrapper name="real_examples" defaultOrder={4.5}>
-          <RealExamples />
-        </SectionWrapper>
 
         <SectionWrapper name="price_calculator" defaultOrder={6}>
           <PriceCalculator />
         </SectionWrapper>
 
-        {/* Mid-page Conversion CTA */}
-        <SectionWrapper name="mid_cta" defaultOrder={10}>
-          <GeneralCTA
-            title="Ваші спогади варті більшого, ніж просто пам'ять у смартфоні"
-            description="Створіть свою першу фотокнигу Touch.Memories за лічені хвилини. Ми подбаємо про кожну деталь."
-            ctaText="Почати створення"
-            ctaLink="/catalog"
-            variant="subtle"
-          />
-        </SectionWrapper>
 
         <SectionWrapper name="travel" defaultOrder={5}>
           <TravelSection travelPost={travelPost} />
@@ -149,10 +126,6 @@ export default async function Home() {
           <SocialProof />
         </SectionWrapper>
 
-        {/* Storytelling: Inspiration Gallery */}
-        <SectionWrapper name="inspiration_gallery" defaultOrder={40.5}>
-          <InspirationGallery />
-        </SectionWrapper>
 
         <SectionWrapper name="custom_book" defaultOrder={41}>
           <CustomBookPromo />
@@ -162,16 +135,6 @@ export default async function Home() {
           <BlogSection posts={blogPosts || []} />
         </SectionWrapper>
 
-        {/* Final Strong Conversion Block */}
-        <SectionWrapper name="final_strong_cta" defaultOrder={49}>
-          <GeneralCTA
-            title="Готові зберегти свої емоції назавжди?"
-            description="Оберіть свій формат та почніть історію просто зараз. Безкоштовна доставка при замовленні від 2500 ₴."
-            ctaText="Створити книгу"
-            ctaLink="/catalog"
-            variant="primary"
-          />
-        </SectionWrapper>
 
         <SectionWrapper name="final_cta" defaultOrder={50}>
           <FinalCTA />
