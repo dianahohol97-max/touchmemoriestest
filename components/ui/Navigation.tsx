@@ -61,12 +61,12 @@ export function Navigation() {
     return (
         <header
             className={cn(
-                "fixed top-0 left-0 right-0 z-50 transition-all duration-500 h-20 flex items-center w-full",
-                isScrolled ? "bg-white/80 shadow-[0_4px_30px_rgba(0,0,0,0.03)] backdrop-blur-xl border-b border-primary/5" : "bg-white border-b border-transparent"
+                "fixed top-0 left-0 right-0 z-50 transition-all duration-300 h-20 flex items-center w-full",
+                isScrolled ? "bg-white/95 shadow-sm backdrop-blur-md" : "bg-white border-b border-border"
             )}
         >
             <div className="flex justify-between items-center w-full px-10">
-                <Link href="/" className="font-heading font-extrabold text-xl tracking-[0.25em] text-primary no-underline transition-opacity hover:opacity-80">
+                <Link href="/" className="font-heading font-extrabold text-xl tracking-[0.15em] text-primary no-underline transition-opacity hover:opacity-90">
                     TOUCH.MEMORIES
                 </Link>
 

@@ -31,51 +31,52 @@ export function HowItWorks() {
     ];
 
     return (
-        <section ref={ref} className="bg-white section-padding px-10">
-            <div className="max-w-[1280px] mx-auto">
-                <div className="text-center mb-24">
-                    <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={inView ? { opacity: 0.4 } : { opacity: 0 }}
-                        className="text-[12px] uppercase tracking-[0.3em] font-extrabold text-primary"
-                    >
-                        Процес
-                    </motion.span>
-                    <motion.h2
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                        transition={{ duration: 0.6 }}
-                        className="mt-4"
-                    >
+        <section ref={ref} style={{
+            padding: '120px 20px 40px',
+            backgroundColor: style.bg_color || '#fff',
+            borderRadius: style.border_radius || '0px'
+        }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+                    <h2 style={{
+                        fontFamily: 'var(--font-heading)',
+                        fontSize: 'clamp(32px, 5vw, 48px)',
+                        fontWeight: 900,
+                        marginBottom: '16px',
+                        color: style.text_color || 'inherit'
+                    }}>
                         {title}
-                    </motion.h2>
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                        transition={{ duration: 0.6, delay: 0.2 }}
-                        className="text-primary/60 text-lg max-w-[600px] mx-auto leading-relaxed"
-                    >
-                        {content['how_subtitle'] || 'Всього три прості кроки до створення вашої ідеальної сімейної реліквії.'}
-                    </motion.p>
+                    </h2>
+                    <p style={{ color: style.text_color || '#666', fontSize: '18px', maxWidth: '600px', margin: '0 auto', opacity: style.text_color ? 1 : 0.8 }}>
+                        {content['how_subtitle'] || 'Три простих кроки до вашої ідеальної фотокниги'}
+                    </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-20">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
                     {steps.map((step, index) => (
                         <motion.div
                             key={index}
                             initial={{ opacity: 0, y: 30 }}
                             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-                            transition={{ duration: 0.8, delay: index * 0.2 }}
-                            className="flex flex-col items-center text-center group"
+                            transition={{ duration: 0.6, delay: index * 0.2 }}
+                            style={{ textAlign: 'center', padding: '40px', borderRadius: "3px", backgroundColor: '#fcfcfc', border: '1px solid #f0f0f0' }}
                         >
-                            <div className="w-16 h-16 bg-primary/5 text-primary rounded-brand flex items-center justify-center mb-10 transition-colors group-hover:bg-primary group-hover:text-white duration-500">
+                            <div style={{
+                                width: '80px',
+                                height: '80px',
+                                backgroundColor: 'var(--primary)',
+                                color: 'white',
+                                borderRadius: "3px",
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 24px',
+                                boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
+                            }}>
                                 {step.icon}
                             </div>
-                            <span className="text-[11px] font-black text-primary/20 uppercase tracking-[0.2em] mb-4">
-                                Крок {index + 1}
-                            </span>
-                            <h3 className="text-[22px] font-extrabold mb-4 text-primary leading-tight">{step.title}</h3>
-                            <p className="text-primary/60 leading-relaxed font-medium">{step.description}</p>
+                            <h3 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '16px', color: style.text_color || 'inherit' }}>{step.title}</h3>
+                            <p style={{ color: style.text_color || '#666', lineHeight: 1.6, opacity: style.text_color ? 1 : 0.8 }}>{step.description}</p>
                         </motion.div>
                     ))}
                 </div>
