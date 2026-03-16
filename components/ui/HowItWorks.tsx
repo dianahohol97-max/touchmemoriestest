@@ -1,9 +1,8 @@
 'use client';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Upload, Edit3, Truck } from 'lucide-react';
+import { Award, Palette, Zap, MapPin, Gem } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
-import { DynamicText } from './DynamicText';
 
 export function HowItWorks() {
     const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
@@ -11,76 +10,84 @@ export function HowItWorks() {
     const block = blocks.find(b => b.block_name === 'how_it_works');
     const style = block?.style_metadata || {};
 
-    const title = content['how_title'] || 'Як це працює';
-
-    const steps = [
+    const features = [
         {
-            title: content['how_step1_title'] || 'Завантажте фото',
-            description: content['how_step1_text'] || 'Оберіть найкращі знімки з телефону, комп’ютера або соцмереж.',
-            icon: <Upload size={32} />,
+            title: 'Преміум якість друку',
+            description: 'Використовуємо найкращий фотопапір та професійне обладнання для ідеального результату.',
+            icon: <Award size={32} className="text-primary" />,
         },
         {
-            title: content['how_step2_title'] || 'Створіть макет',
-            description: content['how_step2_text'] || 'Використовуйте наш інтуїтивний конструктор для дизайну сторінок.',
-            icon: <Edit3 size={32} />,
+            title: 'Персональний дизайн',
+            description: 'Створюйте унікальні макети власноруч або довірте це нашим досвідченим дизайнерам.',
+            icon: <Palette size={32} className="text-primary" />,
         },
         {
-            title: content['how_step3_title'] || 'Отримайте книгу',
-            description: content['how_step3_text'] || 'Ми надрукуємо та доставимо ваше замовлення протягом 3-5 днів.',
-            icon: <Truck size={32} />,
+            title: 'Швидке виробництво',
+            description: 'Ваше замовлення буде виготовлено та підготовлено до відправки протягом 3-5 робочих днів.',
+            icon: <Zap size={32} className="text-primary" />,
+        },
+        {
+            title: 'Доставка по Україні',
+            description: 'Надійно пакуємо та доставляємо ваші спогади у будь-який куточок країни.',
+            icon: <MapPin size={32} className="text-primary" />,
+        },
+        {
+            title: 'Унікальні продукти',
+            description: 'Від класичних фотокниг до глянцевих журналів — ми створюємо те, що дивує.',
+            icon: <Gem size={32} className="text-primary" />,
         }
     ];
 
     return (
         <section
             ref={ref}
-            className="section-padding bg-gray-50/50 relative overflow-hidden"
+            className="py-24 bg-gray-50/30 relative overflow-hidden"
             style={{
                 borderRadius: style.border_radius || '0px'
             }}
         >
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
-
-            <div className="container text-center">
+            <div className="container">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
+                    animate={inView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
+                    className="text-center mb-16"
                 >
-                    <h2 className="section-title text-center max-w-3xl mx-auto mb-10">
-                        Створити свою фотокнигу легко
+                    <h2 className="text-[40px] lg:text-[56px] font-black leading-none tracking-tight text-primary mb-6">
+                        Чому варто обрати нас
                     </h2>
+                    <div className="w-24 h-1.5 bg-primary/10 mx-auto rounded-full" />
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-left mb-20">
-                    {steps.map((step, index) => (
+                <div className="flex flex-wrap justify-center gap-6 lg:gap-8">
+                    {features.map((feature, index) => (
                         <motion.div
                             key={index}
                             initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.8, delay: index * 0.2, ease: [0.23, 1, 0.32, 1] }}
-                            className="group relative p-12 bg-white rounded-brand shadow-[var(--shadow-premium)] hover:shadow-[var(--shadow-hover)] transition-all hover:translate-y-[-8px] flex flex-col items-start min-h-[320px]"
+                            animate={inView ? { opacity: 1, y: 0 } : {}}
+                            transition={{ duration: 0.8, delay: index * 0.1, ease: [0.23, 1, 0.32, 1] }}
+                            className="group relative w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-22px)] xl:w-[calc(20%-26px)] bg-white p-8 lg:p-10 rounded-[32px] shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 hover:-translate-y-2 flex flex-col items-center text-center border border-gray-100"
                         >
-                            <span className="text-[64px] font-black text-primary/5 absolute top-4 right-8 select-none group-hover:text-primary/10 transition-colors">
-                                0{index + 1}
-                            </span>
-                            <div className="w-16 h-16 bg-primary text-white rounded-brand flex items-center justify-center mb-10 shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-500">
-                                <span className="text-2xl">{step.icon}</span>
+                            <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-primary group-hover:text-white transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-sm">
+                                <span className="group-hover:text-white transition-colors duration-500">
+                                    {feature.icon}
+                                </span>
                             </div>
 
-                            <h3 className="text-2xl font-black text-primary mb-5 m-0 tracking-tight leading-none">{step.title}</h3>
-                            <div className="absolute -top-12 -left-6 text-[120px] font-black text-primary/10 select-none pointer-events-none transition-colors group-hover:text-primary/15">
-                                {`0${index + 1}`}
-                            </div>
-                            <p className="text-[15px] text-primary/40 font-body leading-relaxed m-0">
-                                {step.description}
+                            <h3 className="text-xl font-black text-primary mb-4 tracking-tight leading-tight">
+                                {feature.title}
+                            </h3>
+                            <p className="text-[14px] text-gray-400 font-medium leading-relaxed m-0">
+                                {feature.description}
                             </p>
                         </motion.div>
                     ))}
                 </div>
             </div>
+
+            {/* Background Decorative Elements */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
         </section>
     );
 }
