@@ -18,6 +18,7 @@ import { PhotoPrintPromo } from '@/components/ui/PhotoPrintPromo';
 import { CustomBookPromo } from '@/components/ui/CustomBookPromo';
 import { ConstructorSelection } from '@/components/ui/ConstructorSelection';
 import { GiftIdeas } from '@/components/ui/GiftIdeas';
+import { WeddingSection } from '@/components/ui/WeddingSection';
 
 
 import { getAdminClient } from '@/lib/supabase/admin';
@@ -139,6 +140,10 @@ export default async function Home() {
 
         <SectionWrapper name="blog" defaultOrder={30}>
           <BlogSection posts={blogPosts || []} />
+        </SectionWrapper>
+
+        <SectionWrapper name="wedding" defaultOrder={38}>
+          <WeddingSection />
         </SectionWrapper>
 
         <SectionWrapper name="final_cta" defaultOrder={50}>
