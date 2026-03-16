@@ -41,7 +41,7 @@ export function ConstructorSelection() {
                             className="flex flex-col group"
                         >
                             {/* Video Container */}
-                            <div className="relative aspect-[16/10] rounded-[24px] overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.08)] border border-gray-100 mb-8 bg-gray-50 flex items-center justify-center group-hover:shadow-[0_40px_80px_rgba(0,0,0,0.12)] transition-all duration-700">
+                            <div className="relative aspect-[16/10] rounded-[3px] overflow-hidden shadow-[var(--card-shadow)] border border-gray-100 mb-8 bg-gray-50 flex items-center justify-center group-hover:shadow-[var(--card-shadow-hover)] transition-all duration-700">
                                 <Image
                                     src={item.videoThumb}
                                     alt={item.title}
@@ -57,7 +57,7 @@ export function ConstructorSelection() {
                             </div>
 
                             {/* Constructor Placeholder */}
-                            <div className="w-full h-24 border-2 border-dashed border-gray-100 rounded-[16px] mb-8 flex items-center justify-center text-gray-300 font-medium text-sm tracking-widest uppercase bg-gray-50/50">
+                            <div className="w-full h-24 border-2 border-dashed border-gray-100 rounded-[3px] mb-8 flex items-center justify-center text-gray-300 font-medium text-sm tracking-widest uppercase bg-gray-50/50">
                                 Constructor Widget Placeholder
                             </div>
 

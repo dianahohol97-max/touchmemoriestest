@@ -56,8 +56,8 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                             className="flex justify-center"
                         >
                             <Link
-                                href={`/product/${product.slug}`}
-                                className="group flex flex-col w-full max-w-[320px] bg-white rounded-[12px] overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] border border-gray-100/50"
+                                href={`/catalog/${product.slug}`}
+                                className="group flex flex-col w-full max-w-[320px] bg-white rounded-[3px] overflow-hidden transition-all duration-500 hover:-translate-y-2 shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] border border-gray-100/50"
                             >
                                 <div className="aspect-[4/5] relative overflow-hidden bg-gray-50">
                                     {product.images?.[0] ? (
@@ -77,7 +77,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                                         {product.name}
                                     </h3>
                                     <div className="mt-auto w-full">
-                                        <div className="btn-primary w-full text-[13px] py-3 rounded-[6px] transition-all group-hover:bg-primary-hover">
+                                        <div className="btn-primary w-full !h-[52px] !rounded-[3px]">
                                             Детальніше
                                         </div>
                                     </div>

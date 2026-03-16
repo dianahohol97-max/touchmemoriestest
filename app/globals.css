@@ -35,17 +35,21 @@
   --space-32: 32px;
   --space-48: 48px;
   --space-64: 64px;
-  --section-spacing: 48px;
+  --section-spacing: 32px;
   /* Standardizing spacing between sections */
 
-  /* Radius */
-  --radius-base: 3px;
-  --radius: 3px;
+  /* Button System Tokens */
+  --btn-height: 52px;
+  --btn-padding-x: 32px;
+  --btn-font-size: 16px;
+  --btn-font-weight: 700;
+  --btn-transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  --radius-brand: 3px;
 
-  /* Shadows - Multi-layered for depth */
-  --shadow-premium: 0 10px 40px -10px rgba(38, 58, 153, 0.1), 0 5px 20px -5px rgba(0, 0, 0, 0.04);
-  --shadow-hover: 0 30px 60px -15px rgba(38, 58, 153, 0.15), 0 15px 30px -10px rgba(0, 0, 0, 0.05);
-  --shadow-subtle: 0 4px 12px rgba(38, 58, 153, 0.03);
+  /* Card System Tokens */
+  --card-radius: 3px;
+  --card-shadow: 0 10px 40px -10px rgba(38, 58, 153, 0.1), 0 5px 20px -5px rgba(0, 0, 0, 0.04);
+  --card-shadow-hover: 0 30px 60px -15px rgba(38, 58, 153, 0.15), 0 15px 30px -10px rgba(0, 0, 0, 0.05);
 
   /* Support vars */
   --primary-foreground: 255 255 255;
@@ -146,36 +150,42 @@ a:hover {
 
 /* Centralized Button System */
 .btn-primary {
+  height: var(--btn-height);
   background: var(--primary);
   color: white;
-  padding: 12px 24px;
-  border-radius: var(--radius);
-  font-weight: 700;
+  padding: 0 var(--btn-padding-x);
+  border-radius: var(--radius-brand);
+  font-weight: var(--btn-font-weight);
   font-family: var(--font-heading);
+  font-size: var(--btn-font-size);
   border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--btn-transition);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  box-shadow: 0 4px 12px rgba(38, 58, 153, 0.15);
 }
 
 .btn-primary:hover {
   background-color: var(--primary-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(38, 58, 153, 0.25);
 }
 
 .btn-secondary {
-  background: transparent;
+  height: var(--btn-height);
+  background: white;
   color: var(--primary);
-  padding: 12px 24px;
-  border-radius: var(--radius);
-  font-weight: 700;
+  padding: 0 var(--btn-padding-x);
+  border-radius: var(--radius-brand);
+  font-weight: var(--btn-font-weight);
   font-family: var(--font-heading);
+  font-size: var(--btn-font-size);
   border: 1px solid var(--primary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--btn-transition);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -184,6 +194,7 @@ a:hover {
 
 .btn-secondary:hover {
   background: rgba(38, 58, 153, 0.05);
+  transform: translateY(-2px);
 }
 
 /* Utility classes for 4px grid */

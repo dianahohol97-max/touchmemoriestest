@@ -70,7 +70,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
     ];
 
     return (
-        <section ref={ref} className="py-24 bg-white overflow-hidden">
+        <section ref={ref} className="section-padding bg-white overflow-hidden">
             <div className="container">
                 {/* Section Header */}
                 <motion.div
@@ -97,7 +97,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                         >
                             <Link href={`/blog/${post.slug}`} className="block">
                                 {/* Image Container */}
-                                <div className="relative aspect-[4/5] mb-8 rounded-[12px] overflow-hidden shadow-[0_15px_45px_rgba(0,0,0,0.05)] bg-gray-100 group-hover:shadow-[0_25px_60px_rgba(0,0,0,0.1)] transition-all duration-500">
+                                <div className="relative aspect-[4/5] mb-8 rounded-[3px] overflow-hidden shadow-[var(--card-shadow)] bg-gray-100 group-hover:shadow-[var(--card-shadow-hover)] transition-all duration-500">
                                     <Image
                                         src={post.cover_image || '/images/promo/photo_print_premium.png'}
                                         alt={post.cover_image_alt || post.title}
@@ -106,25 +106,23 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                                     />
                                     {/* Glassmorphic Category Tag */}
                                     {post.category && (
-                                        <div className="absolute top-6 left-6 px-4 py-2 bg-white/80 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-primary shadow-sm border border-white/20">
+                                        <div className="absolute top-6 left-6 px-4 py-2 bg-white/80 backdrop-blur-md rounded-[3px] text-[10px] font-black uppercase tracking-widest text-primary shadow-sm border border-white/20">
                                             {post.category.name}
                                         </div>
                                     )}
-                                    {/* Overlay Gradient */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                 </div>
 
                                 {/* Content */}
                                 <div className="space-y-4">
-                                    <h3 className="text-2xl lg:text-3xl font-black text-primary leading-tight tracking-tight group-hover:text-primary/70 transition-colors duration-300">
+                                    <h3 className="text-2xl lg:text-3xl font-bold text-primary leading-tight tracking-tight group-hover:text-primary/70 transition-colors duration-300">
                                         {post.title}
                                     </h3>
-                                    <p className="text-gray-400 font-medium leading-relaxed line-clamp-2">
+                                    <p className="text-slate-500 font-medium leading-relaxed line-clamp-2">
                                         {post.excerpt}
                                     </p>
 
                                     <div className="pt-2">
-                                        <span className="inline-flex items-center text-[13px] font-black uppercase tracking-[0.15em] text-primary group-hover:gap-3 transition-all duration-300">
+                                        <span className="inline-flex items-center text-[13px] font-bold uppercase tracking-[0.15em] text-primary group-hover:gap-3 transition-all duration-300">
                                             Читати
                                             <ArrowRight size={16} className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                                         </span>
@@ -144,10 +142,10 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                 >
                     <Link
                         href="/blog"
-                        className="inline-flex items-center gap-3 px-10 py-5 bg-white border-2 border-primary/10 text-primary font-black text-sm uppercase tracking-widest rounded-full hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 shadow-sm"
+                        className="btn-secondary"
                     >
                         Читати всі статті
-                        <BookOpen size={18} />
+                        <BookOpen size={18} className="ml-2" />
                     </Link>
                 </motion.div>
             </div>

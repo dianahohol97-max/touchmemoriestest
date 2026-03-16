@@ -94,26 +94,26 @@ export function Hero() {
                 >
                     {/* Row 1: Глянцевий журнал + Фотокнига */}
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        <Link href="/catalog?category=magazines" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
+                        <Link href="/catalog?category=magazines" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
                             Глянцевий журнал
                         </Link>
-                        <Link href="/catalog?category=photobooks" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
+                        <Link href="/catalog?category=photobooks" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
                             Фотокнига
                         </Link>
                     </div>
 
                     {/* Row 2: Фотодрук + Travel book */}
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        <Link href="/catalog?category=photo-print" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
+                        <Link href="/catalog?category=photo-print" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
                             Фотодрук
                         </Link>
-                        <Link href="/catalog?category=travelbook" className="h-[56px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-brand flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
+                        <Link href="/catalog?category=travelbook" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
                             Travel book
                         </Link>
                     </div>
 
                     {/* Row 3: В магазин (half width, primary) */}
-                    <Link href="/catalog" className="btn-primary w-1/2 h-[56px] text-[15px] shadow-[0_4px_12px_rgba(38,58,153,0.2)] hover:shadow-[0_8px_24px_rgba(38,58,153,0.3)]">
+                    <Link href="/catalog" className="btn-primary w-1/2 !h-[52px] text-[15px] shadow-[0_4px_12px_rgba(38,58,153,0.2)] hover:shadow-[0_8px_24px_rgba(38,58,153,0.3)]">
                         В магазин
                     </Link>
 

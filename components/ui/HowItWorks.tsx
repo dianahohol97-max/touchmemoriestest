@@ -41,7 +41,7 @@ export function HowItWorks() {
     return (
         <section
             ref={ref}
-            className="py-24 bg-gray-50/30 relative overflow-hidden"
+            className="section-padding bg-gray-50/30 relative overflow-hidden"
             style={{
                 borderRadius: style.border_radius || '0px'
             }}
@@ -56,7 +56,7 @@ export function HowItWorks() {
                     <h2 className="text-[40px] lg:text-[56px] font-black leading-none tracking-tight text-primary mb-6">
                         Чому варто обрати нас
                     </h2>
-                    <div className="w-24 h-1.5 bg-primary/10 mx-auto rounded-full" />
+                    <div className="w-24 h-1 bg-primary/20 mx-auto rounded-full" />
                 </motion.div>
 
                 <div className="flex flex-wrap justify-center gap-6 lg:gap-8">
@@ -66,18 +66,18 @@ export function HowItWorks() {
                             initial={{ opacity: 0, y: 30 }}
                             animate={inView ? { opacity: 1, y: 0 } : {}}
                             transition={{ duration: 0.8, delay: index * 0.1, ease: [0.23, 1, 0.32, 1] }}
-                            className="group relative w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-22px)] xl:w-[calc(20%-26px)] bg-white p-8 lg:p-10 rounded-[32px] shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 hover:-translate-y-2 flex flex-col items-center text-center border border-gray-100"
+                            className="group relative w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-22px)] xl:w-[calc(20%-26px)] bg-white p-10 rounded-[3px] shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] transition-all duration-500 hover:-translate-y-2 flex flex-col items-center text-center border border-gray-100"
                         >
-                            <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-primary group-hover:text-white transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-sm">
-                                <span className="group-hover:text-white transition-colors duration-500">
+                            <div className="w-16 h-16 bg-primary/5 rounded-[3px] flex items-center justify-center mb-8 group-hover:bg-primary group-hover:text-white transition-all duration-500 transform group-hover:rotate-3">
+                                <span className="text-primary group-hover:text-white transition-colors duration-500">
                                     {feature.icon}
                                 </span>
                             </div>
 
-                            <h3 className="text-xl font-black text-primary mb-4 tracking-tight leading-tight">
+                            <h3 className="text-xl font-bold text-primary mb-4 tracking-tight leading-tight">
                                 {feature.title}
                             </h3>
-                            <p className="text-[14px] text-gray-400 font-medium leading-relaxed m-0">
+                            <p className="text-[14px] text-slate-500 leading-relaxed m-0 font-medium">
                                 {feature.description}
                             </p>
                         </motion.div>

@@ -44,7 +44,7 @@ export function PhotoPrintPromo() {
     ];
 
     return (
-        <section ref={ref} className="py-24 bg-white overflow-hidden">
+        <section ref={ref} className="section-padding bg-white overflow-hidden">
             <div className="container">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
 
@@ -98,7 +98,7 @@ export function PhotoPrintPromo() {
                                     initial={{ opacity: 0, scale: 0.8 }}
                                     animate={inView ? { opacity: 1, scale: 1 } : {}}
                                     transition={{ duration: 0.6, delay: 0.1 * idx }}
-                                    className={`relative aspect-square rounded-[8px] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group ${idx === 4 ? 'z-10 scale-105 shadow-md' : ''
+                                    className={`relative aspect-square rounded-[3px] overflow-hidden shadow-sm hover:shadow-[var(--card-shadow-hover)] transition-all duration-500 group ${idx === 4 ? 'z-10 scale-105 shadow-md' : ''
                                         }`}
                                 >
                                     <Image

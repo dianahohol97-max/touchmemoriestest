@@ -168,7 +168,7 @@
 }
 
 .orderButton {
-    height: 64px;
+    height: 52px;
     padding: 0 48px;
     background: var(--primary);
     color: white;

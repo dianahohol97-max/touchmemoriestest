@@ -47,7 +47,7 @@ export function WeddingSection() {
     ];
 
     return (
-        <section ref={ref} className="py-24 bg-white overflow-hidden">
+        <section ref={ref} className="section-padding bg-white overflow-hidden">
             <div className="container">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
                     {categories.map((category, catIdx) => (
@@ -80,7 +80,7 @@ export function WeddingSection() {
                                     >
                                         <Link href={product.href} className="block space-y-6">
                                             {/* Image Container */}
-                                            <div className="relative aspect-[4/5] rounded-[16px] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.04)] bg-gray-50 group-hover:shadow-[0_20px_50px_rgba(38,58,153,0.1)] transition-all duration-500">
+                                            <div className="relative aspect-[4/5] rounded-[3px] overflow-hidden shadow-[var(--card-shadow)] bg-gray-50 group-hover:shadow-[var(--card-shadow-hover)] transition-all duration-500">
                                                 <Image
                                                     src={product.image}
                                                     alt={product.name}
@@ -95,7 +95,7 @@ export function WeddingSection() {
                                                 <h3 className="text-xl font-black text-primary tracking-tight group-hover:text-primary/70 transition-colors">
                                                     {product.name}
                                                 </h3>
-                                                <div className="inline-flex items-center text-[11px] font-black uppercase tracking-widest text-primary/60 group-hover:text-primary group-hover:gap-3 transition-all duration-300">
+                                                <div className="inline-flex items-center text-[11px] font-bold uppercase tracking-widest text-primary/60 group-hover:text-primary group-hover:gap-3 transition-all duration-300">
                                                     Замовити
                                                     <ArrowRight size={14} className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                                                 </div>

@@ -27,7 +27,7 @@ export function GiftIdeas() {
     ];
 
     return (
-        <section ref={ref} className="relative w-full min-h-[700px] flex items-center justify-center overflow-hidden py-24">
+        <section ref={ref} className="relative w-full min-h-[700px] flex items-center justify-center overflow-hidden section-padding">
             {/* Background Image */}
             <Image
                 src="/images/promo/gift_ideas_bg.png"
@@ -49,7 +49,7 @@ export function GiftIdeas() {
                         transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
                         className="w-full lg:w-1/3"
                     >
-                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 lg:p-12 rounded-[32px] shadow-2xl">
+                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 lg:p-12 rounded-[3px] shadow-[var(--card-shadow)]">
                             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-8">
                                 <HelpCircle size={32} className="text-white" />
                             </div>
@@ -58,7 +58,7 @@ export function GiftIdeas() {
                             </h2>
                             <button
                                 onClick={() => setQuizOpen(true)}
-                                className="w-full py-5 bg-white text-primary font-black text-lg lg:text-xl uppercase tracking-widest rounded-[16px] transition-all duration-300 hover:bg-primary hover:text-white hover:shadow-[0_15px_30px_rgba(38,58,153,0.3)] group"
+                                className="w-full h-[60px] bg-white text-primary font-bold text-lg lg:text-xl uppercase tracking-widest rounded-[3px] transition-all duration-300 hover:bg-primary hover:text-white hover:shadow-[var(--card-shadow-hover)] group"
                             >
                                 Пройти тест
                                 <span className="inline-block transition-transform duration-300 group-hover:translate-x-1 ml-2">→</span>
@@ -92,7 +92,7 @@ export function GiftIdeas() {
                                 >
                                     <Link
                                         href={`/catalog?collection=${btn.slug}`}
-                                        className="group relative flex items-center justify-center p-5 lg:p-7 bg-white/10 backdrop-blur-md border border-white/10 rounded-[16px] text-white font-bold text-base lg:text-lg uppercase tracking-widest transition-all duration-500 hover:bg-white/25 hover:border-white/40 hover:shadow-xl hover:-translate-y-1 text-center"
+                                        className="group relative flex items-center justify-center p-5 lg:p-7 bg-white/10 backdrop-blur-md border border-white/10 rounded-[3px] text-white font-bold text-base lg:text-lg uppercase tracking-widest transition-all duration-500 hover:bg-white/25 hover:border-white/40 hover:shadow-[var(--card-shadow-hover)] hover:-translate-y-1 text-center"
                                     >
                                         {btn.label}
                                     </Link>

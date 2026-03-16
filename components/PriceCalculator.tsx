@@ -119,7 +119,7 @@ export default function PriceCalculator() {
     );
 
     return (
-        <section className={styles.calculatorSection} style={{ padding: '48px 0' }}>
+        <section className={`${styles.calculatorSection} section-padding`}>
             <div className="container">
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <h2 className="section-title">Калькулятор вартості</h2>
