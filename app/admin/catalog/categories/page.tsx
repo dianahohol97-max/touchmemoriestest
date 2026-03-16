@@ -104,7 +104,17 @@ function SortableCategoryItem({ category, onEdit, onDelete, onToggleVisibility }
     );
 }
 
+import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
+
 export default function CategoriesPage() {
+    return (
+        <AdminErrorBoundary fallbackTitle="Помилка завантаження категорій каталогу">
+            <CategoriesContent />
+        </AdminErrorBoundary>
+    );
+}
+
+function CategoriesContent() {
     const supabase = createClient();
 
     const [categories, setCategories] = useState<Category[]>([]);

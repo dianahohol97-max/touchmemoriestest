@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { supabaseAdmin } from '@/lib/supabase/admin';
 import {
     Plus,
     Edit,
@@ -90,8 +89,17 @@ function SortableCategoryItem({
         </div>
     );
 }
+import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
 
 export default function CategoriesPage() {
+    return (
+        <AdminErrorBoundary fallbackTitle="Помилка завантаження сторінки категорій">
+            <CategoriesContent />
+        </AdminErrorBoundary>
+    );
+}
+
+function CategoriesContent() {
     const supabase = createClient();
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
@@ -150,7 +158,7 @@ export default function CategoriesPage() {
         const filePath = `categories/${fileName}`;
 
         try {
-            const { error: uploadError } = await supabaseAdmin.storage
+            const { error: uploadError } = await supabase.storage
                 .from('touch-memories-assets')
                 .upload(filePath, file);
 

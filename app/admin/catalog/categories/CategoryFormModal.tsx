@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { supabaseAdmin } from '@/lib/supabase/admin';
 import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -102,7 +101,7 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
             const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `categories/${fileName}`;
 
-            const { error: uploadError } = await supabaseAdmin.storage
+            const { error: uploadError } = await supabase.storage
                 .from('images')
                 .upload(filePath, file);
 

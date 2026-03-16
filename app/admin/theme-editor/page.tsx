@@ -2,11 +2,20 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { supabaseAdmin } from '@/lib/supabase/admin';
 import { Save, Settings2, Layers, Type, Paintbrush, Image as ImageIcon, Loader2, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
+
 export default function ThemeEditorPage() {
+    return (
+        <AdminErrorBoundary fallbackTitle="Помилка завантаження сторінки редактору">
+            <ThemeEditorContent />
+        </AdminErrorBoundary>
+    );
+}
+
+function ThemeEditorContent() {
     const supabase = createClient();
 
     const [loading, setLoading] = useState(true);
@@ -149,7 +158,7 @@ export default function ThemeEditorPage() {
         try {
             const ext = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
-            const { error } = await supabaseAdmin.storage.from('products').upload(`site/${fileName}`, file);
+            const { error } = await supabase.storage.from('products').upload(`site/${fileName}`, file);
             if (error) throw error;
 
             const { data } = supabase.storage.from('products').getPublicUrl(`site/${fileName}`);

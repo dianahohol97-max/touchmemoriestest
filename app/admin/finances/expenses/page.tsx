@@ -10,8 +10,17 @@ import { AddExpenseDialog } from '@/components/admin/finances/AddExpenseDialog';
 import { toast } from 'sonner';
 import { ExpensesFilters } from '@/components/admin/finances/ExpensesFilters';
 import { CategoryDonutChart } from '@/components/admin/finances/CategoryDonutChart';
+import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
 
 export default function ExpensesPage() {
+  return (
+    <AdminErrorBoundary fallbackTitle="Помилка завантаження сторінки витрат">
+      <ExpensesContent />
+    </AdminErrorBoundary>
+  );
+}
+
+function ExpensesContent() {
   const [metrics, setMetrics] = useState<ExpenseMetrics | null>(null);
   const [expenses, setExpenses] = useState<ExpenseWithCategory[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
@@ -98,7 +107,7 @@ export default function ExpensesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Цей місяць</CardTitle>
-            {metrics && metrics.percentageChange !== 0 && (
+            {metrics && typeof metrics.percentageChange === 'number' && metrics.percentageChange !== 0 && (
               metrics.percentageChange > 0 ? (
                 <TrendingUp className="h-4 w-4 text-red-600" />
               ) : (
@@ -110,7 +119,7 @@ export default function ExpensesPage() {
             <div className="text-2xl font-bold">
               {formatCurrency(metrics?.currentMonth || 0)}
             </div>
-            {metrics && metrics.percentageChange !== 0 && (
+            {metrics && typeof metrics.percentageChange === 'number' && metrics.percentageChange !== 0 && (
               <p className={`text-xs ${metrics.percentageChange > 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {metrics.percentageChange > 0 ? '+' : ''}
                 {metrics.percentageChange.toFixed(1)}% vs минулий місяць
@@ -153,7 +162,7 @@ export default function ExpensesPage() {
       </div>
 
       {/* Category Breakdown Chart */}
-      {metrics && metrics.categoryBreakdown.length > 0 && (
+      {metrics && Array.isArray(metrics.categoryBreakdown) && metrics.categoryBreakdown.length > 0 && (
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Розподіл витрат за категоріями (цей місяць)</CardTitle>

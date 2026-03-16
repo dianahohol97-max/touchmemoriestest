@@ -2,8 +2,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from './admin-product-form.module.css';
 import { createClient } from '@/lib/supabase/client';
-import { supabaseAdmin } from '@/lib/supabase/admin';
 import { useRouter } from 'next/navigation';
+import { AdminErrorBoundary } from './AdminErrorBoundary';
 import {
     Upload,
     X,
@@ -118,7 +118,15 @@ interface ProductFormProps {
     isEditing?: boolean;
 }
 
-export default function AdminProductForm({ initialData, isEditing = false }: ProductFormProps) {
+export default function AdminProductForm(props: ProductFormProps) {
+    return (
+        <AdminErrorBoundary fallbackTitle="Помилка завантаження форми товару">
+            <ProductFormContent {...props} />
+        </AdminErrorBoundary>
+    );
+}
+
+function ProductFormContent({ initialData, isEditing = false }: ProductFormProps) {
     const supabase = createClient();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -232,7 +240,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
             const filePath = `products/${fileName}`;
 
             try {
-                const { error: uploadError } = await supabaseAdmin.storage
+                const { error: uploadError } = await supabase.storage
                     .from('products')
                     .upload(filePath, file);
 
@@ -311,7 +319,7 @@ export default function AdminProductForm({ initialData, isEditing = false }: Pro
         const filePath = `videos/${fileName}`;
 
         try {
-            const { error: uploadError } = await supabaseAdmin.storage
+            const { error: uploadError } = await supabase.storage
                 .from('videos')
                 .upload(filePath, file);
 
