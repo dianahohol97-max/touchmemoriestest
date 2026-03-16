@@ -29,7 +29,7 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
         .eq('staff_id', staffId)
         .gte('error_date', fromDate)
         .lte('error_date', toDate);
-    const totalQCPoints = qcLogs?.reduce((sum, log) => sum + log.points, 0) || 0;
+    const totalQCPoints = qcLogs?.reduce((sum: number, log: any) => sum + log.points, 0) || 0;
 
     // - Orders (Based on paid_at for managers, or relevant IDs for others)
     // We fetch all orders that might be relevant to this person
@@ -47,8 +47,8 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
     // 3. Role-Specific Logic
     if (staff.role === 'manager' || (staff.role === 'admin' && staff.name.toLowerCase() !== 'андрій')) {
         // --- MANAGERS ---
-        const managerOrders = orders?.filter(o => o.manager_id === staffId && o.payment_status === 'paid') || [];
-        const totalRevenue = managerOrders.reduce((sum, o) => sum + Number(o.total), 0);
+        const managerOrders = orders?.filter((o: any) => o.manager_id === staffId && o.payment_status === 'paid') || [];
+        const totalRevenue = managerOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0);
 
         // 1. Commission (1.5%)
         const commission = totalRevenue * 0.015;
@@ -69,9 +69,9 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
 
         // 5. "Пісня" Commission (10%)
         let pesnyaCommission = 0;
-        managerOrders.forEach(o => {
+        managerOrders.forEach((o: any) => {
             const items = (o.items || []) as any[];
-            items.forEach(item => {
+            items.forEach((item: any) => {
                 const name = (item.name || '').toLowerCase();
                 if (name.includes('пісня')) {
                     pesnyaCommission += (Number(item.price) * (item.qty || item.quantity || 1)) * 0.1;
@@ -88,7 +88,7 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
     }
     else if (staff.role === 'designer') {
         // --- DESIGNERS ---
-        const designerOrders = orders?.filter(o => o.designer_id === staffId) || [];
+        const designerOrders = orders?.filter((o: any) => o.designer_id === staffId) || [];
 
         // 1 & 2. Product-based commission (7% and 5%)
         let comm7 = 0;
@@ -98,9 +98,9 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
         const cat7 = ['фотокнига', 'журнал', 'тревел-бук', 'ламінація', 'покращення', 'qr', 'текст', 'форзац', 'калька', 'обкладинка', 'календар а3', 'календар а4', 'зоряне небо'];
         const cat5 = ['альбом', 'книга побажань', 'постер', 'фотодрук', 'магніт', 'календар'];
 
-        designerOrders.forEach(o => {
+        designerOrders.forEach((o: any) => {
             const items = (o.items || []) as any[];
-            items.forEach(item => {
+            items.forEach((item: any) => {
                 const name = (item.name || '').toLowerCase();
                 const price = Number(item.price) || 0;
                 const qty = item.qty || item.quantity || 1;
@@ -137,9 +137,9 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
 
         // 2. Magnets
         let magnetsCount = 0;
-        orders?.forEach(o => {
+        orders?.forEach((o: any) => {
             const items = (o.items || []) as any[];
-            items.forEach(item => {
+            items.forEach((item: any) => {
                 if ((item.name || '').toLowerCase().includes('магніт')) {
                     magnetsCount += (item.qty || item.quantity || 1) * 10; // sets to units
                 }
@@ -150,9 +150,9 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
 
         // 3. Photos/Polaroid
         let photoCount = 0;
-        orders?.forEach(o => {
+        orders?.forEach((o: any) => {
             const items = (o.items || []) as any[];
-            items.forEach(item => {
+            items.forEach((item: any) => {
                 const name = (item.name || '').toLowerCase();
                 if (name.includes('фото') || name.includes('polaroid')) {
                     photoCount += (item.qty || item.quantity || 1);

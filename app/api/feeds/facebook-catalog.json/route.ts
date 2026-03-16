@@ -15,7 +15,7 @@ export async function GET() {
 
         if (error) throw error;
 
-        const catalog = products.map((product) => {
+        const catalog = products.map((product: any) => {
             let availability = 'in stock';
             if (product.track_inventory && product.stock_available <= 0) {
                 availability = 'out of stock';

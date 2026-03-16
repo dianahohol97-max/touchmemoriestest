@@ -36,7 +36,7 @@ export async function GET() {
 
         if (error) throw error;
 
-        const queueItems = orders.map(order => ({
+        const queueItems = orders.map((order: any) => ({
             order_id: order.id,
             customer_name: order.customer_name,
             product_title: "Фотокнига", // Simplified or join with products if needed

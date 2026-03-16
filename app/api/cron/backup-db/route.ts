@@ -43,7 +43,7 @@ export async function GET(req: Request) {
 
         // 2. Ensure bucket exists or create it
         const { data: buckets } = await supabase.storage.listBuckets();
-        if (!buckets?.find(b => b.name === 'db_backups')) {
+        if (!buckets?.find((b: any) => b.name === 'db_backups')) {
             await supabase.storage.createBucket('db_backups', { public: false });
         }
 
@@ -64,8 +64,8 @@ export async function GET(req: Request) {
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
             const oldFiles = files
-                .filter(file => new Date(file.created_at) < thirtyDaysAgo)
-                .map(file => file.name);
+                .filter((file: any) => new Date(file.created_at) < thirtyDaysAgo)
+                .map((file: any) => file.name);
 
             if (oldFiles.length > 0) {
                 await supabase.storage.from('db_backups').remove(oldFiles);

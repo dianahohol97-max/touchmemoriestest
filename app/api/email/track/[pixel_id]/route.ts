@@ -20,7 +20,7 @@ export async function GET(
             })
             .eq('tracking_pixel_id', pixel_id)
             .is('opened_at', null) // Only update if not already opened
-            .then(res => {
+            .then((res: any) => {
                 if (res.error) console.error('Tracking error:', res.error);
             });
     }

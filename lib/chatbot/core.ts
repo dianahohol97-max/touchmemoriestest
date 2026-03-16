@@ -83,7 +83,7 @@ export async function processReceivedMessage(platform: string, externalUserId: s
         let aiMessages: { role: 'user' | 'assistant', content: string }[] = [];
         if (history) {
             const sortedHistory = history.reverse(); // oldest first
-            aiMessages = sortedHistory.map(h => ({
+            aiMessages = sortedHistory.map((h: any) => ({
                 role: (h.sender === 'customer') ? 'user' : 'assistant',
                 content: h.original_text
             }));
