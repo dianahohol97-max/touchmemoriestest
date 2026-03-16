@@ -37,8 +37,8 @@ export async function GET(req: Request) {
             .gte('created_at', prevStartDate.toISOString())
             .lt('created_at', startDate.toISOString());
 
-        const currentRevenue = currentOrders?.reduce((sum, o) => sum + Number(o.total), 0) || 0;
-        const prevRevenue = prevOrders?.reduce((sum, o) => sum + Number(o.total), 0) || 0;
+        const currentRevenue = currentOrders?.reduce((sum: number, o: any) => sum + Number(o.total), 0) || 0;
+        const prevRevenue = prevOrders?.reduce((sum: number, o: any) => sum + Number(o.total), 0) || 0;
         const revenueChange = prevRevenue === 0 ? 100 : ((currentRevenue - prevRevenue) / prevRevenue) * 100;
 
         const currentOrderCount = currentOrders?.length || 0;
@@ -52,9 +52,9 @@ export async function GET(req: Request) {
         // 1.5 Cost of Goods Sold (COGS) & Profit
         // We calculate COGS directly from order items to match revenue 1:1
         const calculateCOGS = (orders: any[]) => {
-            return orders.reduce((totalSum, order) => {
+            return orders.reduce((totalSum: number, order: any) => {
                 const items = (order.items || []) as any[];
-                const orderCost = items.reduce((itemSum, item) => {
+                const orderCost = items.reduce((itemSum: number, item: any) => {
                     return itemSum + ((item.cost_price || 0) * (item.qty || item.quantity || 1));
                 }, 0);
                 return totalSum + orderCost;
@@ -101,25 +101,25 @@ export async function GET(req: Request) {
         });
 
         const revenueChartData = last30Days.map(dateStr => {
-            const dayOrders = currentOrders?.filter(o => o.created_at.startsWith(dateStr)) || [];
+            const dayOrders = currentOrders?.filter((o: any) => o.created_at.startsWith(dateStr)) || [];
             return {
                 date: format(new Date(dateStr), 'dd.MM'),
-                revenue: dayOrders.reduce((sum, o) => sum + Number(o.total), 0)
+                revenue: dayOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0)
             };
         });
 
         // 6. Status distribution
         const statusMap: Record<string, number> = {};
-        currentOrders?.forEach(o => {
+        currentOrders?.forEach((o: any) => {
             statusMap[o.order_status] = (statusMap[o.order_status] || 0) + 1;
         });
         const statusChartData = Object.entries(statusMap).map(([name, value]) => ({ name, value }));
 
         // 7. Top 5 Products by Revenue
         const productStats: Record<string, { name: string, revenue: number }> = {};
-        currentOrders?.forEach(o => {
+        currentOrders?.forEach((o: any) => {
             const items = o.items as any[];
-            items.forEach(item => {
+            items.forEach((item: any) => {
                 const id = item.id || item.product_id;
                 if (!productStats[id]) productStats[id] = { name: item.name, revenue: 0 };
                 productStats[id].revenue += (item.price * item.quantity);
@@ -135,7 +135,7 @@ export async function GET(req: Request) {
             .select('customer_id');
 
         const customerCounts: Record<string, number> = {};
-        customerOrders?.forEach(o => {
+        customerOrders?.forEach((o: any) => {
             if (o.customer_id) customerCounts[o.customer_id] = (customerCounts[o.customer_id] || 0) + 1;
         });
 
