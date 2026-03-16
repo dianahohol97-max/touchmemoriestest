@@ -113,7 +113,7 @@ export async function GET(req: Request) {
         currentOrders?.forEach((o: any) => {
             statusMap[o.order_status] = (statusMap[o.order_status] || 0) + 1;
         });
-        const statusChartData = Object.entries(statusMap).map(([name, value]) => ({ name, value }));
+        const statusChartData = Object.entries(statusMap).map(([name, value]: [string, number]) => ({ name, value }));
 
         // 7. Top 5 Products by Revenue
         const productStats: Record<string, { name: string, revenue: number }> = {};
@@ -139,7 +139,7 @@ export async function GET(req: Request) {
             if (o.customer_id) customerCounts[o.customer_id] = (customerCounts[o.customer_id] || 0) + 1;
         });
 
-        const returningCount = Object.values(customerCounts).filter(count => count > 1).length;
+        const returningCount = Object.values(customerCounts).filter((count: number) => count > 1).length;
         const totalWithOrders = Object.keys(customerCounts).length;
         const newCount = Math.max(0, totalWithOrders - returningCount);
 

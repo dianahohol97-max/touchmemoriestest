@@ -25,7 +25,7 @@ export async function GET() {
             return acc;
         }, {});
 
-        const enrichedData = data.map(tag => ({
+        const enrichedData = data.map((tag: any) => ({
             ...tag,
             usage_count: usageCount[tag.id] || 0
         }));
@@ -68,7 +68,7 @@ export async function PUT(req: Request) {
 
         // Because upsert requires all NOT NULL fields if they don't have defaults, 
         // we'll update sequentially if there's no bulk update function.
-        for (const tag of tags) {
+        for (const tag of (tags as any[])) {
             await supabase.from('order_tags')
                 .update({ sort_order: tag.sort_order })
                 .eq('id', tag.id);
