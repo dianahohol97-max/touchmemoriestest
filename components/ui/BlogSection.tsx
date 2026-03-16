@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Calendar, Clock, ArrowRight } from 'lucide-react';
+import { ArrowRight, BookOpen } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
 
 interface BlogPost {
@@ -32,17 +32,45 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
         threshold: 0.1,
     });
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('uk-UA', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    };
+    // Default posts if none are provided (for demonstration or empty state)
+    const displayPosts: BlogPost[] = posts.length > 0 ? posts.slice(0, 3) : [
+        {
+            id: '1',
+            title: 'Мистецтво мінімалізму: Як обрати обкладинку для вашої книги',
+            slug: 'minimalism-art',
+            excerpt: 'Дізнайтеся, як текстура тканини та колір форзацу можуть змінити сприйняття фотокниги.',
+            cover_image: '/images/blog/interior.png',
+            cover_image_alt: 'Фото інтер\'єру з фотокнигами',
+            reading_time: 5,
+            published_at: new Date().toISOString(),
+            category: { name: 'Поради', slug: 'tips' }
+        },
+        {
+            id: '2',
+            title: 'Весільний альбом: 5 кроків до ідеальної історії кохання',
+            slug: 'wedding-story',
+            excerpt: 'Від підбору знімків до композиційних рішень, які збережуть ваші емоції на все життя.',
+            cover_image: '/images/blog/wedding.png',
+            cover_image_alt: 'Весільний фотоальбом',
+            reading_time: 7,
+            published_at: new Date().toISOString(),
+            category: { name: 'Весілля', slug: 'wedding' }
+        },
+        {
+            id: '3',
+            title: 'Сімейні архіви: Чому важливо друкувати фотографії сьогодні',
+            slug: 'family-archives',
+            excerpt: 'Цифрові кадри легко втратити, але паперові спогади стають сімейною реліквією.',
+            cover_image: '/images/blog/family.png',
+            cover_image_alt: 'Сімейна історія в альбомі',
+            reading_time: 6,
+            published_at: new Date().toISOString(),
+            category: { name: 'Блог', slug: 'blog' }
+        }
+    ];
 
     return (
-        <section ref={ref} className="section-padding bg-gray-50/50">
+        <section ref={ref} className="py-24 bg-white overflow-hidden">
             <div className="container">
                 {/* Section Header */}
                 <motion.div
@@ -51,103 +79,81 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                     transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                     className="text-center mb-16"
                 >
-                    <h2 className="section-title text-center">
-                        {content['blog_title'] || 'Блог'}
+                    <h2 className="text-[40px] lg:text-[56px] font-black text-primary leading-none tracking-tight mb-4">
+                        {content['blog_title'] || 'Ідеї та натхнення'}
                     </h2>
-                    <p className="section-subtitle text-center">
-                        {content['blog_subtitle'] || 'Натхнення, ідеї та поради від команди Touch Memories'}
-                    </p>
+                    <div className="w-24 h-1 bg-primary/10 mx-auto rounded-full" />
                 </motion.div>
 
-                {/* Blog Posts Grid */}
-                {posts.length > 0 ? (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-                            {posts.map((post, index) => (
-                                <motion.div
-                                    key={post.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={inView ? { opacity: 1, y: 0 } : {}}
-                                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                                >
-                                    <Link
-                                        href={`/blog/${post.slug}`}
-                                        className="bg-white rounded-[3px] overflow-hidden border border-gray-100 transition-all duration-300 hover:-translate-y-2 hover:shadow-[var(--shadow-premium)] h-full flex flex-col group block"
-                                    >
-                                        {/* Cover Image */}
-                                        <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
-                                            {post.cover_image ? (
-                                                <Image
-                                                    src={post.cover_image}
-                                                    alt={post.cover_image_alt || post.title}
-                                                    fill
-                                                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
-                                                    Зображення відсутнє
-                                                </div>
-                                            )}
-                                            {post.category && (
-                                                <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1.5 rounded-[3px] text-[10px] font-black uppercase tracking-widest z-10">
-                                                    {post.category.name}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Content */}
-                                        <div className="p-8 flex-1 flex flex-col">
-                                            <h3 className="font-heading text-2xl font-bold mb-4 leading-tight line-clamp-2 text-primary group-hover:text-primary/70 transition-colors">
-                                                {post.title}
-                                            </h3>
-
-                                            <p className="text-gray-500 leading-relaxed mb-6 flex-1 line-clamp-3">
-                                                {post.excerpt}
-                                            </p>
-
-                                            {/* Meta Info */}
-                                            <div className="flex items-center gap-6 text-sm text-gray-400 pt-6 border-t border-gray-100">
-                                                <span className="flex items-center gap-2">
-                                                    <Calendar size={14} />
-                                                    {formatDate(post.published_at)}
-                                                </span>
-                                                <span className="flex items-center gap-2">
-                                                    <Clock size={14} />
-                                                    {post.reading_time} хв
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                </motion.div>
-                            ))}
-                        </div>
-
-                        {/* Read All Articles Button */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
+                {/* Magazine Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-14">
+                    {displayPosts.map((post, index) => (
+                        <motion.article
+                            key={post.id}
+                            initial={{ opacity: 0, y: 30 }}
                             animate={inView ? { opacity: 1, y: 0 } : {}}
-                            transition={{ duration: 0.6, delay: 0.4 }}
-                            className="text-center"
+                            transition={{ duration: 0.6, delay: index * 0.15 }}
+                            className="group"
                         >
-                            <Link href="/blog" className="btn-secondary">
-                                Читати всі статті
-                                <ArrowRight size={20} className="ml-2" />
+                            <Link href={`/blog/${post.slug}`} className="block">
+                                {/* Image Container */}
+                                <div className="relative aspect-[4/5] mb-8 rounded-[12px] overflow-hidden shadow-[0_15px_45px_rgba(0,0,0,0.05)] bg-gray-100 group-hover:shadow-[0_25px_60px_rgba(0,0,0,0.1)] transition-all duration-500">
+                                    <Image
+                                        src={post.cover_image || '/images/promo/photo_print_premium.png'}
+                                        alt={post.cover_image_alt || post.title}
+                                        fill
+                                        className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                                    />
+                                    {/* Glassmorphic Category Tag */}
+                                    {post.category && (
+                                        <div className="absolute top-6 left-6 px-4 py-2 bg-white/80 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-primary shadow-sm border border-white/20">
+                                            {post.category.name}
+                                        </div>
+                                    )}
+                                    {/* Overlay Gradient */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                </div>
+
+                                {/* Content */}
+                                <div className="space-y-4">
+                                    <h3 className="text-2xl lg:text-3xl font-black text-primary leading-tight tracking-tight group-hover:text-primary/70 transition-colors duration-300">
+                                        {post.title}
+                                    </h3>
+                                    <p className="text-gray-400 font-medium leading-relaxed line-clamp-2">
+                                        {post.excerpt}
+                                    </p>
+
+                                    <div className="pt-2">
+                                        <span className="inline-flex items-center text-[13px] font-black uppercase tracking-[0.15em] text-primary group-hover:gap-3 transition-all duration-300">
+                                            Читати
+                                            <ArrowRight size={16} className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
+                                        </span>
+                                    </div>
+                                </div>
                             </Link>
-                        </motion.div>
-                    </>
-                ) : (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={inView ? { opacity: 1 } : {}}
-                        transition={{ duration: 0.6 }}
-                        className="text-center py-20 bg-white rounded-[3px] border border-dashed border-gray-200"
+                        </motion.article>
+                    ))}
+                </div>
+
+                {/* View All Button */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={inView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.6, delay: 0.5 }}
+                    className="mt-20 text-center"
+                >
+                    <Link
+                        href="/blog"
+                        className="inline-flex items-center gap-3 px-10 py-5 bg-white border-2 border-primary/10 text-primary font-black text-sm uppercase tracking-widest rounded-full hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 shadow-sm"
                     >
-                        <p className="text-lg text-gray-400">
-                            Скоро тут з'являться цікаві статті
-                        </p>
-                    </motion.div>
-                )}
+                        Читати всі статті
+                        <BookOpen size={18} />
+                    </Link>
+                </motion.div>
             </div>
+
+            {/* Background Accent */}
+            <div className="absolute -z-10 top-1/2 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 -translate-x-1/2 pointer-events-none" />
         </section>
     );
 }
