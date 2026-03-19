@@ -288,16 +288,29 @@ export default function ProductsPage() {
                                     <div style={{ fontWeight: 800, color: '#263A99' }}>{Number(product.price).toLocaleString()} ₴</div>
                                 </td>
                                 <td style={tdStyle}>
-                                    <span style={{
-                                        fontWeight: 800,
-                                        color: product.stock < 10 ? '#ef4444' : '#64748b',
-                                        backgroundColor: product.stock < 10 ? '#fef2f2' : '#f8fafc',
-                                        padding: '4px 10px',
-                                        borderRadius: "3px",
-                                        fontSize: '13px'
-                                    }}>
-                                        {product.stock} шт.
-                                    </span>
+                                    {product.product_type === 'personalized' ? (
+                                        <span style={{
+                                            fontWeight: 800,
+                                            color: '#6366f1',
+                                            backgroundColor: '#eef2ff',
+                                            padding: '4px 10px',
+                                            borderRadius: "3px",
+                                            fontSize: '13px'
+                                        }}>
+                                            На замовлення
+                                        </span>
+                                    ) : (
+                                        <span style={{
+                                            fontWeight: 800,
+                                            color: product.stock < 10 ? '#ef4444' : '#64748b',
+                                            backgroundColor: product.stock < 10 ? '#fef2f2' : '#f8fafc',
+                                            padding: '4px 10px',
+                                            borderRadius: "3px",
+                                            fontSize: '13px'
+                                        }}>
+                                            {product.stock} шт.
+                                        </span>
+                                    )}
                                 </td>
                                 <td style={tdStyle}>
                                     <button

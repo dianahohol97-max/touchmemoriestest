@@ -81,8 +81,8 @@ export function PhotoPrintPromo() {
                         </div>
 
                         <Link
-                            href={content['photoprint_button_url'] || "/catalog?category=photo-print"}
-                            className="inline-flex items-center justify-center px-10 py-5 bg-primary text-white font-black text-lg uppercase tracking-widest rounded-[3px] transition-all duration-300 hover:shadow-[0_20px_40px_rgba(38,58,153,0.3)] hover:-translate-y-1 group"
+                            href={content['photoprint_button_url'] || "/catalog?category=prints"}
+                            className="btn-primary inline-flex items-center justify-center px-10 py-5 bg-primary text-white font-black text-lg uppercase tracking-widest rounded-[3px] transition-all duration-300 hover:shadow-[0_20px_40px_rgba(38,58,153,0.3)] hover:-translate-y-1 group"
                         >
                             Замовити друк фото
                             <ArrowRight size={20} className="ml-3 transition-transform duration-300 group-hover:translate-x-1" />

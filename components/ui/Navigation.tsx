@@ -29,7 +29,7 @@ export function Navigation() {
 
     useEffect(() => {
         async function fetchOtherCategories() {
-            const mainCategorySlugs = ['magazines', 'photobooks', 'travelbooks', 'certificates'];
+            const mainCategorySlugs = ['photobooks', 'hlyantsevi-zhurnaly', 'travelbooks', 'prints', 'certificates'];
             const { data } = await supabase
                 .from('categories')
                 .select('*')
@@ -45,10 +45,11 @@ export function Navigation() {
     }, []);
 
     const mainNavLinks = [
-        { name: 'Глянцевий журнал', href: '/hliantsevyi-zhurnal' },
-        { name: 'Фотокниги', href: '/photobooks' },
-        { name: 'Travel book', href: '/travelbook' },
-        { name: 'Сертифікати', href: '/sertyfikaty' },
+        { name: 'Фотокниги', href: '/catalog?category=photobooks' },
+        { name: 'Глянцеві журнали', href: '/catalog?category=hlyantsevi-zhurnaly' },
+        { name: 'Travelbook', href: '/catalog?category=travelbooks' },
+        { name: 'Фотодрук', href: '/catalog?category=prints' },
+        { name: 'Сертифікати', href: '/catalog?category=certificates' },
     ];
 
     const aboutDropdownItems = [

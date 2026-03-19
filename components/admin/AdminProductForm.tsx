@@ -143,8 +143,9 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
         is_active: initialData?.is_active ?? true,
         meta_title: initialData?.meta_title || '',
         meta_description: initialData?.meta_description || '',
-        is_personalized: initialData?.is_personalized ?? true,
-        track_inventory: initialData?.track_inventory ?? true,
+        product_type: initialData?.product_type || (initialData?.is_personalized ? 'personalized' : 'physical'),
+        is_personalized: initialData?.is_personalized ?? (initialData?.product_type === 'personalized'),
+        track_inventory: initialData?.track_inventory ?? (initialData?.product_type !== 'personalized'),
         low_stock_threshold: initialData?.low_stock_threshold ?? 10,
         cost_price: initialData?.cost_price || 0,
         cost_price_currency: initialData?.cost_price_currency || 'UAH',
@@ -193,10 +194,19 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
         const { name, value, type } = e.target;
         const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
 
-        if (name === 'is_personalized') {
+        if (name === 'product_type') {
             setFormData(prev => ({
                 ...prev,
                 [name]: val,
+                is_personalized: val === 'personalized',
+                track_inventory: val === 'physical',
+                is_partially_personalized: val === 'personalized' ? false : prev.is_partially_personalized
+            }));
+        } else if (name === 'is_personalized') {
+            setFormData(prev => ({
+                ...prev,
+                [name]: val,
+                product_type: val ? 'personalized' : 'physical',
                 track_inventory: val === true ? false : true,
                 is_partially_personalized: val === true ? false : prev.is_partially_personalized
             }));
@@ -657,7 +667,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                                     <span style={{ minWidth: '100px', flex: 1 }}>Собівартість</span>
                                     <span style={{ minWidth: '80px', flex: 1 }}>Маржа</span>
                                     <span style={{ minWidth: '100px', flex: 1 }}>SKU</span>
-                                    {!formData.is_personalized && <span style={{ minWidth: '80px', flex: 0.8 }}>Склад</span>}
+                                    {formData.product_type !== 'personalized' && <span style={{ minWidth: '80px', flex: 0.8 }}>Склад</span>}
                                     <span style={{ width: '40px' }}></span>
                                 </div>
                                 {variants.map((v, idx) => {
@@ -674,7 +684,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                                                 <span style={{ fontSize: '10px', opacity: 0.8 }}>{marginPercent.toFixed(1)}%</span>
                                             </div>
                                             <input style={{ minWidth: '100px', flex: 1, ...variantInputStyle }} value={v.sku} onChange={e => updateVariant(v.id, 'sku', e.target.value)} placeholder="SKU" />
-                                            {!formData.is_personalized && (
+                                            {formData.product_type !== 'personalized' && (
                                                 <input style={{ minWidth: '80px', flex: 0.8, ...variantInputStyle }} type="number" value={v.stock} onChange={e => updateVariant(v.id, 'stock', Number(e.target.value))} />
                                             )}
                                             <button type="button" onClick={() => removeVariant(v.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={18} /></button>
@@ -721,27 +731,71 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                                 <span style={{ fontSize: '14px', fontWeight: 700 }}>Популярний</span>
                                 <input type="checkbox" id="is_popular" name="is_popular" checked={formData.is_popular} onChange={handleInputChange} style={checkboxStyle} />
                             </div>
-                            <div style={toggleRowStyle}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <input type="checkbox" name="is_personalized" checked={formData.is_personalized} onChange={handleInputChange} style={checkboxStyle} />
-                                    <div>
-                                        <span style={{ fontSize: '14px', fontWeight: 800 }}>Персоналізований товар</span>
-                                        {formData.is_personalized && (
-                                            <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0 0 0' }}>
-                                                Персоналізований товар виготовляється під замовлення. Залишки на складі не відстежуються.
-                                            </p>
-                                        )}
-                                    </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <label style={labelStyle}>Тип продукту</label>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleInputChange({ target: { name: 'product_type', value: 'physical' } } as any)}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px',
+                                            borderRadius: '3px',
+                                            border: '1.5px solid',
+                                            borderColor: formData.product_type === 'physical' ? '#263A99' : '#e2e8f0',
+                                            backgroundColor: formData.product_type === 'physical' ? '#eff6ff' : 'white',
+                                            color: formData.product_type === 'physical' ? '#263A99' : '#64748b',
+                                            fontWeight: 800,
+                                            fontSize: '13px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                        }}
+                                    >
+                                        <Package size={18} />
+                                        Фізичний
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleInputChange({ target: { name: 'product_type', value: 'personalized' } } as any)}
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px',
+                                            borderRadius: '3px',
+                                            border: '1.5px solid',
+                                            borderColor: formData.product_type === 'personalized' ? '#263A99' : '#e2e8f0',
+                                            backgroundColor: formData.product_type === 'personalized' ? '#eff6ff' : 'white',
+                                            color: formData.product_type === 'personalized' ? '#263A99' : '#64748b',
+                                            fontWeight: 800,
+                                            fontSize: '13px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                        }}
+                                    >
+                                        <Settings size={18} />
+                                        На замовлення
+                                    </button>
                                 </div>
+                                {formData.product_type === 'personalized' && (
+                                    <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0', lineHeight: '1.4' }}>
+                                        Продукти "На замовлення" (фотокниги, журнали тощо) виготовляються після оплати. Складські залишки для них не відстежуються.
+                                    </p>
+                                )}
                             </div>
-                            {!formData.is_personalized && (
+
+                            {formData.product_type === 'physical' && (
                                 <div style={toggleRowStyle}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <input type="checkbox" name="is_partially_personalized" checked={formData.is_partially_personalized} onChange={handleInputChange} style={checkboxStyle} />
                                         <div>
                                             <span style={{ fontSize: '14px', fontWeight: 800 }}>Частково персоналізований</span>
                                             <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0 0 0' }}>
-                                                Товар можна замовити як є, або додати індивідуальне оформлення за бажанням клієнта.
+                                                Товар можна замовити як є, або додати індивідуальне оформлення.
                                             </p>
                                         </div>
                                     </div>
@@ -771,7 +825,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                                     </select>
                                 </div>
                             </div>
-                            {!formData.is_personalized && (
+                            {formData.product_type === 'physical' && (
                                 <>
                                     <div>
                                         <label style={labelStyle}>Загальний склад (шт)</label>

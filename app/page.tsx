@@ -31,7 +31,7 @@ export default async function Home() {
     .from('products')
     .select('*, categories(name, slug)')
     .eq('is_active', true)
-    .or('is_popular.eq.true,slug.eq.hliantsevyi-zhurnal')
+    .eq('is_popular', true)
     .order('popular_order', { ascending: true })
     .limit(8);
 

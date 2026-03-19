@@ -8,6 +8,15 @@ import { Footer } from '@/components/ui/Footer';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { ChevronDown, Loader2 } from 'lucide-react';
 
+const getUkrainianPlural = (count: number, one: string, few: string, many: string) => {
+    const n = Math.abs(count) % 100;
+    const n1 = n % 10;
+    if (n > 10 && n < 20) return many;
+    if (n1 > 1 && n1 < 5) return few;
+    if (n1 === 1) return one;
+    return many;
+};
+
 interface Category {
     id: string;
     name: string;
@@ -199,7 +208,9 @@ function CatalogContent() {
                         <div className={styles.controlsBar} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                             <div className={styles.leftControls}>
                                 <div className={styles.resultsCount} style={{ fontSize: '15px', color: '#64748b', fontWeight: 500 }}>
-                                    Знайдено: <span style={{ color: '#263A99', fontWeight: 700 }}>{isLoading ? '...' : sortedProducts.length} товарів</span>
+                                    Знайдено: <span style={{ color: '#263A99', fontWeight: 700 }}>
+                                        {isLoading ? '...' : `${sortedProducts.length} ${getUkrainianPlural(sortedProducts.length, 'товар', 'товари', 'товарів')}`}
+                                    </span>
                                 </div>
                             </div>
 

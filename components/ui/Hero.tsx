@@ -94,21 +94,21 @@ export function Hero() {
                 >
                     {/* Row 1: Глянцевий журнал + Фотокнига */}
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        <Link href="/catalog?category=magazines" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Глянцевий журнал
+                        <Link href="/catalog?category=hlyantsevi-zhurnaly" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
+                            Глянцеві журнали
                         </Link>
                         <Link href="/catalog?category=photobooks" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Фотокнига
+                            Фотокниги
                         </Link>
                     </div>
 
                     {/* Row 2: Фотодрук + Travel book */}
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        <Link href="/catalog?category=photo-print" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
+                        <Link href="/catalog?category=prints" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
                             Фотодрук
                         </Link>
-                        <Link href="/catalog?category=travelbook" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Travel book
+                        <Link href="/catalog?category=travelbooks" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
+                            Travelbook
                         </Link>
                     </div>
 
