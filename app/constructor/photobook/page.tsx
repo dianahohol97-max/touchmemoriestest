@@ -8,6 +8,7 @@ import Link from 'next/link';
 import PhotoUploader from '@/components/PhotoUploader';
 import OrderSummary from '@/components/OrderSummary';
 import { submitOrder } from '@/lib/submitOrder';
+import { Navigation } from '@/components/ui/Navigation';
 
 type Tier = 'standard' | 'premium' | null;
 type FormatId = '20x20' | '20x30' | '30x20' | '30x30' | null;
@@ -217,8 +218,10 @@ export default function PhotobookConstructorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-[1200px] mx-auto">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans mt-20">
+        <div className="max-w-[1200px] mx-auto">
         
         {/* Header & Progress */}
         <div className="mb-10 max-w-5xl mx-auto">
@@ -716,6 +719,7 @@ export default function PhotobookConstructorPage() {
 
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

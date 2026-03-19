@@ -1,5 +1,5 @@
 'use client';
-
+import { Navigation } from '@/components/ui/Navigation';
 import React, { useState } from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { ArrowLeft, ArrowRight, CheckCircle2, Image as ImageIcon, Map, MessageSquareText, ShieldCheck, MapPin, Truck } from 'lucide-react';
@@ -147,13 +147,15 @@ export default function PostersConstructorPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-[85vh] bg-gray-50 flex flex-col items-center justify-center font-sans tracking-tight">
-        <div className="bg-white p-12 md:p-16 rounded-[2rem] max-w-lg mx-4 text-center shadow-2xl border border-gray-100">
-          <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-gray-200">
+      <>
+        <Navigation />
+        <div className="min-h-[85vh] bg-gray-50 flex flex-col items-center justify-center font-sans tracking-tight mt-20">
+        <div className="bg-white p-12 md:p-16 rounded-[2rem] max-w-lg mx-4 text-center shadow-2xl border border-gray-100 mt-20">
+          <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-gray-200 mt-20">
             <CheckCircle2 className="w-10 h-10 text-white" strokeWidth={2.5} />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">Дякуємо за замовлення!</h2>
-          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mb-8 inline-block w-full">
+          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mb-8 inline-block w-full mt-20">
              <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-1">Номер замовлення</p>
              <p className="text-2xl font-black text-blue-600 tracking-tight">{orderNumber}</p>
           </div>
@@ -164,16 +166,19 @@ export default function PostersConstructorPage() {
              На головну
           </button>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-gray-900 font-sans pb-32">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-[#FDFDFD] text-gray-900 font-sans pb-32 mt-20">
        
-       <div className="bg-white border-b border-gray-100 py-20 px-6">
-          <div className="max-w-5xl mx-auto text-center">
-             <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold text-[10px] uppercase tracking-widest mb-6">
+       <div className="bg-white border-b border-gray-100 py-20 px-6 mt-20">
+          <div className="max-w-5xl mx-auto text-center mt-20">
+             <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold text-[10px] uppercase tracking-widest mb-6 mt-20">
                Frame Included
              </div>
              <h1 className="text-4xl md:text-6xl font-black tracking-tighter mb-6 text-gray-900">
@@ -185,13 +190,13 @@ export default function PostersConstructorPage() {
           </div>
        </div>
 
-       <div className="max-w-5xl mx-auto px-6 mt-16 grid grid-cols-1 lg:grid-cols-12 gap-16">
+       <div className="max-w-5xl mx-auto px-6 mt-16 grid grid-cols-1 lg:grid-cols-12 gap-16 mt-20">
           
-          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-10">
+          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-10 mt-20">
              
              {/* Progress Tabs */}
-             <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-4">
-                <div className="flex items-center space-x-2 sm:space-x-4 text-xs font-bold uppercase tracking-[0.15em] text-gray-400">
+             <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-4 mt-20">
+                <div className="flex items-center space-x-2 sm:space-x-4 text-xs font-bold uppercase tracking-[0.15em] text-gray-400 mt-20">
                   <span className={step >= 1 ? 'text-gray-900' : ''}>1. Size</span>
                   <span>/</span>
                   <span className={step >= 2 ? 'text-gray-900' : ''}>2. Design</span>
@@ -209,9 +214,9 @@ export default function PostersConstructorPage() {
 
              {/* STEP 1: SIZE */}
              {step === 1 && (
-                <div className="animate-in fade-in duration-500">
+                <div className="animate-in fade-in duration-500 mt-20">
                    <h2 className="text-2xl font-bold mb-8 tracking-tight">Choose Format</h2>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-20">
                       {POSTER_SIZES.map(s => {
                         const isSelected = selectedSizeId === s.id;
                         return (
@@ -222,24 +227,24 @@ export default function PostersConstructorPage() {
                               ${isSelected ? 'border-gray-900 bg-white shadow-xl ring-1 ring-gray-900' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300'}
                             `}
                           >
-                             <div className="flex-1 flex flex-col items-center justify-center mb-8 h-32">
+                             <div className="flex-1 flex flex-col items-center justify-center mb-8 h-32 mt-20">
                                 <div className={`border-4 border-gray-900 bg-white ${s.id === 'A3' ? 'w-24 h-[33.9px] scale-[1.3]' : 'w-24 h-32'} flex items-center justify-center`}>
                                    <ImageIcon className="w-6 h-6 text-gray-200" />
                                 </div>
                              </div>
-                             <div className="text-center">
+                             <div className="text-center mt-20">
                                 <h3 className={`font-black tracking-tight text-2xl mb-1 ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>{s.title}</h3>
                                 <p className="text-sm font-medium text-gray-500 mb-6">{s.size}</p>
                                 <span className="font-bold text-gray-900 text-xl tracking-tight">{s.price} ₴</span>
                              </div>
 
                              {/* Badge */}
-                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-1 bg-gray-900 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-md whitespace-nowrap">
+                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-1 bg-gray-900 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-md whitespace-nowrap mt-20">
                                 🖼 Black frame included
                              </div>
 
                              {isSelected && (
-                               <div className="absolute top-4 right-4 text-gray-900">
+                               <div className="absolute top-4 right-4 text-gray-900 mt-20">
                                   <CheckCircle2 className="w-6 h-6 bg-white rounded-full" strokeWidth={2.5} />
                                </div>
                              )}
@@ -252,9 +257,9 @@ export default function PostersConstructorPage() {
 
              {/* STEP 2: DESIGN TYPE */}
              {step === 2 && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    <h2 className="text-2xl font-bold mb-8 tracking-tight">Select Design Type</h2>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-20">
                       {DESIGN_TYPES.map(type => {
                         const isSelected = designType === type.id;
                         return (
@@ -265,7 +270,7 @@ export default function PostersConstructorPage() {
                               ${isSelected ? 'border-gray-900 bg-white shadow-xl ring-1 ring-gray-900' : 'border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:shadow-lg'}
                             `}
                           >
-                             <div className="mb-6 flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-900">
+                             <div className="mb-6 flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-900 mt-20">
                                {type.id === 'star_map' ? <Map className="w-5 h-5" /> : <MessageSquareText className="w-5 h-5" />}
                              </div>
                              <h3 className="font-bold tracking-tight text-xl text-gray-900 mb-1">{type.title}</h3>
@@ -273,7 +278,7 @@ export default function PostersConstructorPage() {
                              <p className="text-sm text-gray-600 leading-relaxed font-medium">{type.desc}</p>
                              
                              {isSelected && (
-                               <div className="mt-6 flex justify-end text-gray-900">
+                               <div className="mt-6 flex justify-end text-gray-900 mt-20">
                                   <CheckCircle2 className="w-6 h-6" strokeWidth={2.5} />
                                </div>
                              )}
@@ -286,10 +291,10 @@ export default function PostersConstructorPage() {
 
              {/* STEP 3: DETAILS FORM */}
              {step === 3 && designType === 'star_map' && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    <h2 className="text-2xl font-bold mb-8 tracking-tight">Configure Star Map</h2>
-                   <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm space-y-8">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                   <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm space-y-8 mt-20">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-20">
                          <div>
                             <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2">Date *</label>
                             <input type="date" value={starMapDate} onChange={e => setStarMapDate(e.target.value)} required className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:bg-white transition-colors text-sm" />
@@ -314,9 +319,9 @@ export default function PostersConstructorPage() {
              )}
 
              {step === 3 && designType === 'custom_text' && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    <h2 className="text-2xl font-bold mb-8 tracking-tight">Configure Typography</h2>
-                   <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm space-y-8">
+                   <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm space-y-8 mt-20">
                       <div>
                          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2">Main text *</label>
                          <textarea value={customMainText} onChange={e => setCustomMainText(e.target.value)} required rows={3} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 mb-2 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 focus:bg-white transition-colors text-sm" placeholder="Your favorite quote..." />
@@ -329,7 +334,7 @@ export default function PostersConstructorPage() {
 
                       <div>
                          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-4">Text Style Base</label>
-                         <div className="grid grid-cols-3 gap-4">
+                         <div className="grid grid-cols-3 gap-4 mt-20">
                             {(['minimal', 'classic', 'bold'] as const).map(style => (
                                <label key={style} className={`border rounded-xl p-4 text-center cursor-pointer transition-colors ${textStyle === style ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-600'}`}>
                                  <input type="radio" checked={textStyle === style} onChange={() => setTextStyle(style)} className="sr-only" />
@@ -339,9 +344,9 @@ export default function PostersConstructorPage() {
                          </div>
                       </div>
 
-                      <div className="border-t border-gray-100 pt-8 mt-8">
+                      <div className="border-t border-gray-100 pt-8 mt-8 mt-20">
                          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-4">Background Photography (Optional)</label>
-                         <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl">
+                         <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl mt-20">
                            <PhotoUploader minFiles={0} maxFiles={1} canvasSize={{ width: 2480, height: 3508 }} onPhotosChange={setCustomPhoto} />
                          </div>
                       </div>
@@ -351,11 +356,11 @@ export default function PostersConstructorPage() {
 
              {/* STEP 4: CHECKOUT FORM */}
              {step === 4 && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    <h2 className="text-2xl font-bold mb-8 tracking-tight">Delivery Details</h2>
 
-                   <div className="bg-white rounded-[2rem] border border-gray-200 p-8 shadow-sm space-y-8">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div className="bg-white rounded-[2rem] border border-gray-200 p-8 shadow-sm space-y-8 mt-20">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-20">
                          <div>
                             <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2">Name *</label>
                             <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} required className="w-full bg-gray-50 border-b-2 border-t-0 border-x-0 border-gray-200 focus:border-gray-900 focus:ring-0 py-3 text-sm px-0 transition-colors" placeholder="Emma Swan" />
@@ -373,7 +378,7 @@ export default function PostersConstructorPage() {
 
                       <div>
                          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-4">Delivery Method *</label>
-                         <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                         <div className="flex flex-col sm:flex-row gap-4 mb-4 mt-20">
                             <label className={`flex-1 border rounded-xl p-5 flex items-center cursor-pointer transition-colors ${deliveryMethod === 'pickup' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
                                <input type="radio" checked={deliveryMethod === 'pickup'} onChange={() => setDeliveryMethod('pickup')} className="sr-only" />
                                <MapPin className={`w-5 h-5 mr-3 ${deliveryMethod === 'pickup' ? 'text-gray-900' : 'text-gray-400'}`} />
@@ -386,7 +391,7 @@ export default function PostersConstructorPage() {
                             </label>
                          </div>
                          {deliveryMethod === 'nova_poshta' && (
-                           <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 mt-2">
+                           <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 mt-2 mt-20">
                              <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2">City & Branch Number *</label>
                              <input type="text" value={npAddress} onChange={e => setNpAddress(e.target.value)} required className="w-full bg-white border border-gray-200 rounded-lg p-3 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 transition-colors" placeholder="e.g. Kyiv, Branch #102" />
                            </div>
@@ -403,34 +408,34 @@ export default function PostersConstructorPage() {
           </div>
 
           {/* Sticky Summary */}
-          <div className="lg:col-span-5 xl:col-span-4">
+          <div className="lg:col-span-5 xl:col-span-4 mt-20">
              <div className={`sticky top-8 bg-gray-50 rounded-[2rem] p-8 lg:p-10 border border-gray-100 shadow-xl transition-all duration-500 ${selectedSize ? 'opacity-100 transform-none' : 'opacity-40 pointer-events-none translate-y-4'}`}>
                 <h3 className="text-xl font-bold mb-8 text-gray-900 tracking-tight flex items-center justify-between border-b border-gray-200 pb-6">
                    Order Summary
                 </h3>
                 
                 {selectedSize && (
-                  <div className="space-y-6">
-                    <div className="flex justify-between font-medium items-center">
+                  <div className="space-y-6 mt-20">
+                    <div className="flex justify-between font-medium items-center mt-20">
                        <span className="text-gray-500 text-sm">Size</span>
                        <span className="bg-white border border-gray-200 px-3 py-1 rounded-lg text-sm font-bold shadow-sm">{selectedSize.title}</span>
                     </div>
                     {designType && (
-                      <div className="flex justify-between font-medium items-center">
+                      <div className="flex justify-between font-medium items-center mt-20">
                          <span className="text-gray-500 text-sm">Theme</span>
                          <span className="text-gray-900 text-sm font-bold">{designType === 'star_map' ? 'Star Map' : 'Custom Typography'}</span>
                       </div>
                     )}
                     
-                    <div className="h-px bg-gray-200 my-6" />
+                    <div className="h-px bg-gray-200 my-6 mt-20" />
 
-                    <div className="flex justify-between font-bold text-lg items-center text-gray-900">
+                    <div className="flex justify-between font-bold text-lg items-center text-gray-900 mt-20">
                        <span>Total</span>
                        <span className="text-2xl">{formatUAH(totalPrice)}</span>
                     </div>
 
                     {step === 4 && (
-                      <div className="mt-8 mb-6 py-4 px-5 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-4">
+                      <div className="mt-8 mb-6 py-4 px-5 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-4 mt-20">
                          <ShieldCheck className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" />
                          <p className="text-xs font-semibold text-blue-900 leading-relaxed font-sans">
                             ✏️ Our designer will send you a preview within 24 hours for your approval — nothing is printed until you confirm.
@@ -449,7 +454,7 @@ export default function PostersConstructorPage() {
                     ) : (
                       <>
                         {formError && (
-                          <div className="mt-2 mb-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg text-center border border-red-200">
+                          <div className="mt-2 mb-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg text-center border border-red-200 mt-20">
                             {formError}
                           </div>
                         )}
@@ -482,6 +487,7 @@ export default function PostersConstructorPage() {
           </div>
 
        </div>
-    </div>
+      </div>
+    </>
   );
 }

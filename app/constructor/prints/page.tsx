@@ -1,4 +1,5 @@
 'use client';
+import { Navigation } from '@/components/ui/Navigation';
 import { useCartStore } from '@/store/cart-store';
 
 import React, { useState, useMemo } from 'react';
@@ -197,8 +198,10 @@ export default function PhotoPrintsConstructor() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-[80vh] bg-neutral-50 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white max-w-lg w-full p-8 md:p-12 rounded-[2rem] shadow-xl text-center">
+      <>
+        <Navigation />
+        <div className="min-h-[80vh] bg-neutral-50 flex items-center justify-center p-4 font-sans mt-20">
+          <div className="bg-white max-w-lg w-full p-8 md:p-12 rounded-[2rem] shadow-xl text-center">
             <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-10 h-10" strokeWidth={2.5} />
             </div>
@@ -213,13 +216,16 @@ export default function PhotoPrintsConstructor() {
             <button onClick={() => window.location.href = '/'} className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-colors shadow-md">
                На головну
             </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-900">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-900 mt-20">
       
       {/* Header */}
       <div className="bg-white border-b border-gray-200 py-12 px-4 shadow-sm relative overflow-hidden">
@@ -553,8 +559,7 @@ export default function PhotoPrintsConstructor() {
               )}
            </div>
         </div>
-
       </div>
-    </div>
+    </>
   );
 }

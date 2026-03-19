@@ -32,42 +32,9 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
         threshold: 0.1,
     });
 
-    // Default posts if none are provided (for demonstration or empty state)
-    const displayPosts: BlogPost[] = posts.length > 0 ? posts.slice(0, 3) : [
-        {
-            id: '1',
-            title: 'Мистецтво мінімалізму: Як обрати обкладинку для вашої книги',
-            slug: 'minimalism-art',
-            excerpt: 'Дізнайтеся, як текстура тканини та колір форзацу можуть змінити сприйняття фотокниги.',
-            cover_image: '/images/blog/interior.png',
-            cover_image_alt: 'Фото інтер\'єру з фотокнигами',
-            reading_time: 5,
-            published_at: new Date().toISOString(),
-            category: { name: 'Поради', slug: 'tips' }
-        },
-        {
-            id: '2',
-            title: 'Весільний альбом: 5 кроків до ідеальної історії кохання',
-            slug: 'wedding-story',
-            excerpt: 'Від підбору знімків до композиційних рішень, які збережуть ваші емоції на все життя.',
-            cover_image: '/images/blog/wedding.png',
-            cover_image_alt: 'Весільний фотоальбом',
-            reading_time: 7,
-            published_at: new Date().toISOString(),
-            category: { name: 'Весілля', slug: 'wedding' }
-        },
-        {
-            id: '3',
-            title: 'Сімейні архіви: Чому важливо друкувати фотографії сьогодні',
-            slug: 'family-archives',
-            excerpt: 'Цифрові кадри легко втратити, але паперові спогади стають сімейною реліквією.',
-            cover_image: '/images/blog/family.png',
-            cover_image_alt: 'Сімейна історія в альбомі',
-            reading_time: 6,
-            published_at: new Date().toISOString(),
-            category: { name: 'Блог', slug: 'blog' }
-        }
-    ];
+    if (!posts || posts.length === 0) return null;
+
+    const displayPosts = posts.slice(0, 3);
 
     return (
         <section ref={ref} className="section-padding bg-white overflow-hidden">

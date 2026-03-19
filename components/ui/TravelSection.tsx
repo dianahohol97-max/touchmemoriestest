@@ -27,6 +27,8 @@ interface TravelSectionProps {
 }
 
 export function TravelSection({ travelPost }: TravelSectionProps) {
+    if (!travelPost) return null;
+
     const { content, blocks } = useTheme();
     const block = blocks.find(b => b.block_name === 'travel');
     const style = block?.style_metadata || {};

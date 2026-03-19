@@ -1,7 +1,7 @@
-'use client';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 export function NewsletterPopup() {
     const [isOpen, setIsOpen] = useState(false);
@@ -10,21 +10,26 @@ export function NewsletterPopup() {
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
 
+    const pathname = usePathname();
+
     useEffect(() => {
-        // Check if already seen or subscribed in this session
-        const hasSeen = sessionStorage.getItem('newsletterPopupShown');
+        // Only show on homepage
+        if (pathname !== '/') return;
+
+        // Check if already seen or subscribed (once per user)
+        const hasSeen = localStorage.getItem('popup_shown');
         if (!hasSeen) {
-            // Trigger popup after 2.5 seconds on site
+            // Trigger popup after 15 seconds on site
             const timer = setTimeout(() => {
                 setIsOpen(true);
-            }, 2500);
+                localStorage.setItem('popup_shown', 'true');
+            }, 15000);
             return () => clearTimeout(timer);
         }
-    }, []);
+    }, [pathname]);
 
     const handleClose = () => {
         setIsOpen(false);
-        sessionStorage.setItem('newsletterPopupShown', 'true');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

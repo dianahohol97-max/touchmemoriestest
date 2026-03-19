@@ -1,5 +1,5 @@
 'use client';
-
+import { Navigation } from '@/components/ui/Navigation';
 import React, { useState } from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { ArrowLeft, ArrowRight, BookHeart, CheckCircle2, Gift } from 'lucide-react';
@@ -149,11 +149,13 @@ export default function WishBookConstructor() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-[85vh] bg-[#FDF9F7] flex flex-col items-center justify-center font-serif text-[#4A403A]">
-        <div className="bg-white p-12 md:p-16 rounded-[2rem] max-w-lg mx-4 text-center shadow-xl border border-[#F4EBE6]">
+      <>
+        <Navigation />
+        <div className="min-h-[85vh] bg-[#FDF9F7] flex flex-col items-center justify-center font-serif text-[#4A403A] mt-20">
+        <div className="bg-white p-12 md:p-16 rounded-[2rem] max-w-lg mx-4 text-center shadow-xl border border-[#F4EBE6] mt-20">
           <BookHeart className="w-16 h-16 text-[#C8B4A6] mx-auto mb-6" strokeWidth={1.5} />
           <h2 className="text-4xl font-normal mb-4 tracking-tight">Дякуємо за замовлення!</h2>
-          <div className="bg-[#F9F5F2] border border-[#ECE2DB] rounded-2xl p-6 mb-8 inline-block w-full">
+          <div className="bg-[#F9F5F2] border border-[#ECE2DB] rounded-2xl p-6 mb-8 inline-block w-full mt-20">
              <p className="text-sm font-bold text-[#A3968C] uppercase tracking-widest mb-1">Номер замовлення</p>
              <p className="text-2xl font-bold text-[#4A403A] tracking-tight">{orderNumber}</p>
           </div>
@@ -164,17 +166,20 @@ export default function WishBookConstructor() {
              На головну
           </button>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FDF9F7] text-[#4A403A] font-sans pb-32">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-[#FDF9F7] text-[#4A403A] font-sans pb-32 mt-20">
        
-       <div className="bg-white border-b border-[#F4EBE6] py-16 px-6">
-          <div className="max-w-4xl mx-auto text-center">
+       <div className="bg-white border-b border-[#F4EBE6] py-16 px-6 mt-20">
+          <div className="max-w-4xl mx-auto text-center mt-20">
              
-             <div className="inline-flex items-center justify-center p-1.5 bg-[#F9F5F2] rounded-2xl border border-[#ECE2DB] mb-10 shadow-sm mx-auto">
+             <div className="inline-flex items-center justify-center p-1.5 bg-[#F9F5F2] rounded-2xl border border-[#ECE2DB] mb-10 shadow-sm mx-auto mt-20">
                <button onClick={() => setMode('wishbook')} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${mode === 'wishbook' ? 'bg-white shadow border border-[#E8DCC] text-[#4A403A]' : 'text-[#A3968C] hover:text-[#4A403A]'}`}>
                  Wish Book (Книга побажань)
                </button>
@@ -189,12 +194,12 @@ export default function WishBookConstructor() {
           </div>
        </div>
 
-       <div className="max-w-5xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
+       <div className="max-w-5xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-12 mt-20">
           
-          <div className="lg:col-span-8 flex flex-col gap-8">
+          <div className="lg:col-span-8 flex flex-col gap-8 mt-20">
              
-             <div className="flex justify-between mb-4 border-b border-[#F4EBE6] pb-4">
-                <div className="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#C8B4A6]">
+             <div className="flex justify-between mb-4 border-b border-[#F4EBE6] pb-4 mt-20">
+                <div className="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#C8B4A6] mt-20">
                   <span className={step >= 1 ? 'text-[#4A403A]' : ''}>1. Size</span><span>/</span>
                   <span className={step >= 2 ? 'text-[#4A403A]' : ''}>2. Cover</span><span>/</span>
                   <span className={step >= 3 ? 'text-[#4A403A]' : ''}>3. Pages</span><span>/</span>
@@ -209,9 +214,9 @@ export default function WishBookConstructor() {
 
              {/* STEP 1: SIZE */}
              {step === 1 && (
-                <div className="animate-in fade-in duration-500">
+                <div className="animate-in fade-in duration-500 mt-20">
                    <h2 className="text-2xl font-serif mb-6 text-[#322B27]">Select Format</h2>
-                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-20">
                       {SIZES.map(s => (
                         <div key={s.id} onClick={() => setSz(s.id)} className={`cursor-pointer rounded-2xl p-6 border transition-all text-center flex flex-col items-center
                           ${sz === s.id ? 'border-[#4A403A] bg-white shadow-xl ring-1 ring-[#4A403A]' : 'border-[#E8DCC] bg-white/50 hover:bg-white'}
@@ -228,15 +233,15 @@ export default function WishBookConstructor() {
 
              {/* STEP 2: COVER */}
              {step === 2 && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    <h2 className="text-2xl font-serif mb-6 text-[#322B27]">Select Cover Material</h2>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-20">
                       {COVERS.map(c => (
                         <div key={c.id} onClick={() => setCov(c.id)} className={`cursor-pointer rounded-2xl p-6 border transition-all
                           ${cov === c.id ? 'border-[#4A403A] bg-white shadow-xl ring-1 ring-[#4A403A]' : 'border-[#E8DCC] bg-white/50 hover:bg-white'}
                         `}>
-                           <div className="font-bold text-lg mb-1">{c.name}</div>
-                           <div className="text-xs text-[#8C7A6B]">{c.nameUk}</div>
+                           <div className="font-bold text-lg mb-1 mt-20">{c.name}</div>
+                           <div className="text-xs text-[#8C7A6B] mt-20">{c.nameUk}</div>
                         </div>
                       ))}
                    </div>
@@ -245,17 +250,17 @@ export default function WishBookConstructor() {
 
              {/* STEP 3: PAGES */}
              {step === 3 && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    <h2 className="text-2xl font-serif mb-6 text-[#322B27]">Select Page Color</h2>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 mt-20">
                       {PAGES.map(p => (
                         <div key={p.id} onClick={() => setPag(p.id)} className={`cursor-pointer border rounded-2xl p-6 flex items-center shadow-sm
                           ${pag === p.id ? 'border-[#4A403A] bg-white ring-1 ring-[#4A403A]' : 'border-[#E8DCC] bg-white/50 hover:bg-white'}
                         `}>
                            <div className={`w-8 h-8 rounded-full border border-gray-300 mr-4 ${p.id==='black'?'bg-gray-900':'bg-white'}`} />
                            <div>
-                             <div className="font-bold text-sm">{p.name}</div>
-                             <div className="text-xs text-[#8C7A6B]">{p.nameUk}</div>
+                             <div className="font-bold text-sm mt-20">{p.name}</div>
+                             <div className="text-xs text-[#8C7A6B] mt-20">{p.nameUk}</div>
                            </div>
                         </div>
                       ))}
@@ -265,24 +270,24 @@ export default function WishBookConstructor() {
 
              {/* STEP 4: UPLOAD & CHECKOUT */}
              {step === 4 && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    <h2 className="text-2xl font-serif mb-6 text-[#322B27]">Cover Photo & Details</h2>
 
-                   <div className="bg-[#4A403A] text-[#FDF9F7] p-5 rounded-xl mb-8 flex justify-between items-center shadow-lg">
-                      <div className="flex items-center">
-                         <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center mr-4"><Gift className="w-5 h-5 text-[#FDF9F7]" /></div>
+                   <div className="bg-[#4A403A] text-[#FDF9F7] p-5 rounded-xl mb-8 flex justify-between items-center shadow-lg mt-20">
+                      <div className="flex items-center mt-20">
+                         <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center mr-4 mt-20"><Gift className="w-5 h-5 text-[#FDF9F7]" /></div>
                          <span className="font-serif italic text-lg tracking-wide">Cover design is included FREE</span>
                       </div>
                    </div>
 
-                   <div className="bg-white rounded-2xl border border-[#F4EBE6] p-6 mb-8">
+                   <div className="bg-white rounded-2xl border border-[#F4EBE6] p-6 mb-8 mt-20">
                       <h4 className="font-bold text-sm mb-4">1. Provide your cover photo</h4>
                       <PhotoUploader minFiles={1} maxFiles={1} canvasSize={{ width: cvW, height: cvH }} onPhotosChange={setPhotos} />
                    </div>
 
-                   <div className="bg-white rounded-2xl border border-[#F4EBE6] p-6 mb-8">
+                   <div className="bg-white rounded-2xl border border-[#F4EBE6] p-6 mb-8 mt-20">
                       <h4 className="font-bold text-sm mb-4">2. Optional Accessories</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-20">
                          {ACCESSORIES.map(acc => (
                            <label key={acc.id} className="flex items-center p-3 border border-[#F4EBE6] rounded-xl hover:bg-[#F9F5F2] cursor-pointer transition-colors">
                              <input type="checkbox" checked={selectedAccs.includes(acc.id)} onChange={() => handleToggleAcc(acc.id)} className="w-4 h-4 rounded text-[#4A403A] focus:ring-[#4A403A] mr-3 border-gray-300" />
@@ -293,9 +298,9 @@ export default function WishBookConstructor() {
                       </div>
                    </div>
 
-                   <div className="bg-white rounded-2xl border border-[#F4EBE6] p-6 mb-4 space-y-4">
+                   <div className="bg-white rounded-2xl border border-[#F4EBE6] p-6 mb-4 space-y-4 mt-20">
                       <h4 className="font-bold text-sm mb-2">3. Shipping Information</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-20">
                          <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Full Name *" required className="bg-[#FDF9F7] border border-[#ECE2DB] rounded-xl p-3 text-sm focus:border-[#4A403A] focus:ring-1 focus:ring-[#4A403A]" />
                          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone +380... *" required className="bg-[#FDF9F7] border border-[#ECE2DB] rounded-xl p-3 text-sm focus:border-[#4A403A] focus:ring-1 focus:ring-[#4A403A]" />
                       </div>
@@ -318,22 +323,22 @@ export default function WishBookConstructor() {
              )}
           </div>
 
-          <div className="lg:col-span-4">
-             <div className="sticky top-8 bg-white border border-[#F4EBE6] rounded-[2rem] p-8 shadow-xl">
+          <div className="lg:col-span-4 mt-20">
+             <div className="sticky top-8 bg-white border border-[#F4EBE6] rounded-[2rem] p-8 shadow-xl mt-20">
                 <h3 className="text-xl font-serif text-[#322B27] mb-6">Order Status</h3>
                 
                 {(!sz || !cov || !pag) ? (
-                  <div className="text-[#A3968C] text-sm py-4 border-t border-[#F4EBE6]">Make your selections to verify pricing...</div>
+                  <div className="text-[#A3968C] text-sm py-4 border-t border-[#F4EBE6] mt-20">Make your selections to verify pricing...</div>
                 ) : (
-                  <div className="space-y-4 text-sm mt-4 border-t border-[#F4EBE6] pt-6">
-                    <div className="flex justify-between font-bold"><span>Base Album:</span> <span>{basePrice} ₴</span></div>
+                  <div className="space-y-4 text-sm mt-4 border-t border-[#F4EBE6] pt-6 mt-20">
+                    <div className="flex justify-between font-bold mt-20"><span>Base Album:</span> <span>{basePrice} ₴</span></div>
                     {selectedAccs.length > 0 && (
-                      <div className="flex justify-between text-[#8C7A6B]"><span>Accessories ({selectedAccs.length}):</span> <span>+{accsTotal} ₴</span></div>
+                      <div className="flex justify-between text-[#8C7A6B] mt-20"><span>Accessories ({selectedAccs.length}):</span> <span>+{accsTotal} ₴</span></div>
                     )}
                     
-                    <div className="h-px bg-[#ECE2DB] my-4" />
+                    <div className="h-px bg-[#ECE2DB] my-4 mt-20" />
                     
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex justify-between items-center mb-6 mt-20">
                        <span className="font-bold text-[#322B27] text-lg">Total</span>
                        <span className="text-2xl font-black text-[#322B27] tracking-tight">{formatUAH(totalPrice)}</span>
                     </div>
@@ -345,7 +350,7 @@ export default function WishBookConstructor() {
                     ) : (
                       <>
                         {formError && (
-                          <div className="mt-2 mb-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg text-center border border-red-200">
+                          <div className="mt-2 mb-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg text-center border border-red-200 mt-20">
                             {formError}
                           </div>
                         )}
@@ -365,7 +370,7 @@ export default function WishBookConstructor() {
                       </>
                     )}
                     
-                    <div className="text-center text-[10px] text-[#8C7A6B] font-bold uppercase tracking-widest mt-6">
+                    <div className="text-center text-[10px] text-[#8C7A6B] font-bold uppercase tracking-widest mt-6 mt-20">
                       Production: <br/>10 business days
                     </div>
                   </div>
@@ -374,6 +379,7 @@ export default function WishBookConstructor() {
           </div>
 
        </div>
-    </div>
+      </div>
+    </>
   );
 }

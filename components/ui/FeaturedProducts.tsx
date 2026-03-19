@@ -21,6 +21,8 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
     const block = blocks.find(b => b.block_name === 'featured_products');
     const style = block?.style_metadata || {};
 
+    if (!products || products.length === 0) return null;
+
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,

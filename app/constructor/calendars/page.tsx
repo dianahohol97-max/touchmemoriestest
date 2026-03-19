@@ -1,5 +1,5 @@
 'use client';
-
+import { Navigation } from '@/components/ui/Navigation';
 import React, { useState, useRef } from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { CheckCircle2, Calendar as CalendarIcon, Upload, ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
@@ -144,13 +144,15 @@ export default function CalendarConstructor() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-[85vh] bg-blue-50 flex flex-col items-center justify-center font-sans">
-        <div className="bg-white p-12 rounded-[2rem] max-w-lg mx-4 text-center shadow-lg border border-blue-200">
-          <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-200">
+      <>
+        <Navigation />
+        <div className="min-h-[85vh] bg-blue-50 flex flex-col items-center justify-center font-sans mt-20">
+        <div className="bg-white p-12 rounded-[2rem] max-w-lg mx-4 text-center shadow-lg border border-blue-200 mt-20">
+          <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-200 mt-20">
             <CheckCircle2 className="w-10 h-10 text-white" strokeWidth={2.5} />
           </div>
           <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Дякуємо за замовлення!</h2>
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8 inline-block w-full">
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8 inline-block w-full mt-20">
              <p className="text-sm font-bold text-blue-600 uppercase tracking-widest mb-1">Номер замовлення</p>
              <p className="text-2xl font-black text-gray-900 tracking-tight">{orderNumber}</p>
           </div>
@@ -161,16 +163,19 @@ export default function CalendarConstructor() {
              На головну
           </button>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-gray-900 font-sans pb-32 tracking-tight">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-[#FDFDFD] text-gray-900 font-sans pb-32 tracking-tight mt-20">
        
-       <div className="bg-white border-b border-gray-100 py-16 px-6 relative overflow-hidden">
-          <div className="max-w-5xl mx-auto text-center">
-             <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 mb-6 border border-blue-100 font-bold uppercase tracking-widest text-[10px]">
+       <div className="bg-white border-b border-gray-100 py-16 px-6 relative overflow-hidden mt-20">
+          <div className="max-w-5xl mx-auto text-center mt-20">
+             <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 mb-6 border border-blue-100 font-bold uppercase tracking-widest text-[10px] mt-20">
                12-Month Mapping
              </div>
              <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-gray-900">
@@ -182,12 +187,12 @@ export default function CalendarConstructor() {
           </div>
        </div>
 
-       <div className="max-w-5xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
+       <div className="max-w-5xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-12 mt-20">
           
-          <div className="lg:col-span-8 flex flex-col gap-8">
+          <div className="lg:col-span-8 flex flex-col gap-8 mt-20">
              
-             <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2 sm:space-x-4 text-xs font-bold uppercase tracking-[0.15em] text-gray-400">
+             <div className="flex items-center justify-between mb-2 mt-20">
+                <div className="flex items-center space-x-2 sm:space-x-4 text-xs font-bold uppercase tracking-[0.15em] text-gray-400 mt-20">
                   <span className={step >= 1 ? 'text-gray-900' : ''}>1. Type</span>
                   <span>/</span>
                   <span className={step >= 2 ? 'text-gray-900' : ''}>2. Photos</span>
@@ -203,10 +208,10 @@ export default function CalendarConstructor() {
 
              {/* STEP 1 */}
              {step === 1 && (
-                <div className="animate-in fade-in duration-500">
+                <div className="animate-in fade-in duration-500 mt-20">
                    <h2 className="text-2xl font-bold mb-8 tracking-tight">Select Calendar Format</h2>
                    
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20">
                       {CALENDAR_TYPES.map(type => {
                         const isSelected = selectedTypeId === type.id;
                         return (
@@ -224,7 +229,7 @@ export default function CalendarConstructor() {
                              <p className="text-xs font-medium text-gray-500 mb-6 leading-relaxed flex-1">{type.format}</p>
                              
                              {type.id === 'desk' && isSelected ? (
-                               <div className="w-full text-left bg-gray-50 border border-gray-200 rounded-xl p-3" onClick={e => e.stopPropagation()}>
+                               <div className="w-full text-left bg-gray-50 border border-gray-200 rounded-xl p-3 mt-20" onClick={e => e.stopPropagation()}>
                                  <label className="flex items-center text-sm font-bold mb-2 cursor-pointer">
                                    <input type="radio" checked={deskEasel} onChange={() => setDeskEasel(true)} className="mr-2 text-gray-900" /> With easel: 299 ₴
                                  </label>
@@ -233,7 +238,7 @@ export default function CalendarConstructor() {
                                  </label>
                                </div>
                              ) : (
-                               <div className="mt-auto w-full pt-4 border-t border-gray-100">
+                               <div className="mt-auto w-full pt-4 border-t border-gray-100 mt-20">
                                   <span className={`font-extrabold text-2xl tracking-tighter ${isSelected ? 'text-gray-900' : 'text-gray-900'}`}>
                                     {type.price || "249-299"} ₴
                                   </span>
@@ -241,7 +246,7 @@ export default function CalendarConstructor() {
                              )}
 
                              {isSelected && (
-                               <div className="absolute top-4 right-4 text-gray-900">
+                               <div className="absolute top-4 right-4 text-gray-900 mt-20">
                                   <CheckCircle2 className="w-6 h-6 bg-white rounded-full" strokeWidth={2.5} />
                                </div>
                              )}
@@ -251,8 +256,8 @@ export default function CalendarConstructor() {
                    </div>
 
                    {selectedTypeId && (
-                     <div className="mt-8 bg-blue-50/50 border border-blue-100 p-6 rounded-2xl flex items-center justify-between cursor-pointer" onClick={() => setDateCircling(!dateCircling)}>
-                        <div className="flex items-center">
+                     <div className="mt-8 bg-blue-50/50 border border-blue-100 p-6 rounded-2xl flex items-center justify-between cursor-pointer mt-20" onClick={() => setDateCircling(!dateCircling)}>
+                        <div className="flex items-center mt-20">
                           <input type="checkbox" checked={dateCircling} onChange={() => setDateCircling(!dateCircling)} className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-600 mr-4" />
                           <div>
                             <span className="block font-bold text-blue-900 text-sm">Date circling (обведення дати)</span>
@@ -267,16 +272,16 @@ export default function CalendarConstructor() {
 
              {/* STEP 2 */}
              {step === 2 && selectedType && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    
                    {isDesk ? (
                      <>
-                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 mt-20">
                          <div>
                            <h2 className="text-2xl font-bold tracking-tight mb-2">12-Month Assignment</h2>
                            <p className="text-gray-500 font-medium text-sm">Upload exactly 12 photos.</p>
                          </div>
-                         <div className="bg-white border text-xs font-bold uppercase tracking-widest border-gray-200 px-5 py-3 rounded-xl flex items-center shadow-sm text-gray-600">
+                         <div className="bg-white border text-xs font-bold uppercase tracking-widest border-gray-200 px-5 py-3 rounded-xl flex items-center shadow-sm text-gray-600 mt-20">
                            <CheckCircle2 className={`w-4 h-4 mr-2 ${isPhotosValid ? 'text-green-500' : 'text-gray-300'}`} />
                            {completedGridCount} / 12 months assigned
                          </div>
@@ -284,7 +289,7 @@ export default function CalendarConstructor() {
 
                        <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleFileChange} />
 
-                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-20">
                          {MONTHS.map((month, idx) => {
                            const assigned = monthPhotos[idx];
                            return (
@@ -295,18 +300,18 @@ export default function CalendarConstructor() {
                                   ${assigned ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-400 border-b border-gray-200'}`}>
                                   {month}
                                 </div>
-                                <div className="flex-1 flex flex-col items-center justify-center relative p-2">
+                                <div className="flex-1 flex flex-col items-center justify-center relative p-2 mt-20">
                                    {assigned ? (
                                      <>
                                        <img src={assigned.url} alt={`Assigned to ${month}`} className="absolute top-0 left-0 w-full h-full object-cover z-0" />
-                                       <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity z-20 flex items-center justify-center gap-3">
+                                       <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity z-20 flex items-center justify-center gap-3 mt-20">
                                          <button onClick={() => triggerUploadForMonth(idx)} className="bg-white text-gray-900 p-2 rounded-full shadow-lg hover:scale-110 transition-transform"><Upload className="w-4 h-4" /></button>
                                          <button onClick={() => removePhoto(idx)} className="bg-red-500 text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"><Trash2 className="w-4 h-4" /></button>
                                        </div>
                                      </>
                                    ) : (
                                      <button onClick={() => triggerUploadForMonth(idx)} className="w-full h-full flex flex-col items-center justify-center group focus:outline-none">
-                                        <div className="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform group-hover:border-gray-400">
+                                        <div className="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform group-hover:border-gray-400 mt-20">
                                           <Upload className="w-4 h-4" />
                                         </div>
                                      </button>
@@ -322,9 +327,9 @@ export default function CalendarConstructor() {
                         <h2 className="text-2xl font-bold tracking-tight mb-2">Upload Wall Photos</h2>
                         <p className="text-gray-500 font-medium text-sm mb-8">Upload 12–26 photos depending on your layout preferences.</p>
                         
-                        <div className="bg-white border border-gray-200 rounded-[2rem] p-4 md:p-8 shadow-sm">
-                           <div className="mb-6 flex justify-between items-center bg-gray-50 px-5 py-3 rounded-2xl border border-gray-100">
-                              <div className="font-bold text-gray-500 text-sm">Assets Loaded:<br/><span className={`text-2xl font-black ${isPhotosValid ? 'text-green-600' : 'text-gray-900'}`}>{wallPhotos.length}</span> / 12-26</div>
+                        <div className="bg-white border border-gray-200 rounded-[2rem] p-4 md:p-8 shadow-sm mt-20">
+                           <div className="mb-6 flex justify-between items-center bg-gray-50 px-5 py-3 rounded-2xl border border-gray-100 mt-20">
+                              <div className="font-bold text-gray-500 text-sm mt-20">Assets Loaded:<br/><span className={`text-2xl font-black ${isPhotosValid ? 'text-green-600' : 'text-gray-900'}`}>{wallPhotos.length}</span> / 12-26</div>
                            </div>
                            <PhotoUploader minFiles={12} maxFiles={26} canvasSize={{ width: 2480, height: 3508 }} onPhotosChange={setWallPhotos} />
                         </div>
@@ -335,11 +340,11 @@ export default function CalendarConstructor() {
 
              {/* STEP 3 */}
              {step === 3 && selectedType && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    <h2 className="text-2xl font-bold mb-8 tracking-tight">Delivery Details</h2>
 
-                   <div className="bg-white rounded-[2rem] border border-gray-200 p-8 shadow-sm space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="bg-white rounded-[2rem] border border-gray-200 p-8 shadow-sm space-y-6 mt-20">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-20">
                          <div>
                             <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Full Name *</label>
                             <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} required className="w-full bg-gray-50 border-b-2 border-x-0 border-t-0 border-gray-200 rounded-none p-3 focus:border-gray-900 focus:ring-0 transition-colors text-sm" placeholder="John Doe" />
@@ -355,7 +360,7 @@ export default function CalendarConstructor() {
                          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full bg-gray-50 border-b-2 border-x-0 border-t-0 border-gray-200 rounded-none p-3 focus:border-gray-900 focus:ring-0 transition-colors text-sm" placeholder="hello@example.com" />
                       </div>
 
-                      <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="flex flex-col sm:flex-row gap-4 mt-20">
                          <label className={`flex-1 border-2 rounded-xl p-4 flex items-center cursor-pointer transition-colors ${deliveryMethod === 'pickup' ? 'border-gray-900 bg-gray-50' : 'border-gray-100'}`}>
                             <input type="radio" checked={deliveryMethod === 'pickup'} onChange={() => setDeliveryMethod('pickup')} className="sr-only" />
                             <span className="font-bold text-sm">Self-pickup or Courier</span>
@@ -377,29 +382,29 @@ export default function CalendarConstructor() {
              )}
           </div>
 
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 mt-20">
              <div className={`sticky top-8 bg-gray-50 border border-gray-100 rounded-[2.5rem] p-8 lg:p-10 shadow-xl transition-all duration-300 ${selectedType ? 'opacity-100' : 'opacity-40 pointer-events-none translate-y-4'}`}>
                 <h3 className="text-xl font-bold mb-8 border-b border-gray-200 pb-4 text-gray-900">Checkout Card</h3>
                 
                 {selectedType && (
-                  <div className="space-y-6">
-                    <div className="flex justify-between font-medium items-center">
+                  <div className="space-y-6 mt-20">
+                    <div className="flex justify-between font-medium items-center mt-20">
                        <span className="text-gray-500 text-sm">Type</span>
                        <span className="bg-white px-3 py-1 rounded-lg text-sm shadow-sm border border-gray-100 font-bold">{isDesk ? "Desk" : "Wall"}</span>
                     </div>
                     
-                    <div className="h-px bg-gray-200 my-6" />
+                    <div className="h-px bg-gray-200 my-6 mt-20" />
 
                     {dateCircling && (
-                       <div className="flex justify-between items-center text-sm font-bold text-blue-600 mb-4">
+                       <div className="flex justify-between items-center text-sm font-bold text-blue-600 mb-4 mt-20">
                           <span>+ Date Circling</span>
                           <span>10 ₴</span>
                        </div>
                     )}
 
-                    <div className="flex justify-between items-center text-gray-900">
+                    <div className="flex justify-between items-center text-gray-900 mt-20">
                        <span className="font-bold text-lg">Total</span>
-                       <div className="text-3xl font-black tracking-tighter">{formatUAH(totalPrice)}</div>
+                       <div className="text-3xl font-black tracking-tighter mt-20">{formatUAH(totalPrice)}</div>
                     </div>
 
                     {step < 3 ? (
@@ -413,7 +418,7 @@ export default function CalendarConstructor() {
                     ) : (
                       <>
                         {formError && (
-                          <div className="mt-2 mb-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg text-center border border-red-200">
+                          <div className="mt-2 mb-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg text-center border border-red-200 mt-20">
                             {formError}
                           </div>
                         )}
@@ -445,6 +450,7 @@ export default function CalendarConstructor() {
           </div>
 
        </div>
-    </div>
+      </div>
+    </>
   );
 }

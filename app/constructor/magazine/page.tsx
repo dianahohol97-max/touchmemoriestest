@@ -1,4 +1,5 @@
 'use client';
+import { Navigation } from '@/components/ui/Navigation';
 import { useCartStore } from '@/store/cart-store';
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -152,28 +153,30 @@ export default function MagazineConstructorPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-[85vh] bg-white flex flex-col items-center justify-center font-sans">
-        <div className="p-12 text-center max-w-2xl mx-4 border-2 border-black animate-in fade-in duration-700">
+      <>
+        <Navigation />
+        <div className="min-h-[85vh] bg-white flex flex-col items-center justify-center font-sans mt-20">
+        <div className="p-12 text-center max-w-2xl mx-4 border-2 border-black animate-in fade-in duration-700 mt-20">
           <h2 className="text-5xl font-black text-black tracking-tighter uppercase mb-6">Дякуємо за замовлення!</h2>
-          <div className="bg-gray-50 border border-gray-200 p-6 mb-8 inline-block">
+          <div className="bg-gray-50 border border-gray-200 p-6 mb-8 inline-block mt-20">
              <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-1">Номер замовлення</p>
              <p className="text-2xl font-black text-black tracking-tight">{orderNumber}</p>
           </div>
           <p className="text-lg text-gray-600 mb-8 leading-relaxed">
             Ми зв'яжемося з вами найближчим часом
           </p>
-          <div className="bg-gray-50 p-6 mb-10 text-left flex flex-col gap-3 font-mono text-sm border border-gray-200">
-            <div className="flex justify-between border-b border-gray-200 pb-2">
+          <div className="bg-gray-50 p-6 mb-10 text-left flex flex-col gap-3 font-mono text-sm border border-gray-200 mt-20">
+            <div className="flex justify-between border-b border-gray-200 pb-2 mt-20">
               <span className="text-gray-500 uppercase tracking-wider">Format</span> 
               <span className="text-black font-bold text-right">{coverType === 'soft' ? 'Soft Cover' : 'Hard Cover'} / {pages} pages</span>
             </div>
             {contentFile && (
-              <div className="flex justify-between border-b border-gray-200 pb-2">
+              <div className="flex justify-between border-b border-gray-200 pb-2 mt-20">
                 <span className="text-gray-500 uppercase tracking-wider">Files Attached</span> 
                 <span className="text-black font-bold text-right">{contentFile.name}</span>
               </div>
             )}
-            <div className="flex justify-between pt-2">
+            <div className="flex justify-between pt-2 mt-20">
               <span className="text-gray-500 uppercase tracking-wider">Total Est.</span> 
               <span className="text-black font-bold text-lg">{formatUAH(totalPrice)}</span>
             </div>
@@ -182,17 +185,20 @@ export default function MagazineConstructorPage() {
              Return Home
           </Link>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white font-sans text-black selection:bg-black selection:text-white pb-24">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-white font-sans text-black selection:bg-black selection:text-white pb-24 mt-20">
       
       {/* Editorial Header */}
       <header className="border-b-2 border-black py-16 px-4 md:px-12 bg-white relative overflow-hidden">
-         <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
-         <div className="max-w-7xl mx-auto relative z-10 text-center">
+         <div className="absolute inset-0 opacity-5 pointer-events-none mt-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+         <div className="max-w-7xl mx-auto relative z-10 text-center mt-20">
             <p className="text-xs font-bold uppercase tracking-[0.3em] mb-4 text-gray-500">TouchMemories Editorial</p>
             <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-[0.9]">
                Photo Journal
@@ -200,13 +206,13 @@ export default function MagazineConstructorPage() {
          </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-16 mt-20">
         
         {/* Main Content Area */}
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-8 mt-20">
           
-          <div className="flex items-center justify-between mb-12 border-b-2 border-black pb-4">
-            <div className="flex gap-2 text-xs font-bold uppercase tracking-widest">
+          <div className="flex items-center justify-between mb-12 border-b-2 border-black pb-4 mt-20">
+            <div className="flex gap-2 text-xs font-bold uppercase tracking-widest mt-20">
               <span className="text-gray-400">Step {step} of 4</span>
               <span className="text-black">— {
                 step === 1 ? 'Cover Edition' :
@@ -222,12 +228,12 @@ export default function MagazineConstructorPage() {
             )}
           </div>
 
-          <div className="min-h-[400px]">
+          <div className="min-h-[400px] mt-20">
             {/* STEP 1: COVER TYPE */}
             {step === 1 && (
-              <div className="animate-in fade-in duration-500">
+              <div className="animate-in fade-in duration-500 mt-20">
                 <h2 className="text-3xl font-black uppercase tracking-tight mb-8">Select Edition</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-20">
                   
                   {/* Soft Cover */}
                   <div 
@@ -236,7 +242,7 @@ export default function MagazineConstructorPage() {
                       ${coverType === 'soft' ? 'border-black bg-black text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]' : 'border-gray-200 hover:border-black'}
                     `}
                   >
-                    <div className="flex-1">
+                    <div className="flex-1 mt-20">
                       <h3 className="text-2xl font-black uppercase mb-2">Soft Cover</h3>
                       <p className={`text-sm font-medium mb-4 ${coverType === 'soft' ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-widest text-[#888]`}>Фотожурнал</p>
                       <ul className={`text-sm space-y-3 mb-8 ${coverType === 'soft' ? 'text-gray-200' : 'text-gray-600'}`}>
@@ -259,7 +265,7 @@ export default function MagazineConstructorPage() {
                       ${coverType === 'hard' ? 'border-black bg-black text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]' : 'border-gray-200 hover:border-black'}
                     `}
                   >
-                    <div className="flex-1">
+                    <div className="flex-1 mt-20">
                       <h3 className="text-2xl font-black uppercase mb-2">Hard Cover</h3>
                       <p className={`text-sm font-medium mb-4 ${coverType === 'hard' ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-widest text-[#888]`}>З твердою обкладинкою</p>
                       <ul className={`text-sm space-y-3 mb-8 ${coverType === 'hard' ? 'text-gray-200' : 'text-gray-600'}`}>
@@ -281,18 +287,18 @@ export default function MagazineConstructorPage() {
 
             {/* STEP 2: PAGE COUNT */}
             {step === 2 && (
-              <div className="animate-in slide-in-from-right-8 duration-500">
-                <div className="flex justify-between items-end mb-8">
+              <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
+                <div className="flex justify-between items-end mb-8 mt-20">
                   <h2 className="text-3xl font-black uppercase tracking-tight">Volume Configuration</h2>
-                  <div className="text-right">
+                  <div className="text-right mt-20">
                      <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-1">Canvas Size</span>
                      <span className="font-mono text-sm">2480×3508 px @ 300 DPI</span>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 border border-gray-200 p-8 mb-8">
+                <div className="bg-gray-50 border border-gray-200 p-8 mb-8 mt-20">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-6">Select Page Count</h3>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-3 mt-20">
                     {availablePages.map(p => (
                       <button
                         key={p}
@@ -310,7 +316,7 @@ export default function MagazineConstructorPage() {
                 </div>
 
                 {pages && (
-                  <div className="border-l-4 border-black pl-6 py-2 animate-in fade-in">
+                  <div className="border-l-4 border-black pl-6 py-2 animate-in fade-in mt-20">
                     <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Binding Method Applied</p>
                     <p className="text-xl font-bold">{bindingType}</p>
                   </div>
@@ -320,21 +326,21 @@ export default function MagazineConstructorPage() {
 
             {/* STEP 3: EXTRAS */}
             {step === 3 && (
-              <div className="animate-in slide-in-from-right-8 duration-500">
+              <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                 <h2 className="text-3xl font-black uppercase tracking-tight mb-8">Editorial Enhancements</h2>
                 
-                <div className="space-y-4">
+                <div className="space-y-4 mt-20">
                   
                   {/* Hard Cover Only Options */}
                   {coverType === 'hard' && (
                     <>
                       <label className={`block border-2 p-6 cursor-pointer transition-colors ${endpapers ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-black'}`}>
-                        <div className="flex items-start">
+                        <div className="flex items-start mt-20">
                           <div className={`w-6 h-6 border-2 flex items-center justify-center mr-4 mt-0.5 ${endpapers ? 'border-black bg-black' : 'border-gray-300'}`}>
                             {endpapers && <CheckCircle2 className="w-4 h-4 text-white" strokeWidth={3} />}
                           </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center mb-1">
+                          <div className="flex-1 mt-20">
+                            <div className="flex justify-between items-center mb-1 mt-20">
                               <span className="font-bold text-lg uppercase tracking-tight">Endpapers (Форзаці)</span>
                               <span className="font-mono text-sm">+200 UAH</span>
                             </div>
@@ -344,12 +350,12 @@ export default function MagazineConstructorPage() {
                       </label>
 
                       <label className={`block border-2 p-6 cursor-pointer transition-colors ${lamination ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-black'}`}>
-                        <div className="flex items-start">
+                        <div className="flex items-start mt-20">
                           <div className={`w-6 h-6 border-2 flex items-center justify-center mr-4 mt-0.5 ${lamination ? 'border-black bg-black' : 'border-gray-300'}`}>
                             {lamination && <CheckCircle2 className="w-4 h-4 text-white" strokeWidth={3} />}
                           </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center mb-1">
+                          <div className="flex-1 mt-20">
+                            <div className="flex justify-between items-center mb-1 mt-20">
                               <span className="font-bold text-lg uppercase tracking-tight">Lamination</span>
                               <span className="font-mono text-sm">+{5 * (pages || 0)} UAH</span>
                             </div>
@@ -362,12 +368,12 @@ export default function MagazineConstructorPage() {
 
                   {/* Standard Options */}
                   <label className={`block border-2 p-6 cursor-pointer transition-colors ${typesetting ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-black'}`}>
-                    <div className="flex items-start">
+                    <div className="flex items-start mt-20">
                       <div className={`w-6 h-6 border-2 flex items-center justify-center mr-4 mt-0.5 ${typesetting ? 'border-black bg-black' : 'border-gray-300'}`}>
                         {typesetting && <CheckCircle2 className="w-4 h-4 text-white" strokeWidth={3} />}
                       </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center mb-1">
+                      <div className="flex-1 mt-20">
+                        <div className="flex justify-between items-center mb-1 mt-20">
                           <span className="font-bold text-lg uppercase tracking-tight">Text Typesetting</span>
                           <span className="font-mono text-sm">+175 UAH</span>
                         </div>
@@ -377,12 +383,12 @@ export default function MagazineConstructorPage() {
                   </label>
 
                   <label className={`block border-2 p-6 cursor-pointer transition-colors ${urgent ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-black'}`}>
-                    <div className="flex items-start">
+                    <div className="flex items-start mt-20">
                       <div className={`w-6 h-6 border-2 flex items-center justify-center mr-4 mt-0.5 ${urgent ? 'border-black bg-black' : 'border-gray-300'}`}>
                         {urgent && <CheckCircle2 className="w-4 h-4 text-white" strokeWidth={3} />}
                       </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center mb-1">
+                      <div className="flex-1 mt-20">
+                        <div className="flex justify-between items-center mb-1 mt-20">
                           <span className="font-bold text-lg uppercase tracking-tight">Urgent Production</span>
                           <span className="font-mono text-sm">+{Math.round(basePrice * 0.3)} UAH</span>
                         </div>
@@ -392,12 +398,12 @@ export default function MagazineConstructorPage() {
                   </label>
 
                   <div className={`block border-2 p-6 transition-colors ${retouchCount > 0 ? 'border-black' : 'border-gray-200'}`}>
-                    <div className="flex items-start flex-col sm:flex-row sm:items-center justify-between">
-                      <div className="mb-4 sm:mb-0">
+                    <div className="flex items-start flex-col sm:flex-row sm:items-center justify-between mt-20">
+                      <div className="mb-4 sm:mb-0 mt-20">
                         <span className="font-bold text-lg uppercase tracking-tight block mb-1">Photo Retouching</span>
                         <p className="text-sm text-gray-500">7 UAH per photo.</p>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 mt-20">
                         <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Qty:</label>
                         <input 
                           type="number" 
@@ -418,15 +424,15 @@ export default function MagazineConstructorPage() {
 
             {/* STEP 4: ORDER FORM */}
             {step === 4 && (
-              <div className="animate-in slide-in-from-right-8 duration-500">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+              <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 mt-20">
                   <h2 className="text-3xl font-black uppercase tracking-tight leading-none">Checkout & Upload</h2>
                   <span className="text-xs font-bold uppercase tracking-widest text-gray-500 border border-gray-200 px-3 py-1 bg-gray-50">
                      Time: 4–8 business days after design approval
                   </span>
                 </div>
 
-                <div className="border-2 border-black p-6 md:p-10 mb-8 bg-gray-50">
+                <div className="border-2 border-black p-6 md:p-10 mb-8 bg-gray-50 mt-20">
                    <h3 className="text-xs font-bold uppercase tracking-widest text-black mb-6">File Assets</h3>
                    
                    {!contentFile ? (
@@ -434,7 +440,7 @@ export default function MagazineConstructorPage() {
                         onClick={() => fileInputRef.current?.click()}
                         className="border-2 border-dashed border-gray-400 p-10 flex flex-col items-center justify-center cursor-pointer hover:border-black hover:bg-gray-100 transition-colors bg-white group"
                      >
-                       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-black group-hover:text-white transition-colors">
+                       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-black group-hover:text-white transition-colors mt-20">
                           <Upload className="w-6 h-6" />
                        </div>
                        <p className="font-bold uppercase tracking-widest mb-2">Upload Content Files</p>
@@ -448,9 +454,9 @@ export default function MagazineConstructorPage() {
                        />
                      </div>
                    ) : (
-                     <div className="border-2 border-black p-6 flex items-center justify-between bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="flex items-center">
-                           <div className="w-12 h-12 bg-black text-white flex items-center justify-center mr-4">
+                     <div className="border-2 border-black p-6 flex items-center justify-between bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mt-20">
+                        <div className="flex items-center mt-20">
+                           <div className="w-12 h-12 bg-black text-white flex items-center justify-center mr-4 mt-20">
                              <Paperclip className="w-5 h-5" />
                            </div>
                            <div>
@@ -465,23 +471,23 @@ export default function MagazineConstructorPage() {
                    )}
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-6 mt-20">
                    <h3 className="text-xs font-bold uppercase tracking-widest text-black border-b-2 border-black pb-2">Client Details</h3>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="flex flex-col">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-20">
+                      <div className="flex flex-col mt-20">
                         <label className="text-xs font-bold uppercase tracking-widest mb-2 text-gray-600">Full Name *</label>
                         <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} className="border-2 border-gray-300 focus:border-black focus:ring-0 p-4 font-medium" placeholder="Jane Doe" required />
                       </div>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col mt-20">
                         <label className="text-xs font-bold uppercase tracking-widest mb-2 text-gray-600">Phone Number *</label>
                         <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="border-2 border-gray-300 focus:border-black focus:ring-0 p-4 font-medium" placeholder="+380..." required />
                       </div>
                    </div>
-                   <div className="flex flex-col">
+                   <div className="flex flex-col mt-20">
                         <label className="text-xs font-bold uppercase tracking-widest mb-2 text-gray-600">Email Address *</label>
                         <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="border-2 border-gray-300 focus:border-black focus:ring-0 p-4 font-medium" placeholder="client@agency.com" required />
                    </div>
-                   <div className="flex flex-col">
+                   <div className="flex flex-col mt-20">
                         <label className="text-xs font-bold uppercase tracking-widest mb-2 text-gray-600">Magazine Purpose / Notes</label>
                         <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="border-2 border-gray-300 focus:border-black focus:ring-0 p-4 font-medium" placeholder="E.g., Lookbook for Spring collection, event documentation..." />
                    </div>
@@ -492,7 +498,7 @@ export default function MagazineConstructorPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-12 flex justify-end">
+          <div className="mt-12 flex justify-end mt-20">
             {step < 4 ? (
               <button 
                 onClick={handleNext}
@@ -507,62 +513,62 @@ export default function MagazineConstructorPage() {
         </div>
 
         {/* Right Sidebar: Dynamic Invoice Style Summary */}
-        <div className="lg:col-span-4">
-           <div className="sticky top-12 border-2 border-black p-6 md:p-8 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col">
+        <div className="lg:col-span-4 mt-20">
+           <div className="sticky top-12 border-2 border-black p-6 md:p-8 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col mt-20">
               <h3 className="text-2xl font-black uppercase tracking-tight mb-6 border-b-2 border-black pb-4">Estimate</h3>
               
-              <div className="space-y-4 mb-8 flex-1">
-                 <div className="flex justify-between items-start">
+              <div className="space-y-4 mb-8 flex-1 mt-20">
+                 <div className="flex justify-between items-start mt-20">
                    <span className="text-sm font-bold uppercase tracking-wide text-gray-600">Edition Base</span>
                    <span className="font-mono text-sm">{formatUAH(basePrice)}</span>
                  </div>
                  {coverType && <p className="text-xs text-gray-400 uppercase tracking-widest mt-[-10px]">{coverType} / {pages || 0}p</p>}
 
                  {endpapersPrice > 0 && (
-                   <div className="flex justify-between items-start mt-4">
+                   <div className="flex justify-between items-start mt-4 mt-20">
                      <span className="text-sm font-bold uppercase tracking-wide text-gray-600">Endpapers</span>
                      <span className="font-mono text-sm">+{formatUAH(endpapersPrice)}</span>
                    </div>
                  )}
 
                  {laminationPrice > 0 && (
-                   <div className="flex justify-between items-start mt-4">
+                   <div className="flex justify-between items-start mt-4 mt-20">
                      <span className="text-sm font-bold uppercase tracking-wide text-gray-600">Lamination</span>
                      <span className="font-mono text-sm">+{formatUAH(laminationPrice)}</span>
                    </div>
                  )}
 
                  {retouchingPrice > 0 && (
-                   <div className="flex justify-between items-start mt-4">
+                   <div className="flex justify-between items-start mt-4 mt-20">
                      <span className="text-sm font-bold uppercase tracking-wide text-gray-600">Retouching ✕{retouchCount}</span>
                      <span className="font-mono text-sm">+{formatUAH(retouchingPrice)}</span>
                    </div>
                  )}
 
                  {typesettingPrice > 0 && (
-                   <div className="flex justify-between items-start mt-4">
+                   <div className="flex justify-between items-start mt-4 mt-20">
                      <span className="text-sm font-bold uppercase tracking-wide text-gray-600">Typesetting</span>
                      <span className="font-mono text-sm">+{formatUAH(typesettingPrice)}</span>
                    </div>
                  )}
 
                  {urgentPrice > 0 && (
-                   <div className="flex justify-between items-start mt-4">
+                   <div className="flex justify-between items-start mt-4 mt-20">
                      <span className="text-sm font-bold uppercase tracking-wide text-gray-600">Urgent (+30%)</span>
                      <span className="font-mono text-sm">+{formatUAH(urgentPrice)}</span>
                    </div>
                  )}
               </div>
 
-              <div className="border-t-2 border-black pt-6 mb-8 mt-auto">
-                 <div className="flex justify-between items-end">
+              <div className="border-t-2 border-black pt-6 mb-8 mt-auto mt-20">
+                 <div className="flex justify-between items-end mt-20">
                    <span className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-1">Total Due</span>
                    <span className="text-3xl font-black font-mono tracking-tighter">{formatUAH(totalPrice)}</span>
                  </div>
               </div>
 
               {step === 4 && (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 mt-20">
                   {formError && (
                     <p className="text-center text-xs text-red-600 font-bold mb-2">
                       {formError}
@@ -592,6 +598,7 @@ export default function MagazineConstructorPage() {
 
       </div>
 
-    </div>
+      </div>
+    </>
   );
 }

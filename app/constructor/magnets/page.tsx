@@ -1,5 +1,5 @@
 'use client';
-
+import { Navigation } from '@/components/ui/Navigation';
 import React, { useState } from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, ShoppingBag, Truck, Check, MapPin } from 'lucide-react';
@@ -124,13 +124,15 @@ export default function PhotoMagnetsConstructor() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-[85vh] bg-rose-50 flex flex-col items-center justify-center font-sans tracking-tight">
-        <div className="bg-white p-12 rounded-[2.5rem] max-w-lg mx-4 text-center shadow-2xl border border-rose-100">
-          <div className="w-24 h-24 bg-rose-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-rose-200">
+      <>
+        <Navigation />
+        <div className="min-h-[85vh] bg-rose-50 flex flex-col items-center justify-center font-sans tracking-tight mt-20">
+        <div className="bg-white p-12 rounded-[2.5rem] max-w-lg mx-4 text-center shadow-2xl border border-rose-100 mt-20">
+          <div className="w-24 h-24 bg-rose-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-rose-200 mt-20">
             <CheckCircle2 className="w-12 h-12 text-white" strokeWidth={2.5} />
           </div>
           <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Дякуємо за замовлення!</h2>
-          <div className="bg-rose-50 border border-rose-100 rounded-2xl p-6 mb-8 inline-block w-full">
+          <div className="bg-rose-50 border border-rose-100 rounded-2xl p-6 mb-8 inline-block w-full mt-20">
              <p className="text-sm font-bold text-rose-500 uppercase tracking-widest mb-1">Номер замовлення</p>
              <p className="text-2xl font-black text-rose-600 tracking-tight">{orderNumber}</p>
           </div>
@@ -144,18 +146,21 @@ export default function PhotoMagnetsConstructor() {
              На головну
           </button>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-32 tracking-tight">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-32 tracking-tight mt-20">
        
        {/* Header */}
-       <div className="bg-white border-b border-gray-100 py-16 px-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-rose-50 to-transparent pointer-events-none" />
-          <div className="max-w-5xl mx-auto text-center relative z-10">
-             <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold text-xs uppercase tracking-widest mb-6">
+       <div className="bg-white border-b border-gray-100 py-16 px-6 relative overflow-hidden mt-20">
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-rose-50 to-transparent pointer-events-none mt-20" />
+          <div className="max-w-5xl mx-auto text-center relative z-10 mt-20">
+             <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold text-xs uppercase tracking-widest mb-6 mt-20">
                215 UAH / set
              </div>
              <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-gray-900">
@@ -168,13 +173,13 @@ export default function PhotoMagnetsConstructor() {
           </div>
        </div>
 
-       <div className="max-w-5xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
+       <div className="max-w-5xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-12 mt-20">
           
-          <div className="lg:col-span-8 flex flex-col gap-8">
+          <div className="lg:col-span-8 flex flex-col gap-8 mt-20">
              
              {/* Dynamic Step Navigation */}
-             <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2 sm:space-x-4 text-xs font-bold uppercase tracking-[0.15em] text-gray-400">
+             <div className="flex items-center justify-between mb-2 mt-20">
+                <div className="flex items-center space-x-2 sm:space-x-4 text-xs font-bold uppercase tracking-[0.15em] text-gray-400 mt-20">
                   <span className={step >= 1 ? 'text-gray-900' : ''}>1. Format</span>
                   <span>/</span>
                   <span className={step >= 2 ? 'text-gray-900' : ''}>2. Photos</span>
@@ -190,8 +195,8 @@ export default function PhotoMagnetsConstructor() {
 
              {/* STEP 1: SET TYPE */}
              {step === 1 && (
-                <div className="animate-in fade-in duration-500">
-                   <div className="bg-rose-50/50 border border-rose-100 p-5 rounded-2xl mb-8 flex items-start shadow-sm">
+                <div className="animate-in fade-in duration-500 mt-20">
+                   <div className="bg-rose-50/50 border border-rose-100 p-5 rounded-2xl mb-8 flex items-start shadow-sm mt-20">
                       <AlertCircle className="w-5 h-5 mr-3 flex-shrink-0 text-rose-500 mt-0.5" />
                       <div>
                         <strong className="block mb-1 text-rose-900">Important Details</strong>
@@ -201,7 +206,7 @@ export default function PhotoMagnetsConstructor() {
 
                    <h2 className="text-2xl font-bold mb-8 tracking-tight">Choose Shape & Size</h2>
                    
-                   <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                   <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mt-20">
                       {MAGNET_SETS.map(set => {
                         const isSelected = selectedSetId === set.id;
                         return (
@@ -212,7 +217,7 @@ export default function PhotoMagnetsConstructor() {
                               ${isSelected ? 'border-gray-900 bg-white shadow-xl ring-1 ring-gray-900 scale-100' : 'border-gray-200 bg-white/50 hover:border-gray-300 hover:bg-white'}
                             `}
                           >
-                             <div className="flex-1 flex flex-col items-center justify-center mb-6 min-h-[140px]">
+                             <div className="flex-1 flex flex-col items-center justify-center mb-6 min-h-[140px] mt-20">
                                 <div 
                                   className={`shadow-inner flex items-center justify-center overflow-hidden transition-all
                                     ${isSelected ? 'shadow-gray-200/50' : 'shadow-gray-200/50'}
@@ -224,24 +229,24 @@ export default function PhotoMagnetsConstructor() {
                                   }}
                                 >
                                    {set.isStrip && (
-                                     <div className="w-full h-full p-0.5 flex flex-col gap-0.5 opacity-50 bg-white">
-                                        <div className="flex-1 bg-gray-300" />
-                                        <div className="flex-1 bg-gray-300" />
-                                        <div className="flex-1 bg-gray-300" />
+                                     <div className="w-full h-full p-0.5 flex flex-col gap-0.5 opacity-50 bg-white mt-20">
+                                        <div className="flex-1 bg-gray-300 mt-20" />
+                                        <div className="flex-1 bg-gray-300 mt-20" />
+                                        <div className="flex-1 bg-gray-300 mt-20" />
                                      </div>
                                    )}
                                    {!set.isStrip && !set.isPolaroid && (
-                                     <div className="w-[calc(100%-8px)] h-[calc(100%-8px)] bg-gray-200 rounded-sm" />
+                                     <div className="w-[calc(100%-8px)] h-[calc(100%-8px)] bg-gray-200 rounded-sm mt-20" />
                                    )}
                                    {set.isPolaroid && (
-                                     <div className="w-full h-full bg-gray-200" />
+                                     <div className="w-full h-full bg-gray-200 mt-20" />
                                    )}
                                 </div>
                              </div>
                              
-                             <div className="text-center mt-auto">
+                             <div className="text-center mt-auto mt-20">
                                 <h3 className={`font-black tracking-tight mb-2 text-lg ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>{set.size}</h3>
-                                <div className="inline-flex items-center justify-center bg-gray-50 border border-gray-100 px-3 py-1 rounded-lg mb-4 text-xs">
+                                <div className="inline-flex items-center justify-center bg-gray-50 border border-gray-100 px-3 py-1 rounded-lg mb-4 text-xs mt-20">
                                   <span className="font-bold text-gray-900 border-r border-gray-200 pr-2 mr-2">{set.count} <span className="text-gray-500 font-medium lowercase">magnets</span></span>
                                   <span className="font-bold text-gray-900">215 ₴</span>
                                 </div>
@@ -250,7 +255,7 @@ export default function PhotoMagnetsConstructor() {
                              </div>
 
                              {isSelected && (
-                               <div className="absolute top-4 right-4 text-gray-900">
+                               <div className="absolute top-4 right-4 text-gray-900 mt-20">
                                   <CheckCircle2 className="w-6 h-6 bg-white rounded-full" strokeWidth={2.5} />
                                </div>
                              )}
@@ -263,16 +268,16 @@ export default function PhotoMagnetsConstructor() {
 
              {/* STEP 2: QUANTITY & UPLOAD */}
              {step === 2 && selectedSet && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    <h2 className="text-2xl font-bold mb-8 tracking-tight">Quantity & Assets</h2>
                    
-                   <div className="bg-white border text-center border-gray-200 rounded-[2rem] p-8 mb-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-                      <div className="text-left w-full">
+                   <div className="bg-white border text-center border-gray-200 rounded-[2rem] p-8 mb-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 mt-20">
+                      <div className="text-left w-full mt-20">
                          <h3 className="font-bold text-gray-900 text-lg mb-1">How many sets?</h3>
                          <p className="text-sm font-medium text-gray-500">Total running price: <strong className="text-gray-900 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100 ml-1">{setsQuantity} sets × 215 UAH = {formatUAH(totalPrice)}</strong></p>
                       </div>
                       
-                      <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-200 w-full md:w-auto overflow-hidden">
+                      <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-200 w-full md:w-auto overflow-hidden mt-20">
                          <button 
                            onClick={() => setSetsQuantity(Math.max(1, setsQuantity - 1))}
                            className="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-xl font-bold text-xl hover:bg-gray-100 text-gray-700 disabled:opacity-50"
@@ -286,21 +291,21 @@ export default function PhotoMagnetsConstructor() {
                       </div>
                    </div>
 
-                   <div className="bg-white border border-gray-200 rounded-[2rem] p-4 md:p-8 shadow-sm">
-                      <div className="bg-rose-50/50 border border-rose-100 p-6 rounded-[1.5rem] mb-8 text-center shadow-sm">
+                   <div className="bg-white border border-gray-200 rounded-[2rem] p-4 md:p-8 shadow-sm mt-20">
+                      <div className="bg-rose-50/50 border border-rose-100 p-6 rounded-[1.5rem] mb-8 text-center shadow-sm mt-20">
                          <h3 className="text-2xl font-black text-rose-900 mb-2 tracking-tight">Upload exactly {requiredPhotosCount} photos</h3>
                          <p className="text-rose-700 font-medium text-sm mb-4">
                            ({setsQuantity} {setsQuantity === 1 ? 'set' : 'sets'} × {selectedSet.count} photos)
                          </p>
-                         <div className="bg-white border border-rose-100 rounded-xl p-5 text-left text-sm text-gray-600 space-y-3 inline-block shadow-sm">
+                         <div className="bg-white border border-rose-100 rounded-xl p-5 text-left text-sm text-gray-600 space-y-3 inline-block shadow-sm mt-20">
                            <p className="flex items-start"><Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" /> Each photo becomes one magnet. You can upload different photos or repeat the same photo.</p>
                            <p className="flex items-start"><Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" /> A 3mm white border will be added automatically around every magnet.</p>
                          </div>
                       </div>
 
-                      <div className="mb-6 flex justify-between items-center bg-gray-50 px-5 py-3 rounded-2xl border border-gray-200">
-                         <div className="font-bold text-gray-500 text-sm tracking-wide">Assets Loaded:<br/><span className={`text-2xl font-black tracking-tight ${isUploadComplete ? 'text-green-600' : 'text-gray-900'}`}>{uploadedCount}</span> <span className="text-gray-400">/ {requiredPhotosCount}</span></div>
-                         <div className="text-right">
+                      <div className="mb-6 flex justify-between items-center bg-gray-50 px-5 py-3 rounded-2xl border border-gray-200 mt-20">
+                         <div className="font-bold text-gray-500 text-sm tracking-wide mt-20">Assets Loaded:<br/><span className={`text-2xl font-black tracking-tight ${isUploadComplete ? 'text-green-600' : 'text-gray-900'}`}>{uploadedCount}</span> <span className="text-gray-400">/ {requiredPhotosCount}</span></div>
+                         <div className="text-right mt-20">
                            {isUploadComplete ? (
                              <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-100 text-green-800 font-bold text-xs uppercase tracking-widest shadow-sm border border-green-200">
                                 <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Ready
@@ -318,9 +323,9 @@ export default function PhotoMagnetsConstructor() {
                             onPhotosChange={setPhotos}
                       />
 
-                      <div className="mt-8 border-t border-gray-100 pt-6">
+                      <div className="mt-8 border-t border-gray-100 pt-6 mt-20">
                          <h4 className="font-bold text-gray-900 flex items-center text-[10px] mb-4 uppercase tracking-[0.15em]"><AlertCircle className="w-4 h-4 mr-2 text-gray-400" /> File Requirements</h4>
-                         <div className="flex flex-wrap gap-2">
+                         <div className="flex flex-wrap gap-2 mt-20">
                             <span className="bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase">JPG or PNG</span>
                             <span className="bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase">Min 150 DPI</span>
                             <span className="bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase">sRGB Color</span>
@@ -332,14 +337,14 @@ export default function PhotoMagnetsConstructor() {
 
              {/* STEP 3: ORDER FORM */}
              {step === 3 && selectedSet && isUploadComplete && (
-                <div className="animate-in slide-in-from-right-8 duration-500">
+                <div className="animate-in slide-in-from-right-8 duration-500 mt-20">
                    <h2 className="text-2xl font-bold mb-8 tracking-tight flex items-center">
                      Delivery Details
                    </h2>
 
-                   <div className="bg-white rounded-[2rem] border border-gray-200 p-8 shadow-sm space-y-8">
+                   <div className="bg-white rounded-[2rem] border border-gray-200 p-8 shadow-sm space-y-8 mt-20">
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-20">
                          <div>
                             <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Full Name *</label>
                             <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} required className="w-full bg-gray-50 border-b-2 border-t-0 border-x-0 border-gray-200 focus:border-gray-900 focus:ring-0 py-3 text-sm px-0 transition-colors" placeholder="Emma Swan" />
@@ -357,7 +362,7 @@ export default function PhotoMagnetsConstructor() {
 
                       <div>
                          <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Paper Finish *</label>
-                         <div className="flex flex-col sm:flex-row gap-4 mb-2">
+                         <div className="flex flex-col sm:flex-row gap-4 mb-2 mt-20">
                             <label className={`flex-1 border rounded-xl p-5 flex items-center justify-center cursor-pointer transition-colors ${paperFinish === 'Matte' ? 'border-gray-900 bg-gray-900 text-white shadow-xl' : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-600'}`}>
                                <input type="radio" checked={paperFinish === 'Matte'} onChange={() => setPaperFinish('Matte')} className="sr-only" />
                                <span className="font-bold text-sm tracking-wide">Matte Finish</span>
@@ -369,7 +374,7 @@ export default function PhotoMagnetsConstructor() {
                          </div>
                           <div>
                          <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Delivery Options *</label>
-                         <div className="flex flex-col sm:flex-row gap-4">
+                         <div className="flex flex-col sm:flex-row gap-4 mt-20">
                             <label className={`flex-1 border rounded-xl p-5 flex items-center cursor-pointer transition-colors ${deliveryMethod === 'pickup' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
                                <input type="radio" checked={deliveryMethod === 'pickup'} onChange={() => setDeliveryMethod('pickup')} className="sr-only" />
                                <MapPin className={`w-5 h-5 mr-3 ${deliveryMethod === 'pickup' ? 'text-gray-900' : 'text-gray-400'}`} />
@@ -400,36 +405,36 @@ export default function PhotoMagnetsConstructor() {
              )}
           </div>
 
-          <div className="lg:col-span-4 transition-opacity duration-300">
+          <div className="lg:col-span-4 transition-opacity duration-300 mt-20">
              <div className={`sticky top-8 bg-gray-50 border border-gray-100 rounded-[2.5rem] p-8 lg:p-10 text-gray-900 shadow-xl ${selectedSet ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                 <h3 className="text-xl font-bold mb-6 border-b border-gray-200 pb-4 flex items-center justify-between tracking-tight">
                    Checkout
                 </h3>
                 
                 {!selectedSet ? (
-                  <div className="text-gray-400 font-medium text-sm text-center py-10 opacity-60">Select a set configuration to begin</div>
+                  <div className="text-gray-400 font-medium text-sm text-center py-10 opacity-60 mt-20">Select a set configuration to begin</div>
                 ) : (
-                  <div className="space-y-6">
-                    <div className="flex justify-between font-medium items-center">
+                  <div className="space-y-6 mt-20">
+                    <div className="flex justify-between font-medium items-center mt-20">
                        <span className="text-gray-500 text-sm">Design</span>
                        <span className="bg-white border border-gray-200 px-3 py-1 rounded-lg text-sm font-bold shadow-sm">{selectedSet.size}</span>
                     </div>
                     
-                    <div className="flex justify-between font-medium items-center">
+                    <div className="flex justify-between font-medium items-center mt-20">
                        <span className="text-gray-500 text-sm">Multiplier</span>
                        <span className="text-gray-900 text-sm font-bold">{setsQuantity}x {selectedSet.count} items</span>
                     </div>
 
-                    <div className="flex justify-between font-medium items-center">
+                    <div className="flex justify-between font-medium items-center mt-20">
                        <span className="text-gray-500 text-sm">Finish</span>
                        <span className="text-gray-900 text-sm font-bold">{paperFinish}</span>
                     </div>
                     
-                    <div className="h-px bg-gray-200 my-6" />
+                    <div className="h-px bg-gray-200 my-6 mt-20" />
 
-                    <div className="flex justify-between items-center text-gray-900 border-gray-100">
+                    <div className="flex justify-between items-center text-gray-900 border-gray-100 mt-20">
                        <span className="font-bold text-lg">Total</span>
-                       <div className="text-3xl font-black tracking-tighter">{formatUAH(totalPrice)}</div>
+                       <div className="text-3xl font-black tracking-tighter mt-20">{formatUAH(totalPrice)}</div>
                     </div>
 
                     {step < 3 ? (
@@ -443,7 +448,7 @@ export default function PhotoMagnetsConstructor() {
                     ) : (
                       <>
                         {formError && (
-                          <div className="mt-2 mb-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg text-center border border-red-200">
+                          <div className="mt-2 mb-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg text-center border border-red-200 mt-20">
                             {formError}
                           </div>
                         )}
@@ -476,6 +481,7 @@ export default function PhotoMagnetsConstructor() {
           </div>
 
        </div>
-    </div>
+      </div>
+    </>
   );
 }
