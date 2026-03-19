@@ -182,10 +182,10 @@ export default function PhotobookConstructorPage() {
   };
 
   const stepTitles: Record<number, string> = {
-    1: 'Choose Tier',
-    2: 'Choose Format',
-    3: 'Pages & Extras',
-    4: 'Upload & Review'
+    1: 'Оберіть рівень',
+    2: 'Оберіть формат',
+    3: 'Сторінки та опції',
+    4: 'Завантаження та огляд'
   };
 
   if (isSuccess) {
@@ -224,18 +224,18 @@ export default function PhotobookConstructorPage() {
         <div className="mb-10 max-w-5xl mx-auto">
           <Link href="/products/photobooks" className="text-sm font-medium text-gray-500 hover:text-gray-900 flex items-center mb-6 transition-colors w-max">
             <ArrowLeft className="w-4 h-4 mr-1.5" />
-            {(step === 4) ? 'Back to Editor' : 'Back to products'}
+            {(step === 4) ? 'Назад до редактора' : '← До товарів'}
           </Link>
-          
+
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-6">
-            Design Your Photo Book
+            Створіть свою фотокнигу
           </h1>
           
           {/* Progress Bar */}
           <div className="mb-8">
             <div className="flex justify-between items-center text-sm font-medium text-gray-500 mb-4">
               <span className="text-gray-900 font-bold tracking-wide uppercase text-xs border border-gray-200 px-3.5 py-1.5 rounded-full bg-white shadow-[0_2px_8px_rgb(0,0,0,0.04)]">
-                Step {step} <span className="px-1 text-gray-300">|</span> {stepTitles[step]}
+                Крок {step} <span className="px-1 text-gray-300">|</span> {stepTitles[step]}
               </span>
               <span className="font-semibold text-gray-400">{Math.round((step / totalSteps) * 100)}%</span>
             </div>
@@ -254,8 +254,8 @@ export default function PhotobookConstructorPage() {
           {/* STEP 1 */}
           {step === 1 && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Book Tier</h2>
-              <p className="text-gray-500 mb-8 font-medium">Choose the quality level that best fits your memories.</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Оберіть рівень якості</h2>
+              <p className="text-gray-500 mb-8 font-medium">Виберіть рівень якості, який найкраще підходить для ваших спогадів.</p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
@@ -275,17 +275,17 @@ export default function PhotobookConstructorPage() {
                   <span className={`inline-block px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-widest rounded-full mb-6 max-w-max transition-colors
                     ${tier === 'standard' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'}
                   `}>
-                    Good Value
+                    Вигідна ціна
                   </span>
-                  
-                  <h3 className="text-3xl font-extrabold text-gray-900 mb-3 tracking-tight">Standard</h3>
+
+                  <h3 className="text-3xl font-extrabold text-gray-900 mb-3 tracking-tight">Стандарт</h3>
                   <p className="text-gray-600 mb-10 leading-relaxed font-medium flex-grow pr-8">
-                    Glossy or matte cover, 170g inner pages, bright print quality. 
-                    A classic choice for everyday memories.
+                    Глянцева або матова обкладинка, внутрішні сторінки 170г, яскравий якісний друк.
+                    Класичний вибір для повсякденних спогадів.
                   </p>
-                  
+
                   <div className="pt-2 border-t border-gray-100">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">starting from</div>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">від</div>
                     <div className="text-2xl font-black text-gray-900 tracking-tight">{formatUAH(450)}</div>
                   </div>
                 </button>
@@ -299,7 +299,7 @@ export default function PhotobookConstructorPage() {
                   }`}
                 >
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[11px] font-extrabold rounded-full shadow-lg uppercase tracking-widest whitespace-nowrap z-10">
-                    Most Popular
+                    Найпопулярніше
                   </div>
 
                   {tier === 'premium' && (
@@ -307,21 +307,21 @@ export default function PhotobookConstructorPage() {
                       <CheckCircle2 className="w-7 h-7 fill-white" />
                     </div>
                   )}
-                  
+
                   <span className={`inline-block mt-1 px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-widest rounded-full mb-6 max-w-max transition-colors
                     ${tier === 'premium' ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100'}
                   `}>
-                    Premium Quality
+                    Преміум якість
                   </span>
-                  
-                  <h3 className="text-3xl font-extrabold text-gray-900 mb-3 tracking-tight">Premium</h3>
+
+                  <h3 className="text-3xl font-extrabold text-gray-900 mb-3 tracking-tight">Преміум</h3>
                   <p className="text-gray-600 mb-10 leading-relaxed font-medium flex-grow pr-8">
-                    Leather-look cover, 200g thick pages, extra-vivid colors, lay-flat binding.
-                    Designed for events that last a lifetime.
+                    Обкладинка під шкіру, товсті сторінки 200г, надзвичайно яскраві кольори, розгортання на 180°.
+                    Створено для подій, які залишаються на все життя.
                   </p>
-                  
+
                   <div className="pt-2 border-t border-gray-50">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">starting from</div>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">від</div>
                     <div className="text-2xl font-black text-gray-900">{formatUAH(950)}</div>
                   </div>
                 </button>
@@ -332,11 +332,11 @@ export default function PhotobookConstructorPage() {
           {/* STEP 2 */}
           {step === 2 && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Format</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Оберіть формат</h2>
               <p className="text-gray-500 mb-8 flex justify-between items-center gap-4 flex-wrap font-medium">
-                <span>Choose the dimensions for your photo book.</span>
+                <span>Виберіть розміри вашої фотокниги.</span>
                 <span className="text-[13px] px-4 py-1.5 bg-blue-50/50 border border-blue-100 rounded-full font-bold text-blue-900 whitespace-nowrap">
-                  Tier: <span className="capitalize text-blue-600 ml-1">{tier}</span>
+                  Рівень: <span className="capitalize text-blue-600 ml-1">{tier === 'standard' ? 'Стандарт' : 'Преміум'}</span>
                 </span>
               </p>
 
@@ -365,7 +365,7 @@ export default function PhotobookConstructorPage() {
                         <h4 className="font-extrabold text-gray-900 text-lg mb-1.5 leading-tight">{f.name}</h4>
                         <p className="text-sm text-gray-500 mb-4 font-medium">{f.desc}</p>
                         <div className="text-[12px] font-bold uppercase tracking-wide text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg inline-block border border-gray-100">
-                          from <span className="text-gray-900 font-extrabold ml-1">{formatUAH(price)}</span>
+                          від <span className="text-gray-900 font-extrabold ml-1">{formatUAH(price)}</span>
                         </div>
                       </div>
                       
@@ -386,8 +386,8 @@ export default function PhotobookConstructorPage() {
           {/* STEP 3 */}
           {step === 3 && (
              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Configure Pages & Extras</h2>
-              <p className="text-gray-500 mb-8 font-medium">Select how many pages you need and any special finishing.</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Сторінки та опції</h2>
+              <p className="text-gray-500 mb-8 font-medium">Виберіть кількість сторінок та додаткові опції оздоблення.</p>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
                 <div className="lg:col-span-7 space-y-10">
@@ -395,7 +395,7 @@ export default function PhotobookConstructorPage() {
                   {/* Page Count */}
                   <div>
                     <div className="flex justify-between items-end mb-4">
-                      <h3 className="text-lg font-extrabold text-gray-900">Number of Pages</h3>
+                      <h3 className="text-lg font-extrabold text-gray-900">Кількість сторінок</h3>
                       <span className="text-3xl font-black text-blue-600 font-sans tracking-tight leading-none bg-blue-50 px-4 py-2 rounded-xl">{pages}</span>
                     </div>
                     
@@ -420,8 +420,8 @@ export default function PhotobookConstructorPage() {
                       <div className="flex items-start text-sm text-gray-600 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                         <Info className="w-5 h-5 mr-3 mt-0.5 flex-shrink-0 text-blue-500" />
                         <div>
-                          <p className="font-bold text-blue-900 mb-1">Minimum 20 pages · Maximum 50 pages · Even numbers only</p>
-                          <p className="font-medium text-blue-800/80">Each spread = 2 pages. {pages} pages = approx. <strong className="text-blue-900">{pages}–{pages * 2} photos.</strong></p>
+                          <p className="font-bold text-blue-900 mb-1">Мінімум 20 сторінок · Максимум 50 сторінок · Тільки парні числа</p>
+                          <p className="font-medium text-blue-800/80">Кожен розворот = 2 сторінки. {pages} сторінок = приблизно <strong className="text-blue-900">{pages}–{pages * 2} фото.</strong></p>
                         </div>
                       </div>
                     </div>
@@ -429,23 +429,27 @@ export default function PhotobookConstructorPage() {
 
                   {/* Extras */}
                   <div>
-                    <h3 className="text-lg font-extrabold text-gray-900 mb-4">Optional Extras</h3>
+                    <h3 className="text-lg font-extrabold text-gray-900 mb-4">Додаткові опції</h3>
                     
                     <div className="space-y-4">
                       <div className="p-6 rounded-[1.5rem] border border-gray-200 bg-white shadow-sm flex flex-col sm:flex-row gap-5">
                           <div className="flex-1">
-                            <h4 className="font-extrabold text-gray-900 text-base mb-1">Lamination</h4>
-                            <p className="text-[13px] font-medium text-gray-500 mb-4">Protect pages with a premium finish (5 UAH/page)</p>
-                            
+                            <h4 className="font-extrabold text-gray-900 text-base mb-1">Ламінація</h4>
+                            <p className="text-[13px] font-medium text-gray-500 mb-4">Захистіть сторінки преміум покриттям (5 грн/сторінка)</p>
+
                             <div className="flex flex-wrap gap-4">
-                              {['none', 'glossy', 'matte'].map((type) => (
-                                <label key={type} className="flex items-center gap-2 cursor-pointer group">
+                              {[
+                                { value: 'none', label: 'немає' },
+                                { value: 'glossy', label: 'глянець' },
+                                { value: 'matte', label: 'матова' }
+                              ].map((type) => (
+                                <label key={type.value} className="flex items-center gap-2 cursor-pointer group">
                                   <span className={`w-[18px] h-[18px] rounded-full border flex items-center justify-center transition-colors shadow-inner
-                                    ${lamination === type ? 'border-blue-600 bg-blue-600' : 'border-gray-300 group-hover:border-blue-400 bg-white'}
+                                    ${lamination === type.value ? 'border-blue-600 bg-blue-600' : 'border-gray-300 group-hover:border-blue-400 bg-white'}
                                   `}>
-                                    {lamination === type && <CheckCircle2 className="w-3 h-3 text-white" strokeWidth={4} />}
+                                    {lamination === type.value && <CheckCircle2 className="w-3 h-3 text-white" strokeWidth={4} />}
                                   </span>
-                                  <span className={`text-sm font-bold capitalize pt-0.5 ${lamination === type ? 'text-gray-900' : 'text-gray-500'}`}>{type}</span>
+                                  <span className={`text-sm font-bold pt-0.5 ${lamination === type.value ? 'text-gray-900' : 'text-gray-500'}`}>{type.label}</span>
                                 </label>
                               ))}
                             </div>
@@ -456,9 +460,9 @@ export default function PhotobookConstructorPage() {
                       </div>
 
                       {([
-                        { id: 'endpapers', state: endpapers, setter: setEndpapers, title: 'Endpapers', price: 200, desc: 'Decorative inner covers at the beginning and end' },
-                        { id: 'qrCode', state: qrCode, setter: setQrCode, title: 'QR code', price: 50, desc: 'Add a scanable link to a video or music on the cover' },
-                        { id: 'customText', state: customText, setter: setCustomText, title: 'Custom cover text', price: 50, desc: 'Personalized foil stamping or printing on the cover' }
+                        { id: 'endpapers', state: endpapers, setter: setEndpapers, title: 'Форзаци', price: 200, desc: 'Декоративні внутрішні обкладинки на початку та в кінці' },
+                        { id: 'qrCode', state: qrCode, setter: setQrCode, title: 'QR-код', price: 50, desc: 'Додайте QR-код з посиланням на відео або музику на обкладинці' },
+                        { id: 'customText', state: customText, setter: setCustomText, title: 'Текст на обкладинці', price: 50, desc: 'Персоналізований друк або тиснення фольгою на обкладинці' }
                       ] as const).map((extra) => (
                          <label key={extra.id} className={`flex items-start p-6 rounded-[1.5rem] border transition-all cursor-pointer group shadow-sm
                            ${extra.state ? 'border-blue-600 bg-blue-50/20 shadow-md ring-2 ring-blue-600/10' : 'border-gray-200 bg-white hover:border-blue-300'}
@@ -489,38 +493,38 @@ export default function PhotobookConstructorPage() {
                   <div className="bg-gray-900 rounded-[2rem] p-8 text-white sticky top-24 shadow-2xl overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 blur-[80px] rounded-full pointer-events-none" />
                     
-                    <h3 className="text-xl font-bold mb-8 tracking-wide text-gray-300 uppercase text-center border-b border-gray-800 pb-4">Real-time Summary</h3>
-                    
+                    <h3 className="text-xl font-bold mb-8 tracking-wide text-gray-300 uppercase text-center border-b border-gray-800 pb-4">Підсумок</h3>
+
                     <div className="space-y-4 mb-8">
                       <div className="flex justify-between items-start font-medium text-[15px]">
-                        <span className="text-gray-300">Base price ({pages}p)</span>
+                        <span className="text-gray-300">Базова ціна ({pages}p)</span>
                         <span className="text-white font-bold">{formatUAH(basePrice)}</span>
                       </div>
-                      
+
                       {lamination !== 'none' && (
                         <div className="flex justify-between items-start text-[14px] text-gray-400">
-                          <span className="flex items-center"><Plus className="w-3.5 h-3.5 mr-1 text-gray-500" /> Lam. (<span className="capitalize">{lamination}</span>)</span>
+                          <span className="flex items-center"><Plus className="w-3.5 h-3.5 mr-1 text-gray-500" /> Ламін. (<span className="capitalize">{lamination === 'glossy' ? 'глянець' : 'матова'}</span>)</span>
                           <span>{formatUAH(laminationPrice)}</span>
                         </div>
                       )}
                       
                       {endpapers && (
                         <div className="flex justify-between items-start text-[14px] text-gray-400">
-                          <span className="flex items-center"><Plus className="w-3.5 h-3.5 mr-1 text-gray-500" /> Endpapers</span>
+                          <span className="flex items-center"><Plus className="w-3.5 h-3.5 mr-1 text-gray-500" /> Форзаци</span>
                           <span>{formatUAH(endpapersPrice)}</span>
                         </div>
                       )}
 
                       {qrCode && (
                         <div className="flex justify-between items-start text-[14px] text-gray-400">
-                          <span className="flex items-center"><Plus className="w-3.5 h-3.5 mr-1 text-gray-500" /> QR Code</span>
+                          <span className="flex items-center"><Plus className="w-3.5 h-3.5 mr-1 text-gray-500" /> QR-код</span>
                           <span>{formatUAH(qrCodePrice)}</span>
                         </div>
                       )}
 
                       {customText && (
                         <div className="flex justify-between items-start text-[14px] text-gray-400">
-                          <span className="flex items-center"><Plus className="w-3.5 h-3.5 mr-1 text-gray-500" /> Custom Text</span>
+                          <span className="flex items-center"><Plus className="w-3.5 h-3.5 mr-1 text-gray-500" /> Текст на обкладинці</span>
                           <span>{formatUAH(customTextPrice)}</span>
                         </div>
                       )}
@@ -528,7 +532,7 @@ export default function PhotobookConstructorPage() {
 
                     <div className="bg-white rounded-2xl p-5 shadow-inner">
                       <div className="flex flex-col items-center">
-                        <span className="text-gray-500 font-extrabold uppercase tracking-widest text-xs mb-1">Estimated Total</span>
+                        <span className="text-gray-500 font-extrabold uppercase tracking-widest text-xs mb-1">Сума до оплати</span>
                         <span className="text-[2.5rem] leading-tight font-black tracking-tighter text-gray-900">
                           {formatUAH(totalPrice)}
                         </span>
@@ -553,22 +557,22 @@ export default function PhotobookConstructorPage() {
                   {/* Info Box */}
                   <div className="bg-blue-50/70 border border-blue-100 p-6 rounded-[1.5rem] shadow-sm">
                       <h4 className="font-extrabold text-blue-900 mb-4 flex items-center text-lg tracking-tight">
-                        <Info className="w-5 h-5 mr-2.5 text-blue-600" strokeWidth={2.5} /> File Requirements
+                        <Info className="w-5 h-5 mr-2.5 text-blue-600" strokeWidth={2.5} /> Вимоги до файлів
                       </h4>
                       <ul className="space-y-3 sm:space-y-2 text-sm font-medium text-blue-800/80">
-                        <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2.5 mt-0.5 text-emerald-500 flex-shrink-0" strokeWidth={3} /> File format: JPG or PNG</li>
-                        <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2.5 mt-0.5 text-emerald-500 flex-shrink-0" strokeWidth={3} /> Resolution: 300 DPI recommended (min. 150 DPI)</li>
-                        <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2.5 mt-0.5 text-emerald-500 flex-shrink-0" strokeWidth={3} /> Color mode: sRGB</li>
-                        <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2.5 mt-0.5 text-emerald-500 flex-shrink-0" strokeWidth={3} /> Filename: Latin letters only (e.g. photo1.jpg)</li>
-                        <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2.5 mt-0.5 text-emerald-500 flex-shrink-0" strokeWidth={3} /> Maximum file size: 50 MB per photo</li>
+                        <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2.5 mt-0.5 text-emerald-500 flex-shrink-0" strokeWidth={3} /> Формат файлу: JPG або PNG</li>
+                        <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2.5 mt-0.5 text-emerald-500 flex-shrink-0" strokeWidth={3} /> Роздільність: 300 DPI рекомендовано (мін. 150 DPI)</li>
+                        <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2.5 mt-0.5 text-emerald-500 flex-shrink-0" strokeWidth={3} /> Колірний режим: sRGB</li>
+                        <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2.5 mt-0.5 text-emerald-500 flex-shrink-0" strokeWidth={3} /> Ім'я файлу: тільки латинські літери (напр. photo1.jpg)</li>
+                        <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2.5 mt-0.5 text-emerald-500 flex-shrink-0" strokeWidth={3} /> Максимальний розмір файлу: 50 МБ на фото</li>
                       </ul>
                   </div>
 
                   {/* Photo Uploader */}
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                       1. Upload Photos
-                       <span className="ml-3 px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500 uppercase tracking-widest">{photos.length} embedded</span>
+                       1. Завантажте фото
+                       <span className="ml-3 px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500 uppercase tracking-widest">{photos.length} завантажено</span>
                     </h2>
                     <PhotoUploader
                         maxFiles={maxPhotos}
@@ -581,18 +585,18 @@ export default function PhotobookConstructorPage() {
                   {/* Delivery Form */}
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center border-t border-gray-100 pt-10">
-                       2. Delivery & Contact
+                       2. Доставка та контакти
                     </h2>
                     
                     <div className="space-y-6">
                         <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-2">Full Name *</label>
-                          <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Ivan Franko" className="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3.5 px-4 border font-medium bg-gray-50 focus:bg-white transition-colors" required />
+                          <label className="block text-sm font-bold text-gray-700 mb-2">Повне ім'я *</label>
+                          <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Іван Франко" className="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3.5 px-4 border font-medium bg-gray-50 focus:bg-white transition-colors" required />
                         </div>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                           <div>
-                              <label className="block text-sm font-bold text-gray-700 mb-2">Phone Number *</label>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">Номер телефону *</label>
                               <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+380..." className="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3.5 px-4 border font-medium bg-gray-50 focus:bg-white transition-colors" required />
                           </div>
                           <div>
@@ -602,15 +606,15 @@ export default function PhotobookConstructorPage() {
                         </div>
 
                         <div className="pt-4">
-                          <label className="block text-sm font-bold text-gray-700 mb-3">Delivery Method *</label>
+                          <label className="block text-sm font-bold text-gray-700 mb-3">Спосіб доставки *</label>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <label className={`border-2 rounded-2xl p-4 flex flex-col cursor-pointer transition-all ${deliveryMethod === 'pickup' ? 'border-blue-600 bg-blue-50/50 shadow-md ring-4 ring-blue-600/10' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'}`}>
                                 <div className="flex items-center justify-between mb-2">
                                   <Store className={`w-6 h-6 ${deliveryMethod === 'pickup' ? 'text-blue-600' : 'text-gray-400'}`} />
                                   <input type="radio" name="delivery" checked={deliveryMethod === 'pickup'} onChange={() => setDeliveryMethod('pickup')} className="text-blue-600 focus:ring-blue-500 h-5 w-5" />
                                 </div>
-                                <span className={`font-bold mt-1 ${deliveryMethod === 'pickup' ? 'text-blue-900' : 'text-gray-900'}`}>Self-pickup in Ternopil</span>
-                                <span className="text-xs font-medium text-gray-500 mt-1">Free</span>
+                                <span className={`font-bold mt-1 ${deliveryMethod === 'pickup' ? 'text-blue-900' : 'text-gray-900'}`}>Самовивіз у Тернополі</span>
+                                <span className="text-xs font-medium text-gray-500 mt-1">Безкоштовно</span>
                               </label>
 
                               <label className={`border-2 rounded-2xl p-4 flex flex-col cursor-pointer transition-all ${deliveryMethod === 'nova_poshta' ? 'border-blue-600 bg-blue-50/50 shadow-md ring-4 ring-blue-600/10' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'}`}>
@@ -618,8 +622,8 @@ export default function PhotobookConstructorPage() {
                                   <Truck className={`w-6 h-6 ${deliveryMethod === 'nova_poshta' ? 'text-blue-600' : 'text-gray-400'}`} />
                                   <input type="radio" name="delivery" checked={deliveryMethod === 'nova_poshta'} onChange={() => setDeliveryMethod('nova_poshta')} className="text-blue-600 focus:ring-blue-500 h-5 w-5" />
                                 </div>
-                                <span className={`font-bold mt-1 ${deliveryMethod === 'nova_poshta' ? 'text-blue-900' : 'text-gray-900'}`}>Nova Poshta Delivery</span>
-                                <span className="text-xs font-medium text-gray-500 mt-1">Standard tariffs</span>
+                                <span className={`font-bold mt-1 ${deliveryMethod === 'nova_poshta' ? 'text-blue-900' : 'text-gray-900'}`}>Доставка Новою Поштою</span>
+                                <span className="text-xs font-medium text-gray-500 mt-1">Стандартні тарифи</span>
                               </label>
                           </div>
                         </div>
@@ -627,19 +631,19 @@ export default function PhotobookConstructorPage() {
                         {deliveryMethod === 'nova_poshta' && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 bg-gray-50 rounded-2xl border border-gray-100 animate-in slide-in-from-top-4 fade-in">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center"><MapPin className="w-4 h-4 mr-1 text-gray-400" /> City *</label>
-                                <input type="text" value={npCity} onChange={e => setNpCity(e.target.value)} placeholder="Kyiv" className="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-3 border font-medium" required />
+                                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center"><MapPin className="w-4 h-4 mr-1 text-gray-400" /> Місто *</label>
+                                <input type="text" value={npCity} onChange={e => setNpCity(e.target.value)} placeholder="Київ" className="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-3 border font-medium" required />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Branch Number *</label>
-                                <input type="text" value={npBranch} onChange={e => setNpBranch(e.target.value)} placeholder="e.g. 15" className="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-3 border font-medium" required />
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Номер відділення *</label>
+                                <input type="text" value={npBranch} onChange={e => setNpBranch(e.target.value)} placeholder="напр. 15" className="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-3 border font-medium" required />
                             </div>
                           </div>
                         )}
 
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Comment (optional)</label>
-                            <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Any special requests..." rows={3} className="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4 border font-medium bg-gray-50 focus:bg-white transition-colors" />
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Коментар (необов'язково)</label>
+                            <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Будь-які особливі побажання..." rows={3} className="w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4 border font-medium bg-gray-50 focus:bg-white transition-colors" />
                         </div>
                     </div>
                   </div>
@@ -649,14 +653,14 @@ export default function PhotobookConstructorPage() {
                 {/* Right side: Final Order Summary Tracker */}
                 <div className="lg:col-span-5 relative">
                    <div className="sticky top-10 w-full z-10 hidden sm:block">
-                     <OrderSummary 
-                       productName={`Photo Book ${tier === 'standard' ? 'Standard' : 'Premium'}`}
+                     <OrderSummary
+                       productName={`Фотокнига ${tier === 'standard' ? 'Стандарт' : 'Преміум'}`}
                        basePrice={basePrice}
                        totalPrice={totalPrice}
                        selectedOptions={orderOptions}
                        isReady={isReadyToOrder}
                        onAddToCart={handlePlaceOrder}
-                       productionTime={tier === 'standard' ? '14–18 business days' : '14 days'}
+                       productionTime={tier === 'standard' ? '14–18 робочих днів' : '14 робочих днів'}
                        isSubmitting={isSubmitting}
                        errorMessage={formError}
                      />
@@ -676,7 +680,7 @@ export default function PhotobookConstructorPage() {
                   className="flex items-center px-5 py-3.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-bold transition-all"
                 >
                   <ArrowLeft className="w-5 h-5 mr-2" strokeWidth={2.5} />
-                  Back
+                  Назад
                 </button>
               ) : <div />}
 
@@ -689,7 +693,7 @@ export default function PhotobookConstructorPage() {
                     : 'bg-gray-900 text-white hover:bg-gray-800 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] focus:ring-8 focus:ring-gray-200'}
                 `}
               >
-                Continue
+                Продовжити
                 <ChevronRight className="w-6 h-6 ml-1.5" strokeWidth={3} />
               </button>
             </div>
@@ -698,14 +702,14 @@ export default function PhotobookConstructorPage() {
           {/* Special Nav purely for mobile step 4 floating bar */}
           {step === 4 && (
             <div className="block sm:hidden border-t border-gray-100 mt-10 pt-6">
-               <OrderSummary 
-                 productName={`Photo Book ${tier === 'standard' ? 'Standard' : 'Premium'}`}
+               <OrderSummary
+                 productName={`Фотокнига ${tier === 'standard' ? 'Стандарт' : 'Преміум'}`}
                  basePrice={basePrice}
                  totalPrice={totalPrice}
                  selectedOptions={orderOptions}
                  isReady={isReadyToOrder}
                  onAddToCart={handlePlaceOrder}
-                 productionTime={tier === 'standard' ? '14–18 business days' : '14 days'}
+                 productionTime={tier === 'standard' ? '14–18 робочих днів' : '14 робочих днів'}
                />
             </div>
           )}

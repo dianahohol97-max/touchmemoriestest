@@ -71,7 +71,7 @@ export default function OrderSummary({
       
       <div className="flex flex-col gap-3 mb-6 flex-grow">
         <div className="flex justify-between items-start text-sm">
-          <span className="text-gray-500 tracking-wide">Base price</span>
+          <span className="text-gray-500 tracking-wide">Базова ціна</span>
           <span className="font-medium text-gray-800">{formatUAH(basePrice)}</span>
         </div>
 
@@ -92,7 +92,7 @@ export default function OrderSummary({
       <div className="h-px bg-gray-100 w-full mb-6" />
       
       <div className="flex items-end justify-between mb-6">
-        <span className="text-base font-semibold text-gray-900 pb-1">Total:</span>
+        <span className="text-base font-semibold text-gray-900 pb-1">Разом:</span>
         <PriceBadge price={totalPrice} />
       </div>
 
@@ -101,7 +101,7 @@ export default function OrderSummary({
         disabled={!isReady || isSubmitting}
         className={`w-full py-3.5 px-4 rounded-xl font-semibold tracking-wide flex items-center justify-center transition-all duration-300 shadow-sm
           ${isReady && !isSubmitting
-            ? 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-md hover:-translate-y-0.5 focus:ring-4 focus:ring-emerald-200 active:scale-[0.98]' 
+            ? 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-md hover:-translate-y-0.5 focus:ring-4 focus:ring-emerald-200 active:scale-[0.98]'
             : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'}
         `}
       >
@@ -111,19 +111,19 @@ export default function OrderSummary({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Processing...
+            Оформлення...
           </>
         ) : (
           <>
             <ShoppingBag size={18} className="mr-2" strokeWidth={2.5} />
-            Place Order
+            Оформити замовлення
           </>
         )}
       </button>
 
       {!isReady ? (
         <p className="text-center text-xs text-amber-700 font-medium mt-3 bg-amber-50 rounded-lg py-2 animate-in fade-in border border-amber-100">
-          Please complete all required selections above
+          Будь ласка, заповніть усі обов'язкові поля
         </p>
       ) : errorMessage ? (
         <p className="text-center text-xs text-red-700 font-medium mt-3 bg-red-50 rounded-lg py-2 animate-in fade-in border border-red-100">
@@ -132,14 +132,14 @@ export default function OrderSummary({
       ) : (
         <p className="text-center text-xs text-emerald-700 font-medium mt-3 bg-emerald-50 rounded-lg py-2 flex items-center justify-center gap-1.5 animate-in fade-in border border-emerald-100">
           <Check size={14} strokeWidth={2.5} />
-          Ready to order
+          Готово до оформлення
         </p>
       )}
 
       {productionTime && (
         <div className="mt-6 flex justify-center">
           <span className="text-[11px] text-gray-500 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full inline-flex items-center uppercase tracking-wider font-medium">
-            Production: <span className="font-bold text-gray-700 ml-1.5">{productionTime}</span>
+            Виробництво: <span className="font-bold text-gray-700 ml-1.5">{productionTime}</span>
           </span>
         </div>
       )}
