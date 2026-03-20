@@ -13,6 +13,22 @@ import React from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 
+const getConstructorUrl = (slug: string): string => {
+  if (slug.includes('guestbook') || slug.includes('wishbook') || slug.includes('vishbuk') || slug.includes('pobazhan'))
+    return '/constructor/guestbook';
+  if (slug.includes('photoalbum') || slug.includes('photoalbom') || slug.includes('fotoalbom'))
+    return '/constructor/photoalbum';
+  if (slug.includes('travelbook') || slug.includes('travel'))
+    return '/constructor/travelbook';
+  if (slug.includes('magazine') || slug.includes('zhurnal') || slug.includes('journal'))
+    return '/constructor/magazine';
+  if (slug.includes('calendar') || slug.includes('kalendar'))
+    return '/constructor/calendar';
+  if (slug.includes('print') || slug.includes('foto-d') || slug.includes('poster') || slug.includes('magnet') || slug.includes('puzzle') || slug.includes('pazl'))
+    return '/order/prints';
+  return '/constructor/photobook'; // default for photobooks
+};
+
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
     const resolvedParams = React.use(params);
     const supabase = createBrowserClient(
@@ -343,7 +359,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
                                     <div className={styles.flexResponsive} style={{ display: 'flex', gap: '12px' }}>
                                         <Link
-                                            href="/constructor/photobook"
+                                            href={getConstructorUrl(product.slug || resolvedParams.slug)}
                                             style={{
                                                 flex: 1,
                                                 padding: '18px',
