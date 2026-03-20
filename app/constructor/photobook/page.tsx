@@ -55,6 +55,7 @@ const SIZES = {
   '20×30': { w: 20, h: 30, ratio: 20/30, spreadRatio: 40/30, label: '20×30 см' },
   '30×20': { w: 30, h: 20, ratio: 30/20, spreadRatio: 60/20, label: '30×20 см' },
   '30×30': { w: 30, h: 30, ratio: 1, spreadRatio: 2, label: '30×30 см' },
+  'A4': { w: 21, h: 29.7, ratio: 21/29.7, spreadRatio: 42/29.7, label: 'A4 (21×29.7 см)' },
 };
 
 const LAYOUTS: Record<LayoutId, { name: string; icon: string; slots: number }> = {
