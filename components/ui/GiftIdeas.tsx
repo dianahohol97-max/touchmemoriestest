@@ -2,11 +2,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import Image from 'next/image';
 import Link from 'next/link';
 import { GiftQuiz } from './GiftQuiz';
-import { HelpCircle } from 'lucide-react';
-import { PRODUCT_IMAGES } from '@/lib/productImages';
+import { Gift, Sparkles } from 'lucide-react';
 
 export function GiftIdeas() {
     const [quizOpen, setQuizOpen] = useState(false);
@@ -28,62 +26,77 @@ export function GiftIdeas() {
     ];
 
     return (
-        <section ref={ref} className="relative w-full min-h-[700px] flex items-center justify-center overflow-hidden section-padding">
-            {/* Background Image */}
-            <Image
-                src={PRODUCT_IMAGES.hero}
-                alt="Ідеї для подарунків"
-                fill
-                className="object-cover"
-                priority
-            />
-            {/* Dark Overlay for better contrast */}
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
+        <section
+            ref={ref}
+            className="relative w-full py-20 overflow-hidden"
+            style={{ backgroundColor: '#fef7ed' }}
+        >
+            {/* Decorative elements */}
+            <div className="absolute top-10 right-10 text-amber-200/30">
+                <Gift size={120} strokeWidth={1} />
+            </div>
+            <div className="absolute bottom-10 left-10 text-amber-200/30">
+                <Sparkles size={80} strokeWidth={1} />
+            </div>
 
-            <div className="container relative z-10">
-                <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
 
-                    {/* Left Column: Side Card */}
+                    {/* Left Column: Quiz Card */}
                     <motion.div
                         initial={{ opacity: 0, x: -40 }}
                         animate={inView ? { opacity: 1, x: 0 } : {}}
                         transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-                        className="w-full lg:w-1/3"
+                        className="w-full lg:w-2/5"
                     >
-                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 lg:p-12 rounded-[3px] shadow-[var(--card-shadow)]">
-                            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-8">
-                                <HelpCircle size={32} className="text-white" />
+                        <div className="bg-gradient-to-br from-amber-100 to-orange-50 p-10 lg:p-12 rounded-3xl shadow-xl border-2 border-amber-200/50 relative overflow-hidden">
+                            {/* Decorative ribbon effect */}
+                            <div className="absolute -top-1 -right-1 w-24 h-24 bg-amber-400/20 rounded-full blur-3xl"></div>
+                            <div className="absolute -bottom-1 -left-1 w-32 h-32 bg-orange-300/20 rounded-full blur-3xl"></div>
+
+                            <div className="relative z-10">
+                                <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-400 rounded-2xl flex items-center justify-center mb-6 shadow-lg rotate-3">
+                                    <Gift size={40} className="text-white" strokeWidth={2.5} />
+                                </div>
+                                <h2 className="text-4xl lg:text-5xl font-bold text-stone-900 leading-tight mb-4">
+                                    Не знаєш що обрати на подарунок?
+                                </h2>
+                                <p className="text-stone-700 text-lg mb-8 leading-relaxed">
+                                    Пройди швидкий тест і отримай персональні рекомендації
+                                </p>
+                                <button
+                                    onClick={() => setQuizOpen(true)}
+                                    className="w-full py-4 px-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg rounded-2xl transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:from-amber-600 hover:to-orange-600 group"
+                                >
+                                    <span className="flex items-center justify-center gap-2">
+                                        Пройти тест
+                                        <Sparkles size={20} className="transition-transform duration-300 group-hover:rotate-12" />
+                                    </span>
+                                </button>
                             </div>
-                            <h2 className="text-3xl lg:text-4xl font-black text-white leading-tight mb-8">
-                                Не знаєш що обрати на подарунок?
-                            </h2>
-                            <button
-                                onClick={() => setQuizOpen(true)}
-                                className="w-full h-[60px] bg-white text-primary font-bold text-lg lg:text-xl uppercase tracking-widest rounded-[3px] transition-all duration-300 hover:bg-primary hover:text-white hover:shadow-[var(--card-shadow-hover)] group"
-                            >
-                                Пройти тест
-                                <span className="inline-block transition-transform duration-300 group-hover:translate-x-1 ml-2">→</span>
-                            </button>
                         </div>
                     </motion.div>
 
                     {/* Right Column: Grid */}
-                    <div className="w-full lg:w-2/3">
+                    <div className="w-full lg:w-3/5">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={inView ? { opacity: 1, y: 0 } : {}}
                             transition={{ duration: 0.8, delay: 0.2 }}
-                            className="mb-12"
+                            className="mb-10"
                         >
-                            <h2 className="text-[32px] lg:text-[48px] font-black leading-none tracking-tight text-white drop-shadow-lg mb-4">
+                            <p className="text-xs text-amber-600 tracking-widest uppercase mb-3 font-semibold">
+                                Обери категорію
+                            </p>
+                            <h2 className="text-4xl lg:text-5xl font-bold text-stone-900 leading-tight mb-3">
                                 Ідеї для подарунків
                             </h2>
-                            <p className="text-white/80 text-lg font-medium drop-shadow-md">
+                            <p className="text-stone-600 text-lg">
                                 Підібрані колекції для ваших найважливіших людей
                             </p>
                         </motion.div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-4">
                             {buttons.map((btn, idx) => (
                                 <motion.div
                                     key={idx}
@@ -93,7 +106,7 @@ export function GiftIdeas() {
                                 >
                                     <Link
                                         href={`/catalog?collection=${btn.slug}`}
-                                        className="group relative flex items-center justify-center p-5 lg:p-7 bg-white/10 backdrop-blur-md border border-white/10 rounded-[3px] text-white font-bold text-base lg:text-lg uppercase tracking-widest transition-all duration-500 hover:bg-white/25 hover:border-white/40 hover:shadow-[var(--card-shadow-hover)] hover:-translate-y-1 text-center"
+                                        className="group relative flex items-center justify-center p-4 lg:p-6 bg-white border-2 border-amber-200/50 rounded-2xl text-stone-800 font-bold text-sm lg:text-base uppercase tracking-wide transition-all duration-300 hover:bg-gradient-to-br hover:from-amber-50 hover:to-orange-50 hover:border-amber-400 hover:shadow-lg hover:-translate-y-1 text-center"
                                     >
                                         {btn.label}
                                     </Link>
