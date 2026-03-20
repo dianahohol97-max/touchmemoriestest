@@ -27,14 +27,16 @@ const getConstructorUrl = (slug: string): string => {
     return '/constructor/calendar';
   if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('poster'))
     return '/order/photoprint'; // photoprint/poster order flow
-  if (slug.includes('print') || slug.includes('foto-d') || slug.includes('magnet') || slug.includes('puzzle') || slug.includes('pazl'))
+  if (slug.includes('magnet'))
+    return '/order/photomagnets'; // photomagnet order flow
+  if (slug.includes('print') || slug.includes('foto-d') || slug.includes('puzzle') || slug.includes('pazl'))
     return '/order/prints';
   return '/constructor/photobook'; // default for photobooks
 };
 
 const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, product: any): string => {
-  // For photoprint and poster products, build order URL with selected options
-  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('poster')) {
+  // For photoprint, poster, and photomagnet products, build order URL with selected options
+  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('poster') || slug.includes('magnet')) {
     const params = new URLSearchParams();
     params.set('product', slug);
 
@@ -48,6 +50,10 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
       });
     }
 
+    // Route to correct order flow based on product type
+    if (slug.includes('magnet')) {
+      return `/order/photomagnets?${params.toString()}`;
+    }
     return `/order/photoprint?${params.toString()}`;
   }
 
@@ -417,8 +423,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             )}
                         </div>
 
-                        {/* Special CTA for photoprint and poster products */}
-                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('poster')) ? (
+                        {/* Special CTA for photoprint, poster, and photomagnet products */}
+                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('poster') || product.slug?.includes('magnet')) ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <Link
                                     href={getOrderUrl(product.slug, selectedOptions, product)}
