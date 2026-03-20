@@ -559,6 +559,7 @@ export default function PhotoPrintsConstructor() {
               )}
            </div>
         </div>
+        </div>
       </div>
     </>
   );
