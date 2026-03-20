@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, BookOpen } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import { PRODUCT_IMAGES } from '@/lib/productImages';
 
 interface BlogPost {
     id: string;
@@ -66,7 +67,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                                 {/* Image Container */}
                                 <div className="relative aspect-[4/5] mb-8 rounded-[3px] overflow-hidden shadow-[var(--card-shadow)] bg-gray-100 group-hover:shadow-[var(--card-shadow-hover)] transition-all duration-500">
                                     <Image
-                                        src={post.cover_image || '/images/promo/photo_print_premium.png'}
+                                        src={post.cover_image || PRODUCT_IMAGES.placeholder}
                                         alt={post.cover_image_alt || post.title}
                                         fill
                                         className="object-cover transition-transform duration-1000 group-hover:scale-110"

@@ -1113,7 +1113,7 @@ export default function GuestbookConstructor() {
               {/* SECTION 2: Photo Upload */}
               {currentTemplate.photoZone && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-5 py-4 border-b border-gray-200">
+                  <div className="bg-gradient-to-r from-stone-50 to-amber-50 px-5 py-4 border-b border-gray-200">
                     <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wider">
                       Фото
                     </h3>

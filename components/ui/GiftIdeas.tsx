@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { GiftQuiz } from './GiftQuiz';
 import { HelpCircle } from 'lucide-react';
+import { PRODUCT_IMAGES } from '@/lib/productImages';
 
 export function GiftIdeas() {
     const [quizOpen, setQuizOpen] = useState(false);
@@ -30,7 +31,7 @@ export function GiftIdeas() {
         <section ref={ref} className="relative w-full min-h-[700px] flex items-center justify-center overflow-hidden section-padding">
             {/* Background Image */}
             <Image
-                src="/images/promo/gift_ideas_bg.png"
+                src={PRODUCT_IMAGES.hero}
                 alt="Ідеї для подарунків"
                 fill
                 className="object-cover"

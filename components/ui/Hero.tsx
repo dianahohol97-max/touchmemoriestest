@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import { PRODUCT_IMAGES } from '@/lib/productImages';
 
 const easing = [0.25, 0.46, 0.45, 0.94] as any;
 
@@ -11,10 +12,10 @@ export function Hero() {
     const style = block?.style_metadata || {};
 
     const overlineText = content['hero_overline'] || "Збережіть найкращі моменти";
-    const titleText = content['hero_title'] || "Доторкнись\nдо спогадів";
-    const subtitleText = content['hero_subtitle'] || "Створюйте власні історії у форматі преміальних фотокниг та журналів. Ваші найкращі моменти заслуговують на друк.";
+    const titleText = content['hero_title'] || "Зберігайте найкращі\nмоменти назавжди";
+    const subtitleText = content['hero_subtitle'] || "Фотокниги, тревел-буки, журнали та інша поліграфія ручної роботи з Тернополя";
     const buttonText = content['hero_button_text'] || "В магазин";
-    const bgImage = content['hero_image_url'] || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=1920&q=80";
+    const bgImage = content['hero_image_url'] || PRODUCT_IMAGES.hero;
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -44,9 +45,8 @@ export function Hero() {
                     alt="Family reading a photo book"
                     className="w-full h-full object-cover object-center"
                 />
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent"></div>
-                <div className="absolute inset-0 bg-black/20"></div>
+                {/* Dark Overlay */}
+                <div className="absolute inset-0 bg-black/40"></div>
             </div>
 
             {/* Content */}
@@ -62,18 +62,18 @@ export function Hero() {
                     </span>
                 </motion.div>
 
-                <motion.h1
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="font-heading font-black text-6xl md:text-6xl leading-[1.05] tracking-tight text-white mb-8 max-w-[800px]"
-                >
-                    {titleText.split('\n').map((line: string, idx: number) => (
-                        <div key={idx} className="overflow-hidden pb-1">
-                            <motion.span variants={wordVariants} className="inline-block tracking-[-0.03em]">{line}</motion.span>
-                        </div>
-                    ))}
-                </motion.h1>
+                <div className="overflow-hidden">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        className="font-heading font-black text-5xl md:text-6xl leading-[1.05] tracking-tight text-white mb-8 max-w-[800px]"
+                    >
+                        {titleText.split('\n').map((line: string, idx: number) => (
+                            <span key={idx} className="block">{line}</span>
+                        ))}
+                    </motion.h1>
+                </div>
 
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}
@@ -85,38 +85,25 @@ export function Hero() {
                 </motion.p>
 
 
-                {/* Actions - 2+2+1 Grid */}
+                {/* CTA Buttons */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.5 }}
-                    className="max-w-[600px]"
+                    className="flex flex-wrap gap-4"
                 >
-                    {/* Row 1: Глянцевий журнал + Фотокнига */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <Link href="/catalog?category=hlyantsevi-zhurnaly" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Глянцеві журнали
-                        </Link>
-                        <Link href="/catalog?category=photobooks" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Фотокниги
-                        </Link>
-                    </div>
-
-                    {/* Row 2: Фотодрук + Travel book */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <Link href="/catalog?category=prints" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Фотодрук
-                        </Link>
-                        <Link href="/catalog?category=travelbooks" className="h-[52px] bg-white/95 backdrop-blur-md text-primary font-bold text-[15px] rounded-[3px] flex items-center justify-center no-underline transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-0.5">
-                            Travelbook
-                        </Link>
-                    </div>
-
-                    {/* Row 3: В магазин (half width, primary) */}
-                    <Link href="/catalog" className="btn-primary w-1/2 !h-[52px] text-[15px] shadow-[0_4px_12px_rgba(38,58,153,0.2)] hover:shadow-[0_8px_24px_rgba(38,58,153,0.3)]">
-                        В магазин
+                    <Link
+                        href="/constructor/wizard"
+                        className="inline-flex items-center justify-center h-14 px-8 bg-stone-800 text-white font-bold text-sm uppercase tracking-widest rounded-sm transition-all hover:bg-stone-700 hover:shadow-lg"
+                    >
+                        Створити фотокнигу
                     </Link>
-
+                    <Link
+                        href="/catalog"
+                        className="inline-flex items-center justify-center h-14 px-8 bg-transparent text-white font-bold text-sm uppercase tracking-widest rounded-sm border-2 border-white transition-all hover:bg-white hover:text-stone-800"
+                    >
+                        Переглянути каталог
+                    </Link>
                 </motion.div>
             </div>
         </section>
