@@ -58,8 +58,7 @@ export function Footer({ categories = [] }: FooterProps) {
             id: 'help',
             title: 'Допомога',
             links: [
-                { label: 'Доставка та оплата', href: '/oplata-i-dostavka' },
-                { label: 'Обмін та повернення', href: '/shipping-returns' },
+                { label: 'Доставка та оплата', href: '/shipping-returns' },
                 { label: 'Питання та відповіді', href: '/faq' },
                 { label: 'Конструктор', href: '/constructor/photobook' }
             ]

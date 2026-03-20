@@ -1,10 +1,10 @@
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { RefreshCcw, Package, Clock, ShieldCheck } from 'lucide-react';
+import { RefreshCcw, Package, Clock, ShieldCheck, CreditCard, Truck } from 'lucide-react';
 
 export const metadata = {
-  title: 'Доставка та повернення | Touch.Memories',
-  description: 'Умови доставки по Україні та за кордон. Гарантія якості та порядок обміну.',
+  title: 'Доставка та оплата | Touch.Memories',
+  description: 'Умови доставки по Україні та за кордон. Способи оплати: переказ, онлайн оплата. Гарантія якості та порядок обміну.',
 };
 
 export default function ShippingReturnsPage() {
@@ -16,14 +16,75 @@ export default function ShippingReturnsPage() {
                 <div className="container max-w-4xl mx-auto px-4">
                     <header className="text-center mb-16">
                         <h1 className="text-5xl font-black text-gray-900 mb-4 font-heading tracking-tight">
-                            Обмін та повернення 🔄
+                            Доставка та оплата 📦
                         </h1>
                         <p className="text-xl text-gray-600">
-                            Ми дбаємо про якість кожного замовлення та вашу впевненість у результаті.
+                            Вся інформація про доставку, оплату та гарантії якості.
                         </p>
                     </header>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    {/* Delivery & Payment Section */}
+                    <div className="mb-16">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Доставка і оплата</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                            {/* Delivery */}
+                            <div className="bg-white p-8 rounded-[3px] shadow-sm border border-gray-100">
+                                <div className="bg-indigo-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
+                                    <Truck className="h-7 w-7 text-indigo-600" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-4">Доставка</h3>
+                                <ul className="text-gray-600 leading-relaxed space-y-3">
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-indigo-600 font-bold">•</span>
+                                        <span><strong>По Україні:</strong> Нова Пошта (відділення або адресна доставка)</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-indigo-600 font-bold">•</span>
+                                        <span><strong>Тернопіль:</strong> безкоштовна доставка кур'єром або самовивіз</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-indigo-600 font-bold">•</span>
+                                        <span><strong>За кордон:</strong> обговорюється індивідуально</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-indigo-600 font-bold">•</span>
+                                        <span><strong>Термін доставки:</strong> 1-3 дні після виготовлення</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Payment */}
+                            <div className="bg-white p-8 rounded-[3px] shadow-sm border border-gray-100">
+                                <div className="bg-emerald-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
+                                    <CreditCard className="h-7 w-7 text-emerald-600" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-4">Оплата</h3>
+                                <ul className="text-gray-600 leading-relaxed space-y-3">
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-emerald-600 font-bold">•</span>
+                                        <span><strong>Банківський переказ</strong> на карту ПриватБанку</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-emerald-600 font-bold">•</span>
+                                        <span><strong>Онлайн оплата</strong> (за наявності)</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-emerald-600 font-bold">•</span>
+                                        <span><strong>Передоплата або оплата при отриманні</strong> — обговорюється з менеджером</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="text-emerald-600 font-bold">•</span>
+                                        <span>Детальні реквізити надсилаються після узгодження замовлення</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Returns & Exchange Section */}
+                    <div className="mb-16">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Обмін та повернення</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
                         {/* Policy Section 1 */}
                         <div className="bg-white p-8 rounded-[3px] shadow-sm border border-gray-100">
                             <div className="bg-blue-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
@@ -67,6 +128,7 @@ export default function ShippingReturnsPage() {
                                 Ми розглянемо ваше звернення протягом 1-2 робочих днів та запропонуємо оптимальне рішення для виправлення ситуації.
                             </p>
                         </div>
+                    </div>
                     </div>
 
                     <div className="bg-blue-600 rounded-[3px] p-10 text-white text-center">
