@@ -1,11 +1,10 @@
 'use client';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from '@/components/providers/ThemeProvider';
-import { DynamicText } from './DynamicText';
-import { ProductStrip } from './ProductStrip';
 
 interface Product {
     id: string;
@@ -20,6 +19,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
     const { blocks } = useTheme();
     const block = blocks.find(b => b.block_name === 'featured_products');
     const style = block?.style_metadata || {};
+    const [currentIndex, setCurrentIndex] = useState(0);
 
     if (!products || products.length === 0) return null;
 
@@ -27,6 +27,31 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
         triggerOnce: true,
         threshold: 0.1,
     });
+
+    // Responsive visible count (4 on desktop, 2 on tablet, 1 on mobile with peek)
+    const getVisibleCount = () => {
+        if (typeof window !== 'undefined') {
+            if (window.innerWidth >= 1024) return 4; // lg breakpoint
+            if (window.innerWidth >= 768) return 2;  // md breakpoint
+            return 1.5; // mobile with peek
+        }
+        return 4; // default for SSR
+    };
+
+    const [visibleCount, setVisibleCount] = useState(getVisibleCount());
+
+    // Update visible count on resize
+    if (typeof window !== 'undefined') {
+        window.addEventListener('resize', () => setVisibleCount(getVisibleCount()));
+    }
+
+    const maxIndex = Math.max(0, products.length - Math.floor(visibleCount));
+
+    const next = () => setCurrentIndex(i => Math.min(i + 1, maxIndex));
+    const prev = () => setCurrentIndex(i => Math.max(i - 1, 0));
+
+    // Calculate progress for dots
+    const totalDots = maxIndex + 1;
 
     return (
         <section
@@ -48,45 +73,97 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                     </h2>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 justify-center">
-                    {products?.map((product, idx) => (
-                        <motion.div
-                            key={product.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={inView ? { opacity: 1, y: 0 } : {}}
-                            transition={{ duration: 0.5, delay: idx * 0.1 }}
-                            className="flex justify-center"
+                {/* Carousel Container */}
+                <div className="relative">
+                    {/* Left Arrow */}
+                    <button
+                        onClick={prev}
+                        disabled={currentIndex === 0}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full border border-stone-300 bg-white flex items-center justify-center hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg"
+                        aria-label="Previous products"
+                    >
+                        <ChevronLeft size={24} />
+                    </button>
+
+                    {/* Right Arrow */}
+                    <button
+                        onClick={next}
+                        disabled={currentIndex >= maxIndex}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full border border-stone-300 bg-white flex items-center justify-center hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg"
+                        aria-label="Next products"
+                    >
+                        <ChevronRight size={24} />
+                    </button>
+
+                    {/* Slider */}
+                    <div className="overflow-hidden px-2">
+                        <div
+                            className="flex gap-6 transition-transform duration-500 ease-in-out"
+                            style={{
+                                transform: `translateX(-${currentIndex * (100 / visibleCount)}%)`
+                            }}
                         >
-                            <Link
-                                href={`/catalog/${product.slug}`}
-                                className="group flex flex-col w-full max-w-[320px] bg-white rounded-[3px] overflow-hidden transition-all duration-500 hover:-translate-y-2 shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] border border-gray-100/50"
-                            >
-                                <div className="aspect-[4/5] relative overflow-hidden bg-gray-50">
-                                    {product.images?.[0] ? (
-                                        <img
-                                            src={product.images[0]}
-                                            alt={product.name}
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-primary/10">
-                                            <ImageIcon size={48} />
+                            {products?.map((product, idx) => (
+                                <motion.div
+                                    key={product.id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={inView ? { opacity: 1, y: 0 } : {}}
+                                    transition={{ duration: 0.5, delay: idx * 0.1 }}
+                                    className="flex-shrink-0"
+                                    style={{
+                                        width: `calc(${100 / visibleCount}% - ${(visibleCount - 1) * 24 / visibleCount}px)`
+                                    }}
+                                >
+                                    <Link
+                                        href={`/catalog/${product.slug}`}
+                                        className="group flex flex-col h-full bg-white rounded-[3px] overflow-hidden transition-all duration-500 hover:-translate-y-2 shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] border border-gray-100/50"
+                                    >
+                                        <div className="aspect-[4/5] relative overflow-hidden bg-gray-50">
+                                            {product.images?.[0] ? (
+                                                <img
+                                                    src={product.images[0]}
+                                                    alt={product.name}
+                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-primary/10">
+                                                    <ImageIcon size={48} />
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                                <div className="p-6 flex flex-col items-center text-center flex-grow">
-                                    <h3 className="font-heading font-extrabold text-[16px] text-primary mb-6 transition-colors group-hover:text-primary/80 h-10 line-clamp-2">
-                                        {product.name}
-                                    </h3>
-                                    <div className="mt-auto w-full">
-                                        <div className="btn-primary w-full !h-[52px] !rounded-[3px]">
-                                            Детальніше
+                                        <div className="p-6 flex flex-col items-center text-center flex-grow">
+                                            <h3 className="font-heading font-extrabold text-[16px] text-primary mb-6 transition-colors group-hover:text-primary/80 h-10 line-clamp-2">
+                                                {product.name}
+                                            </h3>
+                                            <div className="mt-auto w-full">
+                                                <div className="btn-primary w-full !h-[52px] !rounded-[3px]">
+                                                    Детальніше
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </Link>
-                        </motion.div>
-                    ))}
+                                    </Link>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Pagination Dots */}
+                    {totalDots > 1 && (
+                        <div className="flex justify-center gap-2 mt-8">
+                            {Array.from({ length: totalDots }).map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => setCurrentIndex(idx)}
+                                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                        idx === currentIndex
+                                            ? 'bg-stone-900 w-8'
+                                            : 'bg-stone-300 hover:bg-stone-500'
+                                    }`}
+                                    aria-label={`Go to slide ${idx + 1}`}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </section>
