@@ -112,6 +112,10 @@ export default async function Home() {
           <HowItWorks />
         </SectionWrapper>
 
+        <SectionWrapper name="photo_print" defaultOrder={29}>
+          <PhotoPrintPromo />
+        </SectionWrapper>
+
         {/* ─── Blog / Inspiration Section ─── */}
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -173,7 +177,7 @@ export default async function Home() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="inline-block bg-white text-stone-800 text-xs px-2 py-0.5 tracking-widest uppercase mb-2">
+                        <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
                           Travel
                         </span>
                         <h3 className="text-white text-base font-serif leading-snug">
@@ -194,7 +198,7 @@ export default async function Home() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="inline-block bg-white text-stone-800 text-xs px-2 py-0.5 tracking-widest uppercase mb-2">
+                        <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
                           Весілля
                         </span>
                         <h3 className="text-white text-base font-serif leading-snug">
@@ -220,10 +224,6 @@ export default async function Home() {
 
           </div>
         </section>
-
-        <SectionWrapper name="photo_print" defaultOrder={29}>
-          <PhotoPrintPromo />
-        </SectionWrapper>
 
         <SectionWrapper name="gift_ideas" defaultOrder={35}>
           <GiftIdeas />
