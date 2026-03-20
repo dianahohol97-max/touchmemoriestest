@@ -254,7 +254,6 @@ export function ProductOptions({ product }: ProductOptionsProps) {
 
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: "3px", color: '#263A99', fontSize: '14px' }}>
                 <Info size={18} />
-                <span>Термін виготовлення: 3-5 робочих днів</span>
             </div>
 
         </div>

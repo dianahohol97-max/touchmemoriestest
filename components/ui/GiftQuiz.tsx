@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Dialog,
@@ -13,6 +13,12 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight, ChevronLeft, RotateCcw, CheckCircle2, Check } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface QuizStep {
     question: string;
@@ -20,6 +26,21 @@ interface QuizStep {
     options: { label: string; value: string }[];
     multiSelect?: boolean;
     maxSelections?: number;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    slug: string;
+    description: string;
+    image_url?: string;
+}
+
+interface Recommendation {
+    title: string;
+    desc: string;
+    image: string;
+    link: string;
 }
 
 const quizSteps: QuizStep[] = [
@@ -80,8 +101,74 @@ const quizSteps: QuizStep[] = [
     }
 ];
 
-// Enhanced recommendation logic with multi-interest support
-const getRecommendations = (answers: Record<string, string | string[]>) => {
+// Fetch recommendations from Supabase with fallback logic
+const getRecommendations = async (answers: Record<string, string | string[]>): Promise<Recommendation[]> => {
+    const q1Answer = answers.age as string;
+    const interests = Array.isArray(answers.interests) ? answers.interests : [answers.interests].filter(Boolean);
+
+    try {
+        // Try to find exact match with all selected interests
+        let { data, error } = await supabase
+            .from('quiz_recommendations')
+            .select('product_ids')
+            .eq('q1_answer', q1Answer)
+            .contains('q2_answers', interests)
+            .limit(1)
+            .single();
+
+        // If no exact match and user selected 2 interests, try with just the first interest
+        if ((!data || error) && interests.length === 2) {
+            const result = await supabase
+                .from('quiz_recommendations')
+                .select('product_ids')
+                .eq('q1_answer', q1Answer)
+                .contains('q2_answers', [interests[0]])
+                .limit(1)
+                .single();
+
+            data = result.data;
+            error = result.error;
+        }
+
+        // If no match with q1_answer, try matching just interests
+        if (!data || error) {
+            const result = await supabase
+                .from('quiz_recommendations')
+                .select('product_ids')
+                .contains('q2_answers', interests)
+                .limit(1)
+                .single();
+
+            data = result.data;
+            error = result.error;
+        }
+
+        if (data && data.product_ids && data.product_ids.length > 0) {
+            // Fetch product details
+            const { data: products, error: productsError } = await supabase
+                .from('products')
+                .select('id, name, slug, description, image_url')
+                .in('id', data.product_ids);
+
+            if (products && !productsError) {
+                return products.map((product: Product) => ({
+                    title: product.name,
+                    desc: product.description || 'Преміум якість та унікальний дизайн',
+                    image: product.image_url || '/images/promo/photobook_video.png',
+                    link: `/catalog/${product.slug}`
+                }));
+            }
+        }
+    } catch (err) {
+        console.error('Error fetching recommendations:', err);
+    }
+
+    // Fallback to hardcoded recommendations if Supabase query fails
+    return getFallbackRecommendations(answers);
+};
+
+// Fallback recommendations (original hardcoded logic)
+const getFallbackRecommendations = (answers: Record<string, string | string[]>): Recommendation[] => {
     const interests = Array.isArray(answers.interests) ? answers.interests : [answers.interests].filter(Boolean);
 
     // Multi-interest combinations
@@ -131,11 +218,24 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
     const [step, setStep] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
     const [showResults, setShowResults] = useState(false);
+    const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+    const [loadingRecs, setLoadingRecs] = useState(false);
 
     const currentStep = quizSteps[step];
     const isMultiSelect = currentStep?.multiSelect || false;
     const maxSelections = currentStep?.maxSelections || 1;
     const currentAnswers = isMultiSelect ? ((answers[currentStep.key] as string[]) || []) : [];
+
+    // Fetch recommendations when quiz is completed
+    useEffect(() => {
+        if (showResults && recommendations.length === 0) {
+            setLoadingRecs(true);
+            getRecommendations(answers).then((recs) => {
+                setRecommendations(recs);
+                setLoadingRecs(false);
+            });
+        }
+    }, [showResults, answers, recommendations.length]);
 
     const handleOptionSelect = (value: string) => {
         const currentKey = quizSteps[step].key;
@@ -181,6 +281,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
         setStep(0);
         setAnswers({});
         setShowResults(false);
+        setRecommendations([]);
     };
 
     const canContinue = isMultiSelect ? currentAnswers.length > 0 : true;
@@ -290,45 +391,53 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                         </DialogDescription>
                                     </DialogHeader>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
-                                        {getRecommendations(answers).map((rec, i) => (
-                                            <motion.div
-                                                key={i}
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: i * 0.1 + 0.3 }}
-                                                className="group"
-                                            >
-                                                <div className="relative aspect-[4/3] rounded-[16px] overflow-hidden mb-4 shadow-md group-hover:shadow-xl transition-all duration-500">
-                                                    <Image
-                                                        src={rec.image}
-                                                        alt={rec.title}
-                                                        fill
-                                                        className="object-cover group-hover:scale-105 transition-transform duration-700"
-                                                    />
-                                                </div>
-                                                <h3 className="text-xl font-black text-stone-900 mb-1">{rec.title}</h3>
-                                                <p className="text-gray-500 text-sm mb-4 leading-relaxed">{rec.desc}</p>
-                                                <Link
-                                                    href={rec.link}
-                                                    className="inline-flex items-center gap-2 text-amber-600 font-bold text-sm uppercase tracking-wider group/link"
-                                                >
-                                                    Детальніше
-                                                    <ChevronRight size={16} className="transition-transform group-hover/link:translate-x-1" />
-                                                </Link>
-                                            </motion.div>
-                                        ))}
-                                    </div>
+                                    {loadingRecs ? (
+                                        <div className="flex justify-center items-center py-20">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
+                                                {recommendations.map((rec, i) => (
+                                                    <motion.div
+                                                        key={i}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: i * 0.1 + 0.3 }}
+                                                        className="group"
+                                                    >
+                                                        <div className="relative aspect-[4/3] rounded-[16px] overflow-hidden mb-4 shadow-md group-hover:shadow-xl transition-all duration-500">
+                                                            <Image
+                                                                src={rec.image}
+                                                                alt={rec.title}
+                                                                fill
+                                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                                            />
+                                                        </div>
+                                                        <h3 className="text-xl font-black text-stone-900 mb-1">{rec.title}</h3>
+                                                        <p className="text-gray-500 text-sm mb-4 leading-relaxed">{rec.desc}</p>
+                                                        <Link
+                                                            href={rec.link}
+                                                            className="inline-flex items-center gap-2 text-amber-600 font-bold text-sm uppercase tracking-wider group/link"
+                                                        >
+                                                            Детальніше
+                                                            <ChevronRight size={16} className="transition-transform group-hover/link:translate-x-1" />
+                                                        </Link>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
 
-                                    <div className="flex justify-center border-t border-gray-100 pt-10">
-                                        <Button
-                                            variant="outline"
-                                            onClick={resetQuiz}
-                                            className="flex items-center gap-2 border-gray-200 rounded-full px-8 py-6 font-bold text-gray-500 hover:text-amber-600 hover:border-amber-400"
-                                        >
-                                            <RotateCcw size={18} /> Спробувати знову
-                                        </Button>
-                                    </div>
+                                            <div className="flex justify-center border-t border-gray-100 pt-10">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={resetQuiz}
+                                                    className="flex items-center gap-2 border-gray-200 rounded-full px-8 py-6 font-bold text-gray-500 hover:text-amber-600 hover:border-amber-400"
+                                                >
+                                                    <RotateCcw size={18} /> Спробувати знову
+                                                </Button>
+                                            </div>
+                                        </>
+                                    )}
                                 </motion.div>
                             )}
                         </AnimatePresence>
