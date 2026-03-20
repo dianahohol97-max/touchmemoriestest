@@ -5,6 +5,7 @@ import { Footer } from '@/components/ui/Footer';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import { goToConstructor } from '@/lib/constructorRouting';
 
 const COVER_TYPES = [
   {
@@ -114,17 +115,17 @@ export default function PhotobookPage() {
   const handleConstructor = () => {
     const coverTypeLabel = COVER_TYPES.find(c => c.key === coverType)?.name || '';
 
-    // Save configuration for constructor
-    sessionStorage.setItem('constructorConfig', JSON.stringify({
+    // Use routing system to navigate to constructor
+    const url = goToConstructor({
       productType: 'photobook',
       coverType,
       coverTypeLabel,
-      size,
+      format: size,
       pages,
       totalPrice: basePrice
-    }));
+    });
 
-    router.push('/constructor/photobook');
+    router.push(url);
   };
 
   const handleDesigner = () => {

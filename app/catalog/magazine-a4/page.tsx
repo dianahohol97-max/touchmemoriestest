@@ -5,6 +5,7 @@ import { Footer } from '@/components/ui/Footer';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import { goToConstructor } from '@/lib/constructorRouting';
 
 const PAGE_PRICES: Record<number, number> = {
   8: 425, 12: 475, 16: 625, 20: 775, 24: 925, 28: 1075,
@@ -64,15 +65,16 @@ export default function MagazineA4Page() {
   const totalPrice = urgentProduction ? Math.round(subtotal * 1.3) : subtotal;
 
   const handleConstructor = () => {
-    // Save configuration for constructor
-    sessionStorage.setItem('constructorConfig', JSON.stringify({
+    // Use routing system to navigate to constructor
+    const url = goToConstructor({
       productType: 'magazine',
-      size: 'A4',
+      format: 'A4',
       pages,
+      coverType: 'М\'яка',
       totalPrice: basePrice
-    }));
+    });
 
-    router.push('/constructor/photobook');
+    router.push(url);
   };
 
   const handleDesigner = () => {

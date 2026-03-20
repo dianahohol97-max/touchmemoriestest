@@ -58,6 +58,13 @@ function CatalogContent() {
 
     const [selectedCategory, setSelectedCategory] = useState(queryCategory);
     const [sortBy, setSortBy] = useState('popular');
+    const [hasPendingOrder, setHasPendingOrder] = useState(false);
+
+    useEffect(() => {
+        // Check for pending order
+        const pendingOrder = sessionStorage.getItem('pendingOrder');
+        setHasPendingOrder(!!pendingOrder);
+    }, []);
 
     useEffect(() => {
         // Sync state with URL if it changes externally
@@ -123,6 +130,37 @@ function CatalogContent() {
 
     return (
         <main style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+            {/* Pending Order Banner */}
+            {hasPendingOrder && (
+                <div style={{
+                    backgroundColor: '#2563eb',
+                    color: 'white',
+                    textAlign: 'center',
+                    padding: '12px 16px',
+                    marginBottom: '24px',
+                    borderRadius: '8px',
+                    fontSize: '15px'
+                }}>
+                    <span>У вас є незавершене замовлення. </span>
+                    <button
+                        onClick={() => router.push('/order/designer-upload')}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'white',
+                            textDecoration: 'underline',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            fontSize: '15px',
+                            marginLeft: '4px'
+                        }}
+                        className="hover:opacity-80"
+                    >
+                        ← Повернутись до оформлення
+                    </button>
+                </div>
+            )}
+
             {/* Breadcrumbs */}
             <div style={{ fontSize: '14px', color: '#888', marginBottom: '24px' }}>
                 Головна <span style={{ margin: '0 8px' }}>→</span> Каталог

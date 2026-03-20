@@ -61,7 +61,7 @@ export function Footer({ categories = [] }: FooterProps) {
                 { label: 'Доставка та оплата', href: '/oplata-i-dostavka' },
                 { label: 'Обмін та повернення', href: '/shipping-returns' },
                 { label: 'Питання та відповіді', href: '/faq' },
-                { label: 'Конструктор', href: '/book-constructor' }
+                { label: 'Конструктор', href: '/constructor/photobook' }
             ]
         }
     ];

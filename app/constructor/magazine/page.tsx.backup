@@ -1,0 +1,520 @@
+'use client';
+import React, { useReducer, useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { Playfair_Display, Cormorant_Garamond, Montserrat, Dancing_Script, Raleway } from 'next/font/google';
+import { 
+  ArrowLeft, Undo2, Redo2, Eye, ShoppingCart, 
+  Camera, LayoutDashboard, PaintBucket, Type, Settings,
+  Upload, Smartphone, Cloud, ArrowDownToLine, Trash2,
+  ZoomIn, ZoomOut, Move
+} from 'lucide-react';
+
+const playfair = Playfair_Display({ subsets: ['latin', 'cyrillic'] });
+const cormorant = Cormorant_Garamond({ subsets: ['latin', 'cyrillic'], weight: ['300', '400', '500', '600', '700'] });
+const montserrat = Montserrat({ subsets: ['latin', 'cyrillic'] });
+const dancing = Dancing_Script({ subsets: ['latin'] });
+const raleway = Raleway({ subsets: ['latin', 'cyrillic'] });
+
+interface PhotoItem { id: string; src: string; name: string; usedCount: number; }
+interface TextBlock {
+  id: string; content: string; x: number; y: number; width: number;
+  fontSize: number; fontFamily: string; color: string; align: 'left' | 'center' | 'right';
+  italic: boolean; bold: boolean; lineHeight: number; letterSpacing: number; isPreset: boolean;
+}
+interface SlotState { slotIndex: number; photoId: string | null; zoom: number; offsetX: number; offsetY: number; }
+interface PageState { id: string; pageIndex: number; layoutId: string; bgColor: string; slots: SlotState[]; textBlocks: TextBlock[]; }
+interface MagazineState {
+  pages: PageState[]; photos: PhotoItem[]; selectedPageIndex: number;
+  selectedSlotIndex: number | null; selectedTextBlockId: string | null;
+  magazineTitle: string; history: PageState[][]; future: PageState[][];
+}
+
+const MAGAZINE_LAYOUTS: Record<string, { label: string; slots: {x:number; y:number; w:number; h:number}[]; defaultTextBlocks?: Partial<TextBlock>[]; type: 'cover' | 'photo' | 'text' }> = {
+  'cover-full-title': {
+    type: 'cover', label: 'Повна обкладинка', slots: [{ x:0, y:0, w:100, h:100 }],
+    defaultTextBlocks: [
+      { content: 'ПЕРЕДМОВА ДО ТЕМЕ', x:3, y:3, width:42, fontSize:8, fontFamily:'Montserrat', color:'#ffffff', isPreset:true, align: 'left' },
+      { content: 'Про вас', x:55, y:3, width:42, fontSize:8, fontFamily:'Montserrat', color:'#ffffff', isPreset:true, align: 'right' },
+      { content: "ІМ'Я", x:10, y:62, width:80, fontSize:64, fontFamily:'Playfair Display', color:'#ffffff', align:'center', italic:false, isPreset:true },
+      { content: 'PROFESSIONAL FASHION MODEL', x:5, y:90, width:45, fontSize:7, fontFamily:'Montserrat', color:'#ffffff', letterSpacing:3, align: 'left', isPreset:true },
+      { content: 'EXCLUSIVE MAGAZINE', x:55, y:90, width:40, fontSize:7, fontFamily:'Montserrat', color:'#ffffff', letterSpacing:3, align:'right', isPreset:true },
+    ]
+  },
+  'cover-dark-overlay': {
+    type: 'cover', label: 'Темна обкладинка', slots: [{ x:0, y:0, w:100, h:100 }],
+    defaultTextBlocks: [
+      { content: "ІМ'Я", x:5, y:55, width:90, fontSize:72, fontFamily:'Cormorant Garamond', color:'#ffffff', align:'center', italic:true, isPreset:true },
+      { content: 'Only you', x:20, y:72, width:60, fontSize:22, fontFamily:'Dancing Script', color:'#ffffff', align:'center', isPreset:true },
+    ]
+  },
+  'cover-split': {
+    type: 'cover', label: 'Розділена обкладинка', slots: [{ x:0, y:0, w:55, h:100 }],
+    defaultTextBlocks: [
+      { content: "ІМ'Я", x:58, y:30, width:40, fontSize:48, fontFamily:'Playfair Display', color:'#1a1a1a', align:'center', isPreset:true },
+      { content: 'FASHION MAGAZINE', x:58, y:55, width:40, fontSize:9, fontFamily:'Montserrat', color:'#666666', align:'center', letterSpacing:4, isPreset:true },
+    ]
+  },
+  'layout-full-bleed': { type: 'photo', label: 'На весь розворот', slots: [{ x:0, y:0, w:100, h:100 }] },
+  'layout-centered': { type: 'photo', label: 'Центроване фото', slots: [{ x:5, y:8, w:90, h:84 }] },
+  'layout-header-photo': {
+    type: 'photo', label: 'Шапка + фото', slots: [{ x:4, y:12, w:92, h:84 }],
+    defaultTextBlocks: [
+      { content: 'LUMIÈRE', x:0, y:0, width:100, fontSize:9, fontFamily:'Montserrat', color:'#1a1a1a', align:'center', letterSpacing:8, isPreset:true },
+      { content: 'LUMIÈRE', x:0, y:95, width:100, fontSize:9, fontFamily:'Montserrat', color:'#1a1a1a', align:'center', letterSpacing:8, isPreset:true },
+    ]
+  },
+  'layout-header-collage3': {
+    type: 'photo', label: 'Шапка + колаж 1+2', slots: [{ x:4, y:12, w:92, h:52 }, { x:4, y:66, w:44, h:30 }, { x:52, y:66, w:44, h:30 }],
+    defaultTextBlocks: [
+      { content: 'LUMIÈRE', x:0, y:0, width:100, fontSize:9, fontFamily:'Montserrat', color:'#1a1a1a', align:'center', letterSpacing:8, isPreset:true },
+      { content: 'LUMIÈRE', x:0, y:95, width:100, fontSize:9, fontFamily:'Montserrat', color:'#1a1a1a', align:'center', letterSpacing:8, isPreset:true },
+    ]
+  },
+  'layout-header-collage4': {
+    type: 'photo', label: 'Шапка + колаж 1+3', slots: [{ x:4, y:12, w:92, h:48 }, { x:4, y:62, w:28, h:34 }, { x:36, y:62, w:28, h:34 }, { x:68, y:62, w:28, h:34 }],
+    defaultTextBlocks: [
+      { content: 'LUMIÈRE', x:0, y:0, width:100, fontSize:9, fontFamily:'Montserrat', color:'#1a1a1a', align:'center', letterSpacing:8, isPreset:true },
+      { content: 'LUMIÈRE', x:0, y:95, width:100, fontSize:9, fontFamily:'Montserrat', color:'#1a1a1a', align:'center', letterSpacing:8, isPreset:true },
+    ]
+  },
+  'layout-split-photo-quote': {
+    type: 'photo', label: 'Фото + цитата', slots: [{ x:0, y:0, w:55, h:100 }],
+    defaultTextBlocks: [
+      { content: 'Тут може бути ваш вірш\nабо цитата для коханої людини...', x:58, y:30, width:38, fontSize:12, fontFamily:'Dancing Script', color:'#1a1a1a', align:'center', italic:true, lineHeight:1.8, isPreset:true },
+    ]
+  },
+  'layout-two-photos-v': { type: 'photo', label: 'Два фото поруч', slots: [{ x:1, y:1, w:48, h:98 }, { x:51, y:1, w:48, h:98 }] },
+  'layout-two-photos-h': { type: 'photo', label: 'Два фото стосом', slots: [{ x:1, y:1, w:98, h:48 }, { x:1, y:51, w:98, h:48 }] },
+  'layout-article': {
+    type: 'text', label: 'Стаття', slots: [],
+    defaultTextBlocks: [
+      { content: 'НАЗВА СТАТТІ', x:8, y:8, width:84, fontSize:28, fontFamily:'Playfair Display', color:'#1a1a1a', align:'left', bold:true, isPreset:true },
+      { content: "ІМ'Я", x:15, y:28, width:70, fontSize:52, fontFamily:'Cormorant Garamond', color:'#e8e4e0', align:'center', italic:true, isPreset:true },
+      { content: 'Тут ваш текст — розкажіть про цей фотосет, про те, що відчували, що надихало. Це ваша особиста сторінка.', x:8, y:42, width:38, fontSize:9, fontFamily:'Montserrat', color:'#444444', lineHeight:1.7, isPreset:true, align: 'left' },
+      { content: 'Другий абзац або продовження тексту. Можна розповісти про локацію, образ, настрій дня зйомки.', x:54, y:42, width:38, fontSize:9, fontFamily:'Montserrat', color:'#444444', lineHeight:1.7, isPreset:true, align: 'left' },
+    ]
+  },
+  'layout-quote': {
+    type: 'text', label: 'Цитата', slots: [],
+    defaultTextBlocks: [
+      { content: '«Ти — це енергія,\nяка може змінити світ»', x:15, y:35, width:70, fontSize:18, fontFamily:'Dancing Script', color:'#1a1a1a', align:'center', italic:false, lineHeight:1.9, isPreset:true },
+    ]
+  },
+  'layout-dark-poem': {
+    type: 'text', label: 'Темна + текст', slots: [{ x:0, y:0, w:100, h:100 }],
+    defaultTextBlocks: [
+      { content: 'За твою стійкість,\nза твою красу,\nза кожен крок вперед...', x:8, y:15, width:38, fontSize:9, fontFamily:'Montserrat', color:'#ffffff', lineHeight:2.0, isPreset:true, align: 'left' },
+      { content: 'За твою усмішку,\nяка освітлює кімнату,\nза те, що ти є...', x:54, y:15, width:38, fontSize:9, fontFamily:'Montserrat', color:'#ffffff', lineHeight:2.0, isPreset:true, align: 'left' },
+    ]
+  },
+  'layout-blank': { type: 'text', label: 'Порожня', slots: [] },
+};
+
+const INITIAL_PAGE_COUNT = 8;
+const createEmptyPage = (id: string, index: number, layoutId: string, bgColor = '#ffffff'): PageState => {
+  const layout = MAGAZINE_LAYOUTS[layoutId];
+  return {
+    id, pageIndex: index, layoutId, bgColor,
+    slots: layout.slots.map((_, i) => ({ slotIndex: i, photoId: null, zoom: 1, offsetX: 0, offsetY: 0 })),
+    textBlocks: (layout.defaultTextBlocks || []).map((tb, i) => ({
+      id: `tb-${id}-${i}`, content: tb.content || '', x: tb.x || 0, y: tb.y || 0, width: tb.width || 50,
+      fontSize: tb.fontSize || 12, fontFamily: tb.fontFamily || 'Montserrat', color: tb.color || '#000000',
+      align: tb.align || 'left', italic: tb.italic || false, bold: tb.bold || false,
+      lineHeight: tb.lineHeight || 1.5, letterSpacing: tb.letterSpacing || 0, isPreset: tb.isPreset || false
+    }))
+  };
+};
+
+type Action = 
+  | { type: 'SET_INITIAL'; payload: { config: any, smartPhotos: any[] } }
+  | { type: 'ADD_PHOTOS'; payload: any[] }
+  | { type: 'PLACE_PHOTO'; payload: { pageIndex: number; slotIndex: number; photoId: string } }
+  | { type: 'REMOVE_PHOTO_FROM_SLOT'; payload: { pageIndex: number; slotIndex: number } }
+  | { type: 'UPDATE_SLOT_TRANSFORM'; payload: { pageIndex: number; slotIndex: number; zoom: number; offsetX: number; offsetY: number } }
+  | { type: 'CHANGE_PAGE_LAYOUT'; payload: { pageIndex: number; layoutId: string } }
+  | { type: 'SET_PAGE_BG_COLOR'; payload: { pageIndex: number; color: string } }
+  | { type: 'ADD_TEXT_BLOCK'; payload: { pageIndex: number; block: Partial<TextBlock> } }
+  | { type: 'UPDATE_TEXT_BLOCK'; payload: { pageIndex: number; blockId: string; updates: Partial<TextBlock> } }
+  | { type: 'REMOVE_TEXT_BLOCK'; payload: { pageIndex: number; blockId: string } }
+  | { type: 'SELECT_PAGE'; payload: number }
+  | { type: 'SELECT_SLOT'; payload: number | null }
+  | { type: 'SELECT_TEXT_BLOCK'; payload: string | null }
+  | { type: 'DESELECT_ALL' }
+  | { type: 'SET_MAGAZINE_TITLE'; payload: string }
+  | { type: 'AUTO_FILL_ALL' }
+  | { type: 'UNDO' }
+  | { type: 'REDO' }
+  | { type: 'ADD_PAGE'; payload: number }
+  | { type: 'REMOVE_PAGE'; payload: number }
+  | { type: 'MOVE_PAGE'; payload: { from: number; to: number } };
+
+function reducer(state: MagazineState, action: Action): MagazineState {
+  const saveHistory = (newState: MagazineState) => {
+    return { ...newState, history: [...state.history, state.pages].slice(-40), future: [] };
+  };
+
+  switch (action.type) {
+    case 'SET_INITIAL': {
+      const { config, smartPhotos } = action.payload;
+      const count = config.pages || INITIAL_PAGE_COUNT;
+      const initialPages = [];
+      const cycleLayouts = ['layout-full-bleed', 'layout-header-photo', 'layout-centered', 'layout-header-collage3', 'layout-split-photo-quote'];
+      for (let i = 0; i < count; i++) {
+        let lId = cycleLayouts[(i - 2) % cycleLayouts.length];
+        if (i === 0) lId = 'cover-full-title';
+        else if (i === 1) lId = 'layout-blank';
+        else if (i === count - 2) lId = 'layout-quote';
+        else if (i === count - 1) lId = 'layout-blank';
+        initialPages.push(createEmptyPage(`p-${i}`, i, lId));
+      }
+      return { ...state, pages: initialPages, photos: smartPhotos, history: [], future: [] };
+    }
+    case 'SELECT_PAGE':
+      return { ...state, selectedPageIndex: action.payload, selectedSlotIndex: null, selectedTextBlockId: null };
+    case 'SELECT_SLOT':
+      return { ...state, selectedSlotIndex: action.payload, selectedTextBlockId: null };
+    case 'SELECT_TEXT_BLOCK':
+      return { ...state, selectedTextBlockId: action.payload, selectedSlotIndex: null };
+    case 'DESELECT_ALL':
+      return { ...state, selectedSlotIndex: null, selectedTextBlockId: null };
+    case 'SET_MAGAZINE_TITLE':
+      return { ...state, magazineTitle: action.payload };
+    case 'ADD_PHOTOS':
+      return { ...state, photos: [...state.photos, ...action.payload] };
+    case 'PLACE_PHOTO': {
+      const ns = { ...state };
+      const page = ns.pages[action.payload.pageIndex];
+      const slot = page.slots[action.payload.slotIndex];
+      if (slot.photoId) {
+        const oldP = ns.photos.find(p => p.id === slot.photoId);
+        if (oldP) oldP.usedCount--;
+      }
+      slot.photoId = action.payload.photoId;
+      const newP = ns.photos.find(p => p.id === action.payload.photoId);
+      if (newP) newP.usedCount++;
+      ns.pages = [...ns.pages];
+      ns.pages[action.payload.pageIndex] = { ...page, slots: [...page.slots] };
+      return saveHistory(ns);
+    }
+    case 'CHANGE_PAGE_LAYOUT': {
+      const page = state.pages[action.payload.pageIndex];
+      const newPage = createEmptyPage(page.id, page.pageIndex, action.payload.layoutId, page.bgColor);
+      // Try to preserve photos
+      page.slots.forEach((s, i) => { if (s.photoId && newPage.slots[i]) newPage.slots[i].photoId = s.photoId; });
+      const ns = { ...state, pages: [...state.pages] };
+      ns.pages[action.payload.pageIndex] = newPage;
+      return saveHistory(ns);
+    }
+    case 'SET_PAGE_BG_COLOR': {
+      const ns = { ...state, pages: [...state.pages] };
+      ns.pages[action.payload.pageIndex] = { ...ns.pages[action.payload.pageIndex], bgColor: action.payload.color };
+      return saveHistory(ns);
+    }
+    case 'UPDATE_SLOT_TRANSFORM': {
+      const ns = { ...state, pages: [...state.pages] };
+      const p = ns.pages[action.payload.pageIndex];
+      p.slots = [...p.slots];
+      p.slots[action.payload.slotIndex] = { ...p.slots[action.payload.slotIndex], zoom: action.payload.zoom, offsetX: action.payload.offsetX, offsetY: action.payload.offsetY };
+      ns.pages[action.payload.pageIndex] = p;
+      return saveHistory(ns);
+    }
+    case 'AUTO_FILL_ALL': {
+      let photoIdx = 0;
+      const ns = { ...state, pages: state.pages.map(p => ({ ...p, slots: [...p.slots] })) };
+      ns.pages.forEach((page, pi) => {
+        if (pi === 0) return; // Skip cover usually or just text blocks
+        page.slots.forEach((slot, si) => {
+          if (!slot.photoId && photoIdx < ns.photos.length) {
+            slot.photoId = ns.photos[photoIdx].id;
+            ns.photos[photoIdx].usedCount++;
+            photoIdx++;
+          }
+        });
+      });
+      return saveHistory(ns);
+    }
+    case 'UNDO': {
+      if (state.history.length === 0) return state;
+      const prev = state.history[state.history.length - 1];
+      return { ...state, pages: prev, history: state.history.slice(0, -1), future: [state.pages, ...state.future] };
+    }
+    case 'REDO': {
+      if (state.future.length === 0) return state;
+      const next = state.future[0];
+      return { ...state, pages: next, history: [...state.history, state.pages], future: state.future.slice(1) };
+    }
+    default: return state;
+  }
+}
+
+export default function MagazineConstructor() {
+  const router = useRouter();
+  const [config, setConfig] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState('photos');
+  const [state, dispatch] = useReducer(reducer, {
+    pages: [], photos: [], selectedPageIndex: 0, selectedSlotIndex: null,
+    selectedTextBlockId: null, magazineTitle: '', history: [], future: []
+  });
+
+  useEffect(() => {
+    const cfg = sessionStorage.getItem('constructorConfig');
+    if (!cfg) {
+      router.push('/catalog');
+      return;
+    }
+    const parsedCfg = JSON.parse(cfg);
+    if (parsedCfg.productType !== 'magazine') {
+      router.push('/catalog');
+      return;
+    }
+    setConfig(parsedCfg);
+
+    const mode = sessionStorage.getItem('constructorMode');
+    let smartPhotos = [];
+    if (mode === 'smart') {
+      const sp = sessionStorage.getItem('smartPhotos');
+      if (sp) smartPhotos = JSON.parse(sp).map((p:any) => ({ ...p, usedCount: 0 }));
+    }
+    dispatch({ type: 'SET_INITIAL', payload: { config: parsedCfg, smartPhotos } });
+  }, [router]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) { e.preventDefault(); dispatch({ type: 'UNDO' }); }
+      if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) { e.preventDefault(); dispatch({ type: 'REDO' }); }
+      if (e.key === 'Escape') dispatch({ type: 'DESELECT_ALL' });
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleOrder = () => {
+    const hasPhotos = state.pages.some(p => p.slots.some(s => s.photoId));
+    if (!hasPhotos && state.photos.length > 0) {
+      alert("Додайте хоча б одне фото");
+      return;
+    }
+    const orderData = {
+      productType: 'magazine', size: config?.size || 'A4', pages: state.pages.length,
+      coverType: config?.coverType || '', magazineTitle: state.magazineTitle, photoCount: state.photos.filter(p=>p.usedCount>0).length,
+      constructorData: state.pages
+    };
+    sessionStorage.setItem('pendingOrder', JSON.stringify(orderData));
+    router.push('/checkout');
+  };
+
+  if (!config) return null;
+
+  const activePage = state.pages[state.selectedPageIndex];
+
+  return (
+    <div className={`fixed inset-0 bg-[#e8e4e0] flex flex-col overflow-hidden ${montserrat.className}`}>
+      {/* Top Bar */}
+      <div className="h-14 bg-white border-b z-50 flex items-center justify-between px-4 shrink-0">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-900 flex items-center gap-1"><ArrowLeft size={18}/> Назад</button>
+          <div className="h-6 w-px bg-gray-200"></div>
+          <span className="font-bold text-lg">TouchMemories</span>
+          <div className="h-6 w-px bg-gray-200"></div>
+          <button onClick={() => dispatch({ type: 'UNDO' })} disabled={state.history.length === 0} className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"><Undo2 size={18}/></button>
+          <button onClick={() => dispatch({ type: 'REDO' })} disabled={state.future.length === 0} className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"><Redo2 size={18}/></button>
+        </div>
+        <div className="flex flex-col items-center">
+          <input 
+            type="text" value={state.magazineTitle} onChange={e => dispatch({ type: 'SET_MAGAZINE_TITLE', payload: e.target.value })}
+            placeholder="Назва журналу" className="text-center font-bold outline-none bg-transparent"
+          />
+          <span className="text-xs text-gray-400">A4 · {state.pages.length} стор.</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900"><Eye size={18}/> Перегляд</button>
+          <button onClick={handleOrder} className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-5 py-2 flex items-center gap-2 text-sm font-bold">
+            <ShoppingCart size={18}/> Оформити замовлення →
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Strip */}
+        <div className="w-20 bg-gray-900 flex flex-col items-center py-4 gap-2 z-40">
+          {[
+            { id: 'photos', icon: <Camera />, label: 'Фото' },
+            { id: 'layouts', icon: <LayoutDashboard />, label: 'Макети' },
+            { id: 'bg', icon: <PaintBucket />, label: 'Фони' },
+            { id: 'text', icon: <Type />, label: 'Текст' },
+            { id: 'options', icon: <Settings />, label: 'Опції' },
+          ].map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full py-3 flex flex-col items-center gap-1 text-xs text-white ${activeTab === t.id ? 'bg-gray-700' : 'hover:bg-gray-800'}`}>
+              {t.icon} <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Content Panel */}
+        <div className="w-72 bg-white border-r flex flex-col z-30 overflow-y-auto">
+          {activeTab === 'photos' && (
+            <div className="p-4 flex flex-col h-full">
+              {state.photos.length === 0 ? (
+                <div className="flex flex-col gap-3 h-full justify-center">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center text-center gap-2">
+                    <Upload className="text-gray-400" />
+                    <span className="text-sm text-gray-500">Додайте фотографії</span>
+                  </div>
+                  <button className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm"><Cloud className="w-4 h-4"/> Драйв / Комп'ютер</button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="font-bold text-sm">Фотографії ({state.photos.length})</span>
+                    <button className="text-orange-500 text-xs hover:underline">+ Додати ще</button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 flex-1 overflow-y-auto">
+                    {state.photos.map(p => (
+                      <div key={p.id} draggable onDragStart={e => e.dataTransfer.setData('photoId', p.id)} className="relative aspect-square cursor-grab">
+                        <img src={p.src} alt="" className="w-full h-full object-cover rounded-sm border" />
+                        {p.usedCount > 0 && <div className="absolute top-1 right-1 bg-orange-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{p.usedCount}</div>}
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => dispatch({ type: 'AUTO_FILL_ALL' })} className="mt-4 w-full bg-orange-100 text-orange-600 font-bold py-2 rounded-lg text-sm">✨ Автозаповнення</button>
+                </>
+              )}
+            </div>
+          )}
+          {activeTab === 'layouts' && (
+            <div className="p-4 flex flex-col gap-6">
+              {state.selectedPageIndex === 0 && (
+                <div>
+                  <h3 className="font-bold text-sm mb-3 text-gray-500 uppercase">Обкладинка</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(MAGAZINE_LAYOUTS).filter(l=>l[1].type==='cover').map(([id, l]) => (
+                      <div key={id} onClick={() => dispatch({type:'CHANGE_PAGE_LAYOUT', payload:{pageIndex:state.selectedPageIndex, layoutId: id}})} className={`cursor-pointer border-2 rounded p-1 text-xs text-center ${activePage?.layoutId === id ? 'border-orange-500' : 'border-transparent hover:border-gray-200'} bg-gray-50`}>
+                        <div className="h-16 bg-white border shadow-sm mb-1 mx-auto flex items-center justify-center text-gray-300">Прев'ю</div>
+                        {l.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <h3 className="font-bold text-sm mb-3 text-gray-500 uppercase">Фото сторінки</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(MAGAZINE_LAYOUTS).filter(l=>l[1].type==='photo').map(([id, l]) => (
+                    <div key={id} onClick={() => dispatch({type:'CHANGE_PAGE_LAYOUT', payload:{pageIndex:state.selectedPageIndex, layoutId: id}})} className={`cursor-pointer border-2 rounded p-1 text-xs text-center ${activePage?.layoutId === id ? 'border-orange-500' : 'border-transparent hover:border-gray-200'} bg-gray-50`}>
+                      <div className="h-16 bg-white border shadow-sm mb-1 mx-auto flex items-center justify-center text-[10px] text-gray-400">Layout</div>
+                      {l.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-bold text-sm mb-3 text-gray-500 uppercase">Текстові сторінки</h3>
+                  {Object.entries(MAGAZINE_LAYOUTS).filter(l=>l[1].type==='text').map(([id, l]) => (
+                    <div key={id} onClick={() => dispatch({type:'CHANGE_PAGE_LAYOUT', payload:{pageIndex:state.selectedPageIndex, layoutId: id}})} className={`cursor-pointer border-2 rounded p-2 text-sm text-left mb-2 ${activePage?.layoutId === id ? 'border-orange-500' : 'border-gray-100 hover:border-gray-200'} bg-gray-50`}>
+                      {l.label}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+          {activeTab === 'bg' && (
+            <div className="p-4">
+               <h3 className="font-bold text-sm mb-3 text-gray-500 uppercase">Колір фону</h3>
+               <div className="flex flex-wrap gap-2">
+                 {['#ffffff','#fdf8f3','#f0eeeb','#1a1a1a','#000000','#f5f0e8','#fdf0f0','#f0f4fd'].map(c => (
+                   <button key={c} onClick={() => dispatch({type:'SET_PAGE_BG_COLOR', payload:{pageIndex:state.selectedPageIndex, color:c}})} className="w-8 h-8 rounded-full border border-gray-200 shadow-sm" style={{backgroundColor:c}}></button>
+                 ))}
+               </div>
+            </div>
+          )}
+          {/* Add basic contents for other tabs for completeness */}
+          {activeTab === 'text' && <div className="p-4 text-sm text-gray-500">Typography settings (Implementation details pending)</div>}
+          {activeTab === 'options' && <div className="p-4 text-sm text-gray-500">Print options (Implementation details pending)</div>}
+        </div>
+
+        {/* Canvas Area */}
+        <div className="flex-1 flex flex-col relative" onClick={(e) => { if (e.target === e.currentTarget) dispatch({type:'DESELECT_ALL'}); }}>
+           <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto" onClick={(e) => { if (e.target === e.currentTarget) dispatch({type:'DESELECT_ALL'}); }}>
+              {activePage && (
+                <div 
+                  className="relative bg-white shadow-2xl border border-[#d0ccc8] origin-center" 
+                  style={{ width: '560px', height: '792px', backgroundColor: activePage.bgColor }}
+                >
+                  {/* Slots */}
+                  {activePage.slots.map((slot, i) => {
+                    const layout = MAGAZINE_LAYOUTS[activePage.layoutId];
+                    const layoutSlot = layout.slots[i];
+                    if (!layoutSlot) return null;
+                    const isSelected = state.selectedSlotIndex === i && state.selectedPageIndex === activePage.pageIndex;
+                    return (
+                      <div 
+                        key={i} onClick={(e) => { e.stopPropagation(); dispatch({type:'SELECT_SLOT', payload: i}); }}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => {
+                          e.preventDefault();
+                          const photoId = e.dataTransfer.getData('photoId');
+                          if (photoId) dispatch({type:'PLACE_PHOTO', payload: {pageIndex:activePage.pageIndex, slotIndex:i, photoId}});
+                        }}
+                        style={{ position: 'absolute', left:`${layoutSlot.x}%`, top:`${layoutSlot.y}%`, width:`${layoutSlot.w}%`, height:`${layoutSlot.h}%` }}
+                        className={`overflow-hidden flex items-center justify-center ${isSelected ? 'border-2 border-orange-500' : 'border border-dashed border-gray-300'}`}
+                      >
+                         {slot.photoId ? (
+                           <img 
+                             src={state.photos.find(p=>p.id===slot.photoId)?.src} alt="" 
+                             style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${slot.zoom}) translate(${slot.offsetX}%, ${slot.offsetY}%)` }} 
+                           />
+                         ) : (
+                           <div className="flex flex-col items-center text-gray-300 text-xs"><Upload className="w-6 h-6 mb-1"/> Перетягніть фото</div>
+                         )}
+                      </div>
+                    );
+                  })}
+                  {/* Text Blocks */}
+                  {activePage.textBlocks.map(tb => (
+                    <div 
+                      key={tb.id} onClick={(e)=> { e.stopPropagation(); dispatch({type:'SELECT_TEXT_BLOCK', payload: tb.id}); }}
+                      style={{ 
+                        position: 'absolute', left:`${tb.x}%`, top:`${tb.y}%`, width:`${tb.width}%`,
+                        fontSize: tb.fontSize, fontFamily: tb.fontFamily, color: tb.color, textAlign: tb.align,
+                        fontStyle: tb.italic ? 'italic' : 'normal', fontWeight: tb.bold ? 'bold' : 'normal',
+                        lineHeight: tb.lineHeight, letterSpacing: `${tb.letterSpacing}px`
+                      }}
+                      className={`${state.selectedTextBlockId === tb.id ? 'border border-blue-400' : ''}`}
+                    >
+                      {tb.content}
+                    </div>
+                  ))}
+                  {/* Overlays for dark cover */}
+                  {activePage.layoutId === 'cover-dark-overlay' && <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>}
+                </div>
+              )}
+           </div>
+
+           {/* Filmstrip */}
+           <div className="h-32 bg-gray-900 absolute bottom-0 left-0 right-0 flex items-center px-4 gap-4 z-40 overflow-x-auto">
+             <div className="text-gray-400 text-xs shrink-0 w-24">Сторінок: {state.pages.length}</div>
+             {state.pages.map((p, i) => (
+               <div key={p.id} onClick={()=>dispatch({type:'SELECT_PAGE', payload: i})} className={`shrink-0 h-24 w-16 bg-white rounded shadow-sm relative cursor-pointer flex items-center justify-center overflow-hidden ${state.selectedPageIndex === i ? 'ring-2 ring-orange-500' : ''}`}>
+                 <div className="text-[8px] text-gray-300">{p.layoutId}</div>
+                 <div className="absolute bottom-1 bg-gray-900 text-white text-[9px] px-1.5 rounded">{i+1}</div>
+               </div>
+             ))}
+             <button className="shrink-0 h-24 w-16 bg-gray-800 hover:bg-gray-700 rounded shadow-sm text-gray-400 flex flex-col items-center justify-center text-xs gap-1">
+               <span className="text-xl">+</span>
+             </button>
+           </div>
+        </div>
+
+        {/* Right Panel */}
+        {state.selectedSlotIndex !== null && activePage && (
+          <div className="w-72 bg-white border-l z-30 flex flex-col p-4 shadow-xl">
+            <h3 className="font-bold border-b pb-2 mb-4">Налаштування фото</h3>
+            {/* Controls for zoom, pan would go here */}
+            <label className="text-xs text-gray-500 mb-1">Зум</label>
+            <input type="range" min="0.5" max="3" step="0.1" defaultValue="1" className="mb-4" onChange={e => dispatch({type:'UPDATE_SLOT_TRANSFORM', payload: {pageIndex:activePage.pageIndex, slotIndex:state.selectedSlotIndex!, zoom:parseFloat(e.target.value), offsetX:0, offsetY:0}})} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

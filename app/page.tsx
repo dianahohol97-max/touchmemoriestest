@@ -20,6 +20,7 @@ import { ConstructorSelection } from '@/components/ui/ConstructorSelection';
 import { GiftIdeas } from '@/components/ui/GiftIdeas';
 import { WeddingSection } from '@/components/ui/WeddingSection';
 import Link from 'next/link';
+import { TravelBookCTA } from '@/components/TravelBookCTA';
 
 
 import { getAdminClient } from '@/lib/supabase/admin';
@@ -138,20 +139,7 @@ export default async function Home() {
                     </li>
                   ))}
                 </ul>
-                <div className="flex flex-wrap gap-4">
-                  <Link
-                    href="/catalog/travelbook"
-                    className="inline-block bg-white text-stone-900 px-8 py-3 text-sm tracking-widest uppercase font-medium hover:bg-stone-100 transition-colors"
-                  >
-                    Дізнатись більше
-                  </Link>
-                  <Link
-                    href="/constructor/travelbook"
-                    className="inline-block border border-stone-600 text-stone-300 px-8 py-3 text-sm tracking-widest uppercase hover:border-stone-400 hover:text-white transition-colors"
-                  >
-                    Створити свій
-                  </Link>
-                </div>
+                <TravelBookCTA />
               </div>
 
               {/* Right: Visual */}

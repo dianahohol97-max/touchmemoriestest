@@ -34,7 +34,7 @@ export function FinalCTA() {
                     transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
                     <h2 className="text-[48px] lg:text-[72px] font-black leading-[1.0] tracking-tight mb-8">
-                        {content['final_cta_title'] || content['cta_title'] || 'Save Memories'}
+                        {content['final_cta_title'] || content['cta_title'] || 'Збережіть спогади'}
                     </h2>
 
                     <p className="text-[20px] lg:text-[24px] opacity-80 mb-16 font-body leading-relaxed max-w-2xl mx-auto">
@@ -43,7 +43,7 @@ export function FinalCTA() {
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
                         <Link
-                            href={content['final_cta_url'] || "/book-constructor"}
+                            href={content['final_cta_url'] || "/constructor/photobook"}
                             className="bg-white text-primary px-10 py-5 rounded-[3px] font-bold text-lg hover:-translate-y-1 transition-transform duration-300 shadow-xl w-full sm:w-auto text-center"
                         >
                             {content['final_cta_button'] || content['cta_button_text'] || 'Створити фотокнигу'}

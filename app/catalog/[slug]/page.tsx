@@ -343,7 +343,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
                                     <div className={styles.flexResponsive} style={{ display: 'flex', gap: '12px' }}>
                                         <Link
-                                            href="/book-constructor"
+                                            href="/constructor/photobook"
                                             style={{
                                                 flex: 1,
                                                 padding: '18px',

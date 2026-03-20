@@ -2,10 +2,12 @@
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Image from 'next/image';
-import Link from 'next/link';
 import { Play } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { goToConstructor, ProductType } from '@/lib/constructorRouting';
 
 export function ConstructorSelection() {
+    const router = useRouter();
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,
@@ -16,17 +18,22 @@ export function ConstructorSelection() {
             title: 'Фотокниги',
             videoThumb: '/images/promo/photobook_video.png',
             buttonText: 'Створити фотокнигу',
-            link: '/constructor/photobook',
+            productType: 'photobook' as ProductType,
             description: 'Фотографiя, яка оживає'
         },
         {
             title: 'Глянцеві журнали',
             videoThumb: '/images/promo/magazine_video.png',
             buttonText: 'Створити журнал',
-            link: '/constructor/magazine',
+            productType: 'magazine' as ProductType,
             description: 'Твій стиль, твоя iсторiя'
         }
     ];
+
+    const handleCreateClick = (productType: ProductType) => {
+        const url = goToConstructor({ productType });
+        router.push(url);
+    };
 
     return (
         <section ref={ref} className="section-padding bg-white">
@@ -56,19 +63,24 @@ export function ConstructorSelection() {
                                 </div>
                             </div>
 
-                            {/* Constructor Placeholder */}
-                            <div className="w-full h-24 border-2 border-dashed border-gray-100 rounded-[3px] mb-8 flex items-center justify-center text-gray-300 font-medium text-sm tracking-widest uppercase bg-gray-50/50">
-                                Constructor Widget Placeholder
+                            {/* Product Description */}
+                            <div className="w-full mb-8">
+                                <h3 className="text-2xl lg:text-3xl font-black text-primary mb-3 tracking-tight">
+                                    {item.title}
+                                </h3>
+                                <p className="text-base text-primary/60 font-body leading-relaxed">
+                                    {item.description}
+                                </p>
                             </div>
 
                             {/* CTA Button */}
                             <div className="flex justify-center lg:justify-start">
-                                <Link
-                                    href={item.link}
+                                <button
+                                    onClick={() => handleCreateClick(item.productType)}
                                     className="btn-primary min-w-[200px] text-center"
                                 >
                                     {item.buttonText}
-                                </Link>
+                                </button>
                             </div>
                         </motion.div>
                     ))}

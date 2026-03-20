@@ -222,7 +222,7 @@ export function ProductOptions({ product }: ProductOptionsProps) {
 
                     {isPhotoBook && (
                         <button
-                            onClick={() => router.push(`/book-constructor?product=${product.id}`)}
+                            onClick={() => router.push(`/constructor/photobook?product=${product.id}`)}
                             className="w-full py-6 bg-white text-primary border-2 border-primary/20 rounded-brand font-black text-[15px] uppercase tracking-[0.1em] hover:bg-primary hover:text-white hover:border-primary transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                         >
                             <Edit3 size={20} /> Створити в конструкторі
