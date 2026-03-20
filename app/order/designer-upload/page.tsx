@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -63,7 +63,7 @@ interface PendingOrder extends MagazineOrder {
   photos: { file: File; preview: string }[];
 }
 
-export default function DesignerUploadPage() {
+function DesignerUploadContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1137,5 +1137,13 @@ export default function DesignerUploadPage() {
 
       <Footer categories={[]} />
     </div>
+  );
+}
+
+export default function DesignerUploadPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900"/></div>}>
+      <DesignerUploadContent />
+    </Suspense>
   );
 }
