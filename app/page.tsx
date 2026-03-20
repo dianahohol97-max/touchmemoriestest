@@ -111,115 +111,6 @@ export default async function Home() {
           <PhotoPrintPromo />
         </SectionWrapper>
 
-        {/* ─── Blog / Inspiration Section ─── */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-            {/* Header */}
-            <div className="flex items-end justify-between mb-12">
-              <div>
-                <p className="text-xs text-stone-400 tracking-widest uppercase mb-3">
-                  Натхнення
-                </p>
-                <h2 className="text-3xl lg:text-4xl font-serif font-light text-stone-800">
-                  Ідеї та поради
-                </h2>
-              </div>
-              <Link
-                href="/blog"
-                className="hidden sm:block text-sm text-stone-500 hover:text-stone-800 tracking-wider uppercase border-b border-stone-300 hover:border-stone-700 pb-0.5 transition-colors"
-              >
-                Всі статті →
-              </Link>
-            </div>
-
-            {/* Magazine-style grid */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-
-              {/* Featured article — large */}
-              <article className="md:col-span-7 group cursor-pointer">
-                <Link href="/blog/iak-stvoryty-fotoknyhu">
-                  <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/10' }}>
-                    <img
-                      src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80"
-                      alt="Як створити ідеальну фотокнигу"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
-                        Гід
-                      </span>
-                      <h3 className="text-white text-xl lg:text-2xl font-serif leading-snug">
-                        Як створити ідеальну фотокнигу: повний гід для початківців
-                      </h3>
-                      <p className="text-white/70 text-sm mt-2">5 хв читання</p>
-                    </div>
-                  </div>
-                </Link>
-              </article>
-
-              {/* Two smaller articles */}
-              <div className="md:col-span-5 flex flex-col gap-6">
-
-                <article className="group cursor-pointer flex-1">
-                  <Link href="/blog/travelbook-vs-photoalbum">
-                    <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
-                      <img
-                        src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80"
-                        alt="Тревел-бук"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
-                          Travel
-                        </span>
-                        <h3 className="text-white text-base font-serif leading-snug">
-                          Тревел-бук vs фотоальбом: що обрати для спогадів про подорож?
-                        </h3>
-                      </div>
-                    </div>
-                  </Link>
-                </article>
-
-                <article className="group cursor-pointer flex-1">
-                  <Link href="/blog/vesil-ni-podarunky">
-                    <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
-                      <img
-                        src="https://images.unsplash.com/photo-1472173148041-00294f0814a2?w=600&q=80"
-                        alt="Весілля"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
-                          Весілля
-                        </span>
-                        <h3 className="text-white text-base font-serif leading-snug">
-                          Топ-5 ідей для весільного альбому, який захоплює подих
-                        </h3>
-                      </div>
-                    </div>
-                  </Link>
-                </article>
-
-              </div>
-            </div>
-
-            {/* Mobile "all articles" link */}
-            <div className="mt-8 text-center sm:hidden">
-              <Link
-                href="/blog"
-                className="text-sm text-stone-500 hover:text-stone-800 tracking-wider uppercase border-b border-stone-300 pb-0.5"
-              >
-                Всі статті →
-              </Link>
-            </div>
-
-          </div>
-        </section>
-
         <SectionWrapper name="how_it_works" defaultOrder={4}>
           <HowItWorks />
         </SectionWrapper>
@@ -393,6 +284,114 @@ export default async function Home() {
           <SocialProof />
         </SectionWrapper>
 
+        {/* ─── Blog / Inspiration Section ─── */}
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            {/* Header */}
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <p className="text-xs text-stone-400 tracking-widest uppercase mb-3">
+                  Натхнення
+                </p>
+                <h2 className="text-3xl lg:text-4xl font-serif font-light text-stone-800">
+                  Ідеї та поради
+                </h2>
+              </div>
+              <Link
+                href="/blog"
+                className="hidden sm:block text-sm text-stone-500 hover:text-stone-800 tracking-wider uppercase border-b border-stone-300 hover:border-stone-700 pb-0.5 transition-colors"
+              >
+                Всі статті →
+              </Link>
+            </div>
+
+            {/* Magazine-style grid */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+              {/* Featured article — large */}
+              <article className="md:col-span-7 group cursor-pointer">
+                <Link href="/blog/iak-stvoryty-fotoknyhu">
+                  <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/10' }}>
+                    <img
+                      src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80"
+                      alt="Як створити ідеальну фотокнигу"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
+                        Гід
+                      </span>
+                      <h3 className="text-white text-xl lg:text-2xl font-serif leading-snug">
+                        Як створити ідеальну фотокнигу: повний гід для початківців
+                      </h3>
+                      <p className="text-white/70 text-sm mt-2">5 хв читання</p>
+                    </div>
+                  </div>
+                </Link>
+              </article>
+
+              {/* Two smaller articles */}
+              <div className="md:col-span-5 flex flex-col gap-6">
+
+                <article className="group cursor-pointer flex-1">
+                  <Link href="/blog/travelbook-vs-photoalbum">
+                    <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
+                      <img
+                        src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80"
+                        alt="Тревел-бук"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
+                          Travel
+                        </span>
+                        <h3 className="text-white text-base font-serif leading-snug">
+                          Тревел-бук vs фотоальбом: що обрати для спогадів про подорож?
+                        </h3>
+                      </div>
+                    </div>
+                  </Link>
+                </article>
+
+                <article className="group cursor-pointer flex-1">
+                  <Link href="/blog/vesil-ni-podarunky">
+                    <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
+                      <img
+                        src="https://images.unsplash.com/photo-1472173148041-00294f0814a2?w=600&q=80"
+                        alt="Весілля"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
+                          Весілля
+                        </span>
+                        <h3 className="text-white text-base font-serif leading-snug">
+                          Топ-5 ідей для весільного альбому, який захоплює подих
+                        </h3>
+                      </div>
+                    </div>
+                  </Link>
+                </article>
+
+              </div>
+            </div>
+
+            {/* Mobile "all articles" link */}
+            <div className="mt-8 text-center sm:hidden">
+              <Link
+                href="/blog"
+                className="text-sm text-stone-500 hover:text-stone-800 tracking-wider uppercase border-b border-stone-300 pb-0.5"
+              >
+                Всі статті →
+              </Link>
+            </div>
+
+          </div>
+        </section>
 
         <SectionWrapper name="custom_book" defaultOrder={41}>
           <CustomBookPromo />
