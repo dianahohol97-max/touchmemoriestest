@@ -5,6 +5,8 @@ import { Calendar, Clock, ArrowRight, User } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 
+export const metadata = { title: 'Блог — Натхнення та поради | Touch.Memories' };
+
 export const revalidate = 3600;
 
 const ARTICLES = [

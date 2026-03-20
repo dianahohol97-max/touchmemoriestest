@@ -1,6 +1,11 @@
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 
+export const metadata = { 
+  title: 'Контакти | Touch.Memories',
+  description: 'Зв’яжіться з нами для консультації, оформлення замовлення з дизайнером або вирішення будь-яких питань.',
+};
+
 export default function Kontakty() {
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f8f9fa' }}>
