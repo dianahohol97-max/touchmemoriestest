@@ -231,7 +231,7 @@ export default async function Home() {
 
               {/* Featured article — large */}
               <article className="md:col-span-7 group cursor-pointer">
-                <Link href="/blog">
+                <Link href="/blog/iak-stvoryty-fotoknyhu">
                   <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/10' }}>
                     <img
                       src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80"
@@ -256,7 +256,7 @@ export default async function Home() {
               <div className="md:col-span-5 flex flex-col gap-6">
 
                 <article className="group cursor-pointer flex-1">
-                  <Link href="/blog">
+                  <Link href="/blog/travelbook-vs-photoalbum">
                     <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
                       <img
                         src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80"
@@ -277,7 +277,7 @@ export default async function Home() {
                 </article>
 
                 <article className="group cursor-pointer flex-1">
-                  <Link href="/blog">
+                  <Link href="/blog/vesil-ni-podarunky">
                     <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
                       <img
                         src="https://images.unsplash.com/photo-1472173148041-00294f0814a2?w=600&q=80"
