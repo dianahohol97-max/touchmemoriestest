@@ -49,13 +49,58 @@ interface Spread {
   background?: string;
 }
 
-const SIZES = {
-  '20×20': { w: 20, h: 20, ratio: 1, spreadRatio: 2, label: '20×20 см' },
-  '25×25': { w: 25, h: 25, ratio: 1, spreadRatio: 2, label: '25×25 см' },
-  '20×30': { w: 20, h: 30, ratio: 20/30, spreadRatio: 40/30, label: '20×30 см' },
-  '30×20': { w: 30, h: 20, ratio: 30/20, spreadRatio: 60/20, label: '30×20 см' },
-  '30×30': { w: 30, h: 30, ratio: 1, spreadRatio: 2, label: '30×30 см' },
-  'A4': { w: 21, h: 29.7, ratio: 21/29.7, spreadRatio: 42/29.7, label: 'A4 (21×29.7 см)' },
+const CANVAS_CONFIGS = {
+  // PHOTOBOOKS
+  '20×20': {
+    label: 'Фотокнига 20×20 см',
+    ratio: 1 / 1,             // square
+    spreadRatio: 2 / 1,       // two square pages side by side
+    orientation: 'square',
+    widthCm: 20,
+    heightCm: 20,
+  },
+  '25×25': {
+    label: 'Фотокнига 25×25 см',
+    ratio: 1 / 1,
+    spreadRatio: 2 / 1,
+    orientation: 'square',
+    widthCm: 25,
+    heightCm: 25,
+  },
+  '20×30': {
+    label: 'Фотокнига 20×30 см (портрет)',
+    ratio: 2 / 3,             // portrait page
+    spreadRatio: 4 / 3,       // two portrait pages side by side
+    orientation: 'portrait',
+    widthCm: 20,
+    heightCm: 30,
+  },
+  '30×20': {
+    label: 'Фотокнига 30×20 см (альбом)',
+    ratio: 3 / 2,             // landscape page
+    spreadRatio: 3 / 1,       // two landscape pages side by side
+    orientation: 'landscape',
+    widthCm: 30,
+    heightCm: 20,
+  },
+  '30×30': {
+    label: 'Фотокнига 30×30 см',
+    ratio: 1 / 1,
+    spreadRatio: 2 / 1,
+    orientation: 'square',
+    widthCm: 30,
+    heightCm: 30,
+  },
+
+  // MAGAZINE
+  'A4': {
+    label: 'Журнал A4 (21×29.7 см)',
+    ratio: 21 / 29.7,         // A4 portrait
+    spreadRatio: 42 / 29.7,   // two A4 pages side by side
+    orientation: 'portrait',
+    widthCm: 21,
+    heightCm: 29.7,
+  },
 };
 
 const LAYOUTS: Record<LayoutId, { name: string; icon: string; slots: number }> = {
@@ -95,7 +140,7 @@ function ConfigModal({ onSubmit }: { onSubmit: (config: ConstructorConfig) => vo
         <div className="mb-6">
           <label className="block text-sm font-semibold text-gray-700 mb-3">Формат</label>
           <div className="grid grid-cols-3 gap-2">
-            {(Object.keys(SIZES) as SizeId[]).map((sizeId) => (
+            {(Object.keys(CANVAS_CONFIGS) as SizeId[]).map((sizeId) => (
               <button
                 key={sizeId}
                 onClick={() => setSize(sizeId)}
@@ -105,7 +150,7 @@ function ConfigModal({ onSubmit }: { onSubmit: (config: ConstructorConfig) => vo
                     : 'border-gray-200 hover:border-blue-300 text-gray-700'
                 }`}
               >
-                {SIZES[sizeId].label}
+                {CANVAS_CONFIGS[sizeId].label}
               </button>
             ))}
           </div>
@@ -198,7 +243,7 @@ export default function PhotobookConstructorPage() {
   }
 
   const currentSpread = spreads[currentSpreadIndex];
-  const sizeConfig = SIZES[config.size];
+  const sizeConfig = CANVAS_CONFIGS[config.size];
 
   // ═══════════════════════════════════════════════════════
   // PHOTO HANDLING
