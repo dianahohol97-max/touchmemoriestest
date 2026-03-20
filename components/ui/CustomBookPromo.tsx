@@ -1,69 +1,110 @@
 'use client';
 import { motion } from 'framer-motion';
-import styles from './CustomBookPromo.module.css';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
-import Image from 'next/image';
-import { BookOpen, Sparkles, ArrowRight } from 'lucide-react';
-import { useTheme } from '@/components/providers/ThemeProvider';
-import { PRODUCT_IMAGES } from '@/lib/productImages';
+import { BookOpen, Newspaper, Plane, Image as ImageIcon, Gift, ArrowRight } from 'lucide-react';
 
 export function CustomBookPromo() {
-    const { content, blocks } = useTheme();
-    const block = blocks.find(b => b.block_name === 'custom_book');
-    const style = block?.style_metadata || {};
-
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.2,
     });
 
-    const embed = content['custombook_embed'];
+    const productCategories = [
+        {
+            icon: <BookOpen size={40} strokeWidth={1.5} />,
+            label: 'Фотокниги',
+            href: '/catalog?category=photobooks'
+        },
+        {
+            icon: <Newspaper size={40} strokeWidth={1.5} />,
+            label: 'Журнали',
+            href: '/catalog?category=magazines'
+        },
+        {
+            icon: <Plane size={40} strokeWidth={1.5} />,
+            label: 'TravelBook',
+            href: '/catalog/travelbook'
+        },
+        {
+            icon: <ImageIcon size={40} strokeWidth={1.5} />,
+            label: 'Фотодрук',
+            href: '/catalog/photo-prints'
+        },
+        {
+            icon: <Gift size={40} strokeWidth={1.5} />,
+            label: 'Подарунки',
+            href: '/catalog?category=gifts'
+        }
+    ];
 
     return (
-        <section ref={ref} className="section-padding bg-white pb-32">
-            <div className="container relative">
+        <section ref={ref} className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <motion.div
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                    className="relative overflow-hidden rounded-[3px] shadow-[var(--shadow-premium)] bg-white text-primary border border-gray-100"
+                    className="text-center"
                 >
-                    {/* Decorative Background Elements */}
-                    <div className="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
-                    <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+                    {/* Label */}
+                    <p className="text-xs text-stone-500 tracking-widest uppercase mb-4">
+                        НАШІ ПРОДУКТИ
+                    </p>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 relative z-10">
-                        {/* Content Side */}
-                        <div className="p-12 lg:p-20 flex flex-col justify-center">
-                            <h2 className="text-[40px] lg:text-[56px] font-black leading-[1.05] tracking-tight mb-8">
-                                Створимо книгу за вас
-                            </h2>
+                    {/* Main Heading */}
+                    <h2 className="text-3xl lg:text-4xl font-black text-stone-900 leading-tight mb-6">
+                        Фотокниги, журнали та фотовироби з душею
+                    </h2>
 
-                            <p className="text-[18px] opacity-80 mb-12 font-body leading-relaxed max-w-md">
-                                {content['custombook_subtitle'] || 'Втілюємо найсміливіші ідеї. Персональний дизайн від професіоналів без зайвих зусиль з вашого боку.'}
-                            </p>
+                    {/* Description */}
+                    <p className="text-lg text-stone-600 leading-relaxed max-w-3xl mx-auto mb-12">
+                        Touch.Memories — студія у Тернополі, яка перетворює твої фотографії на красиві
+                        фізичні вироби. Фотокниги, глянцеві журнали, тревел-буки, фотодрук та сувеніри —
+                        все з преміум якістю та турботою до деталей.
+                    </p>
 
-                            <Link
-                                href={content['custombook_button_url'] || "/catalog"}
-                                className="btn-primary w-fit group"
+                    {/* Product Category Icons Row */}
+                    <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-12 mb-12">
+                        {productCategories.map((category, index) => (
+                            <motion.div
+                                key={category.label}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.5, delay: index * 0.1 }}
                             >
-                                {content['custombook_button_text'] || 'Детальніше'}
-                                <ArrowRight size={20} className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
-                            </Link>
-                        </div>
-
-                        {/* Visual Side */}
-                        <div className="relative h-full min-h-[400px] lg:min-h-[600px] bg-gray-50 overflow-hidden">
-                            <Image
-                                src={PRODUCT_IMAGES.studio}
-                                alt="Дизайн сервіс"
-                                fill
-                                className="object-cover transition-transform duration-700 hover:scale-105"
-                            />
-                        </div>
+                                <Link
+                                    href={category.href}
+                                    className="flex flex-col items-center gap-3 group cursor-pointer"
+                                >
+                                    <div className="w-20 h-20 rounded-full bg-stone-100 flex items-center justify-center text-stone-700 group-hover:bg-stone-900 group-hover:text-white transition-all duration-300 group-hover:scale-110">
+                                        {category.icon}
+                                    </div>
+                                    <span className="text-sm font-semibold text-stone-700 group-hover:text-stone-900 transition-colors">
+                                        {category.label}
+                                    </span>
+                                </Link>
+                            </motion.div>
+                        ))}
                     </div>
+
+                    {/* Primary CTA Button */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.6 }}
+                    >
+                        <Link
+                            href="/catalog"
+                            className="inline-flex items-center gap-3 bg-[#1e3a8a] text-white px-10 py-4 rounded-full text-lg font-bold hover:bg-[#1e40af] transition-all duration-300 hover:shadow-xl hover:scale-105"
+                        >
+                            В магазин
+                            <ArrowRight size={20} />
+                        </Link>
+                    </motion.div>
                 </motion.div>
             </div>
         </section>
