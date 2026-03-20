@@ -9,13 +9,13 @@ import { SocialProof } from '@/components/ui/SocialProof';
 import { FinalCTA } from '@/components/ui/FinalCTA';
 import { Footer } from '@/components/ui/Footer';
 import { TravelSection } from '@/components/ui/TravelSection';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js'
 import { SectionWrapper } from '@/components/ui/SectionWrapper';
 import { DynamicText } from '@/components/ui/DynamicText';
 import { DynamicPromo } from '@/components/ui/DynamicPromo';
 import { PhotoPrintPromo } from '@/components/ui/PhotoPrintPromo';
 import { CustomBookPromo } from '@/components/ui/CustomBookPromo';
-import { ConstructorSelection } from '@/components/ui/ConstructorSelection';
+import { ConstructorSelection } from '@/components/ui/Constructorelection'
 import { GiftIdeas } from '@/components/ui/GiftIdeas';
 import { WeddingSection } from '@/components/ui/WeddingSection';
 import Link from 'next/link';
@@ -111,7 +111,7 @@ export default async function Home() {
           <PhotoPrintPromo />
         </SectionWrapper>
 
-        <SectionWrapper name="how_it_works" defaultOrder={4}>
+        <SectionWrapper name="how_it_works" defaultOrder={31}>
           <HowItWorks />
         </SectionWrapper>
 
@@ -119,7 +119,8 @@ export default async function Home() {
           <GiftIdeas />
         </SectionWrapper>
 
-        {/* ─── Travel Book Feature Section (Redesigned) ─── */}
+<SectionWrapper name="travel" defaultOrder={36}>
+                  {/* ─── Travel Book Feature Section (Redesigned) ─── */}
         <section className="py-20 bg-stone-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
@@ -279,12 +280,14 @@ export default async function Home() {
             </div>
           </div>
         </section>
+                </SectionWrapper>
 
-        <SectionWrapper name="social_proof" defaultOrder={40}>
+        <SectionWrapper name="social_proof" defaultOrder={37}>
           <SocialProof />
         </SectionWrapper>
 
-        {/* ─── Blog / Inspiration Section ─── */}
+<SectionWrapper name="blog" defaultOrder={39}>
+                  {/* ─── Blog / Inspiration Section ─── */}
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -392,12 +395,13 @@ export default async function Home() {
 
           </div>
         </section>
+                </SectionWrapper>
 
         <SectionWrapper name="custom_book" defaultOrder={41}>
           <CustomBookPromo />
         </SectionWrapper>
 
-        <SectionWrapper name="wedding" defaultOrder={38}>
+        <SectionWrapper name="wedding" defaultOrder={45}>
           <WeddingSection />
         </SectionWrapper>
 
