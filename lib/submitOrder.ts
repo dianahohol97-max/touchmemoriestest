@@ -1,4 +1,37 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+// ═══════════════════════════════════════════════════════
+// CONSTRUCTOR ORDER SUBMISSION (for photobook/magazine constructor)
+// ═══════════════════════════════════════════════════════
+
+export async function submitConstructorOrder(data: {
+  product_type: string
+  product_size: string
+  pages: number
+  total_price: number
+  cover_type?: string | null
+  photo_count: number
+  customer_name: string
+  customer_phone: string
+  customer_email?: string | null
+  delivery_method: string
+  payment_method: string
+  notes?: string | null
+  status: string
+  constructor_data?: string | null
+}) {
+  const { error } = await supabase.from('orders').insert([data])
+  if (error) throw error
+}
+
+// ═══════════════════════════════════════════════════════
+// LEGACY ORDER SUBMISSION (for cart-based checkout)
+// ═══════════════════════════════════════════════════════
 
 export interface OrderItem {
   product_type: string
@@ -26,10 +59,8 @@ export interface OrderData {
 }
 
 export async function submitOrder(data: OrderData): Promise<{ success: boolean; order_number?: string; error?: string }> {
-  const supabase = createClient()
-  
   const order_number = `TM-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
-  
+
   const { error } = await supabase.from('orders').insert({
     order_number,
     customer_name: data.customer_name,
@@ -45,11 +76,11 @@ export async function submitOrder(data: OrderData): Promise<{ success: boolean; 
     order_status: 'new',
     payment_status: 'pending',
   })
-  
+
   if (error) {
     console.error('Order submission error:', error)
     return { success: false, error: error.message }
   }
-  
+
   return { success: true, order_number }
 }
