@@ -1,61 +1,127 @@
 'use client';
 import { motion } from 'framer-motion';
-import styles from './FinalCTA.module.css';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
-import { useTheme } from '@/components/providers/ThemeProvider';
+import { ArrowRight, BookHeart } from 'lucide-react';
 
 export function FinalCTA() {
     const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
-    const { content, blocks } = useTheme();
-    const block = blocks.find(b => b.block_name === 'final_cta');
-    const style = block?.style_metadata || {};
-
-    const embed = content['final_cta_embed'];
 
     return (
-        <section ref={ref} className={`section-padding ${style.bg_color ? '' : 'bg-primary'} text-white overflow-hidden relative rounded-[3px]`}>
+        <section ref={ref} className="bg-stone-900 text-white py-24 overflow-hidden relative">
             {/* Decorative Background Patterns */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 pointer-events-none" />
             <div className="absolute -top-64 -right-64 w-[800px] h-[800px] bg-white/5 rounded-full blur-[100px] pointer-events-none" />
 
-            <div className="container relative z-10 text-center max-w-4xl mx-auto py-12 lg:py-24">
-                {embed && (
-                    <div
-                        dangerouslySetInnerHTML={{ __html: embed }}
-                        className="w-full mb-12 flex justify-center"
-                    />
-                )}
+            <div className="container mx-auto px-6 relative z-10">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-7xl mx-auto">
+                    {/* Left Side: Text Content */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -40 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    >
+                        {/* Label */}
+                        <p className="text-xs text-amber-400 tracking-widest uppercase mb-4 font-semibold">
+                            КНИГА ПОБАЖАНЬ
+                        </p>
 
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                >
-                    <h2 className="text-[48px] lg:text-[72px] font-black leading-[1.0] tracking-tight mb-8">
-                        {content['final_cta_title'] || content['cta_title'] || 'Збережіть спогади'}
-                    </h2>
+                        {/* Main Heading */}
+                        <h2 className="text-4xl lg:text-5xl font-black leading-tight mb-6">
+                            Зробіть своє свято незабутнім
+                        </h2>
 
-                    <p className="text-[20px] lg:text-[24px] opacity-80 mb-16 font-body leading-relaxed max-w-2xl mx-auto">
-                        {content['final_cta_subtitle'] || content['cta_subtitle'] || 'Почніть створювати свою першу фотокнигу вже сьогодні. Це займає лише кілька хвилин.'}
-                    </p>
+                        {/* Subtext */}
+                        <p className="text-lg text-stone-300 leading-relaxed mb-10">
+                            Книга побажань — це місце, де ваші гості залишать найтепліші слова та побажання.
+                            Ідеальний подарунок на весілля, день народження чи іншу особливу подію.
+                        </p>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                        <Link
-                            href={content['final_cta_url'] || "/constructor/photobook"}
-                            className="bg-white text-primary px-10 py-5 rounded-[3px] font-bold text-lg hover:-translate-y-1 transition-transform duration-300 shadow-xl w-full sm:w-auto text-center"
-                        >
-                            {content['final_cta_button'] || content['cta_button_text'] || 'Створити фотокнигу'}
-                        </Link>
-                        <Link
-                            href="/catalog"
-                            className="bg-transparent border-2 border-white/30 text-white px-10 py-5 rounded-[3px] font-bold text-lg hover:border-white hover:bg-white/5 transition-all duration-300 w-full sm:w-auto text-center"
-                        >
-                            Каталог товарів
-                        </Link>
-                    </div>
-                </motion.div>
+                        {/* Buttons */}
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <Link
+                                href="/constructor/guestbook"
+                                className="inline-flex items-center justify-center gap-3 bg-white text-stone-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-stone-100 transition-all duration-300 hover:shadow-2xl hover:scale-105"
+                            >
+                                <BookHeart size={20} />
+                                Створити книгу побажань
+                            </Link>
+                            <Link
+                                href="/catalog?category=guestbooks"
+                                className="inline-flex items-center justify-center gap-2 bg-transparent border-2 border-white/30 text-white px-8 py-4 rounded-full font-bold text-lg hover:border-white hover:bg-white/10 transition-all duration-300"
+                            >
+                                Переглянути зразки
+                                <ArrowRight size={18} />
+                            </Link>
+                        </div>
+                    </motion.div>
+
+                    {/* Right Side: Constructor Visualization */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 40 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.2 }}
+                        className="relative"
+                    >
+                        {/* Guest Book Mockup */}
+                        <div className="relative mx-auto max-w-md">
+                            {/* Book Shadow */}
+                            <div className="absolute inset-0 bg-white/10 blur-3xl transform translate-y-8" />
+
+                            {/* Book Cover */}
+                            <div className="relative bg-gradient-to-br from-amber-100 to-stone-100 rounded-lg overflow-hidden shadow-2xl">
+                                <div className="aspect-[3/4] relative">
+                                    {/* Cover Design */}
+                                    <div className="absolute inset-0 p-8 flex flex-col items-center justify-center text-center">
+                                        <div className="w-24 h-24 mb-6 bg-gradient-to-br from-amber-600 to-amber-800 rounded-full flex items-center justify-center shadow-lg">
+                                            <BookHeart size={48} className="text-white" strokeWidth={1.5} />
+                                        </div>
+                                        <h3 className="text-2xl font-serif font-bold text-stone-800 mb-2">
+                                            Книга Побажань
+                                        </h3>
+                                        <div className="w-32 h-px bg-stone-400 mb-4" />
+                                        <p className="text-stone-600 text-sm font-serif italic">
+                                            Весілля<br />
+                                            Олени та Максима
+                                        </p>
+                                        <p className="text-stone-500 text-xs mt-4">
+                                            15.06.2025
+                                        </p>
+                                    </div>
+
+                                    {/* Decorative Border */}
+                                    <div className="absolute inset-4 border-2 border-amber-600/20 rounded pointer-events-none" />
+                                </div>
+
+                                {/* Book Spine Effect */}
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-800 via-amber-900 to-amber-800" />
+                            </div>
+
+                            {/* Floating Elements */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.6, delay: 0.5 }}
+                                className="absolute -top-4 -right-4 bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-bold"
+                            >
+                                від 450 ₴
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.6, delay: 0.7 }}
+                                className="absolute -bottom-4 -left-4 bg-white/90 backdrop-blur-sm text-stone-800 px-4 py-2 rounded-lg shadow-lg text-xs"
+                            >
+                                ✨ 50+ сторінок
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                </div>
             </div>
         </section>
     );
