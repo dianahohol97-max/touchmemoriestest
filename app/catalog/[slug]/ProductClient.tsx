@@ -548,8 +548,36 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 >
                                     Замовити відразу
                                 </button>
+                                {/* Show "Order with designer" button for products with options (TravelBook, magazines, etc.) */}
+                                {(product.options && Array.isArray(product.options) && product.options.length > 0) && (
+                                    <Link
+                                        href="https://t.me/touchmemories"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            width: '100%',
+                                            padding: '18px',
+                                            backgroundColor: 'white',
+                                            color: 'var(--primary)',
+                                            textDecoration: 'none',
+                                            border: '2px solid var(--primary)',
+                                            borderRadius: "3px",
+                                            fontSize: '16px',
+                                            fontWeight: 700,
+                                            textAlign: 'center',
+                                            transition: 'background-color 0.2s',
+                                            display: 'block'
+                                        }}
+                                        className="hover:bg-blue-50"
+                                    >
+                                        Замовити з дизайнером
+                                    </Link>
+                                )}
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
-                                    Швидке оформлення замовлення без зайвих кліків 🚀
+                                    {(product.options && Array.isArray(product.options) && product.options.length > 0)
+                                        ? 'Потрібна допомога з оформленням? Зв\'яжіться з нашим дизайнером 💛'
+                                        : 'Швидке оформлення замовлення без зайвих кліків 🚀'
+                                    }
                                 </p>
                             </div>
                         )}
