@@ -12,6 +12,7 @@ import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import React from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
+import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
 
 const getConstructorUrl = (slug: string): string => {
   if (slug.includes('guestbook') || slug.includes('wishbook') || slug.includes('vishbuk') || slug.includes('pobazhan'))
@@ -45,6 +46,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const [mainVideo, setMainVideo] = useState<string>('');
     const [quantity, setQuantity] = useState(1);
     const [activeTab, setActiveTab] = useState('description');
+
+    // Photobook-specific state
+    const [photobookPrice, setPhotobookPrice] = useState(0);
+    const [photobookOptions, setPhotobookOptions] = useState<any>(null);
 
     const getProductionTime = (categorySlug: string = '') => {
         const s = categorySlug.toLowerCase();
@@ -130,9 +135,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         ? product.images
         : [];
 
+    // Determine if this is a photobook product with variants
+    const isPhotobookWithVariants = product.slug?.includes('photobook') && product.variants && Array.isArray(product.variants) && product.variants.length > 0;
+
     // Calculate final price based on selected options
     let finalPrice = product.price;
-    if (product.options && Array.isArray(product.options)) {
+    if (isPhotobookWithVariants && photobookPrice > 0) {
+        finalPrice = photobookPrice;
+    } else if (product.options && Array.isArray(product.options)) {
         product.options.forEach((opt: any) => {
             const selectedIdx = selectedOptions[opt.name];
             if (selectedIdx !== undefined && opt.values[selectedIdx]) {
@@ -143,7 +153,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
     const handleAddToCart = () => {
         const itemOptions: Record<string, string> = {};
-        if (product.options && Array.isArray(product.options)) {
+
+        // For photobook products with PhotobookOptions component
+        if (isPhotobookWithVariants && photobookOptions) {
+            itemOptions['Розмір'] = photobookOptions.size;
+            itemOptions['Кількість сторінок'] = `${photobookOptions.pages} сторінок`;
+            if (photobookOptions.calca) {
+                itemOptions['Калька'] = 'Так';
+            }
+        } else if (product.options && Array.isArray(product.options)) {
+            // For other products with standard options
             product.options.forEach((opt: any) => {
                 const idx = selectedOptions[opt.name];
                 if (idx !== undefined && opt.values[idx]) {
@@ -311,56 +330,67 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         )}
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '40px' }}>
-                            {/* Dynamic Options */}
-                            {product.options && Array.isArray(product.options) && product.options.map((opt: any, optIdx: number) => (
-                                <div key={optIdx}>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>
-                                        {opt.name}
-                                    </label>
-                                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                        {opt.values.map((val: any, valIdx: number) => {
-                                            const isSelected = selectedOptions[opt.name] === valIdx;
-                                            return (
-                                                <button
-                                                    key={valIdx}
-                                                    onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.name]: valIdx }))}
-                                                    style={{
-                                                        padding: '10px 16px',
-                                                        borderRadius: "3px",
-                                                        border: isSelected ? '2px solid var(--primary)' : '1px solid #e2e8f0',
-                                                        background: isSelected ? '#f8fafc' : 'white',
-                                                        color: isSelected ? 'var(--primary)' : '#475569',
-                                                        fontWeight: 600,
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s',
-                                                        fontSize: '14px'
-                                                    }}
-                                                >
-                                                    {val.name}
-                                                    {val.priceModifier > 0 && <span style={{ opacity: 0.7, marginLeft: '4px', fontWeight: 500 }}>(+{val.priceModifier} ₴)</span>}
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
+                            {/* Photobook products with variants */}
+                            {(product.slug?.includes('photobook') && product.variants && Array.isArray(product.variants) && product.variants.length > 0) ? (
+                                <PhotobookOptions
+                                    product={product}
+                                    onPriceChange={setPhotobookPrice}
+                                    onOptionsChange={setPhotobookOptions}
+                                />
+                            ) : (
+                                <>
+                                    {/* Dynamic Options for non-photobook products */}
+                                    {product.options && Array.isArray(product.options) && product.options.map((opt: any, optIdx: number) => (
+                                        <div key={optIdx}>
+                                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>
+                                                {opt.name}
+                                            </label>
+                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                                {opt.values.map((val: any, valIdx: number) => {
+                                                    const isSelected = selectedOptions[opt.name] === valIdx;
+                                                    return (
+                                                        <button
+                                                            key={valIdx}
+                                                            onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.name]: valIdx }))}
+                                                            style={{
+                                                                padding: '10px 16px',
+                                                                borderRadius: "3px",
+                                                                border: isSelected ? '2px solid var(--primary)' : '1px solid #e2e8f0',
+                                                                background: isSelected ? '#f8fafc' : 'white',
+                                                                color: isSelected ? 'var(--primary)' : '#475569',
+                                                                fontWeight: 600,
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.2s',
+                                                                fontSize: '14px'
+                                                            }}
+                                                        >
+                                                            {val.name}
+                                                            {val.priceModifier > 0 && <span style={{ opacity: 0.7, marginLeft: '4px', fontWeight: 500 }}>(+{val.priceModifier} ₴)</span>}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
 
-                            <div>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>Кількість</label>
-                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: "3px", width: 'fit-content', backgroundColor: 'white' }}>
-                                    <button
-                                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                        style={{ padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}
-                                        className="hover:bg-slate-50 transition"
-                                    >-</button>
-                                    <span style={{ padding: '0 16px', fontWeight: 800, fontSize: '16px', minWidth: '40px', textAlign: 'center', color: '#263A99' }}>{quantity}</span>
-                                    <button
-                                        onClick={() => setQuantity(quantity + 1)}
-                                        style={{ padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}
-                                        className="hover:bg-slate-50 transition"
-                                    >+</button>
-                                </div>
-                            </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>Кількість</label>
+                                        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: "3px", width: 'fit-content', backgroundColor: 'white' }}>
+                                            <button
+                                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                                style={{ padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}
+                                                className="hover:bg-slate-50 transition"
+                                            >-</button>
+                                            <span style={{ padding: '0 16px', fontWeight: 800, fontSize: '16px', minWidth: '40px', textAlign: 'center', color: '#263A99' }}>{quantity}</span>
+                                            <button
+                                                onClick={() => setQuantity(quantity + 1)}
+                                                style={{ padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}
+                                                className="hover:bg-slate-50 transition"
+                                            >+</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {product.is_personalized ? (
