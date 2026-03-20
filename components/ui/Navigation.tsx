@@ -66,13 +66,13 @@ export function Navigation() {
                 isScrolled ? "bg-white/95 shadow-sm backdrop-blur-md" : "bg-white border-b border-border"
             )}
         >
-            <div className="flex justify-between items-center w-full px-10">
-                <Link href="/" className="font-heading font-extrabold text-xl tracking-[0.15em] text-primary no-underline transition-opacity hover:opacity-90">
+            <div className="flex justify-between items-center w-full px-10 gap-8">
+                <Link href="/" className="font-heading font-extrabold text-xl tracking-[0.15em] text-primary no-underline transition-opacity hover:opacity-90 shrink-0 whitespace-nowrap min-w-fit">
                     TOUCH.MEMORIES
                 </Link>
 
                 {/* Desktop Nav */}
-                <nav className={cn("desktop-only items-center gap-12", styles.navFlex)}>
+                <nav className={cn("desktop-only items-center gap-12 shrink", styles.navFlex)}>
                     <div className="flex gap-10 text-[12px] uppercase tracking-[0.1em] font-bold items-center font-heading">
                         {mainNavLinks.map(link => (
                             <Link
