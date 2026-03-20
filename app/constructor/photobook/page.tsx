@@ -382,21 +382,27 @@ export default function PhotobookConstructorPage() {
     if (!currentSpread) return null;
 
     const layout = currentSpread.layout;
+    const isMagazine = config.productType === 'magazine';
 
-    // Calculate canvas dimensions
+    // Calculate canvas dimensions - NEVER stretch or distort
     const canvasStyle: React.CSSProperties = {
       aspectRatio: sizeConfig.spreadRatio,
-      maxHeight: 'calc(100vh - 200px)',
+      maxHeight: 'calc(100vh - 180px)',
       maxWidth: '100%',
       width: 'auto',
-      height: 'calc(100vh - 200px)',
+      height: 'calc(100vh - 180px)',
       transform: `scale(${canvasZoom / 100})`,
       transformOrigin: 'center center',
       transition: 'transform 0.2s',
     };
 
     return (
-      <div className="relative bg-white shadow-2xl rounded-sm mx-auto" style={canvasStyle}>
+      <div
+        className={`canvas-container relative bg-white rounded-sm mx-auto ${
+          isMagazine ? 'shadow-2xl' : 'shadow-2xl'
+        }`}
+        style={canvasStyle}
+      >
         {/* Center spine line */}
         <div className="absolute top-0 bottom-0 left-1/2 w-px bg-gray-300 z-10" />
 
@@ -718,13 +724,18 @@ export default function PhotobookConstructorPage() {
 
           {/* CENTER CANVAS */}
           <div className="flex-1 bg-gray-100 flex flex-col items-center justify-center p-8 overflow-auto">
-            {/* Canvas size label */}
+            {/* Canvas info label - above */}
             <div className="text-center text-sm text-gray-600 mb-3">
               {sizeConfig.label} · Розворот {currentSpreadIndex + 1} з {spreads.length}
             </div>
 
             {/* Canvas */}
             {renderCanvas()}
+
+            {/* Canvas size label - below */}
+            <div className="text-center text-xs text-gray-500 mt-3">
+              {sizeConfig.widthCm} × {sizeConfig.heightCm} см · 1:1 масштаб
+            </div>
 
             {/* Spread Navigation */}
             <div className="mt-6 flex items-center gap-3">
