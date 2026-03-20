@@ -7,9 +7,9 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { CheckCircle2, Star, Loader2, Image as ImageIcon, Play } from 'lucide-react';
-import Link from 'next/link';
+import Link from 'next/link'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
-import React from 'react';
+import React from 'react'
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
