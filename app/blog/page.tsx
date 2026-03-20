@@ -7,6 +7,36 @@ import { Footer } from '@/components/ui/Footer';
 
 export const revalidate = 3600;
 
+const ARTICLES = [
+  {
+    slug: 'iak-stvoryty-fotoknyhu',
+    category: 'Поради',
+    title: 'Як створити ідеальну фотокнигу: 7 порад від дизайнерів',
+    excerpt: 'Фотокнига — це розповідь, яка живе десятиліттями. Ось перевірені поради від наших дизайнерів.',
+    readTime: '8 хв читання',
+    image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&q=80',
+    tag: 'photobooks',
+  },
+  {
+    slug: 'travelbook-vs-photoalbum',
+    category: 'Travel',
+    title: 'Тревел-бук vs фотоальбом: що обрати для спогадів про подорож?',
+    excerpt: 'Порівнюємо два популярні формати, щоб допомогти вам обрати ідеальний.',
+    readTime: '5 хв читання',
+    image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80',
+    tag: 'travel',
+  },
+  {
+    slug: 'vesil-ni-podarunky',
+    category: 'Весілля',
+    title: 'Топ-5 ідей для весільного альбому, який захоплює подих',
+    excerpt: 'Весільний альбом — перша книга вашої сім\'ї. Ось як зробити його незабутнім.',
+    readTime: '6 хв читання',
+    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&q=80',
+    tag: 'wedding',
+  },
+];
+
 export default async function BlogHomePage({ searchParams }: { searchParams: Promise<{ category?: string, page?: string }> }) {
     const supabase = await createClient();
     const { category, page } = await searchParams;
@@ -125,14 +155,14 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                         </div>
 
                         {/* Article Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '32px' }}>
-                            {posts?.map(post => (
-                                <Link key={post.id} href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%', group: 'article' } as any}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
+                            {(posts && posts.length > 0 ? posts : ARTICLES as any).map((post: any, index: number) => (
+                                <Link key={post.id || post.slug} href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%', group: 'article' } as any}>
                                     <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
-                                        {post.cover_image && <Image src={post.cover_image} alt={post.title} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
-                                        {post.blog_categories && (
+                                        {(post.cover_image || post.image) && <Image src={post.cover_image || post.image} alt={post.title} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
+                                        {(post.blog_categories || post.category) && (
                                             <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '6px 14px', borderRadius: "3px", fontSize: '12px', fontWeight: 800, color: '#263A99', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                                                {post.blog_categories.name}
+                                                {post.blog_categories?.name || post.category}
                                             </div>
                                         )}
                                     </div>
@@ -154,12 +184,12 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#263A99' }}>{post.author_name}</div>
-                                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(post.published_at).toLocaleDateString('uk-UA')}</div>
+                                                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#263A99' }}>{post.author_name || 'TouchMemories'}</div>
+                                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{post.published_at ? new Date(post.published_at).toLocaleDateString('uk-UA') : 'Сьогодні'}</div>
                                                 </div>
                                             </div>
                                             <div style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <Clock size={14} /> {post.reading_time} хв
+                                                <Clock size={14} /> {post.reading_time || post.readTime}
                                             </div>
                                         </div>
                                     </div>
