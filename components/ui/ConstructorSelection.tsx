@@ -1,9 +1,9 @@
 'use client';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import Image from 'next/image';
-import { Play } from 'lucide-react';
+import { Play, ArrowRight, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { goToConstructor, ProductType } from '@/lib/constructorRouting';
 
 export function ConstructorSelection() {
@@ -13,78 +13,186 @@ export function ConstructorSelection() {
         threshold: 0.1,
     });
 
-    const items = [
-        {
-            title: 'Фотокниги',
-            videoThumb: '/images/promo/photobook_video.png',
-            buttonText: 'Створити фотокнигу',
-            productType: 'photobook' as ProductType,
-            description: 'Фотографiя, яка оживає'
-        },
-        {
-            title: 'Глянцеві журнали',
-            videoThumb: '/images/promo/magazine_video.png',
-            buttonText: 'Створити журнал',
-            productType: 'magazine' as ProductType,
-            description: 'Твій стиль, твоя iсторiя'
-        }
-    ];
-
     const handleCreateClick = (productType: ProductType) => {
         const url = goToConstructor({ productType });
         router.push(url);
     };
 
     return (
-        <section ref={ref} className="section-padding bg-white">
-            <div className="container">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
-                    {items.map((item, idx) => (
-                        <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={inView ? { opacity: 1, y: 0 } : {}}
-                            transition={{ duration: 0.8, delay: idx * 0.2, ease: [0.23, 1, 0.32, 1] }}
-                            className="flex flex-col group"
-                        >
-                            {/* Video Container */}
-                            <div className="relative aspect-[16/10] rounded-[3px] overflow-hidden shadow-[var(--card-shadow)] border border-gray-100 mb-8 bg-gray-50 flex items-center justify-center group-hover:shadow-[var(--card-shadow-hover)] transition-all duration-700">
-                                <Image
-                                    src={item.videoThumb}
-                                    alt={item.title}
-                                    fill
-                                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                                />
-                                {/* Play Icon Overlay */}
-                                <div className="absolute inset-0 bg-black/5 flex items-center justify-center opacity-100 group-hover:bg-black/20 transition-all duration-500">
-                                    <div className="w-16 h-16 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl scale-100 group-hover:scale-110 transition-transform duration-500">
-                                        <Play size={24} className="text-primary ml-1 fill-primary" />
-                                    </div>
+        <section ref={ref} className="py-20 bg-white">
+            <div className="container px-4">
+                {/* Photobooks Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={inView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+                    className="mb-24"
+                >
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        {/* LEFT: Video */}
+                        <div className="space-y-6">
+                            {/* Video Placeholder */}
+                            <div className="aspect-video bg-gradient-to-br from-stone-100 to-amber-50 rounded-xl overflow-hidden shadow-lg border border-stone-200 flex items-center justify-center relative group">
+                                <div className="text-center">
+                                    <Play size={48} className="mx-auto mb-2 text-stone-400" />
+                                    <span className="text-stone-500 text-sm font-medium">Відео буде додано</span>
                                 </div>
+                                {/* Future video element:
+                                <video autoPlay muted loop playsInline className="w-full h-full object-cover">
+                                    <source src="/videos/photobook-preview.mp4" type="video/mp4" />
+                                </video>
+                                */}
                             </div>
 
-                            {/* Product Description */}
-                            <div className="w-full mb-8">
-                                <h3 className="text-2xl lg:text-3xl font-black text-primary mb-3 tracking-tight">
-                                    {item.title}
-                                </h3>
-                                <p className="text-base text-primary/60 font-body leading-relaxed">
-                                    {item.description}
+                            {/* Preview Constructor Button */}
+                            <Link
+                                href="/constructor/photobook"
+                                className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                            >
+                                Переглянути конструктор
+                                <ArrowRight size={18} />
+                            </Link>
+                        </div>
+
+                        {/* RIGHT: Content + Constructor Card */}
+                        <div className="space-y-8">
+                            {/* Text Content */}
+                            <div>
+                                <h2 className="text-4xl lg:text-5xl font-black text-stone-900 mb-4 tracking-tight">
+                                    Фотокниги
+                                </h2>
+                                <p className="text-lg text-stone-600 leading-relaxed mb-6">
+                                    Створіть унікальну фотокнигу з ваших найкращих спогадів. Преміальні матеріали,
+                                    професійний друк та безліч варіантів дизайну.
                                 </p>
-                            </div>
-
-                            {/* CTA Button */}
-                            <div className="flex justify-center lg:justify-start">
                                 <button
-                                    onClick={() => handleCreateClick(item.productType)}
-                                    className="btn-primary min-w-[200px] text-center"
+                                    onClick={() => handleCreateClick('photobook')}
+                                    className="bg-stone-900 text-white px-8 py-4 rounded-lg font-bold hover:bg-stone-800 transition-colors"
                                 >
-                                    {item.buttonText}
+                                    Створити фотокнигу
                                 </button>
                             </div>
-                        </motion.div>
-                    ))}
-                </div>
+
+                            {/* Constructor Preview Card */}
+                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 shadow-sm">
+                                <div className="flex items-start gap-4 mb-4">
+                                    <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Sparkles size={24} className="text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-stone-900 mb-1">
+                                            Спробуй конструктор
+                                        </h3>
+                                        <p className="text-sm text-stone-600">
+                                            Створи фотокнигу онлайн за 5 хвилин
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Constructor Mockup Preview */}
+                                <div className="aspect-video bg-white rounded-lg mb-4 overflow-hidden border border-blue-200 flex items-center justify-center">
+                                    <div className="text-center text-stone-400">
+                                        <Sparkles size={32} className="mx-auto mb-2 opacity-30" />
+                                        <span className="text-xs">Попередній перегляд конструктора</span>
+                                    </div>
+                                </div>
+
+                                <Link
+                                    href="/constructor/photobook"
+                                    className="block w-full bg-blue-600 text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                                >
+                                    Відкрити конструктор
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Glossy Magazines Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={inView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.8, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                >
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        {/* LEFT: Content + Constructor Card */}
+                        <div className="space-y-8 order-2 lg:order-1">
+                            {/* Text Content */}
+                            <div>
+                                <h2 className="text-4xl lg:text-5xl font-black text-stone-900 mb-4 tracking-tight">
+                                    Глянцеві журнали
+                                </h2>
+                                <p className="text-lg text-stone-600 leading-relaxed mb-6">
+                                    Створіть професійний глянцевий журнал формату A4. Ідеально для портфоліо,
+                                    travel-буків та преміальних видань.
+                                </p>
+                                <button
+                                    onClick={() => handleCreateClick('magazine')}
+                                    className="bg-stone-900 text-white px-8 py-4 rounded-lg font-bold hover:bg-stone-800 transition-colors"
+                                >
+                                    Створити журнал
+                                </button>
+                            </div>
+
+                            {/* Constructor Preview Card */}
+                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100 shadow-sm">
+                                <div className="flex items-start gap-4 mb-4">
+                                    <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Sparkles size={24} className="text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-stone-900 mb-1">
+                                            Спробуй конструктор
+                                        </h3>
+                                        <p className="text-sm text-stone-600">
+                                            Створи глянцевий журнал онлайн
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Constructor Mockup Preview */}
+                                <div className="aspect-video bg-white rounded-lg mb-4 overflow-hidden border border-purple-200 flex items-center justify-center">
+                                    <div className="text-center text-stone-400">
+                                        <Sparkles size={32} className="mx-auto mb-2 opacity-30" />
+                                        <span className="text-xs">Попередній перегляд конструктора</span>
+                                    </div>
+                                </div>
+
+                                <Link
+                                    href="/constructor/magazine"
+                                    className="block w-full bg-purple-600 text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                                >
+                                    Відкрити конструктор
+                                </Link>
+                            </div>
+                        </div>
+
+                        {/* RIGHT: Video */}
+                        <div className="space-y-6 order-1 lg:order-2">
+                            {/* Video Placeholder */}
+                            <div className="aspect-video bg-gradient-to-br from-purple-100 to-pink-50 rounded-xl overflow-hidden shadow-lg border border-purple-200 flex items-center justify-center relative group">
+                                <div className="text-center">
+                                    <Play size={48} className="mx-auto mb-2 text-purple-400" />
+                                    <span className="text-purple-600 text-sm font-medium">Відео буде додано</span>
+                                </div>
+                                {/* Future video element:
+                                <video autoPlay muted loop playsInline className="w-full h-full object-cover">
+                                    <source src="/videos/magazine-preview.mp4" type="video/mp4" />
+                                </video>
+                                */}
+                            </div>
+
+                            {/* Preview Constructor Button */}
+                            <Link
+                                href="/constructor/magazine"
+                                className="flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700 font-semibold transition-colors"
+                            >
+                                Переглянути конструктор
+                                <ArrowRight size={18} />
+                            </Link>
+                        </div>
+                    </div>
+                </motion.div>
             </div>
         </section>
     );
