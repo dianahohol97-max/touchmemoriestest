@@ -25,16 +25,16 @@ const getConstructorUrl = (slug: string): string => {
     return '/constructor/magazine';
   if (slug.includes('calendar') || slug.includes('kalendar'))
     return '/constructor/calendar';
-  if (slug.includes('photoprint') || slug.includes('polaroid'))
-    return '/order/photoprint'; // photoprint order flow
-  if (slug.includes('print') || slug.includes('foto-d') || slug.includes('poster') || slug.includes('magnet') || slug.includes('puzzle') || slug.includes('pazl'))
+  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('poster'))
+    return '/order/photoprint'; // photoprint/poster order flow
+  if (slug.includes('print') || slug.includes('foto-d') || slug.includes('magnet') || slug.includes('puzzle') || slug.includes('pazl'))
     return '/order/prints';
   return '/constructor/photobook'; // default for photobooks
 };
 
 const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, product: any): string => {
-  // For photoprint products, build order URL with selected options
-  if (slug.includes('photoprint') || slug.includes('polaroid')) {
+  // For photoprint and poster products, build order URL with selected options
+  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('poster')) {
     const params = new URLSearchParams();
     params.set('product', slug);
 
@@ -417,8 +417,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             )}
                         </div>
 
-                        {/* Special CTA for photoprint products */}
-                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid')) ? (
+                        {/* Special CTA for photoprint and poster products */}
+                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('poster')) ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <Link
                                     href={getOrderUrl(product.slug, selectedOptions, product)}
