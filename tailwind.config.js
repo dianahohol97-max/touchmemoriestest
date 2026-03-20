@@ -13,8 +13,17 @@ module.exports = {
                     DEFAULT: '#263A99',
                     hover: '#1d2d7a',
                 },
+                brand: {
+                    DEFAULT: '#263a99',
+                    dark: '#1a2966',
+                    light: '#eef0fb',
+                    50: 'rgba(38,58,153,0.05)',
+                },
                 accent: '#263A99',
-                background: '#FFFFFF',
+                background: {
+                    DEFAULT: '#f8f9ff',
+                    white: '#FFFFFF',
+                },
                 textPrimary: '#263A99',
             },
             fontFamily: {
