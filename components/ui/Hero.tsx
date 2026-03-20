@@ -93,7 +93,7 @@ export function Hero() {
                     className="flex flex-wrap gap-4"
                 >
                     <Link
-                        href="/constructor/wizard"
+                        href="/constructor/photobook"
                         className="inline-flex items-center justify-center h-14 px-8 bg-stone-800 text-white font-bold text-sm uppercase tracking-widest rounded-sm transition-all hover:bg-stone-700 hover:shadow-lg"
                     >
                         Створити фотокнигу

@@ -16,13 +16,13 @@ export function TravelBookCTA() {
   return (
     <div className="flex flex-wrap gap-4">
       <Link
-        href="/catalog/travelbook"
+        href="/catalog/travelbook-21x21"
         className="inline-block bg-white text-stone-900 px-8 py-3 text-sm tracking-widest uppercase font-medium hover:bg-stone-100 transition-colors"
       >
         Дізнатись більше
       </Link>
       <a
-        href="/constructor/wizard"
+        href="/constructor/travelbook"
         onClick={handleCreateClick}
         className="inline-block border border-stone-600 text-stone-300 px-8 py-3 text-sm tracking-widest uppercase hover:border-stone-400 hover:text-white transition-colors cursor-pointer"
       >
