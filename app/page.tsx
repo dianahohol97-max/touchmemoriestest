@@ -107,11 +107,6 @@ export default async function Home() {
           <ConstructorSelection />
         </SectionWrapper>
 
-
-        <SectionWrapper name="how_it_works" defaultOrder={4}>
-          <HowItWorks />
-        </SectionWrapper>
-
         <SectionWrapper name="photo_print" defaultOrder={29}>
           <PhotoPrintPromo />
         </SectionWrapper>
@@ -224,6 +219,10 @@ export default async function Home() {
 
           </div>
         </section>
+
+        <SectionWrapper name="how_it_works" defaultOrder={4}>
+          <HowItWorks />
+        </SectionWrapper>
 
         <SectionWrapper name="gift_ideas" defaultOrder={35}>
           <GiftIdeas />
