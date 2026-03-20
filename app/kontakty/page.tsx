@@ -1,9 +1,9 @@
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 
-export const metadata = { 
+export const metadata = {
   title: 'Контакти | Touch.Memories',
-  description: 'Зв’яжіться з нами для консультації, оформлення замовлення з дизайнером або вирішення будь-яких питань.',
+  description: 'Зв\'яжіться з Touch.Memories: Тернопіль, вул. Київська 2. Telegram @touchmemories, email touch.memories3@gmail.com.',
 };
 
 export default function Kontakty() {

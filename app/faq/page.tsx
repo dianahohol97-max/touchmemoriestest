@@ -1,8 +1,8 @@
 import FAQClient from './FAQClient';
 
-export const metadata = { 
+export const metadata = {
   title: 'Питання та відповіді | Touch.Memories',
-  description: 'Відповіді на найпоширеніші запитання про наші продукти та послуги: терміни виготовлення, доставка, оплата та інше.',
+  description: 'Відповіді на найпопулярніші питання про замовлення фотокниг, доставку та оплату.',
 };
 
 export default function FAQPage() {

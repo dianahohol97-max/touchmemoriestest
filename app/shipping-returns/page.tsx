@@ -2,6 +2,11 @@ import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { RefreshCcw, Package, Clock, ShieldCheck } from 'lucide-react';
 
+export const metadata = {
+  title: 'Доставка та повернення | Touch.Memories',
+  description: 'Умови доставки по Україні та за кордон. Гарантія якості та порядок обміну.',
+};
+
 export default function ShippingReturnsPage() {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">

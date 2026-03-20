@@ -5,7 +5,10 @@ import { Calendar, Clock, ArrowRight, User } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 
-export const metadata = { title: 'Блог — Натхнення та поради | Touch.Memories' };
+export const metadata = {
+  title: 'Блог — ідеї та натхнення | Touch.Memories',
+  description: 'Поради, ідеї та натхнення для створення ідеальної фотокниги та незабутніх подарунків.',
+};
 
 export const revalidate = 3600;
 
