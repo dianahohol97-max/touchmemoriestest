@@ -15,7 +15,7 @@ import { DynamicText } from '@/components/ui/DynamicText';
 import { DynamicPromo } from '@/components/ui/DynamicPromo';
 import { PhotoPrintPromo } from '@/components/ui/PhotoPrintPromo';
 import { CustomBookPromo } from '@/components/ui/CustomBookPromo';
-import { ConstructorSelection } from '@/components/ui/Constructorelection'
+import { ConstructorSelection } from '@/components/ui/ConstructorSelection'
 import { GiftIdeas } from '@/components/ui/GiftIdeas';
 import { WeddingSection } from '@/components/ui/WeddingSection';
 import Link from 'next/link';
