@@ -8,7 +8,7 @@ import {
     MessageSquare, FileText, FolderTree, Banknote,
     Tags, Mail, Palette, DollarSign, Box, Bot,
     Package, Folder, Star, CreditCard, Activity,
-    TrendingDown, Printer, Shield, Image
+    TrendingDown, Printer, Shield, Image, Gift
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -43,6 +43,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
         { name: 'Категорії', href: '/admin/categories', icon: <List size={20} />, section: 'catalog' },
         { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog' },
         { name: 'Замовлення', href: '/admin/orders', icon: <ShoppingCart size={20} />, section: 'orders' },
+        { name: 'Сертифікати', href: '/admin/certificates', icon: <Gift size={20} />, section: 'orders' },
         { name: 'Виробництво', href: '/admin/production', icon: <Factory size={20} />, section: 'production' },
         { name: 'Склад', href: '/admin/inventory', icon: <Box size={20} />, section: 'production' },
         { name: 'Клієнти', href: '/admin/customers', icon: <User size={20} />, section: 'customers' },
