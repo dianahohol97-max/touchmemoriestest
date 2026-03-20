@@ -713,7 +713,7 @@ export default function PhotobookPage() {
             <div style={{ background: '#dcfce7', padding: '6px', borderRadius: '6px' }}>
               <CheckCircle2 size={16} color="#16a34a" />
             </div>
-            Швидке виготовлення 4–8 робочих днів (або 1–2 з терміновим виготовленням)
+            Термін виготовлення: 14 робочих днів (або 1–2 з терміновим виготовленням)
           </div>
         </div>
       </main>
