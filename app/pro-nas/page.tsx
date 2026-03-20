@@ -1,0 +1,139 @@
+import { Navigation } from '@/components/ui/Navigation';
+import { Footer } from '@/components/ui/Footer';
+import Link from 'next/link';
+import { Heart, Award, Clock, Users } from 'lucide-react';
+
+export const metadata = {
+  title: 'Про нас | Touch.Memories',
+  description: 'Touch.Memories — студія у Тернополі, яка створює фотокниги, журнали та вироби зі спогадів з 2018 року. Якість, індивідуальний підхід, швидке виготовлення.',
+};
+
+export default function ProNasPage() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navigation />
+
+      <main className="flex-1 pt-32 pb-20">
+        <div className="container max-w-5xl mx-auto px-4">
+          {/* Hero Section */}
+          <header className="text-center mb-20">
+            <h1 className="text-5xl font-black text-gray-900 mb-6 font-heading tracking-tight">
+              Про нас
+            </h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Touch.Memories — студія у Тернополі, яка створює фотокниги, тревел-буки, глянцеві журнали 
+              та вироби зі спогадів з 2018 року.
+            </p>
+          </header>
+
+          {/* About Section */}
+          <section className="bg-white rounded-lg shadow-sm border border-gray-100 p-10 mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">Хто ми</h2>
+            <div className="prose prose-lg max-w-none text-gray-600 leading-relaxed space-y-4">
+              <p>
+                Ми — невелика команда ентузіастів, які вірять у силу спогадів. Кожна фотокнига, 
+                яку ми виготовляємо, — це унікальна історія, збережена на роки.
+              </p>
+              <p>
+                Наша місія — допомогти вам створити красиві, якісні альбоми та журнали, які зберігатимуть 
+                найважливіші моменти вашого життя: весілля, подорожі, сімейні свята, дитинство.
+              </p>
+              <p>
+                Ми працюємо з сучасним обладнанням, використовуємо преміальні матеріали та приділяємо 
+                увагу кожній деталі — від вибору паперу до фінального палітурного зшивання.
+              </p>
+            </div>
+          </section>
+
+          {/* Values Section */}
+          <section className="mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Наші цінності</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Value 1 */}
+              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
+                <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Award className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">Якість</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Преміальні матеріали, професійний друк та ретельна увага до деталей у кожному замовленні.
+                </p>
+              </div>
+
+              {/* Value 2 */}
+              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
+                <div className="bg-purple-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Heart className="h-8 w-8 text-purple-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">Індивідуальний підхід</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Ми розуміємо, що кожна історія унікальна, тому допомагаємо з вибором формату та дизайну.
+                </p>
+              </div>
+
+              {/* Value 3 */}
+              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
+                <div className="bg-green-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">Швидке виготовлення</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Терміни від 4 до 14 днів залежно від продукту. Працюємо без затримок.
+                </p>
+              </div>
+
+              {/* Value 4 */}
+              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
+                <div className="bg-orange-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">Підтримка 24/7</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Завжди на зв'язку в Telegram та Instagram. Відповідаємо швидко і допомагаємо на всіх етапах.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Studio Image Placeholder */}
+          <section className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-12">
+            <div 
+              className="w-full bg-gradient-to-br from-stone-100 to-amber-50 flex items-center justify-center text-gray-400"
+              style={{ height: '400px' }}
+            >
+              <div className="text-center">
+                <Users size={64} className="mx-auto mb-4 opacity-30" />
+                <p className="text-lg font-medium">Фото студії</p>
+                <p className="text-sm">(буде додано незабаром)</p>
+              </div>
+            </div>
+          </section>
+
+          {/* CTA Section */}
+          <section className="bg-gradient-to-br from-stone-800 to-stone-900 rounded-lg p-12 text-white text-center">
+            <h2 className="text-3xl font-bold mb-4">Готові створити свою фотокнигу?</h2>
+            <p className="text-stone-300 mb-8 text-lg max-w-2xl mx-auto">
+              Оберіть продукт з каталогу або створіть фотокнигу у нашому онлайн-конструкторі за 5 хвилин.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/catalog"
+                className="inline-block bg-white text-stone-900 px-8 py-4 rounded-lg font-bold hover:bg-stone-100 transition-colors text-center"
+              >
+                Переглянути каталог
+              </Link>
+              <Link
+                href="/constructor/photobook"
+                className="inline-block bg-transparent border-2 border-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:text-stone-900 transition-all text-center"
+              >
+                Створити зараз
+              </Link>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <Footer categories={[]} />
+    </div>
+  );
+}
