@@ -20,6 +20,66 @@ interface FooterProps {
     categories?: Category[];
 }
 
+function NewsletterFormFooter() {
+    const [email, setEmail] = useState('');
+    const [subscribed, setSubscribed] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            const res = await fetch('/api/subscribers/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, source: 'footer' })
+            });
+
+            if (res.ok) {
+                setSubscribed(true);
+                setEmail('');
+            }
+        } catch (err) {
+            console.error('Newsletter subscription error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-8">
+            <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/30 m-0">
+                Newsletter
+            </h4>
+            <div className="flex flex-col gap-4">
+                {subscribed ? (
+                    <p className="text-green-600 text-sm font-medium">✓ Дякуємо за підписку!</p>
+                ) : (
+                    <form onSubmit={handleSubmit} className="relative group">
+                        <input
+                            type="email"
+                            required
+                            placeholder="Ваш email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={loading}
+                            className="w-full bg-white border border-primary/5 rounded-brand px-4 py-4 text-[14px] outline-none shadow-sm focus:border-primary/20 transition-all text-primary disabled:opacity-50"
+                        />
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="absolute right-1.5 top-1.5 bottom-1.5 bg-primary text-white text-[9px] font-black uppercase tracking-widest px-4 rounded-brand hover:bg-primary/90 transition-all disabled:opacity-50"
+                        >
+                            {loading ? '...' : 'Підписатись'}
+                        </button>
+                    </form>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export function Footer({ categories = [] }: FooterProps) {
     const { ref, inView } = useInView({
         triggerOnce: true,
@@ -170,23 +230,7 @@ export function Footer({ categories = [] }: FooterProps) {
                     </div>
 
                     {/* Newsletter */}
-                    <div className="flex flex-col gap-8">
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/30 m-0">
-                            Newsletter
-                        </h4>
-                        <div className="flex flex-col gap-4">
-                            <div className="relative group">
-                                <input
-                                    type="email"
-                                    placeholder="Ваш email"
-                                    className="w-full bg-white border border-primary/5 rounded-brand px-4 py-4 text-[14px] outline-none shadow-sm focus:border-primary/20 transition-all text-primary"
-                                />
-                                <button className="absolute right-1.5 top-1.5 bottom-1.5 bg-primary text-white text-[9px] font-black uppercase tracking-widest px-4 rounded-brand hover:bg-primary/90 transition-all">
-                                    OK
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <NewsletterFormFooter />
                 </div>
 
                 {/* Bottom Bar */}
