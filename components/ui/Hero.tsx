@@ -85,24 +85,48 @@ export function Hero() {
                 </motion.p>
 
 
-                {/* CTA Buttons */}
+                {/* Product Category Buttons */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.5 }}
-                    className="flex flex-wrap gap-4"
+                    className="flex flex-wrap gap-3"
                 >
                     <Link
-                        href="/constructor/photobook"
-                        className="inline-flex items-center justify-center h-14 px-8 bg-stone-800 text-white font-bold text-sm uppercase tracking-widest rounded-sm transition-all hover:bg-stone-700 hover:shadow-lg"
+                        href="/catalog?category=hlyantsevi-zhurnaly"
+                        className="border border-white text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white hover:text-black transition-all"
                     >
-                        Створити фотокнигу
+                        Глянцевий журнал
+                    </Link>
+                    <Link
+                        href="/catalog?category=photobooks"
+                        className="border border-white text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white hover:text-black transition-all"
+                    >
+                        Фотокнига
+                    </Link>
+                    <Link
+                        href="/catalog?category=prints"
+                        className="border border-white text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white hover:text-black transition-all"
+                    >
+                        Фотодрук
+                    </Link>
+                    <Link
+                        href="/catalog?category=travelbooks"
+                        className="border border-white text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white hover:text-black transition-all"
+                    >
+                        Travel Book
+                    </Link>
+                    <Link
+                        href="/catalog?category=guestbooks"
+                        className="border border-white text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white hover:text-black transition-all"
+                    >
+                        Книга побажань
                     </Link>
                     <Link
                         href="/catalog"
-                        className="inline-flex items-center justify-center h-14 px-8 bg-transparent text-white font-bold text-sm uppercase tracking-widest rounded-sm border-2 border-white transition-all hover:bg-white hover:text-stone-800"
+                        className="bg-[#1e3a8a] text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-[#1e40af] transition-all"
                     >
-                        Переглянути каталог
+                        В магазин
                     </Link>
                 </motion.div>
             </div>
