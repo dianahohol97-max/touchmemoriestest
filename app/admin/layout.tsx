@@ -8,7 +8,7 @@ import {
     MessageSquare, FileText, FolderTree, Banknote,
     Tags, Mail, Palette, DollarSign, Box, Bot,
     Package, Folder, Star, CreditCard, Activity,
-    TrendingDown, Printer, Shield
+    TrendingDown, Printer, Shield, Image
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -50,6 +50,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
         { name: 'AI Налаштування', href: '/admin/settings/chatbot', icon: <Bot size={20} />, section: 'ai' },
         { name: 'Блог', href: '/admin/blog', icon: <FileText size={20} />, section: 'content' },
         { name: 'Категорії блогу', href: '/admin/blog/categories', icon: <FolderTree size={20} />, section: 'content' },
+        { name: 'Відгуки (Stories)', href: '/admin/reviews', icon: <Image size={20} />, section: 'content' },
         { name: 'Шаблони', href: '/admin/templates', icon: <MessageSquare size={20} />, section: 'content' },
         { name: 'Дизайн Сайту', href: '/admin/theme-editor', icon: <Palette size={20} />, section: 'content' },
         { name: 'Зарплати', href: '/admin/salary', icon: <Banknote size={20} />, section: 'finance' },
