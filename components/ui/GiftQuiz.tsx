@@ -10,8 +10,7 @@ import {
     DialogDescription
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Progress } from "@/components/ui/progress";
-import { ChevronRight, ChevronLeft, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, RotateCcw, CheckCircle2, Check } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -19,6 +18,8 @@ interface QuizStep {
     question: string;
     key: string;
     options: { label: string; value: string }[];
+    multiSelect?: boolean;
+    maxSelections?: number;
 }
 
 const quizSteps: QuizStep[] = [
@@ -34,8 +35,10 @@ const quizSteps: QuizStep[] = [
         ]
     },
     {
-        question: "Які інтереси у отримувача?",
+        question: "Які інтереси у отримувача? (оберіть до 2-х)",
         key: "interests",
+        multiSelect: true,
+        maxSelections: 2,
         options: [
             { label: "Подорожі та пригоди", value: "travel" },
             { label: "Сім'я та дім", value: "family" },
@@ -77,27 +80,47 @@ const quizSteps: QuizStep[] = [
     }
 ];
 
-// Mock recommendation logic
-const getRecommendations = (answers: Record<string, string>) => {
-    // This is a simplified logic. In a real app, this would query a DB or use a complex scoring system.
-    if (answers.interests === 'travel') {
+// Enhanced recommendation logic with multi-interest support
+const getRecommendations = (answers: Record<string, string | string[]>) => {
+    const interests = Array.isArray(answers.interests) ? answers.interests : [answers.interests].filter(Boolean);
+
+    // Multi-interest combinations
+    if (interests.includes('travel') && interests.includes('family')) {
         return [
-            { title: "Travelbook", desc: "Ідеально для збереження пригод", image: "/images/promo/travel_book_premium.png", link: "/travelbook" },
+            { title: "Travelbook", desc: "Ідеально для збереження сімейних пригод", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook" },
+            { title: "Фотокнига 'Сім'я'", desc: "Найтепліші спогади разом", image: "/images/promo/photobook_video.png", link: "/catalog/family-book" }
+        ];
+    }
+
+    if (interests.includes('travel') && interests.includes('memories')) {
+        return [
+            { title: "Travelbook", desc: "Збережи кожну подорож назавжди", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook" },
+            { title: "Фотокнига 'Подорожі'", desc: "Преміум якість для твоїх пригод", image: "/images/promo/photobook_video.png", link: "/catalog/photobook-travel" }
+        ];
+    }
+
+    // Single interest recommendations
+    if (interests.includes('travel')) {
+        return [
+            { title: "Travelbook", desc: "Ідеально для збереження пригод", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook" },
             { title: "Фотокнига 'Подорожі'", desc: "Тверда обкладинка, преміум якість", image: "/images/promo/photobook_video.png", link: "/catalog/photobook-travel" }
         ];
     }
+
     if (answers.occasion === 'wedding') {
         return [
             { title: "Весільна Фотокнига", desc: "Ваша історія кохання", image: "/images/promo/photobook_video.png", link: "/catalog/wedding-book" },
             { title: "Преміум Фотокнига", desc: "Найвищий стандарт друку", image: "/images/promo/design_service_premium.png", link: "/catalog/premium-book" }
         ];
     }
-    if (answers.interests === 'family' || answers.occasion === 'baby') {
+
+    if (interests.includes('family') || answers.occasion === 'baby') {
         return [
             { title: "Фотокнига 'Сім'я'", desc: "Найтепліші спогади разом", image: "/images/promo/photobook_video.png", link: "/catalog/family-book" },
             { title: "Дитяча Фотокнига", desc: "Перші кроки вашого малюка", image: "/images/promo/photobook_video.png", link: "/catalog/baby-book" }
         ];
     }
+
     return [
         { title: "Глянцевий Журнал", desc: "Стильний та легкий формат", image: "/images/promo/magazine_video.png", link: "/catalog/magazine" },
         { title: "Фотокнига Класик", desc: "Універсальний подарунок", image: "/images/promo/photobook_video.png", link: "/catalog/classic-book" }
@@ -106,13 +129,47 @@ const getRecommendations = (answers: Record<string, string>) => {
 
 export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
     const [step, setStep] = useState(0);
-    const [answers, setAnswers] = useState<Record<string, string>>({});
+    const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
     const [showResults, setShowResults] = useState(false);
+
+    const currentStep = quizSteps[step];
+    const isMultiSelect = currentStep?.multiSelect || false;
+    const maxSelections = currentStep?.maxSelections || 1;
+    const currentAnswers = isMultiSelect ? ((answers[currentStep.key] as string[]) || []) : [];
 
     const handleOptionSelect = (value: string) => {
         const currentKey = quizSteps[step].key;
-        setAnswers({ ...answers, [currentKey]: value });
 
+        if (isMultiSelect) {
+            // Multi-select logic: toggle selection
+            const current = (answers[currentKey] as string[]) || [];
+            let updated: string[];
+
+            if (current.includes(value)) {
+                // Deselect
+                updated = current.filter(v => v !== value);
+            } else if (current.length < maxSelections) {
+                // Select (if under max)
+                updated = [...current, value];
+            } else {
+                // Max reached, do nothing
+                return;
+            }
+
+            setAnswers({ ...answers, [currentKey]: updated });
+        } else {
+            // Single select logic: auto-advance
+            setAnswers({ ...answers, [currentKey]: value });
+
+            if (step < quizSteps.length - 1) {
+                setStep(step + 1);
+            } else {
+                setShowResults(true);
+            }
+        }
+    };
+
+    const handleContinue = () => {
         if (step < quizSteps.length - 1) {
             setStep(step + 1);
         } else {
@@ -126,6 +183,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
         setShowResults(false);
     };
 
+    const canContinue = isMultiSelect ? currentAnswers.length > 0 : true;
     const progress = ((step + (showResults ? 1 : 0)) / quizSteps.length) * 100;
 
     return (
@@ -135,7 +193,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                     {/* Progress Bar */}
                     <div className="absolute top-0 left-0 w-full h-1.5 bg-gray-100 z-20">
                         <motion.div
-                            className="h-full bg-primary"
+                            className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
                             transition={{ duration: 0.5 }}
@@ -153,38 +211,65 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                     transition={{ duration: 0.3 }}
                                 >
                                     <DialogHeader className="mb-8 items-center text-center">
-                                        <div className="text-primary font-bold text-sm tracking-[0.2em] uppercase mb-4">
+                                        <div className="text-amber-600 font-bold text-sm tracking-[0.2em] uppercase mb-4">
                                             Крок {step + 1} з {quizSteps.length}
                                         </div>
-                                        <DialogTitle className="text-3xl font-black text-primary leading-tight">
+                                        <DialogTitle className="text-3xl font-black text-stone-900 leading-tight mb-2">
                                             {quizSteps[step].question}
                                         </DialogTitle>
+                                        {isMultiSelect && (
+                                            <p className="text-sm text-amber-600 font-semibold">
+                                                Обрано: {currentAnswers.length}/{maxSelections}
+                                            </p>
+                                        )}
                                     </DialogHeader>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {quizSteps[step].options.map((option) => (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => handleOptionSelect(option.value)}
-                                                className="flex items-center justify-between p-5 rounded-[12px] border-2 border-gray-100 hover:border-primary/30 hover:bg-primary/5 transition-all text-left group"
-                                            >
-                                                <span className="font-bold text-primary text-lg">
-                                                    {option.label}
-                                                </span>
-                                                <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary transition-colors" />
-                                            </button>
-                                        ))}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                                        {quizSteps[step].options.map((option) => {
+                                            const isSelected = isMultiSelect && currentAnswers.includes(option.value);
+                                            return (
+                                                <button
+                                                    key={option.value}
+                                                    onClick={() => handleOptionSelect(option.value)}
+                                                    className={`flex items-center justify-between p-5 rounded-[12px] border-2 transition-all text-left group ${
+                                                        isSelected
+                                                            ? 'border-amber-500 bg-amber-50'
+                                                            : 'border-gray-100 hover:border-amber-300 hover:bg-amber-50/50'
+                                                    }`}
+                                                >
+                                                    <span className={`font-bold text-lg ${isSelected ? 'text-amber-700' : 'text-stone-800'}`}>
+                                                        {option.label}
+                                                    </span>
+                                                    {isSelected ? (
+                                                        <Check className="w-6 h-6 text-amber-600" strokeWidth={3} />
+                                                    ) : (
+                                                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-amber-500 transition-colors" />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
 
-                                    {step > 0 && (
-                                        <Button
-                                            variant="ghost"
-                                            onClick={() => setStep(step - 1)}
-                                            className="mt-8 text-gray-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2 hover:text-primary"
-                                        >
-                                            <ChevronLeft size={16} /> Назад
-                                        </Button>
-                                    )}
+                                    <div className="flex justify-between items-center">
+                                        {step > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                onClick={() => setStep(step - 1)}
+                                                className="text-gray-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2 hover:text-amber-600"
+                                            >
+                                                <ChevronLeft size={16} /> Назад
+                                            </Button>
+                                        )}
+                                        {isMultiSelect && (
+                                            <Button
+                                                onClick={handleContinue}
+                                                disabled={!canContinue}
+                                                className="ml-auto bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold uppercase tracking-wider px-8 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl"
+                                            >
+                                                Продовжити <ChevronRight size={16} className="ml-2" />
+                                            </Button>
+                                        )}
+                                    </div>
                                 </motion.div>
                             ) : (
                                 <motion.div
@@ -197,7 +282,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                         <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6">
                                             <CheckCircle2 size={32} className="text-green-500" />
                                         </div>
-                                        <DialogTitle className="text-3xl lg:text-4xl font-black text-primary mb-4">
+                                        <DialogTitle className="text-3xl lg:text-4xl font-black text-stone-900 mb-4">
                                             Наші рекомендації для вас
                                         </DialogTitle>
                                         <DialogDescription className="text-gray-500 text-lg">
@@ -222,11 +307,11 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                                         className="object-cover group-hover:scale-105 transition-transform duration-700"
                                                     />
                                                 </div>
-                                                <h3 className="text-xl font-black text-primary mb-1">{rec.title}</h3>
+                                                <h3 className="text-xl font-black text-stone-900 mb-1">{rec.title}</h3>
                                                 <p className="text-gray-500 text-sm mb-4 leading-relaxed">{rec.desc}</p>
                                                 <Link
                                                     href={rec.link}
-                                                    className="inline-flex items-center gap-2 text-primary font-bold text-sm uppercase tracking-wider group/link"
+                                                    className="inline-flex items-center gap-2 text-amber-600 font-bold text-sm uppercase tracking-wider group/link"
                                                 >
                                                     Детальніше
                                                     <ChevronRight size={16} className="transition-transform group-hover/link:translate-x-1" />
@@ -239,7 +324,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                         <Button
                                             variant="outline"
                                             onClick={resetQuiz}
-                                            className="flex items-center gap-2 border-gray-200 rounded-full px-8 py-6 font-bold text-gray-500 hover:text-primary hover:border-primary"
+                                            className="flex items-center gap-2 border-gray-200 rounded-full px-8 py-6 font-bold text-gray-500 hover:text-amber-600 hover:border-amber-400"
                                         >
                                             <RotateCcw size={18} /> Спробувати знову
                                         </Button>
