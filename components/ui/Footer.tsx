@@ -56,7 +56,7 @@ function NewsletterFormFooter() {
                 {subscribed ? (
                     <p className="text-green-600 text-sm font-medium">✓ Дякуємо за підписку!</p>
                 ) : (
-                    <form onSubmit={handleSubmit} className="relative group">
+                    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
                         <input
                             type="email"
                             required
@@ -64,12 +64,12 @@ function NewsletterFormFooter() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             disabled={loading}
-                            className="w-full bg-white border border-primary/5 rounded-brand px-4 py-4 text-[14px] outline-none shadow-sm focus:border-primary/20 transition-all text-primary disabled:opacity-50"
+                            className="flex-1 bg-white border border-primary/5 rounded-brand px-4 py-3 text-[14px] outline-none shadow-sm focus:border-primary/20 transition-all text-primary disabled:opacity-50"
                         />
                         <button
                             type="submit"
                             disabled={loading}
-                            className="absolute right-1.5 top-1.5 bottom-1.5 bg-primary text-white text-[9px] font-black uppercase tracking-widest px-4 rounded-brand hover:bg-primary/90 transition-all disabled:opacity-50"
+                            className="px-6 py-3 bg-[#1e3a8a] text-white rounded-full font-semibold text-sm whitespace-nowrap hover:bg-[#1e40af] transition-colors disabled:opacity-50"
                         >
                             {loading ? '...' : 'Підписатись'}
                         </button>
