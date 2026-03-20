@@ -9,7 +9,6 @@ import { SocialProof } from '@/components/ui/SocialProof';
 import { FinalCTA } from '@/components/ui/FinalCTA';
 import { Footer } from '@/components/ui/Footer';
 import { TravelSection } from '@/components/ui/TravelSection';
-import PriceCalculator from '@/components/PriceCalculator';
 import { createClient } from '@supabase/supabase-js';
 import { SectionWrapper } from '@/components/ui/SectionWrapper';
 import { DynamicText } from '@/components/ui/DynamicText';
@@ -111,11 +110,6 @@ export default async function Home() {
 
         <SectionWrapper name="how_it_works" defaultOrder={4}>
           <HowItWorks />
-        </SectionWrapper>
-
-
-        <SectionWrapper name="price_calculator" defaultOrder={6}>
-          <PriceCalculator />
         </SectionWrapper>
 
         {/* ─── Blog / Inspiration Section ─── */}
