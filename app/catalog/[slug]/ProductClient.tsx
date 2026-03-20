@@ -25,9 +25,33 @@ const getConstructorUrl = (slug: string): string => {
     return '/constructor/magazine';
   if (slug.includes('calendar') || slug.includes('kalendar'))
     return '/constructor/calendar';
+  if (slug.includes('photoprint') || slug.includes('polaroid'))
+    return '/order/photoprint'; // photoprint order flow
   if (slug.includes('print') || slug.includes('foto-d') || slug.includes('poster') || slug.includes('magnet') || slug.includes('puzzle') || slug.includes('pazl'))
     return '/order/prints';
   return '/constructor/photobook'; // default for photobooks
+};
+
+const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, product: any): string => {
+  // For photoprint products, build order URL with selected options
+  if (slug.includes('photoprint') || slug.includes('polaroid')) {
+    const params = new URLSearchParams();
+    params.set('product', slug);
+
+    // Add selected size if available
+    if (product.options && Array.isArray(product.options)) {
+      product.options.forEach((opt: any) => {
+        const selectedIdx = selectedOptions[opt.name];
+        if (selectedIdx !== undefined && opt.values[selectedIdx]) {
+          params.set(opt.name.toLowerCase(), opt.values[selectedIdx].name);
+        }
+      });
+    }
+
+    return `/order/photoprint?${params.toString()}`;
+  }
+
+  return getConstructorUrl(slug);
 };
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -393,7 +417,33 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             )}
                         </div>
 
-                        {product.is_personalized ? (
+                        {/* Special CTA for photoprint products */}
+                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid')) ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+                                <Link
+                                    href={getOrderUrl(product.slug, selectedOptions, product)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '18px',
+                                        backgroundColor: 'var(--primary)',
+                                        color: 'white',
+                                        textDecoration: 'none',
+                                        borderRadius: "3px",
+                                        fontSize: '16px',
+                                        fontWeight: 700,
+                                        textAlign: 'center',
+                                        transition: 'background-color 0.2s',
+                                        display: 'block'
+                                    }}
+                                    className="hover:bg-blue-700"
+                                >
+                                    Замовити →
+                                </Link>
+                                <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
+                                    Завантажте фото та оформіть замовлення за 3 кроки 📸
+                                </p>
+                            </div>
+                        ) : product.is_personalized ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
                                     <div className={styles.flexResponsive} style={{ display: 'flex', gap: '12px' }}>
