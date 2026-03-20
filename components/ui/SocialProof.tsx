@@ -3,16 +3,54 @@ import { motion } from 'framer-motion';
 import styles from './SocialProof.module.css';
 import { useInView } from 'react-intersection-observer';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { DynamicText } from './DynamicText';
+import { createClient } from '@supabase/supabase-js';
 
-const photos = [
-    { id: 1, username: '@maybe_natasha', image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600' },
-    { id: 2, username: '@nasstya.ss', image: 'https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?w=600' },
-    { id: 3, username: '@ann_surovtseva', image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600' },
-    { id: 4, username: '@shcherbakova_mladshaya', image: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=600' },
-    { id: 5, username: '@nataplushcheva', image: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600' },
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+interface Review {
+    id: string;
+    image_url: string;
+    author: string | null;
+    category: string | null;
+}
+
+const fallbackReviews = [
+    {
+        id: '1',
+        author: '@maybe_natasha',
+        image_url: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600",
+        category: 'Весільна книга'
+    },
+    {
+        id: '2',
+        author: '@nasstya.ss',
+        image_url: "https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?w=600",
+        category: 'Travel Book'
+    },
+    {
+        id: '3',
+        author: '@ann_surovtseva',
+        image_url: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600",
+        category: 'Family Album'
+    },
+    {
+        id: '4',
+        author: '@shcherbakova_mladshaya',
+        image_url: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=600",
+        category: 'Design Service'
+    },
+    {
+        id: '5',
+        author: '@nataplushcheva',
+        image_url: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600",
+        category: 'Photo Print'
+    }
 ];
 
 export function SocialProof() {
@@ -25,6 +63,32 @@ export function SocialProof() {
     const style = block?.style_metadata || {};
 
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [reviews, setReviews] = useState<Review[]>(fallbackReviews);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchReviews() {
+            try {
+                const { data, error } = await supabase
+                    .from('reviews')
+                    .select('id, image_url, author, category')
+                    .eq('is_active', true)
+                    .order('sort_order', { ascending: true });
+
+                if (data && data.length > 0) {
+                    setReviews(data);
+                } else if (error) {
+                    console.error('Error fetching reviews:', error);
+                }
+            } catch (err) {
+                console.error('Error:', err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchReviews();
+    }, []);
 
     const scroll = (direction: 'left' | 'right') => {
         if (scrollContainerRef.current) {
@@ -32,39 +96,6 @@ export function SocialProof() {
             scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
         }
     };
-
-    const reviews = [
-        {
-            id: 1,
-            author: '@maybe_natasha',
-            image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600",
-            category: 'Весільна книга'
-        },
-        {
-            id: 2,
-            author: '@nasstya.ss',
-            image: "https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?w=600",
-            category: 'Travel Book'
-        },
-        {
-            id: 3,
-            author: '@ann_surovtseva',
-            image: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600",
-            category: 'Family Album'
-        },
-        {
-            id: 4,
-            author: '@shcherbakova_mladshaya',
-            image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=600",
-            category: 'Design Service'
-        },
-        {
-            id: 5,
-            author: '@nataplushcheva',
-            image: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600",
-            category: 'Photo Print'
-        }
-    ];
 
     return (
         <section ref={ref} className="section-padding bg-white overflow-hidden relative">
@@ -111,11 +142,11 @@ export function SocialProof() {
                         {reviews.map((review) => (
                             <div
                                 key={review.id}
-                                className="flex-none w-[min(75vw,320px)] aspect-[3/4] snap-center overflow-hidden rounded-[3px] cursor-pointer relative group bg-gray-100 shadow-[var(--shadow-premium)] border border-white/20"
+                                className="flex-none w-[min(65vw,280px)] aspect-[9/16] snap-center overflow-hidden rounded-[3px] cursor-pointer relative group bg-gray-100 shadow-[var(--shadow-premium)] border border-white/20"
                             >
                                 <img
-                                    src={review.image}
-                                    alt={`Customer photo by ${review.author}`}
+                                    src={review.image_url}
+                                    alt={`Customer photo by ${review.author || 'customer'}`}
                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                 />
                                 {/* Gradient Overlay */}
@@ -124,7 +155,7 @@ export function SocialProof() {
                                 {/* Username */}
                                 <div className="absolute bottom-8 left-0 right-0 text-center px-4 transform transition-transform duration-300 group-hover:translate-y-[-8px]">
                                     <span className="text-[15px] text-[#E5D5C5] font-sans font-bold tracking-wide">
-                                        {review.author}
+                                        {review.author || '@customer'}
                                     </span>
                                 </div>
                                 {/* Instagram Style Overlay */}
