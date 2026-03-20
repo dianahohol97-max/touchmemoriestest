@@ -47,7 +47,7 @@ export function ConstructorSelection() {
                             {/* Preview Constructor Button */}
                             <Link
                                 href="/constructor/photobook"
-                                className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                                className="flex items-center justify-center gap-2 text-[#263a99] hover:text-[#1a2966] font-bold transition-colors duration-200"
                             >
                                 Переглянути конструктор
                                 <ArrowRight size={18} />
@@ -67,16 +67,16 @@ export function ConstructorSelection() {
                                 </p>
                                 <button
                                     onClick={() => handleCreateClick('photobook')}
-                                    className="bg-stone-900 text-white px-8 py-4 rounded-lg font-bold hover:bg-stone-800 transition-colors"
+                                    className="bg-[#263a99] text-white px-8 py-4 rounded-full font-bold hover:bg-[#1a2966] shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:-translate-y-1 transition-all duration-200"
                                 >
                                     Створити фотокнигу
                                 </button>
                             </div>
 
                             {/* Constructor Preview Card */}
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 shadow-sm">
+                            <div className="bg-gradient-to-br from-[#eef0fb] to-white rounded-2xl p-6 border border-[#263a99]/10 shadow-sm hover:shadow-[0_8px_32px_rgba(38,58,153,0.16)] transition-all duration-200">
                                 <div className="flex items-start gap-4 mb-4">
-                                    <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <div className="w-12 h-12 bg-[#263a99] rounded-xl flex items-center justify-center flex-shrink-0 shadow-[0_4px_16px_rgba(38,58,153,0.25)]">
                                         <Sparkles size={24} className="text-white" />
                                     </div>
                                     <div>
@@ -90,7 +90,7 @@ export function ConstructorSelection() {
                                 </div>
 
                                 {/* Constructor Mockup Preview */}
-                                <div className="aspect-video bg-white rounded-lg mb-4 overflow-hidden border border-blue-200 flex items-center justify-center">
+                                <div className="aspect-video bg-white rounded-xl mb-4 overflow-hidden border border-stone-100 flex items-center justify-center">
                                     <div className="text-center text-stone-400">
                                         <Sparkles size={32} className="mx-auto mb-2 opacity-30" />
                                         <span className="text-xs">Попередній перегляд конструктора</span>
@@ -99,7 +99,7 @@ export function ConstructorSelection() {
 
                                 <Link
                                     href="/constructor/photobook"
-                                    className="block w-full bg-blue-600 text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                                    className="block w-full bg-[#263a99] text-white text-center px-6 py-3 rounded-full font-bold hover:bg-[#1a2966] shadow-[0_4px_16px_rgba(38,58,153,0.35)] hover:-translate-y-0.5 transition-all duration-200"
                                 >
                                     Відкрити конструктор
                                 </Link>
@@ -128,16 +128,16 @@ export function ConstructorSelection() {
                                 </p>
                                 <button
                                     onClick={() => handleCreateClick('magazine')}
-                                    className="bg-stone-900 text-white px-8 py-4 rounded-lg font-bold hover:bg-stone-800 transition-colors"
+                                    className="bg-[#263a99] text-white px-8 py-4 rounded-full font-bold hover:bg-[#1a2966] shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:-translate-y-1 transition-all duration-200"
                                 >
                                     Створити журнал
                                 </button>
                             </div>
 
                             {/* Constructor Preview Card */}
-                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100 shadow-sm">
+                            <div className="bg-gradient-to-br from-[#eef0fb] to-white rounded-2xl p-6 border border-[#263a99]/10 shadow-sm hover:shadow-[0_8px_32px_rgba(38,58,153,0.16)] transition-all duration-200">
                                 <div className="flex items-start gap-4 mb-4">
-                                    <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <div className="w-12 h-12 bg-[#263a99] rounded-xl flex items-center justify-center flex-shrink-0 shadow-[0_4px_16px_rgba(38,58,153,0.25)]">
                                         <Sparkles size={24} className="text-white" />
                                     </div>
                                     <div>
@@ -151,7 +151,7 @@ export function ConstructorSelection() {
                                 </div>
 
                                 {/* Constructor Mockup Preview */}
-                                <div className="aspect-video bg-white rounded-lg mb-4 overflow-hidden border border-purple-200 flex items-center justify-center">
+                                <div className="aspect-video bg-white rounded-xl mb-4 overflow-hidden border border-stone-100 flex items-center justify-center">
                                     <div className="text-center text-stone-400">
                                         <Sparkles size={32} className="mx-auto mb-2 opacity-30" />
                                         <span className="text-xs">Попередній перегляд конструктора</span>
@@ -160,7 +160,7 @@ export function ConstructorSelection() {
 
                                 <Link
                                     href="/constructor/magazine"
-                                    className="block w-full bg-purple-600 text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                                    className="block w-full bg-[#263a99] text-white text-center px-6 py-3 rounded-full font-bold hover:bg-[#1a2966] shadow-[0_4px_16px_rgba(38,58,153,0.35)] hover:-translate-y-0.5 transition-all duration-200"
                                 >
                                     Відкрити конструктор
                                 </Link>
@@ -185,7 +185,7 @@ export function ConstructorSelection() {
                             {/* Preview Constructor Button */}
                             <Link
                                 href="/constructor/magazine"
-                                className="flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700 font-semibold transition-colors"
+                                className="flex items-center justify-center gap-2 text-[#263a99] hover:text-[#1a2966] font-bold transition-colors duration-200"
                             >
                                 Переглянути конструктор
                                 <ArrowRight size={18} />

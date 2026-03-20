@@ -79,7 +79,7 @@ export function CustomBookPromo() {
                                     href={category.href}
                                     className="flex flex-col items-center gap-3 group cursor-pointer"
                                 >
-                                    <div className="w-20 h-20 rounded-full bg-stone-100 flex items-center justify-center text-stone-700 group-hover:bg-stone-900 group-hover:text-white transition-all duration-300 group-hover:scale-110">
+                                    <div className="w-20 h-20 rounded-full bg-stone-100 flex items-center justify-center text-stone-700 group-hover:bg-[#263a99] group-hover:text-white transition-all duration-200 group-hover:scale-110">
                                         {category.icon}
                                     </div>
                                     <span className="text-sm font-semibold text-stone-700 group-hover:text-stone-900 transition-colors">
@@ -99,7 +99,7 @@ export function CustomBookPromo() {
                     >
                         <Link
                             href="/catalog"
-                            className="inline-flex items-center gap-3 bg-[#1e3a8a] text-white px-10 py-4 rounded-full text-lg font-bold hover:bg-[#1e40af] transition-all duration-300 hover:shadow-xl hover:scale-105"
+                            className="inline-flex items-center gap-3 bg-[#263a99] text-white px-10 py-4 rounded-full text-lg font-bold hover:bg-[#1a2966] transition-all duration-200 shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:shadow-[0_8px_32px_rgba(38,58,153,0.45)] hover:scale-105 hover:-translate-y-1"
                         >
                             В магазин
                             <ArrowRight size={20} />

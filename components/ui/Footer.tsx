@@ -69,7 +69,7 @@ function NewsletterFormFooter() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-6 py-3 bg-[#1e3a8a] text-white rounded-full font-semibold text-sm whitespace-nowrap hover:bg-[#1e40af] transition-colors disabled:opacity-50"
+                            className="px-6 py-3 bg-[#263a99] text-white rounded-full font-bold text-sm whitespace-nowrap hover:bg-[#1a2966] shadow-[0_4px_16px_rgba(38,58,153,0.35)] transition-all duration-200 disabled:opacity-50"
                         >
                             {loading ? '...' : 'Підписатись'}
                         </button>

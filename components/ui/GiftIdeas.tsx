@@ -66,7 +66,7 @@ export function GiftIdeas() {
                                 </p>
                                 <button
                                     onClick={() => setQuizOpen(true)}
-                                    className="w-full py-4 px-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg rounded-2xl transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:from-amber-600 hover:to-orange-600 group"
+                                    className="w-full py-4 px-6 bg-[#263a99] text-white font-bold text-lg rounded-full transition-all duration-200 shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:bg-[#1a2966] hover:scale-105 hover:-translate-y-1 group"
                                 >
                                     <span className="flex items-center justify-center gap-2">
                                         Пройти тест
@@ -106,7 +106,7 @@ export function GiftIdeas() {
                                 >
                                     <Link
                                         href={`/catalog?collection=${btn.slug}`}
-                                        className="group relative flex items-center justify-center p-4 lg:p-6 bg-white border-2 border-amber-200/50 rounded-2xl text-stone-800 font-bold text-sm lg:text-base uppercase tracking-wide transition-all duration-300 hover:bg-gradient-to-br hover:from-amber-50 hover:to-orange-50 hover:border-amber-400 hover:shadow-lg hover:-translate-y-1 text-center"
+                                        className="group relative flex items-center justify-center p-4 lg:p-6 bg-white border-2 border-stone-100 rounded-2xl text-stone-800 font-bold text-sm lg:text-base uppercase tracking-wide transition-all duration-200 hover:bg-[#eef0fb] hover:border-[#263a99]/30 hover:shadow-[0_4px_16px_rgba(38,58,153,0.16)] hover:-translate-y-1 text-center"
                                     >
                                         {btn.label}
                                     </Link>

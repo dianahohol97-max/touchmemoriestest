@@ -17,14 +17,14 @@ export function TravelBookCTA() {
     <div className="flex flex-wrap gap-4">
       <Link
         href="/catalog/travelbook-21x21"
-        className="inline-block bg-white text-stone-900 px-8 py-3 text-sm tracking-widest uppercase font-medium hover:bg-stone-100 transition-colors"
+        className="inline-block bg-white text-[#263a99] px-8 py-3.5 rounded-full font-bold shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200"
       >
         Дізнатись більше
       </Link>
       <a
         href="/constructor/travelbook"
         onClick={handleCreateClick}
-        className="inline-block border border-stone-600 text-stone-300 px-8 py-3 text-sm tracking-widest uppercase hover:border-stone-400 hover:text-white transition-colors cursor-pointer"
+        className="inline-block border-2 border-white/30 text-white px-8 py-3.5 rounded-full font-bold hover:border-white hover:bg-white/10 transition-all duration-200 cursor-pointer"
       >
         Створити свій
       </a>

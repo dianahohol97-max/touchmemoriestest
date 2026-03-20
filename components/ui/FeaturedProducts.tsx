@@ -79,7 +79,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                     <button
                         onClick={prev}
                         disabled={currentIndex === 0}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full border border-stone-300 bg-white flex items-center justify-center hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-[#263a99] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:bg-[#1a2966] hover:scale-105 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                         aria-label="Previous products"
                     >
                         <ChevronLeft size={24} />
@@ -89,7 +89,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                     <button
                         onClick={next}
                         disabled={currentIndex >= maxIndex}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full border border-stone-300 bg-white flex items-center justify-center hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg"
+                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-[#263a99] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:bg-[#1a2966] hover:scale-105 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                         aria-label="Next products"
                     >
                         <ChevronRight size={24} />
@@ -116,9 +116,9 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                                 >
                                     <Link
                                         href={`/catalog/${product.slug}`}
-                                        className="group flex flex-col h-full bg-white rounded-[3px] overflow-hidden transition-all duration-500 hover:-translate-y-2 shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] border border-gray-100/50"
+                                        className="group flex flex-col h-full bg-white rounded-2xl overflow-hidden shadow-sm border border-stone-100 hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(38,58,153,0.16)] transition-all duration-250 cursor-pointer"
                                     >
-                                        <div className="aspect-[4/5] relative overflow-hidden bg-gray-50">
+                                        <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
                                             {product.images?.[0] ? (
                                                 <img
                                                     src={product.images[0]}
@@ -126,18 +126,18 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-primary/10">
+                                                <div className="w-full h-full flex items-center justify-center text-[#263a99]/10">
                                                     <ImageIcon size={48} />
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="p-6 flex flex-col items-center text-center flex-grow">
-                                            <h3 className="font-heading font-extrabold text-[16px] text-primary mb-6 transition-colors group-hover:text-primary/80 h-10 line-clamp-2">
+                                        <div className="p-4 md:p-5 flex flex-col items-center text-center flex-grow">
+                                            <h3 className="text-base font-bold text-stone-900 mb-1 line-clamp-2">
                                                 {product.name}
                                             </h3>
-                                            <div className="mt-auto w-full">
-                                                <div className="btn-primary w-full !h-[52px] !rounded-[3px]">
-                                                    Детальніше
+                                            <div className="mt-auto w-full pt-4">
+                                                <div className="text-lg font-black text-[#263a99]">
+                                                    {product.price_from ? 'від ' : ''}{product.price} ₴
                                                 </div>
                                             </div>
                                         </div>
