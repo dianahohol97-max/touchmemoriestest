@@ -14,6 +14,10 @@ export function Navigation() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
     const [otherCategories, setOtherCategories] = useState<any[]>([]);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [searchLoading, setSearchLoading] = useState(false);
     const { items: cartItems, openDrawer } = useCartStore();
     const pathname = usePathname();
 
@@ -43,6 +47,52 @@ export function Navigation() {
         }
         fetchOtherCategories();
     }, []);
+
+    // Search functionality
+    useEffect(() => {
+        const performSearch = async () => {
+            if (searchQuery.length < 2) {
+                setSearchResults([]);
+                return;
+            }
+
+            setSearchLoading(true);
+            const { data } = await supabase
+                .from('products')
+                .select('id, name, slug, price, price_from, short_description, images')
+                .eq('is_active', true)
+                .or(`name.ilike.%${searchQuery}%,short_description.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
+                .limit(8);
+
+            setSearchResults(data || []);
+            setSearchLoading(false);
+        };
+
+        const debounceTimer = setTimeout(performSearch, 300);
+        return () => clearTimeout(debounceTimer);
+    }, [searchQuery, supabase]);
+
+    // Close search on Escape key
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && searchOpen) {
+                setSearchOpen(false);
+                setSearchQuery('');
+            }
+        };
+
+        if (searchOpen) {
+            document.addEventListener('keydown', handleEscape);
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+            document.body.style.overflow = '';
+        };
+    }, [searchOpen]);
 
     const mainNavLinks = [
         { name: 'Фотокниги', href: '/catalog?category=photobooks' },
@@ -181,7 +231,13 @@ export function Navigation() {
                     </div>
 
                     <div className="flex items-center gap-5 text-primary">
-                        <button aria-label="Search" className="bg-transparent border-none cursor-pointer text-inherit hover:opacity-70 transition-opacity"><Search size={20} /></button>
+                        <button
+                            onClick={() => setSearchOpen(true)}
+                            aria-label="Search"
+                            className="bg-transparent border-none cursor-pointer text-inherit hover:opacity-70 transition-opacity"
+                        >
+                            <Search size={20} />
+                        </button>
                         <UserAuthIcon />
                         <button
                             onClick={openDrawer}
@@ -252,6 +308,119 @@ export function Navigation() {
                             ))}
                         </nav>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Search Modal */}
+            <AnimatePresence>
+                {searchOpen && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => {
+                                setSearchOpen(false);
+                                setSearchQuery('');
+                            }}
+                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100]"
+                        />
+
+                        {/* Modal */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                            className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-white rounded-lg shadow-2xl z-[101] overflow-hidden"
+                        >
+                            {/* Search Input */}
+                            <div className="p-6 border-b border-gray-100">
+                                <div className="relative">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                    <input
+                                        type="text"
+                                        autoFocus
+                                        placeholder="Пошук товарів..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                        >
+                                            <X size={20} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Results */}
+                            <div className="max-h-[60vh] overflow-y-auto p-6">
+                                {searchLoading && (
+                                    <div className="text-center py-8 text-gray-500">
+                                        Пошук...
+                                    </div>
+                                )}
+
+                                {!searchLoading && searchQuery.length >= 2 && searchResults.length === 0 && (
+                                    <div className="text-center py-8 text-gray-500">
+                                        Товарів не знайдено. Спробуйте інший запит.
+                                    </div>
+                                )}
+
+                                {!searchLoading && searchQuery.length < 2 && (
+                                    <div className="text-center py-8 text-gray-400 text-sm">
+                                        Введіть мінімум 2 символи для пошуку
+                                    </div>
+                                )}
+
+                                {!searchLoading && searchResults.length > 0 && (
+                                    <div className="space-y-3">
+                                        {searchResults.map((product) => (
+                                            <Link
+                                                key={product.id}
+                                                href={`/catalog/${product.slug}`}
+                                                onClick={() => {
+                                                    setSearchOpen(false);
+                                                    setSearchQuery('');
+                                                }}
+                                                className="flex gap-4 p-4 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-200"
+                                            >
+                                                {product.images && product.images[0] ? (
+                                                    <img
+                                                        src={product.images[0]}
+                                                        alt={product.name}
+                                                        className="w-16 h-16 object-cover rounded-md flex-shrink-0"
+                                                    />
+                                                ) : (
+                                                    <div className="w-16 h-16 bg-gray-100 rounded-md flex-shrink-0 flex items-center justify-center">
+                                                        <Search size={24} className="text-gray-300" />
+                                                    </div>
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-bold text-gray-900 mb-1 truncate">{product.name}</h3>
+                                                    {product.short_description && (
+                                                        <p className="text-sm text-gray-500 line-clamp-2">{product.short_description}</p>
+                                                    )}
+                                                    <p className="text-sm font-bold text-blue-600 mt-2">
+                                                        {product.price_from ? `від ${product.price_from}` : product.price} ₴
+                                                    </p>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer hint */}
+                            <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 text-center">
+                                Натисніть ESC щоб закрити
+                            </div>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
         </header>
