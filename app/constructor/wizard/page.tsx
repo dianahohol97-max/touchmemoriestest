@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Layout } from 'lucide-react';
+import { Sparkles, Layout, Book, Plane, FileText, Calendar } from 'lucide-react';
 import { getConstructorUrl, ProductType } from '@/lib/constructorRouting';
 
 interface ConstructorConfig {
@@ -76,10 +76,18 @@ const WIZARD_COPY: Record<string, { title: string; subtitle: string; smartLabel:
   },
 };
 
+const PRODUCT_OPTIONS = [
+  { id: 'photobook', name: 'Фотокнига', icon: Book, color: 'blue' },
+  { id: 'travelbook', name: 'Travel Book', icon: Plane, color: 'green' },
+  { id: 'magazine', name: 'Глянцевий журнал', icon: FileText, color: 'purple' },
+  { id: 'calendar', name: 'Календар', icon: Calendar, color: 'orange' },
+];
+
 export default function WizardPage() {
   const router = useRouter();
   const [config, setConfig] = useState<ConstructorConfig | null>(null);
   const [copy, setCopy] = useState(WIZARD_COPY.photobook);
+  const [showProductSelector, setShowProductSelector] = useState(false);
 
   useEffect(() => {
     // Load config from sessionStorage
@@ -95,14 +103,36 @@ export default function WizardPage() {
           setCopy(productCopy);
         } catch (e) {
           console.error('Failed to parse constructor config:', e);
-          router.push('/catalog');
+          // Show product selector instead of redirecting
+          setShowProductSelector(true);
         }
       } else {
-        // No config found, redirect to catalog
-        router.push('/catalog');
+        // No config found, show product selector
+        setShowProductSelector(true);
       }
     }
   }, [router]);
+
+  const handleProductSelection = (productType: string) => {
+    // Create a minimal config for the selected product
+    const newConfig: ConstructorConfig = {
+      productType,
+      format: '20x20', // Default format
+      pages: 20, // Default pages
+    };
+
+    setConfig(newConfig);
+    setShowProductSelector(false);
+
+    // Set copy based on product type
+    const productCopy = WIZARD_COPY[productType] || WIZARD_COPY.photobook;
+    setCopy(productCopy);
+
+    // Save to sessionStorage
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('constructorConfig', JSON.stringify(newConfig));
+    }
+  };
 
   const handleModeSelection = (mode: 'smart' | 'manual') => {
     if (!config) return;
@@ -123,6 +153,70 @@ export default function WizardPage() {
     router.push(url);
   };
 
+  // Product Selector UI
+  if (showProductSelector) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="max-w-4xl w-full">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-3">
+              Оберіть тип продукту
+            </h1>
+            <p className="text-xl text-gray-600">
+              Що ви хочете створити?
+            </p>
+          </div>
+
+          {/* Product Selection Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {PRODUCT_OPTIONS.map((product) => {
+              const Icon = product.icon;
+              const colorClasses = {
+                blue: 'border-blue-500 bg-blue-50 text-blue-600 hover:bg-blue-100',
+                green: 'border-green-500 bg-green-50 text-green-600 hover:bg-green-100',
+                purple: 'border-purple-500 bg-purple-50 text-purple-600 hover:bg-purple-100',
+                orange: 'border-orange-500 bg-orange-50 text-orange-600 hover:bg-orange-100',
+              }[product.color];
+
+              return (
+                <button
+                  key={product.id}
+                  onClick={() => handleProductSelection(product.id)}
+                  className={`group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:${colorClasses} text-left`}
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className={`p-3 rounded-xl ${colorClasses}`}>
+                      <Icon className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {product.name}
+                    </h2>
+                  </div>
+
+                  <div className="flex items-center justify-center py-3 bg-gray-900 text-white rounded-lg font-semibold group-hover:bg-gray-800 transition-colors">
+                    Обрати →
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Back Button */}
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => router.push('/catalog')}
+              className="text-gray-600 hover:text-gray-900 underline text-sm"
+            >
+              ← Повернутись до каталогу
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
   if (!config) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -134,6 +228,7 @@ export default function WizardPage() {
     );
   }
 
+  // Mode Selection UI
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
