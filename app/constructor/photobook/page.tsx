@@ -457,8 +457,8 @@ export default function PhotobookConstructorPage() {
         items: [{
           product_type: 'photobook',
           product_name: `Фотокнига з ${coverTypeLabel}`,
-          cover_type: coverType,
-          format: format,
+          cover_type: coverType || undefined,
+          format: format || undefined,
           pages: pages,
           quantity: 1,
           unit_price: totalPrice,
