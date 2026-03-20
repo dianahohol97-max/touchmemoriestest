@@ -120,7 +120,7 @@ export function Navigation() {
                                             className="absolute top-full left-0 mt-6 w-56 bg-white shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-primary/5 rounded-brand py-3 z-100"
                                         >
                                             <Link
-                                                href="/inshi-tovary"
+                                                href="/catalog"
                                                 className="block px-6 py-3 text-primary no-underline text-[13px] font-bold tracking-tight transition-colors border-b border-primary/5 hover:bg-primary/5"
                                             >
                                                 Всі інші товари
@@ -238,7 +238,7 @@ export function Navigation() {
                         <nav className="flex flex-col p-8 gap-1 overflow-y-auto">
                             {[
                                 ...mainNavLinks,
-                                { name: 'Інші товари', href: '/inshi-tovary' },
+                                { name: 'Інші товари', href: '/catalog' },
                                 ...aboutDropdownItems
                             ].map(link => (
                                 <Link
