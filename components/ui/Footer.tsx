@@ -3,8 +3,8 @@ import { useState } from 'react';
 import styles from './Footer.module.css';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
-import { Mail, Phone, Send, ChevronDown } from 'lucide-react';
-import { FaInstagram, FaFacebook, FaTiktok, FaPinterest, FaThreads } from 'react-icons/fa6';
+import { Mail, Phone, Send, ChevronDown, MapPin } from 'lucide-react';
+import { FaInstagram, FaFacebook, FaTiktok, FaPinterest, FaThreads, FaTelegram } from 'react-icons/fa6';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -63,6 +63,17 @@ export function Footer({ categories = [] }: FooterProps) {
                 { label: 'Питання та відповіді', href: '/faq' },
                 { label: 'Конструктор', href: '/constructor/photobook' }
             ]
+        },
+        {
+            id: 'contacts',
+            title: 'Контакти',
+            links: [
+                { label: 'touch.memories3@gmail.com', href: 'mailto:touch.memories3@gmail.com' },
+                { label: 'Тернопіль, вул. Київська 2', href: 'https://maps.google.com/?q=Тернопіль,+вул.+Київська+2' },
+                { label: 'Telegram: @touchmemories', href: 'https://t.me/touchmemories' },
+                { label: 'Instagram: @touch.memories', href: 'https://instagram.com/touch.memories' },
+                { label: 'TikTok: @touch.memories', href: 'https://tiktok.com/@touch.memories' }
+            ]
         }
     ];
 
@@ -71,7 +82,7 @@ export function Footer({ categories = [] }: FooterProps) {
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
 
             <div className="container mx-auto px-6 lg:px-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 lg:gap-16">
                     {/* Brand Section */}
                     <div className="lg:col-span-2 flex flex-col gap-6 lg:pr-12">
                         <Link href="/" className="inline-block group">
@@ -82,22 +93,29 @@ export function Footer({ categories = [] }: FooterProps) {
                         <p className="text-[14px] text-primary/60 font-body leading-relaxed max-w-sm">
                             {content['footer_brand_desc'] || "Зберігаємо ваші найцінніші спогади у преміальних фотокнигах та продуктах з 2018 року."}
                         </p>
-                        <div className="flex gap-4">
-                            {[
-                                { url: content['footer_social_insta'], icon: <FaInstagram size={18} /> },
-                                { url: content['footer_social_fb'], icon: <FaFacebook size={18} /> },
-                                { url: content['footer_social_tg'], icon: <Send size={18} /> }
-                            ].map((social, i) => social.url ? (
-                                <a
-                                    key={i}
-                                    href={social.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-10 h-10 rounded-brand border border-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white hover:border-primary transition-all cursor-pointer shadow-sm"
-                                >
-                                    {social.icon}
-                                </a>
-                            ) : null)}
+                        
+                        <div className="flex flex-col gap-2">
+                            <p className="text-sm text-stone-500 mt-2 flex items-center gap-2">
+                                <MapPin size={14} /> Тернопіль, вул. Київська 2
+                            </p>
+                            <p className="text-sm text-stone-500 flex items-center gap-2">
+                                <Mail size={14} /> touch.memories3@gmail.com
+                            </p>
+                        </div>
+
+                        <div className="flex gap-4 mt-4">
+                            <a href="https://t.me/touchmemories" target="_blank" rel="noopener noreferrer"
+                               aria-label="Telegram" className="text-stone-400 hover:text-primary transition-colors">
+                                <FaTelegram size={20} />
+                            </a>
+                            <a href="https://instagram.com/touch.memories" target="_blank" rel="noopener noreferrer"
+                               aria-label="Instagram" className="text-stone-400 hover:text-primary transition-colors">
+                                <FaInstagram size={20} />
+                            </a>
+                            <a href="https://tiktok.com/@touch.memories" target="_blank" rel="noopener noreferrer"
+                               aria-label="TikTok" className="text-stone-400 hover:text-primary transition-colors">
+                                <FaTiktok size={20} />
+                            </a>
                         </div>
                     </div>
 
