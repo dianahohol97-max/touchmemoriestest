@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { goToConstructor } from '@/lib/constructorRouting';
+import { getProductSEO } from '@/lib/seoContent';
 
 const COVER_TYPES = [
   {
@@ -61,6 +62,7 @@ const BASE_PRICES = {
 
 export default function PhotobookPage() {
   const router = useRouter();
+  const productInfo = getProductSEO('photobook')!;
 
   // Basic options
   const [coverType, setCoverType] = useState<string>('printed');
@@ -179,14 +181,39 @@ export default function PhotobookPage() {
         {/* Product Header */}
         <div style={{ marginBottom: '40px' }}>
           <div style={{ display: 'inline-block', padding: '6px 14px', backgroundColor: '#dbeafe', color: '#1e40af', borderRadius: '9999px', fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>
-            від 450 ₴
+            від {productInfo.startingPrice}
           </div>
           <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: '12px', lineHeight: 1.2 }}>
-            Фотокнига
+            {productInfo.nameUk}
           </h1>
-          <p style={{ fontSize: '16px', color: '#666', lineHeight: 1.6 }}>
-            Створіть унікальну фотокнигу з обкладинкою на ваш смак
+          <p style={{ fontSize: '18px', color: '#263A99', lineHeight: 1.4, fontWeight: 600, marginBottom: '16px' }}>
+            {productInfo.tagline}
           </p>
+          <p style={{ fontSize: '16px', color: '#666', lineHeight: 1.6 }}>
+            {productInfo.shortDescription}
+          </p>
+        </div>
+
+        {/* Product Description Section */}
+        <div style={{ marginBottom: '48px', padding: '32px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#263A99', marginBottom: '16px' }}>
+            Про продукт
+          </h2>
+          <p style={{ fontSize: '15px', color: '#475569', lineHeight: 1.7, marginBottom: '24px' }}>
+            {productInfo.fullDescription}
+          </p>
+
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#263A99', marginBottom: '12px' }}>
+            Характеристики:
+          </h3>
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '0', listStyle: 'none' }}>
+            {productInfo.specs.map((spec, index) => (
+              <li key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', color: '#475569' }}>
+                <CheckCircle2 size={18} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>{spec}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* STEP 1: Cover Type */}

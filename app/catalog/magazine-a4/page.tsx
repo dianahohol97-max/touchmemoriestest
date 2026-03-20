@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { goToConstructor } from '@/lib/constructorRouting';
+import { getProductSEO } from '@/lib/seoContent';
 
 const PAGE_PRICES: Record<number, number> = {
   8: 425, 12: 475, 16: 625, 20: 775, 24: 925, 28: 1075,
@@ -17,6 +18,7 @@ const PAGE_OPTIONS = [8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80,
 
 export default function MagazineA4Page() {
   const router = useRouter();
+  const productInfo = getProductSEO('magazine')!;
 
   // Basic options
   const [pages, setPages] = useState(20);
@@ -122,14 +124,39 @@ export default function MagazineA4Page() {
         {/* Product Header */}
         <div style={{ marginBottom: '40px' }}>
           <div style={{ display: 'inline-block', padding: '6px 14px', backgroundColor: '#dbeafe', color: '#1e40af', borderRadius: '9999px', fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>
-            від 425 ₴
+            від {productInfo.startingPrice}
           </div>
           <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: '12px', lineHeight: 1.2 }}>
-            Глянцевий журнал A4
+            {productInfo.nameUk}
           </h1>
-          <p style={{ fontSize: '16px', color: '#666', lineHeight: 1.6 }}>
-            М'яка обкладинка 130г, папір 115г глянець, формат 21×29.7 см
+          <p style={{ fontSize: '18px', color: '#263A99', lineHeight: 1.4, fontWeight: 600, marginBottom: '16px' }}>
+            {productInfo.tagline}
           </p>
+          <p style={{ fontSize: '16px', color: '#666', lineHeight: 1.6 }}>
+            {productInfo.shortDescription}
+          </p>
+        </div>
+
+        {/* Product Description Section */}
+        <div style={{ marginBottom: '48px', padding: '32px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#263A99', marginBottom: '16px' }}>
+            Про продукт
+          </h2>
+          <p style={{ fontSize: '15px', color: '#475569', lineHeight: 1.7, marginBottom: '24px' }}>
+            {productInfo.fullDescription}
+          </p>
+
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#263A99', marginBottom: '12px' }}>
+            Характеристики:
+          </h3>
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '0', listStyle: 'none' }}>
+            {productInfo.specs.map((spec, index) => (
+              <li key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', color: '#475569' }}>
+                <CheckCircle2 size={18} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>{spec}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Number of Pages Selector */}

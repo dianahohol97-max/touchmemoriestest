@@ -9,6 +9,7 @@ import { NewsletterPopup } from '@/components/ui/NewsletterPopup';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { OAuthCallbackHandler } from '@/components/providers/OAuthCallbackHandler';
+import { SITE_INFO } from '@/lib/seoContent';
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -23,14 +24,18 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "TouchMemories | Створюйте свої фотокниги",
-  description: "TouchMemories — ваш сервіс для створення преміальних фотокниг та збереження спогадів.",
-  keywords: ["фотокниги", "друк фото", "спогади", "подарунки", "Україна"],
+  title: SITE_INFO.metaTitle,
+  description: SITE_INFO.metaDescription,
+  keywords: SITE_INFO.keywords,
   openGraph: {
-    title: "TouchMemories | Створюйте свої фотокниги",
-    description: "Зберігайте найцінніші моменти у преміальних фотокнигах.",
+    title: SITE_INFO.metaTitle,
+    description: SITE_INFO.metaDescription,
     locale: "uk_UA",
     type: "website",
+    siteName: SITE_INFO.name,
+  },
+  icons: {
+    icon: '/favicon.ico',
   },
 };
 

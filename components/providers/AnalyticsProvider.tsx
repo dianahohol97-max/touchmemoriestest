@@ -37,7 +37,9 @@ export function AnalyticsProvider() {
 
     return (
         <>
-            {/* Google Analytics 4 */}
+            {/* Analytics temporarily disabled - configure real IDs in production */}
+            {/* Google Analytics 4 - Uncomment and add real GA_TRACKING_ID */}
+            {/*
             <Script
                 strategy="afterInteractive"
                 src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
@@ -56,8 +58,10 @@ export function AnalyticsProvider() {
           `,
                 }}
             />
+            */}
 
-            {/* Meta Pixel */}
+            {/* Meta Pixel - Uncomment and add real FB_PIXEL_ID */}
+            {/*
             <Script
                 id="fb-pixel"
                 strategy="afterInteractive"
@@ -84,6 +88,7 @@ export function AnalyticsProvider() {
                     src={`https://www.facebook.com/tr?id=${FB_PIXEL_ID}&ev=PageView&noscript=1`}
                 />
             </noscript>
+            */}
         </>
     );
 }
