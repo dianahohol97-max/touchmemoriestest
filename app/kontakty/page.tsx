@@ -22,22 +22,40 @@ export default function Kontakty() {
                             <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '24px' }}>Зв'яжіться з нами</h2>
 
                             <div style={{ marginBottom: '20px' }}>
-                                <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Телефон</h3>
-                                <p style={{ fontSize: '18px', fontWeight: 600 }}>+380 99 123 45 67</p>
-                            </div>
-
-                            <div style={{ marginBottom: '20px' }}>
                                 <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</h3>
-                                <p style={{ fontSize: '18px', fontWeight: 600 }}>hello@touchmemories.com</p>
+                                <p style={{ fontSize: '18px', fontWeight: 600 }}>touch.memories3@gmail.com</p>
                             </div>
 
                             <div style={{ marginBottom: '20px' }}>
                                 <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Адреса</h3>
-                                <p style={{ fontSize: '18px', fontWeight: 600 }}>м. Київ, вул. Хрещатик, 1</p>
+                                <p style={{ fontSize: '18px', fontWeight: 600 }}>Тернопіль, вул. Київська 2</p>
                             </div>
 
-                            <div style={{ marginTop: '32px', height: '200px', backgroundColor: '#e2e8f0', borderRadius: "3px", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ color: '#64748b' }}>Мапа (Placeholder)</span>
+                            <div className="flex flex-col gap-3 mt-4">
+                                <a href="https://t.me/touchmemories" target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-blue-600 hover:underline font-medium">
+                                    💬 Telegram: @touchmemories
+                                </a>
+                                <a href="https://instagram.com/touch.memories" target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-pink-600 hover:underline font-medium">
+                                    📸 Instagram: @touch.memories
+                                </a>
+                                <a href="https://tiktok.com/touch.memories" target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-stone-800 hover:underline font-medium">
+                                    🎵 TikTok: @touch.memories
+                                </a>
+                            </div>
+
+                            <div style={{ marginTop: '32px', borderRadius: "12px", overflow: 'hidden' }}>
+                                <iframe
+                                    src="https://maps.google.com/maps?q=%D0%A2%D0%B5%D1%80%D0%BD%D0%BE%D0%BF%D1%96%D0%BB%D1%8C%2C+%D0%B2%D1%83%D0%BB.+%D0%9A%D0%B8%D1%97%D0%B2%D1%81%D1%8C%D0%BA%D0%B0+2&output=embed"
+                                    width="100%"
+                                    height="320"
+                                    style={{ border: 0, borderRadius: '12px' }}
+                                    allowFullScreen={true}
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                ></iframe>
                             </div>
                         </div>
 
