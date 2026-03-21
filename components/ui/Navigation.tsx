@@ -123,13 +123,13 @@ export function Navigation() {
 
                 {/* Desktop Nav */}
                 <nav className={cn("desktop-only items-center gap-12 shrink", styles.navFlex)}>
-                    <div className="flex gap-10 text-[12px] uppercase tracking-[0.1em] font-bold items-center font-heading">
+                    <div className="flex gap-6 text-[12px] uppercase tracking-[0.1em] font-bold items-center font-heading">
                         {mainNavLinks.map(link => (
                             <Link
                                 key={link.name}
                                 href={link.href}
                                 className={cn(
-                                    "text-primary no-underline transition-opacity relative",
+                                    "text-primary no-underline transition-opacity relative whitespace-nowrap",
                                     pathname === link.href ? "opacity-100" : "opacity-80 hover:opacity-100"
                                 )}
                             >
@@ -152,7 +152,7 @@ export function Navigation() {
                             >
                                 <button
                                     className={cn(
-                                        "bg-transparent border-none cursor-pointer text-primary text-[12px] uppercase tracking-[0.1em] font-bold flex items-center gap-1.5 transition-opacity font-heading",
+                                        "bg-transparent border-none cursor-pointer text-primary text-[12px] uppercase tracking-[0.1em] font-bold flex items-center gap-1.5 transition-opacity font-heading whitespace-nowrap",
                                         activeDropdown === 'other' ? "opacity-100" : "opacity-80"
                                     )}
                                 >
@@ -198,7 +198,7 @@ export function Navigation() {
                         >
                             <button
                                 className={cn(
-                                    "bg-transparent border-none cursor-pointer text-primary text-[12px] uppercase tracking-[0.1em] font-bold flex items-center gap-1.5 transition-opacity font-heading",
+                                    "bg-transparent border-none cursor-pointer text-primary text-[12px] uppercase tracking-[0.1em] font-bold flex items-center gap-1.5 transition-opacity font-heading whitespace-nowrap",
                                     activeDropdown === 'about' ? "opacity-100" : "opacity-80"
                                 )}
                             >
