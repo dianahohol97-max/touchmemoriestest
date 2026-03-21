@@ -65,7 +65,7 @@ export function ConstructorSelection() {
                                 href="/kontakty"
                                 className="block text-sm text-center text-[#263a99]/60 hover:underline transition-all duration-200"
                             >
-                                замовити з допомогою дизайнера
+                                оформити з дизайнером
                             </Link>
                         </div>
 
@@ -109,7 +109,7 @@ export function ConstructorSelection() {
                                 href="/kontakty"
                                 className="block text-sm text-center text-[#263a99]/60 hover:underline transition-all duration-200"
                             >
-                                замовити з допомогою дизайнера
+                                оформити з дизайнером
                             </Link>
                         </div>
 
