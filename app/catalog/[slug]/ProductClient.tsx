@@ -382,20 +382,20 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                         <button
                                                             key={valIdx}
                                                             onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.name]: valIdx }))}
+                                                            className="rounded-full"
                                                             style={{
-                                                                padding: '10px 16px',
-                                                                borderRadius: "3px",
-                                                                border: isSelected ? '2px solid var(--primary)' : '1px solid #e2e8f0',
-                                                                background: isSelected ? '#f8fafc' : 'white',
-                                                                color: isSelected ? 'var(--primary)' : '#475569',
-                                                                fontWeight: 600,
+                                                                padding: '10px 20px',
+                                                                border: isSelected ? '2px solid var(--primary)' : '2px solid var(--primary)',
+                                                                background: isSelected ? 'var(--primary)' : 'white',
+                                                                color: isSelected ? 'white' : 'var(--primary)',
+                                                                fontWeight: 700,
                                                                 cursor: 'pointer',
                                                                 transition: 'all 0.2s',
                                                                 fontSize: '14px'
                                                             }}
                                                         >
                                                             {val.name}
-                                                            {val.priceModifier > 0 && <span style={{ opacity: 0.7, marginLeft: '4px', fontWeight: 500 }}>(+{val.priceModifier} ₴)</span>}
+                                                            {val.priceModifier > 0 && <span style={{ opacity: 0.8, marginLeft: '4px', fontWeight: 600 }}>(+{val.priceModifier} ₴)</span>}
                                                         </button>
                                                     )
                                                 })}
@@ -405,17 +405,17 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                                     <div>
                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>Кількість</label>
-                                        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: "3px", width: 'fit-content', backgroundColor: 'white' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <button
                                                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                                style={{ padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}
-                                                className="hover:bg-slate-50 transition"
-                                            >-</button>
-                                            <span style={{ padding: '0 16px', fontWeight: 800, fontSize: '16px', minWidth: '40px', textAlign: 'center', color: '#263A99' }}>{quantity}</span>
+                                                className="rounded-full hover:bg-[#f0f3ff] transition"
+                                                style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--primary)', background: 'white', cursor: 'pointer', fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}
+                                            >−</button>
+                                            <span style={{ fontWeight: 800, fontSize: '18px', minWidth: '40px', textAlign: 'center', color: '#263A99' }}>{quantity}</span>
                                             <button
                                                 onClick={() => setQuantity(quantity + 1)}
-                                                style={{ padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}
-                                                className="hover:bg-slate-50 transition"
+                                                className="rounded-full hover:bg-[#f0f3ff] transition"
+                                                style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--primary)', background: 'white', cursor: 'pointer', fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}
                                             >+</button>
                                         </div>
                                     </div>
@@ -428,20 +428,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <Link
                                     href={getOrderUrl(product.slug, selectedOptions, product)}
+                                    className="rounded-full hover:bg-blue-700"
                                     style={{
                                         width: '100%',
                                         padding: '18px',
                                         backgroundColor: 'var(--primary)',
                                         color: 'white',
                                         textDecoration: 'none',
-                                        borderRadius: "3px",
                                         fontSize: '16px',
                                         fontWeight: 700,
                                         textAlign: 'center',
                                         transition: 'background-color 0.2s',
                                         display: 'block'
                                     }}
-                                    className="hover:bg-blue-700"
                                 >
                                     Замовити →
                                 </Link>
@@ -499,37 +498,35 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 <div style={{ display: 'flex', gap: '12px' }} className={styles.flexResponsive}>
                                     <button
                                         onClick={handleAddToCart}
+                                        className="rounded-full hover:bg-blue-50"
                                         style={{
                                             flex: 1,
                                             padding: '18px',
                                             backgroundColor: 'white',
                                             color: 'var(--primary)',
                                             border: '2px solid var(--primary)',
-                                            borderRadius: "3px",
                                             fontSize: '16px',
                                             fontWeight: 700,
                                             cursor: 'pointer',
                                             transition: 'all 0.2s'
                                         }}
-                                        className="hover:bg-blue-50"
                                     >
                                         Замовити відразу
                                     </button>
                                     <button
                                         onClick={() => setShowPersonalizationInput(!showPersonalizationInput)}
+                                        className="rounded-full hover:bg-blue-700"
                                         style={{
                                             flex: 1.2,
                                             padding: '18px',
                                             backgroundColor: 'var(--primary)',
                                             color: 'white',
                                             border: 'none',
-                                            borderRadius: "3px",
                                             fontSize: '16px',
                                             fontWeight: 700,
                                             cursor: 'pointer',
                                             transition: 'background-color 0.2s'
                                         }}
-                                        className="hover:bg-blue-700"
                                     >
                                         Додати персоналізацію та замовити
                                     </button>
@@ -561,16 +558,17 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 }
                                                 handleAddToCart();
                                             }}
+                                            className="rounded-full hover:bg-blue-700"
                                             style={{
                                                 width: '100%',
                                                 padding: '12px',
                                                 backgroundColor: 'var(--primary)',
                                                 color: 'white',
                                                 border: 'none',
-                                                borderRadius: "3px",
                                                 fontSize: '14px',
                                                 fontWeight: 700,
-                                                cursor: 'pointer'
+                                                cursor: 'pointer',
+                                                transition: 'background-color 0.2s'
                                             }}
                                         >
                                             Додати до замовлення
@@ -586,19 +584,18 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <button
                                     onClick={handleAddToCart}
+                                    className="rounded-full hover:bg-blue-700"
                                     style={{
                                         width: '100%',
                                         padding: '18px',
                                         backgroundColor: 'var(--primary)',
                                         color: 'white',
                                         border: 'none',
-                                        borderRadius: "3px",
                                         fontSize: '16px',
                                         fontWeight: 700,
                                         cursor: 'pointer',
                                         transition: 'background-color 0.2s'
                                     }}
-                                    className="hover:bg-blue-700"
                                 >
                                     Замовити відразу
                                 </button>
