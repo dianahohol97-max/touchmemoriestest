@@ -94,6 +94,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     // Store selected options -> mapping from option Name to selected value (index or value)
     const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
     const [customProductOptions, setCustomProductOptions] = useState<Record<string, string | number>>({});
+    const [dynamicPrice, setDynamicPrice] = useState<number | null>(null);
     const [personalizationNote, setPersonalizationNote] = useState('');
     const [showPersonalizationInput, setShowPersonalizationInput] = useState(false);
     const { addItem } = useCartStore();
@@ -333,7 +334,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                             <div className={styles.priceContainer} style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)' }}>
-                                {product.price_from ? 'від ' : ''}{finalPrice} ₴
+                                {dynamicPrice !== null ? `${dynamicPrice} ₴` : `${product.price_from ? 'від ' : ''}${finalPrice} ₴`}
                             </div>
                             {product.sale_price && (
                                 <div style={{ fontSize: '20px', fontWeight: 600, color: '#94a3b8', textDecoration: 'line-through' }}>
@@ -375,42 +376,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     <ProductOptionsSelector
                                         slug={product.slug || ''}
                                         selectedOptions={customProductOptions}
-                                        onChange={setCustomProductOptions}
+                                        onChange={(options, calculatedPrice) => {
+                                            setCustomProductOptions(options);
+                                            setDynamicPrice(calculatedPrice ?? null);
+                                        }}
                                     />
-
-                                    {/* Fallback to database options if custom selector doesn't apply */}
-                                    {product.options && Array.isArray(product.options) && product.options.map((opt: any, optIdx: number) => (
-                                        <div key={optIdx}>
-                                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>
-                                                {opt.name}
-                                            </label>
-                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                                {(opt.values || []).map((val: any, valIdx: number) => {
-                                                    const isSelected = selectedOptions[opt.name] === valIdx;
-                                                    return (
-                                                        <button
-                                                            key={valIdx}
-                                                            onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.name]: valIdx }))}
-                                                            className="rounded-md"
-                                                            style={{
-                                                                padding: '10px 20px',
-                                                                border: isSelected ? '2px solid var(--primary)' : '2px solid var(--primary)',
-                                                                background: isSelected ? 'var(--primary)' : 'white',
-                                                                color: isSelected ? 'white' : 'var(--primary)',
-                                                                fontWeight: 700,
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.2s',
-                                                                fontSize: '14px'
-                                                            }}
-                                                        >
-                                                            {val.name}
-                                                            {val.priceModifier > 0 && <span style={{ opacity: 0.8, marginLeft: '4px', fontWeight: 600 }}>(+{val.priceModifier} ₴)</span>}
-                                                        </button>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
-                                    ))}
 
                                     <div>
                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>Кількість</label>
