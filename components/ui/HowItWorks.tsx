@@ -52,7 +52,7 @@ export function HowItWorks() {
                     transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
                     className="text-center mb-12"
                 >
-                    <p className="text-xs text-stone-400 tracking-widest uppercase mb-3">
+                    <p className="text-xs text-[#6b7cc4] uppercase mb-3" style={{ letterSpacing: '1.5px' }}>
                         ПЕРЕВАГИ
                     </p>
                     <h2 className="text-3xl lg:text-4xl font-black text-[#1e2d7d] mb-4">

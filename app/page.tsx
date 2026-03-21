@@ -138,7 +138,7 @@ export default async function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-2">
+                      <span className="inline-block text-white text-xs uppercase mb-2" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
                         Натхнення
                       </span>
                       <h3 className="text-white text-xl font-serif leading-snug">
@@ -170,7 +170,7 @@ export default async function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-2">
+                      <span className="inline-block text-white text-xs uppercase mb-2" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
                         Travel
                       </span>
                       <h3 className="text-white text-xl font-serif leading-snug">
@@ -199,7 +199,7 @@ export default async function Home() {
                 <div className="bg-white rounded-lg shadow-lg p-8">
 
                   {/* Label */}
-                  <p className="text-xs text-[#4a5cc7] tracking-widest uppercase mb-4">
+                  <p className="text-xs text-[#6b7cc4] uppercase mb-4" style={{ letterSpacing: '1.5px' }}>
                     Новинка сезону
                   </p>
 
@@ -250,7 +250,7 @@ export default async function Home() {
 
                         {/* Cover text overlay */}
                         <div className="absolute bottom-0 left-0 right-0 p-6">
-                          <p className="text-white/60 text-xs tracking-widest uppercase mb-2">
+                          <p className="text-white text-xs uppercase mb-2" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px', display: 'inline-block' }}>
                             EXPLORE
                           </p>
                           <p className="text-white text-xl leading-tight font-serif italic">
@@ -293,7 +293,7 @@ export default async function Home() {
             {/* Header */}
             <div className="flex items-end justify-between mb-12">
               <div>
-                <p className="text-xs text-stone-400 tracking-widest uppercase mb-3">
+                <p className="text-xs text-[#6b7cc4] uppercase mb-3" style={{ letterSpacing: '1.5px' }}>
                   Натхнення
                 </p>
                 <h2 className="text-3xl lg:text-4xl font-serif font-light text-stone-800">
@@ -322,7 +322,7 @@ export default async function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
+                      <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
                         Гід
                       </span>
                       <h3 className="text-white text-xl lg:text-2xl font-serif leading-snug">
@@ -347,7 +347,7 @@ export default async function Home() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
+                        <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
                           Travel
                         </span>
                         <h3 className="text-white text-base font-serif leading-snug">
@@ -368,7 +368,7 @@ export default async function Home() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="inline-block bg-white text-stone-800 text-xs px-3 py-1 tracking-widest uppercase mb-3">
+                        <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
                           Весілля
                         </span>
                         <h3 className="text-white text-base font-serif leading-snug">
