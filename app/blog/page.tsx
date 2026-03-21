@@ -227,8 +227,23 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                             <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Розсилка натхнення</h3>
                             <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '24px' }}>Ніякого спаму. Лише найцікавіші ідеї фотокниг та спеціальні пропозиції раз на місяць.</p>
                             <form style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} action="/api/newsletter" method="POST">
-                                <input type="email" placeholder="Ваш email" required style={{ width: '100%', padding: '14px 16px', borderRadius: '9999px', border: '1px solid #263A99', backgroundColor: '#263A99', color: 'white', outline: 'none' }} />
-                                <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: '9999px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s', ':hover': { backgroundColor: '#263A99' } } as any}>
+                                <input
+                                    type="email"
+                                    placeholder="Ваш email"
+                                    required
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px 16px',
+                                        borderRadius: '6px',
+                                        border: 'none',
+                                        backgroundColor: '#ffffff',
+                                        color: '#1e2d7d',
+                                        fontSize: '14px',
+                                        outline: 'none'
+                                    }}
+                                    className="placeholder:text-[#9ca3af]"
+                                />
+                                <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: '9999px', backgroundColor: 'white', color: '#1e2d7d', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' } as any}>
                                     Підписатись
                                 </button>
                             </form>
