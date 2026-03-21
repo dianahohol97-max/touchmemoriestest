@@ -316,7 +316,7 @@ export default function AnalyticsPage() {
             ['Виручка', metrics.revenue.value.toFixed(2), metrics.revenue.change.toFixed(1)],
             ['Замовлення', metrics.orders.value, metrics.orders.change.toFixed(1)],
             ['Нові клієнти', metrics.newClients.value, metrics.newClients.change.toFixed(1)],
-            ['Середній чек', metrics.avgOrderValue.toFixed(2), metrics.avgOrderValue.change.toFixed(1)],
+            ['Середній чек', metrics.avgOrderValue.value.toFixed(2), metrics.avgOrderValue.change.toFixed(1)],
             ['Конверсія (%)', metrics.conversionRate.value.toFixed(2), metrics.conversionRate.change.toFixed(2)]
         ];
         const wsKPI = XLSX.utils.aoa_to_sheet(kpiData);
