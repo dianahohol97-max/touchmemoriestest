@@ -54,7 +54,7 @@ export function CustomBookPromo() {
                     </p>
 
                     {/* Main Heading */}
-                    <h2 className="text-3xl lg:text-4xl font-black text-stone-900 leading-tight mb-6">
+                    <h2 className="text-3xl lg:text-4xl font-black text-[#1e2d7d] leading-tight mb-6">
                         Фотокниги, журнали та фотовироби з душею
                     </h2>
 

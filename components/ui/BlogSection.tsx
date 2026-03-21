@@ -47,7 +47,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                     transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                     className="text-center mb-16"
                 >
-                    <h2 className="text-[40px] lg:text-[56px] font-black text-primary leading-none tracking-tight mb-4">
+                    <h2 className="text-[40px] lg:text-[56px] font-black text-[#1e2d7d] leading-none tracking-tight mb-4">
                         {content['blog_title'] || 'Ідеї та натхнення'}
                     </h2>
                     <div className="w-24 h-1 bg-primary/10 mx-auto rounded-full" />

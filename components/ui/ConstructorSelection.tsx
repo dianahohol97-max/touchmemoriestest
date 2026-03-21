@@ -39,7 +39,7 @@ export function ConstructorSelection() {
                         {/* RIGHT: Content */}
                         <div className="space-y-6">
                             <div>
-                                <h2 className="text-4xl lg:text-5xl font-black text-stone-900 mb-4 tracking-tight">
+                                <h2 className="text-4xl lg:text-5xl font-black text-[#1e2d7d] mb-4 tracking-tight">
                                     Фотокниги
                                 </h2>
                                 <p className="text-lg text-stone-600 leading-relaxed">
@@ -83,7 +83,7 @@ export function ConstructorSelection() {
                         {/* LEFT: Content */}
                         <div className="space-y-6 order-2 lg:order-1">
                             <div>
-                                <h2 className="text-4xl lg:text-5xl font-black text-stone-900 mb-4 tracking-tight">
+                                <h2 className="text-4xl lg:text-5xl font-black text-[#1e2d7d] mb-4 tracking-tight">
                                     Глянцеві журнали
                                 </h2>
                                 <p className="text-lg text-stone-600 leading-relaxed">

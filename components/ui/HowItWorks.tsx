@@ -56,7 +56,7 @@ export function HowItWorks() {
                     <p className="text-xs text-stone-400 tracking-widest uppercase mb-3">
                         ПЕРЕВАГИ
                     </p>
-                    <h2 className="text-3xl lg:text-4xl font-serif font-light text-stone-900 mb-4">
+                    <h2 className="text-3xl lg:text-4xl font-black text-[#1e2d7d] mb-4">
                         Чому варто обрати нас
                     </h2>
                 </motion.div>

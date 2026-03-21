@@ -110,7 +110,7 @@ export function SocialProof() {
                     transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
                     className="mb-8"
                 >
-                    <h2 className="text-[40px] lg:text-[48px] font-black leading-[1.05] tracking-tight mb-4 text-primary">
+                    <h2 className="text-[40px] lg:text-[48px] font-black leading-[1.05] tracking-tight mb-4 text-[#1e2d7d]">
                         Ваші відгуки
                     </h2>
 

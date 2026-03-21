@@ -96,7 +96,7 @@ export function GiftIdeas() {
                                 <div className="w-20 h-20 bg-gradient-to-br from-[#263a99] to-[#1a2966] rounded-2xl flex items-center justify-center mb-6 shadow-lg rotate-3">
                                     <Gift size={40} className="text-white" strokeWidth={2.5} />
                                 </div>
-                                <h2 className="text-4xl lg:text-5xl font-bold text-stone-900 leading-tight mb-4">
+                                <h2 className="text-4xl lg:text-5xl font-bold text-[#1e2d7d] leading-tight mb-4">
                                     Не знаєш що обрати на подарунок?
                                 </h2>
                                 <p className="text-stone-700 text-lg mb-8 leading-relaxed">
@@ -126,7 +126,7 @@ export function GiftIdeas() {
                             <p className="text-xs text-[#263a99] tracking-widest uppercase mb-3 font-semibold">
                                 Обери категорію
                             </p>
-                            <h2 className="text-4xl lg:text-5xl font-bold text-stone-900 leading-tight mb-3">
+                            <h2 className="text-4xl lg:text-5xl font-bold text-[#1e2d7d] leading-tight mb-3">
                                 Ідеї для подарунків
                             </h2>
                             <p className="text-stone-600 text-lg">
