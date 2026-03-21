@@ -16,82 +16,111 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
-    const supabase = await createClient();
-    const { data: post } = await supabase.from('blog_posts').select('*').eq('slug', slug).single();
 
-    if (!post) {
+    try {
+        const supabase = await createClient();
+        const { data: post, error } = await supabase.from('blog_posts').select('*').eq('slug', slug).single();
+
+        if (error || !post) {
+            return {
+                title: 'Статтю не знайдено | TouchMemories'
+            };
+        }
+
+        return {
+            title: post?.meta_title || `${post?.title || 'Стаття'} | TouchMemories`,
+            description: post?.meta_description || post?.excerpt || '',
+            openGraph: {
+                title: post?.og_title || post?.meta_title || post?.title || 'Стаття',
+                description: post?.meta_description || post?.excerpt || '',
+                images: post?.cover_image ? [{ url: post.cover_image, width: 1200, height: 630 }] : [],
+                type: 'article',
+                publishedTime: post?.published_at,
+                authors: post?.author_name ? [post.author_name] : []
+            }
+        };
+    } catch (error) {
         return {
             title: 'Статтю не знайдено | TouchMemories'
         };
     }
-
-    return {
-        title: post.meta_title || `${post.title} | TouchMemories`,
-        description: post.meta_description || post.excerpt,
-        openGraph: {
-            title: post.og_title || post.meta_title || post.title,
-            description: post.meta_description || post.excerpt,
-            images: post.cover_image ? [{ url: post.cover_image, width: 1200, height: 630 }] : [],
-            type: 'article',
-            publishedTime: post.published_at,
-            authors: [post.author_name]
-        }
-    };
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
     const supabase = await createClient();
 
-    const { data: post } = await supabase
-        .from('blog_posts')
-        .select('*, blog_categories(*)')
-        .eq('slug', slug)
-        .eq('is_published', true)
-        .single();
+    let post: any = null;
+
+    try {
+        const { data, error } = await supabase
+            .from('blog_posts')
+            .select('*, blog_categories(*)')
+            .eq('slug', slug)
+            .eq('is_published', true)
+            .single();
+
+        if (error || !data) {
+            notFound();
+        }
+
+        post = data;
+    } catch (error) {
+        notFound();
+    }
 
     if (!post) notFound();
 
     // Try finding related products
     let relatedProducts: any[] = [];
-    if (post.related_product_ids && post.related_product_ids.length > 0) {
-        const { data } = await supabase.from('products').select('*').in('id', post.related_product_ids);
-        if (data) relatedProducts = data;
+    if (post?.related_product_ids && Array.isArray(post.related_product_ids) && post.related_product_ids.length > 0) {
+        try {
+            const { data } = await supabase.from('products').select('*').in('id', post.related_product_ids);
+            if (data) relatedProducts = data;
+        } catch (error) {
+            // Silently fail for related products
+            relatedProducts = [];
+        }
     }
 
     // Try finding 3 similar articles
     let similarPosts: any[] = [];
-    if (post.category_id) {
-        const { data } = await supabase
-            .from('blog_posts')
-            .select('id, title, slug, cover_image, published_at')
-            .eq('category_id', post.category_id)
-            .neq('id', post.id)
-            .eq('is_published', true)
-            .limit(3);
-        if (data) similarPosts = data;
+    if (post?.category_id) {
+        try {
+            const { data } = await supabase
+                .from('blog_posts')
+                .select('id, title, slug, cover_image, published_at')
+                .eq('category_id', post.category_id)
+                .neq('id', post.id)
+                .eq('is_published', true)
+                .limit(3);
+            if (data) similarPosts = data;
+        } catch (error) {
+            // Silently fail for similar posts
+            similarPosts = [];
+        }
     }
 
     const domain = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
-    const currentUrl = `${domain}/blog/${post.slug}`;
+    const currentUrl = `${domain}/blog/${post?.slug || slug}`;
 
     const jsonLdArticle = {
         '@context': 'https://schema.org',
         '@type': 'Article',
-        'headline': post.title,
-        'image': post.cover_image ? [post.cover_image] : [],
+        'headline': post?.title || '',
+        'image': post?.cover_image ? [post.cover_image] : [],
         'author': {
             '@type': 'Person',
-            'name': post.author_name
+            'name': post?.author_name || 'TouchMemories'
         },
         'publisher': {
             '@type': 'Organization',
             'name': 'TouchMemories',
             // 'logo': { '@type': 'ImageObject', 'url': `${domain}/logo.png` }
         },
-        'datePublished': post.published_at,
-        'dateModified': post.updated_at,
-        'description': post.meta_description || post.excerpt
+        'datePublished': post?.published_at || new Date().toISOString(),
+        'dateModified': post?.updated_at || post?.published_at || new Date().toISOString(),
+        'description': post?.meta_description || post?.excerpt || ''
     };
 
     const jsonLdBreadcrumb = {
@@ -103,10 +132,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {
                 '@type': 'ListItem',
                 'position': 3,
-                'name': post.blog_categories?.name || 'Стаття',
-                'item': post.blog_categories ? `${domain}/blog?category=${post.blog_categories.slug}` : `${domain}/blog`
+                'name': post?.blog_categories?.name || 'Стаття',
+                'item': post?.blog_categories ? `${domain}/blog?category=${post.blog_categories.slug}` : `${domain}/blog`
             },
-            { '@type': 'ListItem', 'position': 4, 'name': post.title }
+            { '@type': 'ListItem', 'position': 4, 'name': post?.title || '' }
         ]
     };
 
@@ -120,7 +149,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {/* View Counter Trigger */}
             <script dangerouslySetInnerHTML={{
                 __html: `
-                    fetch('/api/blog/${post.slug}/view', { method: 'POST', keepalive: true }).catch(console.error);
+                    fetch('/api/blog/${post?.slug || slug}/view', { method: 'POST', keepalive: true }).catch(console.error);
                 `
             }} />
 
@@ -133,47 +162,47 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                         <span>→</span>
                         <Link href="/blog" style={{ color: 'inherit', textDecoration: 'none' }}>Блог</Link>
                         <span>→</span>
-                        {post.blog_categories && (
+                        {post?.blog_categories && (
                             <>
                                 <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{post.blog_categories.name}</Link>
                                 <span>→</span>
                             </>
                         )}
-                        <span style={{ color: '#263A99', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{post.title}</span>
+                        <span style={{ color: '#263A99', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{post?.title || ''}</span>
                     </div>
 
                     {/* Header */}
                     <header style={{ marginBottom: '40px' }}>
-                        {post.blog_categories && (
+                        {post?.blog_categories && (
                             <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ display: 'inline-block', backgroundColor: '#f1f5f9', color: '#263A99', padding: '6px 16px', borderRadius: "3px", fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '24px', textDecoration: 'none' }}>
                                 {post.blog_categories.name}
                             </Link>
                         )}
                         <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 900, color: '#263A99', lineHeight: 1.1, marginBottom: '24px', letterSpacing: '-0.02em' }}>
-                            {post.title}
+                            {post?.title || ''}
                         </h1>
                         <p style={{ fontSize: '20px', color: '#64748b', lineHeight: 1.6, marginBottom: '32px' }}>
-                            {post.excerpt}
+                            {post?.excerpt || ''}
                         </p>
 
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', padding: '20px 0' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                {post.author_avatar ? (
+                                {post?.author_avatar ? (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={post.author_avatar} alt={post.author_name} style={{ width: '48px', height: '48px', borderRadius: "3px" }} />
+                                    <img src={post.author_avatar} alt={post?.author_name || 'Author'} style={{ width: '48px', height: '48px', borderRadius: "3px" }} />
                                 ) : (
                                     <div style={{ width: '48px', height: '48px', borderRadius: "3px", backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
                                         <User size={24} />
                                     </div>
                                 )}
                                 <div>
-                                    <div style={{ fontWeight: 800, color: '#263A99', fontSize: '16px' }}>{post.author_name}</div>
+                                    <div style={{ fontWeight: 800, color: '#263A99', fontSize: '16px' }}>{post?.author_name || 'TouchMemories'}</div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#94a3b8', marginTop: '4px' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> {new Date(post.published_at).toLocaleDateString('uk-UA')}</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> {post?.published_at ? new Date(post.published_at).toLocaleDateString('uk-UA') : ''}</span>
                                         <span>•</span>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={14} /> {post.reading_time} хв</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={14} /> {post?.reading_time || 5} хв</span>
                                         <span>•</span>
-                                        <span>👁 {post.views_count + 1}</span>
+                                        <span>👁 {(post?.views_count || 0) + 1}</span>
                                     </div>
                                 </div>
                             </div>
@@ -191,19 +220,19 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     </header>
 
                     {/* Cover Image */}
-                    {post.cover_image && (
+                    {post?.cover_image && (
                         <div style={{ width: '100%', height: '500px', position: 'relative', borderRadius: "3px", overflow: 'hidden', marginBottom: '48px', backgroundColor: '#f8fafc' }}>
-                            <Image src={post.cover_image} alt={post.cover_image_alt || post.title} fill style={{ objectFit: 'cover' }} priority />
+                            <Image src={post.cover_image} alt={post?.cover_image_alt || post?.title || 'Cover image'} fill style={{ objectFit: 'cover' }} priority />
                         </div>
                     )}
 
                     {/* Article Content */}
                     <div style={{ fontSize: '18px', lineHeight: 1.8, color: '#263A99', marginBottom: '60px' }}>
-                        <MarkdownViewer source={post.content || ''} />
+                        <MarkdownViewer source={post?.content || ''} />
                     </div>
 
                     {/* Tags */}
-                    {post.tags && post.tags.length > 0 && (
+                    {post?.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '48px' }}>
                             {post.tags.map((tag: string) => (
                                 <Link key={tag} href={`/blog/tag/${tag}`} style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '6px 16px', borderRadius: "3px", fontSize: '14px', fontWeight: 600, textDecoration: 'none', transition: 'background 0.2s', ':hover': { backgroundColor: '#e2e8f0' } } as any}>
@@ -221,12 +250,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
                                 {relatedProducts.map((p: any) => (
-                                    <Link key={p.id} href={`/products/${p.slug}`} style={{ border: '1px solid #f1f5f9', borderRadius: "3px", padding: '16px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', transition: 'border-color 0.2s', ':hover': { borderColor: '#cbd5e1' } } as any}>
+                                    <Link key={p?.id} href={`/products/${p?.slug || ''}`} style={{ border: '1px solid #f1f5f9', borderRadius: "3px", padding: '16px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', transition: 'border-color 0.2s', ':hover': { borderColor: '#cbd5e1' } } as any}>
                                         <div style={{ width: '100%', aspectRatio: '1/1', position: 'relative', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#f8fafc', marginBottom: '16px' }}>
-                                            {p.images && p.images[0] && <Image src={p.images[0]} alt={p.name} fill style={{ objectFit: 'cover' }} />}
+                                            {p?.images && Array.isArray(p.images) && p.images[0] && <Image src={p.images[0]} alt={p?.name || 'Product'} fill style={{ objectFit: 'cover' }} />}
                                         </div>
-                                        <h4 style={{ fontWeight: 800, fontSize: '15px', color: '#263A99', marginBottom: '8px' }}>{p.name}</h4>
-                                        <div style={{ color: '#263A99', fontWeight: 700, fontSize: '14px', marginTop: 'auto' }}>{p.price} ₴</div>
+                                        <h4 style={{ fontWeight: 800, fontSize: '15px', color: '#263A99', marginBottom: '8px' }}>{p?.name || ''}</h4>
+                                        <div style={{ color: '#263A99', fontWeight: 700, fontSize: '14px', marginTop: 'auto' }}>{p?.price || 0} ₴</div>
                                     </Link>
                                 ))}
                             </div>
@@ -253,12 +282,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
                                 {similarPosts.map(sp => (
-                                    <Link key={sp.id} href={`/blog/${sp.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                                    <Link key={sp?.id} href={`/blog/${sp?.slug || ''}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                                         <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
-                                            {sp.cover_image && <Image src={sp.cover_image} alt={sp.title} fill style={{ objectFit: 'cover' }} />}
+                                            {sp?.cover_image && <Image src={sp.cover_image} alt={sp?.title || 'Article'} fill style={{ objectFit: 'cover' }} />}
                                         </div>
-                                        <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px' }}>{sp.title}</h4>
-                                        <div style={{ fontSize: '13px', color: '#94a3b8' }}>{new Date(sp.published_at).toLocaleDateString('uk-UA')}</div>
+                                        <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px' }}>{sp?.title || ''}</h4>
+                                        <div style={{ fontSize: '13px', color: '#94a3b8' }}>{sp?.published_at ? new Date(sp.published_at).toLocaleDateString('uk-UA') : ''}</div>
                                     </Link>
                                 ))}
                             </div>
