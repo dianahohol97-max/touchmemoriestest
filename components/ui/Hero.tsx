@@ -98,13 +98,16 @@ export function Hero() {
                             Фотокнига
                         </Link>
                     </div>
-                    {/* Row 2: Фотодрук + Travel Book */}
+                    {/* Row 2: Фотодрук + Travel Book + Глянцеві журнали */}
                     <div className="flex gap-3 flex-wrap">
                         <Link href="/catalog?category=prints" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
                             Фотодрук
                         </Link>
                         <Link href="/catalog?category=travelbooks" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
                             Travel Book
+                        </Link>
+                        <Link href="/catalog?category=hlyantsevi-zhurnaly" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
+                            Глянцеві журнали
                         </Link>
                     </div>
                     {/* Row 3: Книга побажань + В магазин */}
