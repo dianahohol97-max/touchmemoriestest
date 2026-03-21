@@ -443,7 +443,6 @@ export default function MessageTemplatesPage() {
                                 )}
 
                                 <div style={{
-                                    fontSize: '13px',
                                     color: '#64748b',
                                     whiteSpace: 'pre-wrap',
                                     flex: 1,
