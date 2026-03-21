@@ -40,6 +40,7 @@ const menuItems = [
     { name: 'Популярні товари', href: '/admin/popular-products', icon: <Star size={20} />, section: 'catalog' },
     { name: 'Популярні (старе)', href: '/admin/catalog/featured', icon: <Star size={20} />, section: 'catalog' },
     { name: 'Категорії', href: '/admin/categories', icon: <List size={20} />, section: 'catalog' },
+    { name: 'Подарункові колекції', href: '/admin/gift-collections', icon: <Gift size={20} />, section: 'catalog' },
     { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog' },
     { name: 'Замовлення', href: '/admin/orders', icon: <ShoppingCart size={20} />, section: 'orders' },
     { name: 'Сертифікати', href: '/admin/certificates', icon: <Gift size={20} />, section: 'orders' },

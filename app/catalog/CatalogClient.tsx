@@ -46,6 +46,7 @@ function CatalogContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const queryCategory = searchParams.get('category') || 'all';
+    const queryCollection = searchParams.get('collection');
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,6 +55,7 @@ function CatalogContent() {
 
     const [categories, setCategories] = useState<Category[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [collectionProducts, setCollectionProducts] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [selectedCategory, setSelectedCategory] = useState(queryCategory);
@@ -97,16 +99,45 @@ function CatalogContent() {
                 setProducts(prodData as any);
             }
 
+            // If there's a collection parameter, fetch products for that collection
+            if (queryCollection) {
+                const { data: collectionData } = await supabase
+                    .from('gift_collections')
+                    .select('id')
+                    .eq('slug', queryCollection)
+                    .eq('is_active', true)
+                    .single();
+
+                if (collectionData) {
+                    const { data: itemsData } = await supabase
+                        .from('gift_collection_items')
+                        .select('product_id')
+                        .eq('collection_id', collectionData.id)
+                        .order('sort_order');
+
+                    if (itemsData) {
+                        setCollectionProducts(itemsData.map(item => item.product_id));
+                    }
+                }
+            } else {
+                setCollectionProducts([]);
+            }
+
             setIsLoading(false);
         };
 
         fetchCatalogData();
-    }, [supabase]);
+    }, [supabase, queryCollection]);
 
     // Filter products
-    const filteredProducts = products.filter(p =>
-        selectedCategory === 'all' ? true : p.categories?.slug === selectedCategory
-    );
+    const filteredProducts = products.filter(p => {
+        // If viewing a gift collection, only show products in that collection
+        if (queryCollection && collectionProducts.length > 0) {
+            return collectionProducts.includes(p.id);
+        }
+        // Otherwise filter by category as usual
+        return selectedCategory === 'all' ? true : p.categories?.slug === selectedCategory;
+    });
 
     // Sort products
     const sortedProducts = [...filteredProducts].sort((a, b) => {

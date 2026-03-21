@@ -1,29 +1,67 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
 import { GiftQuiz } from './GiftQuiz';
 import { Gift, Sparkles } from 'lucide-react';
+import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+
+type GiftCollection = {
+    id: string;
+    slug: string;
+    label: string;
+    label_uk: string;
+    emoji: string | null;
+    sort_order: number;
+    is_active: boolean;
+};
 
 export function GiftIdeas() {
     const [quizOpen, setQuizOpen] = useState(false);
+    const [collections, setCollections] = useState<GiftCollection[]>([]);
+    const [loading, setLoading] = useState(true);
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,
     });
 
-    const buttons = [
-        { label: 'для неї', slug: 'for-her' },
-        { label: 'для нього', slug: 'for-him' },
-        { label: 'для мами', slug: 'for-mom' },
-        { label: 'для бабусі', slug: 'for-grandma' },
-        { label: 'для тата', slug: 'for-dad' },
-        { label: 'для дідуся', slug: 'for-grandpa' },
-        { label: 'для подруги', slug: 'for-friend' },
-        { label: 'для боса', slug: 'for-boss' },
-        { label: 'для пари', slug: 'for-couple' },
-    ];
+    const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    // Fetch active gift collections from database
+    useEffect(() => {
+        const fetchCollections = async () => {
+            const { data, error } = await supabase
+                .from('gift_collections')
+                .select('*')
+                .eq('is_active', true)
+                .order('sort_order');
+
+            if (error) {
+                console.error('Error fetching gift collections:', error);
+                // Fallback to hardcoded collections if database fetch fails
+                setCollections([
+                    { id: '1', slug: 'for-her', label: 'для неї', label_uk: 'для неї', emoji: '💐', sort_order: 1, is_active: true },
+                    { id: '2', slug: 'for-him', label: 'для нього', label_uk: 'для нього', emoji: '🎁', sort_order: 2, is_active: true },
+                    { id: '3', slug: 'for-mom', label: 'для мами', label_uk: 'для мами', emoji: '🌸', sort_order: 3, is_active: true },
+                    { id: '4', slug: 'for-grandma', label: 'для бабусі', label_uk: 'для бабусі', emoji: '👵', sort_order: 4, is_active: true },
+                    { id: '5', slug: 'for-dad', label: 'для тата', label_uk: 'для тата', emoji: '👔', sort_order: 5, is_active: true },
+                    { id: '6', slug: 'for-grandpa', label: 'для дідуся', label_uk: 'для дідуся', emoji: '👴', sort_order: 6, is_active: true },
+                    { id: '7', slug: 'for-friend', label: 'для подруги', label_uk: 'для подруги', emoji: '🤝', sort_order: 7, is_active: true },
+                    { id: '8', slug: 'for-boss', label: 'для боса', label_uk: 'для боса', emoji: '💼', sort_order: 8, is_active: true },
+                    { id: '9', slug: 'for-couple', label: 'для пари', label_uk: 'для пари', emoji: '💑', sort_order: 9, is_active: true },
+                ]);
+            } else {
+                setCollections(data || []);
+            }
+            setLoading(false);
+        };
+
+        fetchCollections();
+    }, []);
 
     return (
         <section
@@ -66,7 +104,7 @@ export function GiftIdeas() {
                                 </p>
                                 <button
                                     onClick={() => setQuizOpen(true)}
-                                    className="w-full py-4 px-6 bg-[#263a99] text-white font-bold text-lg rounded-full transition-all duration-200 shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:bg-[#1a2966] hover:scale-105 hover:-translate-y-1 group"
+                                    className="w-full py-4 px-6 bg-[#263a99] text-white font-bold text-lg rounded-md transition-colors duration-200 hover:bg-[#1a2966] group"
                                 >
                                     <span className="flex items-center justify-center gap-2">
                                         Пройти тест
@@ -96,23 +134,32 @@ export function GiftIdeas() {
                             </p>
                         </motion.div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-4">
-                            {buttons.map((btn, idx) => (
-                                <motion.div
-                                    key={idx}
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={inView ? { opacity: 1, scale: 1 } : {}}
-                                    transition={{ duration: 0.5, delay: idx * 0.05 + 0.4 }}
-                                >
-                                    <Link
-                                        href={`/catalog?collection=${btn.slug}`}
-                                        className="group relative flex items-center justify-center p-4 lg:p-6 bg-[#263a99] rounded-md text-white font-bold text-sm lg:text-base uppercase tracking-wide transition-colors duration-200 hover:bg-[#1a2966] text-center"
+                        {loading ? (
+                            <div className="text-center py-8 text-stone-400">
+                                Завантаження...
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-4">
+                                {collections.map((collection, idx) => (
+                                    <motion.div
+                                        key={collection.id}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={inView ? { opacity: 1, scale: 1 } : {}}
+                                        transition={{ duration: 0.5, delay: idx * 0.05 + 0.4 }}
                                     >
-                                        {btn.label}
-                                    </Link>
-                                </motion.div>
-                            ))}
-                        </div>
+                                        <Link
+                                            href={`/catalog?collection=${collection.slug}`}
+                                            className="group relative flex items-center justify-center gap-2 p-4 lg:p-6 bg-[#263a99] rounded-md text-white font-bold text-sm lg:text-base uppercase tracking-wide transition-colors duration-200 hover:bg-[#1a2966] text-center"
+                                        >
+                                            {collection.emoji && (
+                                                <span className="text-lg">{collection.emoji}</span>
+                                            )}
+                                            {collection.label_uk}
+                                        </Link>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
