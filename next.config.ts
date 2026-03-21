@@ -30,6 +30,21 @@ const nextConfig = {
         destination: '/constructor/photobook',
         permanent: false,
       },
+      {
+        source: '/contacts',
+        destination: '/kontakty',
+        permanent: true,
+      },
+      {
+        source: '/about',
+        destination: '/',
+        permanent: false,
+      },
+      {
+        source: '/delivery',
+        destination: '/',
+        permanent: false,
+      },
     ];
   },
 }
