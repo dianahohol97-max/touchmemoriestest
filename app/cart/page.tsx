@@ -126,7 +126,7 @@ export default function CartPage() {
                     <div style={{ textAlign: 'center', padding: '80px 0' }}>
                         <p style={{ fontSize: '20px', color: '#888', marginBottom: '32px' }}>Кошик порожній</p>
                         <div style={{ display: 'flex', justifyContent: 'center' }}>
-                            <a href="/catalog" style={{ ...actionBtnStyle, borderRadius: '9999px', width: 'fit-content' }} className="hover-lift">До каталогу</a>
+                            <a href="/catalog" style={{ ...actionBtnStyle, borderRadius: '6px', width: 'fit-content' }} className="hover-lift">До каталогу</a>
                         </div>
                     </div>
                 ) : (
@@ -309,12 +309,12 @@ const actionBtnStyle = {
     justifyContent: 'center',
     gap: '12px',
     padding: '18px 36px',
-    borderRadius: "3px",
+    borderRadius: "6px",
     border: 'none',
-    backgroundColor: 'var(--primary)',
+    backgroundColor: '#263a99',
     color: 'white',
     fontSize: '18px',
-    fontWeight: 800,
+    fontWeight: 700,
     cursor: 'pointer',
     textDecoration: 'none'
 };

@@ -382,7 +382,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                         <button
                                                             key={valIdx}
                                                             onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.name]: valIdx }))}
-                                                            className="rounded-full"
+                                                            className="rounded-md"
                                                             style={{
                                                                 padding: '10px 20px',
                                                                 border: isSelected ? '2px solid var(--primary)' : '2px solid var(--primary)',
@@ -408,13 +408,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <button
                                                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                                className="rounded-full hover:bg-[#f0f3ff] transition"
+                                                className="rounded-md hover:bg-[#f0f3ff] transition"
                                                 style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--primary)', background: 'white', cursor: 'pointer', fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}
                                             >−</button>
                                             <span style={{ fontWeight: 800, fontSize: '18px', minWidth: '40px', textAlign: 'center', color: '#263A99' }}>{quantity}</span>
                                             <button
                                                 onClick={() => setQuantity(quantity + 1)}
-                                                className="rounded-full hover:bg-[#f0f3ff] transition"
+                                                className="rounded-md hover:bg-[#f0f3ff] transition"
                                                 style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--primary)', background: 'white', cursor: 'pointer', fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}
                                             >+</button>
                                         </div>
@@ -428,11 +428,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <Link
                                     href={getOrderUrl(product.slug, selectedOptions, product)}
-                                    className="rounded-full hover:bg-blue-700"
+                                    className="rounded-md hover:bg-[#1a2966]"
                                     style={{
                                         width: '100%',
                                         padding: '18px',
-                                        backgroundColor: 'var(--primary)',
+                                        backgroundColor: '#263a99',
                                         color: 'white',
                                         textDecoration: 'none',
                                         fontSize: '16px',
@@ -457,7 +457,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             style={{
                                                 flex: 1,
                                                 padding: '18px',
-                                                backgroundColor: 'var(--primary)',
+                                                backgroundColor: '#263a99',
                                                 color: 'white',
                                                 textDecoration: 'none',
                                                 fontSize: '16px',
@@ -465,7 +465,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 textAlign: 'center',
                                                 transition: 'background-color 0.2s'
                                             }}
-                                            className="hover:bg-blue-700 rounded-full"
+                                            className="hover:bg-[#1a2966] rounded-md"
                                         >
                                             Створити у конструкторі
                                         </Link>
@@ -475,15 +475,15 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 flex: 1,
                                                 padding: '18px',
                                                 backgroundColor: 'white',
-                                                color: 'var(--primary)',
+                                                color: '#263a99',
                                                 textDecoration: 'none',
-                                                border: '2px solid var(--primary)',
+                                                border: '2px solid #263a99',
                                                 fontSize: '16px',
                                                 fontWeight: 700,
                                                 textAlign: 'center',
                                                 transition: 'background-color 0.2s'
                                             }}
-                                            className="hover:bg-blue-50 rounded-full"
+                                            className="hover:bg-[#f0f3ff] rounded-md"
                                         >
                                             Оформити з дизайнером
                                         </Link>
@@ -498,13 +498,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 <div style={{ display: 'flex', gap: '12px' }} className={styles.flexResponsive}>
                                     <button
                                         onClick={handleAddToCart}
-                                        className="rounded-full hover:bg-blue-50"
+                                        className="rounded-md hover:bg-[#f0f3ff]"
                                         style={{
                                             flex: 1,
                                             padding: '18px',
                                             backgroundColor: 'white',
-                                            color: 'var(--primary)',
-                                            border: '2px solid var(--primary)',
+                                            color: '#263a99',
+                                            border: '2px solid #263a99',
                                             fontSize: '16px',
                                             fontWeight: 700,
                                             cursor: 'pointer',
@@ -515,11 +515,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     </button>
                                     <button
                                         onClick={() => setShowPersonalizationInput(!showPersonalizationInput)}
-                                        className="rounded-full hover:bg-blue-700"
+                                        className="rounded-md hover:bg-[#1a2966]"
                                         style={{
                                             flex: 1.2,
                                             padding: '18px',
-                                            backgroundColor: 'var(--primary)',
+                                            backgroundColor: '#263a99',
                                             color: 'white',
                                             border: 'none',
                                             fontSize: '16px',
@@ -558,11 +558,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 }
                                                 handleAddToCart();
                                             }}
-                                            className="rounded-full hover:bg-blue-700"
+                                            className="rounded-md hover:bg-[#1a2966]"
                                             style={{
                                                 width: '100%',
                                                 padding: '12px',
-                                                backgroundColor: 'var(--primary)',
+                                                backgroundColor: '#263a99',
                                                 color: 'white',
                                                 border: 'none',
                                                 fontSize: '14px',
@@ -584,11 +584,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <button
                                     onClick={handleAddToCart}
-                                    className="rounded-full hover:bg-blue-700"
+                                    className="rounded-md hover:bg-[#1a2966]"
                                     style={{
                                         width: '100%',
                                         padding: '18px',
-                                        backgroundColor: 'var(--primary)',
+                                        backgroundColor: '#263a99',
                                         color: 'white',
                                         border: 'none',
                                         fontSize: '16px',
