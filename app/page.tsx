@@ -130,7 +130,7 @@ export default async function Home() {
 
                 {/* TOP CARD — Топ локацій */}
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <div className="aspect-video bg-gradient-to-br from-amber-100 to-stone-100 relative overflow-hidden">
+                  <div className="aspect-video bg-gradient-to-br from-[#f0f3ff] to-stone-100 relative overflow-hidden">
                     <img
                       src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80"
                       alt="Топ локації для Travel Book"
@@ -199,14 +199,13 @@ export default async function Home() {
                 <div className="bg-white rounded-lg shadow-lg p-8">
 
                   {/* Label */}
-                  <p className="text-xs text-amber-600 tracking-widest uppercase mb-4">
+                  <p className="text-xs text-[#4a5cc7] tracking-widest uppercase mb-4">
                     Новинка сезону
                   </p>
 
                   {/* Heading */}
-                  <h2 className="text-4xl lg:text-5xl font-serif font-light text-stone-900 leading-tight mb-6">
-                    Travel Book —<br />
-                    <span className="italic text-stone-600">журнал твоєї подорожі</span>
+                  <h2 className="text-4xl lg:text-5xl font-black text-[#1e2d7d] leading-tight mb-6">
+                    Travel Book — журнал твоєї подорожі
                   </h2>
 
                   {/* Description */}
@@ -224,7 +223,7 @@ export default async function Home() {
                       'Доставка по всій Україні',
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3 text-stone-700 text-sm">
-                        <span className="text-amber-600 mt-0.5">✦</span>
+                        <span className="text-[#4a5cc7] mt-0.5">✦</span>
                         {item}
                       </li>
                     ))}
@@ -257,7 +256,7 @@ export default async function Home() {
                           <p className="text-white text-xl leading-tight font-serif italic">
                             Моя подорож<br />до Карпат
                           </p>
-                          <p className="text-amber-400/80 text-xs tracking-widest mt-2">
+                          <p className="text-[#4a5cc7]/80 text-xs tracking-widest mt-2">
                             48°N · 24°E · 2025
                           </p>
                         </div>
