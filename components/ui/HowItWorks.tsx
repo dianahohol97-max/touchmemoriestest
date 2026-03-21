@@ -42,7 +42,6 @@ export function HowItWorks() {
             ref={ref}
             className="py-20 relative overflow-hidden"
             style={{
-                backgroundColor: '#faf9f7',
                 borderRadius: style.border_radius || '0px'
             }}
         >

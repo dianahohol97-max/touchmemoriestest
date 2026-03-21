@@ -14,10 +14,21 @@ export function SectionWrapper({ name, defaultOrder, children }: { name: string,
     const order = block ? block.position_order : defaultOrder;
     const style = block?.style_metadata || {};
 
+    // Alternating background logic:
+    // Odd sections (1, 3, 5...) → white (#ffffff)
+    // Even sections (2, 4, 6...) → light gray-blue (#f4f6fb)
+    const getDefaultBackground = (sectionOrder: number): string => {
+        // If custom bg_color is set in DB, use it
+        if (style.bg_color) return style.bg_color;
+
+        // Otherwise apply alternating pattern
+        return sectionOrder % 2 === 0 ? '#f4f6fb' : '#ffffff';
+    };
+
     const sectionStyles: React.CSSProperties = {
         order,
         width: '100%',
-        backgroundColor: style.bg_color || 'transparent',
+        backgroundColor: getDefaultBackground(order),
         color: style.text_color || 'inherit',
         backgroundImage: style.bg_image ? `url(${style.bg_image})` : 'none',
         backgroundSize: 'cover',

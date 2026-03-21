@@ -67,7 +67,6 @@ export function GiftIdeas() {
         <section
             ref={ref}
             className="relative w-full py-20 overflow-hidden"
-            style={{ backgroundColor: '#f0f3ff' }}
         >
             {/* Decorative elements */}
             <div className="absolute top-10 right-10 text-[#1e2d7d]/10">
