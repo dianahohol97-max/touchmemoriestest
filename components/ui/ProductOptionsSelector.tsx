@@ -331,7 +331,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         const isText = option.type === 'text';
         const selectedValue = selectedOptions[option.name];
         const hasPrice = option.prices && selectedValue;
-        const priceForValue = hasPrice ? option.prices[selectedValue as string] : null;
+        const priceForValue = hasPrice ? option.prices?.[selectedValue as string] : null;
 
         return (
           <div key={idx}>
