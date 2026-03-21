@@ -27,7 +27,7 @@ type CollectionItem = {
     id: string;
     product_id: string;
     sort_order: number;
-    products: Product[];
+    products: Product;
 };
 
 export default function GiftCollectionsAdminPage() {
@@ -84,7 +84,7 @@ export default function GiftCollectionsAdminPage() {
             toast.error('Помилка завантаження товарів');
             console.error(error);
         } else {
-            setCollectionItems(data || []);
+            setCollectionItems((data as any) || []);
         }
     };
 
