@@ -130,14 +130,16 @@ h6 {
   }
 }
 
-a {
-  color: var(--link);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-a:hover {
-  color: var(--primary-hover);
+/* Link base color — inside @layer base so Tailwind utility classes (text-white etc.) can override */
+@layer base {
+  a {
+    color: var(--link);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  a:hover {
+    color: var(--primary-hover);
+  }
 }
 
 .container {
