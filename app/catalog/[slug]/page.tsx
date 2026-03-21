@@ -1,5 +1,6 @@
 import { Metadata, ResolvingMetadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAnonClient } from '@supabase/supabase-js';
 import ProductClient from './ProductClient';
 import { notFound } from 'next/navigation';
 
@@ -12,7 +13,10 @@ export const revalidate = 3600;
 
 // Generate static params for all products
 export async function generateStaticParams() {
-  const supabase = await createClient();
+  const supabase = createAnonClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const { data: products } = await supabase
     .from('products')
