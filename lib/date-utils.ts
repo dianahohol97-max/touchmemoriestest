@@ -83,3 +83,35 @@ export function formatDateTime(
 ): string {
   return formatDate(value, { dateStyle: 'medium', timeStyle: 'short', locale });
 }
+
+export function formatUKDate(value: string | Date | null | undefined): string {
+  if (!value) return '—';
+  try {
+    const date = value instanceof Date ? value : new Date(value as string);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch {
+    return '—';
+  }
+}
+
+export function addWorkingDays(startValue: string | Date | null | undefined, days: number): Date {
+  const date = startValue instanceof Date ? new Date(startValue) : new Date((startValue as string) || '');
+  if (isNaN(date.getTime())) return new Date();
+  let added = 0;
+  while (added < days) {
+    date.setDate(date.getDate() + 1);
+    const day = date.getDay();
+    if (day !== 0 && day !== 6) added++;
+  }
+  return date;
+}
+
+export function getDeadlineStatus(deadline: Date): 'red' | 'yellow' | 'green' {
+  const now = new Date();
+  const diffMs = deadline.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return 'red';
+  if (diffDays <= 1) return 'yellow';
+  return 'green';
+}
