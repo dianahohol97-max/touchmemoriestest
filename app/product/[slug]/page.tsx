@@ -17,7 +17,7 @@ export async function generateStaticParams() {
     .select('slug')
     .eq('is_active', true);
 
-  return (products ?? []).map((product) => ({
+  return (products ?? []).map((product: any) => ({
     slug: product.slug,
   }));
 }
