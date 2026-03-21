@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
 import {
     Search,
     Filter,
@@ -142,7 +143,7 @@ export default function OrdersPage() {
         const headers = ['№ Замовлення', 'Дата', 'Клієнт', 'Телефон', 'Email', 'Статус', 'Сума', 'Товари', 'ТТН'];
         const csvRows = filteredOrders.map(o => [
             o.order_number,
-            new Date(o.created_at).toLocaleDateString('uk-UA'),
+            formatDateOnly(o.created_at),
             o.customer_name,
             o.customer_phone,
             o.customer_email,
@@ -289,7 +290,7 @@ export default function OrdersPage() {
                             <tr key={order.id} style={trStyle}>
                                 <td style={tdStyle}>
                                     <div style={{ fontWeight: 800, color: '#263A99' }}>{order.order_number}</div>
-                                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>{new Date(order.created_at).toLocaleString('uk-UA')}</div>
+                                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>{formatDateTime(order.created_at)}</div>
                                     <div style={{ ...statusBadgeStyle, ...getStatusStyle(order.order_status) }}>
                                         {STATUS_TABS.find(t => t.id === order.order_status)?.label}
                                     </div>

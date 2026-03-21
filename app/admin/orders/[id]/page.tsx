@@ -3,6 +3,7 @@ import { useState, useEffect, use } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
 import {
     ArrowLeft,
     User,
@@ -562,7 +563,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#64748b', fontSize: '14px', marginTop: '4px' }}>
-                            <Calendar size={14} /> {new Date(order.created_at).toLocaleString('uk-UA')}
+                            <Calendar size={14} /> {formatDateTime(order.created_at)}
                             <span style={{ color: '#cbd5e1' }}>•</span>
                             <div style={{ display: 'flex', gap: '6px' }}>
                                 {order.order_tag_assignments?.map((a: any) => (
@@ -1003,7 +1004,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
                             {order.customer_birthday && (
                                 <div style={contactLinkStyle}>
-                                    <Calendar size={16} /> {new Date(order.customer_birthday).toLocaleDateString('uk-UA')}
+                                    <Calendar size={16} /> {formatDateOnly(order.customer_birthday)}
                                 </div>
                             )}
 
@@ -1102,7 +1103,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             {history.slice(0, 5).map((h, i) => (
                                 <div key={i} style={{ fontSize: '12px', borderLeft: '2px solid #e2e8f0', paddingLeft: '12px' }}>
                                     <div style={{ fontWeight: 700 }}>{h.action}</div>
-                                    <div style={{ color: '#94a3b8' }}>{new Date(h.created_at).toLocaleString('uk-UA')}</div>
+                                    <div style={{ color: '#94a3b8' }}>{formatDateTime(h.created_at)}</div>
                                 </div>
                             ))}
                         </div>

@@ -1,42 +1,85 @@
-import { addDays, isWeekend, format, differenceInDays } from 'date-fns';
-import { uk } from 'date-fns/locale';
-
 /**
- * Calculates a deadline by adding a specific number of working days to a start date.
+ * Format a date value safely with null checks
+ * @param value - Date string or null/undefined
+ * @param options - Formatting options
+ * @returns Formatted date string or fallback ('—')
  */
-export function addWorkingDays(startDate: Date | string, workingDaysToAdd: number): Date {
-    let date = new Date(startDate);
-    let daysAdded = 0;
+export function formatDate(
+  value: string | null | undefined,
+  options?: {
+    dateStyle?: 'short' | 'medium' | 'long' | 'full';
+    timeStyle?: 'short' | 'medium' | 'long' | 'full';
+    locale?: string;
+  }
+): string {
+  if (!value) return '—';
 
-    while (daysAdded < workingDaysToAdd) {
-        date = addDays(date, 1);
-        if (!isWeekend(date)) {
-            daysAdded++;
-        }
+  try {
+    const date = new Date(value);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return '—';
     }
-    return date;
+
+    const locale = options?.locale || 'uk-UA';
+    const formatOptions: Intl.DateTimeFormatOptions = {};
+
+    if (options?.dateStyle) {
+      formatOptions.dateStyle = options.dateStyle;
+    }
+    if (options?.timeStyle) {
+      formatOptions.timeStyle = options.timeStyle;
+    }
+
+    // Default to medium date and short time if no options provided
+    if (!options?.dateStyle && !options?.timeStyle) {
+      formatOptions.dateStyle = 'medium';
+      formatOptions.timeStyle = 'short';
+    }
+
+    return date.toLocaleString(locale, formatOptions);
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return '—';
+  }
 }
 
 /**
- * Gets the urgency status of a deadline relative to today.
- * @returns 'green' (> 2 days), 'yellow' (1-2 days), 'red' (overdue or today)
+ * Format date only (no time)
  */
-export function getDeadlineStatus(deadline: Date): 'green' | 'yellow' | 'red' {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const deadlineDate = new Date(deadline);
-    deadlineDate.setHours(0, 0, 0, 0);
-
-    const diff = differenceInDays(deadlineDate, today);
-
-    if (diff < 0) return 'red';
-    if (diff <= 2) return 'yellow';
-    return 'green';
+export function formatDateOnly(
+  value: string | null | undefined,
+  locale: string = 'uk-UA'
+): string {
+  return formatDate(value, { dateStyle: 'medium', locale });
 }
 
 /**
- * Formats a date to Ukrainian locale string.
+ * Format time only (no date)
  */
-export function formatUKDate(date: Date | string): string {
-    return format(new Date(date), 'dd MMM yyyy', { locale: uk });
+export function formatTimeOnly(
+  value: string | null | undefined,
+  locale: string = 'uk-UA'
+): string {
+  if (!value) return '—';
+
+  try {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return '—';
+
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  } catch (error) {
+    return '—';
+  }
+}
+
+/**
+ * Format date with full details (date and time)
+ */
+export function formatDateTime(
+  value: string | null | undefined,
+  locale: string = 'uk-UA'
+): string {
+  return formatDate(value, { dateStyle: 'medium', timeStyle: 'short', locale });
 }

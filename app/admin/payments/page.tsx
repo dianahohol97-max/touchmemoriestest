@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { formatDateTime, formatDateOnly, formatTimeOnly } from '@/lib/date-utils';
 import {
     Download,
     DollarSign,
@@ -254,14 +255,13 @@ export default function PaymentsPage() {
     // Export to Excel
     const exportToExcel = () => {
         const dataToExport = filteredOrders.map((order) => ({
-            Дата: new Date(order.created_at).toLocaleString('uk-UA'),
+            Дата: formatDateTime(order.created_at),
             'Номер замовлення': order.order_number,
             Клієнт: order.customer_name,
             'Сума (₴)': order.total,
             'Тип оплати': PAYMENT_TYPES[order.payment_method] || order.payment_method,
             Статус: PAYMENT_STATUSES[order.payment_status] || order.payment_status,
-            'Оплачено':
-                order.paid_at ? new Date(order.paid_at).toLocaleString('uk-UA') : '—'
+            'Оплачено': formatDateTime(order.paid_at)
         }));
 
         const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -558,13 +558,10 @@ export default function PaymentsPage() {
                                     <td style={tdStyle}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                             <div style={{ fontWeight: 700, color: '#475569', fontSize: '14px' }}>
-                                                {new Date(order.created_at).toLocaleDateString('uk-UA')}
+                                                {formatDateOnly(order.created_at)}
                                             </div>
                                             <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                                                {new Date(order.created_at).toLocaleTimeString('uk-UA', {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })}
+                                                {formatTimeOnly(order.created_at)}
                                             </div>
                                         </div>
                                     </td>
@@ -619,7 +616,7 @@ export default function PaymentsPage() {
                                         )}
                                         {order.payment_status === 'paid' && order.paid_at && (
                                             <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>
-                                                ✓ {new Date(order.paid_at).toLocaleDateString('uk-UA')}
+                                                ✓ {formatDateOnly(order.paid_at)}
                                             </div>
                                         )}
                                     </td>
