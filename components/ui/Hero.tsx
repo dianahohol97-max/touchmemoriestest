@@ -92,22 +92,22 @@ export function Hero() {
                     transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.5 }}
                     className="flex flex-col gap-3"
                 >
-                    {/* Row 1: Фотокнига */}
-                    <div className="flex gap-3">
+                    {/* Row 1: Фотокнига + Глянцеві журнали */}
+                    <div className="flex gap-3 flex-wrap">
                         <Link href="/catalog?category=photobooks" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
                             Фотокнига
                         </Link>
+                        <Link href="/catalog?category=hlyantsevi-zhurnaly" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
+                            Глянцеві журнали
+                        </Link>
                     </div>
-                    {/* Row 2: Фотодрук + Travel Book + Глянцеві журнали */}
+                    {/* Row 2: Фотодрук + Travel Book */}
                     <div className="flex gap-3 flex-wrap">
                         <Link href="/catalog?category=prints" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
                             Фотодрук
                         </Link>
                         <Link href="/catalog?category=travelbooks" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
                             Travel Book
-                        </Link>
-                        <Link href="/catalog?category=hlyantsevi-zhurnaly" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
-                            Глянцеві журнали
                         </Link>
                     </div>
                     {/* Row 3: Книга побажань + В магазин */}
