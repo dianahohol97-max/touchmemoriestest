@@ -34,28 +34,12 @@ export default function Kontakty() {
                             <div className="flex flex-col gap-3 mt-4">
                                 <a href="https://t.me/touchmemories" target="_blank" rel="noopener noreferrer"
                                     className="flex items-center gap-2 text-blue-600 hover:underline font-medium">
-                                    💬 Telegram: @touchmemories
+                                    Telegram: @touchmemories
                                 </a>
                                 <a href="https://instagram.com/touch.memories" target="_blank" rel="noopener noreferrer"
                                     className="flex items-center gap-2 text-pink-600 hover:underline font-medium">
-                                    📸 Instagram: @touch.memories
+                                    Instagram: @touch.memories
                                 </a>
-                                <a href="https://tiktok.com/touch.memories" target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-stone-800 hover:underline font-medium">
-                                    🎵 TikTok: @touch.memories
-                                </a>
-                            </div>
-
-                            <div style={{ marginTop: '32px', borderRadius: "12px", overflow: 'hidden' }}>
-                                <iframe
-                                    src="https://maps.google.com/maps?q=%D0%A2%D0%B5%D1%80%D0%BD%D0%BE%D0%BF%D1%96%D0%BB%D1%8C%2C+%D0%B2%D1%83%D0%BB.+%D0%9A%D0%B8%D1%97%D0%B2%D1%81%D1%8C%D0%BA%D0%B0+2&output=embed"
-                                    width="100%"
-                                    height="320"
-                                    style={{ border: 0, borderRadius: '12px' }}
-                                    allowFullScreen={true}
-                                    loading="lazy"
-                                    referrerPolicy="no-referrer-when-downgrade"
-                                ></iframe>
                             </div>
                         </div>
 
