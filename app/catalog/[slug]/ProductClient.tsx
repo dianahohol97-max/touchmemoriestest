@@ -13,6 +13,7 @@ import React from 'react'
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
+import { ProductOptionsSelector, areAllRequiredOptionsFilled } from '@/components/ui/ProductOptionsSelector';
 
 const getConstructorUrl = (slug: string): string => {
   if (slug.includes('guestbook') || slug.includes('wishbook') || slug.includes('vishbuk') || slug.includes('pobazhan'))
@@ -90,8 +91,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         return '7–14 робочих днів';
     };
 
-    // Store selected options -> mapping from option Name to selected value index
-    const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
+    // Store selected options -> mapping from option Name to selected value (index or value)
+    const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
+    const [customProductOptions, setCustomProductOptions] = useState<Record<string, string | number>>({});
     const [personalizationNote, setPersonalizationNote] = useState('');
     const [showPersonalizationInput, setShowPersonalizationInput] = useState(false);
     const { addItem } = useCartStore();
@@ -369,7 +371,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 />
                             ) : (
                                 <>
-                                    {/* Dynamic Options for non-photobook products */}
+                                    {/* Custom Product Options Selector */}
+                                    <ProductOptionsSelector
+                                        slug={product.slug || ''}
+                                        selectedOptions={customProductOptions}
+                                        onChange={setCustomProductOptions}
+                                    />
+
+                                    {/* Fallback to database options if custom selector doesn't apply */}
                                     {product.options && Array.isArray(product.options) && product.options.map((opt: any, optIdx: number) => (
                                         <div key={optIdx}>
                                             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>
@@ -450,6 +459,20 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             </div>
                         ) : product.is_personalized ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
+                                {/* Warning if required options not selected */}
+                                {!areAllRequiredOptionsFilled(product.slug || '', customProductOptions) && (
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        backgroundColor: '#fef3c7',
+                                        border: '1px solid #fbbf24',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        color: '#78350f',
+                                        textAlign: 'center'
+                                    }}>
+                                        ⚠️ Оберіть всі обов'язкові опції перед замовленням
+                                    </div>
+                                )}
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
                                     <div className={styles.flexResponsive} style={{ display: 'flex', gap: '12px' }}>
                                         <Link
@@ -463,7 +486,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 fontSize: '16px',
                                                 fontWeight: 700,
                                                 textAlign: 'center',
-                                                transition: 'background-color 0.2s'
+                                                transition: 'background-color 0.2s',
+                                                opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5,
+                                                pointerEvents: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'auto' : 'none'
                                             }}
                                             className="hover:bg-[#1a2966] rounded-md"
                                         >
@@ -495,9 +520,24 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             </div>
                         ) : product.is_partially_personalized ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
+                                {/* Warning if required options not selected */}
+                                {!areAllRequiredOptionsFilled(product.slug || '', customProductOptions) && (
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        backgroundColor: '#fef3c7',
+                                        border: '1px solid #fbbf24',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        color: '#78350f',
+                                        textAlign: 'center'
+                                    }}>
+                                        ⚠️ Оберіть всі обов'язкові опції перед замовленням
+                                    </div>
+                                )}
                                 <div style={{ display: 'flex', gap: '12px' }} className={styles.flexResponsive}>
                                     <button
                                         onClick={handleAddToCart}
+                                        disabled={!areAllRequiredOptionsFilled(product.slug || '', customProductOptions)}
                                         className="rounded-md hover:bg-[#f0f3ff]"
                                         style={{
                                             flex: 1,
@@ -507,8 +547,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             border: '2px solid #263a99',
                                             fontSize: '16px',
                                             fontWeight: 700,
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
+                                            cursor: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'pointer' : 'not-allowed',
+                                            transition: 'all 0.2s',
+                                            opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5
                                         }}
                                     >
                                         Замовити відразу
@@ -558,6 +599,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 }
                                                 handleAddToCart();
                                             }}
+                                            disabled={!areAllRequiredOptionsFilled(product.slug || '', customProductOptions)}
                                             className="rounded-md hover:bg-[#1a2966]"
                                             style={{
                                                 width: '100%',
@@ -567,8 +609,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 border: 'none',
                                                 fontSize: '14px',
                                                 fontWeight: 700,
-                                                cursor: 'pointer',
-                                                transition: 'background-color 0.2s'
+                                                cursor: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'pointer' : 'not-allowed',
+                                                transition: 'background-color 0.2s',
+                                                opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5
                                             }}
                                         >
                                             Додати до замовлення
@@ -582,8 +625,23 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+                                {/* Warning if required options not selected */}
+                                {!areAllRequiredOptionsFilled(product.slug || '', customProductOptions) && (
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        backgroundColor: '#fef3c7',
+                                        border: '1px solid #fbbf24',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        color: '#78350f',
+                                        textAlign: 'center'
+                                    }}>
+                                        ⚠️ Оберіть всі обов'язкові опції перед замовленням
+                                    </div>
+                                )}
                                 <button
                                     onClick={handleAddToCart}
+                                    disabled={!areAllRequiredOptionsFilled(product.slug || '', customProductOptions)}
                                     className="rounded-md hover:bg-[#1a2966]"
                                     style={{
                                         width: '100%',
@@ -591,9 +649,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         backgroundColor: '#263a99',
                                         color: 'white',
                                         border: 'none',
+                                        opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5,
+                                        cursor: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'pointer' : 'not-allowed',
                                         fontSize: '16px',
                                         fontWeight: 700,
-                                        cursor: 'pointer',
                                         transition: 'background-color 0.2s'
                                     }}
                                 >
