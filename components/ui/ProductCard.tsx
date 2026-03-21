@@ -27,7 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, amount: 0 }}
             whileHover={{ y: -6 }}
             transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
             className="group flex flex-col h-full bg-white rounded-[3px] shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] transition-all duration-500 overflow-hidden border border-gray-100"
