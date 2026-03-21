@@ -79,7 +79,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                     <button
                         onClick={prev}
                         disabled={currentIndex === 0}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-[#263a99] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:bg-[#1a2966] hover:scale-105 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-[#1e2d7d] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:bg-[#152158] hover:scale-105 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                         aria-label="Previous products"
                     >
                         <ChevronLeft size={24} />
@@ -89,7 +89,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                     <button
                         onClick={next}
                         disabled={currentIndex >= maxIndex}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-[#263a99] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:bg-[#1a2966] hover:scale-105 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-[#1e2d7d] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:bg-[#152158] hover:scale-105 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                         aria-label="Next products"
                     >
                         <ChevronRight size={24} />
@@ -126,7 +126,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-[#263a99]/10">
+                                                <div className="w-full h-full flex items-center justify-center text-[#1e2d7d]/10">
                                                     <ImageIcon size={48} />
                                                 </div>
                                             )}
@@ -136,7 +136,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                                                 {product.name}
                                             </h3>
                                             <div className="mt-auto w-full pt-4">
-                                                <div className="text-lg font-black text-[#263a99]">
+                                                <div className="text-lg font-black text-[#1e2d7d]">
                                                     {product.price_from ? 'від ' : ''}{product.price} ₴
                                                 </div>
                                             </div>

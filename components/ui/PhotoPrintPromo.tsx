@@ -82,7 +82,7 @@ export function PhotoPrintPromo() {
 
                         <Link
                             href={content['photoprint_button_url'] || "/catalog?category=prints"}
-                            className="inline-flex items-center justify-center px-10 py-5 bg-[#263a99] text-white font-bold text-lg rounded-md hover:bg-[#1a2966] transition-colors duration-200 group"
+                            className="inline-flex items-center justify-center px-10 py-5 bg-[#1e2d7d] text-white font-bold text-lg rounded-md hover:bg-[#152158] transition-colors duration-200 group"
                         >
                             Замовити друк фото
                             <ArrowRight size={20} className="ml-3 transition-transform duration-300 group-hover:translate-x-1" />

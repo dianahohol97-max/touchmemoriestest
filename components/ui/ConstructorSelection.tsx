@@ -49,13 +49,13 @@ export function ConstructorSelection() {
 
                             {/* Constructor visualization */}
                             <div className="bg-[#f0f3ff] rounded-md border border-[#263a99]/10 aspect-[4/3] flex items-center justify-center">
-                                <span className="text-[#263a99]/60 text-lg font-semibold">🖼 Конструктор</span>
+                                <span className="text-[#1e2d7d]/60 text-lg font-semibold">🖼 Конструктор</span>
                             </div>
 
                             {/* Primary button */}
                             <Link
                                 href="/constructor/photobook"
-                                className="block w-full bg-[#263a99] text-white text-center px-6 py-3 rounded-md font-bold hover:bg-[#1a2966] transition-colors duration-200"
+                                className="block w-full bg-[#1e2d7d] text-white text-center px-7 py-3.5 rounded-lg font-bold hover:bg-[#152158] transition-colors duration-200"
                             >
                                 Відкрити конструктор
                             </Link>
@@ -63,7 +63,7 @@ export function ConstructorSelection() {
                             {/* Secondary text link */}
                             <Link
                                 href="/kontakty"
-                                className="block text-sm text-center text-[#263a99]/60 hover:underline transition-all duration-200"
+                                className="block text-sm text-center text-[#1e2d7d] font-semibold hover:text-[#152158] transition-colors duration-200"
                             >
                                 оформити з дизайнером
                             </Link>
@@ -93,13 +93,13 @@ export function ConstructorSelection() {
 
                             {/* Constructor visualization */}
                             <div className="bg-[#f0f3ff] rounded-md border border-[#263a99]/10 aspect-[4/3] flex items-center justify-center">
-                                <span className="text-[#263a99]/60 text-lg font-semibold">🖼 Конструктор</span>
+                                <span className="text-[#1e2d7d]/60 text-lg font-semibold">🖼 Конструктор</span>
                             </div>
 
                             {/* Primary button */}
                             <Link
                                 href="/constructor/magazine"
-                                className="block w-full bg-[#263a99] text-white text-center px-6 py-3 rounded-md font-bold hover:bg-[#1a2966] transition-colors duration-200"
+                                className="block w-full bg-[#1e2d7d] text-white text-center px-7 py-3.5 rounded-lg font-bold hover:bg-[#152158] transition-colors duration-200"
                             >
                                 Відкрити конструктор
                             </Link>
@@ -107,7 +107,7 @@ export function ConstructorSelection() {
                             {/* Secondary text link */}
                             <Link
                                 href="/kontakty"
-                                className="block text-sm text-center text-[#263a99]/60 hover:underline transition-all duration-200"
+                                className="block text-sm text-center text-[#1e2d7d] font-semibold hover:text-[#152158] transition-colors duration-200"
                             >
                                 оформити з дизайнером
                             </Link>

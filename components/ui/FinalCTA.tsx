@@ -42,7 +42,7 @@ export function FinalCTA() {
                         <div className="flex flex-col sm:flex-row gap-4">
                             <Link
                                 href="/constructor/guestbook"
-                                className="inline-flex items-center justify-center gap-3 bg-white text-[#263a99] px-8 py-4 rounded-full font-bold text-lg shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200"
+                                className="inline-flex items-center justify-center gap-3 bg-white text-[#1e2d7d] px-8 py-4 rounded-full font-bold text-lg shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200"
                             >
                                 <BookHeart size={20} />
                                 Створити книгу побажань

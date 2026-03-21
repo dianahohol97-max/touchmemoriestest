@@ -54,7 +54,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     </div>
 
                     <div className="mt-6 flex justify-center w-full">
-                        <div className="w-full bg-[#263a99] text-white font-bold text-sm py-3 px-6 rounded-md hover:bg-[#1a2966] transition-colors duration-200 cursor-pointer text-center">
+                        <div className="w-full bg-[#1e2d7d] text-white font-bold text-sm py-3 px-6 rounded-lg hover:bg-[#152158] transition-colors duration-200 cursor-pointer text-center">
                             Детальніше
                         </div>
                     </div>

@@ -70,10 +70,10 @@ export function GiftIdeas() {
             style={{ backgroundColor: '#f0f3ff' }}
         >
             {/* Decorative elements */}
-            <div className="absolute top-10 right-10 text-[#263a99]/10">
+            <div className="absolute top-10 right-10 text-[#1e2d7d]/10">
                 <Gift size={120} strokeWidth={1} />
             </div>
-            <div className="absolute bottom-10 left-10 text-[#263a99]/10">
+            <div className="absolute bottom-10 left-10 text-[#1e2d7d]/10">
                 <Sparkles size={80} strokeWidth={1} />
             </div>
 
@@ -89,8 +89,8 @@ export function GiftIdeas() {
                     >
                         <div className="bg-gradient-to-br from-[#f0f3ff] to-white p-10 lg:p-12 rounded-3xl shadow-xl border-2 border-[#263a99]/20 relative overflow-hidden">
                             {/* Decorative ribbon effect */}
-                            <div className="absolute -top-1 -right-1 w-24 h-24 bg-[#263a99]/10 rounded-full blur-3xl"></div>
-                            <div className="absolute -bottom-1 -left-1 w-32 h-32 bg-[#263a99]/10 rounded-full blur-3xl"></div>
+                            <div className="absolute -top-1 -right-1 w-24 h-24 bg-[#1e2d7d]/10 rounded-full blur-3xl"></div>
+                            <div className="absolute -bottom-1 -left-1 w-32 h-32 bg-[#1e2d7d]/10 rounded-full blur-3xl"></div>
 
                             <div className="relative z-10">
                                 <div className="w-20 h-20 bg-gradient-to-br from-[#263a99] to-[#1a2966] rounded-2xl flex items-center justify-center mb-6 shadow-lg rotate-3">
@@ -104,7 +104,7 @@ export function GiftIdeas() {
                                 </p>
                                 <button
                                     onClick={() => setQuizOpen(true)}
-                                    className="w-full py-4 px-6 bg-[#263a99] text-white font-bold text-lg rounded-md transition-colors duration-200 hover:bg-[#1a2966] group"
+                                    className="w-full py-4 px-6 bg-[#1e2d7d] text-white font-bold text-lg rounded-md transition-colors duration-200 hover:bg-[#152158] group"
                                 >
                                     <span className="flex items-center justify-center gap-2">
                                         Пройти тест
@@ -123,7 +123,7 @@ export function GiftIdeas() {
                             transition={{ duration: 0.8, delay: 0.2 }}
                             className="mb-10"
                         >
-                            <p className="text-xs text-[#263a99] tracking-widest uppercase mb-3 font-semibold">
+                            <p className="text-xs text-[#1e2d7d] tracking-widest uppercase mb-3 font-semibold">
                                 Обери категорію
                             </p>
                             <h2 className="text-4xl lg:text-5xl font-bold text-[#1e2d7d] leading-tight mb-3">
@@ -149,7 +149,7 @@ export function GiftIdeas() {
                                     >
                                         <Link
                                             href={`/catalog?collection=${collection.slug}`}
-                                            className="group relative flex items-center justify-center gap-2 p-4 lg:p-6 bg-[#263a99] rounded-md text-white font-bold text-sm lg:text-base uppercase tracking-wide transition-colors duration-200 hover:bg-[#1a2966] text-center"
+                                            className="group relative flex items-center justify-center gap-2 p-4 lg:p-6 bg-[#1e2d7d] rounded-lg text-white font-bold text-sm lg:text-base tracking-normal transition-colors duration-200 hover:bg-[#152158] text-center"
                                         >
                                             {collection.emoji && (
                                                 <span className="text-lg">{collection.emoji}</span>
