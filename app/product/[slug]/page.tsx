@@ -5,6 +5,23 @@ import { getAdminClient } from '@/lib/supabase/admin';
 
 import ProductContent from './ProductContent';
 
+// Revalidate every hour
+export const revalidate = 3600;
+
+// Generate static params for all products
+export async function generateStaticParams() {
+  const supabase = getAdminClient();
+
+  const { data: products } = await supabase
+    .from('products')
+    .select('slug')
+    .eq('is_active', true);
+
+  return (products ?? []).map((product) => ({
+    slug: product.slug,
+  }));
+}
+
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
     const supabase = getAdminClient();
     const { slug } = await params;
