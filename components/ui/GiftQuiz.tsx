@@ -294,7 +294,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                     {/* Progress Bar */}
                     <div className="absolute top-0 left-0 w-full h-1.5 bg-gray-100 z-20">
                         <motion.div
-                            className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
+                            className="h-full bg-gradient-to-r from-[#1e2d7d] to-[#152158]"
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
                             transition={{ duration: 0.5 }}
@@ -312,14 +312,14 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                     transition={{ duration: 0.3 }}
                                 >
                                     <DialogHeader className="mb-8 items-center text-center">
-                                        <div className="text-amber-600 font-bold text-sm tracking-[0.2em] uppercase mb-4">
+                                        <div className="text-[#1e2d7d] font-bold text-sm tracking-[0.2em] uppercase mb-4">
                                             Крок {step + 1} з {quizSteps.length}
                                         </div>
                                         <DialogTitle className="text-3xl font-black text-stone-900 leading-tight mb-2">
                                             {quizSteps[step].question}
                                         </DialogTitle>
                                         {isMultiSelect && (
-                                            <p className="text-sm text-amber-600 font-semibold">
+                                            <p className="text-sm text-[#1e2d7d] font-semibold">
                                                 Обрано: {currentAnswers.length}/{maxSelections}
                                             </p>
                                         )}
@@ -334,17 +334,17 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                                     onClick={() => handleOptionSelect(option.value)}
                                                     className={`flex items-center justify-between p-5 rounded-[12px] border-2 transition-all text-left group ${
                                                         isSelected
-                                                            ? 'border-amber-500 bg-amber-50'
-                                                            : 'border-gray-100 hover:border-amber-300 hover:bg-amber-50/50'
+                                                            ? 'border-[#4a5cc7] bg-[#f0f3ff]'
+                                                            : 'border-gray-100 hover:border-[#4a5cc7]/50 hover:bg-[#f0f3ff]/50'
                                                     }`}
                                                 >
-                                                    <span className={`font-bold text-lg ${isSelected ? 'text-amber-700' : 'text-stone-800'}`}>
+                                                    <span className={`font-bold text-lg ${isSelected ? 'text-[#152158]' : 'text-stone-800'}`}>
                                                         {option.label}
                                                     </span>
                                                     {isSelected ? (
-                                                        <Check className="w-6 h-6 text-amber-600" strokeWidth={3} />
+                                                        <Check className="w-6 h-6 text-[#1e2d7d]" strokeWidth={3} />
                                                     ) : (
-                                                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-amber-500 transition-colors" />
+                                                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-[#4a5cc7] transition-colors" />
                                                     )}
                                                 </button>
                                             );
@@ -356,7 +356,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                             <Button
                                                 variant="ghost"
                                                 onClick={() => setStep(step - 1)}
-                                                className="text-gray-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2 hover:text-amber-600"
+                                                className="text-gray-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2 hover:text-[#1e2d7d]"
                                             >
                                                 <ChevronLeft size={16} /> Назад
                                             </Button>
@@ -365,7 +365,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                             <Button
                                                 onClick={handleContinue}
                                                 disabled={!canContinue}
-                                                className="ml-auto bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold uppercase tracking-wider px-8 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl"
+                                                className="ml-auto bg-gradient-to-r from-[#1e2d7d] to-[#152158] hover:from-[#152158] hover:to-[#0f1a45] text-white font-bold uppercase tracking-wider px-8 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl"
                                             >
                                                 Продовжити <ChevronRight size={16} className="ml-2" />
                                             </Button>
@@ -393,7 +393,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
 
                                     {loadingRecs ? (
                                         <div className="flex justify-center items-center py-20">
-                                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+                                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4a5cc7]"></div>
                                         </div>
                                     ) : (
                                         <>
@@ -418,7 +418,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                                         <p className="text-gray-500 text-sm mb-4 leading-relaxed">{rec.desc}</p>
                                                         <Link
                                                             href={rec.link}
-                                                            className="inline-flex items-center gap-2 text-amber-600 font-bold text-sm uppercase tracking-wider group/link"
+                                                            className="inline-flex items-center gap-2 text-[#1e2d7d] font-bold text-sm uppercase tracking-wider group/link"
                                                         >
                                                             Детальніше
                                                             <ChevronRight size={16} className="transition-transform group-hover/link:translate-x-1" />
@@ -431,7 +431,7 @@ export function GiftQuiz({ open, onOpenChange }: { open: boolean, onOpenChange: 
                                                 <Button
                                                     variant="outline"
                                                     onClick={resetQuiz}
-                                                    className="flex items-center gap-2 border-gray-200 rounded-full px-8 py-6 font-bold text-gray-500 hover:text-amber-600 hover:border-amber-400"
+                                                    className="flex items-center gap-2 border-gray-200 rounded-full px-8 py-6 font-bold text-gray-500 hover:text-[#1e2d7d] hover:border-[#4a5cc7]"
                                                 >
                                                     <RotateCcw size={18} /> Спробувати знову
                                                 </Button>

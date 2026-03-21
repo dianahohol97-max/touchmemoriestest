@@ -23,7 +23,7 @@ export function FinalCTA() {
                         transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                     >
                         {/* Label */}
-                        <p className="text-xs text-amber-400 tracking-widest uppercase mb-4 font-semibold">
+                        <p className="text-xs text-[#4a5cc7] tracking-widest uppercase mb-4 font-semibold">
                             КНИГА ПОБАЖАНЬ
                         </p>
 
@@ -71,11 +71,11 @@ export function FinalCTA() {
                             <div className="absolute inset-0 bg-white/10 blur-3xl transform translate-y-8" />
 
                             {/* Book Cover */}
-                            <div className="relative bg-gradient-to-br from-amber-100 to-stone-100 rounded-lg overflow-hidden shadow-2xl">
+                            <div className="relative bg-gradient-to-br from-[#eef0fb] to-stone-100 rounded-lg overflow-hidden shadow-2xl">
                                 <div className="aspect-[3/4] relative">
                                     {/* Cover Design */}
                                     <div className="absolute inset-0 p-8 flex flex-col items-center justify-center text-center">
-                                        <div className="w-24 h-24 mb-6 bg-gradient-to-br from-amber-600 to-amber-800 rounded-full flex items-center justify-center shadow-lg">
+                                        <div className="w-24 h-24 mb-6 bg-gradient-to-br from-[#1e2d7d] to-[#152158] rounded-full flex items-center justify-center shadow-lg">
                                             <BookHeart size={48} className="text-white" strokeWidth={1.5} />
                                         </div>
                                         <h3 className="text-2xl font-serif font-bold text-stone-800 mb-2">
@@ -92,11 +92,11 @@ export function FinalCTA() {
                                     </div>
 
                                     {/* Decorative Border */}
-                                    <div className="absolute inset-4 border-2 border-amber-600/20 rounded pointer-events-none" />
+                                    <div className="absolute inset-4 border-2 border-[#1e2d7d]/20 rounded pointer-events-none" />
                                 </div>
 
                                 {/* Book Spine Effect */}
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-800 via-amber-900 to-amber-800" />
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#152158] via-[#0f1a45] to-[#152158]" />
                             </div>
 
                             {/* Floating Elements */}
@@ -105,7 +105,7 @@ export function FinalCTA() {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.6, delay: 0.5 }}
-                                className="absolute -top-4 -right-4 bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-bold"
+                                className="absolute -top-4 -right-4 bg-[#4a5cc7] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-bold"
                             >
                                 від 450 ₴
                             </motion.div>

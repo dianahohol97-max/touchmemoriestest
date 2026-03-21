@@ -2408,7 +2408,7 @@ export default function TravelBookConstructorPage() {
 
                 <button
                   onClick={() => dispatch({ type: 'CLEAR_PAGE', pageIndex: state.currentPageIndex })}
-                  className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md text-sm font-medium transition-colors"
+                  className="w-full py-2 bg-[#4a5cc7] hover:bg-[#3a4aa7] text-white rounded-md text-sm font-medium transition-colors"
                 >
                   Clear Page
                 </button>

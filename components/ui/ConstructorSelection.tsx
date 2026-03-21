@@ -25,7 +25,7 @@ export function ConstructorSelection() {
 
                         {/* LEFT: Video */}
                         <div>
-                            <div className="aspect-[4/5] bg-gradient-to-br from-stone-100 to-amber-50 rounded-xl overflow-hidden shadow-lg border border-stone-200 flex items-center justify-center relative">
+                            <div className="aspect-[4/5] bg-gradient-to-br from-stone-100 to-[#f0f3ff] rounded-xl overflow-hidden shadow-lg border border-stone-200 flex items-center justify-center relative">
                                 <div className="text-center">
                                     <Play size={48} className="mx-auto mb-2 text-stone-400" />
                                     <span className="text-stone-500 text-sm font-medium">Відео буде додано</span>
