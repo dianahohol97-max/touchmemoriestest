@@ -94,28 +94,28 @@ export function Hero() {
                 >
                     {/* Row 1: Фотокнига + Глянцеві журнали */}
                     <div className="flex gap-3 flex-wrap">
-                        <Link href="/catalog?category=photobooks" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
+                        <Link href="/catalog?category=photobooks" className="bg-[#263a99] text-white font-bold px-6 py-3 rounded-md hover:bg-[#1a2966] transition-colors duration-200">
                             Фотокнига
                         </Link>
-                        <Link href="/catalog?category=hlyantsevi-zhurnaly" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
+                        <Link href="/catalog?category=hlyantsevi-zhurnaly" className="bg-[#263a99] text-white font-bold px-6 py-3 rounded-md hover:bg-[#1a2966] transition-colors duration-200">
                             Глянцеві журнали
                         </Link>
                     </div>
                     {/* Row 2: Фотодрук + Travel Book */}
                     <div className="flex gap-3 flex-wrap">
-                        <Link href="/catalog?category=prints" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
+                        <Link href="/catalog?category=prints" className="bg-[#263a99] text-white font-bold px-6 py-3 rounded-md hover:bg-[#1a2966] transition-colors duration-200">
                             Фотодрук
                         </Link>
-                        <Link href="/catalog?category=travelbooks" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
+                        <Link href="/catalog?category=travelbooks" className="bg-[#263a99] text-white font-bold px-6 py-3 rounded-md hover:bg-[#1a2966] transition-colors duration-200">
                             Travel Book
                         </Link>
                     </div>
                     {/* Row 3: Книга побажань + В магазин */}
                     <div className="flex gap-3 flex-wrap items-center">
-                        <Link href="/catalog?category=guestbooks" className="bg-white text-[#263a99] font-bold px-6 py-3 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200">
+                        <Link href="/catalog?category=guestbooks" className="bg-[#263a99] text-white font-bold px-6 py-3 rounded-md hover:bg-[#1a2966] transition-colors duration-200">
                             Книга побажань
                         </Link>
-                        <Link href="/catalog" className="bg-[#263a99] hover:bg-[#1a2966] text-white font-bold text-base px-9 py-4 rounded-full transition-all duration-200 shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:-translate-y-1">
+                        <Link href="/catalog" className="bg-[#263a99] text-white font-bold text-base px-9 py-4 rounded-md hover:bg-[#1a2966] transition-colors duration-200">
                             В магазин
                         </Link>
                     </div>
