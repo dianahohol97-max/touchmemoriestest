@@ -64,7 +64,7 @@ export default function ProductContent({ product }: { product: any }) {
                             <h4 style={{ marginBottom: '15px' }}>Оберіть параметри:</h4>
                             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                                 {['15x15', '20x20', '30x30'].map(f => (
-                                    <button key={f} style={{ padding: '10px 20px', border: '1px solid var(--border)', borderRadius: "3px", background: f === '20x20' ? 'var(--primary)' : 'white', color: f === '20x20' ? 'white' : 'black' }}>{f}</button>
+                                    <button key={f} style={{ padding: '10px 20px', border: '1px solid var(--border)', borderRadius: '9999px', background: f === '20x20' ? 'var(--primary)' : 'white', color: f === '20x20' ? 'white' : 'black' }}>{f}</button>
                                 ))}
                             </div>
                             <p style={{ fontSize: '0.9rem' }}>Мінімум сторінок: {product.min_pages}</p>

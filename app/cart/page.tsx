@@ -125,7 +125,9 @@ export default function CartPage() {
                 {items.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '80px 0' }}>
                         <p style={{ fontSize: '20px', color: '#888', marginBottom: '32px' }}>Кошик порожній</p>
-                        <a href="/catalog" style={actionBtnStyle} className="hover-lift">До каталогу</a>
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <a href="/catalog" style={{ ...actionBtnStyle, borderRadius: '9999px', width: 'fit-content' }} className="hover-lift">До каталогу</a>
+                        </div>
                     </div>
                 ) : (
                     <div className={styles.cartGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '60px' }}>

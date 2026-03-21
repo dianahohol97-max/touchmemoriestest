@@ -243,7 +243,7 @@ export default function CartDrawer() {
                                         padding: '18px',
                                         backgroundColor: 'var(--primary)',
                                         color: 'white',
-                                        borderRadius: "3px",
+                                        borderRadius: '9999px',
                                         textDecoration: 'none',
                                         fontWeight: 800,
                                         fontSize: '16px',

@@ -75,7 +75,7 @@ export default function Kontakty() {
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Повідомлення</label>
                                     <textarea rows={5} placeholder="Як ми можемо допомогти?" style={{ width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1px solid #e2e8f0', outline: 'none', fontSize: '16px', resize: 'vertical' }} />
                                 </div>
-                                <button type="button" style={{ width: '100%', padding: '16px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: "3px", border: 'none', fontSize: '16px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}>
+                                <button type="button" style={{ width: '100%', padding: '16px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '9999px', border: 'none', fontSize: '16px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}>
                                     Надіслати
                                 </button>
                             </form>
