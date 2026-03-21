@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import {
     ShoppingBag,
     ShoppingCart,
@@ -41,7 +42,7 @@ import { toast } from 'sonner';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
     const supabase = createClient();
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -72,51 +73,85 @@ export default function AdminDashboard() {
     }, [period]);
 
     const fetchAnalytics = async () => {
-        setLoading(true);
-        const res = await fetch(`/api/admin/analytics?period=${period}`);
-        const json = await res.json();
-        setData(json);
-        setLoading(false);
+        try {
+            setLoading(true);
+            const res = await fetch(`/api/admin/analytics?period=${period}`);
+            if (!res.ok) {
+                throw new Error(`API returned ${res.status}`);
+            }
+            const json = await res.json();
+
+            // Validate response structure
+            if (!json || !json.metrics || !json.charts) {
+                throw new Error('Invalid response structure from analytics API');
+            }
+
+            setData(json);
+        } catch (error) {
+            console.error('Failed to fetch analytics:', error);
+            toast.error('Не вдалося завантажити аналітику');
+            setData(null);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const fetchRecentOrders = async () => {
-        const { data } = await supabase
-            .from('orders')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(10);
-        if (data) setRecentOrders(data);
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            if (error) throw error;
+            if (data) setRecentOrders(data);
+        } catch (error) {
+            console.error('Failed to fetch recent orders:', error);
+            setRecentOrders([]);
+        }
     };
 
     const fetchAlerts = async () => {
-        // 1. Low stock
-        const { data: stockAlerts } = await supabase
-            .from('products')
-            .select('name, stock')
-            .lt('stock', 5);
+        try {
+            // 1. Low stock
+            const { data: stockAlerts, error: stockError } = await supabase
+                .from('products')
+                .select('name, stock')
+                .lt('stock', 5);
 
-        // 2. Stale orders (> 24h)
-        const dayAgo = new Date(Date.now() - 86400000).toISOString();
-        const { data: staleOrders } = await supabase
-            .from('orders')
-            .select('order_number')
-            .eq('order_status', 'new')
-            .lt('created_at', dayAgo);
+            if (stockError) console.error('Stock alerts error:', stockError);
 
-        // 3. Pending reviews (> 3 days)
-        const threeDaysAgo = new Date(Date.now() - 259200000).toISOString();
-        const { data: oldReviews } = await supabase
-            .from('reviews')
-            .select('id')
-            .eq('status', 'pending')
-            .lt('created_at', threeDaysAgo);
+            // 2. Stale orders (> 24h)
+            const dayAgo = new Date(Date.now() - 86400000).toISOString();
+            const { data: staleOrders, error: ordersError } = await supabase
+                .from('orders')
+                .select('order_number')
+                .eq('order_status', 'new')
+                .lt('created_at', dayAgo);
 
-        const newAlerts = [];
-        if (stockAlerts?.length) newAlerts.push({ title: 'Критичний залишок', message: `${stockAlerts.length} товарів мають запас < 5 шт.`, type: 'error' });
-        if (staleOrders?.length) newAlerts.push({ title: 'Завислі замовлення', message: `${staleOrders.length} нових замовлень без реакції > 24 год.`, type: 'warning' });
-        if (oldReviews?.length) newAlerts.push({ title: 'Черга відгуків', message: `${oldReviews.length} відгуків чекають модерації > 3 днів.`, type: 'info' });
+            if (ordersError) console.error('Stale orders error:', ordersError);
 
-        setAlerts(newAlerts);
+            // 3. Pending reviews (> 3 days)
+            const threeDaysAgo = new Date(Date.now() - 259200000).toISOString();
+            const { data: oldReviews, error: reviewsError } = await supabase
+                .from('reviews')
+                .select('id')
+                .eq('status', 'pending')
+                .lt('created_at', threeDaysAgo);
+
+            if (reviewsError) console.error('Old reviews error:', reviewsError);
+
+            const newAlerts = [];
+            if (stockAlerts?.length) newAlerts.push({ title: 'Критичний залишок', message: `${stockAlerts.length} товарів мають запас < 5 шт.`, type: 'error' });
+            if (staleOrders?.length) newAlerts.push({ title: 'Завислі замовлення', message: `${staleOrders.length} нових замовлень без реакції > 24 год.`, type: 'warning' });
+            if (oldReviews?.length) newAlerts.push({ title: 'Черга відгуків', message: `${oldReviews.length} відгуків чекають модерації > 3 днів.`, type: 'info' });
+
+            setAlerts(newAlerts);
+        } catch (error) {
+            console.error('Failed to fetch alerts:', error);
+            setAlerts([]);
+        }
     };
 
     const handleNewOrder = (order: any) => {
@@ -130,13 +165,60 @@ export default function AdminDashboard() {
         }
     };
 
-    if (loading || !data) return (
+    if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><Activity size={40} color="var(--primary)" /></motion.div>
         </div>
     );
 
+    // Validate data structure with safe defaults
+    if (!data || !data.metrics || !data.charts) {
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh', flexDirection: 'column', gap: '16px' }}>
+                <AlertTriangle size={48} color="#ef4444" />
+                <p style={{ fontSize: '18px', color: '#64748b' }}>Помилка завантаження даних аналітики</p>
+                <button
+                    onClick={() => fetchAnalytics()}
+                    style={{
+                        marginTop: '20px',
+                        padding: '12px 24px',
+                        backgroundColor: '#263A99',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '15px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 16px rgba(38, 58, 153, 0.35)'
+                    }}
+                >
+                    Спробувати ще раз
+                </button>
+            </div>
+        );
+    }
+
     const { metrics, charts } = data;
+
+    // Ensure all required chart data exists with safe defaults
+    const safeCharts = {
+        revenue: Array.isArray(charts?.revenue) ? charts.revenue : [],
+        funnel: Array.isArray(charts?.funnel) ? charts.funnel : [],
+        topProducts: Array.isArray(charts?.topProducts) ? charts.topProducts : [],
+        status: Array.isArray(charts?.status) ? charts.status : []
+    };
+
+    // Ensure metrics has safe defaults
+    const safeMetrics = {
+        revenue: metrics?.revenue || { value: 0, change: 0 },
+        profit: metrics?.profit || { value: 0, change: 0 },
+        margin: metrics?.margin || { value: 0, change: 0 },
+        cogs: metrics?.cogs || { value: 0 },
+        orders: metrics?.orders || { value: 0, change: 0 },
+        customers: metrics?.customers || { value: 0 },
+        reviews: metrics?.reviews || { value: 0 },
+        subscribers: metrics?.subscribers || { value: 0 }
+    };
 
     return (
         <div style={{ maxWidth: '100%', paddingBottom: '100px' }}>
@@ -170,54 +252,54 @@ export default function AdminDashboard() {
             <div style={statsGrid}>
                 <MetricCard
                     title="Виручка"
-                    value={`${metrics.revenue.value.toLocaleString()} ₴`}
-                    change={metrics.revenue.change}
+                    value={`${(safeMetrics.revenue.value || 0).toLocaleString()} ₴`}
+                    change={safeMetrics.revenue.change}
                     icon={<CreditCard />}
                     color="#6366f1"
                 />
                 <MetricCard
                     title="Прибуток"
-                    value={`${metrics.profit.value.toLocaleString()} ₴`}
-                    change={metrics.profit.change}
+                    value={`${(safeMetrics.profit.value || 0).toLocaleString()} ₴`}
+                    change={safeMetrics.profit.change}
                     icon={<TrendingUp />}
                     color="#10b981"
                 />
                 <MetricCard
                     title="Маржа (Середня)"
-                    value={`${metrics.margin.value.toFixed(1)}%`}
-                    change={metrics.margin.change}
+                    value={`${(safeMetrics.margin.value || 0).toFixed(1)}%`}
+                    change={safeMetrics.margin.change}
                     icon={<Activity />}
                     color="#f59e0b"
                 />
                 <MetricCard
                     title="Собівартість"
-                    value={`${metrics.cogs.value.toLocaleString()} ₴`}
+                    value={`${(safeMetrics.cogs.value || 0).toLocaleString()} ₴`}
                     icon={<Package />}
                     color="#64748b"
                 />
                 <MetricCard
                     title="Замовлення"
-                    value={metrics.orders.value}
-                    change={metrics.orders.change}
+                    value={safeMetrics.orders.value || 0}
+                    change={safeMetrics.orders.change}
                     icon={<ShoppingBag />}
                     color="#8b5cf6"
                 />
                 <MetricCard
                     title="Нові клієнти"
-                    value={metrics.customers.value}
+                    value={safeMetrics.customers.value || 0}
                     icon={<Users2 />}
                     color="#ec4899"
                 />
                 <MetricCard
                     title="Відгуки"
-                    value={metrics.reviews.value}
-                    badge={metrics.reviews.value > 0 ? metrics.reviews.value : null}
+                    value={safeMetrics.reviews.value || 0}
+                    badge={(safeMetrics.reviews.value || 0) > 0 ? safeMetrics.reviews.value : null}
                     icon={<Star />}
                     color="#ef4444"
                 />
                 <MetricCard
                     title="Підписники"
-                    value={metrics.subscribers.value}
+                    value={safeMetrics.subscribers.value || 0}
                     icon={<Mail />}
                     color="#8b5cf6"
                 />
@@ -232,7 +314,7 @@ export default function AdminDashboard() {
                     </div>
                     <div style={{ height: '350px', width: '100%' }}>
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={charts.revenue}>
+                            <AreaChart data={safeCharts.revenue}>
                                 <defs>
                                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
@@ -256,22 +338,32 @@ export default function AdminDashboard() {
                 <div style={chartCardSmall}>
                     <h2 style={cardTitle}>Воронка продажів</h2>
                     <div style={funnelContainer}>
-                        {charts.funnel.map((step: any, i: number) => (
-                            <div key={step.name} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{
-                                    ...funnelStep,
-                                    width: `${100 - (i * 15)}%`,
-                                    backgroundColor: step.color,
-                                    opacity: 1 - (i * 0.1)
-                                }}>
-                                    <span style={{ fontWeight: 800 }}>{step.value}</span>
+                        {safeCharts.funnel.length > 0 ? (
+                            safeCharts.funnel.map((step: any, i: number) => (
+                                <div key={step.name || i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div style={{
+                                        ...funnelStep,
+                                        width: `${100 - (i * 15)}%`,
+                                        backgroundColor: step.color || '#94a3b8',
+                                        opacity: 1 - (i * 0.1)
+                                    }}>
+                                        <span style={{ fontWeight: 800 }}>{step.value || 0}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
+                                        <span>{step.name || 'N/A'}</span>
+                                        {i > 0 && safeCharts.funnel[i - 1]?.value > 0 && (
+                                            <span style={{ color: '#10b981' }}>
+                                                {Math.round(((step.value || 0) / safeCharts.funnel[i - 1].value) * 100)}%
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
-                                    <span>{step.name}</span>
-                                    {i > 0 && <span style={{ color: '#10b981' }}>{Math.round((step.value / charts.funnel[i - 1].value) * 100)}%</span>}
-                                </div>
+                            ))
+                        ) : (
+                            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                                Немає даних
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
 
@@ -279,21 +371,27 @@ export default function AdminDashboard() {
                 <div style={chartCardSmall}>
                     <h2 style={cardTitle}>Топ-5 товарів</h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
-                        {charts.topProducts.map((p: any, i: number) => (
-                            <div key={p.name} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700 }}>
-                                    <span style={{ color: '#263A99' }}>{p.name}</span>
-                                    <span style={{ color: '#6366f1' }}>{p.revenue.toLocaleString()} ₴</span>
+                        {safeCharts.topProducts.length > 0 ? (
+                            safeCharts.topProducts.map((p: any, i: number) => (
+                                <div key={p.name || i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700 }}>
+                                        <span style={{ color: '#263A99' }}>{p.name || 'Невідомий товар'}</span>
+                                        <span style={{ color: '#6366f1' }}>{(p.revenue || 0).toLocaleString()} ₴</span>
+                                    </div>
+                                    <div style={{ height: '8px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: "3px", overflow: 'hidden' }}>
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${((p.revenue || 0) / (safeCharts.topProducts[0]?.revenue || 1)) * 100}%` }}
+                                            style={{ height: '100%', backgroundColor: COLORS[i % COLORS.length], borderRadius: "3px" }}
+                                        />
+                                    </div>
                                 </div>
-                                <div style={{ height: '8px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: "3px", overflow: 'hidden' }}>
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${(p.revenue / charts.topProducts[0].revenue) * 100}%` }}
-                                        style={{ height: '100%', backgroundColor: COLORS[i % COLORS.length], borderRadius: "3px" }}
-                                    />
-                                </div>
+                            ))
+                        ) : (
+                            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                                Немає даних
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
 
@@ -304,13 +402,13 @@ export default function AdminDashboard() {
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={charts.status}
+                                    data={safeCharts.status}
                                     innerRadius={60}
                                     outerRadius={80}
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
-                                    {charts.status.map((entry: any, index: number) => (
+                                    {safeCharts.status.map((entry: any, index: number) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                                     ))}
                                 </Pie>
@@ -326,25 +424,26 @@ export default function AdminDashboard() {
                 {/* Alerts Section */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Автоматичні Попередження ⚠️</h2>
-                    {alerts.map((alert, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            transition={{ delay: i * 0.1 }}
-                            style={{
-                                ...alertCard,
-                                borderLeft: `6px solid ${alert.type === 'error' ? '#ef4444' : alert.type === 'warning' ? '#f59e0b' : '#263A99'}`
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                <AlertTriangle size={18} color={alert.type === 'error' ? '#ef4444' : '#f59e0b'} />
-                                <h3 style={{ fontSize: '15px', fontWeight: 800 }}>{alert.title}</h3>
-                            </div>
-                            <p style={{ margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 500 }}>{alert.message}</p>
-                        </motion.div>
-                    ))}
-                    {alerts.length === 0 && (
+                    {Array.isArray(alerts) && alerts.length > 0 ? (
+                        alerts.map((alert, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ x: -20, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: i * 0.1 }}
+                                style={{
+                                    ...alertCard,
+                                    borderLeft: `6px solid ${alert.type === 'error' ? '#ef4444' : alert.type === 'warning' ? '#f59e0b' : '#263A99'}`
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                    <AlertTriangle size={18} color={alert.type === 'error' ? '#ef4444' : '#f59e0b'} />
+                                    <h3 style={{ fontSize: '15px', fontWeight: 800 }}>{alert.title || 'Попередження'}</h3>
+                                </div>
+                                <p style={{ margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 500 }}>{alert.message || ''}</p>
+                            </motion.div>
+                        ))
+                    ) : (
                         <div style={{ padding: '40px', textAlign: 'center', backgroundColor: '#ecfdf5', borderRadius: "3px", border: '1px solid #d1fae5' }}>
                             <p style={{ color: '#065f46', fontWeight: 700, margin: 0 }}>Всі показники в нормі ✅</p>
                         </div>
@@ -370,23 +469,31 @@ export default function AdminDashboard() {
                             </thead>
                             <tbody>
                                 <AnimatePresence initial={false}>
-                                    {recentOrders.map((order) => (
-                                        <motion.tr
-                                            key={order.id}
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, scale: 0.95 }}
-                                            style={orderRow}
-                                        >
-                                            <td style={tdStyle}><span style={{ fontWeight: 800 }}>#{order.order_number}</span></td>
-                                            <td style={tdStyle}>{order.customer_name}</td>
-                                            <td style={tdStyle}>{(order.items as any[]).length} шт.</td>
-                                            <td style={tdStyle}><span style={{ fontWeight: 900 }}>{order.total} ₴</span></td>
-                                            <td style={tdStyle}>
-                                                <StatusBadge status={order.order_status} />
+                                    {Array.isArray(recentOrders) && recentOrders.length > 0 ? (
+                                        recentOrders.map((order) => (
+                                            <motion.tr
+                                                key={order.id}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, scale: 0.95 }}
+                                                style={orderRow}
+                                            >
+                                                <td style={tdStyle}><span style={{ fontWeight: 800 }}>#{order.order_number || 'N/A'}</span></td>
+                                                <td style={tdStyle}>{order.customer_name || 'N/A'}</td>
+                                                <td style={tdStyle}>{Array.isArray(order.items) ? order.items.length : 0} шт.</td>
+                                                <td style={tdStyle}><span style={{ fontWeight: 900 }}>{order.total || 0} ₴</span></td>
+                                                <td style={tdStyle}>
+                                                    <StatusBadge status={order.order_status || 'new'} />
+                                                </td>
+                                            </motion.tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                                                Немає замовлень
                                             </td>
-                                        </motion.tr>
-                                    ))}
+                                        </tr>
+                                    )}
                                 </AnimatePresence>
                             </tbody>
                         </table>
@@ -394,6 +501,14 @@ export default function AdminDashboard() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function AdminDashboard() {
+    return (
+        <ErrorBoundary>
+            <AdminDashboardContent />
+        </ErrorBoundary>
     );
 }
 

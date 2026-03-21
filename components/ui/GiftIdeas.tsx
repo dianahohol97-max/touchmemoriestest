@@ -106,7 +106,7 @@ export function GiftIdeas() {
                                 >
                                     <Link
                                         href={`/catalog?collection=${btn.slug}`}
-                                        className="group relative flex items-center justify-center p-4 lg:p-6 bg-white border-2 border-stone-100 rounded-2xl text-stone-800 font-bold text-sm lg:text-base uppercase tracking-wide transition-all duration-200 hover:bg-[#eef0fb] hover:border-[#263a99]/30 hover:shadow-[0_4px_16px_rgba(38,58,153,0.16)] hover:-translate-y-1 text-center"
+                                        className="group relative flex items-center justify-center p-4 lg:p-6 bg-white border-2 border-stone-100 rounded-full text-[#263a99] font-bold text-sm lg:text-base uppercase tracking-wide transition-all duration-200 hover:bg-[#eef0fb] hover:border-[#263a99]/30 hover:shadow-[0_4px_16px_rgba(38,58,153,0.16)] hover:-translate-y-1 text-center"
                                     >
                                         {btn.label}
                                     </Link>

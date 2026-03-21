@@ -224,7 +224,6 @@ function CatalogContent() {
                                         }}
                                         style={{
                                             padding: '8px 20px',
-                                            borderRadius: "3px",
                                             border: isActive ? '1px solid #263A99' : '1px solid #e2e8f0',
                                             backgroundColor: isActive ? '#263A99' : 'white',
                                             color: isActive ? 'white' : '#263A99',
@@ -234,7 +233,7 @@ function CatalogContent() {
                                             whiteSpace: 'nowrap',
                                             transition: 'all 0.2s ease',
                                         }}
-                                        className="hover:opacity-90"
+                                        className="hover:opacity-90 rounded-full"
                                     >
                                         {cat.name}
                                     </button>

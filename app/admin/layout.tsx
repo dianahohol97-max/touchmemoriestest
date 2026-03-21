@@ -8,7 +8,7 @@ import {
     MessageSquare, FileText, FolderTree, Banknote,
     Tags, Mail, Palette, DollarSign, Box, Bot,
     Package, Folder, Star, CreditCard, Activity,
-    TrendingDown, Printer, Shield, Image, Gift
+    TrendingDown, Printer, Shield, Image, Gift, BarChart2, Zap
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -32,37 +32,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
 }
 
+// Define menuItems outside component to avoid recreation on every render
+const menuItems = [
+    { name: 'Огляд', href: '/admin', icon: <LayoutDashboard size={20} />, section: 'analytics' },
+    { name: 'Аналітика', href: '/admin/analytics', icon: <BarChart2 size={20} />, section: 'analytics' },
+    { name: 'Товари', href: '/admin/products', icon: <ShoppingBag size={20} />, section: 'catalog' },
+    { name: 'Популярні товари', href: '/admin/popular-products', icon: <Star size={20} />, section: 'catalog' },
+    { name: 'Популярні (старе)', href: '/admin/catalog/featured', icon: <Star size={20} />, section: 'catalog' },
+    { name: 'Категорії', href: '/admin/categories', icon: <List size={20} />, section: 'catalog' },
+    { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog' },
+    { name: 'Замовлення', href: '/admin/orders', icon: <ShoppingCart size={20} />, section: 'orders' },
+    { name: 'Сертифікати', href: '/admin/certificates', icon: <Gift size={20} />, section: 'orders' },
+    { name: 'Виробництво', href: '/admin/production', icon: <Factory size={20} />, section: 'production' },
+    { name: 'Складський облік', href: '/admin/stock', icon: <Package size={20} />, section: 'production' },
+    { name: 'Склад (старе)', href: '/admin/inventory', icon: <Box size={20} />, section: 'production' },
+    { name: 'Клієнти (CRM)', href: '/admin/clients', icon: <User size={20} />, section: 'customers' },
+    { name: 'Клієнти (старе)', href: '/admin/customers', icon: <User size={20} />, section: 'customers' },
+    { name: 'AI Чат (Inbox)', href: '/admin/social-inbox', icon: <MessageSquare size={20} />, section: 'ai' },
+    { name: 'AI Налаштування', href: '/admin/settings/chatbot', icon: <Bot size={20} />, section: 'ai' },
+    { name: 'Блог', href: '/admin/blog', icon: <FileText size={20} />, section: 'content' },
+    { name: 'Категорії блогу', href: '/admin/blog/categories', icon: <FolderTree size={20} />, section: 'content' },
+    { name: 'Відгуки (Stories)', href: '/admin/reviews', icon: <Image size={20} />, section: 'content' },
+    { name: 'Шаблони', href: '/admin/templates', icon: <MessageSquare size={20} />, section: 'content' },
+    { name: 'Дизайн Сайту', href: '/admin/theme-editor', icon: <Palette size={20} />, section: 'content' },
+    { name: 'Платежі', href: '/admin/payments', icon: <CreditCard size={20} />, section: 'finance' },
+    { name: 'Витрати', href: '/admin/expenses', icon: <TrendingDown size={20} />, section: 'finance' },
+    { name: 'Витрати (старе)', href: '/admin/finances/expenses', icon: <TrendingDown size={20} />, section: 'finance' },
+    { name: 'Зарплати', href: '/admin/salary', icon: <Banknote size={20} />, section: 'finance' },
+    { name: 'Оплати', href: '/admin/settings/finance/banks', icon: <CreditCard size={20} />, section: 'finance' },
+    { name: 'Команда', href: '/admin/team', icon: <Users size={20} />, section: 'settings' },
+    { name: 'Команда (старе)', href: '/admin/staff', icon: <Users size={20} />, section: 'settings' },
+    { name: 'Ролі та права', href: '/admin/roles', icon: <Shield size={20} />, section: 'settings' },
+    { name: 'Ролі (старе)', href: '/admin/settings/team/roles', icon: <Shield size={20} />, section: 'settings' },
+    { name: 'Фіскалізація', href: '/admin/settings/fiscalization', icon: <Printer size={20} />, section: 'settings' },
+    { name: 'Промокоди', href: '/admin/promo', icon: <Tags size={20} />, section: 'marketing' },
+    { name: 'Промокоди (старе)', href: '/admin/marketing/promocodes', icon: <Tags size={20} />, section: 'marketing' },
+    { name: 'Автоматизації', href: '/admin/automations', icon: <Zap size={20} />, section: 'marketing' },
+    { name: 'Теги', href: '/admin/settings/tags', icon: <Tags size={20} />, section: 'settings' },
+];
+
 function AdminLayoutContent({ children, handleLogout }: { children: React.ReactNode, handleLogout: () => void }) {
     const router = useRouter();
     const pathname = usePathname();
-
-    const menuItems = [
-        { name: 'Огляд', href: '/admin', icon: <LayoutDashboard size={20} />, section: 'analytics' },
-        { name: 'Товари', href: '/admin/products', icon: <ShoppingBag size={20} />, section: 'catalog' },
-        { name: 'Популярні товари', href: '/admin/catalog/featured', icon: <Star size={20} />, section: 'catalog' },
-        { name: 'Категорії', href: '/admin/categories', icon: <List size={20} />, section: 'catalog' },
-        { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog' },
-        { name: 'Замовлення', href: '/admin/orders', icon: <ShoppingCart size={20} />, section: 'orders' },
-        { name: 'Сертифікати', href: '/admin/certificates', icon: <Gift size={20} />, section: 'orders' },
-        { name: 'Виробництво', href: '/admin/production', icon: <Factory size={20} />, section: 'production' },
-        { name: 'Склад', href: '/admin/inventory', icon: <Box size={20} />, section: 'production' },
-        { name: 'Клієнти', href: '/admin/customers', icon: <User size={20} />, section: 'customers' },
-        { name: 'AI Чат (Inbox)', href: '/admin/social-inbox', icon: <MessageSquare size={20} />, section: 'ai' },
-        { name: 'AI Налаштування', href: '/admin/settings/chatbot', icon: <Bot size={20} />, section: 'ai' },
-        { name: 'Блог', href: '/admin/blog', icon: <FileText size={20} />, section: 'content' },
-        { name: 'Категорії блогу', href: '/admin/blog/categories', icon: <FolderTree size={20} />, section: 'content' },
-        { name: 'Відгуки (Stories)', href: '/admin/reviews', icon: <Image size={20} />, section: 'content' },
-        { name: 'Шаблони', href: '/admin/templates', icon: <MessageSquare size={20} />, section: 'content' },
-        { name: 'Дизайн Сайту', href: '/admin/theme-editor', icon: <Palette size={20} />, section: 'content' },
-        { name: 'Зарплати', href: '/admin/salary', icon: <Banknote size={20} />, section: 'finance' },
-        { name: 'Витрати', href: '/admin/finances/expenses', icon: <TrendingDown size={20} />, section: 'finance' },
-        { name: 'Оплати', href: '/admin/settings/finance/banks', icon: <CreditCard size={20} />, section: 'finance' },
-        { name: 'Команда', href: '/admin/staff', icon: <Users size={20} />, section: 'settings' },
-        { name: 'Ролі', href: '/admin/settings/team/roles', icon: <Shield size={20} />, section: 'settings' },
-        { name: 'Фіскалізація', href: '/admin/settings/fiscalization', icon: <Printer size={20} />, section: 'settings' },
-        { name: 'Промокоди', href: '/admin/marketing/promocodes', icon: <Tags size={20} />, section: 'marketing' },
-        { name: 'Теги', href: '/admin/settings/tags', icon: <Tags size={20} />, section: 'settings' },
-    ];
     const { hasPermission, isLoading, isAdmin } = usePermissions();
     const filteredItems = isAdmin ? menuItems : menuItems.filter(item => hasPermission(item.section, 'view'));
 
@@ -75,7 +86,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                 router.push('/admin/no-access');
             }
         }
-    }, [pathname, isLoading, hasPermission, router, menuItems]);
+    }, [pathname, isLoading, hasPermission, router]);
 
     if (isLoading) {
         return (

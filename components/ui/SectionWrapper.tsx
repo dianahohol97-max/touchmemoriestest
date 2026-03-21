@@ -5,9 +5,6 @@ import { useTheme } from '@/components/providers/ThemeProvider';
 export function SectionWrapper({ name, defaultOrder, children }: { name: string, defaultOrder: number, children: React.ReactNode }) {
     const { blocks, isLoading } = useTheme();
 
-    // If initial theme/blocks are loading, wait to avoid white gaps / misaligned content
-    if (isLoading) return null;
-
     const block = blocks.find(b => b.block_name === name);
 
     // If block exists and is explicitly marked invisible, don't render

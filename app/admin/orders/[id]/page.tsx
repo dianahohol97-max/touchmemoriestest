@@ -37,7 +37,9 @@ import {
     AlertCircle,
     Package,
     ShieldCheck,
-    DollarSign
+    DollarSign,
+    Copy,
+    RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -59,7 +61,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [notes, setNotes] = useState('');
+    const [clientComment, setClientComment] = useState('');
+    const [filesUrl, setFilesUrl] = useState('');
     const [history, setHistory] = useState<any[]>([]);
+    const [previousOrdersCount, setPreviousOrdersCount] = useState(0);
 
     // Tags
     const [availableTags, setAvailableTags] = useState<any[]>([]);
@@ -78,6 +83,22 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
     const [isEditingTTN, setIsEditingTTN] = useState(false);
     const [ttnValue, setTtnValue] = useState('');
+
+    // Nova Poshta TTN
+    const [showTTNModal, setShowTTNModal] = useState(false);
+    const [creatingTTN, setCreatingTTN] = useState(false);
+    const [trackingTTN, setTrackingTTN] = useState(false);
+    const [trackingInfo, setTrackingInfo] = useState<any>(null);
+    const [ttnFormData, setTTNFormData] = useState({
+        weight: 0.5,
+        declaredValue: 0,
+        codAmount: 0,
+        description: 'Фотокниги та фотовироби'
+    });
+
+    // Monobank Payment
+    const [creatingPaymentLink, setCreatingPaymentLink] = useState(false);
+    const [paymentLink, setPaymentLink] = useState('');
 
     // Print
     const [printProfiles, setPrintProfiles] = useState<any[]>([]);
@@ -148,8 +169,29 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         if (data) {
             setOrder(data);
             setNotes(data.notes || '');
-            setTtnValue(data.ttn || '');
+            setClientComment(data.client_comment || '');
+            setFilesUrl(data.files_url || '');
+            setTtnValue(data.ttn || data.tracking_number || '');
             if (data.print_profile_id) setSelectedPrintProfile(data.print_profile_id);
+
+            // Initialize TTN form with order data
+            const paymentIsCOD = data.payment_method === 'Післяплата' || data.payment_method === 'COD';
+            setTTNFormData({
+                weight: 0.5,
+                declaredValue: data.total || 0,
+                codAmount: paymentIsCOD ? data.total : 0,
+                description: 'Фотокниги та фотовироби'
+            });
+
+            // Fetch previous orders count for this customer
+            if (data.customer_phone || data.customer_email) {
+                const { count } = await supabase
+                    .from('orders')
+                    .select('*', { count: 'exact', head: true })
+                    .or(`customer_phone.eq.${data.customer_phone},customer_email.eq.${data.customer_email}`)
+                    .neq('id', id);
+                setPreviousOrdersCount(count || 0);
+            }
         }
 
         const { data: historyData } = await supabase
@@ -269,10 +311,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         setSaving(true);
         const { error } = await supabase
             .from('orders')
-            .update({ notes: notes })
+            .update({
+                notes: notes,
+                client_comment: clientComment,
+                files_url: filesUrl
+            })
             .eq('id', id);
 
-        if (!error) toast.success('Нотатки збережено');
+        if (!error) toast.success('Дані збережено');
         setSaving(false);
     };
 
@@ -307,15 +353,123 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         }
     };
 
+    const openTTNModal = () => {
+        setShowTTNModal(true);
+    };
+
     const createTTN = async () => {
-        toast.info('Створення ТТН...');
-        // Mocking logic or connecting as per previous code
-        const res = await fetch(`/api/orders/${id}/create-ttn`, { method: 'POST' });
-        if (res.ok) {
-            toast.success('ТТН створено');
-            fetchOrder();
-        } else {
+        setCreatingTTN(true);
+        try {
+            const res = await fetch('/api/nova-poshta/create-ttn', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    orderId: id,
+                    recipientName: order.customer_name,
+                    recipientPhone: order.customer_phone,
+                    recipientCity: order.delivery_city || order.customer_city,
+                    recipientWarehouse: order.delivery_warehouse || order.delivery_address,
+                    weight: ttnFormData.weight,
+                    declaredValue: ttnFormData.declaredValue,
+                    paymentMethod: order.payment_method,
+                    codAmount: ttnFormData.codAmount,
+                    description: ttnFormData.description
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                toast.success(`ТТН створено: ${data.ttn}`);
+                setShowTTNModal(false);
+                await fetchOrder();
+            } else {
+                toast.error(data.error || 'Помилка створення ТТН');
+                console.error('TTN error:', data.details);
+            }
+        } catch (error) {
+            console.error('TTN creation error:', error);
             toast.error('Помилка створення ТТН');
+        } finally {
+            setCreatingTTN(false);
+        }
+    };
+
+    const trackTTN = async () => {
+        if (!order.tracking_number && !order.ttn) {
+            toast.error('Немає ТТН для відстеження');
+            return;
+        }
+
+        setTrackingTTN(true);
+        try {
+            const res = await fetch('/api/nova-poshta/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ttn: order.tracking_number || order.ttn,
+                    orderId: id
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                setTrackingInfo(data.tracking);
+                toast.success('Статус оновлено');
+                await fetchOrder(); // Refresh to get updated status
+            } else {
+                toast.error(data.error || 'Помилка відстеження');
+            }
+        } catch (error) {
+            console.error('Tracking error:', error);
+            toast.error('Помилка відстеження');
+        } finally {
+            setTrackingTTN(false);
+        }
+    };
+
+    const copyTTN = () => {
+        const ttn = order.tracking_number || order.ttn;
+        if (ttn) {
+            navigator.clipboard.writeText(ttn);
+            toast.success('ТТН скопійовано');
+        }
+    };
+
+    const createMonobankPaymentLink = async () => {
+        setCreatingPaymentLink(true);
+        try {
+            const res = await fetch('/api/monobank/create-invoice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: id })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                setPaymentLink(data.pageUrl);
+                navigator.clipboard.writeText(data.pageUrl);
+                toast.success('Посилання на оплату створено та скопійовано!');
+                await fetchOrder(); // Refresh to show updated payment info
+            } else {
+                toast.error(data.error || 'Помилка створення посилання');
+                console.error('Monobank error:', data.details);
+            }
+        } catch (error) {
+            console.error('Payment link creation error:', error);
+            toast.error('Помилка створення посилання на оплату');
+        } finally {
+            setCreatingPaymentLink(false);
+        }
+    };
+
+    const copyPaymentLink = () => {
+        const link = order.monobank_payment_url || paymentLink;
+        if (link) {
+            navigator.clipboard.writeText(link);
+            toast.success('Посилання скопійовано');
         }
     };
 
@@ -544,9 +698,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <div style={cardStyle}>
                             <div style={cardHeaderStyle}>
                                 <h3 style={cardTitleStyle}><Truck size={20} /> Доставка</h3>
-                                <button onClick={() => setIsEditingTTN(!isEditingTTN)} style={{ border: 'none', background: 'none', color: '#263A99', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
-                                    {isEditingTTN ? 'Скасувати' : 'Змінити ТТН'}
-                                </button>
+                                {!(order.tracking_number || order.ttn) && (
+                                    <button
+                                        onClick={openTTNModal}
+                                        style={{
+                                            padding: '6px 12px',
+                                            backgroundColor: '#22c55e',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: "3px",
+                                            fontSize: '13px',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        <Plus size={14} /> Створити ТТН
+                                    </button>
+                                )}
                             </div>
                             <div style={{ marginBottom: '16px' }}>
                                 <label style={miniLabel}>Рахунок відправки</label>
@@ -566,13 +737,75 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             <div style={{ height: '12px' }} />
                             <div style={infoBlockStyle}>
                                 <div style={infoLabelStyle}>ТТН</div>
-                                {isEditingTTN ? (
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <input value={ttnValue} onChange={e => setTtnValue(e.target.value)} style={modalInputStyle} />
-                                        <button onClick={saveTTN} style={{ padding: '0 16px', backgroundColor: '#263A99', color: 'white', border: 'none', borderRadius: "3px" }}>ОК</button>
+                                {(order.tracking_number || order.ttn) ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ fontSize: '16px', fontWeight: 700, color: '#263A99' }}>
+                                                {order.tracking_number || order.ttn}
+                                            </span>
+                                            <button
+                                                onClick={copyTTN}
+                                                style={{
+                                                    padding: '4px 8px',
+                                                    border: '1px solid #e2e8f0',
+                                                    borderRadius: "3px",
+                                                    cursor: 'pointer',
+                                                    background: 'white'
+                                                }}
+                                                title="Копіювати ТТН"
+                                            >
+                                                <Copy size={14} />
+                                            </button>
+                                            <button
+                                                onClick={trackTTN}
+                                                disabled={trackingTTN}
+                                                style={{
+                                                    padding: '4px 8px',
+                                                    border: '1px solid #e2e8f0',
+                                                    borderRadius: "3px",
+                                                    cursor: trackingTTN ? 'wait' : 'pointer',
+                                                    background: 'white'
+                                                }}
+                                                title="Оновити статус"
+                                            >
+                                                {trackingTTN ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                                            </button>
+                                        </div>
+                                        <a
+                                            href={`https://novaposhta.ua/tracking/?cargo_number=${order.tracking_number || order.ttn}`}
+                                            target="_blank"
+                                            style={{
+                                                fontSize: '13px',
+                                                color: '#263A99',
+                                                textDecoration: 'none',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}
+                                        >
+                                            Відстежити на novaposhta.ua <ExternalLink size={12} />
+                                        </a>
+                                        {trackingInfo && (
+                                            <div style={{
+                                                padding: '12px',
+                                                backgroundColor: '#f8fafc',
+                                                borderRadius: "3px",
+                                                fontSize: '13px',
+                                                marginTop: '8px'
+                                            }}>
+                                                <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                                                    Статус: {trackingInfo.status}
+                                                </div>
+                                                {trackingInfo.estimatedDeliveryDate && (
+                                                    <div style={{ color: '#64748b' }}>
+                                                        Очікувана дата: {trackingInfo.estimatedDeliveryDate}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
-                                    <div style={{ ...infoValueStyle, color: '#ef4444' }}>{order.ttn || '—'}</div>
+                                    <div style={{ ...infoValueStyle, color: '#94a3b8' }}>—</div>
                                 )}
                             </div>
                         </div>
@@ -580,13 +813,105 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <div style={cardStyle}>
                             <div style={cardHeaderStyle}>
                                 <h3 style={cardTitleStyle}><CreditCard size={20} /> Оплата</h3>
-                                <div style={{ display: 'flex', gap: '8px' }}>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     {order.fiscal_url && <a href={order.fiscal_url} target="_blank" style={{ color: '#10b981' }} title="Чек"><Receipt size={18} /></a>}
-                                    <span style={{ padding: '4px 10px', borderRadius: "3px", fontSize: '11px', fontWeight: 800, backgroundColor: order.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb', color: order.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>
-                                        {order.payment_status?.toUpperCase()}
+                                    <span style={{
+                                        padding: '4px 10px',
+                                        borderRadius: "3px",
+                                        fontSize: '11px',
+                                        fontWeight: 800,
+                                        backgroundColor: order.payment_status === 'paid' ? '#f0fdf4' : order.payment_status === 'failed' ? '#fef2f2' : '#fffbeb',
+                                        color: order.payment_status === 'paid' ? '#10b981' : order.payment_status === 'failed' ? '#ef4444' : '#f59e0b'
+                                    }}>
+                                        {order.payment_status === 'paid' ? 'PAID' : order.payment_status === 'failed' ? 'FAILED' : order.payment_status === 'pending' ? 'PENDING' : order.payment_status?.toUpperCase()}
                                     </span>
                                 </div>
                             </div>
+
+                            {/* Monobank Payment Link */}
+                            {order.payment_status !== 'paid' && (
+                                <div style={{ marginBottom: '16px' }}>
+                                    {(order.monobank_payment_url || paymentLink) ? (
+                                        <div>
+                                            <label style={miniLabel}>Посилання на оплату</label>
+                                            <div style={{
+                                                display: 'flex',
+                                                gap: '8px',
+                                                padding: '12px',
+                                                backgroundColor: '#f8fafc',
+                                                borderRadius: "3px",
+                                                marginBottom: '8px'
+                                            }}>
+                                                <input
+                                                    type="text"
+                                                    value={order.monobank_payment_url || paymentLink}
+                                                    readOnly
+                                                    style={{
+                                                        flex: 1,
+                                                        border: 'none',
+                                                        background: 'transparent',
+                                                        fontSize: '13px',
+                                                        color: '#263A99',
+                                                        fontWeight: 600,
+                                                        outline: 'none'
+                                                    }}
+                                                />
+                                                <button
+                                                    onClick={copyPaymentLink}
+                                                    style={{
+                                                        padding: '4px 12px',
+                                                        backgroundColor: '#263A99',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: "3px",
+                                                        fontSize: '12px',
+                                                        fontWeight: 700,
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                    }}
+                                                >
+                                                    <Copy size={14} /> Копіювати
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={createMonobankPaymentLink}
+                                            disabled={creatingPaymentLink}
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px 16px',
+                                                backgroundColor: '#22c55e',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: "3px",
+                                                fontSize: '14px',
+                                                fontWeight: 700,
+                                                cursor: creatingPaymentLink ? 'wait' : 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                marginBottom: '16px'
+                                            }}
+                                        >
+                                            {creatingPaymentLink ? (
+                                                <>
+                                                    <Loader2 className="animate-spin" size={16} />
+                                                    Створення...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    💳 Надіслати посилання на оплату
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
                             <div style={{ marginBottom: '16px' }}>
                                 <label style={miniLabel}>Рахунок отримувача</label>
                                 <select
@@ -602,6 +927,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 <div style={infoLabelStyle}>Сума</div>
                                 <div style={{ fontSize: '20px', fontWeight: 950 }}>{order.total?.toLocaleString()} ₴</div>
                             </div>
+                            {order.monobank_invoice_id && (
+                                <div style={{
+                                    marginTop: '12px',
+                                    padding: '8px 12px',
+                                    backgroundColor: '#f8fafc',
+                                    borderRadius: "3px",
+                                    fontSize: '12px',
+                                    color: '#64748b'
+                                }}>
+                                    Invoice ID: {order.monobank_invoice_id}
+                                </div>
+                            )}
                             <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: order.fiscal_id ? '#10b981' : '#64748b' }}>
                                     <ShieldCheck size={16} /> {order.fiscal_id ? 'Фіскалізовано' : 'Не фіскалізовано'}
@@ -636,15 +973,27 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                     <div style={cardStyle}>
                         <h3 style={cardTitleStyle}><User size={20} /> Клієнт</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
                             <div style={avatarStyle}>{order.customer_name?.[0]}</div>
-                            <div>
+                            <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: '18px', fontWeight: 900 }}>{order.customer_name}</div>
                                 <div style={{ fontSize: '13px', color: '#64748b' }}>{order.customer_phone}</div>
                             </div>
                         </div>
+                        {previousOrdersCount > 0 && (
+                            <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', fontWeight: 600, color: '#166534' }}>
+                                📦 Попередніх замовлень: {previousOrdersCount}
+                            </div>
+                        )}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <a href={`mailto:${order.customer_email}`} style={contactLinkStyle}><Mail size={16} /> {order.customer_email}</a>
+
+                            {order.customer_instagram && (
+                                <a href={`https://instagram.com/${order.customer_instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={contactLinkStyle}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                                    {order.customer_instagram}
+                                </a>
+                            )}
 
                             {order.customer_telegram && (
                                 <div style={contactLinkStyle}>
@@ -684,10 +1033,67 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
                     <div style={cardStyle}>
                         <div style={cardHeaderStyle}>
-                            <h3 style={cardTitleStyle}><Info size={20} /> Нотатки</h3>
+                            <h3 style={cardTitleStyle}><FileText size={20} /> Файли</h3>
                             <button onClick={saveNotes} style={{ border: 'none', background: 'none', color: '#10b981', cursor: 'pointer' }}><Save size={18} /></button>
                         </div>
-                        <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Службові коментарі..." style={notesInputStyle} />
+                        <div style={{ marginBottom: '12px' }}>
+                            <label style={smallLabelStyle}>Посилання на Google Drive/Фото</label>
+                            <input
+                                type="url"
+                                value={filesUrl}
+                                onChange={e => setFilesUrl(e.target.value)}
+                                placeholder="https://drive.google.com/..."
+                                style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
+                            />
+                        </div>
+                        {filesUrl && (
+                            <a
+                                href={filesUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '8px 16px',
+                                    backgroundColor: '#eff6ff',
+                                    color: '#263A99',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    textDecoration: 'none'
+                                }}
+                            >
+                                <ExternalLink size={16} /> Відкрити файли
+                            </a>
+                        )}
+                    </div>
+
+                    <div style={cardStyle}>
+                        <div style={cardHeaderStyle}>
+                            <h3 style={cardTitleStyle}><Info size={20} /> Нотатки та коментарі</h3>
+                            <button onClick={saveNotes} style={{ border: 'none', background: 'none', color: '#10b981', cursor: 'pointer' }}><Save size={18} /></button>
+                        </div>
+                        <div style={{ marginBottom: '12px' }}>
+                            <label style={smallLabelStyle}>Службові нотатки (менеджер)</label>
+                            <textarea
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                                placeholder="Внутрішні коментарі для команди..."
+                                style={notesInputStyle}
+                                rows={3}
+                            />
+                        </div>
+                        <div>
+                            <label style={smallLabelStyle}>Коментар клієнта</label>
+                            <textarea
+                                value={clientComment}
+                                onChange={e => setClientComment(e.target.value)}
+                                placeholder="Побажання та коментарі від клієнта..."
+                                style={{ ...notesInputStyle, backgroundColor: '#fffbeb', borderColor: '#fbbf24' }}
+                                rows={3}
+                            />
+                        </div>
                     </div>
 
                     <div style={cardStyle}>
@@ -738,6 +1144,162 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <button onClick={sendReply} disabled={sendingReply} style={{ width: '100%', padding: '14px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: "3px", fontWeight: 800 }}>
                             {sendingReply ? <Loader2 className="animate-spin" /> : <Send size={18} />} Надіслати
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Nova Poshta TTN Creation Modal */}
+            {showTTNModal && (
+                <div style={overlayStyle} onClick={() => setShowTTNModal(false)}>
+                    <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: "3px", padding: '40px', width: '600px', maxWidth: '90vw', boxShadow: '0 25px 50px rgba(0,0,0,0.2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 900, margin: 0 }}>Створити ТТН Нова Пошта</h2>
+                            <button onClick={() => setShowTTNModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: '24px' }}>
+                            <label style={smallLabelStyle}>Отримувач</label>
+                            <input
+                                type="text"
+                                value={order.customer_name}
+                                disabled
+                                style={{ ...modalInputStyle, width: '100%', backgroundColor: '#f8fafc' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                            <div>
+                                <label style={smallLabelStyle}>Телефон</label>
+                                <input
+                                    type="text"
+                                    value={order.customer_phone}
+                                    disabled
+                                    style={{ ...modalInputStyle, width: '100%', backgroundColor: '#f8fafc' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={smallLabelStyle}>Місто</label>
+                                <input
+                                    type="text"
+                                    value={order.delivery_city || order.customer_city || ''}
+                                    disabled
+                                    style={{ ...modalInputStyle, width: '100%', backgroundColor: '#f8fafc' }}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '24px' }}>
+                            <label style={smallLabelStyle}>Відділення</label>
+                            <input
+                                type="text"
+                                value={order.delivery_warehouse || order.delivery_address || ''}
+                                disabled
+                                style={{ ...modalInputStyle, width: '100%', backgroundColor: '#f8fafc' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                            <div>
+                                <label style={smallLabelStyle}>Вага (кг)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    value={ttnFormData.weight}
+                                    onChange={e => setTTNFormData({ ...ttnFormData, weight: parseFloat(e.target.value) })}
+                                    style={{ ...modalInputStyle, width: '100%' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={smallLabelStyle}>Оголошена вартість (₴)</label>
+                                <input
+                                    type="number"
+                                    value={ttnFormData.declaredValue}
+                                    onChange={e => setTTNFormData({ ...ttnFormData, declaredValue: parseFloat(e.target.value) })}
+                                    style={{ ...modalInputStyle, width: '100%' }}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '24px' }}>
+                            <label style={smallLabelStyle}>Тип оплати</label>
+                            <div style={{
+                                padding: '12px 16px',
+                                backgroundColor: '#f8fafc',
+                                borderRadius: "3px",
+                                fontSize: '14px',
+                                fontWeight: 700
+                            }}>
+                                {order.payment_method || 'Не вказано'}
+                            </div>
+                        </div>
+
+                        {(order.payment_method === 'Післяплата' || order.payment_method === 'COD') && (
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={smallLabelStyle}>Сума післяплати (₴)</label>
+                                <input
+                                    type="number"
+                                    value={ttnFormData.codAmount}
+                                    onChange={e => setTTNFormData({ ...ttnFormData, codAmount: parseFloat(e.target.value) })}
+                                    style={{ ...modalInputStyle, width: '100%' }}
+                                />
+                            </div>
+                        )}
+
+                        <div style={{ marginBottom: '32px' }}>
+                            <label style={smallLabelStyle}>Опис вмісту</label>
+                            <input
+                                type="text"
+                                value={ttnFormData.description}
+                                onChange={e => setTTNFormData({ ...ttnFormData, description: e.target.value })}
+                                style={{ ...modalInputStyle, width: '100%' }}
+                                placeholder="Фотокниги та фотовироби"
+                            />
+                        </div>
+
+                        <button
+                            onClick={createTTN}
+                            disabled={creatingTTN}
+                            style={{
+                                width: '100%',
+                                padding: '16px',
+                                backgroundColor: '#22c55e',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: "3px",
+                                fontSize: '16px',
+                                fontWeight: 800,
+                                cursor: creatingTTN ? 'wait' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            {creatingTTN ? (
+                                <>
+                                    <Loader2 className="animate-spin" size={20} />
+                                    Створення ТТН...
+                                </>
+                            ) : (
+                                <>
+                                    <Package size={20} />
+                                    Створити ТТН
+                                </>
+                            )}
+                        </button>
+
+                        <div style={{
+                            marginTop: '16px',
+                            padding: '12px',
+                            backgroundColor: '#fef3c7',
+                            borderRadius: "3px",
+                            fontSize: '13px',
+                            color: '#92400e'
+                        }}>
+                            <strong>Увага:</strong> Переконайтесь, що всі дані введено правильно перед створенням ТТН
+                        </div>
                     </div>
                 </div>
             )}

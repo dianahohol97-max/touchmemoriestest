@@ -70,8 +70,13 @@ export default function ReviewsAdminPage() {
             .select('*')
             .order('sort_order', { ascending: true });
 
-        if (data) setReviews(data);
-        if (error) toast.error('Помилка завантаження відгуків');
+        if (data) {
+            setReviews(data);
+        } else if (error) {
+            console.error('Error fetching reviews:', error);
+            // Show empty state instead of error - table might not exist yet
+            setReviews([]);
+        }
         setLoading(false);
     }
 
@@ -315,9 +320,16 @@ export default function ReviewsAdminPage() {
             {/* Reviews Grid (9:16 aspect ratio) */}
             <div className="bg-white rounded-xl border border-stone-200 p-6">
                 {reviews.length === 0 ? (
-                    <div className="text-center py-12 text-stone-500">
-                        <ImageIcon size={48} className="mx-auto mb-4 text-stone-300" />
-                        <p>Ще немає відгуків. Додайте перший!</p>
+                    <div className="text-center py-16 text-stone-500">
+                        <ImageIcon size={64} className="mx-auto mb-4 text-stone-300" />
+                        <h3 className="text-xl font-bold text-stone-700 mb-2">Ще немає відгуків</h3>
+                        <p className="mb-6">Додайте перший відгук клієнта в форматі Instagram Story (9:16)</p>
+                        <button
+                            onClick={openAddModal}
+                            className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all"
+                        >
+                            <Plus size={20} /> Додати перший відгук
+                        </button>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">

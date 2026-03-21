@@ -227,8 +227,8 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                             <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Розсилка натхнення</h3>
                             <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '24px' }}>Ніякого спаму. Лише найцікавіші ідеї фотокниг та спеціальні пропозиції раз на місяць.</p>
                             <form style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} action="/api/newsletter" method="POST">
-                                <input type="email" placeholder="Ваш email" required style={{ width: '100%', padding: '14px 16px', borderRadius: "3px", border: '1px solid #263A99', backgroundColor: '#263A99', color: 'white', outline: 'none' }} />
-                                <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: "3px", backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s', ':hover': { backgroundColor: '#263A99' } } as any}>
+                                <input type="email" placeholder="Ваш email" required style={{ width: '100%', padding: '14px 16px', borderRadius: '9999px', border: '1px solid #263A99', backgroundColor: '#263A99', color: 'white', outline: 'none' }} />
+                                <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: '9999px', backgroundColor: '#263A99', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s', ':hover': { backgroundColor: '#263A99' } } as any}>
                                     Підписатись
                                 </button>
                             </form>
@@ -272,7 +272,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                             </div>
                                         </Link>
                                     ))}
-                                    <Link href="/products" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: "3px", backgroundColor: '#f8fafc', color: '#64748b', fontWeight: 700, fontSize: '13px', textDecoration: 'none', marginTop: '8px' }}>
+                                    <Link href="/products" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '9999px', backgroundColor: '#f8fafc', color: '#64748b', fontWeight: 700, fontSize: '13px', textDecoration: 'none', marginTop: '8px' }}>
                                         В каталог <ArrowRight size={16} />
                                     </Link>
                                 </div>
@@ -288,4 +288,4 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
     );
 }
 
-const tabStyle = { padding: '8px 20px', borderRadius: "3px", fontWeight: 700, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' as any, border: '1px solid #e2e8f0', transition: 'all 0.2s' };
+const tabStyle = { padding: '8px 20px', borderRadius: '9999px', fontWeight: 700, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' as any, border: '1px solid #e2e8f0', transition: 'all 0.2s' };

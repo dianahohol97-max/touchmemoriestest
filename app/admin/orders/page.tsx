@@ -84,7 +84,7 @@ export default function OrdersPage() {
         const { data, error } = await supabase
             .from('orders')
             .select(`
-                *, 
+                *,
                 customers(notes),
                 manager:staff!orders_manager_id_fkey(id, name, initials, color),
                 designer:staff!orders_designer_id_fkey(id, name, initials, color),
@@ -94,6 +94,18 @@ export default function OrdersPage() {
 
         if (data) setOrders(data);
         setLoading(false);
+    };
+
+    const getDeliveryStatusColor = (status: string) => {
+        const statusColors: Record<string, { bg: string, text: string }> = {
+            'Відправлено': { bg: '#dbeafe', text: '#1e40af' },
+            'У дорозі': { bg: '#ddd6fe', text: '#5b21b6' },
+            'Прибув у місто': { bg: '#fef3c7', text: '#92400e' },
+            'Прибув на відділення': { bg: '#fed7aa', text: '#9a3412' },
+            'Вручено': { bg: '#dcfce7', text: '#15803d' },
+            'Отримано': { bg: '#dcfce7', text: '#15803d' },
+        };
+        return statusColors[status] || { bg: '#f1f5f9', text: '#64748b' };
     };
 
     const getStatusStyle = (status: string) => {
@@ -281,6 +293,11 @@ export default function OrdersPage() {
                                     <div style={{ ...statusBadgeStyle, ...getStatusStyle(order.order_status) }}>
                                         {STATUS_TABS.find(t => t.id === order.order_status)?.label}
                                     </div>
+                                    {order.delivery_status && order.tracking_number && (
+                                        <div style={{ ...statusBadgeStyle, backgroundColor: getDeliveryStatusColor(order.delivery_status).bg, color: getDeliveryStatusColor(order.delivery_status).text, border: 'none', marginTop: '6px', fontSize: '10px' }}>
+                                            🚚 {order.delivery_status}
+                                        </div>
+                                    )}
                                     {order.order_tag_assignments?.length > 0 && (
                                         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
                                             {order.order_tag_assignments.map((assignment: any) => {

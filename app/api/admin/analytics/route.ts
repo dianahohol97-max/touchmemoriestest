@@ -101,28 +101,32 @@ export async function GET(req: Request) {
         });
 
         const revenueChartData = last30Days.map(dateStr => {
-            const dayOrders = currentOrders?.filter((o: any) => o.created_at.startsWith(dateStr)) || [];
+            const dayOrders = currentOrders?.filter((o: any) => o.created_at && o.created_at.startsWith(dateStr)) || [];
             return {
                 date: format(new Date(dateStr), 'dd.MM'),
-                revenue: dayOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0)
+                revenue: dayOrders.reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0)
             };
         });
 
         // 6. Status distribution
         const statusMap: Record<string, number> = {};
         currentOrders?.forEach((o: any) => {
-            statusMap[o.order_status] = (statusMap[o.order_status] || 0) + 1;
+            const status = o.order_status || 'unknown';
+            statusMap[status] = (statusMap[status] || 0) + 1;
         });
         const statusChartData = Object.entries(statusMap).map(([name, value]: [string, number]) => ({ name, value }));
 
         // 7. Top 5 Products by Revenue
         const productStats: Record<string, { name: string, revenue: number }> = {};
         currentOrders?.forEach((o: any) => {
-            const items = o.items as any[];
+            const items = Array.isArray(o.items) ? o.items : [];
             items.forEach((item: any) => {
                 const id = item.id || item.product_id;
-                if (!productStats[id]) productStats[id] = { name: item.name, revenue: 0 };
-                productStats[id].revenue += (item.price * item.quantity);
+                const name = item.name || 'Unknown Product';
+                const price = Number(item.price) || 0;
+                const quantity = Number(item.quantity || item.qty) || 1;
+                if (!productStats[id]) productStats[id] = { name, revenue: 0 };
+                productStats[id].revenue += (price * quantity);
             });
         });
         const topProducts = Object.values(productStats)

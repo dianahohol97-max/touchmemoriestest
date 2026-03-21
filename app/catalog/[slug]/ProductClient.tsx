@@ -461,13 +461,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 backgroundColor: 'var(--primary)',
                                                 color: 'white',
                                                 textDecoration: 'none',
-                                                borderRadius: "3px",
                                                 fontSize: '16px',
                                                 fontWeight: 700,
                                                 textAlign: 'center',
                                                 transition: 'background-color 0.2s'
                                             }}
-                                            className="hover:bg-blue-700"
+                                            className="hover:bg-blue-700 rounded-full"
                                         >
                                             Створити у конструкторі
                                         </Link>
@@ -480,13 +479,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 color: 'var(--primary)',
                                                 textDecoration: 'none',
                                                 border: '2px solid var(--primary)',
-                                                borderRadius: "3px",
                                                 fontSize: '16px',
                                                 fontWeight: 700,
                                                 textAlign: 'center',
                                                 transition: 'background-color 0.2s'
                                             }}
-                                            className="hover:bg-blue-50"
+                                            className="hover:bg-blue-50 rounded-full"
                                         >
                                             Оформити з дизайнером
                                         </Link>
