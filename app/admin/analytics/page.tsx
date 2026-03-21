@@ -592,7 +592,7 @@ export default function AnalyticsPage() {
                                 Середній чек
                             </p>
                             <p style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
-                                ₴{metrics.avgOrderValue.toLocaleString('uk-UA', { maximumFractionDigits: 0 })}
+                                ₴{metrics.avgOrderValue.value.toLocaleString('uk-UA', { maximumFractionDigits: 0 })}
                             </p>
                         </div>
                     </div>
