@@ -118,7 +118,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                                         href={`/catalog/${product.slug}`}
                                         className="group flex flex-col h-full bg-white rounded-2xl overflow-hidden shadow-sm border border-stone-100 hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(38,58,153,0.16)] transition-all duration-250 cursor-pointer"
                                     >
-                                        <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
+                                        <div className="aspect-[2/3] relative overflow-hidden bg-gray-50">
                                             {product.images?.[0] ? (
                                                 <img
                                                     src={product.images[0]}
