@@ -35,12 +35,12 @@ export function WeddingSection() {
                 {
                     name: 'Весільна фотокнига',
                     image: '/images/wedding/photobook.png',
-                    href: '/catalog?category=wedding-photobooks'
+                    href: '/catalog?category=photobooks'
                 },
                 {
                     name: 'Весільний журнал',
                     image: '/images/wedding/magazine.png',
-                    href: '/catalog?category=wedding-magazines'
+                    href: '/catalog?category=hlyantsevi-zhurnaly'
                 }
             ]
         }
