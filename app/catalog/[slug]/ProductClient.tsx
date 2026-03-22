@@ -367,20 +367,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         </div>
 
                         {product.is_personalized && (
-                            <div style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                padding: '8px 14px',
-                                backgroundColor: '#fff7ed',
-                                color: '#c2410c',
-                                borderRadius: "3px",
-                                fontSize: '13px',
-                                fontWeight: 800,
-                                marginBottom: '24px',
-                                border: '1px solid #ffedd5'
-                            }}>
-                                <span style={{ width: '8px', height: '8px', borderRadius: "3px", backgroundColor: '#f97316' }}></span>
+                            <div className="inline-flex items-center gap-2 bg-[#dbeafe] text-[#1e2d7d] text-sm font-medium px-3 py-1 rounded-full" style={{ marginBottom: '24px' }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#1e2d7d' }}></span>
                                 Виготовляється під замовлення
                             </div>
                         )}
@@ -455,12 +443,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 {/* Warning if required options not selected */}
                                 {!areAllRequiredOptionsFilled(product.slug || '', customProductOptions) && (
                                     <div style={{
-                                        padding: '12px 16px',
-                                        backgroundColor: '#fef3c7',
-                                        border: '1px solid #fbbf24',
+                                        padding: '16px',
+                                        backgroundColor: '#dbeafe',
+                                        border: '1px solid rgba(30, 45, 125, 0.2)',
                                         borderRadius: '8px',
                                         fontSize: '14px',
-                                        color: '#78350f',
+                                        color: '#1e2d7d',
                                         textAlign: 'center'
                                     }}>
                                         Оберіть всі обов'язкові опції перед замовленням
@@ -469,7 +457,15 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
                                     <div className={styles.flexResponsive} style={{ display: 'flex', gap: '12px' }}>
                                         <Link
-                                            href={getConstructorUrl(product.slug || resolvedParams.slug)}
+                                            href={(() => {
+                                                const slug = product.slug || resolvedParams.slug;
+                                                const productType = slug?.includes('travelbook') || slug?.includes('travel') ? 'travelbook' :
+                                                                   slug?.includes('magazine') || slug?.includes('zhurnal') ? 'magazine' : 'photobook';
+                                                const format = customProductOptions['Розмір'] || product.format || '20x20';
+                                                const pages = customProductOptions['Кількість сторінок'] || product.default_pages || 32;
+                                                const coverColor = customProductOptions['Колір обкладинки'] || '';
+                                                return `/editor/new?product=${productType}&format=${format}&pages=${pages}${coverColor ? `&coverColor=${encodeURIComponent(coverColor)}` : ''}`;
+                                            })()}
                                             style={{
                                                 flex: 1,
                                                 padding: '18px',
@@ -481,11 +477,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 textAlign: 'center',
                                                 transition: 'background-color 0.2s',
                                                 opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5,
-                                                pointerEvents: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'auto' : 'none'
+                                                pointerEvents: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'auto' : 'none',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px'
                                             }}
                                             className="hover:bg-[#1a2966] rounded-md"
                                         >
-                                            Створити у конструкторі
+                                            <span style={{ fontSize: '20px' }}>🎨</span>
+                                            Відкрити редактор
                                         </Link>
                                         <Link
                                             href="/order"
@@ -515,12 +516,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 {/* Warning if required options not selected */}
                                 {!areAllRequiredOptionsFilled(product.slug || '', customProductOptions) && (
                                     <div style={{
-                                        padding: '12px 16px',
-                                        backgroundColor: '#fef3c7',
-                                        border: '1px solid #fbbf24',
+                                        padding: '16px',
+                                        backgroundColor: '#dbeafe',
+                                        border: '1px solid rgba(30, 45, 125, 0.2)',
                                         borderRadius: '8px',
                                         fontSize: '14px',
-                                        color: '#78350f',
+                                        color: '#1e2d7d',
                                         textAlign: 'center'
                                     }}>
                                         Оберіть всі обов'язкові опції перед замовленням
@@ -619,12 +620,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 {/* Warning if required options not selected */}
                                 {!areAllRequiredOptionsFilled(product.slug || '', customProductOptions) && (
                                     <div style={{
-                                        padding: '12px 16px',
-                                        backgroundColor: '#fef3c7',
-                                        border: '1px solid #fbbf24',
+                                        padding: '16px',
+                                        backgroundColor: '#dbeafe',
+                                        border: '1px solid rgba(30, 45, 125, 0.2)',
                                         borderRadius: '8px',
                                         fontSize: '14px',
-                                        color: '#78350f',
+                                        color: '#1e2d7d',
                                         textAlign: 'center'
                                     }}>
                                         Оберіть всі обов'язкові опції перед замовленням

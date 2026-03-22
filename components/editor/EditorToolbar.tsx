@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEditorStore } from '@/lib/editor-store'
 import PreviewModal from '@/components/editor/PreviewModal'
+import OrderFlow from '@/components/editor/OrderFlow'
+import { createClient } from '@/lib/supabase/client'
 import {
   ArrowLeft,
   Undo,
@@ -46,6 +48,7 @@ export default function EditorToolbar() {
 
   const [zoom, setZoom] = useState(100)
   const [showPreview, setShowPreview] = useState(false)
+  const [showOrderFlow, setShowOrderFlow] = useState(false)
 
   if (!project) return null
 
@@ -134,6 +137,43 @@ export default function EditorToolbar() {
     if (selectedElement && selectedElement.type === 'text') {
       updateElement(currentPageIndex, selectedElement.id, { align })
     }
+  }
+
+  const handleSave = async () => {
+    if (!project) return
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      alert('Увійдіть, щоб зберегти проект')
+      return
+    }
+
+    const projectData = {
+      id: project.id,
+      user_id: user.id,
+      product_type: project.productType,
+      format: project.format,
+      cover_type: project.coverType,
+      total_pages: project.totalPages,
+      pages_data: project.pages,
+      cover_data: project.coverPage,
+      uploaded_photos: project.uploadedPhotos || [],
+      status: 'draft',
+      updated_at: new Date().toISOString(),
+    }
+
+    const { error } = await supabase.from('projects').upsert(projectData)
+
+    if (error) {
+      console.error('Failed to save project:', error)
+      alert('Помилка збереження проекту')
+      return
+    }
+
+    useEditorStore.getState().markClean()
+    alert('Проект збережено!')
   }
 
   return (
@@ -309,7 +349,7 @@ export default function EditorToolbar() {
         </button>
 
         <button
-          onClick={() => alert('Збереження...')}
+          onClick={handleSave}
           className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
         >
           <Save className="w-4 h-4" />
@@ -317,7 +357,7 @@ export default function EditorToolbar() {
         </button>
 
         <button
-          onClick={() => router.push('/order')}
+          onClick={() => setShowOrderFlow(true)}
           className="flex items-center gap-2 px-3 py-2 bg-[#1e2d7d] hover:bg-[#263a99] text-white rounded-lg transition-colors"
         >
           <ShoppingCart className="w-4 h-4" />
@@ -330,6 +370,14 @@ export default function EditorToolbar() {
         <PreviewModal
           project={project}
           onClose={() => setShowPreview(false)}
+        />
+      )}
+
+      {/* Order Flow */}
+      {showOrderFlow && (
+        <OrderFlow
+          project={project}
+          onClose={() => setShowOrderFlow(false)}
         />
       )}
     </div>

@@ -22,6 +22,43 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
 
   const { project, setProject, isDirty, currentPageIndex, setCurrentPage, selectedElementId, removeElement } = useEditorStore()
 
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (!project || projectId === 'new') return
+
+    const interval = setInterval(async () => {
+      if (isDirty && project) {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) return
+
+        const { error } = await supabase
+          .from('projects')
+          .upsert({
+            id: project.id,
+            user_id: user.id,
+            product_type: project.productType,
+            format: project.format,
+            cover_type: project.coverType,
+            total_pages: project.totalPages,
+            pages_data: project.pages,
+            cover_data: project.coverPage,
+            uploaded_photos: project.uploadedPhotos || [],
+            status: 'draft',
+            updated_at: new Date().toISOString(),
+          })
+
+        if (!error) {
+          useEditorStore.getState().markClean()
+          console.log('Auto-saved at', new Date().toLocaleTimeString())
+        }
+      }
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
+  }, [isDirty, project, projectId])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
