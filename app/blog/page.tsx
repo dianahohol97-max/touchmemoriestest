@@ -223,7 +223,6 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
 
                         {/* Newsletter */}
                         <div style={{ backgroundColor: '#263A99', borderRadius: "3px", padding: '32px', color: 'white', textAlign: 'center' }}>
-                            <div style={{ fontSize: '32px', marginBottom: '16px' }}>💌</div>
                             <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Розсилка натхнення</h3>
                             <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '24px' }}>Ніякого спаму. Лише найцікавіші ідеї фотокниг та спеціальні пропозиції раз на місяць.</p>
                             <form style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} action="/api/newsletter" method="POST">
@@ -243,7 +242,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                     }}
                                     className="placeholder:text-[#9ca3af]"
                                 />
-                                <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: '9999px', backgroundColor: 'white', color: '#1e2d7d', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' } as any}>
+                                <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: '8px', backgroundColor: 'white', color: '#1e2d7d', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' } as any}>
                                     Підписатись
                                 </button>
                             </form>
@@ -252,7 +251,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                         {/* Popular Posts */}
                         {popularPosts && popularPosts.length > 0 && (
                             <div style={{ backgroundColor: 'white', borderRadius: "3px", padding: '24px', border: '1px solid #f1f5f9' }}>
-                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>⚡ Популярне</h3>
+                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>Популярне</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     {popularPosts.map((post, index) => (
                                         <Link key={post.id} href={`/blog/${post.slug}`} style={{ display: 'flex', gap: '16px', textDecoration: 'none', color: 'inherit', alignItems: 'center' }}>
@@ -272,7 +271,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                         {/* Featured Products */}
                         {featuredProducts && featuredProducts.length > 0 && (
                             <div style={{ backgroundColor: 'white', borderRadius: "3px", padding: '24px', border: '1px solid #f1f5f9' }}>
-                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>🎁 Наші продукти</h3>
+                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>Наші продукти</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                     {featuredProducts.map(product => (
                                         <Link key={product.id} href={`/products/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', gap: '16px', alignItems: 'center' }}>
@@ -287,7 +286,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                             </div>
                                         </Link>
                                     ))}
-                                    <Link href="/products" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '9999px', backgroundColor: '#f8fafc', color: '#64748b', fontWeight: 700, fontSize: '13px', textDecoration: 'none', marginTop: '8px' }}>
+                                    <Link href="/products" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', color: '#64748b', fontWeight: 700, fontSize: '13px', textDecoration: 'none', marginTop: '8px' }}>
                                         В каталог <ArrowRight size={16} />
                                     </Link>
                                 </div>
@@ -303,4 +302,4 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
     );
 }
 
-const tabStyle = { padding: '8px 20px', borderRadius: '9999px', fontWeight: 700, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' as any, border: '1px solid #e2e8f0', transition: 'all 0.2s' };
+const tabStyle = { padding: '8px 20px', borderRadius: '8px', fontWeight: 700, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' as any, border: '1px solid #e2e8f0', transition: 'all 0.2s' };
