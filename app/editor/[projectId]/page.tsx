@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Undo, Redo, Eye, ShoppingCart } from 'lucide-react'
+import { ArrowLeft, Undo, Redo, Eye, ShoppingCart, Type } from 'lucide-react'
 import { useEditorStore } from '@/lib/editor-store'
 import type { EditorProject, ProductType, Format } from '@/lib/editor-types'
 import { createClient } from '@/lib/supabase/client'
@@ -18,7 +18,7 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
 
-  const { project, setProject, undo, redo, isDirty, history, historyIndex } = useEditorStore()
+  const { project, setProject, undo, redo, isDirty, history, historyIndex, addElement, currentPageIndex } = useEditorStore()
 
   useEffect(() => {
     const loadOrCreateProject = async () => {
@@ -93,6 +93,41 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
 
     loadOrCreateProject()
   }, [projectId, searchParams, setProject, router])
+
+  const handleAddText = () => {
+    if (!project) return
+
+    const currentPage = currentPageIndex === -1
+      ? project.coverPage
+      : project.pages[currentPageIndex]
+
+    if (!currentPage) return
+
+    const newTextElement = {
+      id: `text-${Date.now()}`,
+      type: 'text' as const,
+      x: 0.35,
+      y: 0.4,
+      width: 0.3,
+      height: 0.1,
+      rotation: 0,
+      content: 'Ваш текст',
+      fontFamily: 'Montserrat',
+      fontSize: 24,
+      color: '#000000',
+      align: 'center',
+      bold: false,
+      italic: false,
+      underline: false,
+      letterSpacing: 0,
+      lineHeight: 1.2,
+      opacity: 100,
+      zIndex: currentPage.elements.length,
+    }
+
+    addElement(currentPageIndex, newTextElement)
+    useEditorStore.getState().selectElement(newTextElement.id)
+  }
 
   const handleSave = async () => {
     if (!project) return
@@ -218,6 +253,14 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
               <Redo className="w-5 h-5" />
             </button>
             <div className="h-6 w-px bg-gray-300 mx-2" />
+            <button
+              onClick={handleAddText}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+              title="Додати текст"
+            >
+              <Type className="w-4 h-4" />
+              Додати текст
+            </button>
             <button
               onClick={handleSave}
               className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"

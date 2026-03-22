@@ -43,6 +43,9 @@ export interface EditorElement {
   align?: string
   bold?: boolean
   italic?: boolean
+  underline?: boolean
+  letterSpacing?: number
+  lineHeight?: number
   // Style
   opacity?: number
   zIndex?: number
