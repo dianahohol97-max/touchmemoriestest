@@ -32,7 +32,9 @@ export function FinalCTA() {
                         {/* Buttons */}
                         <div className="flex gap-3 flex-wrap">
                             <Link
-                                href="/constructor/guestbook"
+                                href="https://pro.fotobookplus.com/ua/"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-[#263a99] transition-colors duration-200"
                             >
                                 Відкрити конструктор
