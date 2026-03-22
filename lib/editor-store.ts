@@ -21,6 +21,10 @@ interface EditorState {
   setPageLayout: (pageIndex: number, layoutId: string) => void
   addUploadedPhoto: (photo: UploadedPhoto) => void
   removeUploadedPhoto: (photoId: string) => void
+  addPage: (afterIndex: number) => void
+  deletePage: (pageIndex: number) => void
+  duplicatePage: (pageIndex: number) => void
+  reorderPages: (fromIndex: number, toIndex: number) => void
   undo: () => void
   redo: () => void
   saveSnapshot: () => void
@@ -130,6 +134,106 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((state) => ({
       uploadedPhotos: state.uploadedPhotos.filter(p => p.id !== photoId)
     }))
+  },
+
+  addPage: (afterIndex) => {
+    const { project } = get()
+    if (!project) return
+
+    const newProject = { ...project }
+    const newPageNumber = afterIndex + 2 // +1 for 0-index, +1 for after
+
+    const newPage: EditorPage = {
+      id: `page-${Date.now()}`,
+      pageNumber: newPageNumber,
+      layoutId: 'blank',
+      background: { type: 'color', value: '#ffffff' },
+      elements: [],
+    }
+
+    newProject.pages.splice(afterIndex + 1, 0, newPage)
+
+    // Renumber pages
+    newProject.pages.forEach((page, index) => {
+      page.pageNumber = index + 1
+    })
+
+    newProject.totalPages = newProject.pages.length
+
+    set({ project: newProject, isDirty: true })
+    get().saveSnapshot()
+  },
+
+  deletePage: (pageIndex) => {
+    const { project } = get()
+    if (!project || pageIndex < 0 || pageIndex >= project.pages.length) return
+
+    const newProject = { ...project }
+    newProject.pages.splice(pageIndex, 1)
+
+    // Renumber pages
+    newProject.pages.forEach((page, index) => {
+      page.pageNumber = index + 1
+    })
+
+    newProject.totalPages = newProject.pages.length
+
+    // Adjust current page index if needed
+    const newCurrentIndex = pageIndex >= newProject.pages.length
+      ? newProject.pages.length - 1
+      : pageIndex
+
+    set({ project: newProject, currentPageIndex: newCurrentIndex, isDirty: true })
+    get().saveSnapshot()
+  },
+
+  duplicatePage: (pageIndex) => {
+    const { project } = get()
+    if (!project || pageIndex < 0 || pageIndex >= project.pages.length) return
+
+    const newProject = { ...project }
+    const pageToDuplicate = newProject.pages[pageIndex]
+
+    const duplicatedPage: EditorPage = {
+      ...pageToDuplicate,
+      id: `page-${Date.now()}`,
+      pageNumber: pageIndex + 2,
+      elements: pageToDuplicate.elements.map(el => ({
+        ...el,
+        id: `${el.id}-dup-${Date.now()}`
+      }))
+    }
+
+    newProject.pages.splice(pageIndex + 1, 0, duplicatedPage)
+
+    // Renumber pages
+    newProject.pages.forEach((page, index) => {
+      page.pageNumber = index + 1
+    })
+
+    newProject.totalPages = newProject.pages.length
+
+    set({ project: newProject, currentPageIndex: pageIndex + 1, isDirty: true })
+    get().saveSnapshot()
+  },
+
+  reorderPages: (fromIndex, toIndex) => {
+    const { project } = get()
+    if (!project || fromIndex < 0 || toIndex < 0) return
+    if (fromIndex >= project.pages.length || toIndex >= project.pages.length) return
+    if (fromIndex === toIndex) return
+
+    const newProject = { ...project }
+    const [movedPage] = newProject.pages.splice(fromIndex, 1)
+    newProject.pages.splice(toIndex, 0, movedPage)
+
+    // Renumber pages
+    newProject.pages.forEach((page, index) => {
+      page.pageNumber = index + 1
+    })
+
+    set({ project: newProject, currentPageIndex: toIndex, isDirty: true })
+    get().saveSnapshot()
   },
 
   saveSnapshot: () => {

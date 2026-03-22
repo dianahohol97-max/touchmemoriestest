@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import LeftPanel from './components/LeftPanel'
 import CanvasArea from './components/CanvasArea'
 import RightPanel from './components/RightPanel'
+import PagesBottomStrip from './components/PagesBottomStrip'
 
 export default function EditorPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params)
@@ -18,7 +19,28 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
 
-  const { project, setProject, undo, redo, isDirty, history, historyIndex, addElement, currentPageIndex } = useEditorStore()
+  const { project, setProject, undo, redo, isDirty, history, historyIndex, addElement, currentPageIndex, setCurrentPage } = useEditorStore()
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!project) return
+
+      // Page navigation
+      if (e.key === 'ArrowLeft' && !e.ctrlKey && !e.metaKey) {
+        if (currentPageIndex > -1) {
+          setCurrentPage(currentPageIndex - 1)
+        }
+      } else if (e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) {
+        if (currentPageIndex < project.pages.length - 1) {
+          setCurrentPage(currentPageIndex + 1)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [project, currentPageIndex, setCurrentPage])
 
   useEffect(() => {
     const loadOrCreateProject = async () => {
@@ -286,21 +308,26 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
       </header>
 
       {/* Main Editor Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel */}
-        <aside className="w-72 bg-white border-r border-gray-200 flex-shrink-0 overflow-y-auto">
-          <LeftPanel />
-        </aside>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Panel */}
+          <aside className="w-72 bg-white border-r border-gray-200 flex-shrink-0 overflow-y-auto">
+            <LeftPanel />
+          </aside>
 
-        {/* Canvas Area */}
-        <main className="flex-1 overflow-auto bg-gray-100">
-          <CanvasArea />
-        </main>
+          {/* Canvas Area */}
+          <main className="flex-1 overflow-auto bg-gray-100">
+            <CanvasArea />
+          </main>
 
-        {/* Right Panel */}
-        <aside className="w-72 bg-white border-l border-gray-200 flex-shrink-0 overflow-y-auto">
-          <RightPanel />
-        </aside>
+          {/* Right Panel */}
+          <aside className="w-72 bg-white border-l border-gray-200 flex-shrink-0 overflow-y-auto">
+            <RightPanel />
+          </aside>
+        </div>
+
+        {/* Bottom Pages Strip */}
+        <PagesBottomStrip />
       </div>
     </div>
   )

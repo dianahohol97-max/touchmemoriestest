@@ -64,3 +64,9 @@ export const FORMAT_CANVAS_SIZES: Record<Format, { width: number; height: number
   '30x30': { width: 960, height: 960 },
   '25x25': { width: 800, height: 800 },
 }
+
+export const PAGE_LIMITS: Record<ProductType, { min: number; max: number; step: number }> = {
+  photobook: { min: 20, max: 50, step: 2 },
+  travelbook: { min: 12, max: 80, step: 4 },
+  magazine: { min: 8, max: 100, step: 2 },
+}
