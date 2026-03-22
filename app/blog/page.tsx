@@ -222,17 +222,17 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
                         {/* Newsletter */}
-                        <div style={{ backgroundColor: '#263A99', borderRadius: "3px", padding: '32px', color: 'white', textAlign: 'center' }}>
-                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Розсилка натхнення</h3>
-                            <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '24px' }}>Ніякого спаму. Лише найцікавіші ідеї фотокниг та спеціальні пропозиції раз на місяць.</p>
-                            <form style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} action="/api/newsletter" method="POST">
+                        <div style={{ backgroundColor: '#263A99', borderRadius: "3px", padding: '24px', color: 'white', textAlign: 'center' }}>
+                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>Залишайся на зв'язку</h3>
+                            <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px' }}>Нові статті та ідеї — прямо на пошту.</p>
+                            <form style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} action="/api/newsletter" method="POST">
                                 <input
                                     type="email"
                                     placeholder="Ваш email"
                                     required
                                     style={{
                                         width: '100%',
-                                        padding: '12px 16px',
+                                        padding: '10px 14px',
                                         borderRadius: '6px',
                                         border: 'none',
                                         backgroundColor: '#ffffff',
@@ -242,8 +242,8 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                     }}
                                     className="placeholder:text-[#9ca3af]"
                                 />
-                                <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: '8px', backgroundColor: 'white', color: '#1e2d7d', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' } as any}>
-                                    Підписатись
+                                <button type="submit" style={{ width: '100%', padding: '8px 16px', borderRadius: '8px', backgroundColor: 'white', color: '#1e2d7d', border: 'none', fontWeight: 600, fontSize: '14px', cursor: 'pointer', transition: 'background 0.2s' } as any}>
+                                    Підписатися
                                 </button>
                             </form>
                         </div>
