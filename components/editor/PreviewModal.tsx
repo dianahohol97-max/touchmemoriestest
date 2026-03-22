@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, ChevronLeft, ChevronRight, Download, ShoppingCart, AlertCircle } from 'lucide-react'
-import { fabric } from 'fabric'
+import * as fabric from 'fabric'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import type { EditorProject, EditorPage, EditorElement } from '@/lib/editor-types'
