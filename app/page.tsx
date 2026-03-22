@@ -129,19 +129,19 @@ export default async function Home() {
               <div className="space-y-6">
 
                 {/* TOP CARD — Топ локацій */}
-                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="bg-white rounded-[3px] shadow-md overflow-hidden">
                   <div className="aspect-video bg-gradient-to-br from-[#f0f3ff] to-stone-100 relative overflow-hidden">
                     <img
                       src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80"
                       alt="Топ локації для Travel Book"
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <span className="inline-block text-white text-xs uppercase mb-2" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
+                      <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide mb-2">
                         Натхнення
                       </span>
-                      <h3 className="text-white text-xl font-serif leading-snug">
+                      <h3 className="text-white hover:text-white/90 text-xl font-serif leading-snug transition-colors">
                         Топ-10 локацій України для твого Travel Book
                       </h3>
                     </div>
@@ -161,19 +161,19 @@ export default async function Home() {
                 </div>
 
                 {/* BOTTOM CARD — Travel Blog Article */}
-                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="bg-white rounded-[3px] shadow-md overflow-hidden">
                   <div className="aspect-video bg-gradient-to-br from-blue-100 to-stone-100 relative overflow-hidden">
                     <img
                       src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&q=80"
                       alt="Тревел-бук vs фотоальбом"
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <span className="inline-block text-white text-xs uppercase mb-2" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
+                      <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide mb-2">
                         Travel
                       </span>
-                      <h3 className="text-white text-xl font-serif leading-snug">
+                      <h3 className="text-white hover:text-white/90 text-xl font-serif leading-snug transition-colors">
                         Тревел-бук vs фотоальбом: що обрати?
                       </h3>
                     </div>
