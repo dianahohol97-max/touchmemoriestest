@@ -154,13 +154,13 @@ export default function PreviewModal({ project, onClose }: PreviewModalProps) {
       // Apply filters
       const filters: any[] = []
       if (element.brightness !== undefined && element.brightness !== 0) {
-        filters.push(new fabric.Image.filters.Brightness({ brightness: element.brightness / 100 }))
+        filters.push(new fabric.filters.Brightness({ brightness: element.brightness / 100 }))
       }
       if (element.contrast !== undefined && element.contrast !== 0) {
-        filters.push(new fabric.Image.filters.Contrast({ contrast: element.contrast / 100 }))
+        filters.push(new fabric.filters.Contrast({ contrast: element.contrast / 100 }))
       }
       if (element.saturation !== undefined && element.saturation !== 0) {
-        filters.push(new fabric.Image.filters.Saturation({ saturation: element.saturation / 100 }))
+        filters.push(new fabric.filters.Saturation({ saturation: element.saturation / 100 }))
       }
       if (filters.length > 0) {
         img.filters = filters
