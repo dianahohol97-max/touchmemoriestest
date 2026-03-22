@@ -1,11 +1,11 @@
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import Link from 'next/link';
-import { Heart, Award, Clock, Users } from 'lucide-react';
+import { Heart, Award, Users } from 'lucide-react';
 
 export const metadata = {
   title: 'Про нас | Touch.Memories',
-  description: 'Touch.Memories — студія у Тернополі, яка створює фотокниги, журнали та вироби зі спогадів з 2018 року. Якість, індивідуальний підхід, швидке виготовлення.',
+  description: 'Touch.Memories — студія у Тернополі, яка створює фотокниги, журнали та вироби зі спогадів з 2018 року. Якість, індивідуальний підхід, довіра тисяч клієнтів.',
 };
 
 export default function ProNasPage() {
@@ -48,7 +48,7 @@ export default function ProNasPage() {
           {/* Values Section */}
           <section className="mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Наші цінності</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Value 1 */}
               <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
                 <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -74,22 +74,11 @@ export default function ProNasPage() {
               {/* Value 3 */}
               <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
                 <div className="bg-green-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Clock className="h-8 w-8 text-green-600" />
+                  <Users className="h-8 w-8 text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Швидке виготовлення</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">Довіра клієнтів</h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
-                  Терміни від 4 до 14 днів залежно від продукту. Працюємо без затримок.
-                </p>
-              </div>
-
-              {/* Value 4 */}
-              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
-                <div className="bg-orange-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-8 w-8 text-orange-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Підтримка 24/7</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Завжди на зв'язку в Telegram та Instagram. Відповідаємо швидко і допомагаємо на всіх етапах.
+                  Понад 20 000 задоволених клієнтів вже довірили нам свої найцінніші спогади.
                 </p>
               </div>
             </div>
