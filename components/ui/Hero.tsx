@@ -94,28 +94,28 @@ export function Hero() {
                 >
                     {/* Row 1: Фотокнига + Глянцевий журнал */}
                     <div className="flex gap-3 flex-wrap">
-                        <Link href="/catalog?category=photobooks" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
+                        <Link href="/catalog?category=photobooks" className="bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200">
                             Фотокнига
                         </Link>
-                        <Link href="/catalog?category=magazines" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
+                        <Link href="/catalog?category=magazines" className="bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200">
                             Глянцевий журнал
                         </Link>
                     </div>
                     {/* Row 2: Журнал з твердою обкладинкою + Тревелбук */}
                     <div className="flex gap-3 flex-wrap">
-                        <Link href="/catalog?category=magazines" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
+                        <Link href="/catalog?category=magazines" className="bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200">
                             Журнал з твердою обкладинкою
                         </Link>
-                        <Link href="/catalog?category=travelbooks" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
+                        <Link href="/catalog?category=travelbooks" className="bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200">
                             Тревелбук
                         </Link>
                     </div>
                     {/* Row 3: Фотодрук + Фотомагніти */}
                     <div className="flex gap-3 flex-wrap items-center">
-                        <Link href="/catalog?category=photoprints" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
+                        <Link href="/catalog?category=photoprints" className="bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200">
                             Фотодрук
                         </Link>
-                        <Link href="/catalog?category=magnets" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
+                        <Link href="/catalog?category=magnets" className="bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200">
                             Фотомагніти
                         </Link>
                     </div>
