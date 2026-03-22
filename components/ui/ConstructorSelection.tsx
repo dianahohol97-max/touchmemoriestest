@@ -53,10 +53,10 @@ export function ConstructorSelection() {
                             </div>
 
                             {/* Buttons */}
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 flex-wrap">
                                 <Link
                                     href="/constructor/photobook"
-                                    className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-bold hover:bg-[#152158] transition-colors duration-200"
+                                    className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-[#263a99] transition-colors duration-200"
                                 >
                                     Відкрити конструктор
                                 </Link>
@@ -97,10 +97,10 @@ export function ConstructorSelection() {
                             </div>
 
                             {/* Buttons */}
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 flex-wrap">
                                 <Link
                                     href="/constructor/magazine"
-                                    className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-bold hover:bg-[#152158] transition-colors duration-200"
+                                    className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-[#263a99] transition-colors duration-200"
                                 >
                                     Відкрити конструктор
                                 </Link>
