@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { useState, Suspense } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-export default function OrderPage() {
+function OrderForm() {
   const searchParams = useSearchParams();
   const productSlug = searchParams.get('product');
   const productSize = searchParams.get('size');
@@ -832,5 +834,17 @@ export default function OrderPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function OrderPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#f0f2f8]">
+        <div className="text-[#1e2d7d] text-lg font-semibold">Завантаження...</div>
+      </div>
+    }>
+      <OrderForm />
+    </Suspense>
   );
 }
