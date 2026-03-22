@@ -54,23 +54,23 @@ export default function ShippingReturnsPage() {
                                 <div className="bg-emerald-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
                                     <CreditCard className="h-7 w-7 text-emerald-600" />
                                 </div>
-                                <h3 className="text-2xl font-bold text-gray-900 mb-4">Оплата</h3>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-4">Спосіб оплати</h3>
                                 <ul className="text-gray-600 leading-relaxed space-y-3">
                                     <li className="flex items-start gap-2">
                                         <span className="text-emerald-600 font-bold">•</span>
-                                        <span><strong>Банківський переказ</strong> на карту ПриватБанку</span>
+                                        <span>Ми працюємо офіційно — оплата здійснюється на рахунок ФОП у Monobank.</span>
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <span className="text-emerald-600 font-bold">•</span>
-                                        <span><strong>Онлайн оплата</strong> (за наявності)</span>
+                                        <span><strong>Передоплата</strong><br />Всі замовлення виконуються за передоплатою. Оскільки кожен продукт виготовляється індивідуально під ваше замовлення, ми не можемо розпочати роботу без підтвердження оплати.</span>
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <span className="text-emerald-600 font-bold">•</span>
-                                        <span><strong>Передоплата або оплата при отриманні</strong> — обговорюється з менеджером</span>
+                                        <span><strong>Оплата при отриманні</strong><br />Для постійних клієнтів або при попередньому узгодженні можлива оплата накладеним платежем через Нову Пошту.</span>
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <span className="text-emerald-600 font-bold">•</span>
-                                        <span>Детальні реквізити надсилаються після узгодження замовлення</span>
+                                        <span>Реквізити для оплати надсилаються після підтвердження замовлення менеджером.</span>
                                     </li>
                                 </ul>
                             </div>
