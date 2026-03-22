@@ -92,31 +92,31 @@ export function Hero() {
                     transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.5 }}
                     className="flex flex-col gap-3"
                 >
-                    {/* Row 1: Фотокнига + Глянцеві журнали */}
+                    {/* Row 1: Фотокнига + Глянцевий журнал */}
                     <div className="flex gap-3 flex-wrap">
                         <Link href="/catalog?category=photobooks" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
                             Фотокнига
                         </Link>
-                        <Link href="/catalog?category=hlyantsevi-zhurnaly" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
-                            Глянцеві журнали
+                        <Link href="/catalog?category=magazines" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
+                            Глянцевий журнал
                         </Link>
                     </div>
-                    {/* Row 2: Фотодрук + Travel Book */}
+                    {/* Row 2: Журнал з твердою обкладинкою + Тревелбук */}
                     <div className="flex gap-3 flex-wrap">
-                        <Link href="/catalog?category=prints" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
-                            Фотодрук
+                        <Link href="/catalog?category=magazines" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
+                            Журнал з твердою обкладинкою
                         </Link>
                         <Link href="/catalog?category=travelbooks" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
-                            Travel Book
+                            Тревелбук
                         </Link>
                     </div>
-                    {/* Row 3: Книга побажань + В магазин */}
+                    {/* Row 3: Фотодрук + Фотомагніти */}
                     <div className="flex gap-3 flex-wrap items-center">
-                        <Link href="/catalog?category=guestbooks" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
-                            Книга побажань
+                        <Link href="/catalog?category=photoprints" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
+                            Фотодрук
                         </Link>
-                        <Link href="/catalog" className="bg-[#1e2d7d] text-white font-bold text-base px-9 py-4 rounded-lg hover:bg-[#152158] transition-colors duration-200">
-                            В магазин
+                        <Link href="/catalog?category=magnets" className="bg-[#1e2d7d] text-white font-bold px-7 py-3.5 rounded-lg hover:bg-[#152158] transition-colors duration-200">
+                            Фотомагніти
                         </Link>
                     </div>
                 </motion.div>

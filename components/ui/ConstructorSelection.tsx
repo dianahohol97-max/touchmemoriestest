@@ -49,7 +49,7 @@ export function ConstructorSelection() {
 
                             {/* Constructor visualization */}
                             <div className="bg-[#f0f3ff] rounded-md border border-[#263a99]/10 aspect-[4/3] flex items-center justify-center">
-                                <span className="text-[#1e2d7d]/60 text-lg font-semibold">🖼 Конструктор</span>
+                                <span className="text-[#1e2d7d]/60 text-lg font-semibold">Конструктор</span>
                             </div>
 
                             {/* Primary button */}
@@ -93,7 +93,7 @@ export function ConstructorSelection() {
 
                             {/* Constructor visualization */}
                             <div className="bg-[#f0f3ff] rounded-md border border-[#263a99]/10 aspect-[4/3] flex items-center justify-center">
-                                <span className="text-[#1e2d7d]/60 text-lg font-semibold">🖼 Конструктор</span>
+                                <span className="text-[#1e2d7d]/60 text-lg font-semibold">Конструктор</span>
                             </div>
 
                             {/* Primary button */}
