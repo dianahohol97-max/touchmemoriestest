@@ -279,9 +279,6 @@ export default async function Home() {
             {/* Header */}
             <div className="flex items-end justify-between mb-12">
               <div>
-                <p className="text-xs text-[#6b7cc4] uppercase mb-3" style={{ letterSpacing: '1.5px' }}>
-                  Натхнення
-                </p>
                 <h2 className="text-3xl lg:text-4xl font-serif font-light text-stone-800">
                   Ідеї та поради
                 </h2>
@@ -298,7 +295,7 @@ export default async function Home() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
               {/* Featured article — large */}
-              <article className="md:col-span-7 group cursor-pointer">
+              <article className="md:col-span-6 group cursor-pointer">
                 <Link href="/blog/iak-stvoryty-fotoknyhu">
                   <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/10' }}>
                     <img
@@ -321,7 +318,7 @@ export default async function Home() {
               </article>
 
               {/* Two smaller articles */}
-              <div className="md:col-span-5 flex flex-col gap-6">
+              <div className="md:col-span-6 flex flex-col gap-6">
 
                 <article className="group cursor-pointer flex-1">
                   <Link href="/blog/travelbook-vs-photoalbum">
