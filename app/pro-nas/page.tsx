@@ -82,21 +82,21 @@ export default function ProNasPage() {
           </section>
 
           {/* CTA Section */}
-          <section className="bg-gradient-to-br from-stone-800 to-stone-900 rounded-lg p-12 text-white text-center">
-            <h2 className="text-3xl font-bold mb-4">Готові створити свою фотокнигу?</h2>
-            <p className="text-stone-300 mb-8 text-lg max-w-2xl mx-auto">
-              Оберіть продукт з каталогу або створіть фотокнигу у нашому онлайн-конструкторі за 5 хвилин.
+          <section className="bg-[#1e2d7d] rounded-lg p-12 text-white text-center">
+            <h2 className="text-3xl font-bold mb-4 text-white">Збережи свої спогади назавжди</h2>
+            <p className="text-white/90 mb-8 text-lg max-w-2xl mx-auto">
+              Обери формат, який підходить саме тобі — і ми зробимо все інше.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/catalog"
-                className="inline-block bg-white text-stone-900 px-8 py-4 rounded-lg font-bold hover:bg-stone-100 transition-colors text-center"
+                className="inline-block bg-white text-[#1e2d7d] px-8 py-4 rounded-lg font-bold hover:bg-stone-100 transition-colors text-center"
               >
-                Переглянути каталог
+                Перейти до каталогу
               </Link>
               <Link
                 href="/constructor/photobook"
-                className="inline-block bg-transparent border-2 border-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:text-stone-900 transition-all text-center"
+                className="inline-block bg-transparent border-2 border-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:text-[#1e2d7d] transition-all text-center"
               >
                 Створити зараз
               </Link>

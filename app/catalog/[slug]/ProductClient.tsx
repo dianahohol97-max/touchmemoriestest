@@ -26,7 +26,7 @@ const getConstructorUrl = (slug: string): string => {
     return '/constructor/magazine';
   if (slug.includes('calendar') || slug.includes('kalendar'))
     return '/constructor/calendar';
-  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('poster'))
+  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('полароїд') || slug.includes('поляроїд') || slug.includes('poster'))
     return '/order/photoprint'; // photoprint/poster order flow
   if (slug.includes('magnet'))
     return '/order/photomagnets'; // photomagnet order flow
@@ -37,7 +37,7 @@ const getConstructorUrl = (slug: string): string => {
 
 const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, product: any): string => {
   // For photoprint, poster, and photomagnet products, build order URL with selected options
-  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('poster') || slug.includes('magnet')) {
+  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('полароїд') || slug.includes('поляроїд') || slug.includes('poster') || slug.includes('magnet')) {
     const params = new URLSearchParams();
     params.set('product', slug);
 
@@ -403,7 +403,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         </div>
 
                         {/* Special CTA for photoprint, poster, and photomagnet products */}
-                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('poster') || product.slug?.includes('magnet')) ? (
+                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('полароїд') || product.slug?.includes('поляроїд') || product.slug?.includes('poster') || product.slug?.includes('magnet')) ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <Link
                                     href={getOrderUrl(product.slug, selectedOptions, product)}

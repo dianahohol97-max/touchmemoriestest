@@ -138,7 +138,7 @@ export const dummyProducts: Product[] = [
     // Фотодрук (2)
     {
         id: 'print-1',
-        name: 'Набір полароїдів (24 шт)',
+        name: 'Набір Polaroid (24 шт)',
         slug: 'polaroid-set',
         price: 299,
         category: { id: 'cat-print', name: 'Фотодрук', slug: 'photo-print' },

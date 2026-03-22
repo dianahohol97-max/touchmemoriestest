@@ -115,7 +115,7 @@ INSERT INTO public.products (
     is_active,
     options
 ) VALUES (
-    'Полароїд',
+    'Polaroid',
     'polaroid-print',
     (SELECT id FROM public.categories WHERE slug IN ('photoprint', 'prints', 'photo-prints') LIMIT 1),
     7.5,

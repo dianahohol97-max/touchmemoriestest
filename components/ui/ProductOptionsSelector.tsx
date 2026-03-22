@@ -199,12 +199,12 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
   photomagnet: [
     {
       name: 'Розмір',
-      values: ['5x7.5', '6x9', '7.5x10', '9x9', '10x10', 'Полароїд 7.6x10.1', 'Полароїд 8.6x5.4'],
+      values: ['5x7.5', '6x9', '7.5x10', '9x9', '10x10', 'Polaroid 7.6x10.1', 'Polaroid 8.6x5.4'],
       prices: {
         '5x7.5': 215, '6x9': 215, '7.5x10': 215,
         '9x9': 215, '10x10': 215,
-        'Полароїд 7.6x10.1': 215,
-        'Полароїд 8.6x5.4': 215
+        'Polaroid 7.6x10.1': 215,
+        'Polaroid 8.6x5.4': 215
       },
       required: true
     },
@@ -219,8 +219,8 @@ function detectProductType(slug: string): string | null {
     return 'photomagnet';
   }
 
-  // Полароїд
-  if (s.includes('polaroid') || s.includes('polaroyd')) {
+  // Polaroid
+  if (s.includes('polaroid') || s.includes('polaroyd') || s.includes('полароїд') || s.includes('поляроїд')) {
     return 'polaroid';
   }
 

@@ -12,7 +12,7 @@ import { getProductSEO } from '@/lib/seoContent';
 const PRINT_TYPES = [
   { key: 'standard', label: 'Стандартні розміри' },
   { key: 'nonstandard', label: 'Нестандартні розміри' },
-  { key: 'polaroid', label: 'Полароїд' },
+  { key: 'polaroid', label: 'Polaroid' },
 ];
 
 const SIZES = {
@@ -31,8 +31,8 @@ const SIZES = {
     { size: '10×10', price: 7.5 },
   ],
   polaroid: [
-    { size: '7.6×10.1', price: 7.5, label: 'Класичний полароїд' },
-    { size: '8.6×5.4', price: 7.5, label: 'Міні полароїд' },
+    { size: '7.6×10.1', price: 7.5, label: 'Класичний Polaroid' },
+    { size: '8.6×5.4', price: 7.5, label: 'Міні Polaroid' },
   ],
 };
 
