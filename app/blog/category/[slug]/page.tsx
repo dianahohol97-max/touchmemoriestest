@@ -8,6 +8,11 @@ import { Footer } from '@/components/ui/Footer';
 
 export const revalidate = 3600;
 
+const stripEmoji = (text?: string) => {
+    if (!text) return '';
+    return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u2764\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
+};
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
     const supabase = await createClient();
@@ -18,8 +23,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
 
     return {
-        title: `${category.name} | TouchMemories Блог`,
-        description: category.description || `Читайте статті в категорії ${category.name}`,
+        title: `${stripEmoji(category.name)} | TouchMemories Блог`,
+        description: category.description || `Читайте статті в категорії ${stripEmoji(category.name)}`,
     };
 }
 
@@ -55,7 +60,7 @@ export default async function CategoryPage({ params, searchParams }: { params: P
 
                 <div style={{ marginBottom: '60px' }}>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', fontWeight: 900, color: '#263A99', marginBottom: '16px', letterSpacing: '-0.02em' }}>
-                        {category.name}
+                        {stripEmoji(category.name)}
                     </h1>
                     {category.description && (
                         <p style={{ fontSize: '18px', color: '#64748b', maxWidth: '600px' }}>

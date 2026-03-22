@@ -9,6 +9,11 @@ import MarkdownViewer from '@/components/ui/MarkdownViewer';
 
 export const revalidate = 3600;
 
+const stripEmoji = (text?: string) => {
+    if (!text) return '';
+    return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u2764\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
+};
+
 export async function generateStaticParams() {
     // We could fetch top 100 slugs here, but returning [] and relying on ISR is fine for now
     return [];
@@ -132,7 +137,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {
                 '@type': 'ListItem',
                 'position': 3,
-                'name': post?.blog_categories?.name || 'Стаття',
+                'name': stripEmoji(post?.blog_categories?.name || 'Стаття'),
                 'item': post?.blog_categories ? `${domain}/blog?category=${post.blog_categories.slug}` : `${domain}/blog`
             },
             { '@type': 'ListItem', 'position': 4, 'name': post?.title || '' }
@@ -164,7 +169,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                         <span>→</span>
                         {post?.blog_categories && (
                             <>
-                                <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{post.blog_categories.name}</Link>
+                                <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{stripEmoji(post.blog_categories.name)}</Link>
                                 <span>→</span>
                             </>
                         )}
@@ -175,7 +180,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     <header style={{ marginBottom: '40px' }}>
                         {post?.blog_categories && (
                             <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ display: 'inline-block', backgroundColor: '#f1f5f9', color: '#263A99', padding: '6px 16px', borderRadius: "3px", fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '24px', textDecoration: 'none' }}>
-                                {post.blog_categories.name}
+                                {stripEmoji(post.blog_categories.name)}
                             </Link>
                         )}
                         <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 900, color: '#263A99', lineHeight: 1.1, marginBottom: '24px', letterSpacing: '-0.02em' }}>

@@ -12,6 +12,11 @@ export const metadata = {
 
 export const revalidate = 3600;
 
+const stripEmoji = (text?: string) => {
+    if (!text) return '';
+    return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u2764\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
+};
+
 const ARTICLES = [
   {
     slug: 'iak-stvoryty-fotoknyhu',
@@ -121,7 +126,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                     </span>
                                     {featuredPost.blog_categories && (
                                         <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', padding: '4px 12px', borderRadius: "3px", fontSize: '13px', fontWeight: 600 }}>
-                                            {featuredPost.blog_categories.name}
+                                            {stripEmoji(featuredPost.blog_categories.name)}
                                         </span>
                                     )}
                                 </div>
@@ -154,7 +159,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                     href={`/blog?category=${cat.slug}`}
                                     style={{ ...tabStyle, backgroundColor: category === cat.slug ? '#263A99' : 'white', color: category === cat.slug ? 'white' : '#64748b' }}
                                 >
-                                    {cat.name}
+                                    {stripEmoji(cat.name)}
                                 </Link>
                             ))}
                         </div>
@@ -167,7 +172,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                         {(post.cover_image || post.image) && <Image src={post.cover_image || post.image} alt={post.title} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
                                         {(post.blog_categories || post.category) && (
                                             <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '6px 14px', borderRadius: "3px", fontSize: '12px', fontWeight: 800, color: '#263A99', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                                                {post.blog_categories?.name || post.category}
+                                                {stripEmoji(post.blog_categories?.name || post.category)}
                                             </div>
                                         )}
                                     </div>
