@@ -11,6 +11,7 @@ interface EditorState {
   isDirty: boolean
 
   // Actions
+  initProject: (params: { id: string; product: string; format: string; pageCount: number }) => void
   setProject: (p: EditorProject) => void
   setCurrentPage: (index: number) => void
   selectElement: (id: string | null) => void
@@ -39,6 +40,41 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   history: [],
   historyIndex: -1,
   isDirty: false,
+
+  initProject: ({ id, product, format, pageCount }) => {
+    const pages: EditorPage[] = Array.from({ length: pageCount }, (_, i) => ({
+      id: `page-${i + 1}`,
+      pageNumber: i + 1,
+      layoutId: 'blank',
+      background: { type: 'color', value: '#ffffff' },
+      elements: [],
+    }))
+
+    const newProject: EditorProject = {
+      id,
+      productType: product as any,
+      format: format as any,
+      totalPages: pageCount,
+      coverPage: {
+        id: 'cover',
+        pageNumber: 0,
+        layoutId: 'blank',
+        background: { type: 'color', value: '#ffffff' },
+        elements: [],
+      },
+      pages,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    set({
+      project: newProject,
+      currentPageIndex: 0,
+      history: [newProject],
+      historyIndex: 0,
+      isDirty: false
+    })
+  },
 
   setProject: (p) => {
     set({ project: p, history: [p], historyIndex: 0, isDirty: false })

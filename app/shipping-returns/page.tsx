@@ -51,8 +51,8 @@ export default function ShippingReturnsPage() {
 
                             {/* Payment */}
                             <div className="bg-white p-8 rounded-[3px] shadow-sm border border-gray-100">
-                                <div className="bg-emerald-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
-                                    <CreditCard className="h-7 w-7 text-emerald-600" />
+                                <div className="bg-[#dbeafe] w-14 h-14 rounded-lg flex items-center justify-center mb-6">
+                                    <CreditCard className="text-[#1e2d7d] w-7 h-7" />
                                 </div>
                                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Спосіб оплати</h3>
                                 <ul className="text-gray-600 leading-relaxed space-y-3">

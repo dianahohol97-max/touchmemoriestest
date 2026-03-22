@@ -48,8 +48,8 @@ export default function ProNasPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Value 1 */}
               <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
-                <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Award className="h-8 w-8 text-blue-600" />
+                <div className="bg-[#dbeafe] p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto">
+                  <Award className="text-[#1e2d7d] w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Якість</h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -59,8 +59,8 @@ export default function ProNasPage() {
 
               {/* Value 2 */}
               <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
-                <div className="bg-purple-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Heart className="h-8 w-8 text-purple-600" />
+                <div className="bg-[#dbeafe] p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto">
+                  <Heart className="text-[#1e2d7d] w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Індивідуальний підхід</h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -70,8 +70,8 @@ export default function ProNasPage() {
 
               {/* Value 3 */}
               <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
-                <div className="bg-green-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-8 w-8 text-green-600" />
+                <div className="bg-[#dbeafe] p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto">
+                  <Users className="text-[#1e2d7d] w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Довіра клієнтів</h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
