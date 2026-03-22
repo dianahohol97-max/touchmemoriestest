@@ -22,12 +22,12 @@ export default function Kontakty() {
                             <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '24px' }}>Зв'яжіться з нами</h2>
 
                             <div style={{ marginBottom: '20px' }}>
-                                <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</h3>
+                                <h3 className="text-sm font-medium text-[#6b7280]" style={{ marginBottom: '4px' }}>Email</h3>
                                 <p style={{ fontSize: '18px', fontWeight: 600 }}>touch.memories3@gmail.com</p>
                             </div>
 
                             <div style={{ marginBottom: '20px' }}>
-                                <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Адреса</h3>
+                                <h3 className="text-sm font-medium text-[#6b7280]" style={{ marginBottom: '4px' }}>Адреса</h3>
                                 <p style={{ fontSize: '18px', fontWeight: 600 }}>Тернопіль, вул. Київська 2</p>
                             </div>
 
@@ -59,7 +59,7 @@ export default function Kontakty() {
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Повідомлення</label>
                                     <textarea rows={5} placeholder="Як ми можемо допомогти?" style={{ width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1px solid #e2e8f0', outline: 'none', fontSize: '16px', resize: 'vertical' }} />
                                 </div>
-                                <button type="button" style={{ width: '100%', padding: '16px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '9999px', border: 'none', fontSize: '16px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}>
+                                <button type="button" style={{ width: '100%', padding: '16px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '8px', border: 'none', fontSize: '16px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}>
                                     Надіслати
                                 </button>
                             </form>

@@ -66,7 +66,7 @@ export function ConstructorSelection() {
                                     href="/order"
                                     className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
                                 >
-                                    оформити з дизайнером
+                                    Оформити з дизайнером
                                 </Link>
                             </div>
                         </div>
@@ -112,17 +112,17 @@ export function ConstructorSelection() {
                                     href="/order"
                                     className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
                                 >
-                                    оформити з дизайнером
+                                    Оформити з дизайнером
                                 </Link>
                             </div>
                         </div>
 
                         {/* RIGHT: Video */}
                         <div className="order-1 lg:order-2">
-                            <div className="aspect-[4/5] bg-gradient-to-br from-purple-100 to-pink-50 rounded-xl overflow-hidden shadow-lg border border-purple-200 flex items-center justify-center relative">
+                            <div className="aspect-[4/5] bg-[#f0f2f8] rounded-xl overflow-hidden shadow-lg border border-gray-200 flex items-center justify-center relative">
                                 <div className="text-center">
-                                    <Play size={48} className="mx-auto mb-2 text-purple-400" />
-                                    <span className="text-purple-600 text-sm font-medium">Відео буде додано</span>
+                                    <Play size={48} className="mx-auto mb-2 text-[#1e2d7d]" />
+                                    <span className="text-[#1e2d7d] text-sm font-medium">Відео буде додано</span>
                                 </div>
                                 {/* <video autoPlay muted loop playsInline className="w-full h-full object-cover">
                                     <source src="/videos/magazine-preview.mp4" type="video/mp4" />

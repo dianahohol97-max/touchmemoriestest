@@ -307,4 +307,4 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
     );
 }
 
-const tabStyle = { padding: '8px 20px', borderRadius: '8px', fontWeight: 700, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' as any, border: '1px solid #e2e8f0', transition: 'all 0.2s' };
+const tabStyle = { padding: '8px 20px', borderRadius: '9999px', fontWeight: 700, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' as any, border: '1px solid #e2e8f0', transition: 'all 0.2s' };
