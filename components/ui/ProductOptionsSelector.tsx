@@ -92,6 +92,16 @@ const VELOUR_COLORS = [
   { code: 'B-14', name: 'Гірчичний',       hex: '#E8C050' },
 ];
 
+// Velour cover decoration options
+const VELOUR_OZDOBLENNYA = [
+  { value: 'none',    label: 'Без оздоблення' },
+  { value: 'acrylic', label: 'Акрил' },
+  { value: 'photo',   label: 'Фотовставка' },
+  { value: 'metal',   label: 'Металева вставка' },
+  { value: 'stamp',   label: 'Тиснення' },
+  { value: 'laser',   label: 'Гравірування' },
+];
+
 // 3D Price table for Velour photobooks: Size -> Pages -> Калька -> Price
 const VELOUR_PRICES: Record<string, Record<string, Record<string, number>>> = {
   '20х20': {
@@ -423,6 +433,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
   const productType = detectProductType(slug);
   const isVelourProduct = slug?.toLowerCase().includes('velour') || slug?.toLowerCase().includes('velyur') || productType === 'photobook-velour';
   const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
+  const [selectedOzdoblennya, setSelectedOzdoblennya] = useState('none');
 
   if (!productType) {
     return null;
@@ -515,9 +526,15 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       ...selectedOptions,
       [optionName]: value,
     };
-    // Include velour color if this is a velour product
-    if (isVelourProduct && selectedColor) {
-      newOptions['Колір велюру'] = `${selectedColor.name} (${selectedColor.code})`;
+    // Include velour-specific options if this is a velour product
+    if (isVelourProduct) {
+      if (selectedColor) {
+        newOptions['Колір велюру'] = `${selectedColor.name} (${selectedColor.code})`;
+      }
+      if (selectedOzdoblennya) {
+        const decorationLabel = VELOUR_OZDOBLENNYA.find(o => o.value === selectedOzdoblennya)?.label || 'Без оздоблення';
+        newOptions['Тип оздоблення'] = decorationLabel;
+      }
     }
     const price = calculatePrice(newOptions);
     onChange(newOptions, price || undefined);
@@ -634,6 +651,51 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                 style={{ backgroundColor: color.hex }}
                 aria-label={color.name}
               />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Velour Decoration Type Selector */}
+      {isVelourProduct && (
+        <div>
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: 700,
+            marginBottom: '12px',
+            color: '#1e2d7d'
+          }}>
+            Тип оздоблення обкладинки
+          </label>
+
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px'
+          }}>
+            {VELOUR_OZDOBLENNYA.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setSelectedOzdoblennya(opt.value);
+                  // Update parent with new decoration selection
+                  const newOptions = {
+                    ...selectedOptions,
+                    'Тип оздоблення': opt.label
+                  };
+                  const price = calculatePrice(newOptions);
+                  onChange(newOptions, price || undefined);
+                }}
+                className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                  selectedOzdoblennya === opt.value
+                    ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
+                }`}
+              >
+                {opt.label}
+              </button>
             ))}
           </div>
         </div>
