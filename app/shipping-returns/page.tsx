@@ -107,14 +107,14 @@ export default function ShippingReturnsPage() {
                     </div>
                     </div>
 
-                    <div className="bg-blue-600 rounded-[3px] p-10 text-white text-center">
-                        <h3 className="text-2xl font-bold mb-4">Виникли запитання?</h3>
-                        <p className="mb-8 opacity-90 text-lg">Напишіть нам у Telegram або зателефонуйте, ми завжди на зв'язку.</p>
+                    <div className="bg-[#1e2d7d] rounded-[3px] p-10 text-white text-center">
+                        <h3 className="text-2xl font-bold mb-4 text-white">Виникли запитання?</h3>
+                        <p className="mb-8 opacity-90 text-lg text-white">Напишіть нам у Telegram або зателефонуйте, ми завжди на зв'язку.</p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <a href="https://t.me/touchmemories" className="bg-white text-blue-600 px-8 py-4 rounded-full font-bold hover:bg-gray-100 transition-colors">
+                            <a href="https://t.me/touchmemories" className="bg-white text-[#1e2d7d] hover:bg-gray-100 font-semibold px-6 py-3 rounded-lg transition-colors">
                                 Написати в Telegram
                             </a >
-                            <a href="/contacts" className="bg-transparent border-2 border-white px-8 py-4 rounded-full font-bold hover:bg-white hover:text-blue-600 transition-all">
+                            <a href="/contacts" className="border-2 border-white text-white hover:bg-white/10 font-semibold px-6 py-3 rounded-lg transition-colors">
                                 Контакти
                             </a >
                         </div>
