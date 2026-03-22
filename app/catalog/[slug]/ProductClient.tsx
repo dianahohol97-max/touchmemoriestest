@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { CheckCircle2, Star, Loader2, Image as ImageIcon, Play } from 'lucide-react';
@@ -63,6 +63,7 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
     const resolvedParams = React.use(params);
+    const router = useRouter();
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -231,6 +232,28 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             <Navigation />
 
             <main className={styles.mainContainer} style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+                {/* Back Button */}
+                <button
+                    onClick={() => router.back()}
+                    style={{
+                        fontSize: '14px',
+                        color: '#263A99',
+                        marginBottom: '16px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        padding: '8px 0',
+                        transition: 'color 0.2s'
+                    }}
+                    className="hover:text-[#1e2d7d]"
+                >
+                    ← Назад
+                </button>
+
                 {/* Breadcrumbs */}
                 <div className={styles.breadcrumbs} style={{ fontSize: '14px', color: '#888', marginBottom: '32px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <Link href="/" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">Головна</Link>
