@@ -1,30 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
-    const data = await req.json();
+    const formData = await req.formData()
+    const name = formData.get('name') as string
+    const phone = formData.get('phone') as string
+    const contactChannel = formData.get('contactChannel') as string
+    const contactHandle = formData.get('contactHandle') as string
+    const comment = formData.get('comment') as string
+    const delivery = formData.get('delivery') as string
+    const city = formData.get('city') as string
+    const address = formData.get('address') as string
+    const productSlug = formData.get('productSlug') as string
+    const photos = formData.getAll('photos') as File[]
 
-    // Log the order data to console
-    console.log('New order received:', JSON.stringify(data, null, 2));
+    console.log('New designer order:', {
+      name, phone, contactChannel, contactHandle,
+      comment, delivery, city, address, productSlug,
+      photoCount: photos.length,
+      photoNames: photos.map(p => p.name),
+    })
 
-    // TODO: Send to Telegram bot or email
-    // The order data includes: photoMethod, comment, delivery, contact, productInfo
-
-    // For now, just return success
-    // Later this can be connected to:
-    // - Telegram Bot API to send notification to admin chat
-    // - Email service (SendGrid, Resend, etc.) to send email notification
-    // - Database to store order data
-
-    return NextResponse.json({
-      success: true,
-      message: 'Order received successfully'
-    });
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error processing order:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to process order' },
-      { status: 500 }
-    );
+    console.error('Order API error:', error)
+    return NextResponse.json({ success: false, error: 'Failed to process order' }, { status: 500 })
   }
 }

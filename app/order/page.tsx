@@ -1,850 +1,387 @@
-'use client';
+'use client'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
-import { useState, Suspense } from 'react';
-import { Navigation } from '@/components/ui/Navigation';
-import { Footer } from '@/components/ui/Footer';
-import { CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useState, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, Instagram, Mail, Phone, User } from 'lucide-react'
 
-function OrderForm() {
-  const searchParams = useSearchParams();
-  const productSlug = searchParams.get('product');
-  const productSize = searchParams.get('size');
-  const productPages = searchParams.get('pages');
+interface UploadedFile {
+  id: string
+  name: string
+  size: number
+  preview?: string
+  file: File
+}
 
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+interface OrderFormData {
+  files: UploadedFile[]
+  comment: string
+  delivery: 'nova_poshta' | 'pickup' | ''
+  city: string
+  address: string
+  name: string
+  phone: string
+  contactChannel: 'telegram' | 'instagram' | 'email' | ''
+  contactHandle: string
+}
 
-  // Step 1: Photo upload method
-  const [photoMethod, setPhotoMethod] = useState<'telegram' | 'instagram' | 'email' | ''>('');
-  const [customerEmail, setCustomerEmail] = useState('');
+const STEPS = ['Фото', 'Коментар', 'Доставка', 'Контакти', 'Підтвердження']
 
-  // Step 2: Comment
-  const [orderComment, setOrderComment] = useState('');
-  const [trustDesigner, setTrustDesigner] = useState(false);
-
-  // Step 3: Delivery
-  const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'novaposhta' | 'ukrposhta' | 'international' | ''>('');
-  const [npCity, setNpCity] = useState('');
-  const [npBranch, setNpBranch] = useState('');
-  const [ukrposhtaIndex, setUkrposhtaIndex] = useState('');
-  const [ukrposhtaAddress, setUkrposhtaAddress] = useState('');
-  const [intlCountry, setIntlCountry] = useState('');
-  const [intlPostalCode, setIntlPostalCode] = useState('');
-  const [intlAddress, setIntlAddress] = useState('');
-
-  // Step 4: Contact info
-  const [contactName, setContactName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [preferredContact, setPreferredContact] = useState<'telegram' | 'viber' | 'whatsapp' | 'call'>('telegram');
-
-  const steps = [
-    { number: 1, label: 'Фото' },
-    { number: 2, label: 'Коментар' },
-    { number: 3, label: 'Доставка' },
-    { number: 4, label: 'Контакти' },
-    { number: 5, label: 'Підтвердження' }
-  ];
-
-  const canProceedStep1 = photoMethod !== '';
-  const canProceedStep2 = true; // Comment is optional
-  const canProceedStep3 = deliveryMethod !== '' && (
-    deliveryMethod === 'pickup' ||
-    (deliveryMethod === 'novaposhta' && npCity && npBranch) ||
-    (deliveryMethod === 'ukrposhta' && ukrposhtaIndex && ukrposhtaAddress) ||
-    (deliveryMethod === 'international' && intlCountry && intlPostalCode && intlAddress)
-  );
-  const canProceedStep4 = contactName.trim() !== '' && contactPhone.trim().length >= 10;
-
-  const handleNext = () => {
-    if (currentStep < 5) {
-      setCurrentStep(currentStep + 1);
-      window.scrollTo(0, 0);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-      window.scrollTo(0, 0);
-    }
-  };
-
-  const handleSubmit = async () => {
-    const orderData = {
-      product: {
-        slug: productSlug,
-        size: productSize,
-        pages: productPages
-      },
-      photoMethod,
-      customerEmail: photoMethod === 'email' ? customerEmail : undefined,
-      comment: trustDesigner ? 'Довіряю вибір дизайну дизайнеру' : orderComment,
-      delivery: {
-        method: deliveryMethod,
-        ...(deliveryMethod === 'novaposhta' && { city: npCity, branch: npBranch }),
-        ...(deliveryMethod === 'ukrposhta' && { index: ukrposhtaIndex, address: ukrposhtaAddress }),
-        ...(deliveryMethod === 'international' && { country: intlCountry, postalCode: intlPostalCode, address: intlAddress })
-      },
-      contact: {
-        name: contactName,
-        phone: contactPhone,
-        email: contactEmail,
-        preferredMethod: preferredContact
-      }
-    };
-
-    try {
-      const response = await fetch('/api/order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      });
-
-      if (response.ok) {
-        setIsSubmitted(true);
-        window.scrollTo(0, 0);
-      }
-    } catch (error) {
-      console.error('Order submission failed:', error);
-      alert('Помилка при відправці заявки. Спробуйте ще раз.');
-    }
-  };
-
-  if (isSubmitted) {
-    return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', flexDirection: 'column' }}>
-        <Navigation />
-        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-          <div style={{ maxWidth: '500px', width: '100%', backgroundColor: 'white', padding: '48px 32px', borderRadius: '8px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <div style={{ width: '64px', height: '64px', backgroundColor: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-              <CheckCircle2 size={32} color="#16a34a" strokeWidth={2.5} />
+function StepIndicator({ current }: { current: number }) {
+  return (
+    <div className="flex items-center justify-center mb-10">
+      {STEPS.map((label, i) => {
+        const idx = i + 1
+        const done = idx < current
+        const active = idx === current
+        return (
+          <div key={i} className="flex items-center">
+            <div className="flex flex-col items-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${done || active ? 'bg-[#1e2d7d] text-white' : 'bg-gray-200 text-gray-500'}`}>
+                {done ? <Check className="w-5 h-5" /> : idx}
+              </div>
+              <span className={`text-xs mt-1 font-medium ${active ? 'text-[#1e2d7d]' : 'text-gray-400'}`}>{label}</span>
             </div>
-            <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1e2d7d', marginBottom: '16px' }}>
-              Дякуємо! Заявку отримано.
-            </h2>
-            <p style={{ fontSize: '16px', color: '#6b7280', lineHeight: '1.6', marginBottom: '32px' }}>
-              Наш менеджер зв'яжеться з вами протягом 2–4 годин у робочий час (пн–сб, 9:00–20:00).
-            </p>
-            <Link
-              href="/"
-              style={{
-                display: 'inline-block',
-                padding: '14px 32px',
-                backgroundColor: '#1e2d7d',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '8px',
-                fontWeight: 600,
-                fontSize: '16px',
-                transition: 'background-color 0.2s'
-              }}
-              className="hover:bg-[#263a99]"
-            >
-              На головну
-            </Link>
+            {i < STEPS.length - 1 && (
+              <div className={`w-10 h-0.5 mb-4 mx-1 ${idx < current ? 'bg-[#1e2d7d]' : 'bg-gray-200'}`} />
+            )}
           </div>
-        </main>
-        <Footer />
-      </div>
-    );
+        )
+      })}
+    </div>
+  )
+}
+
+function PhotoUploadStep({ data, onChange }: { data: UploadedFile[], onChange: (files: UploadedFile[]) => void }) {
+  const [dragging, setDragging] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const processFiles = (fileList: FileList | null) => {
+    if (!fileList) return
+    const newFiles: UploadedFile[] = Array.from(fileList).map(file => ({
+      id: Math.random().toString(36).slice(2),
+      name: file.name,
+      size: file.size,
+      file,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+    }))
+    onChange([...data, ...newFiles])
   }
 
+  const removeFile = (id: string) => onChange(data.filter(f => f.id !== id))
+  const fmt = (b: number) => b < 1048576 ? `${(b / 1024).toFixed(0)} KB` : `${(b / 1048576).toFixed(1)} MB`
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', flexDirection: 'column' }}>
-      <Navigation />
+    <div>
+      <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 1: Завантажте ваші фотографії</h2>
+      <p className="text-gray-500 text-sm mb-6">Підтримуються JPG, PNG, HEIC, ZIP. Максимум 200 МБ загалом.</p>
 
-      <main style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '680px', margin: '0 auto', width: '100%' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1e2d7d', marginBottom: '12px', textAlign: 'center' }}>
-          Оформлення замовлення з дизайнером
-        </h1>
-        <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>
-          Заповніть форму, і наш дизайнер підготує для вас індивідуальний макет
-        </p>
+      <div
+        onDragOver={e => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={e => { e.preventDefault(); setDragging(false); processFiles(e.dataTransfer.files) }}
+        onClick={() => inputRef.current?.click()}
+        className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors ${dragging ? 'border-[#1e2d7d] bg-[#dbeafe]' : 'border-gray-300 bg-[#f8f9fc] hover:border-[#1e2d7d] hover:bg-[#f0f2f8]'}`}
+      >
+        <Upload className="w-10 h-10 text-[#1e2d7d] mx-auto mb-3" />
+        <p className="font-semibold text-[#1e2d7d]">Перетягніть фото сюди або натисніть для вибору</p>
+        <p className="text-gray-400 text-sm mt-1">JPG, PNG, HEIC, ZIP — до 200 МБ</p>
+        <input ref={inputRef} type="file" multiple accept="image/*,.zip,.heic" className="hidden" onChange={e => processFiles(e.target.files)} />
+      </div>
 
-        {/* Product info if provided */}
-        {productSlug && (
-          <div style={{ padding: '16px', backgroundColor: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', marginBottom: '32px' }}>
-            <p style={{ fontSize: '14px', color: '#1e40af', fontWeight: 600 }}>
-              Продукт: {productSlug}
-              {productSize && ` • Розмір: ${productSize}`}
-              {productPages && ` • Сторінок: ${productPages}`}
-            </p>
-          </div>
-        )}
-
-        {/* Step Indicator */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '40px', position: 'relative' }}>
-          {steps.map((step, index) => (
-            <div key={step.number} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', flex: 1 }}>
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: step.number < currentStep ? '#1e2d7d' : step.number === currentStep ? '#1e2d7d' : '#e5e7eb',
-                  color: step.number <= currentStep ? 'white' : '#9ca3af',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                  fontSize: '16px',
-                  marginBottom: '8px',
-                  position: 'relative',
-                  zIndex: 2
-                }}
-              >
-                {step.number < currentStep ? <CheckCircle2 size={20} strokeWidth={3} /> : step.number}
+      {data.length > 0 && (
+        <div className="mt-5 space-y-3">
+          <p className="text-sm font-semibold text-gray-600">Завантажено: {data.length} файл(ів)</p>
+          {data.map(f => (
+            <div key={f.id} className="flex items-center gap-3 bg-[#f0f2f8] rounded-lg p-3">
+              {f.preview
+                ? <img src={f.preview} alt={f.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                : <div className="w-12 h-12 bg-[#dbeafe] rounded-lg flex items-center justify-center flex-shrink-0"><FileImage className="w-6 h-6 text-[#1e2d7d]" /></div>
+              }
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">{f.name}</p>
+                <p className="text-xs text-gray-400">{fmt(f.size)}</p>
               </div>
-              <span style={{ fontSize: '12px', color: step.number === currentStep ? '#1e2d7d' : '#6b7280', fontWeight: step.number === currentStep ? 600 : 400, textAlign: 'center' }}>
-                {step.label}
-              </span>
-              {index < steps.length - 1 && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '20px',
-                    left: '50%',
-                    width: '100%',
-                    height: '2px',
-                    backgroundColor: step.number < currentStep ? '#1e2d7d' : '#e5e7eb',
-                    zIndex: 1
-                  }}
-                />
-              )}
+              <button onClick={() => removeFile(f.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0"><X className="w-5 h-5" /></button>
             </div>
           ))}
         </div>
+      )}
+      {data.length === 0 && <p className="text-center text-sm text-gray-400 mt-4">Ще не завантажено жодного фото</p>}
+    </div>
+  )
+}
 
-        {/* Form Card */}
-        <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+function CommentStep({ value, onChange }: { value: string, onChange: (v: string) => void }) {
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 2: Коментар до замовлення</h2>
+      <p className="text-gray-500 text-sm mb-6">Розкажіть про ваші побажання: тематика, кольори, стиль, особливості.</p>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        rows={5}
+        placeholder="Наприклад: хочу фотокнигу у теплих тонах, акцент на сімейні фото..."
+        className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] resize-none"
+      />
+      <p className="text-xs text-gray-400 mt-2">Необов'язково — можна обговорити з дизайнером</p>
+    </div>
+  )
+}
 
-          {/* STEP 1: Photo Upload Method */}
-          {currentStep === 1 && (
-            <div>
-              <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '8px' }}>
-                Крок 1: Завантажте ваші фотографії
-              </h2>
-              <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
-                Ми приймаємо фото через зручний для вас канал. Виберіть спосіб:
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                {/* Telegram Option */}
-                <label
-                  style={{
-                    padding: '16px',
-                    border: `2px solid ${photoMethod === 'telegram' ? '#1e2d7d' : '#e5e7eb'}`,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    backgroundColor: photoMethod === 'telegram' ? '#f0f3ff' : 'white'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="photoMethod"
-                    value="telegram"
-                    checked={photoMethod === 'telegram'}
-                    onChange={(e) => setPhotoMethod(e.target.value as 'telegram')}
-                    style={{ marginRight: '12px' }}
-                  />
-                  <span style={{ fontWeight: 600, color: '#1f2937' }}>Telegram</span>
-                  <span style={{ fontSize: '14px', color: '#6b7280', display: 'block', marginLeft: '28px', marginTop: '4px' }}>
-                    Надішліть фото у наш Telegram{' '}
-                    <a href="https://t.me/touchmemories" target="_blank" rel="noopener noreferrer" style={{ color: '#1e2d7d', textDecoration: 'underline' }}>
-                      @touchmemories
-                    </a>
-                  </span>
-                </label>
-
-                {/* Instagram Option */}
-                <label
-                  style={{
-                    padding: '16px',
-                    border: `2px solid ${photoMethod === 'instagram' ? '#1e2d7d' : '#e5e7eb'}`,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    backgroundColor: photoMethod === 'instagram' ? '#f0f3ff' : 'white'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="photoMethod"
-                    value="instagram"
-                    checked={photoMethod === 'instagram'}
-                    onChange={(e) => setPhotoMethod(e.target.value as 'instagram')}
-                    style={{ marginRight: '12px' }}
-                  />
-                  <span style={{ fontWeight: 600, color: '#1f2937' }}>Instagram</span>
-                  <span style={{ fontSize: '14px', color: '#6b7280', display: 'block', marginLeft: '28px', marginTop: '4px' }}>
-                    Надішліть фото у Direct Instagram{' '}
-                    <a href="https://instagram.com/touch.memories" target="_blank" rel="noopener noreferrer" style={{ color: '#1e2d7d', textDecoration: 'underline' }}>
-                      @touch.memories
-                    </a>
-                  </span>
-                </label>
-
-                {/* Email Option */}
-                <label
-                  style={{
-                    padding: '16px',
-                    border: `2px solid ${photoMethod === 'email' ? '#1e2d7d' : '#e5e7eb'}`,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    backgroundColor: photoMethod === 'email' ? '#f0f3ff' : 'white'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="photoMethod"
-                    value="email"
-                    checked={photoMethod === 'email'}
-                    onChange={(e) => setPhotoMethod(e.target.value as 'email')}
-                    style={{ marginRight: '12px' }}
-                  />
-                  <span style={{ fontWeight: 600, color: '#1f2937' }}>Email</span>
-                  <span style={{ fontSize: '14px', color: '#6b7280', display: 'block', marginLeft: '28px', marginTop: '4px' }}>
-                    Надішліть фото на touch.memories3@gmail.com
-                  </span>
-                  {photoMethod === 'email' && (
-                    <input
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="Ваша email адреса для зворотного зв'язку"
-                      style={{
-                        marginTop: '12px',
-                        marginLeft: '28px',
-                        width: 'calc(100% - 28px)',
-                        padding: '10px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px'
-                      }}
-                      className="focus:border-[#1e2d7d] focus:outline-none"
-                    />
-                  )}
-                </label>
-              </div>
-
-              <p style={{ fontSize: '13px', color: '#6b7280', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px', lineHeight: '1.5' }}>
-                Мінімальна роздільна здатність фото: 300 dpi. Якщо маєте питання щодо підготовки фото — запитайте менеджера.
-              </p>
+function DeliveryStep({ delivery, city, address, onChange }: { delivery: string, city: string, address: string, onChange: (f: string, v: string) => void }) {
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 3: Доставка</h2>
+      <p className="text-gray-500 text-sm mb-6">Оберіть зручний спосіб отримання.</p>
+      <div className="space-y-3 mb-6">
+        {[
+          { val: 'nova_poshta', label: 'Нова Пошта', desc: 'Доставка по всій Україні' },
+          { val: 'pickup', label: 'Самовивіз', desc: 'Тернопіль, вул. Київська 2' },
+        ].map(opt => (
+          <label key={opt.val} onClick={() => onChange('delivery', opt.val)} className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${delivery === opt.val ? 'border-[#1e2d7d] bg-[#dbeafe]' : 'border-gray-200 bg-white hover:border-[#1e2d7d]/40'}`}>
+            <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${delivery === opt.val ? 'border-[#1e2d7d]' : 'border-gray-300'}`}>
+              {delivery === opt.val && <div className="w-2.5 h-2.5 rounded-full bg-[#1e2d7d]" />}
             </div>
-          )}
-
-          {/* STEP 2: Order Comment */}
-          {currentStep === 2 && (
             <div>
-              <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '8px' }}>
-                Крок 2: Коментар до замовлення
-              </h2>
-              <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
-                Розкажіть нам про ваше замовлення — що важливо, які побажання є до дизайну.
-              </p>
-
-              <textarea
-                value={orderComment}
-                onChange={(e) => setOrderComment(e.target.value)}
-                disabled={trustDesigner}
-                placeholder="Наприклад: весільна фотокнига, стиль мінімалізм, основна тема — природа, хочу щоб перший розворот був з портретом нареченої..."
-                rows={6}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  lineHeight: '1.5',
-                  resize: 'vertical',
-                  opacity: trustDesigner ? 0.5 : 1
-                }}
-                className="focus:border-[#1e2d7d] focus:outline-none"
-              />
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '13px', color: '#9ca3af' }}>
-                  {orderComment.length} символів
-                </span>
-              </div>
-
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={trustDesigner}
-                  onChange={(e) => setTrustDesigner(e.target.checked)}
-                  style={{ marginRight: '8px', width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                  Я довіряю вибір дизайну дизайнеру (без коментарів)
-                </span>
-              </label>
+              <p className="font-semibold text-gray-800">{opt.label}</p>
+              <p className="text-sm text-gray-500">{opt.desc}</p>
             </div>
-          )}
+          </label>
+        ))}
+      </div>
+      {delivery === 'nova_poshta' && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Місто</label>
+            <input value={city} onChange={e => onChange('city', e.target.value)} placeholder="Наприклад: Київ" className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Відділення або адреса</label>
+            <input value={address} onChange={e => onChange('address', e.target.value)} placeholder="Відділення №5 або вулиця" className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
-          {/* STEP 3: Delivery Details */}
-          {currentStep === 3 && (
-            <div>
-              <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '8px' }}>
-                Крок 3: Деталі доставки
-              </h2>
-              <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
-                Оберіть спосіб доставки
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                {/* Pickup */}
-                <label
-                  style={{
-                    padding: '16px',
-                    border: `2px solid ${deliveryMethod === 'pickup' ? '#1e2d7d' : '#e5e7eb'}`,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    backgroundColor: deliveryMethod === 'pickup' ? '#f0f3ff' : 'white'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="delivery"
-                    value="pickup"
-                    checked={deliveryMethod === 'pickup'}
-                    onChange={(e) => setDeliveryMethod(e.target.value as 'pickup')}
-                    style={{ marginRight: '12px' }}
-                  />
-                  <span style={{ fontWeight: 600, color: '#1f2937' }}>Самовивіз</span>
-                  <span style={{ fontSize: '14px', color: '#6b7280', display: 'block', marginLeft: '28px', marginTop: '4px' }}>
-                    Тернопіль, вул. Київська 2. Безкоштовно.
-                  </span>
-                </label>
-
-                {/* Nova Poshta */}
-                <label
-                  style={{
-                    padding: '16px',
-                    border: `2px solid ${deliveryMethod === 'novaposhta' ? '#1e2d7d' : '#e5e7eb'}`,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    backgroundColor: deliveryMethod === 'novaposhta' ? '#f0f3ff' : 'white'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="delivery"
-                    value="novaposhta"
-                    checked={deliveryMethod === 'novaposhta'}
-                    onChange={(e) => setDeliveryMethod(e.target.value as 'novaposhta')}
-                    style={{ marginRight: '12px' }}
-                  />
-                  <span style={{ fontWeight: 600, color: '#1f2937' }}>Нова Пошта</span>
-                  {deliveryMethod === 'novaposhta' && (
-                    <div style={{ marginTop: '12px', marginLeft: '28px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <input
-                        type="text"
-                        value={npCity}
-                        onChange={(e) => setNpCity(e.target.value)}
-                        placeholder="Місто"
-                        style={{
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          width: '100%'
-                        }}
-                        className="focus:border-[#1e2d7d] focus:outline-none"
-                      />
-                      <input
-                        type="text"
-                        value={npBranch}
-                        onChange={(e) => setNpBranch(e.target.value)}
-                        placeholder="Відділення НП або адреса"
-                        style={{
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          width: '100%'
-                        }}
-                        className="focus:border-[#1e2d7d] focus:outline-none"
-                      />
-                    </div>
-                  )}
-                </label>
-
-                {/* Ukrposhta */}
-                <label
-                  style={{
-                    padding: '16px',
-                    border: `2px solid ${deliveryMethod === 'ukrposhta' ? '#1e2d7d' : '#e5e7eb'}`,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    backgroundColor: deliveryMethod === 'ukrposhta' ? '#f0f3ff' : 'white'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="delivery"
-                    value="ukrposhta"
-                    checked={deliveryMethod === 'ukrposhta'}
-                    onChange={(e) => setDeliveryMethod(e.target.value as 'ukrposhta')}
-                    style={{ marginRight: '12px' }}
-                  />
-                  <span style={{ fontWeight: 600, color: '#1f2937' }}>Укрпошта</span>
-                  {deliveryMethod === 'ukrposhta' && (
-                    <div style={{ marginTop: '12px', marginLeft: '28px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <input
-                        type="text"
-                        value={ukrposhtaIndex}
-                        onChange={(e) => setUkrposhtaIndex(e.target.value)}
-                        placeholder="Поштовий індекс"
-                        style={{
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          width: '100%'
-                        }}
-                        className="focus:border-[#1e2d7d] focus:outline-none"
-                      />
-                      <input
-                        type="text"
-                        value={ukrposhtaAddress}
-                        onChange={(e) => setUkrposhtaAddress(e.target.value)}
-                        placeholder="Адреса"
-                        style={{
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          width: '100%'
-                        }}
-                        className="focus:border-[#1e2d7d] focus:outline-none"
-                      />
-                    </div>
-                  )}
-                </label>
-
-                {/* International */}
-                <label
-                  style={{
-                    padding: '16px',
-                    border: `2px solid ${deliveryMethod === 'international' ? '#1e2d7d' : '#e5e7eb'}`,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    backgroundColor: deliveryMethod === 'international' ? '#f0f3ff' : 'white'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="delivery"
-                    value="international"
-                    checked={deliveryMethod === 'international'}
-                    onChange={(e) => setDeliveryMethod(e.target.value as 'international')}
-                    style={{ marginRight: '12px' }}
-                  />
-                  <span style={{ fontWeight: 600, color: '#1f2937' }}>Міжнародна доставка</span>
-                  {deliveryMethod === 'international' && (
-                    <div style={{ marginTop: '12px', marginLeft: '28px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <input
-                        type="text"
-                        value={intlCountry}
-                        onChange={(e) => setIntlCountry(e.target.value)}
-                        placeholder="Країна"
-                        style={{
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          width: '100%'
-                        }}
-                        className="focus:border-[#1e2d7d] focus:outline-none"
-                      />
-                      <input
-                        type="text"
-                        value={intlPostalCode}
-                        onChange={(e) => setIntlPostalCode(e.target.value)}
-                        placeholder="Поштовий індекс"
-                        style={{
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          width: '100%'
-                        }}
-                        className="focus:border-[#1e2d7d] focus:outline-none"
-                      />
-                      <input
-                        type="text"
-                        value={intlAddress}
-                        onChange={(e) => setIntlAddress(e.target.value)}
-                        placeholder="Адреса"
-                        style={{
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          width: '100%'
-                        }}
-                        className="focus:border-[#1e2d7d] focus:outline-none"
-                      />
-                    </div>
-                  )}
-                </label>
+function ContactsStep({ name, phone, channel, handle, onChange }: { name: string, phone: string, channel: string, handle: string, onChange: (f: string, v: string) => void }) {
+  const channels = [
+    { val: 'telegram', label: 'Telegram', desc: "Рекомендовано — найшвидший зв'язок", icon: MessageCircle, badge: true },
+    { val: 'instagram', label: 'Instagram', desc: 'Direct повідомлення @touch.memories', icon: Instagram, badge: false },
+    { val: 'email', label: 'Email', desc: 'touch.memories3@gmail.com', icon: Mail, badge: false },
+  ]
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 4: Контакти та канал зв'язку</h2>
+      <p className="text-gray-500 text-sm mb-6">Дизайнер зв'яжеться з вами для підтвердження деталей.</p>
+      <div className="space-y-4 mb-8">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Ваше ім'я *</label>
+          <div className="relative">
+            <User className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+            <input value={name} onChange={e => onChange('name', e.target.value)} placeholder="Як до вас звертатись?" className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Номер телефону *</label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+            <input value={phone} onChange={e => onChange('phone', e.target.value)} type="tel" placeholder="+380 __ ___ ____" className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+          </div>
+        </div>
+      </div>
+      <p className="text-sm font-semibold text-gray-700 mb-3">Зручний канал для зв'язку *</p>
+      <div className="space-y-3">
+        {channels.map(ch => {
+          const Icon = ch.icon
+          return (
+            <label key={ch.val} onClick={() => onChange('contactChannel', ch.val)} className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${channel === ch.val ? 'border-[#1e2d7d] bg-[#dbeafe]' : 'border-gray-200 bg-white hover:border-[#1e2d7d]/40'}`}>
+              <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${channel === ch.val ? 'border-[#1e2d7d]' : 'border-gray-300'}`}>
+                {channel === ch.val && <div className="w-2.5 h-2.5 rounded-full bg-[#1e2d7d]" />}
               </div>
-
-              <p style={{ fontSize: '13px', color: '#6b7280', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
-                Вартість та терміни доставки залежать від перевізника та регіону.
-              </p>
-            </div>
-          )}
-
-          {/* STEP 4: Contact Info */}
-          {currentStep === 4 && (
-            <div>
-              <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '8px' }}>
-                Крок 4: Ваші контактні дані
-              </h2>
-              <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
-                Як з вами зв'язатися?
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
-                    Ім'я <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    placeholder="Ваше ім'я"
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                    className="focus:border-[#1e2d7d] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
-                    Телефон <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    placeholder="+380..."
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                    className="focus:border-[#1e2d7d] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
-                    Email (необов'язково)
-                  </label>
-                  <input
-                    type="email"
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    placeholder="email@example.com"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                    className="focus:border-[#1e2d7d] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '12px' }}>
-                    Зручний спосіб зв'язку
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    {(['telegram', 'viber', 'whatsapp', 'call'] as const).map((method) => (
-                      <label
-                        key={method}
-                        style={{
-                          padding: '12px',
-                          border: `2px solid ${preferredContact === method ? '#1e2d7d' : '#e5e7eb'}`,
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          textAlign: 'center',
-                          backgroundColor: preferredContact === method ? '#f0f3ff' : 'white',
-                          fontWeight: 600,
-                          fontSize: '14px',
-                          color: '#1f2937',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          name="preferredContact"
-                          value={method}
-                          checked={preferredContact === method}
-                          onChange={(e) => setPreferredContact(e.target.value as typeof method)}
-                          style={{ display: 'none' }}
-                        />
-                        {method === 'telegram' && 'Telegram'}
-                        {method === 'viber' && 'Viber'}
-                        {method === 'whatsapp' && 'WhatsApp'}
-                        {method === 'call' && 'Дзвінок'}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${channel === ch.val ? 'bg-[#1e2d7d]' : 'bg-[#f0f2f8]'}`}>
+                <Icon className={`w-5 h-5 ${channel === ch.val ? 'text-white' : 'text-[#1e2d7d]'}`} />
               </div>
-            </div>
-          )}
-
-          {/* STEP 5: Confirmation */}
-          {currentStep === 5 && (
-            <div>
-              <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '8px' }}>
-                Крок 5: Оплата та підтвердження
-              </h2>
-
-              <div style={{ padding: '16px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', marginBottom: '24px' }}>
-                <p style={{ fontSize: '14px', color: '#1e40af', lineHeight: '1.6', marginBottom: '8px' }}>
-                  Ми працюємо тільки за передоплатою, оскільки кожне замовлення є індивідуальним.
-                </p>
-                <p style={{ fontSize: '14px', color: '#1e40af', lineHeight: '1.6' }}>
-                  Оплата на рахунок ФОП у Monobank. Реквізити надсилаються менеджером після підтвердження замовлення.
-                </p>
-              </div>
-
-              <div style={{ padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px', marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1f2937', marginBottom: '12px' }}>
-                  Підсумок замовлення:
-                </h3>
-                <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.8' }}>
-                  <p><strong>Спосіб завантаження фото:</strong> {photoMethod === 'telegram' ? 'Telegram' : photoMethod === 'instagram' ? 'Instagram' : 'Email'}</p>
-                  <p><strong>Доставка:</strong> {deliveryMethod === 'pickup' ? 'Самовивіз (Тернопіль)' : deliveryMethod === 'novaposhta' ? `Нова Пошта (${npCity}, ${npBranch})` : deliveryMethod === 'ukrposhta' ? 'Укрпошта' : 'Міжнародна доставка'}</p>
-                  <p><strong>Контакт:</strong> {contactName}, {contactPhone}</p>
-                  {orderComment && !trustDesigner && (
-                    <p><strong>Коментар:</strong> {orderComment.substring(0, 100)}{orderComment.length > 100 ? '...' : ''}</p>
-                  )}
-                  {trustDesigner && (
-                    <p><strong>Коментар:</strong> Довіряю вибір дизайну дизайнеру</p>
-                  )}
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-gray-800">{ch.label}</p>
+                  {ch.badge && <span className="text-xs bg-[#1e2d7d] text-white px-2 py-0.5 rounded-full">Рекомендовано</span>}
                 </div>
+                <p className="text-xs text-gray-500">{ch.desc}</p>
               </div>
+            </label>
+          )
+        })}
+      </div>
+      {channel && (
+        <div className="mt-5">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {channel === 'telegram' ? 'Ваш Telegram @нікнейм або номер' : channel === 'instagram' ? 'Ваш Instagram @нікнейм' : 'Ваша Email адреса'}
+          </label>
+          <input
+            value={handle}
+            onChange={e => onChange('contactHandle', e.target.value)}
+            type={channel === 'email' ? 'email' : 'text'}
+            placeholder={channel === 'telegram' ? '@username або +380...' : channel === 'instagram' ? '@username' : 'your@email.com'}
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]"
+          />
+        </div>
+      )}
+    </div>
+  )
+}
 
+function ConfirmationStep({ data }: { data: OrderFormData }) {
+  const ch = { telegram: 'Telegram', instagram: 'Instagram', email: 'Email' }[data.contactChannel] || ''
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 5: Підтвердження</h2>
+      <p className="text-gray-500 text-sm mb-6">Перевірте дані перед відправкою.</p>
+      <div className="space-y-3">
+        <div className="bg-[#f0f2f8] rounded-xl p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Фотографії</p>
+          <p className="font-medium text-gray-800">{data.files.length} файл(ів) завантажено</p>
+        </div>
+        {data.comment && (
+          <div className="bg-[#f0f2f8] rounded-xl p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Коментар</p>
+            <p className="text-sm text-gray-700">{data.comment}</p>
+          </div>
+        )}
+        <div className="bg-[#f0f2f8] rounded-xl p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Доставка</p>
+          <p className="font-medium text-gray-800">
+            {data.delivery === 'pickup' ? 'Самовивіз — Тернопіль, вул. Київська 2' : `Нова Пошта — ${data.city}${data.address ? ', ' + data.address : ''}`}
+          </p>
+        </div>
+        <div className="bg-[#f0f2f8] rounded-xl p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Контакти</p>
+          <p className="font-medium text-gray-800">{data.name} · {data.phone}</p>
+          <p className="text-sm text-gray-500">{ch}: {data.contactHandle}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SuccessScreen() {
+  const router = useRouter()
+  return (
+    <div className="text-center py-12">
+      <div className="w-20 h-20 bg-[#dbeafe] rounded-full flex items-center justify-center mx-auto mb-6">
+        <Check className="w-10 h-10 text-[#1e2d7d]" />
+      </div>
+      <h2 className="text-2xl font-bold text-[#1e2d7d] mb-3">Замовлення відправлено!</h2>
+      <p className="text-gray-500 max-w-md mx-auto mb-8">Дякуємо! Наш дизайнер зв'яжеться з вами протягом 1–2 годин для підтвердження деталей.</p>
+      <button onClick={() => router.push('/catalog')} className="bg-[#1e2d7d] hover:bg-[#263a99] text-white font-semibold px-8 py-3 rounded-lg transition-colors">
+        Повернутись до каталогу
+      </button>
+    </div>
+  )
+}
+
+function OrderForm() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [step, setStep] = useState(1)
+  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const [formData, setFormData] = useState<OrderFormData>({
+    files: [], comment: '', delivery: '', city: '', address: '',
+    name: '', phone: '', contactChannel: '', contactHandle: '',
+  })
+
+  const update = (field: string, value: any) => setFormData(prev => ({ ...prev, [field]: value }))
+
+  const canProceed = () => {
+    if (step === 1) return formData.files.length > 0
+    if (step === 3) return !!formData.delivery
+    if (step === 4) return !!formData.name && !!formData.phone && !!formData.contactChannel && !!formData.contactHandle
+    return true
+  }
+
+  const handleSubmit = async () => {
+    setSubmitting(true)
+    setError('')
+    try {
+      const fd = new FormData()
+      formData.files.forEach(f => fd.append('photos', f.file))
+      fd.append('comment', formData.comment)
+      fd.append('delivery', formData.delivery)
+      fd.append('city', formData.city)
+      fd.append('address', formData.address)
+      fd.append('name', formData.name)
+      fd.append('phone', formData.phone)
+      fd.append('contactChannel', formData.contactChannel)
+      fd.append('contactHandle', formData.contactHandle)
+      fd.append('productSlug', searchParams.get('product') || '')
+      const res = await fetch('/api/order', { method: 'POST', body: fd })
+      if (!res.ok) throw new Error('Server error')
+      setSubmitted(true)
+    } catch {
+      setError("Сталася помилка. Спробуйте ще раз або зв'яжіться з нами напряму.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (submitted) return <SuccessScreen />
+
+  return (
+    <div className="min-h-screen bg-[#f0f2f8] py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-[#1e2d7d]">Оформлення замовлення з дизайнером</h1>
+          <p className="text-gray-500 mt-2 text-sm">Наш дизайнер підготує для вас індивідуальний макет</p>
+        </div>
+        <StepIndicator current={step} />
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          {step === 1 && <PhotoUploadStep data={formData.files} onChange={files => update('files', files)} />}
+          {step === 2 && <CommentStep value={formData.comment} onChange={v => update('comment', v)} />}
+          {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} />}
+          {step === 4 && <ContactsStep name={formData.name} phone={formData.phone} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
+          {step === 5 && <ConfirmationStep data={formData} />}
+          {error && <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>}
+          <div className="flex justify-between mt-8 gap-4">
+            <button
+              onClick={step > 1 ? () => setStep(s => s - 1) : () => router.back()}
+              className="flex items-center gap-2 px-6 py-3 border-2 border-[#1e2d7d] text-[#1e2d7d] rounded-lg font-semibold hover:bg-[#f0f2f8] transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Назад
+            </button>
+            {step < 5 ? (
+              <button
+                onClick={() => setStep(s => s + 1)}
+                disabled={!canProceed()}
+                className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-colors ${canProceed() ? 'bg-[#1e2d7d] hover:bg-[#263a99] text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+              >
+                Далі <ChevronRight className="w-4 h-4" />
+              </button>
+            ) : (
               <button
                 onClick={handleSubmit}
-                style={{
-                  width: '100%',
-                  padding: '16px',
-                  backgroundColor: '#1e2d7d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                className="hover:bg-[#263a99]"
+                disabled={submitting}
+                className="flex items-center gap-2 px-8 py-3 rounded-lg font-semibold bg-[#1e2d7d] hover:bg-[#263a99] text-white transition-colors disabled:opacity-60"
               >
-                Надіслати заявку
-              </button>
-            </div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #e5e7eb' }}>
-            {currentStep > 1 && (
-              <button
-                onClick={handleBack}
-                style={{
-                  padding: '12px 24px',
-                  border: '1px solid #d1d5db',
-                  backgroundColor: 'white',
-                  color: '#374151',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'background-color 0.2s'
-                }}
-                className="hover:bg-gray-50"
-              >
-                <ChevronLeft size={16} />
-                Назад
-              </button>
-            )}
-
-            {currentStep < 5 && (
-              <button
-                onClick={handleNext}
-                disabled={
-                  (currentStep === 1 && !canProceedStep1) ||
-                  (currentStep === 3 && !canProceedStep3) ||
-                  (currentStep === 4 && !canProceedStep4)
-                }
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#1e2d7d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginLeft: 'auto',
-                  opacity: (currentStep === 1 && !canProceedStep1) || (currentStep === 3 && !canProceedStep3) || (currentStep === 4 && !canProceedStep4) ? 0.5 : 1,
-                  transition: 'all 0.2s'
-                }}
-                className="hover:bg-[#263a99]"
-              >
-                Далі
-                <ChevronRight size={16} />
+                {submitting ? 'Відправляємо...' : 'Підтвердити замовлення'} <Check className="w-4 h-4" />
               </button>
             )}
           </div>
         </div>
-      </main>
-
-      <Footer />
+      </div>
     </div>
-  );
+  )
 }
 
 export default function OrderPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#f0f2f8]">
-        <div className="text-[#1e2d7d] text-lg font-semibold">Завантаження...</div>
-      </div>
-    }>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f0f2f8]"><p className="text-gray-500">Завантаження...</p></div>}>
       <OrderForm />
     </Suspense>
-  );
+  )
 }
