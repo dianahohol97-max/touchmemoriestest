@@ -16,7 +16,7 @@ export default function ShippingReturnsPage() {
                 <div className="container max-w-4xl mx-auto px-4">
                     <header className="text-center mb-16">
                         <h1 className="text-5xl font-black text-gray-900 mb-4 font-heading tracking-tight">
-                            Доставка та оплата 📦
+                            Доставка та оплата
                         </h1>
                         <p className="text-xl text-gray-600">
                             Вся інформація про доставку, оплату та гарантії якості.
@@ -36,19 +36,15 @@ export default function ShippingReturnsPage() {
                                 <ul className="text-gray-600 leading-relaxed space-y-3">
                                     <li className="flex items-start gap-2">
                                         <span className="text-indigo-600 font-bold">•</span>
-                                        <span><strong>По Україні:</strong> Нова Пошта (відділення або адресна доставка)</span>
+                                        <span><strong>Тернопіль — самовивіз</strong><br />Вул. Київська 2, Тернопіль. Уточнюйте наявність перед приїздом.</span>
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <span className="text-indigo-600 font-bold">•</span>
-                                        <span><strong>Тернопіль:</strong> безкоштовна доставка кур'єром або самовивіз</span>
+                                        <span><strong>Доставка по Україні</strong><br />Нова Пошта або Укрпошта. Термін доставки залежить від перевізника.</span>
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <span className="text-indigo-600 font-bold">•</span>
-                                        <span><strong>За кордон:</strong> обговорюється індивідуально</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-indigo-600 font-bold">•</span>
-                                        <span><strong>Термін доставки:</strong> 1-3 дні після виготовлення</span>
+                                        <span><strong>Доставка за кордон</strong><br />Доставляємо в будь-який куточок світу. Термін та вартість залежать від перевізника та країни призначення.</span>
                                     </li>
                                 </ul>
                             </div>
@@ -107,27 +103,7 @@ export default function ShippingReturnsPage() {
                             </p>
                         </div>
 
-                        {/* Policy Section 3 */}
-                        <div className="bg-white p-8 rounded-[3px] shadow-sm border border-gray-100">
-                            <div className="bg-green-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
-                                <Package className="h-7 w-7 text-green-600" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Процедура обміну</h2>
-                            <p className="text-gray-600 leading-relaxed">
-                                Для подачі заявки на обмін зв'яжіться з нашою підтримкою протягом 14 днів після отримання, надіславши фото виявленого дефекту.
-                            </p>
-                        </div>
 
-                        {/* Policy Section 4 */}
-                        <div className="bg-white p-8 rounded-[3px] shadow-sm border border-gray-100">
-                            <div className="bg-orange-50 w-14 h-14 rounded-[3px] flex items-center justify-center mb-6">
-                                <Clock className="h-7 w-7 text-orange-600" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Терміни розгляду</h2>
-                            <p className="text-gray-600 leading-relaxed">
-                                Ми розглянемо ваше звернення протягом 1-2 робочих днів та запропонуємо оптимальне рішення для виправлення ситуації.
-                            </p>
-                        </div>
                     </div>
                     </div>
 
