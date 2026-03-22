@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, ChevronLeft, ChevronRight, Download, ShoppingCart, AlertCircle } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Download, AlertCircle } from 'lucide-react'
 import * as fabric from 'fabric'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -114,9 +114,9 @@ export default function PreviewModal({ project, onClose }: PreviewModalProps) {
       fontFamily: element.fontFamily || 'Montserrat',
       fontSize: element.fontSize || 24,
       fill: element.color || '#000000',
-      textAlign: element.align || 'left',
-      fontWeight: element.bold ? 'bold' : 'normal',
-      fontStyle: element.italic ? 'italic' : 'normal',
+      textAlign: (element.align || 'left') as 'left' | 'center' | 'right' | 'justify',
+      fontWeight: (element.bold ? 'bold' : 'normal') as 'normal' | 'bold',
+      fontStyle: (element.italic ? 'italic' : 'normal') as '' | 'normal' | 'italic' | 'oblique',
       underline: element.underline || false,
       charSpacing: (element.letterSpacing || 0) * 10,
       lineHeight: element.lineHeight || 1.2,
