@@ -131,37 +131,7 @@ export default function PhotobookPage() {
   };
 
   const handleDesigner = () => {
-    // Validate QR link if QR code is selected
-    if (qrCode && !validateQrLink(qrLink)) {
-      return;
-    }
-
-    const coverTypeLabel = COVER_TYPES.find(c => c.key === coverType)?.name || '';
-
-    sessionStorage.setItem('photoBookOrder', JSON.stringify({
-      coverType,
-      coverTypeLabel,
-      size,
-      pages,
-      tracingPaper,
-      copies,
-      basePrice,
-      extras: {
-        photoRetouching,
-        retouchChoice,
-        retouchCount: retouchChoice === 'specify' ? retouchCount : 0,
-        retouchNotes,
-        retouchPriceTBD: retouchChoice === 'designer-decides',
-        qrCode,
-        qrLink,
-        urgentProduction,
-        textTypesetting,
-        textSource,
-        ownText
-      },
-      totalPrice
-    }));
-    router.push('/order/designer-upload?type=photobook');
+    router.push('/order');
   };
 
   return (

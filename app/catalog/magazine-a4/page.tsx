@@ -80,31 +80,7 @@ export default function MagazineA4Page() {
   };
 
   const handleDesigner = () => {
-    // Validate QR link if QR code is selected
-    if (qrCode && !validateQrLink(qrLink)) {
-      return;
-    }
-
-    sessionStorage.setItem('magazineOrder', JSON.stringify({
-      pages,
-      copies,
-      basePrice,
-      extras: {
-        textTypesetting,
-        textSource,
-        ownText,
-        photoRetouching,
-        retouchChoice,
-        retouchCount: retouchChoice === 'specify' ? retouchCount : 0,
-        retouchNotes,
-        retouchPriceTBD: retouchChoice === 'designer-decides',
-        qrCode,
-        qrLink,
-        urgentProduction
-      },
-      totalPrice
-    }));
-    router.push('/order/designer-upload');
+    router.push('/order');
   };
 
   return (

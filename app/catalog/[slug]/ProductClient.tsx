@@ -488,7 +488,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             Створити у конструкторі
                                         </Link>
                                         <Link
-                                            href="/kontakty"
+                                            href="/order"
                                             style={{
                                                 flex: 1,
                                                 padding: '18px',

@@ -40,7 +40,7 @@ export function FinalCTA() {
                                 Відкрити конструктор
                             </Link>
                             <Link
-                                href="/kontakty"
+                                href="/order"
                                 className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
                             >
                                 Оформити з дизайнером
