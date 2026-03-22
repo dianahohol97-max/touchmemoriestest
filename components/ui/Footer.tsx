@@ -111,7 +111,7 @@ export function Footer({ categories = [] }: FooterProps) {
             links: customLinks.length > 0 ? customLinks : (categories.length > 0 ? categories.map(c => ({ label: c.name, href: `/catalog?category=${c.slug}` })) : [
                 { label: 'Фотокниги', href: '/catalog?category=photobooks' },
                 { label: 'Глянцеві журнали', href: '/catalog?category=hlyantsevi-zhurnaly' },
-                { label: 'Фотоdruки', href: '/catalog?category=prints' }
+                { label: 'Фотодрук', href: '/catalog?category=prints' }
             ])
         },
         {

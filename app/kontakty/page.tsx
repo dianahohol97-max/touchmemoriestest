@@ -33,11 +33,11 @@ export default function Kontakty() {
 
                             <div className="flex flex-col gap-3 mt-4">
                                 <a href="https://t.me/touchmemories" target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-blue-600 hover:underline font-medium">
+                                    className="flex items-center gap-2 text-[#1e2d7d] hover:text-[#263a99] hover:underline font-medium transition-colors">
                                     Telegram: @touchmemories
                                 </a>
                                 <a href="https://instagram.com/touch.memories" target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-pink-600 hover:underline font-medium">
+                                    className="flex items-center gap-2 text-[#1e2d7d] hover:text-[#263a99] hover:underline font-medium transition-colors">
                                     Instagram: @touch.memories
                                 </a>
                             </div>
