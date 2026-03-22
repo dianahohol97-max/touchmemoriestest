@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function ConstructorPage() {
-  redirect('/order?type=designer')
+  redirect('/order') // Posters use designer order flow
 }

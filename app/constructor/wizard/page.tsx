@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function ConstructorPage() {
-  redirect('/order?type=designer')
+  redirect('/catalog') // Wizard redirects to catalog to choose product
 }

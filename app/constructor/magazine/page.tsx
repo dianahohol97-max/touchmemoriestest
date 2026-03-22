@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function ConstructorPage() {
-  redirect('/order?type=designer')
+  redirect('/editor/new?product=magazine&format=A4&pages=12')
 }
