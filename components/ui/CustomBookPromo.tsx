@@ -48,11 +48,6 @@ export function CustomBookPromo() {
                     transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                     className="text-center"
                 >
-                    {/* Label */}
-                    <p className="text-xs text-stone-500 tracking-widest uppercase mb-4">
-                        НАШІ ПРОДУКТИ
-                    </p>
-
                     {/* Main Heading */}
                     <h2 className="text-3xl lg:text-4xl font-black text-[#1e2d7d] leading-tight mb-6">
                         Фотокниги, журнали та фотовироби з душею
@@ -99,7 +94,7 @@ export function CustomBookPromo() {
                     >
                         <Link
                             href="/catalog"
-                            className="inline-flex items-center gap-3 bg-[#1e2d7d] text-white px-10 py-4 rounded-full text-lg font-bold hover:bg-[#152158] transition-all duration-200 shadow-[0_4px_20px_rgba(38,58,153,0.35)] hover:shadow-[0_8px_32px_rgba(38,58,153,0.45)] hover:scale-105 hover:-translate-y-1"
+                            className="inline-flex items-center gap-3 bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200"
                         >
                             В магазин
                             <ArrowRight size={20} />
