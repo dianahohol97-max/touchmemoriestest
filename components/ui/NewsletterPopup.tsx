@@ -20,11 +20,11 @@ export function NewsletterPopup() {
         // Check if already seen or subscribed (once per user)
         const hasSeen = localStorage.getItem('popup_shown');
         if (!hasSeen) {
-            // Trigger popup after 15 seconds on site
+            // Trigger popup after 8 seconds on site
             const timer = setTimeout(() => {
                 setIsOpen(true);
                 localStorage.setItem('popup_shown', 'true');
-            }, 15000);
+            }, 8000);
             return () => clearTimeout(timer);
         }
     }, [pathname]);
@@ -136,7 +136,7 @@ export function NewsletterPopup() {
                             </button>
 
                             <div style={{
-                                backgroundColor: '#fffbeb',
+                                backgroundColor: 'white',
                                 padding: '32px',
                                 textAlign: 'center',
                                 borderBottom: '1px solid #dce4f5',
@@ -190,7 +190,7 @@ export function NewsletterPopup() {
                                             </svg>
                                         </div>
                                         <h4 style={{ fontSize: '20px', fontWeight: 700, color: '#263A99', marginBottom: '8px' }}>Дякуємо!</h4>
-                                        <p style={{ color: '#475569' }}>Промокод надіслано на вашу пошту 💛</p>
+                                        <p style={{ color: '#475569' }}>Промокод надіслано на вашу пошту</p>
                                     </div>
                                 ) : (
                                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
