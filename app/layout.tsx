@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Montserrat, Open_Sans } from "next/font/google";
+import { Montserrat, Open_Sans, Playfair_Display, Lato, Roboto, Dancing_Script, Oswald } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import { AnalyticsProvider } from '@/components/providers/AnalyticsProvider';
@@ -21,6 +21,36 @@ const openSans = Open_Sans({
   variable: "--font-open-sans",
   subsets: ["latin", "cyrillic"],
   weight: ['400', '500', '600', '700', '800'],
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin", "cyrillic"],
+  weight: ['400', '700'],
+});
+
+const lato = Lato({
+  variable: "--font-lato",
+  subsets: ["latin"],
+  weight: ['400', '700'],
+});
+
+const roboto = Roboto({
+  variable: "--font-roboto",
+  subsets: ["latin", "cyrillic"],
+  weight: ['400', '700'],
+});
+
+const dancingScript = Dancing_Script({
+  variable: "--font-dancing",
+  subsets: ["latin"],
+  weight: ['400', '700'],
+});
+
+const oswald = Oswald({
+  variable: "--font-oswald",
+  subsets: ["latin", "cyrillic"],
+  weight: ['400', '700'],
 });
 
 export const metadata: Metadata = {
@@ -45,7 +75,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" className={`${montserrat.variable} ${openSans.variable}`}>
+    <html lang="uk" className={`${montserrat.variable} ${openSans.variable} ${playfair.variable} ${lato.variable} ${roboto.variable} ${dancingScript.variable} ${oswald.variable}`}>
       <body className="font-body bg-background text-textPrimary antialiased">
         <ThemeProvider>
           {children}
