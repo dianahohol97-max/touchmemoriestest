@@ -52,21 +52,21 @@ export function ConstructorSelection() {
                                 <span className="text-[#1e2d7d]/60 text-lg font-semibold">Конструктор</span>
                             </div>
 
-                            {/* Primary button */}
-                            <Link
-                                href="/constructor/photobook"
-                                className="block w-full bg-[#1e2d7d] text-white text-center px-7 py-3.5 rounded-lg font-bold hover:bg-[#152158] transition-colors duration-200"
-                            >
-                                Відкрити конструктор
-                            </Link>
-
-                            {/* Secondary text link */}
-                            <Link
-                                href="/kontakty"
-                                className="block text-sm text-center text-[#1e2d7d] font-semibold hover:text-[#152158] transition-colors duration-200"
-                            >
-                                оформити з дизайнером
-                            </Link>
+                            {/* Buttons */}
+                            <div className="flex gap-3">
+                                <Link
+                                    href="/constructor/photobook"
+                                    className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-bold hover:bg-[#152158] transition-colors duration-200"
+                                >
+                                    Відкрити конструктор
+                                </Link>
+                                <Link
+                                    href="/kontakty"
+                                    className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
+                                >
+                                    оформити з дизайнером
+                                </Link>
+                            </div>
                         </div>
 
                     </div>
@@ -96,21 +96,21 @@ export function ConstructorSelection() {
                                 <span className="text-[#1e2d7d]/60 text-lg font-semibold">Конструктор</span>
                             </div>
 
-                            {/* Primary button */}
-                            <Link
-                                href="/constructor/magazine"
-                                className="block w-full bg-[#1e2d7d] text-white text-center px-7 py-3.5 rounded-lg font-bold hover:bg-[#152158] transition-colors duration-200"
-                            >
-                                Відкрити конструктор
-                            </Link>
-
-                            {/* Secondary text link */}
-                            <Link
-                                href="/kontakty"
-                                className="block text-sm text-center text-[#1e2d7d] font-semibold hover:text-[#152158] transition-colors duration-200"
-                            >
-                                оформити з дизайнером
-                            </Link>
+                            {/* Buttons */}
+                            <div className="flex gap-3">
+                                <Link
+                                    href="/constructor/magazine"
+                                    className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-bold hover:bg-[#152158] transition-colors duration-200"
+                                >
+                                    Відкрити конструктор
+                                </Link>
+                                <Link
+                                    href="/kontakty"
+                                    className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
+                                >
+                                    оформити з дизайнером
+                                </Link>
+                            </div>
                         </div>
 
                         {/* RIGHT: Video */}
