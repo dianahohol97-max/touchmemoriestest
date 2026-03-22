@@ -28,19 +28,16 @@ export default function ProNasPage() {
 
           {/* About Section */}
           <section className="bg-white rounded-lg shadow-sm border border-gray-100 p-10 mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Хто ми</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">Ми — Touch Memories</h2>
             <div className="prose prose-lg max-w-none text-gray-600 leading-relaxed space-y-4">
               <p>
-                Ми — невелика команда ентузіастів, які вірять у силу спогадів. Кожна фотокнига, 
-                яку ми виготовляємо, — це унікальна історія, збережена на роки.
+                Touch Memories — це більше, ніж просто друк. Ми — команда, яка глибоко вірить у силу спогадів.
               </p>
               <p>
-                Наша місія — допомогти вам створити красиві, якісні альбоми та журнали, які зберігатимуть 
-                найважливіші моменти вашого життя: весілля, подорожі, сімейні свята, дитинство.
+                Кожна фотографія, кожна мить — це частина твоєї історії. І ми хочемо, щоб ці моменти жили поруч з тобою: у красивій фотокнизі, у стильному журналі, на якісному друку.
               </p>
               <p>
-                Ми працюємо з сучасним обладнанням, використовуємо преміальні матеріали та приділяємо 
-                увагу кожній деталі — від вибору паперу до фінального палітурного зшивання.
+                Ми підходимо до кожного замовлення індивідуально — тому що кожна людина особлива, і кожна її історія заслуговує найкращого втілення.
               </p>
             </div>
           </section>
@@ -80,20 +77,6 @@ export default function ProNasPage() {
                 <p className="text-gray-600 text-sm leading-relaxed">
                   Понад 20 000 задоволених клієнтів вже довірили нам свої найцінніші спогади.
                 </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Studio Image Placeholder */}
-          <section className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-12">
-            <div 
-              className="w-full bg-gradient-to-br from-stone-100 to-amber-50 flex items-center justify-center text-gray-400"
-              style={{ height: '400px' }}
-            >
-              <div className="text-center">
-                <Users size={64} className="mx-auto mb-4 opacity-30" />
-                <p className="text-lg font-medium">Фото студії</p>
-                <p className="text-sm">(буде додано незабаром)</p>
               </div>
             </div>
           </section>
