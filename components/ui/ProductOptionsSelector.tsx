@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 
 type ProductOption = {
   name: string;
@@ -73,6 +73,24 @@ const POLAROID_PRICES: Record<string, number> = {
   '7.6х10.1': 7.5,
   '8.6х5.4': 7.5,
 };
+
+// Velour color options
+const VELOUR_COLORS = [
+  { code: 'B-01', name: 'Кремовий',        hex: '#F2EDE3' },
+  { code: 'B-02', name: 'Бежевий',         hex: '#C4A882' },
+  { code: 'B-03', name: 'Попелясто-бежевий', hex: '#A8978A' },
+  { code: 'B-04', name: 'Рожевий',         hex: '#E8BDB5' },
+  { code: 'B-05', name: 'Бордо',           hex: '#8B1A3A' },
+  { code: 'B-06', name: 'Сірий',           hex: '#9A9EA8' },
+  { code: 'B-07', name: 'Ліловий',         hex: '#C5B5C8' },
+  { code: 'B-08', name: 'Темно-синій',     hex: '#1A2545' },
+  { code: 'B-09', name: 'Антрацит',        hex: '#4A4E58' },
+  { code: 'B-10', name: 'Бірюзовий',       hex: '#28A8B8' },
+  { code: 'B-11', name: 'Пурпуровий',      hex: '#9B3585' },
+  { code: 'B-12', name: 'Сталево-синій',   hex: '#7A9BB5' },
+  { code: 'B-13', name: 'Смарагдовий',     hex: '#1A4530' },
+  { code: 'B-14', name: 'Гірчичний',       hex: '#E8C050' },
+];
 
 // 3D Price table for Velour photobooks: Size -> Pages -> Калька -> Price
 const VELOUR_PRICES: Record<string, Record<string, Record<string, number>>> = {
@@ -403,6 +421,8 @@ interface ProductOptionsSelectorProps {
 
 export function ProductOptionsSelector({ slug, selectedOptions, onChange }: ProductOptionsSelectorProps) {
   const productType = detectProductType(slug);
+  const isVelourProduct = slug?.toLowerCase().includes('velour') || slug?.toLowerCase().includes('velyur') || productType === 'photobook-velour';
+  const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
 
   if (!productType) {
     return null;
@@ -495,6 +515,10 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       ...selectedOptions,
       [optionName]: value,
     };
+    // Include velour color if this is a velour product
+    if (isVelourProduct && selectedColor) {
+      newOptions['Колір велюру'] = `${selectedColor.name} (${selectedColor.code})`;
+    }
     const price = calculatePrice(newOptions);
     onChange(newOptions, price || undefined);
   };
@@ -569,6 +593,51 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
           </div>
         );
       })}
+
+      {/* Velour Color Picker */}
+      {isVelourProduct && (
+        <div>
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: 700,
+            marginBottom: '12px',
+            color: '#1e2d7d'
+          }}>
+            Колір велюру: <span style={{ fontWeight: 400, color: '#64748b' }}>{selectedColor?.name ?? 'оберіть колір'}</span>
+          </label>
+
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            {VELOUR_COLORS.map(color => (
+              <button
+                key={color.code}
+                type="button"
+                onClick={() => {
+                  setSelectedColor(color);
+                  // Update parent with new color selection
+                  const newOptions = {
+                    ...selectedOptions,
+                    'Колір велюру': `${color.name} (${color.code})`
+                  };
+                  const price = calculatePrice(newOptions);
+                  onChange(newOptions, price || undefined);
+                }}
+                className={`w-8 h-8 rounded-full border-2 transition-all ${
+                  selectedColor?.code === color.code
+                    ? 'border-[#1e2d7d] scale-110 shadow-md'
+                    : 'border-transparent hover:border-gray-300'
+                }`}
+                style={{ backgroundColor: color.hex }}
+                aria-label={color.name}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
