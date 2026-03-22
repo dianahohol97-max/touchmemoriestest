@@ -112,10 +112,10 @@ export function Hero() {
                     </div>
                     {/* Row 3: Фотодрук + Фотомагніти */}
                     <div className="flex gap-3 flex-wrap items-center">
-                        <Link href="/catalog?category=photoprints" className="bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200">
+                        <Link href="/catalog?category=prints" className="bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200">
                             Фотодрук
                         </Link>
-                        <Link href="/catalog?category=magnets" className="bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200">
+                        <Link href="/catalog?category=photomagnets" className="bg-white text-[#1e2d7d] border border-[#1e2d7d] hover:bg-[#f0f2f8] font-semibold px-7 py-3.5 rounded-lg transition-colors duration-200">
                             Фотомагніти
                         </Link>
                     </div>
