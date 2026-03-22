@@ -198,18 +198,13 @@ export default async function Home() {
               <div className="lg:sticky lg:top-24">
                 <div className="bg-white rounded-lg shadow-lg p-8">
 
-                  {/* Label */}
-                  <p className="text-xs text-[#6b7cc4] uppercase mb-4" style={{ letterSpacing: '1.5px' }}>
-                    Новинка сезону
-                  </p>
-
                   {/* Heading */}
                   <h2 className="text-4xl lg:text-5xl font-black text-[#1e2d7d] leading-tight mb-6">
                     Travel Book — журнал твоєї подорожі
                   </h2>
 
                   {/* Description */}
-                  <p className="text-stone-600 text-lg leading-relaxed mb-8">
+                  <p className="text-gray-700 text-lg leading-relaxed mb-8">
                     A4 формат, тверда обкладинка, 170г глянцевий папір. Ідеальний спосіб
                     зберегти спогади про подорожі у стильному виданні, яке ти створив сам.
                   </p>
@@ -250,9 +245,6 @@ export default async function Home() {
 
                         {/* Cover text overlay */}
                         <div className="absolute bottom-0 left-0 right-0 p-6">
-                          <p className="text-white text-xs uppercase mb-2" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px', display: 'inline-block' }}>
-                            EXPLORE
-                          </p>
                           <p className="text-white text-xl leading-tight font-serif italic">
                             Моя подорож<br />до Карпат
                           </p>
@@ -260,12 +252,6 @@ export default async function Home() {
                             48°N · 24°E · 2025
                           </p>
                         </div>
-                      </div>
-
-                      {/* Price tag */}
-                      <div className="absolute -top-3 -right-3 bg-[#263a99] text-white px-4 py-2 text-center shadow-lg rounded-full">
-                        <p className="text-xs uppercase tracking-wider opacity-90">від</p>
-                        <p className="text-2xl font-bold">550 ₴</p>
                       </div>
                     </div>
                   </div>

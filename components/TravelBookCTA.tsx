@@ -14,20 +14,20 @@ export function TravelBookCTA() {
   };
 
   return (
-    <div className="flex flex-wrap gap-4">
-      <Link
-        href="/catalog/travelbook-21x21"
-        className="inline-block bg-white text-[#263a99] px-8 py-3.5 rounded-full font-bold shadow-[0_4px_16px_rgba(0,0,0,0.15)] hover:bg-[#eef0fb] hover:-translate-y-0.5 transition-all duration-200"
-      >
-        Дізнатись більше
-      </Link>
+    <div className="flex gap-3 flex-wrap">
       <a
         href="/constructor/travelbook"
         onClick={handleCreateClick}
-        className="inline-block border-2 border-white/30 text-white px-8 py-3.5 rounded-full font-bold hover:border-white hover:bg-white/10 transition-all duration-200 cursor-pointer"
+        className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-[#263a99] transition-colors duration-200 cursor-pointer"
       >
-        Створити свій
+        Відкрити конструктор
       </a>
+      <Link
+        href="/kontakty"
+        className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
+      >
+        Оформити з дизайнером
+      </Link>
     </div>
   );
 }
