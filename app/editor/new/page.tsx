@@ -17,7 +17,7 @@ export default async function EditorNewPage({ searchParams }: EditorNewPageProps
   const pages = parseInt(searchParams.pages || '20', 10)
 
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Create a new editor project in Supabase
     const { data, error } = await supabase
