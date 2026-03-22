@@ -10,6 +10,7 @@ export interface EditorProject {
   totalPages: number
   pages: EditorPage[]
   coverPage: EditorPage
+  uploadedPhotos?: string[]
   createdAt: string
   updatedAt: string
 }
