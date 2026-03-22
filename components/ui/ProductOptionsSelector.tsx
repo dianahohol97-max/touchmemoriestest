@@ -34,6 +34,12 @@ const PHOTOJOURNAL_PAGE_PRICES: Record<number, number> = {
   60: 2275, 72: 2575, 80: 2825,
 };
 
+const PHOTOJOURNAL_HARD_PAGE_PRICES: Record<number, number> = {
+  12: 600, 16: 750, 20: 900, 24: 1050, 28: 1200, 32: 1350,
+  36: 1500, 40: 1650, 44: 1800, 48: 1950, 52: 2075,
+  60: 2275, 72: 2575, 80: 2825,
+};
+
 const TRAVELBOOK_PAGE_PRICES: Record<number, number> = {
   12: 550, 16: 700, 20: 850, 24: 1000, 28: 1150, 32: 1300,
   36: 1450, 40: 1600, 44: 1750, 48: 1900, 52: 2025,
@@ -107,6 +113,15 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       name: 'Кількість сторінок',
       values: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
       prices: PHOTOJOURNAL_PAGE_PRICES,
+      required: true
+    },
+  ],
+  'photojournal-hard': [
+    { name: 'Розмір', values: ['A4 (210×297 мм)'], type: 'text', required: false },
+    {
+      name: 'Кількість сторінок',
+      values: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
+      prices: PHOTOJOURNAL_HARD_PAGE_PRICES,
       required: true
     },
   ],
@@ -229,6 +244,11 @@ function detectProductType(slug: string): string | null {
     return 'magazine';
   }
 
+  // Журнал з твердою обкладинкою (new hard cover variant)
+  if (s.includes('photojournal-hard')) {
+    return 'photojournal-hard';
+  }
+
   // Фотожурнал з твердою обкладинкою
   if (s.includes('photojournal') || s.includes('tverda') || s.includes('hardcover')) {
     return 'photojournal';
@@ -284,6 +304,14 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       const pages = opts['Кількість сторінок'];
       if (pages && typeof pages === 'number') {
         return PHOTOJOURNAL_PAGE_PRICES[pages] || null;
+      }
+    }
+
+    // Журнал з твердою обкладинкою (hard cover variant)
+    if (productType === 'photojournal-hard') {
+      const pages = opts['Кількість сторінок'];
+      if (pages && typeof pages === 'number') {
+        return PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || null;
       }
     }
 
@@ -440,6 +468,14 @@ export function getCalculatedPrice(slug: string, selectedOptions: Record<string,
     const pages = selectedOptions['Кількість сторінок'];
     if (pages && typeof pages === 'number') {
       return PHOTOJOURNAL_PAGE_PRICES[pages] || null;
+    }
+  }
+
+  // Журнал з твердою обкладинкою (hard cover variant)
+  if (productType === 'photojournal-hard') {
+    const pages = selectedOptions['Кількість сторінок'];
+    if (pages && typeof pages === 'number') {
+      return PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || null;
     }
   }
 
