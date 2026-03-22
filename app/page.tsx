@@ -99,7 +99,9 @@ export default async function Home() {
           <Hero />
         </SectionWrapper>
 
-        <PopularProducts />
+        <div style={{ order: 15 }}>
+          <PopularProducts />
+        </div>
 
         {/* Featured Products */}
         <SectionWrapper name="featured_products" defaultOrder={2}>
