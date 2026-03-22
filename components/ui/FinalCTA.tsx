@@ -117,7 +117,7 @@ export function FinalCTA() {
                                 transition={{ duration: 0.6, delay: 0.7 }}
                                 className="absolute -bottom-4 -left-4 bg-white/90 backdrop-blur-sm text-stone-800 px-4 py-2 rounded-lg shadow-lg text-xs"
                             >
-                                ✨ 50+ сторінок
+                                50+ сторінок
                             </motion.div>
                         </div>
                     </motion.div>

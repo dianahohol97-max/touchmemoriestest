@@ -424,7 +424,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     Замовити →
                                 </Link>
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
-                                    Завантажте фото та оформіть замовлення за 3 кроки 📸
+                                    Завантажте фото та оформіть замовлення за 3 кроки
                                 </p>
                             </div>
                         ) : product.is_personalized ? (
@@ -440,7 +440,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         color: '#78350f',
                                         textAlign: 'center'
                                     }}>
-                                        ⚠️ Оберіть всі обов'язкові опції перед замовленням
+                                        Оберіть всі обов'язкові опції перед замовленням
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
@@ -484,8 +484,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         </Link>
                                     </div>
                                     <p style={{ fontSize: '14px', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
-                                        Не знаєте як оформити? Наш дизайнер допоможе вам створити ідеальний продукт 💛
-                                    </p>
+                                        Не знаєте як оформити? Наш дизайнер допоможе вам створити ідеальний продукт                                    </p>
                                 </div>
                             </div>
                         ) : product.is_partially_personalized ? (
@@ -501,7 +500,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         color: '#78350f',
                                         textAlign: 'center'
                                     }}>
-                                        ⚠️ Оберіть всі обов'язкові опції перед замовленням
+                                        Оберіть всі обов'язкові опції перед замовленням
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', gap: '12px' }} className={styles.flexResponsive}>
@@ -590,8 +589,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 )}
 
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
-                                    Персоналізація — це індивідуальний надпис або оформлення на ваш вибір 💛
-                                </p>
+                                    Персоналізація — це індивідуальний надпис або оформлення на ваш вибір                                </p>
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
@@ -606,7 +604,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         color: '#78350f',
                                         textAlign: 'center'
                                     }}>
-                                        ⚠️ Оберіть всі обов'язкові опції перед замовленням
+                                        Оберіть всі обов'язкові опції перед замовленням
                                     </div>
                                 )}
                                 <button
@@ -655,8 +653,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 )}
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
                                     {(product.options && Array.isArray(product.options) && product.options.length > 0)
-                                        ? 'Потрібна допомога з оформленням? Зв\'яжіться з нашим дизайнером 💛'
-                                        : 'Швидке оформлення замовлення без зайвих кліків 🚀'
+                                        ? 'Потрібна допомога з оформленням? Зв\'яжіться з нашим дизайнером'
+                                        : 'Швидке оформлення замовлення без зайвих кліків'
                                     }
                                 </p>
                             </div>

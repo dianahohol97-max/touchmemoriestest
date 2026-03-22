@@ -202,7 +202,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                         <span>•</span>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={14} /> {post?.reading_time || 5} хв</span>
                                         <span>•</span>
-                                        <span>👁 {(post?.views_count || 0) + 1}</span>
+                                        <span>{(post?.views_count || 0) + 1} переглядів</span>
                                     </div>
                                 </div>
                             </div>

@@ -11,27 +11,27 @@ export function HowItWorks() {
 
     const features = [
         {
-            emoji: '🖨️',
+            emoji: null,
             title: 'Преміум якість друку',
             description: 'Fujicolor Crystal Archive, термін зберігання 100+ років',
         },
         {
-            emoji: '🎨',
+            emoji: null,
             title: 'Персональний дизайн',
             description: 'Безкоштовний макет у подарунок, необмежені правки',
         },
         {
-            emoji: '⚡',
+            emoji: null,
             title: 'Швидке виробництво',
             description: 'Фотокниги 14 р.д., журнали 4–8 р.д.',
         },
         {
-            emoji: '🚚',
+            emoji: null,
             title: 'Доставка по Україні',
             description: 'Нова Пошта, Укрпошта по всій Україні',
         },
         {
-            emoji: '✨',
+            emoji: null,
             title: 'Унікальні продукти',
             description: 'Авторські вироби, яких немає в масовому виробництві',
         }

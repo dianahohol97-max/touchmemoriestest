@@ -223,7 +223,7 @@ export default async function Home() {
                       'Доставка по всій Україні',
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3 text-stone-700 text-sm">
-                        <span className="text-[#4a5cc7] mt-0.5">✦</span>
+                        <span className="text-[#4a5cc7] mt-0.5">•</span>
                         {item}
                       </li>
                     ))}

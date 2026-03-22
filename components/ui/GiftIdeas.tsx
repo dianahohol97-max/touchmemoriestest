@@ -44,15 +44,15 @@ export function GiftIdeas() {
                 console.error('Error fetching gift collections:', error);
                 // Fallback to hardcoded collections if database fetch fails
                 setCollections([
-                    { id: '1', slug: 'for-her', label: 'для неї', label_uk: 'для неї', emoji: '💐', sort_order: 1, is_active: true },
-                    { id: '2', slug: 'for-him', label: 'для нього', label_uk: 'для нього', emoji: '🎁', sort_order: 2, is_active: true },
-                    { id: '3', slug: 'for-mom', label: 'для мами', label_uk: 'для мами', emoji: '🌸', sort_order: 3, is_active: true },
-                    { id: '4', slug: 'for-grandma', label: 'для бабусі', label_uk: 'для бабусі', emoji: '👵', sort_order: 4, is_active: true },
-                    { id: '5', slug: 'for-dad', label: 'для тата', label_uk: 'для тата', emoji: '👔', sort_order: 5, is_active: true },
-                    { id: '6', slug: 'for-grandpa', label: 'для дідуся', label_uk: 'для дідуся', emoji: '👴', sort_order: 6, is_active: true },
-                    { id: '7', slug: 'for-friend', label: 'для подруги', label_uk: 'для подруги', emoji: '🤝', sort_order: 7, is_active: true },
-                    { id: '8', slug: 'for-boss', label: 'для боса', label_uk: 'для боса', emoji: '💼', sort_order: 8, is_active: true },
-                    { id: '9', slug: 'for-couple', label: 'для пари', label_uk: 'для пари', emoji: '💑', sort_order: 9, is_active: true },
+                    { id: '1', slug: 'for-her', label: 'для неї', label_uk: 'для неї', emoji: null, sort_order: 1, is_active: true },
+                    { id: '2', slug: 'for-him', label: 'для нього', label_uk: 'для нього', emoji: null, sort_order: 2, is_active: true },
+                    { id: '3', slug: 'for-mom', label: 'для мами', label_uk: 'для мами', emoji: null, sort_order: 3, is_active: true },
+                    { id: '4', slug: 'for-grandma', label: 'для бабусі', label_uk: 'для бабусі', emoji: null, sort_order: 4, is_active: true },
+                    { id: '5', slug: 'for-dad', label: 'для тата', label_uk: 'для тата', emoji: null, sort_order: 5, is_active: true },
+                    { id: '6', slug: 'for-grandpa', label: 'для дідуся', label_uk: 'для дідуся', emoji: null, sort_order: 6, is_active: true },
+                    { id: '7', slug: 'for-friend', label: 'для подруги', label_uk: 'для подруги', emoji: null, sort_order: 7, is_active: true },
+                    { id: '8', slug: 'for-boss', label: 'для боса', label_uk: 'для боса', emoji: null, sort_order: 8, is_active: true },
+                    { id: '9', slug: 'for-couple', label: 'для пари', label_uk: 'для пари', emoji: null, sort_order: 9, is_active: true },
                 ]);
             } else {
                 setCollections(data || []);
@@ -150,9 +150,6 @@ export function GiftIdeas() {
                                             href={`/catalog?collection=${collection.slug}`}
                                             className="group relative flex items-center justify-center gap-2 p-4 lg:p-6 bg-[#1e2d7d] rounded-lg text-white font-bold text-sm lg:text-base tracking-normal transition-colors duration-200 hover:bg-[#152158] text-center"
                                         >
-                                            {collection.emoji && (
-                                                <span className="text-lg">{collection.emoji}</span>
-                                            )}
                                             {collection.label_uk}
                                         </Link>
                                     </motion.div>
