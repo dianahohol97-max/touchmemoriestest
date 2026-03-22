@@ -517,3 +517,95 @@ export const PRODUCTS: ProductCatalog = {
   CALENDARS,
   WISH_BOOK
 };
+
+// ====== MAGAZINE CONSTRUCTOR HELPERS ======
+
+export const MAGAZINE_PRICES_WITHOUT_TYPESETTING = PHOTO_JOURNAL_SOFT.prices;
+export const MAGAZINE_PRICES_WITH_TYPESETTING = {
+  12: 650,
+  16: 800,
+  20: 950,
+  24: 1100,
+  28: 1350,
+  32: 1400,
+  36: 1550,
+  40: 1700,
+  44: 1850,
+  48: 2000,
+  52: 2125,
+  60: 2225,
+  72: 2625,
+  80: 2875,
+  92: 3025,
+  100: 3225,
+} as const;
+
+export const TYPESETTING_PRICE = 175;
+export const RETOUCHING_PRICE_PER_PHOTO = 7;
+export const URGENT_MULTIPLIER = 0.3; // 30%
+
+// Helper function to get exact magazine price for any page count
+export function getMagazinePrice(pages: number, withTypesetting: boolean): number {
+  const priceTable = withTypesetting ? MAGAZINE_PRICES_WITH_TYPESETTING : MAGAZINE_PRICES_WITHOUT_TYPESETTING;
+
+  // If exact match exists, return it
+  if (pages in priceTable) {
+    return priceTable[pages as keyof typeof priceTable];
+  }
+
+  // Find the next higher page count in the table
+  const availablePages = Object.keys(priceTable).map(Number).sort((a, b) => a - b);
+  const nextHigher = availablePages.find(p => p >= pages);
+
+  if (nextHigher) {
+    return priceTable[nextHigher as keyof typeof priceTable];
+  }
+
+  // Fallback to highest price if pages exceed max
+  return priceTable[100 as keyof typeof priceTable] || 3225;
+}
+
+export type BindingType = 'saddle-stitch' | 'perfect-binding';
+
+export function getBindingType(pages: number): BindingType {
+  return pages <= 44 ? 'saddle-stitch' : 'perfect-binding';
+}
+
+export function getBindingInfo(pages: number) {
+  const type = getBindingType(pages);
+
+  if (type === 'saddle-stitch') {
+    return {
+      type: 'saddle-stitch',
+      icon: '📎',
+      title: 'Скоба (Saddle-stitch)',
+      description: 'Класична журнальна палітурка — ідеально до 44 сторінок. Аркуші складаються навпіл і скріплюються двома металевими скобами.',
+      backgroundColor: '#F0F8FF',
+      borderColor: '#3B82F6',
+      displayName: 'Скоба',
+    };
+  }
+
+  return {
+    type: 'perfect-binding',
+    icon: '📚',
+    title: 'Клейова палітурка (Perfect binding)',
+    description: 'Книжкова якість — для журналів від 46 сторінок. Сторінки приклеюються до корінця. Журнал виглядає як справжня книга.',
+    backgroundColor: '#F0FFF4',
+    borderColor: '#10B981',
+    displayName: 'Клейова палітурка',
+  };
+}
+
+export function getUsageHelper(pages: number): string {
+  if (pages >= 12 && pages <= 20) {
+    return '💼 Ідеально для: корпоративних буклетів, запрошень, портфоліо';
+  }
+  if (pages >= 21 && pages <= 32) {
+    return '💒 Ідеально для: весільних журналів, шкільних газет, подієвих видань';
+  }
+  if (pages >= 33 && pages <= 60) {
+    return '📸 Ідеально для: сімейних альбомів, спортивних журналів, фото-звітів';
+  }
+  return '🏢 Ідеально для: великих корпоративних звітів, каталогів, книг';
+}
