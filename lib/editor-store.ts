@@ -20,6 +20,7 @@ interface EditorState {
   setPageBackground: (pageIndex: number, bg: EditorPage['background']) => void
   setPageLayout: (pageIndex: number, layoutId: string) => void
   addUploadedPhoto: (photo: UploadedPhoto) => void
+  removeUploadedPhoto: (photoId: string) => void
   undo: () => void
   redo: () => void
   saveSnapshot: () => void
@@ -122,6 +123,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   addUploadedPhoto: (photo) => {
     set((state) => ({
       uploadedPhotos: [...state.uploadedPhotos, photo]
+    }))
+  },
+
+  removeUploadedPhoto: (photoId) => {
+    set((state) => ({
+      uploadedPhotos: state.uploadedPhotos.filter(p => p.id !== photoId)
     }))
   },
 

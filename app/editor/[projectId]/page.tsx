@@ -7,8 +7,7 @@ import { useEditorStore } from '@/lib/editor-store'
 import type { EditorProject, ProductType, Format } from '@/lib/editor-types'
 import { createClient } from '@/lib/supabase/client'
 
-// Import editor components (we'll create these next)
-import EditorToolbar from './components/EditorToolbar'
+// Import editor components
 import LeftPanel from './components/LeftPanel'
 import CanvasArea from './components/CanvasArea'
 import RightPanel from './components/RightPanel'
