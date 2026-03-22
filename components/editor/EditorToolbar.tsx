@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEditorStore } from '@/lib/editor-store'
+import PreviewModal from '@/components/editor/PreviewModal'
 import {
   ArrowLeft,
   Undo,
@@ -44,6 +45,7 @@ export default function EditorToolbar() {
   } = useEditorStore()
 
   const [zoom, setZoom] = useState(100)
+  const [showPreview, setShowPreview] = useState(false)
 
   if (!project) return null
 
@@ -299,7 +301,7 @@ export default function EditorToolbar() {
         <div className="h-6 w-px bg-gray-300 mx-1" />
 
         <button
-          onClick={() => alert('Попередній перегляд у розробці')}
+          onClick={() => setShowPreview(true)}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           title="Переглянути"
         >
@@ -322,6 +324,14 @@ export default function EditorToolbar() {
           <span className="text-sm font-medium">Замовити</span>
         </button>
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <PreviewModal
+          project={project}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
     </div>
   )
 }
