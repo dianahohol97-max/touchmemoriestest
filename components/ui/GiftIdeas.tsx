@@ -66,15 +66,10 @@ export function GiftIdeas() {
     return (
         <section
             ref={ref}
-            className="relative w-full py-20 overflow-hidden"
+            className="relative w-full py-20 overflow-hidden bg-gradient-to-br from-[#f0f2f8] to-[#e8ebf8]"
         >
-            {/* Decorative elements */}
-            <div className="absolute top-10 right-10 text-[#1e2d7d]/10">
-                <Gift size={120} strokeWidth={1} />
-            </div>
-            <div className="absolute bottom-10 left-10 text-[#1e2d7d]/10">
-                <Sparkles size={80} strokeWidth={1} />
-            </div>
+            {/* Semi-transparent overlay for better readability */}
+            <div className="absolute inset-0 bg-white/40"></div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
