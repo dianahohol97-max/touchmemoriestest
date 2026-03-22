@@ -215,10 +215,32 @@ function renderPhotoElement(
       scaleY: imgHeight / (img.height || 1),
       opacity: (element.opacity ?? 100) / 100,
       angle: element.rotation || 0,
+      flipX: element.flipX || false,
+      flipY: element.flipY || false,
       selectable: true,
       hasControls: true,
       hasBorders: true,
     })
+
+    // Apply filters (brightness, contrast, saturation)
+    const filters: any[] = []
+
+    if (element.brightness !== undefined && element.brightness !== 0) {
+      filters.push(new fabric.Image.filters.Brightness({ brightness: element.brightness / 100 }))
+    }
+
+    if (element.contrast !== undefined && element.contrast !== 0) {
+      filters.push(new fabric.Image.filters.Contrast({ contrast: element.contrast / 100 }))
+    }
+
+    if (element.saturation !== undefined && element.saturation !== 0) {
+      filters.push(new fabric.Image.filters.Saturation({ saturation: element.saturation / 100 }))
+    }
+
+    if (filters.length > 0) {
+      img.filters = filters
+      img.applyFilters()
+    }
 
     // Apply crop if specified
     if (element.cropX !== undefined && element.cropY !== undefined && element.cropZoom !== undefined) {

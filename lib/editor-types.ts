@@ -35,6 +35,11 @@ export interface EditorElement {
   cropX?: number
   cropY?: number
   cropZoom?: number
+  brightness?: number  // -100 to +100
+  contrast?: number    // -100 to +100
+  saturation?: number  // -100 to +100
+  flipX?: boolean
+  flipY?: boolean
   // Text-specific
   content?: string
   fontFamily?: string
