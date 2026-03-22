@@ -79,11 +79,15 @@ export default function PreviewModal({ project, onClose }: PreviewModalProps) {
 
     // Set background image if specified
     if (page.background.type === 'image') {
-      fabric.Image.fromURL(page.background.value, (img) => {
-        fabricCanvas.setBackgroundImage(img, fabricCanvas.renderAll.bind(fabricCanvas), {
-          scaleX: canvasSize.width / (img.width || 1),
-          scaleY: canvasSize.height / (img.height || 1),
-        })
+      fabric.Image.fromURL(page.background.value).then((img) => {
+        img.scaleX = canvasSize.width / (img.width || 1)
+        img.scaleY = canvasSize.height / (img.height || 1)
+        img.left = 0
+        img.top = 0
+        fabricCanvas.backgroundImage = img
+        fabricCanvas.renderAll()
+      }).catch(() => {
+        // ignore failed background image load
       })
     }
 
@@ -131,7 +135,7 @@ export default function PreviewModal({ project, onClose }: PreviewModalProps) {
   ) => {
     if (!element.photoUrl) return
 
-    fabric.Image.fromURL(element.photoUrl, (img) => {
+    fabric.Image.fromURL(element.photoUrl, { crossOrigin: 'anonymous' }).then((img) => {
       const imgWidth = element.width * canvasSize.width
       const imgHeight = element.height * canvasSize.height
 
@@ -185,7 +189,9 @@ export default function PreviewModal({ project, onClose }: PreviewModalProps) {
 
       canvas.add(img)
       canvas.renderAll()
-    }, { crossOrigin: 'anonymous' })
+    }).catch(() => {
+      // ignore failed photo load
+    })
   }
 
   const handleExportPDF = async () => {
