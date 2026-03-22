@@ -235,7 +235,7 @@ function ContactsStep({ name, phone, channel, handle, onChange }: { name: string
 }
 
 function ConfirmationStep({ data }: { data: OrderFormData }) {
-  const ch = { telegram: 'Telegram', instagram: 'Instagram', email: 'Email' }[data.contactChannel] || ''
+  const ch = { telegram: 'Telegram', instagram: 'Instagram', email: 'Email' }[data.contactChannel as 'telegram' | 'instagram' | 'email'] || ''
   return (
     <div>
       <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 5: Підтвердження</h2>
