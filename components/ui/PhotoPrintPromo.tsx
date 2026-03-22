@@ -15,18 +15,21 @@ export function PhotoPrintPromo() {
 
     const steps = [
         {
-            number: '01',
-            text: 'Завантаж фото',
-            icon: <Upload size={24} className="text-primary" />
-        },
-        {
-            number: '02',
-            text: 'Обери формат',
+            number: '1',
+            title: 'Обери формат',
+            description: 'Стандартний, нестандартний, Polaroid — вибери розмір, який підходить тобі.',
             icon: <Layout size={24} className="text-primary" />
         },
         {
-            number: '03',
-            text: 'Оформи доставку',
+            number: '2',
+            title: 'Завантаж фото',
+            description: 'Надішли нам фотографії у зручний спосіб — через Telegram, Instagram або на email.',
+            icon: <Upload size={24} className="text-primary" />
+        },
+        {
+            number: '3',
+            title: 'Оформи замовлення',
+            description: 'Ми підтвердимо деталі та надішлемо готові фото у зазначені терміни.',
             icon: <Truck size={24} className="text-primary" />
         }
     ];
@@ -73,8 +76,9 @@ export function PhotoPrintPromo() {
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2 mb-1">
                                             {step.icon}
-                                            <span className="font-black text-xl text-primary">{step.text}</span>
+                                            <span className="font-black text-xl text-primary">{step.title}</span>
                                         </div>
+                                        <p className="text-stone-600 text-sm leading-relaxed">{step.description}</p>
                                     </div>
                                 </motion.div>
                             ))}
