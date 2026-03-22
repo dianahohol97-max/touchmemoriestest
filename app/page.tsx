@@ -1,6 +1,7 @@
 import styles from './page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Hero } from '@/components/ui/Hero';
+import PopularProducts from '@/components/ui/PopularProducts';
 import { FeaturedProducts } from '@/components/ui/FeaturedProducts';
 import { Categories } from '@/components/ui/Categories';
 import { HowItWorks } from '@/components/ui/HowItWorks';
@@ -97,6 +98,8 @@ export default async function Home() {
         <SectionWrapper name="hero" defaultOrder={1}>
           <Hero />
         </SectionWrapper>
+
+        <PopularProducts />
 
         {/* Featured Products */}
         <SectionWrapper name="featured_products" defaultOrder={2}>
