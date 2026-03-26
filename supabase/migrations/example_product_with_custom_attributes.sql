@@ -1,0 +1,152 @@
+-- Example: How to add custom_attributes to products
+-- This demonstrates the new ProductOptions component structure
+
+-- Example 1: Velour Photobook with color swatches
+-- UPDATE products SET custom_attributes = '[
+--   {
+--     "key": "size",
+--     "label": "Розмір",
+--     "type": "select",
+--     "options": ["20×20", "25×25", "20×30", "30×20", "30×30"],
+--     "required": true,
+--     "defaultValue": "20×20"
+--   },
+--   {
+--     "key": "pages",
+--     "label": "Кількість сторінок",
+--     "type": "select",
+--     "options": ["6", "8", "10", "12", "14", "16", "18", "20", "22", "24"],
+--     "required": true,
+--     "defaultValue": "20"
+--   },
+--   {
+--     "key": "calca",
+--     "label": "Калька між сторінками",
+--     "type": "select",
+--     "options": ["Без кальки", "З калькою"],
+--     "required": true,
+--     "defaultValue": "Без кальки"
+--   },
+--   {
+--     "key": "color",
+--     "label": "Колір обкладинки",
+--     "type": "color",
+--     "options": ["чорний", "білий", "червоний", "синій", "зелений", "сірий", "бежевий", "бордовий"],
+--     "required": true,
+--     "defaultValue": "чорний"
+--   }
+-- ]'::jsonb
+-- WHERE slug = 'velour-photobook-20x20';
+
+-- Example 2: Magazine with simple dropdowns
+-- UPDATE products SET custom_attributes = '[
+--   {
+--     "key": "pages",
+--     "label": "Кількість сторінок",
+--     "type": "select",
+--     "options": ["12", "16", "20", "24", "28", "32", "36", "40"],
+--     "required": true,
+--     "defaultValue": "20"
+--   },
+--   {
+--     "key": "text",
+--     "label": "Текст",
+--     "type": "select",
+--     "options": ["Без тексту", "З текстом"],
+--     "required": false,
+--     "defaultValue": "Без тексту"
+--   }
+-- ]'::jsonb
+-- WHERE slug = 'glossy-magazine-a4';
+
+-- Example 3: Photo Print with colors and boolean
+-- UPDATE products SET custom_attributes = '[
+--   {
+--     "key": "size",
+--     "label": "Розмір",
+--     "type": "select",
+--     "options": ["9×13", "10×15", "13×15", "15×20", "20×30"],
+--     "required": true,
+--     "defaultValue": "10×15"
+--   },
+--   {
+--     "key": "finish",
+--     "label": "Покриття",
+--     "type": "select",
+--     "options": ["Матове", "Глянцеве"],
+--     "required": true,
+--     "defaultValue": "Матове"
+--   },
+--   {
+--     "key": "white_border",
+--     "label": "Біла рамка",
+--     "type": "boolean",
+--     "required": false,
+--     "defaultValue": false
+--   }
+-- ]'::jsonb
+-- WHERE slug = 'photo-print-standard';
+
+-- Example 4: Travel Book with multiple options including color
+-- UPDATE products SET custom_attributes = '[
+--   {
+--     "key": "size",
+--     "label": "Розмір",
+--     "type": "select",
+--     "options": ["A4"],
+--     "required": true,
+--     "defaultValue": "A4"
+--   },
+--   {
+--     "key": "pages",
+--     "label": "Кількість сторінок",
+--     "type": "select",
+--     "options": ["12", "16", "20", "24", "28", "32"],
+--     "required": true,
+--     "defaultValue": "20"
+--   },
+--   {
+--     "key": "cover_color",
+--     "label": "Колір обкладинки",
+--     "type": "color",
+--     "options": ["чорний", "синій", "зелений", "червоний", "сірий"],
+--     "required": true,
+--     "defaultValue": "чорний"
+--   },
+--   {
+--     "key": "lamination",
+--     "label": "Ламінація",
+--     "type": "boolean",
+--     "required": false,
+--     "defaultValue": false
+--   }
+-- ]'::jsonb
+-- WHERE slug = 'travel-book-a4';
+
+-- Example 5: Custom text input for personalization
+-- UPDATE products SET custom_attributes = '[
+--   {
+--     "key": "text",
+--     "label": "Текст для гравіювання",
+--     "type": "text",
+--     "required": false
+--   },
+--   {
+--     "key": "font",
+--     "label": "Шрифт",
+--     "type": "select",
+--     "options": ["Класичний", "Рукописний", "Сучасний"],
+--     "required": false,
+--     "defaultValue": "Класичний"
+--   }
+-- ]'::jsonb
+-- WHERE slug = 'custom-engraved-book';
+
+-- Notes:
+-- 1. All color values should be in lowercase Ukrainian (чорний, білий, etc.)
+-- 2. The ProductOptions component automatically detects color names and renders color swatches
+-- 3. Required fields show a red asterisk (*)
+-- 4. defaultValue sets the initial selection
+-- 5. Boolean type renders as checkbox
+-- 6. Text type renders as input field
+-- 7. Number type renders as number input
