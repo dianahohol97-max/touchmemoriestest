@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { use, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { if (projectId === 'new' || projectId.startsWith('temp-')) { if (projectId === 'new' || projectId.startsWith('temp-')) {useEditorStore } from '@/lib/editor-store'
+import { useEditorStore } from '@/lib/editor-store'
 import type { EditorProject, ProductType, Format } from '@/lib/editor-types'
 import { createClient } from '@/lib/supabase/client'
 
