@@ -249,6 +249,11 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       required: true
     },
     {
+      name: 'Тип обкладинки',
+      values: ['М\'яка обкладинка', 'Тверда обкладинка'],
+      required: true
+    },
+    {
       name: 'Текст',
       values: ['Без тексту', 'З текстом'],
       required: true
