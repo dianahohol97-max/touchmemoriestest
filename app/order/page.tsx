@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { Suspense, useState, useRef } from 'react'
+import { Suspense, useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, Instagram, Mail, Phone, User } from 'lucide-react'
 
@@ -290,11 +290,25 @@ function OrderForm() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [savedConfig, setSavedConfig] = useState<any>(null)
 
   const [formData, setFormData] = useState<OrderFormData>({
     files: [], comment: '', delivery: '', city: '', address: '',
     name: '', phone: '', contactChannel: '', contactHandle: '',
   })
+
+  useEffect(() => {
+    // Load configuration from sessionStorage
+    const configJson = sessionStorage.getItem('designerOrderConfig')
+    if (configJson) {
+      try {
+        const config = JSON.parse(configJson)
+        setSavedConfig(config)
+      } catch (e) {
+        console.error('Failed to parse saved configuration:', e)
+      }
+    }
+  }, [])
 
   const update = (field: string, value: any) => setFormData(prev => ({ ...prev, [field]: value }))
 
@@ -320,8 +334,18 @@ function OrderForm() {
       fd.append('contactChannel', formData.contactChannel)
       fd.append('contactHandle', formData.contactHandle)
       fd.append('productSlug', searchParams.get('product') || '')
+
+      // Include saved configuration if available
+      if (savedConfig) {
+        fd.append('productConfig', JSON.stringify(savedConfig))
+      }
+
       const res = await fetch('/api/order', { method: 'POST', body: fd })
       if (!res.ok) throw new Error('Server error')
+
+      // Clear saved configuration after successful submission
+      sessionStorage.removeItem('designerOrderConfig')
+
       setSubmitted(true)
     } catch {
       setError("Сталася помилка. Спробуйте ще раз або зв'яжіться з нами напряму.")
@@ -339,6 +363,51 @@ function OrderForm() {
           <h1 className="text-2xl font-bold text-[#1e2d7d]">Оформлення замовлення з дизайнером</h1>
           <p className="text-gray-500 mt-2 text-sm">Наш дизайнер підготує для вас індивідуальний макет</p>
         </div>
+
+        {/* Saved Configuration Display */}
+        {savedConfig && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-[#1e2d7d]">Обрана конфігурація</h3>
+                {savedConfig.productName && (
+                  <p className="text-sm text-gray-500 mt-1">{savedConfig.productName}</p>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem('designerOrderConfig')
+                  setSavedConfig(null)
+                }}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+                aria-label="Видалити конфігурацію"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {savedConfig.config && Object.entries(savedConfig.config).map(([key, value]) => {
+                // Find the human-readable label based on key
+                const labels: Record<string, string> = {
+                  size: 'Розмір',
+                  pages: 'Кількість сторінок',
+                  coverType: 'Тип обкладинки',
+                  tracingPaper: 'Калька',
+                  lamination: 'Ламінація'
+                }
+                return (
+                  <div key={key} className="bg-[#f0f2f8] rounded-lg p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
+                      {labels[key] || key}
+                    </p>
+                    <p className="text-sm font-medium text-gray-800">{value as string}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <StepIndicator current={step} />
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           {step === 1 && <PhotoUploadStep data={formData.files} onChange={files => update('files', files)} />}

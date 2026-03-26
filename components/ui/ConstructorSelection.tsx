@@ -5,10 +5,14 @@ import { Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { goToConstructor, ProductType } from '@/lib/constructorRouting';
+import { useState } from 'react';
+import DesignerConfigModal from '../DesignerConfigModal';
 
 export function ConstructorSelection() {
     const router = useRouter();
     const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
+    const [photobookModalOpen, setPhotobookModalOpen] = useState(false);
+    const [magazineModalOpen, setMagazineModalOpen] = useState(false);
 
     return (
         <section ref={ref} className="py-20 bg-white">
@@ -60,12 +64,12 @@ export function ConstructorSelection() {
                                 >
                                     Відкрити конструктор
                                 </Link>
-                                <Link
-                                    href="/order"
+                                <button
+                                    onClick={() => setPhotobookModalOpen(true)}
                                     className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
                                 >
                                     Оформити з дизайнером
-                                </Link>
+                                </button>
                             </div>
                         </div>
 
@@ -104,12 +108,12 @@ export function ConstructorSelection() {
                                 >
                                     Відкрити конструктор
                                 </Link>
-                                <Link
-                                    href="/order"
+                                <button
+                                    onClick={() => setMagazineModalOpen(true)}
                                     className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
                                 >
                                     Оформити з дизайнером
-                                </Link>
+                                </button>
                             </div>
                         </div>
 
@@ -130,6 +134,21 @@ export function ConstructorSelection() {
                 </motion.div>
 
             </div>
+
+            {/* Configuration Modals */}
+            <DesignerConfigModal
+                isOpen={photobookModalOpen}
+                onClose={() => setPhotobookModalOpen(false)}
+                productType="photobook"
+                productName="Фотокнига"
+            />
+
+            <DesignerConfigModal
+                isOpen={magazineModalOpen}
+                onClose={() => setMagazineModalOpen(false)}
+                productType="magazine"
+                productName="Глянцевий журнал"
+            />
         </section>
     );
 }
