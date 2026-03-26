@@ -289,7 +289,7 @@ export default function PhotobookPage() {
         {coverType !== 'printed' && (
           <div style={{ marginBottom: '32px' }}>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>
-              Калька між сторінками
+              Калька перед першою сторінкою
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>

@@ -235,7 +235,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       required: true
     },
     {
-      name: 'Калька між сторінками',
+      name: 'Калька перед першою сторінкою',
       values: ['Без кальки', 'З калькою'],
       required: true
     },
@@ -451,7 +451,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         // Velour photobooks use 3D pricing: size + pages + калька
         const size = opts['Розмір'];
         const pages = opts['Кількість сторінок'];
-        const kalka = opts['Калька між сторінками'];
+        const kalka = opts['Калька перед першою сторінкою'];
 
         if (size && pages && kalka &&
             typeof size === 'string' &&

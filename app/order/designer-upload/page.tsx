@@ -506,7 +506,7 @@ function DesignerUploadContent() {
                 <p style={{ fontSize: '14px', color: '#1e3a8a', marginBottom: '8px' }}>
                   {(orderData as PhotoBookOrder).size} см, {orderData.pages} стор., {orderData.copies} шт.
                 </p>
-                {(orderData as PhotoBookOrder).tracingPaper && <p style={{ fontSize: '14px', color: '#3b82f6', marginBottom: '4px' }}>+ Калька між сторінками <em style={{ fontStyle: 'italic', color: '#94a3b8' }}>(ціна уточнюється)</em></p>}
+                {(orderData as PhotoBookOrder).tracingPaper && <p style={{ fontSize: '14px', color: '#3b82f6', marginBottom: '4px' }}>+ Калька перед першою сторінкою <em style={{ fontStyle: 'italic', color: '#94a3b8' }}>(ціна уточнюється)</em></p>}
                 {photoRetouching && <p style={{ fontSize: '14px', color: '#3b82f6', marginBottom: '4px' }}>+ Ретуш ({retouchChoice === 'specify' ? `${retouchCount} фото` : 'дизайнер обере'})</p>}
                 {qrCode && <p style={{ fontSize: '14px', color: '#3b82f6', marginBottom: '4px' }}>+ QR-код на обкладинці</p>}
                 {urgentProduction && <p style={{ fontSize: '14px', color: '#3b82f6', marginBottom: '4px' }}>+ Термінове виготовлення</p>}
