@@ -19,6 +19,16 @@ export function HowItWorks() {
             emoji: null,
             title: 'Персональний дизайн',
             description: 'Безкоштовний макет у подарунок, необмежені правки',
+        },
+        {
+            emoji: null,
+            title: 'Доступні ціни',
+            description: 'Якісний друк за чесною ціною',
+        },
+        {
+            emoji: null,
+            title: 'Понад 20 000 задоволених клієнтів',
+            description: 'Нам довіряють свої найдорожчі спогади',
         }
     ];
 
@@ -42,8 +52,8 @@ export function HowItWorks() {
                     </h2>
                 </motion.div>
 
-                {/* 2 cards centered */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                {/* 4 cards grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {features.map((feature, index) => (
                         <motion.div
                             key={index}
