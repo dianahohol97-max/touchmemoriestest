@@ -1,10 +1,13 @@
 'use client';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
+import GuestBookConfigModal from '../GuestBookConfigModal';
 
 export function FinalCTA() {
     const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
+    const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
 
     return (
         <section ref={ref} className="bg-[#f0f2f8] py-24 overflow-hidden relative">
@@ -31,17 +34,17 @@ export function FinalCTA() {
 
                         {/* Buttons */}
                         <div className="flex gap-3 flex-wrap">
-                            <Link
-                                href="/order"
+                            <button
+                                onClick={() => setIsConfigModalOpen(true)}
                                 className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-[#263a99] transition-colors duration-200"
                             >
                                 Оформити з дизайнером
-                            </Link>
+                            </button>
                             <Link
                                 href="/catalog?category=wishbook"
                                 className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
                             >
-                                Переглянути варіанти
+                                Відкрити конструктор
                             </Link>
                         </div>
                     </motion.div>
@@ -69,6 +72,12 @@ export function FinalCTA() {
                     </motion.div>
                 </div>
             </div>
+
+            {/* Guest Book Configuration Modal */}
+            <GuestBookConfigModal
+                isOpen={isConfigModalOpen}
+                onClose={() => setIsConfigModalOpen(false)}
+            />
         </section>
     );
 }
