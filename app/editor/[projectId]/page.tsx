@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { use, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEditorStore } from '@/lib/editor-store'
+import { if (projectId === 'new' || projectId.startsWith('temp-')) { if (projectId === 'new' || projectId.startsWith('temp-')) {useEditorStore } from '@/lib/editor-store'
 import type { EditorProject, ProductType, Format } from '@/lib/editor-types'
 import { createClient } from '@/lib/supabase/client'
 
@@ -105,7 +105,7 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
 
   useEffect(() => {
     const loadOrCreateProject = async () => {
-      if (projectId === 'new') {
+      if (projectId === 'new' || projectId.startsWith('temp-')) {
         // Create new project from query params
         const productType = (searchParams.get('product') || 'photobook') as ProductType
         const format = (searchParams.get('format') || '20x20') as Format
@@ -199,7 +199,7 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
       status: 'draft',
     }
 
-    if (projectId === 'new') {
+    if (projectId === 'new' || projectId.startsWith('temp-')) {
       // Insert new project
       const { data, error } = await supabase
         .from('projects')
