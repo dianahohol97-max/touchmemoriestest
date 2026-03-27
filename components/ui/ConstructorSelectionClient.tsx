@@ -38,7 +38,7 @@ export function ConstructorSelectionClient({ sectionContent }: ConstructorSelect
     const photobooksHeading = sectionContent?.metadata?.photobooks?.heading || 'Фотокниги';
     const photobooksDescription = sectionContent?.metadata?.photobooks?.description ||
         'Зберіть найкращі моменти у красиву фотокнигу — подарунок, який залишиться на все життя. Обирайте формат, обкладинку та кількість сторінок під свій стиль. Ідеально для весіль, подорожей, сімейних архівів та особливих дат.';
-    const photobooksConstructorUrl = sectionContent?.metadata?.photobooks?.constructor_url || '/editor/new?product=photobook&format=20x20&pages=20';
+    const photobooksConstructorUrl = sectionContent?.metadata?.photobooks?.constructor_url || '/order/book?product=photobook-velour';
     const photobooksConstructorButtonText = sectionContent?.metadata?.photobooks?.constructor_button_text || 'Відкрити конструктор';
     const photobooksDesignerButtonText = sectionContent?.metadata?.photobooks?.designer_button_text || 'Оформити з дизайнером';
 
@@ -46,9 +46,12 @@ export function ConstructorSelectionClient({ sectionContent }: ConstructorSelect
     const magazinesHeading = sectionContent?.metadata?.magazines?.heading || 'Глянцеві журнали';
     const magazinesDescription = sectionContent?.metadata?.magazines?.description ||
         'Створіть глянцевий журнал зі своїми фото — стильний і сучасний формат для збереження спогадів. Ідеально для модних зйомок, тематичних подій, подорожей та корпоративних проєктів.';
-    const magazinesConstructorUrl = sectionContent?.metadata?.magazines?.constructor_url || '/editor/new?product=magazine&format=A4&pages=20';
+    const magazinesConstructorUrl = sectionContent?.metadata?.magazines?.constructor_url || '/order/book?product=magazine';
     const magazinesConstructorButtonText = sectionContent?.metadata?.magazines?.constructor_button_text || 'Відкрити конструктор';
     const magazinesDesignerButtonText = sectionContent?.metadata?.magazines?.designer_button_text || 'Оформити з дизайнером';
+
+    console.log('[ConstructorSelectionClient] photobooks URL:', photobooksConstructorUrl);
+    console.log('[ConstructorSelectionClient] magazines URL:', magazinesConstructorUrl);
 
     return (
         <section ref={ref} className="py-20 bg-white">
