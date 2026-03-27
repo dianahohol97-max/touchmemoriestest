@@ -161,7 +161,12 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
         if (sizeOption && selectedSize) {
             const selectedSizeOption = sizeOption.values.find(v => v.name === selectedSize);
             if (selectedSizeOption) {
-                unitPrice = selectedSizeOption.price || selectedSizeOption.priceModifier || unitPrice;
+                // Use absolute price if available, otherwise add priceModifier to base price
+                if (selectedSizeOption.price !== undefined) {
+                    unitPrice = selectedSizeOption.price;
+                } else if (selectedSizeOption.priceModifier !== undefined) {
+                    unitPrice = (product.price || 0) + selectedSizeOption.priceModifier;
+                }
             }
         }
 
@@ -202,7 +207,9 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
             return;
         }
 
-        if (!selectedFinish) {
+        // Only require finish if product has finish options
+        const hasFinishOption = product?.options?.some((opt: ProductOption) => opt.name === 'Покриття');
+        if (hasFinishOption && !selectedFinish) {
             toast.error('Оберіть покриття');
             return;
         }
@@ -210,12 +217,15 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
         const totalPrice = calculatePrice();
 
         const options: Record<string, string> = {
-            'Покриття': selectedFinish,
             'Кількість фото': photos.length.toString()
         };
 
         if (selectedSize) {
             options['Розмір'] = selectedSize;
+        }
+
+        if (selectedFinish) {
+            options['Покриття'] = selectedFinish;
         }
 
         if (selectedBorder) {
@@ -453,7 +463,14 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
                                     <span className="font-semibold text-gray-800">
                                         {(() => {
                                             const option = sizeOptions.find(o => o.name === selectedSize);
-                                            return option?.price || product.price;
+                                            if (option) {
+                                                if (option.price !== undefined) {
+                                                    return option.price;
+                                                } else if (option.priceModifier !== undefined) {
+                                                    return (product.price || 0) + option.priceModifier;
+                                                }
+                                            }
+                                            return product.price;
                                         })()} ₴
                                     </span>
                                 </div>
