@@ -18,6 +18,7 @@ export function Navigation() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
+    const [navLinks, setNavLinks] = useState<Array<{ name: string; href: string }>>([]);
     const { items: cartItems, openDrawer } = useCartStore();
     const pathname = usePathname();
 
@@ -32,7 +33,29 @@ export function Navigation() {
     }, []);
 
     useEffect(() => {
-        async function fetchOtherCategories() {
+        async function fetchNavigationData() {
+            // Fetch main navigation links from database
+            const { data: navData } = await supabase
+                .from('navigation_links')
+                .select('*')
+                .eq('is_active', true)
+                .is('parent_id', null)
+                .order('display_order', { ascending: true });
+
+            if (navData && navData.length > 0) {
+                setNavLinks(navData.map(link => ({ name: link.link_text, href: link.link_url })));
+            } else {
+                // Fallback to defaults
+                setNavLinks([
+                    { name: 'Фотокниги', href: '/catalog?category=photobooks' },
+                    { name: 'Глянцеві журнали', href: '/catalog?category=hlyantsevi-zhurnaly' },
+                    { name: 'Travelbook', href: '/catalog?category=travelbooks' },
+                    { name: 'Фотодрук', href: '/catalog?category=prints' },
+                    { name: 'Сертифікати', href: '/catalog?category=certificates' },
+                ]);
+            }
+
+            // Fetch other categories
             const mainCategorySlugs = ['photobooks', 'hlyantsevi-zhurnaly', 'travelbooks', 'prints', 'certificates'];
             const { data } = await supabase
                 .from('categories')
@@ -45,7 +68,7 @@ export function Navigation() {
                 setOtherCategories(data);
             }
         }
-        fetchOtherCategories();
+        fetchNavigationData();
     }, []);
 
     // Search functionality
@@ -94,13 +117,8 @@ export function Navigation() {
         };
     }, [searchOpen]);
 
-    const mainNavLinks = [
-        { name: 'Фотокниги', href: '/catalog?category=photobooks' },
-        { name: 'Глянцеві журнали', href: '/catalog?category=hlyantsevi-zhurnaly' },
-        { name: 'Travelbook', href: '/catalog?category=travelbooks' },
-        { name: 'Фотодрук', href: '/catalog?category=prints' },
-        { name: 'Сертифікати', href: '/catalog?category=certificates' },
-    ];
+    // Navigation links now fetched from database via useEffect (see above)
+    const mainNavLinks = navLinks;
 
     const aboutDropdownItems = [
         { name: 'Про нас', href: '/pro-nas' },

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './Footer.module.css';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
@@ -8,6 +8,7 @@ import { FaInstagram, FaFacebook, FaTiktok, FaPinterest, FaThreads, FaTelegram }
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 interface Category {
     id: string;
@@ -88,6 +89,7 @@ export function Footer({ categories = [] }: FooterProps) {
 
     const { content, blocks } = useTheme();
     const [openSection, setOpenSection] = useState<string | null>(null);
+    const [sections, setSections] = useState<any[]>([]);
     const footerBlock = blocks.find(b => b.block_name === 'footer');
     const footerStyle = footerBlock?.style_metadata || {};
 
@@ -95,46 +97,75 @@ export function Footer({ categories = [] }: FooterProps) {
         setOpenSection(openSection === section ? null : section);
     };
 
-    // Parse links
-    const customLinksRaw = content['footer_product_links'];
-    let customLinks = [];
-    try {
-        if (customLinksRaw) customLinks = JSON.parse(customLinksRaw);
-    } catch (e) {
-        console.error('Failed to parse footer links', e);
-    }
+    // Fetch footer sections and links from database
+    useEffect(() => {
+        async function fetchFooterData() {
+            const supabase = createClient();
 
-    const sections = [
-        {
-            id: 'products',
-            title: 'Продукти',
-            links: customLinks.length > 0 ? customLinks : (categories.length > 0 ? categories.map(c => ({ label: c.name, href: `/catalog?category=${c.slug}` })) : [
-                { label: 'Фотокниги', href: '/catalog?category=photobooks' },
-                { label: 'Глянцеві журнали', href: '/catalog?category=hlyantsevi-zhurnaly' },
-                { label: 'Фотодрук', href: '/catalog?category=prints' }
-            ])
-        },
-        {
-            id: 'help',
-            title: 'Допомога',
-            links: [
-                { label: 'Доставка та оплата', href: '/shipping-returns' },
-                { label: 'Питання та відповіді', href: '/faq' },
-                { label: 'Конструктор', href: '/constructor/photobook' }
-            ]
-        },
-        {
-            id: 'contacts',
-            title: 'Контакти',
-            links: [
-                { label: 'touch.memories3@gmail.com', href: 'mailto:touch.memories3@gmail.com' },
-                { label: 'Тернопіль, вул. Київська 2', href: 'https://maps.google.com/?q=Тернопіль,+вул.+Київська+2' },
-                { label: 'Telegram: @touchmemories', href: 'https://t.me/touchmemories' },
-                { label: 'Instagram: @touch.memories', href: 'https://instagram.com/touch.memories' },
-                { label: 'TikTok: @touch.memories', href: 'https://tiktok.com/@touch.memories' }
-            ]
+            const { data: footerSections } = await supabase
+                .from('footer_sections')
+                .select(`
+                    id,
+                    section_name,
+                    section_title,
+                    footer_links (
+                        id,
+                        link_text,
+                        link_url,
+                        display_order,
+                        is_active
+                    )
+                `)
+                .eq('is_active', true)
+                .order('display_order', { ascending: true });
+
+            if (footerSections && footerSections.length > 0) {
+                const formattedSections = footerSections.map(section => ({
+                    id: section.section_name,
+                    title: section.section_title,
+                    links: (section.footer_links as any[])
+                        .filter(link => link.is_active)
+                        .sort((a, b) => a.display_order - b.display_order)
+                        .map(link => ({ label: link.link_text, href: link.link_url }))
+                }));
+                setSections(formattedSections);
+            } else {
+                // Fallback to defaults
+                setSections([
+                    {
+                        id: 'products',
+                        title: 'Продукти',
+                        links: [
+                            { label: 'Фотокниги', href: '/catalog?category=photobooks' },
+                            { label: 'Глянцеві журнали', href: '/catalog?category=hlyantsevi-zhurnaly' },
+                            { label: 'Фотодрук', href: '/catalog?category=prints' }
+                        ]
+                    },
+                    {
+                        id: 'help',
+                        title: 'Допомога',
+                        links: [
+                            { label: 'Доставка та оплата', href: '/shipping-returns' },
+                            { label: 'Питання та відповіді', href: '/faq' },
+                            { label: 'Конструктор', href: '/constructor/photobook' }
+                        ]
+                    },
+                    {
+                        id: 'contacts',
+                        title: 'Контакти',
+                        links: [
+                            { label: 'touch.memories3@gmail.com', href: 'mailto:touch.memories3@gmail.com' },
+                            { label: 'Тернопіль, вул. Київська 2', href: 'https://maps.google.com/?q=Тернопіль,+вул.+Київська+2' },
+                            { label: 'Telegram: @touchmemories', href: 'https://t.me/touchmemories' },
+                            { label: 'Instagram: @touch.memories', href: 'https://instagram.com/touch.memories' },
+                            { label: 'TikTok: @touch.memories', href: 'https://tiktok.com/@touch.memories' }
+                        ]
+                    }
+                ]);
+            }
         }
-    ];
+        fetchFooterData();
+    }, []);
 
     return (
         <footer ref={ref} className="bg-premium-gradient border-t border-primary/5 pt-16 pb-12 relative overflow-hidden">
