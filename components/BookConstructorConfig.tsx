@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
-import { X, ChevronRight, Info } from 'lucide-react';
+import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
+import TravelBookCoverSelector from './TravelBookCoverSelector';
 
 interface ProductOption {
     name: string;
@@ -87,6 +88,10 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [selectedCopies, setSelectedCopies] = useState<string>('');
     const [enableEndpaper, setEnableEndpaper] = useState(false);
     const [enableKalka, setEnableKalka] = useState(false);
+
+    // Travel Book cover selector state
+    const [showCoverSelector, setShowCoverSelector] = useState(false);
+    const [selectedCover, setSelectedCover] = useState<any>(null);
 
     // New state for photobook pricing
     const [photobookPrices, setPhotobookPrices] = useState<any[]>([]);
@@ -319,6 +324,15 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             selectedCopies,
             enableEndpaper,
             enableKalka,
+            selectedCover: selectedCover ? {
+                id: selectedCover.id,
+                city_name: selectedCover.city_name,
+                city_name_en: selectedCover.city_name_en,
+                country: selectedCover.country,
+                landmark: selectedCover.landmark,
+                image_url: selectedCover.image_url,
+                background_color: selectedCover.background_color
+            } : null,
             totalPrice: calculatePrice(),
             photoRecommendation: getPhotoRecommendation(),
             timestamp: Date.now()
@@ -484,6 +498,54 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             </div>
                         </div>
                     )}
+
+                    {/* Travel Book Cover Selector */}
+                    {productType === 'travelbook' && (
+                        <div className="border-t pt-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Обкладинка Travel Book
+                                </label>
+                                <p className="text-xs text-gray-500 mb-3">
+                                    Оберіть дизайн обкладинки з колекцією міст зі всього світу
+                                </p>
+
+                                {selectedCover ? (
+                                    <div className="flex items-center gap-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                        <div className="w-20 h-28 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                                            <img
+                                                src={selectedCover.image_url}
+                                                alt={selectedCover.city_name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-semibold text-purple-900">
+                                                {selectedCover.city_name}
+                                            </p>
+                                            <p className="text-sm text-purple-700">
+                                                {selectedCover.country} — {selectedCover.landmark}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowCoverSelector(true)}
+                                            className="px-4 py-2 text-sm font-medium text-purple-700 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
+                                        >
+                                            Змінити
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setShowCoverSelector(true)}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors text-gray-600 hover:text-purple-700"
+                                    >
+                                        <ImageIcon className="w-5 h-5" />
+                                        Обрати обкладинку
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Photo Recommendation */}
@@ -543,6 +605,24 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     <ChevronRight className="w-5 h-5" />
                 </button>
             </div>
+
+            {/* Travel Book Cover Selector Modal */}
+            {showCoverSelector && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+                        <div className="p-6 overflow-y-auto max-h-[90vh]">
+                            <TravelBookCoverSelector
+                                selectedCoverId={selectedCover?.id || null}
+                                onCoverSelect={(cover) => {
+                                    setSelectedCover(cover);
+                                    setShowCoverSelector(false);
+                                }}
+                                onClose={() => setShowCoverSelector(false)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
