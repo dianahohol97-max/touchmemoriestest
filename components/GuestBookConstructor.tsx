@@ -5,6 +5,8 @@ import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Type, Image as ImageIcon, QrCode, Layers, Plus } from 'lucide-react';
+import ExportProgressModal from './ExportProgressModal';
+import { uploadOrderFile } from '@/lib/export-utils';
 
 interface GuestBookConfig {
     // Step 1: Design
@@ -91,6 +93,8 @@ export default function GuestBookConstructor() {
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [coverView, setCoverView] = useState<'front' | 'back'>('front');
+    const [exporting, setExporting] = useState(false);
+    const [exportDone, setExportDone] = useState(false);
 
     const [config, setConfig] = useState<GuestBookConfig>({
         template: '',
@@ -214,7 +218,7 @@ export default function GuestBookConstructor() {
         }
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!product) {
             toast.error('Продукт не знайдено');
             return;
@@ -225,13 +229,44 @@ export default function GuestBookConstructor() {
             return;
         }
 
+        const cartItemId = `guestbook_${Date.now()}`;
+
+        // Upload config JSON as print-service blueprint
+        try {
+            setExporting(true);
+            setExportDone(false);
+
+            const configBlob = new Blob([JSON.stringify({ config, product_slug: product.slug }, null, 2)], {
+                type: 'application/json'
+            });
+            const filePath = `pending/${cartItemId}/guestbook_config.json`;
+            await uploadOrderFile('guestbook-exports', filePath, configBlob);
+
+            sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
+                bucket: 'guestbook-exports',
+                path: filePath,
+                fileName: 'guestbook_config.json',
+                fileCategory: 'guestbook-config',
+                size: configBlob.size,
+                mimeType: 'application/json',
+            }));
+
+            setExportDone(true);
+            await new Promise(r => setTimeout(r, 600));
+        } catch (err) {
+            console.error('GuestBook config export failed (non-blocking):', err);
+        } finally {
+            setExporting(false);
+            setExportDone(false);
+        }
+
         addItem({
-            id: `guestbook_${Date.now()}`,
+            id: cartItemId,
             product_id: product.slug,
             name: product.name,
             price: config.price,
             qty: 1,
-            image: '', // Will be generated from cover
+            image: '',
             options: {
                 'Дизайн': config.template,
                 'Тема': config.theme,
@@ -264,6 +299,7 @@ export default function GuestBookConstructor() {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <ExportProgressModal open={exporting} current={1} total={1} done={exportDone} label="Збереження конфігурації…" />
             {/* Header */}
             <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div className="container mx-auto px-4 py-4">

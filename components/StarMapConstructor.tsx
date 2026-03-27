@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import StarMapPreview from './StarMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
+import ExportProgressModal from './ExportProgressModal';
+import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
 
 interface StarMapConfig {
     // Step 1: Moment
@@ -39,6 +41,9 @@ export default function StarMapConstructor() {
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState(false);
+    const [exportDone, setExportDone] = useState(false);
+    const previewAreaRef = useRef<HTMLDivElement>(null);
 
     const [config, setConfig] = useState<StarMapConfig>({
         // Step 1 defaults
@@ -108,19 +113,53 @@ export default function StarMapConstructor() {
         }
     }, [config.date, config.location]);
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!product) {
             toast.error('Продукт не знайдено');
             return;
         }
 
+        // Find the canvas inside the preview area
+        const canvas = previewAreaRef.current?.querySelector('canvas') as HTMLCanvasElement | null;
+
+        const cartItemId = `starmap_${Date.now()}`;
+
+        // Export canvas at 300 DPI if available
+        if (canvas && canvas.width > 0) {
+            try {
+                setExporting(true);
+                setExportDone(false);
+
+                const blob = await exportCanvasAt300DPI(canvas);
+                const filePath = `pending/${cartItemId}/starmap_300dpi.png`;
+                await uploadOrderFile('poster-exports', filePath, blob);
+
+                // Store for checkout to link to real order_id later
+                sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
+                    bucket: 'poster-exports',
+                    path: filePath,
+                    fileName: 'starmap_300dpi.png',
+                    fileCategory: 'star-map',
+                    size: blob.size,
+                }));
+
+                setExportDone(true);
+                await new Promise(r => setTimeout(r, 800));
+            } catch (err) {
+                console.error('Export failed (non-blocking):', err);
+            } finally {
+                setExporting(false);
+                setExportDone(false);
+            }
+        }
+
         addItem({
-            id: `starmap_${Date.now()}`,
+            id: cartItemId,
             product_id: product.slug,
             name: product.name,
             price: config.price,
             qty: 1,
-            image: '', // Will be generated from canvas
+            image: canvas ? canvas.toDataURL('image/jpeg', 0.7) : '',
             options: {
                 'Дата': config.date,
                 'Час': config.time,
@@ -154,6 +193,7 @@ export default function StarMapConstructor() {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <ExportProgressModal open={exporting} current={1} total={1} done={exportDone} />
             {/* Header */}
             <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div className="container mx-auto px-4 py-4">
@@ -238,7 +278,7 @@ export default function StarMapConstructor() {
                     </div>
 
                     {/* Right: Preview */}
-                    <div className="lg:sticky lg:top-24 lg:self-start">
+                    <div className="lg:sticky lg:top-24 lg:self-start" ref={previewAreaRef}>
                         <StarMapPreview config={config} />
                     </div>
                 </div>

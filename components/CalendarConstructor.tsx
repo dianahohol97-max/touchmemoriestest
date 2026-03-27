@@ -5,6 +5,8 @@ import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Calendar as CalendarIcon, Image as ImageIcon, Type, Settings } from 'lucide-react';
+import ExportProgressModal from './ExportProgressModal';
+import { uploadOrderFile } from '@/lib/export-utils';
 
 interface CalendarConfig {
     productType: 'wall' | 'desk';
@@ -46,6 +48,8 @@ export default function CalendarConstructor({ productType }: CalendarConstructor
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [currentPageIndex, setCurrentPageIndex] = useState(0);
+    const [exporting, setExporting] = useState(false);
+    const [exportDone, setExportDone] = useState(false);
 
     const [config, setConfig] = useState<CalendarConfig>({
         productType,
@@ -124,19 +128,51 @@ export default function CalendarConstructor({ productType }: CalendarConstructor
         setStep('editor');
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!product) {
             toast.error('Продукт не знайдено');
             return;
         }
 
+        const cartItemId = `calendar_${Date.now()}`;
+        const totalFiles = pages.length || 13; // 1 cover + 12 months
+
+        try {
+            setExporting(true);
+            setExportDone(false);
+
+            // Export each page's config as a JSON file
+            for (let i = 0; i < pages.length; i++) {
+                const page = pages[i];
+                const pageLabel = page.type === 'cover' ? 'cover' : `month_${String(page.month).padStart(2, '0')}`;
+                const blob = new Blob([JSON.stringify({ page, config }, null, 2)], { type: 'application/json' });
+                await uploadOrderFile('calendar-uploads', `pending/${cartItemId}/${pageLabel}.json`, blob);
+            }
+
+            sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
+                bucket: 'calendar-uploads',
+                path: `pending/${cartItemId}/`,
+                fileName: 'calendar_pages.json',
+                fileCategory: 'calendar-config',
+                pageCount: pages.length,
+            }));
+
+            setExportDone(true);
+            await new Promise(r => setTimeout(r, 800));
+        } catch (err) {
+            console.error('Calendar export failed (non-blocking):', err);
+        } finally {
+            setExporting(false);
+            setExportDone(false);
+        }
+
         addItem({
-            id: `calendar_${Date.now()}`,
+            id: cartItemId,
             product_id: product.slug,
             name: product.name,
             price: config.price,
             qty: 1,
-            image: '', // Will be generated from cover
+            image: '',
             options: {
                 'Тип': productType === 'wall' ? 'Настінний' : 'Настільний',
                 'Розмір': config.size,
@@ -162,25 +198,31 @@ export default function CalendarConstructor({ productType }: CalendarConstructor
 
     if (step === 'config') {
         return (
-            <ConfigurationStep
-                config={config}
-                setConfig={setConfig}
-                productType={productType}
-                onCreateCalendar={handleCreateCalendar}
-            />
+            <>
+                <ExportProgressModal open={exporting} current={1} total={pages.length || 13} done={exportDone} label="Збереження конфігурації…" />
+                <ConfigurationStep
+                    config={config}
+                    setConfig={setConfig}
+                    productType={productType}
+                    onCreateCalendar={handleCreateCalendar}
+                />
+            </>
         );
     }
 
     return (
-        <EditorStep
-            config={config}
-            pages={pages}
-            setPages={setPages}
-            currentPageIndex={currentPageIndex}
-            setCurrentPageIndex={setCurrentPageIndex}
-            onAddToCart={handleAddToCart}
-            onBack={() => setStep('config')}
-        />
+        <>
+            <ExportProgressModal open={exporting} current={1} total={pages.length || 13} done={exportDone} label="Збереження конфігурації…" />
+            <EditorStep
+                config={config}
+                pages={pages}
+                setPages={setPages}
+                currentPageIndex={currentPageIndex}
+                setCurrentPageIndex={setCurrentPageIndex}
+                onAddToCart={handleAddToCart}
+                onBack={() => setStep('config')}
+            />
+        </>
     );
 }
 

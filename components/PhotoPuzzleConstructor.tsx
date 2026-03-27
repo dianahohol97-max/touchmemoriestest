@@ -5,6 +5,8 @@ import { Upload, X, Check, AlertTriangle, ShoppingCart, ZoomIn, ZoomOut, RotateC
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
+import ExportProgressModal from './ExportProgressModal';
+import { exportCanvasAt300DPI, uploadOrderFile, mmToPixels300dpi } from '@/lib/export-utils';
 
 interface PhotoFile {
     id: string;
@@ -40,6 +42,8 @@ export default function PhotoPuzzleConstructor() {
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [currentStep, setCurrentStep] = useState(1);
+    const [exporting, setExporting] = useState(false);
+    const [exportDone, setExportDone] = useState(false);
 
     // Step 1: Size selection
     const [selectedSize, setSelectedSize] = useState<PuzzleSize | null>(null);
@@ -457,21 +461,53 @@ export default function PhotoPuzzleConstructor() {
         return basePrice + sizeModifier;
     }
 
-    function handleAddToCart() {
+    async function handleAddToCart() {
         if (!product || !selectedSize || photos.length === 0) {
             toast.error('Виберіть розмір та завантажте фото');
             return;
         }
 
         const price = calculatePrice();
+        const cartItemId = `${product.id}-${Date.now()}`;
+
+        // Export canvas at 300 DPI
+        if (canvasRef.current && canvasRef.current.width > 0) {
+            try {
+                setExporting(true);
+                setExportDone(false);
+
+                // Calculate print dimensions
+                const wPx = mmToPixels300dpi(selectedSize.width * 10); // cm -> mm
+                const hPx = mmToPixels300dpi(selectedSize.height * 10);
+                const blob = await exportCanvasAt300DPI(canvasRef.current, wPx, hPx);
+                const filePath = `pending/${cartItemId}/puzzle_300dpi.png`;
+                await uploadOrderFile('puzzle-uploads', filePath, blob);
+
+                sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
+                    bucket: 'puzzle-uploads',
+                    path: filePath,
+                    fileName: 'puzzle_300dpi.png',
+                    fileCategory: 'puzzle',
+                    size: blob.size,
+                }));
+
+                setExportDone(true);
+                await new Promise(r => setTimeout(r, 800));
+            } catch (err) {
+                console.error('Puzzle export failed (non-blocking):', err);
+            } finally {
+                setExporting(false);
+                setExportDone(false);
+            }
+        }
 
         addItem({
-            id: `${product.id}-${Date.now()}`,
+            id: cartItemId,
             product_id: product.id,
             name: product.name,
             price,
             qty: 1,
-            image: photos[0].preview,
+            image: canvasRef.current ? canvasRef.current.toDataURL('image/jpeg', 0.7) : photos[0].preview,
             options: {
                 'Розмір': selectedSize.name,
                 'Кількість елементів': selectedSize.pieces.toString(),
@@ -501,6 +537,7 @@ export default function PhotoPuzzleConstructor() {
 
     return (
         <div className="min-h-screen bg-gray-50 py-8">
+            <ExportProgressModal open={exporting} current={1} total={1} done={exportDone} />
             <div className="max-w-7xl mx-auto px-4">
                 {/* Header */}
                 <div className="mb-8">

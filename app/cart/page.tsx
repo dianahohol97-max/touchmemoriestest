@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { Trash2, Plus, Minus, MapPin, Truck, ChevronRight, Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { logCartEvent } from '@/lib/analytics';
+import { createOrderFileRecords, type OrderFileRecord } from '@/lib/export-utils';
 
 
 export default function CartPage() {
@@ -82,12 +83,48 @@ export default function CartPage() {
         fetchWarehouses();
     }, [deliveryInfo.cityRef, deliveryMethod]);
 
+    /**
+     * After the order is created server-side, read export data stored in sessionStorage
+     * by each constructor and create proper order_files records linked to the real order_id.
+     */
+    async function linkPendingExports(orderId: string, cartItemIds: string[]) {
+        const records: OrderFileRecord[] = [];
+
+        for (const itemId of cartItemIds) {
+            const raw = sessionStorage.getItem(`export_${itemId}`);
+            if (!raw) continue;
+            try {
+                const data = JSON.parse(raw);
+                records.push({
+                    order_id: orderId,
+                    file_path: data.path,
+                    file_name: data.fileName,
+                    file_type: 'export',
+                    file_category: data.fileCategory,
+                    bucket_name: data.bucket,
+                    file_size: data.size,
+                    mime_type: data.mimeType || 'image/png',
+                });
+                sessionStorage.removeItem(`export_${itemId}`);
+            } catch { /* skip malformed entries */ }
+        }
+
+        if (records.length > 0) {
+            try {
+                await createOrderFileRecords(records);
+            } catch (err) {
+                console.error('Failed to link exports to order:', err);
+            }
+        }
+    }
+
     const handleCheckout = async () => {
         if (!customer.name || !customer.email || !customer.phone) { toast.error('Заповніть контактні дані'); return; }
         if (items.length === 0) { toast.error('Кошик порожній'); return; }
 
         setLoading(true);
         try {
+            const cartItemIds = items.map(i => i.id);
             const res = await fetch('/api/checkout/create-invoice', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -101,6 +138,10 @@ export default function CartPage() {
             const data = await res.json();
 
             if (data.success && data.pageUrl) {
+                // Link any exports to the real order_id before redirecting
+                if (data.orderId) {
+                    await linkPendingExports(data.orderId, cartItemIds);
+                }
                 window.location.href = data.pageUrl;
             } else {
                 toast.error(data.error || 'Помилка при створенні замовлення');
