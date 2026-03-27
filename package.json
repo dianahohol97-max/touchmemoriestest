@@ -67,6 +67,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.1",
+    "@types/google.maps": "^3.58.1",
     "@types/node": "^20",
     "@types/node-telegram-bot-api": "^0.64.14",
     "@types/react": "^19",

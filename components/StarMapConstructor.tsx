@@ -6,6 +6,7 @@ import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import StarMapPreview from './StarMapPreview';
+import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 
 interface StarMapConfig {
     // Step 1: Moment
@@ -288,12 +289,17 @@ function Step1Moment({ config, setConfig }: { config: StarMapConfig; setConfig: 
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                     Локація <span className="text-red-500">*</span>
                 </label>
-                <input
-                    type="text"
+                <GooglePlacesAutocomplete
                     value={config.location}
-                    onChange={(e) => setConfig({ ...config, location: e.target.value })}
+                    onChange={(location, lat, lon) => {
+                        setConfig({
+                            ...config,
+                            location,
+                            latitude: lat || config.latitude,
+                            longitude: lon || config.longitude
+                        });
+                    }}
                     placeholder="Київ, Україна"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">Почніть вводити адресу для автодоповнення</p>
             </div>
