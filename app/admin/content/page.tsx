@@ -54,6 +54,7 @@ interface SectionContent {
     cta_url: string | null;
     image_url: string | null;
     is_active: boolean;
+    metadata: any;
 }
 
 export default function ContentManagementPage() {
@@ -67,6 +68,7 @@ export default function ContentManagementPage() {
     const [heroButtons, setHeroButtons] = useState<HeroButton[]>([]);
     const [featureCards, setFeatureCards] = useState<FeatureCard[]>([]);
     const [sectionContent, setSectionContent] = useState<SectionContent[]>([]);
+    const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchAllContent();
@@ -269,6 +271,45 @@ export default function ContentManagementPage() {
             console.error('Error adding card:', error);
             toast.error('Помилка додавання картки');
         }
+    }
+
+    async function saveSectionContent(sectionId: string) {
+        setSaving(true);
+        try {
+            const section = sectionContent.find(s => s.id === sectionId);
+            if (!section) return;
+
+            const { error } = await supabase
+                .from('section_content')
+                .update({
+                    heading: section.heading,
+                    subheading: section.subheading,
+                    body_text: section.body_text,
+                    cta_text: section.cta_text,
+                    cta_url: section.cta_url,
+                    image_url: section.image_url,
+                    is_active: section.is_active,
+                    metadata: section.metadata
+                })
+                .eq('id', sectionId);
+
+            if (error) throw error;
+            toast.success('Секцію збережено');
+            setEditingSectionId(null);
+        } catch (error) {
+            console.error('Error saving section:', error);
+            toast.error('Помилка збереження секції');
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    function updateSectionField(sectionId: string, field: keyof SectionContent, value: any) {
+        setSectionContent(sectionContent.map(section =>
+            section.id === sectionId
+                ? { ...section, [field]: value }
+                : section
+        ));
     }
 
     if (loading) {
@@ -689,40 +730,239 @@ export default function ContentManagementPage() {
             {activeTab === 'sections' && (
                 <div className="bg-white rounded-lg shadow-sm p-6">
                     <h2 className="text-xl font-semibold text-gray-900 mb-6">Контент інших секцій</h2>
+                    <p className="text-sm text-gray-600 mb-6">
+                        Редагуйте заголовки, описи та CTA для всіх секцій на головній сторінці
+                    </p>
+
                     <div className="space-y-6">
-                        {sectionContent.map((section) => (
-                            <div key={section.id} className="border border-gray-200 rounded-lg p-4">
-                                <h3 className="font-semibold text-gray-900 mb-4">{section.section_name}</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Заголовок
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={section.heading || ''}
-                                            readOnly
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                                        />
+                        {sectionContent.map((section) => {
+                            const isEditing = editingSectionId === section.id;
+
+                            return (
+                                <div key={section.id} className={`border rounded-lg p-6 ${isEditing ? 'border-[#1e2d7d] bg-blue-50/30' : 'border-gray-200'}`}>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h3 className="font-semibold text-gray-900 text-lg">{section.section_name}</h3>
+                                            <p className="text-xs text-gray-500 mt-1">ID: {section.id.slice(0, 8)}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={section.is_active}
+                                                    onChange={(e) => updateSectionField(section.id, 'is_active', e.target.checked)}
+                                                    className="w-4 h-4 text-[#1e2d7d] border-gray-300 rounded focus:ring-[#1e2d7d]"
+                                                />
+                                                <label className="text-sm font-medium text-gray-700">
+                                                    Активна
+                                                </label>
+                                            </div>
+                                            {!isEditing ? (
+                                                <button
+                                                    onClick={() => setEditingSectionId(section.id)}
+                                                    className="flex items-center gap-2 px-3 py-2 text-[#1e2d7d] hover:bg-[#1e2d7d]/10 rounded-lg transition-colors"
+                                                >
+                                                    <FileText size={16} />
+                                                    Редагувати
+                                                </button>
+                                            ) : null}
+                                        </div>
                                     </div>
-                                    <div className="col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Підзаголовок
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={section.subheading || ''}
-                                            readOnly
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                                        />
-                                    </div>
+
+                                    {isEditing ? (
+                                        <div className="space-y-4">
+                                            {/* Heading */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Заголовок
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={section.heading || ''}
+                                                    onChange={(e) => updateSectionField(section.id, 'heading', e.target.value)}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
+                                                    placeholder="Введіть заголовок секції"
+                                                />
+                                            </div>
+
+                                            {/* Subheading */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Підзаголовок
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={section.subheading || ''}
+                                                    onChange={(e) => updateSectionField(section.id, 'subheading', e.target.value)}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
+                                                    placeholder="Введіть підзаголовок"
+                                                />
+                                            </div>
+
+                                            {/* Body Text */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Основний текст
+                                                </label>
+                                                <textarea
+                                                    value={section.body_text || ''}
+                                                    onChange={(e) => updateSectionField(section.id, 'body_text', e.target.value)}
+                                                    rows={4}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
+                                                    placeholder="Введіть основний текст секції"
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* CTA Text */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        Текст кнопки (CTA)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={section.cta_text || ''}
+                                                        onChange={(e) => updateSectionField(section.id, 'cta_text', e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
+                                                        placeholder="Наприклад: Дізнатись більше"
+                                                    />
+                                                </div>
+
+                                                {/* CTA URL */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        Посилання кнопки (CTA URL)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={section.cta_url || ''}
+                                                        onChange={(e) => updateSectionField(section.id, 'cta_url', e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
+                                                        placeholder="/catalog"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Image URL */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    URL зображення
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={section.image_url || ''}
+                                                    onChange={(e) => updateSectionField(section.id, 'image_url', e.target.value)}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
+                                                    placeholder="https://example.com/image.jpg"
+                                                />
+                                                {section.image_url && (
+                                                    <img
+                                                        src={section.image_url}
+                                                        alt="Preview"
+                                                        className="mt-2 w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                                                    />
+                                                )}
+                                            </div>
+
+                                            {/* Metadata (JSON Editor) */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Metadata (JSON)
+                                                </label>
+                                                <textarea
+                                                    value={section.metadata ? JSON.stringify(section.metadata, null, 2) : ''}
+                                                    onChange={(e) => {
+                                                        try {
+                                                            const parsed = e.target.value ? JSON.parse(e.target.value) : null;
+                                                            updateSectionField(section.id, 'metadata', parsed);
+                                                        } catch (err) {
+                                                            // Invalid JSON - just update the raw value for now
+                                                            // User will see error when they try to save
+                                                        }
+                                                    }}
+                                                    rows={6}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent font-mono text-sm"
+                                                    placeholder='{"key": "value"}'
+                                                />
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Metadata для секції (наприклад, steps, features, quiz_enabled)
+                                                </p>
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-3 pt-4">
+                                                <button
+                                                    onClick={() => saveSectionContent(section.id)}
+                                                    disabled={saving}
+                                                    className="flex items-center gap-2 px-6 py-3 bg-[#1e2d7d] text-white rounded-lg hover:bg-[#162159] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    {saving ? (
+                                                        <>
+                                                            <Activity className="animate-spin" size={18} />
+                                                            Збереження...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Save size={18} />
+                                                            Зберегти секцію
+                                                        </>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingSectionId(null);
+                                                        fetchAllContent(); // Reset to original values
+                                                    }}
+                                                    disabled={saving}
+                                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    Скасувати
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {section.heading && (
+                                                <div>
+                                                    <span className="text-xs font-medium text-gray-500 uppercase">Заголовок:</span>
+                                                    <p className="text-gray-900 mt-1">{section.heading}</p>
+                                                </div>
+                                            )}
+                                            {section.subheading && (
+                                                <div>
+                                                    <span className="text-xs font-medium text-gray-500 uppercase">Підзаголовок:</span>
+                                                    <p className="text-gray-700 mt-1">{section.subheading}</p>
+                                                </div>
+                                            )}
+                                            {section.cta_text && (
+                                                <div>
+                                                    <span className="text-xs font-medium text-gray-500 uppercase">CTA:</span>
+                                                    <p className="text-gray-700 mt-1">
+                                                        {section.cta_text} → <span className="text-[#1e2d7d]">{section.cta_url}</span>
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {section.metadata && (
+                                                <div>
+                                                    <span className="text-xs font-medium text-gray-500 uppercase">Metadata:</span>
+                                                    <pre className="text-xs text-gray-600 mt-1 bg-gray-50 p-2 rounded overflow-x-auto">
+                                                        {JSON.stringify(section.metadata, null, 2)}
+                                                    </pre>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
-                                <p className="text-sm text-gray-500 mt-2">
-                                    Редагування інших секцій буде доступне в наступній версії
-                                </p>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
+
+                    {sectionContent.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                            <FileText size={48} className="mx-auto mb-4 opacity-50" />
+                            <p>Немає секцій для відображення</p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
