@@ -83,9 +83,9 @@ export default function ProNasPage() {
 
           {/* CTA Section */}
           <section className="bg-[#1e2d7d] rounded-lg p-12 text-white text-center">
-            <h2 className="text-3xl font-bold mb-4 text-white">Збережи свої спогади назавжди</h2>
+            <h2 className="text-3xl font-bold mb-4 text-white">Збережіть свої спогади назавжди</h2>
             <p className="text-white/90 mb-8 text-lg max-w-2xl mx-auto">
-              Обери формат, який підходить саме тобі — і ми зробимо все інше.
+              Оберіть формат, який підходить саме вам — і ми зробимо все інше.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link

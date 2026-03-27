@@ -118,7 +118,7 @@ export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModa
                                         <div style={inputWrapperStyle}>
                                             <SparkleIcon size={18} color="#94a3b8" />
                                             <input
-                                                placeholder="Твоя кохана (або анонімно)"
+                                                placeholder="Ваша кохана (або анонімно)"
                                                 style={inputStyle}
                                                 value={formData.sender_name}
                                                 onChange={e => setFormData({ ...formData, sender_name: e.target.value })}

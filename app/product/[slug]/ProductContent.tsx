@@ -93,7 +93,7 @@ export default function ProductContent({ product }: { product: any }) {
                                     />
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '8px' }}>
-                                            ✨ Послуга дизайнера "Зроби за мене"
+                                            ✨ Послуга дизайнера "Зробіть за мене"
                                         </div>
                                         <div style={{ fontSize: '0.95rem', opacity: 0.95, marginBottom: '12px' }}>
                                             Завантажте фото, заповніть короткий бриф — і наш AI + професійний дизайнер створять для вас ідеальний макет фотокниги. Ви отримаєте готовий дизайн на перегляд з можливістю 2 безкоштовних правок.

@@ -147,13 +147,13 @@ export default async function Home() {
                         Натхнення
                       </span>
                       <h3 className="text-white hover:text-white/90 text-xl font-serif leading-snug transition-colors">
-                        Топ-10 локацій України для твого Travel Book
+                        Топ-10 локацій України для вашого Travel Book
                       </h3>
                     </div>
                   </div>
                   <div className="p-6">
                     <p className="text-stone-600 text-sm leading-relaxed mb-4">
-                      Карпати, Буковель, Львів, Одеса, Київ — створи журнал своїх подорожей з найкрасивішими локаціями України.
+                      Карпати, Буковель, Львів, Одеса, Київ — створіть журнал своїх подорожей з найкрасивішими локаціями України.
                     </p>
                     <Link
                       href="/blog/top-locations-ukraine"
@@ -211,7 +211,7 @@ export default async function Home() {
                   {/* Description */}
                   <p className="text-gray-700 text-lg leading-relaxed mb-8">
                     A4 формат, тверда обкладинка, 170г глянцевий папір. Ідеальний спосіб
-                    зберегти спогади про подорожі у стильному виданні, яке ти створив сам.
+                    зберегти спогади про подорожі у стильному виданні, яке ви створили самі.
                   </p>
 
                   {/* Features */}

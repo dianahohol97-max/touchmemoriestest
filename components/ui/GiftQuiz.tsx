@@ -181,8 +181,8 @@ const getFallbackRecommendations = (answers: Record<string, string | string[]>):
 
     if (interests.includes('travel') && interests.includes('memories')) {
         return [
-            { title: "Travelbook", desc: "Збережи кожну подорож назавжди", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook" },
-            { title: "Фотокнига 'Подорожі'", desc: "Преміум якість для твоїх пригод", image: "/images/promo/photobook_video.png", link: "/catalog/photobook-travel" }
+            { title: "Travelbook", desc: "Збережіть кожну подорож назавжди", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook" },
+            { title: "Фотокнига 'Подорожі'", desc: "Преміум якість для ваших пригод", image: "/images/promo/photobook_video.png", link: "/catalog/photobook-travel" }
         ];
     }
 
