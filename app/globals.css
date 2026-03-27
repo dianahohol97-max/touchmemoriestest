@@ -2,60 +2,113 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+/* ================================================================
+   TOUCH MEMORIES — GLOBAL DESIGN SYSTEM
+   Brand: #263A99 · Montserrat (headlines) · Open Sans (body)
+   Style: "High-Contrast Editorial" — premium photo journal meets e-com
+   ================================================================ */
+
 :root {
-  /* Brand Core Colors */
-  --color-primary: #263A99;
-  --color-accent: #263A99;
-  --color-background: #FFFFFF;
-  --color-text-primary: #263A99;
+  /* ── Core Brand ──────────────────────────────────────────────── */
+  --primary:            #263A99;
+  --primary-hover:      #1A2870;
+  --primary-dark:       #1A2870;
+  --primary-light:      #3D56C4;
+  --primary-container:  #1E2F85;
+  --accent:             #263A99;
 
-  --primary: #263A99;
-  --primary-hover: #1d2d7a;
-  --accent: #263A99;
-  --background: #FFFFFF;
-  --text-primary: #263A99;
-  --link: #263A99;
+  /* ── Surface Scale (tonal layering, no 1px borders) ─────────── */
+  --surface:            #F8F9FF;   /* page background */
+  --surface-low:        #F1F3FB;   /* alternate section bg */
+  --surface-mid:        #ECEEF6;   /* cards on surface-low */
+  --surface-high:       #E6E8F0;   /* dividers via bg shift */
+  --surface-highest:    #E0E2EA;
+  --surface-white:      #FFFFFF;   /* cards, forms */
 
-  /* Typography Scale - Normalized for Premium E-com */
-  --font-body: 'Open Sans', sans-serif;
-  --font-heading: 'Montserrat', sans-serif;
-  --size-h1: 56px;
-  --size-h2: 40px;
-  /* Reduced from 42px as requested */
-  --size-h3: 28px;
-  /* Increased from 26px as requested */
-  --size-body: 16px;
-  /* Optimized for premium readability */
-  --size-small: 14px;
+  /* ── Text ────────────────────────────────────────────────────── */
+  --on-surface:         #181C21;   /* primary text */
+  --secondary-text:     #585C7D;   /* muted text */
+  --on-primary:         #FFFFFF;
 
-  /* Spacing Scale - Strictly for 4px/8px grid */
-  --space-8: 8px;
-  --space-16: 16px;
-  --space-24: 24px;
-  --space-32: 32px;
-  --space-48: 48px;
-  --space-64: 64px;
-  --section-spacing: 32px;
-  /* Standardizing spacing between sections */
+  /* ── Legacy aliases (keep for component compat) ─────────────── */
+  --color-primary:      #263A99;
+  --color-accent:       #263A99;
+  --color-background:   #F8F9FF;
+  --color-text-primary: #181C21;
+  --link:               #263A99;
+  --background:         #F8F9FF;
+  --text-primary:       #181C21;
 
-  /* Button System Tokens */
-  --btn-height: 52px;
-  --btn-padding-x: 32px;
-  --btn-font-size: 16px;
+  /* ── Outline ─────────────────────────────────────────────────── */
+  --outline-variant:    #C6C5D3;
+  --border:             #E0E2EA;
+  --input:              #E0E2EA;
+  --ring:               #263A99;
+
+  /* ── Typography ──────────────────────────────────────────────── */
+  --font-body:          'Open Sans',   sans-serif;
+  --font-heading:       'Montserrat',  sans-serif;
+
+  --size-display:       clamp(3.5rem, 7vw, 6rem);  /* hero headline */
+  --size-h1:            56px;
+  --size-h2:            40px;
+  --size-h3:            28px;
+  --size-body:          16px;
+  --size-small:         14px;
+  --size-label:         12px;
+
+  /* ── Spacing (4px grid) ─────────────────────────────────────── */
+  --space-4:   4px;
+  --space-8:   8px;
+  --space-16:  16px;
+  --space-24:  24px;
+  --space-32:  32px;
+  --space-48:  48px;
+  --space-64:  64px;
+  --space-96:  96px;
+
+  --section-spacing: 96px;   /* between major sections */
+
+  /* ── Border Radius ───────────────────────────────────────────── */
+  --radius-brand:  3px;    /* cards, inputs — sharp editorial */
+  --radius-md:     6px;
+  --radius-lg:     12px;
+  --radius-xl:     16px;
+  --radius-pill:   9999px; /* buttons */
+
+  /* ── Shadows (navy-tinted, no black) ─────────────────────────── */
+  --shadow-card:       0 10px 30px rgba(38, 58, 153, 0.06);
+  --shadow-card-hover: 0 20px 50px rgba(38, 58, 153, 0.12);
+  --shadow-btn:        0 4px 16px  rgba(38, 58, 153, 0.25);
+  --shadow-btn-hover:  0 8px 24px  rgba(38, 58, 153, 0.35);
+  --shadow-lift:       0 0  30px   rgba(38, 58, 153, 0.06); /* ambient */
+
+  /* ── Button System Tokens ────────────────────────────────────── */
+  --btn-height:      52px;
+  --btn-padding-x:   32px;
+  --btn-font-size:   15px;
   --btn-font-weight: 700;
-  --btn-transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  --radius-brand: 3px;
+  --btn-transition:  all 0.2s ease;
 
-  /* Card System Tokens */
-  --card-radius: 3px;
-  --card-shadow: 0 10px 40px -10px rgba(38, 58, 153, 0.1), 0 5px 20px -5px rgba(0, 0, 0, 0.04);
-  --card-shadow-hover: 0 30px 60px -15px rgba(38, 58, 153, 0.15), 0 15px 30px -10px rgba(0, 0, 0, 0.05);
+  /* ── Card System Tokens ──────────────────────────────────────── */
+  --card-radius:       var(--radius-brand);
+  --card-shadow:       var(--shadow-card);
+  --card-shadow-hover: var(--shadow-card-hover);
 
-  /* Support vars */
+  /* ── Glass Nav ───────────────────────────────────────────────── */
+  --nav-glass-bg:   rgba(248, 249, 255, 0.82);
+  --nav-blur:       blur(20px);
+
+  /* ── Support vars ────────────────────────────────────────────── */
   --primary-foreground: 255 255 255;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #263A99;
+}
+
+/* ================================================================
+   BASE
+   ================================================================ */
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -63,16 +116,17 @@ body {
   padding: 0;
   font-family: var(--font-body);
   font-size: var(--size-body);
-  color: var(--text-primary);
-  background-color: var(--background);
-  line-height: 1.6;
+  color: var(--on-surface);
+  background-color: var(--surface);
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1 {
   font-family: var(--font-heading);
   font-size: var(--size-h1);
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1.05;
   letter-spacing: -0.04em;
   color: var(--primary);
@@ -90,47 +144,35 @@ h2,
   margin-bottom: 32px;
 }
 
-.section-subtitle {
-  font-size: var(--size-body);
-  color: var(--text-primary);
-  opacity: 0.5;
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.6;
-}
-
 h3 {
   font-family: var(--font-heading);
   font-size: var(--size-h3);
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
   color: var(--primary);
 }
 
-h4,
-h5,
-h6 {
+h4, h5, h6 {
   font-family: var(--font-heading);
   color: var(--primary);
   font-weight: 700;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  h1 {
-    font-size: 40px;
-  }
-
-  h2 {
-    font-size: 32px;
-  }
-
-  h3 {
-    font-size: 24px;
-  }
+.section-subtitle {
+  font-size: var(--size-body);
+  color: var(--secondary-text);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.7;
 }
 
-/* Link base color — inside @layer base so Tailwind utility classes (text-white etc.) can override */
+@media (max-width: 768px) {
+  h1 { font-size: 40px; }
+  h2 { font-size: 30px; }
+  h3 { font-size: 22px; }
+}
+
 @layer base {
   a {
     color: var(--link);
@@ -143,20 +185,33 @@ h6 {
 }
 
 .container {
-  max-width: 1280px;
-  /* Increased from 1200px */
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 0 32px;
-  /* Increased from 24px for more breathing room */
+  padding: 0 48px;
 }
 
-/* Centralized Button System */
+@media (max-width: 768px) {
+  .container { padding: 0 20px; }
+}
+
+.section-padding {
+  padding-top: var(--section-spacing);
+  padding-bottom: var(--section-spacing);
+}
+
+@media (max-width: 768px) {
+  .section-padding {
+    padding-top: 48px;
+    padding-bottom: 48px;
+  }
+}
+
 .btn-primary {
   height: var(--btn-height);
   background: var(--primary);
-  color: white;
+  color: #FFFFFF;
   padding: 0 var(--btn-padding-x);
-  border-radius: var(--radius-brand);
+  border-radius: var(--radius-pill);
   font-weight: var(--btn-font-weight);
   font-family: var(--font-heading);
   font-size: var(--btn-font-size);
@@ -166,104 +221,164 @@ h6 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   text-decoration: none;
-  box-shadow: 0 4px 12px rgba(38, 58, 153, 0.15);
+  box-shadow: var(--shadow-btn);
+  letter-spacing: 0.01em;
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(38, 58, 153, 0.25);
+  background: var(--primary-hover);
+  transform: scale(1.02) translateY(-1px);
+  box-shadow: var(--shadow-btn-hover);
+  color: #FFFFFF;
 }
+
+.btn-primary:active { transform: scale(0.98); }
 
 .btn-secondary {
   height: var(--btn-height);
-  background: white;
+  background: transparent;
   color: var(--primary);
   padding: 0 var(--btn-padding-x);
-  border-radius: var(--radius-brand);
+  border-radius: var(--radius-pill);
   font-weight: var(--btn-font-weight);
   font-family: var(--font-heading);
   font-size: var(--btn-font-size);
-  border: 1px solid var(--primary);
+  border: 2px solid rgba(38, 58, 153, 0.2);
   cursor: pointer;
   transition: var(--btn-transition);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   text-decoration: none;
+  letter-spacing: 0.01em;
 }
 
 .btn-secondary:hover {
-  background: rgba(38, 58, 153, 0.05);
-  transform: translateY(-2px);
+  background: var(--surface-mid);
+  border-color: var(--primary);
+  transform: scale(1.02) translateY(-1px);
 }
 
-/* Utility classes for 4px grid */
-.mt-4 {
-  margin-top: 16px;
+.btn-on-dark {
+  height: var(--btn-height);
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  padding: 0 var(--btn-padding-x);
+  border-radius: var(--radius-pill);
+  font-weight: var(--btn-font-weight);
+  font-family: var(--font-heading);
+  font-size: var(--btn-font-size);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: var(--btn-transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-.mb-4 {
-  margin-bottom: 16px;
+.btn-on-dark:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.02) translateY(-1px);
+  color: #FFFFFF;
 }
 
-.p-4 {
-  padding: 16px;
+.card {
+  background: var(--surface-white);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
 }
 
-.rounded-brand {
-  border-radius: var(--radius);
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
 }
 
-/* Glass Card Utility */
+.glass-nav,
+.shop-header {
+  background: var(--nav-glass-bg);
+  backdrop-filter: var(--nav-blur);
+  -webkit-backdrop-filter: var(--nav-blur);
+  border-bottom: 1px solid rgba(38, 58, 153, 0.08);
+}
+
+.hero-scrim-bottom {
+  background: linear-gradient(
+    to bottom,
+    rgba(2, 16, 100, 0) 60%,
+    rgba(2, 16, 100, 0.8) 100%
+  );
+}
+
+.bg-surface         { background-color: var(--surface); }
+.bg-surface-low     { background-color: var(--surface-low); }
+.bg-surface-mid     { background-color: var(--surface-mid); }
+.bg-surface-white   { background-color: var(--surface-white); }
+
 .glass-card {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(38, 58, 153, 0.1);
+  border: 1px solid rgba(38, 58, 153, 0.08);
+  border-radius: var(--radius-brand);
 }
 
-/* Premium Layers & Gradients */
-.bg-premium-subtle {
-  background-color: #fcfdfe;
+.bg-premium-subtle   { background-color: #FCFDFE; }
+.bg-premium-gradient { background: linear-gradient(180deg, #FFFFFF 0%, #F8F9FF 100%); }
+.bg-primary-subtle   { background-color: rgba(38, 58, 153, 0.02); }
+
+.icon-container {
+  background: var(--primary-container);
+  color: #FFFFFF;
+  padding: 14px;
+  border-radius: var(--radius-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.bg-premium-gradient {
-  background: linear-gradient(180deg, #FFFFFF 0%, #f8fafc 100%);
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: var(--size-label);
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
-.bg-primary-subtle {
-  background-color: rgba(38, 58, 153, 0.02);
+.badge-primary { background: var(--surface-mid); color: var(--primary); }
+.badge-filled  { background: var(--primary); color: #FFFFFF; }
+
+
+.section-label {
+  font-family: var(--font-heading);
+  font-size: var(--size-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--secondary-text);
+  margin-bottom: 12px;
 }
 
-/* Section Spacing */
-.section-padding {
-  padding-top: var(--section-spacing);
-  padding-bottom: var(--section-spacing);
-}
+.raunded-brand { border-radius: var(--radius-brand); }
+
+footer { background: var(--surface-low); }
+footer a { color: var(--secondary-text); transition: color 0.2s; }
+footer a:hover { color: var(--primary); }
 
 @media (max-width: 768px) {
-  .section-padding {
-    padding-top: 32px;
-    padding-bottom: 32px;
-  }
-}
-
-/* Force 3px border radius for all rounded elements to ensure boxy aesthetic */
-/* Unless it's a specific rounded-full case */
-[class*='rounded-']:not(.rounded-full) {
-  border-radius: 3px !important;
-}
-
-/* Header & Nav */
-.shop-header {
-  height: 80px;
-  border-bottom: 1px solid #e2e8f0;
-  background: white;
-  display: flex;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  .section-padding { padding-top: 48px; padding-bottom: 48px; }
+  .container { padding: 0 20px; }
 }
