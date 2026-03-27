@@ -86,6 +86,27 @@ export default async function Home() {
     .order('published_at', { ascending: false })
     .limit(6);
 
+  // Fetch featured articles for Travel Book section
+  const { data: travelArticles } = await supabase
+    .from('featured_articles')
+    .select('*')
+    .eq('section', 'travel')
+    .eq('is_active', true)
+    .order('position', { ascending: true })
+    .limit(2);
+
+  // Fetch featured blog posts for Blog section
+  const { data: featuredBlogPosts } = await supabase
+    .from('blog_posts')
+    .select(`
+      *,
+      category:blog_categories(name, slug)
+    `)
+    .eq('is_published', true)
+    .eq('is_featured', true)
+    .order('published_at', { ascending: false })
+    .limit(3);
+
   const { data: blocks } = await supabase
     .from('site_blocks')
     .select('*')
@@ -133,69 +154,40 @@ export default async function Home() {
               {/* LEFT COLUMN: Two stacked cards */}
               <div className="space-y-6">
 
-                {/* TOP CARD — Топ локацій */}
-                <div className="bg-white rounded-[3px] shadow-md overflow-hidden">
-                  <div className="aspect-video bg-gradient-to-br from-[#f0f3ff] to-stone-100 relative overflow-hidden">
-                    <img
-                      src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80"
-                      alt="Топ локації для Travel Book"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide mb-2">
-                        Натхнення
-                      </span>
-                      <h3 className="text-white hover:text-white/90 text-xl font-serif leading-snug transition-colors">
-                        Топ-10 локацій України для вашого Travel Book
-                      </h3>
+                {travelArticles && travelArticles.map((article: any) => (
+                  <div key={article.id} className="bg-white rounded-[3px] shadow-md overflow-hidden">
+                    <div className="aspect-video bg-gradient-to-br from-[#f0f3ff] to-stone-100 relative overflow-hidden">
+                      <img
+                        src={article.image_url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'}
+                        alt={article.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        {article.category_label && (
+                          <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide mb-2">
+                            {article.category_label}
+                          </span>
+                        )}
+                        <h3 className="text-white hover:text-white/90 text-xl font-serif leading-snug transition-colors">
+                          {article.title}
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <p className="text-stone-600 text-sm leading-relaxed mb-4">
+                        {article.description}
+                      </p>
+                      <Link
+                        href={article.link_url || '#'}
+                        className="text-stone-900 font-semibold text-sm hover:text-stone-600 transition-colors inline-flex items-center gap-2"
+                      >
+                        Читати статтю
+                        <span>→</span>
+                      </Link>
                     </div>
                   </div>
-                  <div className="p-6">
-                    <p className="text-stone-600 text-sm leading-relaxed mb-4">
-                      Карпати, Буковель, Львів, Одеса, Київ — створіть журнал своїх подорожей з найкрасивішими локаціями України.
-                    </p>
-                    <Link
-                      href="/blog/top-locations-ukraine"
-                      className="text-stone-900 font-semibold text-sm hover:text-stone-600 transition-colors inline-flex items-center gap-2"
-                    >
-                      Читати статтю
-                      <span>→</span>
-                    </Link>
-                  </div>
-                </div>
-
-                {/* BOTTOM CARD — Travel Blog Article */}
-                <div className="bg-white rounded-[3px] shadow-md overflow-hidden">
-                  <div className="aspect-video bg-gradient-to-br from-blue-100 to-stone-100 relative overflow-hidden">
-                    <img
-                      src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&q=80"
-                      alt="Тревел-бук vs фотоальбом"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide mb-2">
-                        Travel
-                      </span>
-                      <h3 className="text-white hover:text-white/90 text-xl font-serif leading-snug transition-colors">
-                        Тревел-бук vs фотоальбом: що обрати?
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <p className="text-stone-600 text-sm leading-relaxed mb-4">
-                      Розбираємо відмінності між класичним фотоальбомом і сучасним тревел-буком у форматі глянцевого журналу.
-                    </p>
-                    <Link
-                      href="/blog/travelbook-vs-photoalbum"
-                      className="text-stone-900 font-semibold text-sm hover:text-stone-600 transition-colors inline-flex items-center gap-2"
-                    >
-                      Читати статтю
-                      <span>→</span>
-                    </Link>
-                  </div>
-                </div>
+                ))}
 
               </div>
 
@@ -300,72 +292,61 @@ export default async function Home() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
               {/* Featured article — large */}
-              <article className="md:col-span-6 group cursor-pointer">
-                <Link href="/blog/iak-stvoryty-fotoknyhu">
-                  <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/10' }}>
-                    <img
-                      src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80"
-                      alt="Як створити ідеальну фотокнигу"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
-                        Гід
-                      </span>
-                      <h3 className="text-white text-xl lg:text-2xl font-serif leading-snug">
-                        Як створити ідеальну фотокнигу: повний гід для початківців
-                      </h3>
-                      <p className="text-white/70 text-sm mt-2">5 хв читання</p>
+              {featuredBlogPosts && featuredBlogPosts[0] && (
+                <article className="md:col-span-6 group cursor-pointer">
+                  <Link href={`/blog/${featuredBlogPosts[0].slug}`}>
+                    <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/10' }}>
+                      <img
+                        src={featuredBlogPosts[0].featured_image || 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80'}
+                        alt={featuredBlogPosts[0].title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        {featuredBlogPosts[0].category && (
+                          <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
+                            {featuredBlogPosts[0].category.name}
+                          </span>
+                        )}
+                        <h3 className="text-white text-xl lg:text-2xl font-serif leading-snug">
+                          {featuredBlogPosts[0].title}
+                        </h3>
+                        {featuredBlogPosts[0].read_time && (
+                          <p className="text-white/70 text-sm mt-2">{featuredBlogPosts[0].read_time} хв читання</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              </article>
+                  </Link>
+                </article>
+              )}
 
               {/* Two smaller articles */}
               <div className="md:col-span-6 flex flex-col gap-6">
 
-                <article className="group cursor-pointer flex-1">
-                  <Link href="/blog/travelbook-vs-photoalbum">
-                    <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
-                      <img
-                        src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80"
-                        alt="Тревел-бук"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
-                          Travel
-                        </span>
-                        <h3 className="text-white text-base font-serif leading-snug">
-                          Тревел-бук vs фотоальбом: що обрати для спогадів про подорож?
-                        </h3>
+                {featuredBlogPosts && featuredBlogPosts.slice(1, 3).map((post: any) => (
+                  <article key={post.id} className="group cursor-pointer flex-1">
+                    <Link href={`/blog/${post.slug}`}>
+                      <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
+                        <img
+                          src={post.featured_image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80'}
+                          alt={post.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          {post.category && (
+                            <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
+                              {post.category.name}
+                            </span>
+                          )}
+                          <h3 className="text-white text-base font-serif leading-snug">
+                            {post.title}
+                          </h3>
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                </article>
-
-                <article className="group cursor-pointer flex-1">
-                  <Link href="/blog/vesil-ni-podarunky">
-                    <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
-                      <img
-                        src="https://images.unsplash.com/photo-1472173148041-00294f0814a2?w=600&q=80"
-                        alt="Весілля"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
-                          Весілля
-                        </span>
-                        <h3 className="text-white text-base font-serif leading-snug">
-                          Топ-5 ідей для весільного альбому, який захоплює подих
-                        </h3>
-                      </div>
-                    </div>
-                  </Link>
-                </article>
+                    </Link>
+                  </article>
+                ))}
 
               </div>
             </div>
