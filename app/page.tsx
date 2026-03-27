@@ -25,7 +25,7 @@ import { TravelBookCTA } from '@/components/TravelBookCTA';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 
-export const revalidate = 3600; // ISR revalidate every hour
+export const revalidate = 0; // Force fresh data fetch (no cache)
 
 export default async function Home() {
   const supabase = getAdminClient();
