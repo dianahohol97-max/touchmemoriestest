@@ -6,6 +6,8 @@ import React, { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Minus, Plus, Check, ChevronRight, ChevronLeft } from 'lucide-react'
 import PhotoUploader from '@/components/PhotoUploader'
+import SmartModeSelector from '@/components/SmartModeSelector'
+import SmartModeProcessor from '@/components/SmartModeProcessor'
 import {
   getMagazinePrice,
   getBindingInfo,
@@ -35,8 +37,9 @@ interface OrderData {
 export default function GlossyMagazineConstructor() {
   const router = useRouter()
 
-  // Step management
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
+  // Step management (0 = mode selector, 1-3 = existing steps)
+  const [currentStep, setCurrentStep] = useState<0 | 'smart' | 1 | 2 | 3>(0)
+  const [smartFiles, setSmartFiles] = useState<File[]>([])
 
   // Step 1: Page count
   const [pages, setPages] = useState(24)
@@ -170,6 +173,35 @@ export default function GlossyMagazineConstructor() {
     )
   }
 
+  // Step 0: Mode selection
+  if (currentStep === 0) {
+    return (
+      <SmartModeSelector
+        productTitle="Глянцевий Журнал"
+        onSmartUpload={(files) => {
+          setSmartFiles(files)
+          setCurrentStep('smart')
+        }}
+        onManualSelect={() => setCurrentStep(1)}
+      />
+    )
+  }
+
+  // Smart mode: AI processing pipeline
+  if (currentStep === 'smart') {
+    return (
+      <SmartModeProcessor
+        files={smartFiles}
+        productType="magazine"
+        onComplete={(keptFiles) => {
+          setUploadedPhotos(keptFiles)
+          setCurrentStep(3)
+        }}
+        onCancel={() => setCurrentStep(0)}
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#F4F4F4]">
       {/* Hero Section */}
@@ -214,14 +246,14 @@ export default function GlossyMagazineConstructor() {
                 <div className="flex flex-col items-center flex-1">
                   <div
                     className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-base transition-all ${
-                      currentStep > step.num
+                      (currentStep as number) > step.num
                         ? 'bg-[#10B981] text-white'
                         : currentStep === step.num
                         ? 'bg-[#E63946] text-white'
                         : 'bg-white border-2 border-[#374151] text-[#374151]'
                     }`}
                   >
-                    {currentStep > step.num ? <Check className="w-6 h-6" /> : step.num}
+                    {(currentStep as number) > step.num ? <Check className="w-6 h-6" /> : step.num}
                   </div>
                   <p className="text-xs mt-2 text-gray-700 font-medium">{step.label}</p>
                 </div>

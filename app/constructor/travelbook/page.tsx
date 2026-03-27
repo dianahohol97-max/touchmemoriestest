@@ -5,6 +5,8 @@ export const dynamic = 'force-dynamic'
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
+import SmartModeSelector from '@/components/SmartModeSelector'
+import SmartModeProcessor from '@/components/SmartModeProcessor'
 
 // Travel Book pricing
 const TRAVEL_BOOK_PRICES: Record<number, number> = {
@@ -48,7 +50,8 @@ interface OrderData {
 
 export default function TravelBookConstructor() {
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState<0 | 'smart' | 1 | 2 | 3>(0)
+  const [smartFiles, setSmartFiles] = useState<File[]>([])
   const [selectedPages, setSelectedPages] = useState(24)
   const [extras, setExtras] = useState<Extras>({
     lamination: false,
@@ -141,6 +144,35 @@ export default function TravelBookConstructor() {
     )
   }
 
+  // Step 0: Mode selection
+  if (currentStep === 0) {
+    return (
+      <SmartModeSelector
+        productTitle="Тревел Бук"
+        onSmartUpload={(files) => {
+          setSmartFiles(files)
+          setCurrentStep('smart')
+        }}
+        onManualSelect={() => setCurrentStep(1)}
+      />
+    )
+  }
+
+  // Smart mode: AI processing pipeline
+  if (currentStep === 'smart') {
+    return (
+      <SmartModeProcessor
+        files={smartFiles}
+        productType="travelbook"
+        onComplete={(keptFiles) => {
+          setUploadedPhotos(keptFiles)
+          setCurrentStep(3)
+        }}
+        onCancel={() => setCurrentStep(0)}
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F0E8]">
       {/* Hero Banner */}
@@ -175,18 +207,18 @@ export default function TravelBookConstructor() {
                 <div className="flex flex-col items-center flex-1">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
-                      currentStep > step.num
+                      (currentStep as number) > step.num
                         ? 'bg-[#2D4A3E] text-white'
                         : currentStep === step.num
                         ? 'bg-[#C4704F] text-white'
                         : 'border-2 border-gray-300 text-gray-400'
                     }`}
                   >
-                    {currentStep > step.num ? <Check className="w-5 h-5" /> : step.num}
+                    {(currentStep as number) > step.num ? <Check className="w-5 h-5" /> : step.num}
                   </div>
                   <span
                     className={`mt-2 text-xs font-medium ${
-                      currentStep >= step.num ? 'text-[#1A1A1A]' : 'text-gray-400'
+                      (currentStep as number) >= step.num ? 'text-[#1A1A1A]' : 'text-gray-400'
                     }`}
                   >
                     {step.label}
@@ -195,7 +227,7 @@ export default function TravelBookConstructor() {
                 {idx < 2 && (
                   <div
                     className={`h-0.5 flex-1 mx-2 transition-colors ${
-                      currentStep > step.num ? 'bg-[#2D4A3E]' : 'bg-gray-300'
+                      (currentStep as number) > step.num ? 'bg-[#2D4A3E]' : 'bg-gray-300'
                     }`}
                   />
                 )}
