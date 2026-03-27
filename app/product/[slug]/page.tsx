@@ -1,26 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
-import Content from './ProductContent';
-
 import { getAdminClient } from '@/lib/supabase/admin';
-
 import ProductContent from './ProductContent';
 
-// Revalidate every hour
-export const revalidate = 3600;
-
-// Generate static params for all products
-export async function generateStaticParams() {
-  const supabase = getAdminClient();
-
-  const { data: products } = await supabase
-    .from('products')
-    .select('slug')
-    .eq('is_active', true);
-
-  return (products ?? []).map((product: any) => ({
-    slug: product.slug,
-  }));
-}
+// Force dynamic rendering (cart requires client-side)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
     const supabase = getAdminClient();
@@ -47,5 +30,5 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         designer_service_price: 500
     };
 
-    return <Content product={productWithDesigner} />;
+    return <ProductContent product={productWithDesigner} />;
 }
