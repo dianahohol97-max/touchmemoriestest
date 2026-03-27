@@ -88,6 +88,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [enableEndpaper, setEnableEndpaper] = useState(false);
     const [enableKalka, setEnableKalka] = useState(false);
 
+    // New state for photobook pricing
+    const [photobookPrices, setPhotobookPrices] = useState<any[]>([]);
+    const [coverTypes, setCoverTypes] = useState<any[]>([]);
+    const [photobookSizes, setPhotobookSizes] = useState<any[]>([]);
+
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -129,15 +134,96 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             }
             setLoading(false);
         }
+
+        async function fetchPhotobookPricing() {
+            // Only fetch if product is a photobook
+            if (!productSlug.includes('photobook')) return;
+
+            // Fetch photobook_prices with related data
+            const { data: pricesData } = await supabase
+                .from('photobook_prices')
+                .select(`
+                    *,
+                    cover_type:cover_types(id, name, slug),
+                    size:photobook_sizes(id, name, dimensions)
+                `)
+                .order('page_count', { ascending: true });
+
+            if (pricesData) {
+                setPhotobookPrices(pricesData);
+            }
+
+            // Fetch cover types
+            const { data: coverTypesData } = await supabase
+                .from('cover_types')
+                .select('*')
+                .order('id', { ascending: true });
+
+            if (coverTypesData) {
+                setCoverTypes(coverTypesData);
+                if (coverTypesData.length > 0) {
+                    setSelectedCoverType(coverTypesData[0].name);
+                }
+            }
+
+            // Fetch photobook sizes
+            const { data: sizesData } = await supabase
+                .from('photobook_sizes')
+                .select('*')
+                .order('id', { ascending: true });
+
+            if (sizesData) {
+                setPhotobookSizes(sizesData);
+                if (sizesData.length > 0) {
+                    setSelectedSize(sizesData[0].name);
+                }
+            }
+        }
+
         fetchProduct();
+        fetchPhotobookPricing();
     }, [productSlug, supabase]);
 
     const calculatePrice = (): number => {
         if (!product) return 0;
 
+        const productType = getProductType();
+
+        // ==============================
+        // PHOTOBOOK PRICING (from photobook_prices table)
+        // ==============================
+        if (productType === 'photobook' && photobookPrices.length > 0) {
+            // Find matching price entry
+            const pageNum = parseInt(selectedPageCount.match(/\d+/)?.[0] || '0');
+
+            const priceEntry = photobookPrices.find(p => {
+                const matchesCover = p.cover_type?.name === selectedCoverType;
+                const matchesSize = p.size?.name === selectedSize;
+                const matchesPages = p.page_count === pageNum;
+                return matchesCover && matchesSize && matchesPages;
+            });
+
+            if (priceEntry) {
+                let total = priceEntry.base_price || 0;
+
+                // Add калька surcharge if enabled
+                if (enableKalka && priceEntry.kalka_surcharge) {
+                    total += priceEntry.kalka_surcharge;
+                }
+
+                return total;
+            }
+
+            // Fallback if no exact match found
+            return 0;
+        }
+
+        // ==============================
+        // NON-PHOTOBOOK PRICING (magazines, travel book)
+        // ==============================
         let total = product.price || 0;
 
-        // For photobooks with variants (size-based pricing)
+        // For products with variants (size-based pricing)
         if (product.variants && selectedSize) {
             const variant = product.variants.find(v => v.name === selectedSize);
             if (variant) {
@@ -173,13 +259,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             });
         }
 
-        // Add surcharges for калька and endpaper
-        const productType = getProductType();
-
-        if (productType === 'photobook' && enableKalka) {
-            total += 280; // Калька для фотокниг
-        }
-
+        // Add surcharges for endpaper (travel book and hard cover magazines)
         if (productType === 'travelbook' && enableEndpaper) {
             total += 100; // Друк на форзаці для Travel Book
         }
