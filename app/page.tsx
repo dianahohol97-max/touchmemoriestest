@@ -29,7 +29,17 @@ export const revalidate = 0; // Force fresh data fetch (no cache)
 
 export default async function Home() {
   const supabase = getAdminClient();
-  const { data: products } = await supabase
+
+  // DEBUG: Test Supabase connection
+  console.log('[Homepage] Supabase client initialized');
+  const { data: testData, error: testError } = await supabase.from('hero_buttons').select('*');
+  console.log('[Homepage] TEST QUERY hero_buttons:', JSON.stringify({
+    data: testData,
+    error: testError,
+    count: testData?.length || 0
+  }));
+
+  const { data: products, error: productsError } = await supabase
     .from('products')
     .select('*, categories(name, slug)')
     .eq('is_active', true)
@@ -37,18 +47,33 @@ export default async function Home() {
     .order('popular_order', { ascending: true })
     .limit(8);
 
-  const { data: categories } = await supabase
+  if (productsError) {
+    console.error('[Homepage] Error fetching products:', productsError);
+  }
+  console.log('[Homepage] Products found:', products?.length || 0);
+
+  const { data: categories, error: categoriesError } = await supabase
     .from('categories')
     .select('*')
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .limit(3);
 
-  const { data: allCategories } = await supabase
+  if (categoriesError) {
+    console.error('[Homepage] Error fetching categories:', categoriesError);
+  }
+  console.log('[Homepage] Categories found:', categories?.length || 0);
+
+  const { data: allCategories, error: allCategoriesError } = await supabase
     .from('categories')
     .select('*')
     .eq('is_active', true)
     .order('sort_order', { ascending: true });
+
+  if (allCategoriesError) {
+    console.error('[Homepage] Error fetching allCategories:', allCategoriesError);
+  }
+  console.log('[Homepage] All categories found:', allCategories?.length || 0);
 
   // Fetch featured travel blog post
   const { data: travelCategoryData } = await supabase
