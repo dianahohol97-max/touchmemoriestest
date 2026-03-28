@@ -98,7 +98,7 @@ export function WeddingSection() {
                                             </h3>
                                             <Link
                                                 href={product.href}
-                                                className="inline-block bg-[#1e2d7d] text-white hover:bg-[#263a99] font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm"
+                                                className="inline-block bg-[#1e2d7d] text-white hover:bg-[#263a99] font-semibold px-5 py-2.5 rounded-full transition-colors text-sm"
                                             >
                                                 Замовити
                                             </Link>
