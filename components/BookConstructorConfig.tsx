@@ -104,6 +104,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [selectedDecorationType, setSelectedDecorationType] = useState<string>('none');
     const [selectedDecorationVariant, setSelectedDecorationVariant] = useState<string>('');
 
+    // Lamination state (for Друкована cover only)
+    const [selectedLamination, setSelectedLamination] = useState<string>('');
+
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -151,14 +154,18 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             if (!productSlug.includes('photobook')) return;
 
             // Fetch photobook_prices with related data
-            const { data: pricesData } = await supabase
+            const { data: pricesData, error: pricesError } = await supabase
                 .from('photobook_prices')
                 .select(`
                     *,
-                    cover_type:cover_types(id, name, slug),
-                    size:photobook_sizes(id, name, dimensions)
+                    cover_type:cover_types(id, name),
+                    size:photobook_sizes(id, name, width_cm, height_cm)
                 `)
                 .order('page_count', { ascending: true });
+
+            if (pricesError) {
+                console.error('[BookConstructor] Error fetching prices:', pricesError);
+            }
 
             if (pricesData) {
                 setPhotobookPrices(pricesData);
@@ -369,6 +376,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             selectedCopies,
             enableEndpaper,
             enableKalka,
+            selectedLamination: selectedLamination || null,
             selectedDecorationType: selectedDecorationType !== 'none' ? selectedDecorationType : null,
             selectedDecorationVariant: selectedDecorationVariant || null,
             decorationSurcharge: (() => {
@@ -402,14 +410,24 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     };
 
     const isFormValid = (): boolean => {
-        if (product?.variants && !selectedSize) return false;
+        const pt = getProductType();
+
+        if (pt === 'photobook') {
+            if (!selectedSize) return false;
+            if (!selectedCoverType) return false;
+            if (!selectedPageCount) return false;
+            if (selectedCoverType === 'Друкована' && !selectedLamination) return false;
+            if (selectedDecorationType !== 'none' && !selectedDecorationVariant) return false;
+            return true;
+        }
+
+        // Non-photobook validation
+        if (product?.variants && product.variants.length > 0 && !selectedSize) return false;
 
         if (product?.options) {
             const options = product.options as ProductOption[];
-
             const requiredCoverType = options.some(o => o.name === 'Тип обкладинки');
             if (requiredCoverType && !selectedCoverType) return false;
-
             const requiredPageCount = options.some(o => o.name === 'Кількість сторінок');
             if (requiredPageCount && !selectedPageCount) return false;
         }
@@ -441,7 +459,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-[#1e2d7d] mb-2">{product.name}</h1>
+                <h1 className="text-3xl font-bold text-[#1e2d7d] mb-2">
+                    {productType === 'photobook'
+                        ? (selectedCoverType
+                            ? `Фотокнига — ${selectedCoverType.toLowerCase()} обкладинка`
+                            : 'Фотокнига')
+                        : product.name}
+                </h1>
                 <p className="text-gray-600">Крок 1: Налаштування конфігурації</p>
             </div>
 
@@ -488,7 +512,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     <button
                                         key={cover.id}
                                         type="button"
-                                        onClick={() => setSelectedCoverType(cover.name)}
+                                        onClick={() => { setSelectedCoverType(cover.name); setSelectedDecorationType('none'); setSelectedDecorationVariant(''); setSelectedLamination(''); setSelectedPageCount(''); }}
                                         className={`p-4 rounded-lg border-2 text-center transition-all ${
                                             selectedCoverType === cover.name
                                                 ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
@@ -505,8 +529,33 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Photobook: Decoration selector ── */}
-                    {productType === 'photobook' && selectedCoverType && decorationTypes.length > 0 && (
+                    {/* ── Photobook: Lamination for Друкована cover ── */}
+                    {productType === 'photobook' && selectedCoverType === 'Друкована' && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                Тип ламінації <span className="text-red-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                {['Глянцева', 'Матова'].map((lam) => (
+                                    <button
+                                        key={lam}
+                                        type="button"
+                                        onClick={() => setSelectedLamination(lam)}
+                                        className={`p-4 rounded-lg border-2 text-center transition-all ${
+                                            selectedLamination === lam
+                                                ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                                : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                        }`}
+                                    >
+                                        <span className="block text-base font-bold">{lam}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Photobook: Decoration selector (not for Друкована) ── */}
+                    {productType === 'photobook' && selectedCoverType && selectedCoverType !== 'Друкована' && decorationTypes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
                                 Оздоблення обкладинки
@@ -552,7 +601,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
 
                     {/* ── Photobook: Decoration variant sub-options ── */}
-                    {productType === 'photobook' && selectedDecorationType !== 'none' && selectedCoverType && selectedSize && (() => {
+                    {productType === 'photobook' && selectedDecorationType !== 'none' && selectedCoverType && selectedCoverType !== 'Друкована' && selectedSize && (() => {
                         const variants = decorationVariants.filter(
                             (dv: any) => dv.decoration_type?.name === selectedDecorationType &&
                             dv.cover_type?.name === selectedCoverType &&
