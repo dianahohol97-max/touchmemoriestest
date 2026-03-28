@@ -35,8 +35,20 @@ const getConstructorUrl = (slug: string): string => {
   // Calendar
   if (s.includes('calendar') || s.includes('kalendar'))
     return '/order/wall-calendar';
+  // Posters → dedicated editor pages
+  const posterMap: Record<string, string> = {
+    'poster-star-map': '/order/starmap',
+    'poster-city-map': '/order/citymap',
+    'poster-love-map': '/order/lovemap',
+    'poster-birth-stats': '/order/birthstats',
+    'poster-monogram': '/order/monogram',
+    'poster-zodiac': '/order/zodiac',
+    'poster-cartoon-portrait': '/order/cartoon-portrait',
+  };
+  if (posterMap[slug]) return posterMap[slug];
+  if (s.includes('poster')) return '/catalog?category=posters';
   // Photo prints
-  if (s.includes('photoprint') || s.includes('polaroid') || s.includes('полароїд') || s.includes('поляроїд') || s.includes('poster'))
+  if (s.includes('photoprint') || s.includes('polaroid') || s.includes('полароїд') || s.includes('поляроїд'))
     return '/order/photoprint';
   // Magnets
   if (s.includes('magnet'))
