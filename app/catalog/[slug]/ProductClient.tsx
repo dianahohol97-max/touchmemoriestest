@@ -16,23 +16,36 @@ import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
 import { ProductOptionsSelector, areAllRequiredOptionsFilled } from '@/components/ui/ProductOptionsSelector';
 
 const getConstructorUrl = (slug: string): string => {
-  if (slug.includes('guestbook') || slug.includes('wishbook') || slug.includes('vishbuk') || slug.includes('pobazhan'))
-    return '/constructor/guestbook';
-  if (slug.includes('photoalbum') || slug.includes('photoalbom') || slug.includes('fotoalbom'))
-    return '/constructor/photoalbum';
-  if (slug.includes('travelbook') || slug.includes('travel'))
-    return '/constructor/travelbook';
-  if (slug.includes('magazine') || slug.includes('zhurnal') || slug.includes('journal'))
-    return '/constructor/magazine';
-  if (slug.includes('calendar') || slug.includes('kalendar'))
-    return '/constructor/calendar';
-  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('полароїд') || slug.includes('поляроїд') || slug.includes('poster'))
-    return '/order/photoprint'; // photoprint/poster order flow
-  if (slug.includes('magnet'))
-    return '/order/photomagnets'; // photomagnet order flow
-  if (slug.includes('print') || slug.includes('foto-d') || slug.includes('puzzle') || slug.includes('pazl'))
-    return '/order/prints';
-  return '/constructor/photobook'; // default for photobooks
+  const s = slug.toLowerCase();
+  // Photobooks → new book constructor
+  if (s.includes('photobook') || s.includes('fotokniga') || s.includes('velyur') || s.includes('velour') || s.includes('tkanina') || s.includes('fabric') || s.includes('leatherette'))
+    return `/order/book?product=${slug}`;
+  // Magazines → new book constructor
+  if (s.includes('magazine') || s.includes('zhurnal') || s.includes('journal') || s.includes('fotozhurnal'))
+    return `/order/book?product=${slug}`;
+  // Travel Book → new book constructor
+  if (s.includes('travelbook') || s.includes('travel'))
+    return `/order/book?product=${slug}`;
+  // Guest book
+  if (s.includes('guestbook') || s.includes('wishbook') || s.includes('vishbuk') || s.includes('pobazhan'))
+    return '/order/guest-book';
+  // Photo albums
+  if (s.includes('photoalbum') || s.includes('photoalbom') || s.includes('fotoalbom'))
+    return `/order/book?product=${slug}`;
+  // Calendar
+  if (s.includes('calendar') || s.includes('kalendar'))
+    return '/order/wall-calendar';
+  // Photo prints
+  if (s.includes('photoprint') || s.includes('polaroid') || s.includes('полароїд') || s.includes('поляроїд') || s.includes('poster'))
+    return '/order/photoprint';
+  // Magnets
+  if (s.includes('magnet'))
+    return '/order/photomagnets';
+  // Puzzles
+  if (s.includes('puzzle') || s.includes('pazl'))
+    return '/order/puzzles';
+  // Default → book constructor
+  return `/order/book?product=${slug}`;
 };
 
 const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, product: any): string => {
@@ -82,6 +95,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     // Photobook-specific state
     const [photobookPrice, setPhotobookPrice] = useState(0);
     const [photobookOptions, setPhotobookOptions] = useState<any>(null);
+    const [photobookPricesData, setPhotobookPricesData] = useState<any[]>([]);
 
     const getProductionTime = (categorySlug: string = '') => {
         const s = categorySlug.toLowerCase();
@@ -143,6 +157,17 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     .limit(4);
 
                 if (relatedData) setRelatedProducts(relatedData);
+
+                // Fetch photobook_prices for photobook products
+                if (data.slug?.includes('photobook')) {
+                    const { data: pricesData } = await supabase
+                        .from('photobook_prices')
+                        .select('*, cover_type:cover_types(id, name), size:photobook_sizes(id, name)')
+                        .order('page_count', { ascending: true });
+                    if (pricesData) {
+                        setPhotobookPricesData(pricesData);
+                    }
+                }
             }
             setIsLoading(false);
         };
@@ -169,17 +194,56 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         ? product.images
         : [];
 
-    // Determine if this is a photobook product with variants
-    const isPhotobookWithVariants = product.slug?.includes('photobook') && product.variants && Array.isArray(product.variants) && product.variants.length > 0;
+    const isPhotobook = product.slug?.includes('photobook');
 
     // Calculate final price based on selected options
     let finalPrice = product.price;
-    if (isPhotobookWithVariants && photobookPrice > 0) {
+
+    if (isPhotobook && photobookPricesData.length > 0 && product.options && Array.isArray(product.options)) {
+        // Look up exact price from photobook_prices table
+        const sizeOpt = product.options.find((o: any) => o.name === 'Розмір');
+        const pagesOpt = product.options.find((o: any) => o.name === 'Кількість сторінок');
+        const kalkaOpt = product.options.find((o: any) => o.name?.includes('Калька'));
+
+        const selectedSizeIdx = selectedOptions['Розмір'];
+        const selectedPagesIdx = selectedOptions['Кількість сторінок'];
+        const selectedKalkaIdx = selectedOptions[kalkaOpt?.name];
+
+        if (sizeOpt?.values && pagesOpt?.values && selectedSizeIdx !== undefined && selectedPagesIdx !== undefined) {
+            const sizeName = sizeOpt.values[selectedSizeIdx]?.name || sizeOpt.values[selectedSizeIdx];
+            const pageCount = Number(pagesOpt.values[selectedPagesIdx]?.name || pagesOpt.values[selectedPagesIdx]);
+
+            // Determine cover type from product slug
+            let coverName = 'Друкована';
+            if (product.slug.includes('velour') || product.slug.includes('velyur')) coverName = 'Велюр';
+            else if (product.slug.includes('leather')) coverName = 'Шкірзамінник';
+            else if (product.slug.includes('fabric') || product.slug.includes('tkanina')) coverName = 'Тканина';
+
+            const priceEntry = photobookPricesData.find((p: any) =>
+                p.cover_type?.name === coverName &&
+                p.size?.name === String(sizeName).replace(/х/g, '×') &&
+                p.page_count === pageCount
+            );
+
+            if (priceEntry) {
+                finalPrice = Number(priceEntry.base_price) || 0;
+
+                // Add калька surcharge
+                if (kalkaOpt && selectedKalkaIdx !== undefined) {
+                    const kalkaValue = kalkaOpt.values[selectedKalkaIdx]?.name || kalkaOpt.values[selectedKalkaIdx];
+                    if (String(kalkaValue).includes('калькою') || String(kalkaValue).includes('Так')) {
+                        finalPrice += Number(priceEntry.kalka_surcharge) || 280;
+                    }
+                }
+            }
+        }
+    } else if (isPhotobook && photobookPrice > 0) {
         finalPrice = photobookPrice;
     } else if (product.options && Array.isArray(product.options)) {
+        // Non-photobook: use price modifiers
         product.options.forEach((opt: any) => {
             const selectedIdx = selectedOptions[opt.name];
-            if (selectedIdx !== undefined && opt.values[selectedIdx]) {
+            if (selectedIdx !== undefined && opt.values && opt.values[selectedIdx]) {
                 finalPrice += (opt.values[selectedIdx].priceModifier || 0);
             }
         });
@@ -189,7 +253,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         const itemOptions: Record<string, string> = {};
 
         // For photobook products with PhotobookOptions component
-        if (isPhotobookWithVariants && photobookOptions) {
+        if (isPhotobook && photobookOptions) {
             itemOptions['Розмір'] = photobookOptions.size;
             itemOptions['Кількість сторінок'] = `${photobookOptions.pages} сторінок`;
             if (photobookOptions.calca) {
