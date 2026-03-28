@@ -253,8 +253,6 @@ export default function BookLayoutEditor() {
     else if (deco.includes('метал')) decoType = 'metal';
     else if (deco.includes('гравір')) decoType = 'engraving';
     const dc = config.selectedDecorationColor?.toLowerCase() || '';
-    const flexColor: FlexColor = dc.includes('срібл') ? 'silver' : dc.includes('біл') ? 'white' : dc.includes('чорн') ? 'black' : 'gold';
-    const metalColor: MetalColor = dc.includes('золот') ? 'gold' : dc.includes('чорн') ? 'black' : 'silver';
     setCoverState(prev => ({ ...prev, decoType, flexColor, metalColor }));
   }, [config]);
 
@@ -473,8 +471,6 @@ export default function BookLayoutEditor() {
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір флексу</div>
                     <div style={{ display:'flex', gap:6 }}>
-                      {([['gold','#D4AF37'],['silver','#C0C0C0'],['white','#F0F0F0'],['black','#1A1A1A']] as [FlexColor,string][]).map(([c,hex]) => (
-                        <button key={c} onClick={() => setCoverState(prev => ({ ...prev, flexColor: c }))}
                           style={{ width:28, height:28, borderRadius:'50%', background:hex, border: coverState.flexColor===c ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor:'pointer' }}
                           title={c} />
                       ))}
@@ -486,8 +482,6 @@ export default function BookLayoutEditor() {
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір металу</div>
                     <div style={{ display:'flex', gap:6 }}>
-                      {([['gold','linear-gradient(135deg,#B8860B,#FFD700)'],['silver','linear-gradient(135deg,#808080,#E8E8E8)'],['black','linear-gradient(135deg,#1A1A1A,#444)']] as [MetalColor,string][]).map(([c,grad]) => (
-                        <button key={c} onClick={() => setCoverState(prev => ({ ...prev, metalColor: c }))}
                           style={{ width:28, height:28, borderRadius:'50%', background:grad, border: coverState.metalColor===c ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor:'pointer' }}
                           title={c} />
                       ))}
