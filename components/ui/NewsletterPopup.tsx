@@ -1,249 +1,249 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail } from 'lucide-react';
+import { X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export function NewsletterPopup() {
-    const [isOpen, setIsOpen] = useState(false);
-    const [email, setEmail] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
-    const [error, setError] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const pathname = usePathname();
 
-    const pathname = usePathname();
+  useEffect(() => {
+    if (pathname !== '/') return;
+    const hasSeen = localStorage.getItem('popup_shown');
+    if (!hasSeen) {
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+        localStorage.setItem('popup_shown', 'true');
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [pathname]);
 
-    useEffect(() => {
-        // Only show on homepage
-        if (pathname !== '/') return;
+  const handleClose = () => setIsOpen(false);
 
-        // Check if already seen or subscribed (once per user)
-        const hasSeen = localStorage.getItem('popup_shown');
-        if (!hasSeen) {
-            // Trigger popup after 8 seconds on site
-            const timer = setTimeout(() => {
-                setIsOpen(true);
-                localStorage.setItem('popup_shown', 'true');
-            }, 8000);
-            return () => clearTimeout(timer);
-        }
-    }, [pathname]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/subscribers/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'popup' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess(true);
+        setTimeout(handleClose, 3000);
+      } else {
+        setError(data.message || data.error || 'Сталася помилка');
+      }
+    } catch {
+      setError('Не вдалося підписатися');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleClose = () => {
-        setIsOpen(false);
-    };
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleClose}
+            style={{
+              position: 'fixed', inset: 0,
+              background: 'rgba(10, 18, 64, 0.55)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+              zIndex: 999,
+            }}
+          />
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
+          {/* Modal */}
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1000, width: '90%', maxWidth: '440px',
+            pointerEvents: 'none',
+          }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 24 }}
+              transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+              style={{
+                width: '100%',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                boxShadow: '0 32px 80px rgba(10, 18, 64, 0.28)',
+                pointerEvents: 'auto',
+              }}
+            >
+              {/* Navy header */}
+              <div style={{
+                background: 'linear-gradient(135deg, #1e2d7d 0%, #263A99 100%)',
+                padding: '40px 36px 32px',
+                textAlign: 'center',
+                position: 'relative',
+              }}>
+                {/* Decorative glow */}
+                <div style={{
+                  position: 'absolute', top: '-20px', right: '-20px',
+                  width: '120px', height: '120px', borderRadius: '50%',
+                  background: 'rgba(61,86,196,0.4)', filter: 'blur(40px)',
+                  pointerEvents: 'none',
+                }} />
 
-        try {
-            const res = await fetch('/api/subscribers/subscribe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email,
-                    source: 'popup'
-                })
-            });
-            const data = await res.json();
+                {/* Close button */}
+                <button
+                  onClick={handleClose}
+                  style={{
+                    position: 'absolute', top: '14px', right: '14px',
+                    background: 'rgba(255,255,255,0.15)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '8px', padding: '6px',
+                    cursor: 'pointer', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'background 0.2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                >
+                  <X size={18} />
+                </button>
 
-            if (res.ok) {
-                setSuccess(true);
-                // Auto-close after 3 seconds
-                setTimeout(() => {
-                    handleClose();
-                }, 3000);
-            } else {
-                setError(data.message || data.error || 'Сталася помилка');
-            }
-        } catch (err) {
-            setError('Не вдалося підписатися');
-        } finally {
-            setLoading(false);
-        }
-    };
+                {/* Mail icon */}
+                <div style={{
+                  width: '56px', height: '56px',
+                  background: 'rgba(255,255,255,0.15)',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  borderRadius: '12px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 20px',
+                }}>
+                  <span className="material-symbols-outlined" style={{
+                    fontSize: '28px', color: '#ffffff',
+                    fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 28",
+                  }}>mail</span>
+                </div>
 
-    return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
-                    {/* Dark semi-transparent overlay */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={handleClose}
-                        style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            background: 'rgba(0,0,0,0.5)',
-                            zIndex: 999
-                        }}
-                    />
+                <h3 style={{
+                  color: '#ffffff',
+                  fontSize: '1.75rem',
+                  fontWeight: 900,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.1,
+                  marginBottom: '10px',
+                  fontFamily: 'var(--font-montserrat, inherit)',
+                }}>
+                  Знижка -7%
+                </h3>
+                <p style={{
+                  color: 'rgba(255,255,255,0.75)',
+                  fontSize: '0.95rem',
+                  lineHeight: 1.55,
+                  maxWidth: '280px',
+                  margin: '0 auto',
+                }}>
+                  Підпишіться на наші новини та отримайте промокод на перше замовлення
+                </p>
+              </div>
 
-                    {/* Popup Modal */}
+              {/* White body */}
+              <div style={{ background: '#ffffff', padding: '28px 36px 32px' }}>
+                {success ? (
+                  <div style={{ textAlign: 'center', padding: '8px 0' }}>
                     <div style={{
-                        position: 'fixed',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        zIndex: 1000,
-                        width: '90%',
-                        maxWidth: '420px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        pointerEvents: 'none' // Allow clicking through the container to the overlay
+                      width: '56px', height: '56px',
+                      background: '#f0fdf4', borderRadius: '12px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      margin: '0 auto 16px',
                     }}>
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            style={{
-                                backgroundColor: 'white',
-                                borderRadius: "3px",
-                                width: '100%',
-                                overflow: 'hidden',
-                                position: 'relative',
-                                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-                                pointerEvents: 'auto' // Re-enable pointer events for the modal itself
-                            }}
-                        >
-                            <button
-                                onClick={handleClose}
-                                style={{
-                                    position: 'absolute',
-                                    right: '16px',
-                                    top: '16px',
-                                    color: '#94a3b8',
-                                    cursor: 'pointer',
-                                    zIndex: 10,
-                                    background: 'rgba(255,255,255,0.8)',
-                                    borderRadius: "3px",
-                                    padding: '4px',
-                                    border: 'none',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                <X size={20} />
-                            </button>
-
-                            <div style={{
-                                backgroundColor: 'white',
-                                padding: '32px',
-                                textAlign: 'center',
-                                borderBottom: '1px solid #dce4f5',
-                                position: 'relative',
-                                overflow: 'hidden'
-                            }}>
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    height: '4px',
-                                    background: 'linear-gradient(to right, #4a63c5, #263a99, #4a63c5)'
-                                }}></div>
-                                <div style={{
-                                    backgroundColor: 'white',
-                                    width: '64px',
-                                    height: '64px',
-                                    borderRadius: "3px",
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    margin: '0 auto 16px',
-                                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                                    color: '#263A99'
-                                }}>
-                                    <Mail size={32} />
-                                </div>
-                                <h3 style={{ fontSize: '24px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Знижка -7%</h3>
-                                <p style={{ color: '#475569', fontSize: '15px' }}>
-                                    Підпишіться на наші новини та отримайте промокод на перше замовлення
-                                </p>
-                            </div>
-
-                            <div style={{ padding: '32px' }}>
-                                {success ? (
-                                    <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                                        <div style={{
-                                            width: '64px',
-                                            height: '64px',
-                                            backgroundColor: '#dcfce7',
-                                            color: '#16a34a',
-                                            borderRadius: "3px",
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            margin: '0 auto 16px'
-                                        }}>
-                                            <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </div>
-                                        <h4 style={{ fontSize: '20px', fontWeight: 700, color: '#263A99', marginBottom: '8px' }}>Дякуємо!</h4>
-                                        <p style={{ color: '#475569' }}>Промокод надіслано на вашу пошту</p>
-                                    </div>
-                                ) : (
-                                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <div>
-                                            <input
-                                                type="email"
-                                                required
-                                                placeholder="Ваш Email"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '12px 16px',
-                                                    border: '1px solid #e2e8f0',
-                                                    borderRadius: "3px",
-                                                    fontSize: '16px',
-                                                    outline: 'none',
-                                                    boxSizing: 'border-box'
-                                                }}
-                                            />
-                                            {error && <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>{error}</p>}
-                                        </div>
-                                        <button
-                                            type="submit"
-                                            disabled={loading || !email}
-                                            style={{
-                                                width: '100%',
-                                                backgroundColor: '#263A99',
-                                                color: 'white',
-                                                fontWeight: 700,
-                                                padding: '12px 16px',
-                                                borderRadius: "3px",
-                                                border: 'none',
-                                                cursor: (loading || !email) ? 'not-allowed' : 'pointer',
-                                                opacity: (loading || !email) ? 0.7 : 1,
-                                                fontSize: '16px',
-                                                transition: 'background-color 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => { if (!loading && email) e.currentTarget.style.backgroundColor = '#263A99'; }}
-                                            onMouseLeave={(e) => { if (!loading && email) e.currentTarget.style.backgroundColor = '#263A99'; }}
-                                        >
-                                            {loading ? 'Відправка...' : 'Отримати промокод'}
-                                        </button>
-                                        <p style={{ fontSize: '12px', textAlign: 'center', color: '#94a3b8', marginTop: '8px', margin: 0 }}>
-                                            Ми не надсилаємо спам. Відписатися можна будь-коли.
-                                        </p>
-                                    </form>
-                                )}
-                            </div>
-                        </motion.div>
+                      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#16a34a" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
                     </div>
-                </>
-            )}
-        </AnimatePresence>
-    );
+                    <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e2d7d', marginBottom: '6px' }}>
+                      Дякуємо!
+                    </h4>
+                    <p style={{ color: '#585C7D', fontSize: '0.9rem' }}>
+                      Промокод надіслано на вашу пошту
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <input
+                      type="email"
+                      required
+                      placeholder="Ваш email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '13px 16px',
+                        border: '1.5px solid #e0e2ea',
+                        borderRadius: '10px',
+                        fontSize: '0.95rem',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        color: '#181C21',
+                        transition: 'border-color 0.2s',
+                        fontFamily: 'inherit',
+                      }}
+                      onFocus={e => e.currentTarget.style.borderColor = '#263A99'}
+                      onBlur={e => e.currentTarget.style.borderColor = '#e0e2ea'}
+                    />
+                    {error && (
+                      <p style={{ color: '#ef4444', fontSize: '0.83rem', margin: 0 }}>{error}</p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={loading || !email}
+                      style={{
+                        width: '100%',
+                        background: loading || !email ? '#a0aec0' : '#1e2d7d',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        padding: '13px 16px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        cursor: loading || !email ? 'not-allowed' : 'pointer',
+                        fontSize: '0.95rem',
+                        fontFamily: 'var(--font-montserrat, inherit)',
+                        transition: 'background 0.2s, transform 0.15s',
+                        boxShadow: '0 4px 16px rgba(38,58,153,0.25)',
+                      }}
+                      onMouseEnter={e => { if (!loading && email) e.currentTarget.style.background = '#263A99'; }}
+                      onMouseLeave={e => { if (!loading && email) e.currentTarget.style.background = '#1e2d7d'; }}
+                    >
+                      {loading ? 'Відправка...' : 'Отримати промокод'}
+                    </button>
+                    <p style={{
+                      fontSize: '0.78rem',
+                      textAlign: 'center',
+                      color: '#94a3b8',
+                      margin: 0,
+                    }}>
+                      Ми не надсилаємо спам. Відписатися можна будь-коли.
+                    </p>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 }
