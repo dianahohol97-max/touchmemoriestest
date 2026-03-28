@@ -24,7 +24,7 @@ export default function PhotobookConstructorPage() {
           setStep('smart')
         }}
         onManualSelect={() =>
-          router.push('/editor/new?product=photobook&format=20x20&pages=20')
+          router.push('/order/book?product=photobook-velour')
         }
       />
     )
@@ -48,7 +48,7 @@ export default function PhotobookConstructorPage() {
             })
           )
         } catch (_) {}
-        router.push('/editor/new?product=photobook&format=20x20&pages=20&smartMode=1')
+        router.push('/order/book?product=photobook-velour&smartMode=1')
       }}
       onCancel={() => setStep(0)}
     />

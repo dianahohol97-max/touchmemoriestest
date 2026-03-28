@@ -19,7 +19,7 @@ export default function BlogPost1() {
         </div>
         <div className="mt-16 p-8 bg-stone-50 rounded-2xl text-center">
           <p className="font-semibold text-stone-900 mb-4">Готові створити свою фотокнигу?</p>
-          <a href="/editor/new?product=photobook&format=20x20&pages=20" className="inline-block px-6 py-3 bg-stone-900 text-white rounded-full font-semibold hover:bg-stone-700 transition-colors">Відкрити конструктор</a>
+          <a href="/order/book?product=photobook-velour" className="inline-block px-6 py-3 bg-stone-900 text-white rounded-full font-semibold hover:bg-stone-700 transition-colors">Відкрити конструктор</a>
         </div>
       </div>
     </div>

@@ -35,8 +35,8 @@ function MatIcon({ name, size = 40 }: { name: string; size?: number }) {
 
 const productCategories = [
   { icon: 'menu_book',                  label: 'Фотокниги', href: '/catalog?category=photobooks' },
-  { icon: 'auto_stories',               label: 'Журнали',   href: '/catalog?category=magazines' },
-  { icon: 'explore',                    label: 'TravelBook', href: '/catalog/travelbook' },
+  { icon: 'auto_stories',               label: 'Журнали',   href: '/catalog?category=hlyantsevi-zhurnaly' },
+  { icon: 'explore',                    label: 'TravelBook', href: '/catalog/travelbook-20x30' },
   { icon: 'photo_library',              label: 'Фотодрук',  href: '/catalog/photo-prints' },
   { icon: 'featured_seasonal_and_gifts',label: 'Подарунки', href: '/catalog?category=gifts' },
 ];

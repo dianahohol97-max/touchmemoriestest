@@ -523,12 +523,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         <Link
                                             href={(() => {
                                                 const slug = product.slug || resolvedParams.slug;
-                                                const productType = slug?.includes('travelbook') || slug?.includes('travel') ? 'travelbook' :
-                                                                   slug?.includes('magazine') || slug?.includes('zhurnal') ? 'magazine' : 'photobook';
-                                                const format = customProductOptions['Розмір'] || product.format || '20x20';
-                                                const pages = customProductOptions['Кількість сторінок'] || product.default_pages || 32;
-                                                const coverColor = customProductOptions['Колір обкладинки'] || '';
-                                                return `/editor/new?product=${productType}&format=${format}&pages=${pages}${coverColor ? `&coverColor=${encodeURIComponent(coverColor)}` : ''}`;
+                                                return getConstructorUrl(slug);
                                             })()}
                                             style={{
                                                 flex: 1,

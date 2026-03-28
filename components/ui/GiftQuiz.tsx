@@ -174,14 +174,14 @@ const getFallbackRecommendations = (answers: Record<string, string | string[]>):
     // Multi-interest combinations
     if (interests.includes('travel') && interests.includes('family')) {
         return [
-            { title: "Travelbook", desc: "Ідеально для збереження сімейних пригод", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook" },
+            { title: "Travelbook", desc: "Ідеально для збереження сімейних пригод", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook-20x30" },
             { title: "Фотокнига 'Сім'я'", desc: "Найтепліші спогади разом", image: "/images/promo/photobook_video.png", link: "/catalog/family-book" }
         ];
     }
 
     if (interests.includes('travel') && interests.includes('memories')) {
         return [
-            { title: "Travelbook", desc: "Збережіть кожну подорож назавжди", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook" },
+            { title: "Travelbook", desc: "Збережіть кожну подорож назавжди", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook-20x30" },
             { title: "Фотокнига 'Подорожі'", desc: "Преміум якість для ваших пригод", image: "/images/promo/photobook_video.png", link: "/catalog/photobook-travel" }
         ];
     }
@@ -189,7 +189,7 @@ const getFallbackRecommendations = (answers: Record<string, string | string[]>):
     // Single interest recommendations
     if (interests.includes('travel')) {
         return [
-            { title: "Travelbook", desc: "Ідеально для збереження пригод", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook" },
+            { title: "Travelbook", desc: "Ідеально для збереження пригод", image: "/images/promo/travel_book_premium.png", link: "/catalog/travelbook-20x30" },
             { title: "Фотокнига 'Подорожі'", desc: "Тверда обкладинка, преміум якість", image: "/images/promo/photobook_video.png", link: "/catalog/photobook-travel" }
         ];
     }
