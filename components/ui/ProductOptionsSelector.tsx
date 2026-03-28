@@ -449,7 +449,7 @@ interface ProductOptionsSelectorProps {
   productOptions?: any[];
 }
 
-export function ProductOptionsSelector({ slug, selectedOptions, onChange, productOptions }: ProductOptionsSelectorProps) {
+export function ProductOptionsSelector({ slug, selectedOptions, onChange }: ProductOptionsSelectorProps) {
   const productType = detectProductType(slug);
   const s = slug?.toLowerCase() || '';
   const isVelourProduct = s.includes('velour') || s.includes('velyur');
@@ -772,137 +772,73 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, produc
         </div>
       )}
 
-      {/* Decoration Sub-Options from product.options JSON (conditional on Оздоблення selection) */}
-      {hasColorAndDecoration && selectedOzdoblennya !== 'none' && productOptions && (() => {
-        // Map decoration value to which sub-option names should be visible
-        const decoSubOptionMap: Record<string, string[]> = {
-          'acrylic': ['Варіант акрилу'],
-          'photo':   ['Варіант фотовставки'],
-          'metal':   ['Розмір металевої вставки', 'Варіант металевої вставки'],
-          'stamp':   ['Варіант тиснення'],
-          'laser':   ['Варіант гравірування'],
-        };
-        const visibleSubOptions = decoSubOptionMap[selectedOzdoblennya] || [];
+      {/* Decoration Sub-Options — conditional on Оздоблення selection */}
+      {hasColorAndDecoration && selectedOzdoblennya !== 'none' && (() => {
+        const decoLabel = VELOUR_OZDOBLENNYA.find(o => o.value === selectedOzdoblennya)?.label;
+        if (!decoLabel) return null;
 
-        // Filter product options to only show relevant sub-options
-        const subOptions = productOptions.filter((opt: any) =>
-          visibleSubOptions.some(name => opt.name === name) && opt.values && opt.values.length > 0
+        const selectedSize = selectedOptions['Розмір'];
+        const sizeNormalized = selectedSize ? String(selectedSize).replace(/х/g, '×') : '';
+
+        // 1. Try decoration_variants from Supabase (exact cover+size → any cover+size → type only)
+        let variants = decorationVariants.filter((dv: any) =>
+          dv.decoration_type?.name === decoLabel &&
+          dv.cover_type?.name === coverTypeName &&
+          (sizeNormalized ? dv.size?.name === sizeNormalized : true)
         );
-
-        if (subOptions.length === 0) {
-          // Fallback: try decoration_variants from Supabase
-          const decoLabel = VELOUR_OZDOBLENNYA.find(o => o.value === selectedOzdoblennya)?.label;
-          const selectedSize = selectedOptions['Розмір'];
-          const sizeNormalized = selectedSize ? String(selectedSize).replace(/х/g, '×') : '';
-
-          // Try exact match first (cover + size), then cover only, then type only
-          let variants = decorationVariants.filter((dv: any) =>
+        if (variants.length === 0) {
+          variants = decorationVariants.filter((dv: any) =>
             dv.decoration_type?.name === decoLabel &&
-            dv.cover_type?.name === coverTypeName &&
             (sizeNormalized ? dv.size?.name === sizeNormalized : true)
           );
-          if (variants.length === 0) {
-            // Fallback: any cover type, just match decoration type + size
-            variants = decorationVariants.filter((dv: any) =>
-              dv.decoration_type?.name === decoLabel &&
-              (sizeNormalized ? dv.size?.name === sizeNormalized : true)
-            );
-          }
-          if (variants.length === 0) {
-            // Fallback: just match decoration type, dedupe by variant_name
-            const seen = new Set<string>();
-            variants = decorationVariants.filter((dv: any) => {
-              if (dv.decoration_type?.name !== decoLabel) return false;
-              if (seen.has(dv.variant_name)) return false;
-              seen.add(dv.variant_name);
-              return true;
-            });
-          }
-          // Final fallback: use hardcoded variants for types not in DB
-          if (variants.length === 0 && decoLabel) {
-            const fallbackNames = FALLBACK_DECORATION_VARIANTS[decoLabel];
-            if (fallbackNames) {
-              return (
-                <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
-                    Варіант {decoLabel.toLowerCase()}
-                  </label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {fallbackNames.map((name) => (
-                      <button key={name} type="button"
-                        onClick={() => {
-                          setSelectedDecorationVariant(name);
-                          const newOptions = { ...selectedOptions, 'Варіант оздоблення': name };
-                          onChange(newOptions, calculatePrice(newOptions) || undefined);
-                        }}
-                        className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                          selectedDecorationVariant === name
-                            ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
-                            : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
-                        }`}>
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-          }
-          if (variants.length === 0) return null;
-          return (
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
-                Варіант {decoLabel?.toLowerCase()}
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {variants.map((v: any) => (
-                  <button key={v.id} type="button"
-                    onClick={() => {
-                      setSelectedDecorationVariant(v.variant_name);
-                      const newOptions = { ...selectedOptions, 'Варіант оздоблення': v.variant_name };
-                      onChange(newOptions, calculatePrice(newOptions) || undefined);
-                    }}
-                    className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                      selectedDecorationVariant === v.variant_name
-                        ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
-                    }`}>
-                    {v.variant_name}{Number(v.surcharge) > 0 ? ` (+${v.surcharge} ₴)` : ''}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
+        }
+        if (variants.length === 0) {
+          const seen = new Set<string>();
+          variants = decorationVariants.filter((dv: any) => {
+            if (dv.decoration_type?.name !== decoLabel) return false;
+            if (seen.has(dv.variant_name)) return false;
+            seen.add(dv.variant_name);
+            return true;
+          });
         }
 
-        // Render sub-options from product.options JSON
-        return subOptions.map((opt: any) => (
-          <div key={opt.name}>
+        // 2. Build items list: from DB variants or hardcoded fallback
+        let items: { name: string; surcharge?: number }[] = [];
+        if (variants.length > 0) {
+          items = variants.map((v: any) => ({ name: v.variant_name, surcharge: Number(v.surcharge) || 0 }));
+        } else {
+          const fallback = FALLBACK_DECORATION_VARIANTS[decoLabel];
+          if (fallback) {
+            items = fallback.map(name => ({ name, surcharge: 0 }));
+          }
+        }
+
+        if (items.length === 0) return null;
+
+        return (
+          <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
-              {opt.name}
+              Варіант {decoLabel.toLowerCase()}
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {opt.values.map((val: any, idx: number) => {
-                const valName = typeof val === 'string' ? val : val.name || val;
-                const isSelected = selectedOptions[opt.name] === valName || selectedOptions[opt.name] === idx;
-                return (
-                  <button key={idx} type="button"
-                    onClick={() => {
-                      const newOptions = { ...selectedOptions, [opt.name]: valName };
-                      onChange(newOptions, calculatePrice(newOptions) || undefined);
-                    }}
-                    className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                      isSelected
-                        ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
-                    }`}>
-                    {valName}
-                  </button>
-                );
-              })}
+              {items.map((item) => (
+                <button key={item.name} type="button"
+                  onClick={() => {
+                    setSelectedDecorationVariant(item.name);
+                    const newOptions = { ...selectedOptions, 'Варіант оздоблення': item.name };
+                    onChange(newOptions, calculatePrice(newOptions) || undefined);
+                  }}
+                  className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                    selectedDecorationVariant === item.name
+                      ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
+                  }`}>
+                  {item.name}{item.surcharge && item.surcharge > 0 ? ` (+${item.surcharge} ₴)` : ''}
+                </button>
+              ))}
             </div>
           </div>
-        ));
+        );
       })()}
     </div>
   );
