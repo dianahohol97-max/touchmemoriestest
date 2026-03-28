@@ -77,7 +77,7 @@ export function Navigation() {
             }
 
             // Fetch other categories
-            const mainCategorySlugs = ['photobooks', 'hlyantsevi-zhurnaly', 'travelbooks', 'prints', 'certificates'];
+            const mainCategorySlugs = ['photobooks', 'hlyantsevi-zhurnaly', 'travelbooks', 'prints', 'certificates', 'posters', 'calendars', 'guestbooks', 'puzzles'];
             const { data } = await supabase
                 .from('categories')
                 .select('*')
@@ -255,12 +255,6 @@ export function Navigation() {
                                             transition={{ duration: 0.2 }}
                                             className="absolute top-full left-0 mt-6 w-56 bg-white shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-primary/5 rounded-brand py-3 z-100"
                                         >
-                                            <Link
-                                                href="/catalog"
-                                                className="block px-6 py-3 text-primary no-underline text-[13px] font-bold tracking-tight transition-colors border-b border-primary/5 hover:bg-primary/5"
-                                            >
-                                                Всі інші товари
-                                            </Link>
                                             {otherCategories.map(category => (
                                                 <Link
                                                     key={category.id}
