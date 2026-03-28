@@ -46,12 +46,26 @@ interface SlotData {
   text?: string;
 }
 
+interface TextBlock {
+  id: string;
+  text: string;
+  x: number; // percent of canvas width
+  y: number; // percent of canvas height
+  fontSize: number;
+  fontFamily: string;
+  color: string;
+  bold: boolean;
+  italic: boolean;
+  align: 'left' | 'center' | 'right';
+}
+
 interface Spread {
   id: number;
   type: 'cover' | 'content';
   label: string;
   layout: LayoutType;
   slots: SlotData[];
+  textBlocks: TextBlock[];
 }
 
 // ─── Layout Definitions ──────────────────────────────────────────────────────
@@ -130,6 +144,11 @@ export default function BookLayoutEditor() {
   const [leftTab, setLeftTab] = useState<'photos' | 'layouts' | 'text'>('photos');
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [textTool, setTextTool] = useState(false);
+  const [textStyle, setTextStyle] = useState({ fontSize: 24, fontFamily: 'Montserrat', color: '#1e2d7d', bold: false, italic: false, align: 'center' as 'left'|'center'|'right' });
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // crop drag state
   const cropDragRef = useRef<{
@@ -155,7 +174,7 @@ export default function BookLayoutEditor() {
     const totalPages = m ? parseInt(m[0]) : 20;
 
     const newSpreads: Spread[] = [];
-    newSpreads.push({ id: 0, type: 'cover', label: 'Обкладинка', layout: 'half-half', slots: makeSlots(2) });
+    newSpreads.push({ id: 0, type: 'cover', label: 'Обкладинка', layout: 'half-half', slots: makeSlots(2), textBlocks: [] });
     for (let i = 0; i < totalPages; i += 2) {
       newSpreads.push({
         id: newSpreads.length,
@@ -163,6 +182,7 @@ export default function BookLayoutEditor() {
         label: `${i + 1}–${i + 2}`,
         layout: 'half-half',
         slots: makeSlots(2),
+        textBlocks: [],
       });
     }
     setSpreads(newSpreads);
@@ -193,7 +213,7 @@ export default function BookLayoutEditor() {
       const newSlots = makeSlots(def.slots);
       // keep existing photos
       s.slots.forEach((sl, si) => { if (si < newSlots.length) newSlots[si].photoId = sl.photoId; });
-      return { ...s, layout, slots: newSlots };
+      return { ...s, layout, slots: newSlots, textBlocks: s.textBlocks || [] };
     }));
   };
 
@@ -266,6 +286,60 @@ export default function BookLayoutEditor() {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  // ─── Text functions ───
+  const addTextBlock = (x: number, y: number) => {
+    const id = 'text-' + Date.now();
+    setSpreads(prev => prev.map((s, i) => {
+      if (i !== currentIdx) return s;
+      return { ...s, textBlocks: [...(s.textBlocks||[]), {
+        id, text: 'Введіть текст', x, y,
+        fontSize: textStyle.fontSize, fontFamily: textStyle.fontFamily,
+        color: textStyle.color, bold: textStyle.bold, italic: textStyle.italic,
+        align: textStyle.align,
+      }]};
+    }));
+    setSelectedTextId(id);
+    setEditingTextId(id);
+    setTextTool(false);
+  };
+
+  const updateTextBlock = (id: string, changes: Partial<TextBlock>) => {
+    setSpreads(prev => prev.map((s, i) => {
+      if (i !== currentIdx) return s;
+      return { ...s, textBlocks: (s.textBlocks||[]).map(t => t.id === id ? { ...t, ...changes } : t) };
+    }));
+  };
+
+  const deleteTextBlock = (id: string) => {
+    setSpreads(prev => prev.map((s, i) => {
+      if (i !== currentIdx) return s;
+      return { ...s, textBlocks: (s.textBlocks||[]).filter(t => t.id !== id) };
+    }));
+    setSelectedTextId(null);
+    setEditingTextId(null);
+  };
+
+  const onCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!textTool) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / canvasW) * 100;
+    const y = ((e.clientY - rect.top) / canvasH) * 100;
+    addTextBlock(x, y);
+  };
+
+  const onTextDragStart = (e: React.MouseEvent, id: string, tx: number, ty: number) => {
+    e.stopPropagation();
+    const startX = e.clientX; const startY = e.clientY;
+    const onMove = (me: MouseEvent) => {
+      const dx = ((me.clientX - startX) / canvasW) * 100;
+      const dy = ((me.clientY - startY) / canvasH) * 100;
+      updateTextBlock(id, { x: Math.max(0, Math.min(95, tx + dx)), y: Math.max(0, Math.min(95, ty + dy)) });
+    };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   };
@@ -561,7 +635,7 @@ export default function BookLayoutEditor() {
     }
 
     return (
-      <div style={{ position: 'relative', width: W, height: H, background: '#e8ecf4', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+      <div ref={canvasRef} onClick={onCanvasClick} style={{ position: 'relative', width: W, height: H, background: '#e8ecf4', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', cursor: textTool ? 'text' : 'default' }}>
         {/* Centre spine line */}
         <div style={{ position: 'absolute', left: W/2 - 1, top: 0, width: 2, height: H, background: 'rgba(0,0,0,0.08)', zIndex: 10, pointerEvents: 'none' }} />
         {slotDefs.map(({ slotIdx, style }) => (
@@ -636,7 +710,7 @@ export default function BookLayoutEditor() {
         <div style={{ width: 220, borderRight: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0' }}>
-            {([['photos', <ImageIcon size={13} />, 'Фото'], ['layouts', <LayoutGrid size={13} />, 'Шаблони']] as any[]).map(([id, icon, label]) => (
+            {([['photos', <ImageIcon size={13} />, 'Фото'], ['layouts', <LayoutGrid size={13} />, 'Шаблони'], ['text', <Type size={13} />, 'Текст']] as any[]).map(([id, icon, label]) => (
               <button key={id} onClick={() => setLeftTab(id)} style={{ flex: 1, padding: '9px 4px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 11, background: leftTab === id ? '#f0f3ff' : '#fff', color: leftTab === id ? '#1e2d7d' : '#64748b', borderBottom: leftTab === id ? '2px solid #1e2d7d' : '2px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                 {icon} {label}
               </button>
