@@ -13,12 +13,9 @@ interface BookConfig { productSlug: string; productName: string; selectedSize?: 
 type CoverDecoType = 'none'|'acrylic'|'photo_insert'|'flex'|'metal'|'engraving';
 interface CoverState {
   decoType: CoverDecoType;
-  flexColor: FlexColor;
-  metalColor: MetalColor;
+  decoVariant: string;
   photoId: string | null;
-  flexText: string;
-  metalText: string;
-  engravingText: string;
+  decoText: string;
 }
 
 type LayoutType =
@@ -193,7 +190,7 @@ export default function BookLayoutEditor() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(70);
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'>('photos');
-  const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', flexColor: 'gold', metalColor: 'silver', photoId: null, flexText: '', metalText: '', engravingText: '' });
+  const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '' });
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [textTool, setTextTool] = useState(false);
