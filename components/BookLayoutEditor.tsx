@@ -85,6 +85,7 @@ export default function BookLayoutEditor() {
   const [tBold, setTBold] = useState(false);
   const [tItalic, setTItalic] = useState(false);
   const cropRef = useRef<{ slotKey: string; sx: number; sy: number; cx: number; cy: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const txtDragRef = useRef<{ id: string; sx: number; sy: number; tx: number; ty: number } | null>(null);
 
   useEffect(() => {
@@ -136,6 +137,30 @@ export default function BookLayoutEditor() {
   };
 
   const resetSpread = () => setSpreads(prev => prev.map((s, i) => i !== currentIdx ? s : { ...s, slots: makeSlots(s.slots.length) }));
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const newPhotos: PhotoData[] = [];
+    let done = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = new window.Image();
+        img.onload = () => {
+          newPhotos.push({ id: 'up-' + Date.now() + '-' + Math.random(), preview: ev.target!.result as string, width: img.width, height: img.height, name: file.name });
+          done++;
+          if (done === files.length) {
+            setPhotos(prev => [...prev, ...newPhotos]);
+            toast.success(`Завантажено ${files.length} фото`);
+          }
+        };
+        img.src = ev.target!.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
 
   // Photo drag
   const onDragStart = (id: string) => setDragPhotoId(id);
@@ -328,7 +353,20 @@ export default function BookLayoutEditor() {
 
             {/* PHOTOS TAB */}
             {leftTab === 'photos' && (
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {/* Hidden file input */}
+                <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleUpload} style={{ display:'none' }}/>
+                {/* Upload button */}
+                <button onClick={() => fileInputRef.current?.click()}
+                  style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'10px 8px', border:'2px dashed #263a99', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d', width:'100%', transition:'background 0.2s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background='#dbeafe')}
+                  onMouseLeave={e => (e.currentTarget.style.background='#f0f3ff')}>
+                  <ImageIcon size={16}/> Завантажити фото
+                </button>
+                {photos.length === 0 && (
+                  <p style={{ fontSize:11, color:'#94a3b8', textAlign:'center', margin:0 }}>Додайте фото щоб почати</p>
+                )}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
                 {photos.map((ph,i) => {
                   const used = usedIds.has(ph.id);
                   return (
@@ -340,6 +378,7 @@ export default function BookLayoutEditor() {
                     </div>
                   );
                 })}
+                </div>
               </div>
             )}
 
