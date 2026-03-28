@@ -282,7 +282,7 @@ export default async function Home() {
               {featuredBlogPosts && featuredBlogPosts[0] && (
                 <article className="md:col-span-6 group cursor-pointer">
                   <Link href={`/blog/${featuredBlogPosts[0].slug}`}>
-                    <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/10' }}>
+                    <div className="relative overflow-hidden bg-stone-100 rounded-xl" style={{ aspectRatio: '16/10' }}>
                       <img
                         src={featuredBlogPosts[0].featured_image || 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80'}
                         alt={featuredBlogPosts[0].title}
@@ -291,7 +291,7 @@ export default async function Home() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-6">
                         {featuredBlogPosts[0].category && (
-                          <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
+                          <span className="inline-block text-white text-xs uppercase mb-3" style={{ background: 'rgba(38,58,153,0.75)', borderRadius: '6px', padding: '4px 10px', letterSpacing: '0.1em' }}>
                             {featuredBlogPosts[0].category.name}
                           </span>
                         )}
@@ -313,7 +313,7 @@ export default async function Home() {
                 {featuredBlogPosts && featuredBlogPosts.slice(1, 3).map((post: any) => (
                   <article key={post.id} className="group cursor-pointer flex-1">
                     <Link href={`/blog/${post.slug}`}>
-                      <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
+                      <div className="relative overflow-hidden bg-stone-100 rounded-xl" style={{ aspectRatio: '16/9' }}>
                         <img
                           src={post.featured_image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80'}
                           alt={post.title}
@@ -322,7 +322,7 @@ export default async function Home() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-4">
                           {post.category && (
-                            <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
+                            <span className="inline-block text-white text-xs uppercase mb-3" style={{ background: 'rgba(38,58,153,0.75)', borderRadius: '6px', padding: '4px 10px', letterSpacing: '0.1em' }}>
                               {post.category.name}
                             </span>
                           )}
