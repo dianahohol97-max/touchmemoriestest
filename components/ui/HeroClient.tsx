@@ -103,7 +103,7 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: easing, delay: 0.25 }}
-          style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}
+          style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}
         >
           {REFERENCE_PILLS.map((pill) => (
             <Link
@@ -142,10 +142,10 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
               alignItems: 'center',
               background: '#1e2a78',
               color: '#ffffff',
-              padding: '1rem 2.5rem',
+              padding: '0.65rem 1.75rem',
               borderRadius: '9999px',
               fontWeight: 700,
-              fontSize: '1.125rem',
+              fontSize: '0.95rem',
               textDecoration: 'none',
               transition: 'all 0.3s',
               boxShadow: '0 4px 20px rgba(38,58,153,0.35)',
