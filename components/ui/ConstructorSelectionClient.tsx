@@ -46,7 +46,7 @@ export function ConstructorSelectionClient({ sectionContent }: ConstructorSelect
     const magazinesHeading = sectionContent?.metadata?.magazines?.heading || 'Глянцеві журнали';
     const magazinesDescription = sectionContent?.metadata?.magazines?.description ||
         'Створіть глянцевий журнал зі своїми фото — стильний і сучасний формат для збереження спогадів. Ідеально для модних зйомок, тематичних подій, подорожей та корпоративних проєктів.';
-    const magazinesConstructorUrl = sectionContent?.metadata?.magazines?.constructor_url || '/order/book?product=magazine';
+    const magazinesConstructorUrl = sectionContent?.metadata?.magazines?.constructor_url || '/order/book?product=personalized-glossy-magazine';
     const magazinesConstructorButtonText = sectionContent?.metadata?.magazines?.constructor_button_text || 'Відкрити конструктор';
     const magazinesDesignerButtonText = sectionContent?.metadata?.magazines?.designer_button_text || 'Оформити з дизайнером';
 

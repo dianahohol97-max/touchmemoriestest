@@ -330,7 +330,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
     const getProductType = (): string => {
         if (productSlug.includes('photobook')) return 'photobook';
-        if (productSlug.includes('magazine') || productSlug.includes('journal')) return 'magazine';
+        if (productSlug.includes('magazine') || productSlug.includes('journal') || productSlug.includes('zhurnal') || productSlug.includes('fotozhurnal')) return 'magazine';
         if (productSlug.includes('travel')) return 'travelbook';
         return '';
     };
