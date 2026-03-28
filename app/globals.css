@@ -389,12 +389,12 @@ footer a:hover { color: var(--primary); }
    Applied globally without touching layout or fonts
    ================================================================= */
 
-/* All rounded-lg/xl/2xl/3xl buttons → pill */
-button.rounded-lg, a.rounded-lg,
-button.rounded-md, a.rounded-md,
-button.rounded-xl, a.rounded-xl,
-button.rounded-2xl, a.rounded-2xl,
-button.rounded-3xl, a.rounded-3xl {
+/* Buttons only → pill shape (NOT anchor cards) */
+button.rounded-lg,
+button.rounded-md,
+button.rounded-xl,
+button.rounded-2xl,
+button.rounded-3xl {
   border-radius: 9999px !important;
 }
 
