@@ -66,12 +66,12 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
 
   // ── Pills: DB buttons або дефолт ────────────────────────────────────────
   const defaultPills = [
-    { id: '1', button_text: 'Фотокнига',                   button_url: '/catalog' },
-    { id: '2', button_text: 'Глянцевий журнал',             button_url: '/catalog' },
-    { id: '3', button_text: 'Журнал з твердою обкладинкою', button_url: '/catalog' },
-    { id: '4', button_text: 'Тревелбук',                    button_url: '/catalog' },
-    { id: '5', button_text: 'Фотодрук',                     button_url: '/catalog' },
-    { id: '6', button_text: 'Фотомагніти',                  button_url: '/catalog' },
+    { id: '1', button_text: 'Фотокнига',                   button_url: '/catalog?category=photobooks' },
+    { id: '2', button_text: 'Глянцевий журнал',             button_url: '/catalog?category=hlyantsevi-zhurnaly' },
+    { id: '3', button_text: 'Журнал з твердою обкладинкою', button_url: '/catalog?category=hlyantsevi-zhurnaly' },
+    { id: '4', button_text: 'Тревелбук',                    button_url: '/catalog?category=travelbooks' },
+    { id: '5', button_text: 'Книга побажань',               button_url: '/catalog?category=guestbooks' },
+    { id: '6', button_text: 'Фотоальбоми',                  button_url: '/catalog?category=photobooks' },
   ];
   const pills = heroButtons.length > 0 ? heroButtons : defaultPills;
 
