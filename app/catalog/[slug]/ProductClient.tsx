@@ -44,9 +44,11 @@ const getConstructorUrl = (slug: string): string => {
     'poster-monogram': '/order/monogram',
     'poster-zodiac': '/order/zodiac',
     'poster-cartoon-portrait': '/order/cartoon-portrait',
+    'poster': '/order/poster',
+    'poster-diploma': '/order/diploma',
   };
   if (posterMap[slug]) return posterMap[slug];
-  if (s.includes('poster')) return '/catalog?category=posters';
+  if (s.includes('poster')) return '/order/poster';
   // Photo prints
   if (s.includes('photoprint') || s.includes('polaroid') || s.includes('полароїд') || s.includes('поляроїд'))
     return '/order/photoprint';
