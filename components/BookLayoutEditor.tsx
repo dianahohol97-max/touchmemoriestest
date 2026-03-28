@@ -7,6 +7,9 @@ import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
+import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from './BackgroundLayer';
+import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
+import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
 interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; }
@@ -190,7 +193,7 @@ export default function BookLayoutEditor() {
   const [pages, setPages] = useState<Page[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(70);
-  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'>('photos');
+  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'>('photos');
   const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '' });
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
