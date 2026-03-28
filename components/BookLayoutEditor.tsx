@@ -191,6 +191,7 @@ export default function BookLayoutEditor() {
   const [zoom, setZoom] = useState(70);
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'>('photos');
   const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '' });
+  const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [textTool, setTextTool] = useState(false);
@@ -255,6 +256,24 @@ export default function BookLayoutEditor() {
     const dc = config.selectedDecorationColor?.toLowerCase() || '';
     setCoverState(prev => ({ ...prev, decoType }));
   }, [config]);
+
+  const curFreeSlots = freeSlots[currentIdx] || [];
+  const setCurFreeSlots = (slots: FreeSlot[] | ((prev: FreeSlot[]) => FreeSlot[])) => {
+    setFreeSlots(prev => ({
+      ...prev,
+      [currentIdx]: typeof slots === 'function' ? slots(prev[currentIdx] || []) : slots,
+    }));
+  };
+
+  const addFreeSlot = () => {
+    const id = 'free-' + Date.now();
+    const newSlot: FreeSlot = {
+      id, x: cW * 0.25, y: cH * 0.25,
+      w: cW * 0.4, h: cH * 0.35,
+      shape: 'rect', photoId: null, cropX: 50, cropY: 50,
+    };
+    setCurFreeSlots(prev => [...prev, newSlot]);
+  };
 
   const changeLayout = (layout: LayoutType) => {
     const def = LAYOUTS.find(l => l.id === layout)!;
@@ -393,6 +412,24 @@ export default function BookLayoutEditor() {
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #263a99', borderRadius: 10, background: '#f0f3ff', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#1e2d7d', width: '100%' }}>
                   <ImageIcon size={15} /> Завантажити фото
                 </button>
+                {/* Add free slot button — only on content pages */}
+                {currentIdx !== 0 && (
+                  <button onClick={addFreeSlot}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #10b981', borderRadius: 10, background: '#f0fdf4', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#059669', width: '100%' }}>
+                    + Додати слот вручну
+                  </button>
+                )}
+
+                {/* Free slot shape controls */}
+                <FreeSlotControls
+                  selectedSlot={curFreeSlots.find(s => true) ?? null}
+                  onChangeShape={(shape: SlotShape) => {
+                    // Apply to last added/selected slot
+                    const last = curFreeSlots[curFreeSlots.length - 1];
+                    if (last) setCurFreeSlots(prev => prev.map(s => s.id === last.id ? { ...s, shape } : s));
+                  }}
+                />
+
                 {photos.length === 0 && <p style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', margin: 0 }}>Додайте фото щоб почати</p>}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                   {photos.map((ph, i) => {
