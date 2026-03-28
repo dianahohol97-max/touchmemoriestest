@@ -11,9 +11,6 @@ interface PhotoData { id: string; preview: string; width: number; height: number
 interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; }
 
 type CoverDecoType = 'none'|'acrylic'|'photo_insert'|'flex'|'metal'|'engraving';
-type FlexColor = 'gold'|'silver'|'white'|'black';
-type MetalColor = 'gold'|'silver'|'black';
-
 interface CoverState {
   decoType: CoverDecoType;
   flexColor: FlexColor;
@@ -560,20 +557,17 @@ export default function BookLayoutEditor() {
             <CoverEditor
               canvasW={cW}
               canvasH={cH}
+              sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
               config={{
-                coverType: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
-                coverColorName: config.selectedCoverColor || 'кремовий',
-                decoType: coverState.decoType,
-                decoSize: config.selectedDecorationSize,
-                flexColor: coverState.flexColor,
-                metalColor: coverState.metalColor,
+                coverMaterial: (config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
+                coverColorName: config.selectedCoverColor || '',
+                decoType: coverState.decoType as any,
+                decoVariant: coverState.decoVariant,
                 photoId: coverState.photoId,
-                flexText: coverState.flexText,
-                metalText: coverState.metalText,
-                engravingText: coverState.engravingText,
+                decoText: coverState.decoText,
               }}
               photos={photos}
-              onChange={(cfg) => setCoverState(prev => ({ ...prev, decoType: cfg.decoType, photoId: cfg.photoId ?? null, flexText: cfg.flexText || '', metalText: cfg.metalText || '', engravingText: cfg.engravingText || '' }))}
+              onChange={(cfg) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }) }))}
             />
           ) : (
           <div onClick={onCanvasClick}
