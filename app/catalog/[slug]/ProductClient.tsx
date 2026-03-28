@@ -574,7 +574,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         <Link
                                             href={(() => {
                                                 const slug = product.slug || resolvedParams.slug;
-                                                return getConstructorUrl(slug);
+                                                const base = getConstructorUrl(slug);
+                                                // Append selected options as query params
+                                                if (base.includes('/order/book') && Object.keys(customProductOptions).length > 0) {
+                                                    const url = new URL(base, 'http://x');
+                                                    Object.entries(customProductOptions).forEach(([key, val]) => {
+                                                        if (val !== undefined && val !== '') url.searchParams.set(key, String(val));
+                                                    });
+                                                    return url.pathname + '?' + url.searchParams.toString();
+                                                }
+                                                return base;
                                             })()}
                                             style={{
                                                 flex: 1,

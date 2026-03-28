@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
 import TravelBookCoverSelector from './TravelBookCoverSelector';
@@ -78,8 +78,10 @@ interface BookConstructorConfigProps {
 
 export default function BookConstructorConfig({ productSlug }: BookConstructorConfigProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [product, setProduct] = useState<BookProduct | null>(null);
     const [loading, setLoading] = useState(true);
+    const [autoAdvance, setAutoAdvance] = useState(false);
 
     // Configuration state
     const [selectedSize, setSelectedSize] = useState<string>('');
@@ -227,6 +229,56 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         fetchPhotobookPricing();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [productSlug]);
+
+    // Pre-fill from URL query params (when coming from catalog product page)
+    useEffect(() => {
+        if (loading || !product) return;
+
+        const size = searchParams.get('Розмір') || searchParams.get('size');
+        const pages = searchParams.get('Кількість сторінок') || searchParams.get('pages');
+        const kalka = searchParams.get('Калька перед першою сторінкою') || searchParams.get('kalka');
+        const lamination = searchParams.get('Тип ламінації') || searchParams.get('lamination');
+
+        let filled = false;
+
+        if (size) {
+            // Normalize: "20x20" → "20×20" for matching photobook_sizes
+            const sizeNorm = size.replace(/[хxX]/g, '×');
+            // Try to match against photobookSizes
+            const sizeMatch = photobookSizes.find((s: any) => s.name === sizeNorm || s.name === size);
+            if (sizeMatch) {
+                setSelectedSize(sizeMatch.name);
+                filled = true;
+            } else {
+                setSelectedSize(size);
+                filled = true;
+            }
+        }
+        if (pages) {
+            setSelectedPageCount(pages.includes('сторінок') ? pages : `${pages} сторінок`);
+            filled = true;
+        }
+        if (kalka) {
+            setEnableKalka(kalka === 'true' || kalka.includes('калькою') || kalka.includes('Так'));
+        }
+        if (lamination) {
+            setSelectedLamination(lamination);
+        }
+
+        // Auto-advance if size + pages are both provided
+        if (size && pages) {
+            setAutoAdvance(true);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading, product]);
+
+    // Auto-advance: skip Step 1 and go directly to photo upload
+    useEffect(() => {
+        if (autoAdvance && !loading && product && isFormValid()) {
+            handleContinue();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoAdvance, loading, product, selectedSize, selectedPageCount]);
 
     const calculatePrice = (): number => {
         if (!product) return 0;
