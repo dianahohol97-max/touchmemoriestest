@@ -235,6 +235,11 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       required: true
     },
     {
+      name: 'Тип ламінації',
+      values: ['Глянцева', 'Матова'],
+      required: true
+    },
+    {
       name: 'Калька перед першою сторінкою',
       values: ['Без кальки', 'З калькою'],
       required: true
@@ -385,6 +390,11 @@ function detectProductType(slug: string): string | null {
     return 'polaroid';
   }
 
+  // Фотокниги (must be checked BEFORE photoprint — "photobook-printed" contains "print")
+  if (s.includes('photobook') || s.includes('fotokniga') || s.includes('leatherette') || s.includes('velvet') || s.includes('fabric') || s.includes('velyur') || s.includes('tkanina')) {
+    return 'photobook';
+  }
+
   // Фотодрук нестандартний
   if (s.includes('photoprint') && (s.includes('nonstandard') || s.includes('nestandart'))) {
     return 'photoprint_nonstandard';
@@ -393,11 +403,6 @@ function detectProductType(slug: string): string | null {
   // Фотодрук стандартний
   if (s.includes('photoprint') || s.includes('print')) {
     return 'photoprint_standard';
-  }
-
-  // Фотокниги
-  if (s.includes('photobook') || s.includes('fotokniga') || s.includes('leatherette') || s.includes('velvet') || s.includes('fabric') || s.includes('velyur') || s.includes('tkanina')) {
-    return 'photobook';
   }
 
   // Глянцевий журнал
