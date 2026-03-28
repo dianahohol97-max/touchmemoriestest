@@ -662,6 +662,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                         'Тип обкладинки': 'cover',
                                                         'Корінець': 'spine',
                                                         'Оздоблення': 'decoration',
+                                                        'Верстка тексту': 'text_layout',
                                                     };
                                                     const url = new URL(base, 'http://x');
                                                     Object.entries(customProductOptions).forEach(([key, val]) => {

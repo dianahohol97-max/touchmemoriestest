@@ -240,14 +240,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const lamination = searchParams.get('lamination');
         const cover = searchParams.get('cover');
         const decoration = searchParams.get('decoration');
-        const spine = searchParams.get('spine');
+        const textLayout = searchParams.get('text_layout');
 
-        if (!size || !pages) return; // No pre-fill params
+        if (!pages) return; // Need at least pages to pre-fill
 
-        // Size: normalize "20x20" → "20×20"
-        const sizeNorm = size.replace(/[хxX]/g, '×');
-        const sizeMatch = photobookSizes.find((s: any) => s.name === sizeNorm || s.name === size);
-        setSelectedSize(sizeMatch?.name || sizeNorm);
+        // Size (photobooks have size, magazines don't)
+        if (size) {
+            const sizeNorm = size.replace(/[хxX]/g, '×');
+            const sizeMatch = photobookSizes.find((s: any) => s.name === sizeNorm || s.name === size);
+            setSelectedSize(sizeMatch?.name || sizeNorm);
+        }
 
         // Pages
         setSelectedPageCount(pages.includes('сторінок') ? pages : `${pages} сторінок`);
@@ -284,12 +286,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     // Auto-advance: skip Step 1 and go directly to photo upload
     useEffect(() => {
         if (!autoAdvance || loading || !product) return;
-        // Wait a tick for state to settle
+        const pt = getProductType();
         const timer = setTimeout(() => {
-            if (selectedSize && selectedPageCount) {
+            // Photobooks need size + pages; magazines/travelbooks need just pages
+            const canAdvance = pt === 'photobook'
+                ? (selectedSize && selectedPageCount)
+                : selectedPageCount;
+            if (canAdvance) {
                 handleContinue();
             }
-        }, 100);
+        }, 150);
         return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [autoAdvance, selectedSize, selectedPageCount, selectedCoverType]);
