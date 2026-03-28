@@ -5,9 +5,24 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
+import { CoverEditor } from './CoverEditor';
 
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
-interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedPageCount: string; totalPrice: number; }
+interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; }
+
+type CoverDecoType = 'none'|'acrylic'|'photo_insert'|'flex'|'metal'|'engraving';
+type FlexColor = 'gold'|'silver'|'white'|'black';
+type MetalColor = 'gold'|'silver'|'black';
+
+interface CoverState {
+  decoType: CoverDecoType;
+  flexColor: FlexColor;
+  metalColor: MetalColor;
+  photoId: string | null;
+  flexText: string;
+  metalText: string;
+  engravingText: string;
+}
 
 type LayoutType =
   // 1 photo
@@ -180,7 +195,8 @@ export default function BookLayoutEditor() {
   const [pages, setPages] = useState<Page[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(70);
-  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'>('photos');
+  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'>('photos');
+  const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', flexColor: 'gold', metalColor: 'silver', photoId: null, flexText: '', metalText: '', engravingText: '' });
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [textTool, setTextTool] = useState(false);
@@ -202,6 +218,12 @@ export default function BookLayoutEditor() {
     const ph = sessionStorage.getItem('bookConstructorPhotos');
     if (ph) setPhotos(JSON.parse(ph));
   }, [router]);
+
+  // Auto-switch to cover tab on page 0
+  useEffect(() => {
+    if (currentIdx === 0) setLeftTab('cover');
+    else if (leftTab === 'cover') setLeftTab('photos');
+  }, [currentIdx]);
 
   useEffect(() => {
     if (!config) return;
@@ -225,6 +247,22 @@ export default function BookLayoutEditor() {
   const baseW = baseH * prop.w / prop.h;
   const cW = baseW * zoom / 100;
   const cH = baseH * zoom / 100;
+
+  // Init cover state from config
+  useEffect(() => {
+    if (!config) return;
+    const deco = config.selectedDecoration?.toLowerCase() || '';
+    let decoType: CoverDecoType = 'none';
+    if (deco.includes('акрил')) decoType = 'acrylic';
+    else if (deco.includes('фотовставка') || deco.includes('photo')) decoType = 'photo_insert';
+    else if (deco.includes('флекс') || deco.includes('flex')) decoType = 'flex';
+    else if (deco.includes('метал')) decoType = 'metal';
+    else if (deco.includes('гравір')) decoType = 'engraving';
+    const dc = config.selectedDecorationColor?.toLowerCase() || '';
+    const flexColor: FlexColor = dc.includes('срібл') ? 'silver' : dc.includes('біл') ? 'white' : dc.includes('чорн') ? 'black' : 'gold';
+    const metalColor: MetalColor = dc.includes('золот') ? 'gold' : dc.includes('чорн') ? 'black' : 'silver';
+    setCoverState(prev => ({ ...prev, decoType, flexColor, metalColor }));
+  }, [config]);
 
   const changeLayout = (layout: LayoutType) => {
     const def = LAYOUTS.find(l => l.id === layout)!;
@@ -339,7 +377,7 @@ export default function BookLayoutEditor() {
 
         {/* ICON SIDEBAR */}
         <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
-          {([['photos', <ImageIcon key="p" size={22} />, 'Зображення'], ['layouts', <LayoutGrid key="l" size={22} />, 'Шаблон'], ['text', <Type key="t" size={22} />, 'Текст']] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
+          {([['photos', <ImageIcon key="p" size={22} />, 'Зображення'], ['layouts', <LayoutGrid key="l" size={22} />, 'Шаблон'], ['text', <Type key="t" size={22} />, 'Текст'], ...(currentIdx===0?[['cover', <span key="c" style={{fontSize:20}}>🎨</span>, 'Обкладинка']]:[])] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
             <button key={id} onClick={() => setLeftTab(id as any)}
               style={{ width: '100%', padding: '12px 4px', border: 'none', cursor: 'pointer', background: leftTab === id ? '#1e2d7d' : 'transparent', color: leftTab === id ? '#fff' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, marginBottom: 2, transition: 'background 0.15s' }}>
               {icon}
@@ -412,6 +450,58 @@ export default function BookLayoutEditor() {
               </div>
             )}
 
+            {/* COVER */}
+            {leftTab === 'cover' && currentIdx === 0 && (
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                <div style={{ fontSize:11, fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.08em' }}>Оздоблення</div>
+                {[
+                  { id:'none',        label:'Без оздоблення' },
+                  { id:'acrylic',     label:'Акрил' },
+                  { id:'photo_insert',label:'Фотовставка' },
+                  { id:'flex',        label:'Флекс' },
+                  { id:'metal',       label:'Металева вставка' },
+                  { id:'engraving',   label:'Гравіювання' },
+                ].map(opt => (
+                  <button key={opt.id} onClick={() => setCoverState(prev => ({ ...prev, decoType: opt.id as CoverDecoType }))}
+                    style={{ padding:'8px 12px', border: coverState.decoType===opt.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:8, background: coverState.decoType===opt.id ? '#f0f3ff' : '#fff', cursor:'pointer', fontWeight:600, fontSize:12, color: coverState.decoType===opt.id ? '#1e2d7d' : '#374151', textAlign:'left' }}>
+                    {opt.label}
+                  </button>
+                ))}
+
+                {coverState.decoType === 'flex' && (
+                  <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір флексу</div>
+                    <div style={{ display:'flex', gap:6 }}>
+                      {([['gold','#D4AF37'],['silver','#C0C0C0'],['white','#F0F0F0'],['black','#1A1A1A']] as [FlexColor,string][]).map(([c,hex]) => (
+                        <button key={c} onClick={() => setCoverState(prev => ({ ...prev, flexColor: c }))}
+                          style={{ width:28, height:28, borderRadius:'50%', background:hex, border: coverState.flexColor===c ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor:'pointer' }}
+                          title={c} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {coverState.decoType === 'metal' && (
+                  <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір металу</div>
+                    <div style={{ display:'flex', gap:6 }}>
+                      {([['gold','linear-gradient(135deg,#B8860B,#FFD700)'],['silver','linear-gradient(135deg,#808080,#E8E8E8)'],['black','linear-gradient(135deg,#1A1A1A,#444)']] as [MetalColor,string][]).map(([c,grad]) => (
+                        <button key={c} onClick={() => setCoverState(prev => ({ ...prev, metalColor: c }))}
+                          style={{ width:28, height:28, borderRadius:'50%', background:grad, border: coverState.metalColor===c ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor:'pointer' }}
+                          title={c} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {config.selectedCoverColor && (
+                  <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8, fontSize:11, color:'#64748b' }}>
+                    Колір: <strong>{config.selectedCoverColor}</strong>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* TEXT */}
             {leftTab === 'text' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -459,6 +549,26 @@ export default function BookLayoutEditor() {
             <button onClick={() => setCurrentIdx(i => Math.min(pages.length - 1, i + 1))} disabled={currentIdx === pages.length - 1} style={{ background: 'none', border: 'none', cursor: currentIdx === pages.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIdx === pages.length - 1 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronRight size={20} /></button>
           </div>
 
+          {currentIdx === 0 ? (
+            <CoverEditor
+              canvasW={cW}
+              canvasH={cH}
+              config={{
+                coverType: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
+                coverColorName: config.selectedCoverColor || 'кремовий',
+                decoType: coverState.decoType,
+                decoSize: config.selectedDecorationSize,
+                flexColor: coverState.flexColor,
+                metalColor: coverState.metalColor,
+                photoId: coverState.photoId,
+                flexText: coverState.flexText,
+                metalText: coverState.metalText,
+                engravingText: coverState.engravingText,
+              }}
+              photos={photos}
+              onChange={(cfg) => setCoverState(prev => ({ ...prev, decoType: cfg.decoType, photoId: cfg.photoId ?? null, flexText: cfg.flexText || '', metalText: cfg.metalText || '', engravingText: cfg.engravingText || '' }))}
+            />
+          ) : (
           <div onClick={onCanvasClick}
             style={{ position: 'relative', width: cW, height: cH, background: '#fff', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default', flexShrink: 0 }}>
 
@@ -508,8 +618,9 @@ export default function BookLayoutEditor() {
             })}
           </div>
 
+          )}
           <div style={{ marginTop: 10, fontSize: 11, color: '#94a3b8' }}>
-            {textTool ? '↖ Клікніть де додати текст' : 'Затисніть фото для зміни кадрування'}
+            {currentIdx === 0 ? 'Перетягніть фото на оздоблення' : textTool ? '↖ Клікніть де додати текст' : 'Затисніть фото для зміни кадрування'}
           </div>
         </div>
 
