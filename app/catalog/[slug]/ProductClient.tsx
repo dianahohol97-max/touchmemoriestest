@@ -256,7 +256,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     if (product.options && Array.isArray(product.options)) {
         // Names already handled by ProductOptionsSelector (hardcoded PRODUCT_OPTIONS)
         const hardcodedNames = new Set(['Розмір', 'Кількість сторінок', 'Тип обкладинки',
-            'Калька перед першою сторінкою', 'Тип ламінації', 'Текст']);
+            'Калька перед першою сторінкою', 'Тип ламінації']);
 
         let extraModifiers = 0;
         product.options.forEach((opt: any) => {

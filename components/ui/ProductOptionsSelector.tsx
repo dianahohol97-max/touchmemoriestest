@@ -260,11 +260,6 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       values: ['М\'яка обкладинка', 'Тверда обкладинка'],
       required: true
     },
-    {
-      name: 'Текст',
-      values: ['Без тексту', 'З текстом'],
-      required: true
-    },
   ],
   photojournal: [
     { name: 'Розмір', values: ['A4'], type: 'text', required: false },
