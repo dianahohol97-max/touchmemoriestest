@@ -41,8 +41,8 @@ const REFERENCE_PILLS = [
   { id: '2', text: 'Глянцевий журнал', url: '/catalog' },
   { id: '3', text: 'Журнал з твердою обкладинкою', url: '/catalog' },
   { id: '4', text: 'Тревелбук', url: '/catalog' },
-  { id: '5', text: 'Фотодрук', url: '/catalog' },
-  { id: '6', text: 'Фотомагніти', url: '/catalog' },
+  { id: '5', text: 'Книга побажань', url: '/catalog' },
+  { id: '6', text: 'Фотоальбоми', url: '/catalog' },
 ];
 
 export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroClientProps) {
@@ -116,6 +116,7 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
                 background: 'rgba(255,255,255,0.1)',
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
+                borderRadius: '40px',
                 color: '#ffffff',
                 fontSize: '0.875rem',
                 fontWeight: 600,
