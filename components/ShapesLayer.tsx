@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 
-export type ShapeType = 'rect' | 'circle' | 'line' | 'triangle' | 'star' | 'arrow' | 'rounded-rect';
+export type ShapeType = 'rect' | 'circle' | 'line' | 'line-v' | 'line-diagonal' | 'triangle' | 'star' | 'arrow' | 'rounded-rect';
 
 export interface Shape {
   id: string;
@@ -21,7 +21,9 @@ const SHAPE_PRESETS: { type: ShapeType; icon: string; label: string }[] = [
   { type:'rounded-rect', icon:'▢', label:'Заокруглений' },
   { type:'circle',       icon:'○', label:'Коло' },
   { type:'triangle',     icon:'△', label:'Трикутник' },
-  { type:'line',         icon:'─', label:'Лінія' },
+  { type:'line',         icon:'─', label:'Лінія горизонт.' },
+  { type:'line-v',        icon:'│', label:'Лінія вертик.' },
+  { type:'line-diagonal', icon:'╱', label:'По діагоналі' },
   { type:'star',         icon:'☆', label:'Зірка' },
   { type:'arrow',        icon:'→', label:'Стрілка' },
 ];
@@ -49,6 +51,10 @@ function renderShapeSVG(shape: Shape): React.ReactNode {
       }).join(' ');
       return <polygon points={pts} fill={fill} stroke={stroke} strokeWidth={sw} opacity={opacity/100} />;
     }
+    case 'line-v':
+      return <line x1={w/2} y1={sw} x2={w/2} y2={h-sw} stroke={stroke||fill} strokeWidth={Math.max(sw,2)} opacity={opacity/100} strokeLinecap="round" />;
+    case 'line-diagonal':
+      return <line x1={sw} y1={sw} x2={w-sw} y2={h-sw} stroke={stroke||fill} strokeWidth={Math.max(sw,2)} opacity={opacity/100} strokeLinecap="round" />;
     case 'arrow': {
       const ah = h*0.4, aw = w*0.3;
       const pts = `${w*0.1},${h*0.3} ${w*0.1},${h*0.7} ${w*0.65},${h*0.7} ${w*0.65},${h*0.9} ${w*0.95},${h*0.5} ${w*0.65},${h*0.1} ${w*0.65},${h*0.3}`;
