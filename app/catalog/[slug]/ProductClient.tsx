@@ -198,82 +198,50 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
     const isPhotobook = product.slug?.includes('photobook');
 
-    // Calculate final price based on selected options
-    let finalPrice = product.price;
+    // Calculate final price — priority: dynamicPrice > photobook lookup > generic modifiers
+    let finalPrice = product.price || 0;
 
-    if (isPhotobook && photobookPricesData.length > 0 && product.options && Array.isArray(product.options)) {
-        // Look up exact price from photobook_prices table
-        const sizeOpt = product.options.find((o: any) => o.name === 'Розмір');
-        const pagesOpt = product.options.find((o: any) => o.name === 'Кількість сторінок');
-        const kalkaOpt = product.options.find((o: any) => o.name?.includes('Калька'));
+    // Source 1: ProductOptionsSelector calculated price (hardcoded PRODUCT_OPTIONS)
+    if (dynamicPrice !== null && dynamicPrice > 0) {
+        finalPrice = dynamicPrice;
+    }
+    // Source 2: Photobook prices table lookup
+    else if (isPhotobook && photobookPricesData.length > 0) {
+        const sizeVal = String(customProductOptions['Розмір'] || '');
+        const pagesVal = String(customProductOptions['Кількість сторінок'] || '');
+        const kalkaVal = String(customProductOptions['Калька перед першою сторінкою'] || '');
 
-        const selectedSizeVal = customProductOptions['Розмір'];
-        const selectedPagesVal = customProductOptions['Кількість сторінок'];
+        const pageCount = Number(pagesVal.replace(/[^\d]/g, '')) || 0;
+        const sizeNorm = sizeVal.replace(/[хxX]/g, '×');
 
-        // Resolve size label from value
-        const sizeItems = sizeOpt?.options || sizeOpt?.values || [];
-        const sizeMatch = sizeItems.find((s: any) => (s.value ?? s.name ?? s) === selectedSizeVal);
-        const sizeName = sizeMatch?.label || sizeMatch?.name || selectedSizeVal;
+        let coverName = 'Друкована';
+        const sl = product.slug || '';
+        if (sl.includes('velour') || sl.includes('velyur')) coverName = 'Велюр';
+        else if (sl.includes('leather')) coverName = 'Шкірзамінник';
+        else if (sl.includes('fabric') || sl.includes('tkanina')) coverName = 'Тканина';
 
-        // Resolve page count from value
-        const pageItems = pagesOpt?.options || pagesOpt?.values || [];
-        const pageMatch = pageItems.find((p: any) => (p.value ?? p.name ?? p) === selectedPagesVal);
-        const pageCount = Number(pageMatch?.value || pageMatch?.name || selectedPagesVal);
-
-        if (sizeName && pageCount) {
-            let coverName = 'Друкована';
-            if (product.slug.includes('velour') || product.slug.includes('velyur')) coverName = 'Велюр';
-            else if (product.slug.includes('leather')) coverName = 'Шкірзамінник';
-            else if (product.slug.includes('fabric') || product.slug.includes('tkanina')) coverName = 'Тканина';
-
-            const sizeNorm = String(sizeName).replace(/х/g, '×');
-            const priceEntry = photobookPricesData.find((p: any) =>
-                p.cover_type?.name === coverName &&
-                p.size?.name === sizeNorm &&
-                p.page_count === pageCount
+        if (sizeNorm && pageCount) {
+            const entry = photobookPricesData.find((p: any) =>
+                p.cover_type?.name === coverName && p.size?.name === sizeNorm && p.page_count === pageCount
             );
-
-            if (priceEntry) {
-                finalPrice = Number(priceEntry.base_price) || 0;
-
-                // Add калька surcharge
-                const kalkaVal = kalkaOpt ? customProductOptions[kalkaOpt.name] : undefined;
-                if (kalkaVal) {
-                    const kalkaItems = kalkaOpt.options || kalkaOpt.values || [];
-                    const kalkaMatch = kalkaItems.find((k: any) => (k.value ?? k.name ?? k) === kalkaVal);
-                    const kalkaLabel = kalkaMatch?.label || kalkaMatch?.name || kalkaVal;
-                    if (String(kalkaLabel).includes('калькою') || String(kalkaLabel).includes('Так')) {
-                        finalPrice += Number(priceEntry.kalka_surcharge) || 280;
-                    }
-                }
-
-                // Add decoration variant surcharge
-                const decoVariant = customProductOptions['Варіант оздоблення'];
-                if (decoVariant) {
-                    // Check product.options for price
-                    for (const opt of product.options) {
-                        const items = opt.options || opt.values || [];
-                        const match = items.find((i: any) => (i.value ?? i.name) === decoVariant);
-                        if (match?.price) { finalPrice += Number(match.price); break; }
-                    }
+            if (entry) {
+                finalPrice = Number(entry.base_price) || 0;
+                if (kalkaVal.includes('калькою') || kalkaVal.includes('Так')) {
+                    finalPrice += Number(entry.kalka_surcharge) || 280;
                 }
             }
         }
-    } else if (isPhotobook && photobookPrice > 0) {
-        finalPrice = photobookPrice;
-    } else if (product.options && Array.isArray(product.options)) {
-        // Generic: base_price + sum of selected option price modifiers
+    }
+    // Source 3: Generic — base_price + sum of selected modifiers from product.options
+    else if (product.options && Array.isArray(product.options)) {
         let modifierTotal = 0;
         product.options.forEach((opt: any) => {
             const selected = customProductOptions[opt.name];
             if (selected === undefined) return;
-
             const items = opt.options || opt.values || [];
             const match = items.find((i: any) =>
-                (i.value !== undefined && i.value === selected) ||
-                (i.label !== undefined && i.label === selected) ||
-                (i.name !== undefined && i.name === selected) ||
-                i === selected
+                i === selected || String(i.value) === String(selected) ||
+                i.label === selected || i.name === selected
             );
             if (match && typeof match === 'object') {
                 modifierTotal += Number(match.price || match.priceModifier || 0);
@@ -622,12 +590,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 pointerEvents: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'auto' : 'none',
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '8px'
+                                                justifyContent: 'center'
                                             }}
                                             className="hover:bg-[#1a2966] rounded-md"
                                         >
-                                            <span style={{ fontSize: '20px' }}>🎨</span>
                                             Відкрити редактор
                                         </Link>
                                         <Link
