@@ -99,13 +99,13 @@ export function ConstructorSelectionClient({ sectionContent }: ConstructorSelect
                             <div className="flex gap-3 flex-wrap">
                                 <Link
                                     href={photobooksConstructorUrl}
-                                    className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-[#263a99] transition-colors duration-200"
+                                    className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-full font-semibold hover:bg-[#263a99] transition-colors duration-200"
                                 >
                                     {photobooksConstructorButtonText}
                                 </Link>
                                 <button
                                     onClick={() => setPhotobookModalOpen(true)}
-                                    className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
+                                    className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-full transition-colors text-center"
                                 >
                                     {photobooksDesignerButtonText}
                                 </button>
@@ -143,13 +143,13 @@ export function ConstructorSelectionClient({ sectionContent }: ConstructorSelect
                             <div className="flex gap-3 flex-wrap">
                                 <Link
                                     href={magazinesConstructorUrl}
-                                    className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-[#263a99] transition-colors duration-200"
+                                    className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-full font-semibold hover:bg-[#263a99] transition-colors duration-200"
                                 >
                                     {magazinesConstructorButtonText}
                                 </Link>
                                 <button
                                     onClick={() => setMagazineModalOpen(true)}
-                                    className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-lg transition-colors text-center"
+                                    className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-full transition-colors text-center"
                                 >
                                     {magazinesDesignerButtonText}
                                 </button>
