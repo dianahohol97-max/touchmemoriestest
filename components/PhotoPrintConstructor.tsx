@@ -15,8 +15,12 @@ const STANDARD_SIZES: Record<string, { w: number; h: number; label: string }> = 
   '30x40': { w: 30, h: 40, label: '30×40 см' },
 };
 
-// Polaroid: 8x8 photo zone + wide bottom border
-const POLAROID_DIMS = { w: 8, h: 8, borderSide: 0.6, borderBottom: 1.8 }; // cm
+// Polaroid sizes (both vertical) — full print dimensions
+// Photo zone = total minus borders (side 0.6cm each, top 0.6cm, bottom 1.8cm)
+const POLAROID_SIZES: Record<string, { totalW: number; totalH: number; borderSide: number; borderTop: number; borderBottom: number; label: string }> = {
+  '7.6x10.1': { totalW: 7.6, totalH: 10.1, borderSide: 0.6, borderTop: 0.6, borderBottom: 1.8, label: '7.6×10.1 см' },
+  '8.6x10.7': { totalW: 8.6, totalH: 10.7, borderSide: 0.65, borderTop: 0.65, borderBottom: 2.0, label: '8.6×10.7 см' },
+};
 
 interface PhotoFile {
   id: string; file: File; preview: string; width: number; height: number;
@@ -51,10 +55,50 @@ function PhotoPreview({
   let polaroidSideMm = 0;
 
   if (isPolaroid) {
-    photoW = POLAROID_DIMS.w;
-    photoH = POLAROID_DIMS.h;
-    polaroidSideMm = POLAROID_DIMS.borderSide;
-    polaroidBottomMm = POLAROID_DIMS.borderBottom;
+    // sizeKey for polaroid is like "7.6x10.1" or "8.6x10.7"
+    const pSize = POLAROID_SIZES[sizeKey] || POLAROID_SIZES['7.6x10.1'];
+    polaroidSideMm = pSize.borderSide;
+    const polaroidTopMm = pSize.borderTop;
+    polaroidBottomMm = pSize.borderBottom;
+    photoW = pSize.totalW - polaroidSideMm * 2;
+    photoH = pSize.totalH - polaroidTopMm - polaroidBottomMm;
+    // Override totalW/H calculation
+    const totalWPolaroid = pSize.totalW;
+    const totalHPolaroid = pSize.totalH;
+    const scalePolaroid = MAX_W / totalWPolaroid;
+    const canvasWPolaroid = MAX_W;
+    const canvasHPolaroid = Math.round(totalHPolaroid * scalePolaroid);
+    const borderPxPolaroid = polaroidSideMm * scalePolaroid;
+    const borderTopPx = polaroidTopMm * scalePolaroid;
+    const borderBottomPxP = polaroidBottomMm * scalePolaroid;
+    const photoAreaWP = photoW * scalePolaroid;
+    const photoAreaHP = photoH * scalePolaroid;
+    // Render using these values directly
+    return (
+      <div style={{ display:'inline-block', position:'relative' }}>
+        <div style={{ width:canvasWPolaroid, height:canvasHPolaroid, position:'relative', background:'#fff', boxShadow:'0 4px 20px rgba(0,0,0,0.15)', userSelect:'none' }} onWheel={(e)=>{e.preventDefault();const delta=e.deltaY>0?-0.05:0.05;onCropChange(photo.id,photo.cropX,photo.cropY,Math.max(0.5,Math.min(3,(photo.zoom||1)+delta)));}}>
+          <div style={{ position:'absolute', left:borderPxPolaroid, top:borderTopPx, width:photoAreaWP, height:photoAreaHP, overflow:'hidden', cursor:'grab', background:'#f0f0f0' }} onMouseDown={handleMouseDown}>
+            <img src={photo.preview} draggable={false} style={{ width:`${(photo.zoom||1)*100}%`, height:`${(photo.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${photo.cropX}% ${photo.cropY}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none' }}/>
+          </div>
+          {/* White borders */}
+          <div style={{ position:'absolute', left:0, top:0, width:canvasWPolaroid, height:borderTopPx, background:'#fff', pointerEvents:'none' }}/>
+          <div style={{ position:'absolute', left:0, bottom:0, width:canvasWPolaroid, height:borderBottomPxP, background:'#fff', pointerEvents:'none' }}/>
+          <div style={{ position:'absolute', left:0, top:0, width:borderPxPolaroid, height:canvasHPolaroid, background:'#fff', pointerEvents:'none' }}/>
+          <div style={{ position:'absolute', right:0, top:0, width:borderPxPolaroid, height:canvasHPolaroid, background:'#fff', pointerEvents:'none' }}/>
+          {/* Crop marks */}
+          {[{x:borderPxPolaroid-14,y:borderTopPx,w:10,h:1},{x:borderPxPolaroid,y:borderTopPx-14,w:1,h:10},{x:borderPxPolaroid+photoAreaWP+4,y:borderTopPx,w:10,h:1},{x:borderPxPolaroid+photoAreaWP,y:borderTopPx-14,w:1,h:10},{x:borderPxPolaroid-14,y:borderTopPx+photoAreaHP,w:10,h:1},{x:borderPxPolaroid,y:borderTopPx+photoAreaHP+4,w:1,h:10},{x:borderPxPolaroid+photoAreaWP+4,y:borderTopPx+photoAreaHP,w:10,h:1},{x:borderPxPolaroid+photoAreaWP,y:borderTopPx+photoAreaHP+4,w:1,h:10}].map((l,i)=><div key={i} style={{position:'absolute',left:l.x,top:l.y,width:l.w,height:l.h,background:'#aaa',pointerEvents:'none'}}/>)}
+          <div style={{ position:'absolute', left:borderPxPolaroid, bottom:6, width:photoAreaWP, textAlign:'center', fontSize:10, color:'#bbb', pointerEvents:'none', fontStyle:'italic' }}>напис тут</div>
+          {(photo.zoom||1)!==1 && <div style={{ position:'absolute', bottom:borderBottomPxP+4, right:borderPxPolaroid+4, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:8, pointerEvents:'none' }}>{Math.round((photo.zoom||1)*100)}%</div>}
+        </div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:6 }}>
+          <button onClick={()=>onCropChange(photo.id,photo.cropX,photo.cropY,Math.max(0.5,(photo.zoom||1)-0.1))} style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14 }}>−</button>
+          <span style={{ fontSize:11, fontWeight:700, color:'#475569', minWidth:40, textAlign:'center' }}>{Math.round((photo.zoom||1)*100)}%</span>
+          <button onClick={()=>onCropChange(photo.id,photo.cropX,photo.cropY,Math.min(3,(photo.zoom||1)+0.1))} style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14 }}>+</button>
+          <button onClick={()=>onCropChange(photo.id,50,50,1)} style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:10, color:'#64748b' }}>↺</button>
+        </div>
+        <p style={{ fontSize:10, color:'#94a3b8', textAlign:'center', marginTop:4 }}>Тягніть фото для кадрування • коліщатко для масштабу</p>
+      </div>
+    );
   } else if (isNonstandard) {
     // Default ratio 4:3 for nonstandard
     photoW = 15; photoH = 10;
@@ -262,7 +306,8 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
 
   // Parse size key from label like "10×15 см — 8 грн" → "10x15"
   const getSizeKey = (label: string): string => {
-    const m = label.match(/(\d+)[×x](\d+)/);
+    // Handle decimal sizes like "7.6×10.1" and integers like "10×15"
+    const m = label.match(/([\d.]+)[×x]([\d.]+)/);
     return m ? `${m[1]}x${m[2]}` : '';
   };
 
@@ -292,7 +337,9 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
   };
 
   const handleAddToCart = () => {
-    if (photos.length === 0) { toast.error('Додайте хоча б одне фото'); return; }
+    const minOrder = 20;
+  if (photos.length === 0) { toast.error('Додайте хоча б одне фото'); return; }
+  if (photos.length < minOrder) { toast.error(`Мінімальне замовлення — ${minOrder} фото`); return; }
     addItem({
       id: `${product.id}_${Date.now()}`,
       product_id: product.id, name: product.name,
@@ -388,7 +435,10 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
 
             {/* Photo counter */}
             <div style={{ padding:'10px 14px', borderRadius:8, background:photos.length===0?'#fff7ed':'#eff6ff', border:`1px solid ${photos.length===0?'#fed7aa':'#bfdbfe'}`, marginBottom:16 }}>
-              <span style={{ fontWeight:700, color:photos.length===0?'#c2410c':'#1d4ed8', fontSize:13 }}>{photos.length}/500 фотографій</span>
+              <span style={{ fontWeight:700, color:photos.length===0?'#c2410c':photos.length<20?'#d97706':'#1d4ed8', fontSize:13 }}>
+              {photos.length}/500 фотографій
+              {photos.length > 0 && photos.length < 20 && <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>мінімум 20 шт</span>}
+            </span>
             </div>
 
             {/* Size */}
@@ -458,8 +508,8 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
           </div>
 
           {/* Add to cart */}
-          <button onClick={handleAddToCart} disabled={photos.length===0}
-            style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px', background:photos.length===0?'#94a3b8':'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:16, cursor:photos.length===0?'not-allowed':'pointer', boxShadow:photos.length===0?'none':'0 4px 16px rgba(30,45,125,0.3)', transition:'all 0.2s' }}>
+          <button onClick={handleAddToCart} disabled={photos.length < 20}
+            style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px', background:photos.length < 20?'#94a3b8':'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:16, cursor:photos.length < 20?'not-allowed':'pointer', boxShadow:photos.length < 20?'none':'0 4px 16px rgba(30,45,125,0.3)', transition:'all 0.2s' }}>
             <ShoppingCart size={18} /> Додати до кошика
           </button>
 
