@@ -442,31 +442,64 @@ interface ProductOptionsSelectorProps {
 
 export function ProductOptionsSelector({ slug, selectedOptions, onChange }: ProductOptionsSelectorProps) {
   const productType = detectProductType(slug);
-  const isVelourProduct = slug?.toLowerCase().includes('velour') || slug?.toLowerCase().includes('velyur') || productType === 'photobook-velour';
+  const s = slug?.toLowerCase() || '';
+  const isVelourProduct = s.includes('velour') || s.includes('velyur');
+  const isLeatherProduct = s.includes('leather') || s.includes('shkir');
+  const isFabricProduct = s.includes('fabric') || s.includes('tkanina');
+  const isPrintedProduct = s.includes('printed') || s.includes('drukov');
   const isPhotobookProduct = productType === 'photobook';
+  // Non-printed photobooks get colors + decoration options
+  const hasColorAndDecoration = isPhotobookProduct && !isPrintedProduct;
+
   const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
   const [selectedOzdoblennya, setSelectedOzdoblennya] = useState('none');
   const [selectedDecorationVariant, setSelectedDecorationVariant] = useState('');
   const [decorationVariants, setDecorationVariants] = useState<any[]>([]);
+  const [coverColors, setCoverColors] = useState<any[]>([]);
+  const [selectedCoverColor, setSelectedCoverColor] = useState<any>(null);
 
   const supabase = useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   ), []);
 
-  // Fetch decoration variants for photobook products
+  // Determine cover type name for DB queries
+  const coverTypeName = isVelourProduct ? 'Велюр'
+    : isLeatherProduct ? 'Шкірзамінник'
+    : isFabricProduct ? 'Тканина'
+    : isPrintedProduct ? 'Друкована' : '';
+
+  // Fetch decoration variants and cover colors for photobook products
   useEffect(() => {
     if (!isPhotobookProduct) return;
-    async function fetchVariants() {
-      const { data } = await supabase
+    async function fetchData() {
+      // Decoration variants
+      const { data: varData } = await supabase
         .from('decoration_variants')
         .select('*, decoration_type:decoration_types(id, name), cover_type:cover_types(id, name), size:photobook_sizes(id, name)')
         .eq('active', true)
         .order('sort_order', { ascending: true });
-      if (data) setDecorationVariants(data);
+      if (varData) setDecorationVariants(varData);
+
+      // Cover colors (for non-printed covers)
+      if (hasColorAndDecoration && coverTypeName) {
+        const { data: colorData } = await supabase
+          .from('cover_colors')
+          .select('*, cover_type:cover_types(id, name)')
+          .eq('active', true)
+          .order('sort_order', { ascending: true });
+        if (colorData) {
+          const filtered = colorData.filter((c: any) => c.cover_type?.name === coverTypeName);
+          setCoverColors(filtered);
+          if (filtered.length > 0 && !selectedCoverColor) {
+            setSelectedCoverColor(filtered[0]);
+          }
+        }
+      }
     }
-    fetchVariants();
-  }, [isPhotobookProduct, supabase]);
+    fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPhotobookProduct, hasColorAndDecoration, coverTypeName]);
 
   if (!productType) {
     return null;
@@ -644,53 +677,47 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         );
       })}
 
-      {/* Velour Color Picker */}
-      {isVelourProduct && (
-        <div>
-          <label style={{
-            display: 'block',
-            fontSize: '14px',
-            fontWeight: 700,
-            marginBottom: '12px',
-            color: '#1e2d7d'
-          }}>
-            Колір велюру: <span style={{ fontWeight: 400, color: '#64748b' }}>{selectedColor?.name ?? 'оберіть колір'}</span>
-          </label>
-
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}>
-            {VELOUR_COLORS.map(color => (
-              <button
-                key={color.code}
-                type="button"
-                onClick={() => {
-                  setSelectedColor(color);
-                  // Update parent with new color selection
-                  const newOptions = {
-                    ...selectedOptions,
-                    'Колір велюру': `${color.name} (${color.code})`
-                  };
-                  const price = calculatePrice(newOptions);
-                  onChange(newOptions, price || undefined);
-                }}
-                className={`w-8 h-8 rounded-full border-2 transition-all ${
-                  selectedColor?.code === color.code
-                    ? 'border-[#1e2d7d] scale-110 shadow-md'
-                    : 'border-transparent hover:border-gray-300'
-                }`}
-                style={{ backgroundColor: color.hex }}
-                aria-label={color.name}
-              />
-            ))}
+      {/* Cover Color Picker (velour uses hardcoded, others use DB) */}
+      {hasColorAndDecoration && (() => {
+        const colors = isVelourProduct ? VELOUR_COLORS : coverColors.map((c: any) => ({ code: c.code, name: c.name, hex: c.hex_approx }));
+        const current = isVelourProduct ? selectedColor : selectedCoverColor;
+        const colorLabel = isVelourProduct ? 'Колір велюру' : isLeatherProduct ? 'Колір шкірзамінника' : 'Колір тканини';
+        if (colors.length === 0) return null;
+        return (
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
+              {colorLabel}: <span style={{ fontWeight: 400, color: '#64748b' }}>{current?.name ?? 'оберіть колір'}</span>
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+              {colors.map((color: any) => (
+                <button
+                  key={color.code}
+                  type="button"
+                  title={`${color.name} (${color.code})`}
+                  onClick={() => {
+                    if (isVelourProduct) {
+                      setSelectedColor(color);
+                    } else {
+                      setSelectedCoverColor(color);
+                    }
+                    const newOptions = { ...selectedOptions, [colorLabel]: `${color.name} (${color.code})` };
+                    const price = calculatePrice(newOptions);
+                    onChange(newOptions, price || undefined);
+                  }}
+                  className={`w-8 h-8 rounded-full border-2 transition-all ${
+                    current?.code === color.code ? 'border-[#1e2d7d] scale-110 shadow-md' : 'border-transparent hover:border-gray-300'
+                  }`}
+                  style={{ backgroundColor: color.hex }}
+                  aria-label={color.name}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      {/* Velour Decoration Type Selector */}
-      {isVelourProduct && (
+      {/* Decoration Type Selector (all non-printed photobooks) */}
+      {hasColorAndDecoration && (
         <div>
           <label style={{
             display: 'block',
