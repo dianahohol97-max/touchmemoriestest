@@ -137,16 +137,18 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 }
 
 
-                // Initialize default options (first available value for each option)
-                const defaultOptions: Record<string, number> = {};
+                // Initialize default options (first value of each option group)
+                const defaultOptions: Record<string, any> = {};
                 if (data.options && Array.isArray(data.options)) {
                     data.options.forEach((opt: any) => {
-                        if (opt.values && opt.values.length > 0) {
-                            defaultOptions[opt.name] = 0; // index zero is default
+                        const items = opt.options || opt.values;
+                        if (items && items.length > 0) {
+                            // Use the value field if available, else index 0
+                            defaultOptions[opt.name] = items[0].value ?? items[0].name ?? 0;
                         }
                     });
                 }
-                setSelectedOptions(defaultOptions);
+                setCustomProductOptions(defaultOptions);
 
                 // Fetch Related Products
                 const { data: relatedData } = await supabase
@@ -205,23 +207,29 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         const pagesOpt = product.options.find((o: any) => o.name === 'Кількість сторінок');
         const kalkaOpt = product.options.find((o: any) => o.name?.includes('Калька'));
 
-        const selectedSizeIdx = selectedOptions['Розмір'];
-        const selectedPagesIdx = selectedOptions['Кількість сторінок'];
-        const selectedKalkaIdx = selectedOptions[kalkaOpt?.name];
+        const selectedSizeVal = customProductOptions['Розмір'];
+        const selectedPagesVal = customProductOptions['Кількість сторінок'];
 
-        if (sizeOpt?.values && pagesOpt?.values && selectedSizeIdx !== undefined && selectedPagesIdx !== undefined) {
-            const sizeName = sizeOpt.values[selectedSizeIdx]?.name || sizeOpt.values[selectedSizeIdx];
-            const pageCount = Number(pagesOpt.values[selectedPagesIdx]?.name || pagesOpt.values[selectedPagesIdx]);
+        // Resolve size label from value
+        const sizeItems = sizeOpt?.options || sizeOpt?.values || [];
+        const sizeMatch = sizeItems.find((s: any) => (s.value ?? s.name ?? s) === selectedSizeVal);
+        const sizeName = sizeMatch?.label || sizeMatch?.name || selectedSizeVal;
 
-            // Determine cover type from product slug
+        // Resolve page count from value
+        const pageItems = pagesOpt?.options || pagesOpt?.values || [];
+        const pageMatch = pageItems.find((p: any) => (p.value ?? p.name ?? p) === selectedPagesVal);
+        const pageCount = Number(pageMatch?.value || pageMatch?.name || selectedPagesVal);
+
+        if (sizeName && pageCount) {
             let coverName = 'Друкована';
             if (product.slug.includes('velour') || product.slug.includes('velyur')) coverName = 'Велюр';
             else if (product.slug.includes('leather')) coverName = 'Шкірзамінник';
             else if (product.slug.includes('fabric') || product.slug.includes('tkanina')) coverName = 'Тканина';
 
+            const sizeNorm = String(sizeName).replace(/х/g, '×');
             const priceEntry = photobookPricesData.find((p: any) =>
                 p.cover_type?.name === coverName &&
-                p.size?.name === String(sizeName).replace(/х/g, '×') &&
+                p.size?.name === sizeNorm &&
                 p.page_count === pageCount
             );
 
@@ -229,41 +237,46 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 finalPrice = Number(priceEntry.base_price) || 0;
 
                 // Add калька surcharge
-                if (kalkaOpt && selectedKalkaIdx !== undefined) {
-                    const kalkaValue = kalkaOpt.values[selectedKalkaIdx]?.name || kalkaOpt.values[selectedKalkaIdx];
-                    if (String(kalkaValue).includes('калькою') || String(kalkaValue).includes('Так')) {
+                const kalkaVal = kalkaOpt ? customProductOptions[kalkaOpt.name] : undefined;
+                if (kalkaVal) {
+                    const kalkaItems = kalkaOpt.options || kalkaOpt.values || [];
+                    const kalkaMatch = kalkaItems.find((k: any) => (k.value ?? k.name ?? k) === kalkaVal);
+                    const kalkaLabel = kalkaMatch?.label || kalkaMatch?.name || kalkaVal;
+                    if (String(kalkaLabel).includes('калькою') || String(kalkaLabel).includes('Так')) {
                         finalPrice += Number(priceEntry.kalka_surcharge) || 280;
+                    }
+                }
+
+                // Add decoration variant surcharge
+                const decoVariant = customProductOptions['Варіант оздоблення'];
+                if (decoVariant) {
+                    // Check product.options for price
+                    for (const opt of product.options) {
+                        const items = opt.options || opt.values || [];
+                        const match = items.find((i: any) => (i.value ?? i.name) === decoVariant);
+                        if (match?.price) { finalPrice += Number(match.price); break; }
                     }
                 }
             }
         }
     } else if (isPhotobook && photobookPrice > 0) {
         finalPrice = photobookPrice;
-    } else if (dynamicPrice !== null) {
-        // ProductOptionsSelector calculated the price
-        finalPrice = dynamicPrice;
     } else if (product.options && Array.isArray(product.options)) {
-        // Generic: calculate from product.options with price modifiers
+        // Generic: base_price + sum of selected option price modifiers
         let modifierTotal = 0;
         product.options.forEach((opt: any) => {
-            const selected = selectedOptions[opt.name] ?? customProductOptions[opt.name];
+            const selected = customProductOptions[opt.name];
             if (selected === undefined) return;
 
-            // Format 1: options[].values[idx].priceModifier (index-based)
-            if (opt.values && typeof selected === 'number' && opt.values[selected]) {
-                modifierTotal += (opt.values[selected].priceModifier || opt.values[selected].price || 0);
-            }
-            // Format 2: options[].options[].price (new format, value-based)
-            else if (opt.options && Array.isArray(opt.options)) {
-                const match = opt.options.find((o: any) => o.value === selected || o.label === selected);
-                if (match) modifierTotal += (match.price || 0);
-            }
-            // Format 1 with string key
-            else if (opt.values && typeof selected === 'string') {
-                const match = opt.values.find((v: any) => (v.name || v) === selected);
-                if (match && typeof match === 'object') {
-                    modifierTotal += (match.priceModifier || match.price || 0);
-                }
+            const items = opt.options || opt.values || [];
+            const match = items.find((i: any) =>
+                (i.value !== undefined && i.value === selected) ||
+                (i.label !== undefined && i.label === selected) ||
+                (i.name !== undefined && i.name === selected) ||
+                i === selected
+            );
+            if (match && typeof match === 'object') {
+                modifierTotal += Number(match.price || match.priceModifier || 0);
             }
         });
         finalPrice += modifierTotal;
@@ -479,28 +492,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                                     {/* Conditional decoration sub-options from product.options JSON */}
                                     {product.options && Array.isArray(product.options) && (() => {
-                                        // Only acryl and photovstavka use product.options JSON
-                                        // metal uses decoration_variants table (handled in ProductOptionsSelector)
-                                        // flex and graviruvannya have NO subtypes
+                                        // Map: sub-option name → required Оздоблення value
                                         const SUBTYPE_MAP: Record<string, string> = {
                                             'Варіант акрилу': 'acryl',
                                             'Варіант фотовставки': 'photovstavka',
                                         };
-                                        // Get current Оздоблення value
-                                        const ozdoblennya = customProductOptions['Тип оздоблення'] || customProductOptions['Оздоблення'] || '';
-                                        const ozdoblennyaValue = (() => {
-                                            // Find the Оздоблення option group to get the raw value
-                                            const ozGroup = product.options.find((o: any) => o.name === 'Оздоблення');
-                                            if (!ozGroup?.options) return '';
-                                            const selected = ozGroup.options.find((o: any) => o.label === ozdoblennya);
-                                            return selected?.value || '';
-                                        })();
+                                        // customProductOptions stores the value directly (e.g. "acryl")
+                                        const ozValue = customProductOptions['Оздоблення'] || '';
 
                                         return product.options
                                             .filter((opt: any) => {
                                                 const requiredParent = SUBTYPE_MAP[opt.name];
-                                                if (!requiredParent) return false; // Not a subtype group
-                                                return ozdoblennyaValue === requiredParent;
+                                                if (!requiredParent) return false;
+                                                return ozValue === requiredParent;
                                             })
                                             .map((opt: any) => {
                                                 const items = opt.options || opt.values || [];
