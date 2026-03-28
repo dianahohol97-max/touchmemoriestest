@@ -105,7 +105,7 @@ export function ConstructorSelectionClient({ sectionContent }: ConstructorSelect
                                 </Link>
                                 <button
                                     onClick={() => setPhotobookModalOpen(true)}
-                                    className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-full transition-colors text-center"
+                                    className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-xl transition-colors text-center"
                                 >
                                     {photobooksDesignerButtonText}
                                 </button>
@@ -149,7 +149,7 @@ export function ConstructorSelectionClient({ sectionContent }: ConstructorSelect
                                 </Link>
                                 <button
                                     onClick={() => setMagazineModalOpen(true)}
-                                    className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-full transition-colors text-center"
+                                    className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-xl transition-colors text-center"
                                 >
                                     {magazinesDesignerButtonText}
                                 </button>
