@@ -239,14 +239,34 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         }
     } else if (isPhotobook && photobookPrice > 0) {
         finalPrice = photobookPrice;
+    } else if (dynamicPrice !== null) {
+        // ProductOptionsSelector calculated the price
+        finalPrice = dynamicPrice;
     } else if (product.options && Array.isArray(product.options)) {
-        // Non-photobook: use price modifiers
+        // Generic: calculate from product.options with price modifiers
+        let modifierTotal = 0;
         product.options.forEach((opt: any) => {
-            const selectedIdx = selectedOptions[opt.name];
-            if (selectedIdx !== undefined && opt.values && opt.values[selectedIdx]) {
-                finalPrice += (opt.values[selectedIdx].priceModifier || 0);
+            const selected = selectedOptions[opt.name] ?? customProductOptions[opt.name];
+            if (selected === undefined) return;
+
+            // Format 1: options[].values[idx].priceModifier (index-based)
+            if (opt.values && typeof selected === 'number' && opt.values[selected]) {
+                modifierTotal += (opt.values[selected].priceModifier || opt.values[selected].price || 0);
+            }
+            // Format 2: options[].options[].price (new format, value-based)
+            else if (opt.options && Array.isArray(opt.options)) {
+                const match = opt.options.find((o: any) => o.value === selected || o.label === selected);
+                if (match) modifierTotal += (match.price || 0);
+            }
+            // Format 1 with string key
+            else if (opt.values && typeof selected === 'string') {
+                const match = opt.values.find((v: any) => (v.name || v) === selected);
+                if (match && typeof match === 'object') {
+                    modifierTotal += (match.priceModifier || match.price || 0);
+                }
             }
         });
+        finalPrice += modifierTotal;
     }
 
     const handleAddToCart = () => {
@@ -421,7 +441,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                             <div className={styles.priceContainer} style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)' }}>
-                                {dynamicPrice !== null ? `${dynamicPrice} ₴` : `${product.price_from ? 'від ' : ''}${finalPrice} ₴`}
+                                {`${product.price_from ? 'від ' : ''}${finalPrice} ₴`}
                             </div>
                             {product.sale_price && (
                                 <div style={{ fontSize: '20px', fontWeight: 600, color: '#94a3b8', textDecoration: 'line-through' }}>
