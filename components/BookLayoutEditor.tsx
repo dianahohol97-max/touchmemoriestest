@@ -36,7 +36,7 @@ type LayoutType =
   // text
   'p-text' | 'p-text-top' | 'p-text-bottom';
 
-interface SlotData { photoId: string | null; cropX: number; cropY: number; }
+interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
@@ -100,7 +100,7 @@ const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
 };
 
 function makeSlots(n: number): SlotData[] {
-  return Array.from({ length: n }, () => ({ photoId: null, cropX: 50, cropY: 50 }));
+  return Array.from({ length: n }, () => ({ photoId: null, cropX: 50, cropY: 50, zoom: 1 }));
 }
 
 const FONTS = ['Montserrat', 'Georgia', 'Playfair Display', 'Dancing Script', 'Arial', 'Times New Roman'];
@@ -195,6 +195,7 @@ export default function BookLayoutEditor() {
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [textTool, setTextTool] = useState(false);
+  const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null); // "pageIdx-slotIdx"
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [tFontSize, setTFontSize] = useState(28);
@@ -270,7 +271,7 @@ export default function BookLayoutEditor() {
     const newSlot: FreeSlot = {
       id, x: cW * 0.25, y: cH * 0.25,
       w: cW * 0.4, h: cH * 0.35,
-      shape: 'rect', photoId: null, cropX: 50, cropY: 50,
+      shape: 'rect', photoId: null, cropX: 50, cropY: 50, zoom: 1,
     };
     setCurFreeSlots(prev => [...prev, newSlot]);
   };
@@ -615,8 +616,51 @@ export default function BookLayoutEditor() {
                   style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f1f5f9'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1px dashed #cbd5e1'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}>
                   {photo ? (
                     <>
-                      <img src={photo.preview} alt="" onMouseDown={e => startCrop(e, key, slot!.cropX, slot!.cropY)}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slot!.cropX}% ${slot!.cropY}%`, userSelect: 'none', cursor: 'grab', display: 'block' }} draggable={false} />
+                      {/* Photo with zoom+pan */}
+                      <div
+                        style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
+                        onWheel={e => {
+                          if (photoEditSlot !== key) return;
+                          e.preventDefault();
+                          const delta = e.deltaY > 0 ? -0.05 : 0.05;
+                          const newZoom = Math.max(0.5, Math.min(4, (slot!.zoom || 1) + delta));
+                          const [pi, si] = key.split('-').map(Number);
+                          setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, zoom: newZoom }) }));
+                        }}
+                        onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}
+                      >
+                        <img src={photo.preview} alt=""
+                          onMouseDown={e => { if (photoEditSlot === key) startCrop(e, key, slot!.cropX, slot!.cropY); }}
+                          style={{
+                            width: `${(slot!.zoom || 1) * 100}%`,
+                            height: `${(slot!.zoom || 1) * 100}%`,
+                            objectFit: 'cover',
+                            objectPosition: `${slot!.cropX}% ${slot!.cropY}%`,
+                            userSelect: 'none',
+                            cursor: photoEditSlot === key ? 'grab' : 'default',
+                            display: 'block',
+                            position: 'absolute',
+                            top: '50%', left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                          }}
+                          draggable={false}
+                        />
+                        {/* Photo edit toolbar */}
+                        {photoEditSlot === key && (
+                          <div
+                            onMouseDown={e => e.stopPropagation()}
+                            style={{ position: 'absolute', bottom: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(0,0,0,0.7)', borderRadius: 20, padding: '4px 10px', zIndex: 40, backdropFilter: 'blur(4px)' }}>
+                            <button onClick={e => { e.stopPropagation(); const [pi,si] = key.split('-').map(Number); setPages(prev => prev.map((p,i)=>i!==pi?p:{...p,slots:p.slots.map((sl,j)=>j!==si?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})})); }}
+                              style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, padding: '0 2px', lineHeight: 1 }}>−</button>
+                            <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, minWidth: 32, textAlign: 'center' }}>{Math.round((slot!.zoom||1)*100)}%</span>
+                            <button onClick={e => { e.stopPropagation(); const [pi,si] = key.split('-').map(Number); setPages(prev => prev.map((p,i)=>i!==pi?p:{...p,slots:p.slots.map((sl,j)=>j!==si?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})})); }}
+                              style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, padding: '0 2px', lineHeight: 1 }}>+</button>
+                            <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.3)', margin: '0 2px' }} />
+                            <button onClick={e => { e.stopPropagation(); const [pi,si] = key.split('-').map(Number); setPages(prev => prev.map((p,i)=>i!==pi?p:{...p,slots:p.slots.map((sl,j)=>j!==si?sl:{...sl,zoom:1,cropX:50,cropY:50})})); }}
+                              style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '0 2px' }}>↺</button>
+                          </div>
+                        )}
+                      </div>
                       <button onClick={() => clearSlot(currentIdx, i)} style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.15s' }} className="del-btn">
                         <Trash2 size={10} />
                       </button>
