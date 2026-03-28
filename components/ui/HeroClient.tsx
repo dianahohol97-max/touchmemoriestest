@@ -32,93 +32,70 @@ interface HeroClientProps {
   siteContent?: Record<string, string>;
 }
 
-export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroClientProps) {
-  const { content, blocks } = useTheme();
+const REFERENCE_BG = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAi6aUgQKQ9hSFhflZSGt68udg-k8aOkxZO9iYck0N6AeNbVuvpGYFq9TP1xG4LwI3jR1PLlGYTs1FvlfnrlEn94z5bAGwGRmnyf7uLwe0uj4o0AosWr_8bEhrJLN_UANMkWGowF755IUoZk8LQt6tj4VdxfAdhPWhef_cqqUq65-Sh34vOTUmHtyHBZEzh_MRZrYHLHusTjEIqt9WaZiw_cRCMafyN14MBI8XLJ8EgWkL90uMWITtKCm1RIjpzGs3uLe4cH2oP4Ow';
 
-  // ── Content from DB / fallback ──────────────────────────────────────────
+const DEFAULT_PILLS = [
+  { id: '1', button_text: 'Фотокнига', button_url: '/catalog' },
+  { id: '2', button_text: 'Глянцевий журнал', button_url: '/catalog' },
+  { id: '3', button_text: 'Журнал з твердою обкладинкою', button_url: '/catalog' },
+  { id: '4', button_text: 'Тревелбук', button_url: '/catalog' },
+  { id: '5', button_text: 'Фотодрук', button_url: '/catalog' },
+  { id: '6', button_text: 'Фотомагніти', button_url: '/catalog' },
+];
+
+export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroClientProps) {
+  const { content } = useTheme();
+
   const overlineText =
     heroContent?.overline_text ||
     siteContent['hero_overline'] ||
     content['hero_overline'] ||
-    "Створено з любов\'ю";
+    "Створено з любов'ю";
 
-  const titleLine1 =
-    heroContent?.title_line1 ||
-    siteContent['hero_title_line1'] ||
-    content['hero_title_line1'] ||
-    'Доторкнись до';
-
-  const titleLine2 =
-    heroContent?.title_line2 ||
-    siteContent['hero_title_line2'] ||
-    content['hero_title_line2'] ||
-    'спогадів';
+  const title =
+    heroContent
+      ? ((heroContent.title_line1 || '') + ' ' + (heroContent.title_line2 || '')).trim()
+      : 'Доторкнись до спогадів';
 
   const bgImage =
     heroContent?.background_image_url ||
     siteContent['hero_image_url'] ||
     content['hero_image_url'] ||
-    PRODUCT_IMAGES.hero;
+    REFERENCE_BG;
 
-  // ── CTA ─────────────────────────────────────────────────────────────────
   const ctaText = siteContent['hero_cta_text'] || content['hero_cta_text'] || 'Переглянути каталог';
   const ctaUrl  = siteContent['hero_cta_url']  || content['hero_cta_url']  || '/catalog';
-
-  // ── Pills: DB buttons або дефолт ────────────────────────────────────────
-  const defaultPills = [
-    { id: '1', button_text: 'Фотокнига',                   button_url: '/catalog' },
-    { id: '2', button_text: 'Глянцевий журнал',             button_url: '/catalog' },
-    { id: '3', button_text: 'Журнал з твердою обкладинкою', button_url: '/catalog' },
-    { id: '4', button_text: 'Тревелбук',                    button_url: '/catalog' },
-    { id: '5', button_text: 'Фотодрук',                     button_url: '/catalog' },
-    { id: '6', button_text: 'Фотомагніти',                  button_url: '/catalog' },
-  ];
-  const pills = heroButtons.length > 0 ? heroButtons : defaultPills;
+  const pills = heroButtons.length > 0 ? heroButtons : DEFAULT_PILLS;
 
   return (
-    <header
-      className="relative w-full flex items-end overflow-hidden"
-      style={{ height: '921px' }}
-    >
-      {/* Background image */}
+    <header className="relative h-[921px] w-full flex items-end overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url('${bgImage}')` }}
       />
-
-      {/* Scrim: transparent → deep navy */}
       <div
         className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(to bottom, rgba(2,16,100,0) 60%, rgba(2,16,100,0.8) 100%)',
-        }}
+        style={{ background: 'linear-gradient(to bottom, rgba(2, 16, 100, 0) 60%, rgba(2, 16, 100, 0.8) 100%)' }}
       />
-
-      {/* Content */}
       <div className="relative z-10 w-full max-w-[1440px] mx-auto px-8 pb-20 text-white">
-
-        {/* Eyebrow */}
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: easing }}
-          className="font-heading font-bold uppercase text-sm tracking-widest mb-4 opacity-90"
+          className="font-heading font-bold tracking-widest uppercase text-sm mb-4 opacity-90"
         >
           {overlineText}
         </motion.p>
 
-        {/* Headline */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: easing, delay: 0.1 }}
-          className="font-heading font-black leading-none tracking-tighter mb-12 max-w-4xl text-white"
-          style={{ fontSize: 'clamp(3.5rem, 8vw, 7rem)' }}
+          className="font-heading font-extrabold text-6xl md:text-8xl leading-none tracking-tighter mb-12 max-w-4xl text-white"
         >
-          {titleLine1} {titleLine2}
+          {title}
         </motion.h1>
 
-        {/* Category pills */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -129,20 +106,13 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
             <Link
               key={pill.id}
               href={pill.button_url}
-              className="px-6 py-2 rounded-full text-sm font-semibold text-white transition-colors duration-200"
-              style={{
-                border: '1px solid rgba(255,255,255,0.3)',
-                background: 'rgba(255,255,255,0.1)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-              }}
+              className="px-6 py-2 rounded-full border border-white/30 bg-white/10 backdrop-blur-md text-sm font-semibold hover:bg-white/20 transition-colors text-white"
             >
               {pill.button_text}
             </Link>
           ))}
         </motion.div>
 
-        {/* Primary CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -150,13 +120,11 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
         >
           <Link
             href={ctaUrl}
-            className="inline-flex items-center font-heading font-bold text-lg text-white rounded-full px-10 py-4 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg"
-            style={{ background: '#1E2F85' }}
+            className="inline-flex items-center bg-primary-container text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-primary transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg"
           >
             {ctaText}
           </Link>
         </motion.div>
-
       </div>
     </header>
   );
