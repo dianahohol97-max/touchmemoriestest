@@ -198,20 +198,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
     const isPhotobook = product.slug?.includes('photobook');
 
-    // Calculate final price — priority: dynamicPrice > photobook lookup > generic modifiers
+    // Calculate final price — priority: photobook table > dynamicPrice > generic modifiers
     let finalPrice = product.price || 0;
 
-    // Source 1: ProductOptionsSelector calculated price (hardcoded PRODUCT_OPTIONS)
-    if (dynamicPrice !== null && dynamicPrice > 0) {
-        finalPrice = dynamicPrice;
-    }
-    // Source 2: Photobook prices table lookup
-    else if (isPhotobook && photobookPricesData.length > 0) {
+    // Source 1: Photobook prices table lookup (ALL photobooks use this when data available)
+    if (isPhotobook && photobookPricesData.length > 0) {
         const sizeVal = String(customProductOptions['Розмір'] || '');
         const pagesVal = String(customProductOptions['Кількість сторінок'] || '');
         const kalkaVal = String(customProductOptions['Калька перед першою сторінкою'] || '');
 
-        const pageCount = Number(pagesVal.replace(/[^\d]/g, '')) || 0;
+        const pageCount = Number(String(pagesVal).replace(/[^\d]/g, '')) || 0;
         const sizeNorm = sizeVal.replace(/[хxX]/g, '×');
 
         let coverName = 'Друкована';
@@ -226,11 +222,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             );
             if (entry) {
                 finalPrice = Number(entry.base_price) || 0;
-                if (kalkaVal.includes('калькою') || kalkaVal.includes('Так')) {
-                    finalPrice += Number(entry.kalka_surcharge) || 280;
+                // Калька / tracing paper surcharge
+                if (String(kalkaVal).includes('калькою') || String(kalkaVal).includes('Так') || kalkaVal === 'with') {
+                    finalPrice += Number(entry.kalka_surcharge) || 150;
                 }
             }
         }
+    }
+    // Source 2: ProductOptionsSelector calculated price (non-photobook hardcoded products)
+    else if (dynamicPrice !== null && dynamicPrice > 0) {
+        finalPrice = dynamicPrice;
     }
     // Source 3: Generic — base_price + sum of selected modifiers from product.options
     else if (product.options && Array.isArray(product.options)) {
