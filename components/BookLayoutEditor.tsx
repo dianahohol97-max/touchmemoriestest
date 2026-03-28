@@ -104,7 +104,14 @@ function makeSlots(n: number): SlotData[] {
   return Array.from({ length: n }, () => ({ photoId: null, cropX: 50, cropY: 50, zoom: 1 }));
 }
 
-const FONTS = ['Montserrat', 'Georgia', 'Playfair Display', 'Dancing Script', 'Arial', 'Times New Roman'];
+const FONT_GROUPS = [
+  { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans'] },
+  { group: 'Класичні', fonts: ['Playfair Display','Georgia','Cormorant Garamond','EB Garamond','Libre Baskerville'] },
+  { group: 'Каліграфічні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Alex Brush','Pinyon Script','Italianno'] },
+  { group: 'Кириличні', fonts: ['Marck Script','Philosopher','Russo One','Comfortaa','Lobster','Caveat','Poiret One','Open Sans'] },
+  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous'] },
+];
+const FONTS = FONT_GROUPS.flatMap(g => g.fonts);
 const COLORS = ['#1e2d7d', '#ffffff', '#000000', '#e63946', '#2a9d8f', '#f4a261', '#264653', '#e9c46a'];
 
 function getSlotDefs(layout: LayoutType, W: number, H: number): { i: number; s: React.CSSProperties }[] {
@@ -211,6 +218,20 @@ export default function BookLayoutEditor() {
   const cropRef = useRef<{ key: string; sx: number; sy: number; cx: number; cy: number } | null>(null);
   const txtRef = useRef<{ id: string; sx: number; sy: number; tx: number; ty: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fams = ['Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin+Sans',
+      'Playfair+Display','Cormorant+Garamond','EB+Garamond','Libre+Baskerville',
+      'Dancing+Script','Great+Vibes','Pacifico','Sacramento','Satisfy',
+      'Alex+Brush','Pinyon+Script','Italianno','Marck+Script','Philosopher',
+      'Russo+One','Comfortaa','Lobster','Caveat','Poiret+One','Open+Sans',
+      'Abril+Fatface','Cinzel','Bebas+Neue','Righteous'];
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=' + fams.join('&family=') + '&display=swap';
+    document.head.appendChild(link);
+    return () => { try { document.head.removeChild(link); } catch{} };
+  }, []);
 
   useEffect(() => {
     const cfg = sessionStorage.getItem('bookConstructorConfig');
@@ -634,9 +655,14 @@ export default function BookLayoutEditor() {
                 </button>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Шрифт</div>
-                  <select value={tFontFamily} onChange={e => { setTFontFamily(e.target.value); if (selectedTextId) updateTxt(selectedTextId, { fontFamily: e.target.value }); }}
-                    style={{ padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, width: '100%' }}>
-                    {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
+                  <select value={tFontFamily}
+                    onChange={e => { const v=e.target.value; setTFontFamily(v); if (selectedTextId) updateTxt(selectedTextId, { fontFamily: v }); }}
+                    style={{ padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, width:'100%', fontFamily:tFontFamily }}>
+                    {FONT_GROUPS.map(g => (
+                      <optgroup key={g.group} label={g.group}>
+                        {g.fonts.map(f => <option key={f} value={f}>{f}</option>)}
+                      </optgroup>
+                    ))}
                   </select>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Розмір: {tFontSize}px</div>
                   <input type="range" min={8} max={120} value={tFontSize} onChange={e => { const v = +e.target.value; setTFontSize(v); if (selectedTextId) updateTxt(selectedTextId, { fontSize: v }); }} style={{ width: '100%' }} />
