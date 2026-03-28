@@ -68,6 +68,7 @@ const menuItems = [
     { name: 'Фіскалізація', href: '/admin/settings/fiscalization', icon: <Printer size={20} />, section: 'settings' },
     { name: 'Промокоди', href: '/admin/promo', icon: <Tags size={20} />, section: 'marketing' },
     { name: 'Промокоди (старе)', href: '/admin/marketing/promocodes', icon: <Tags size={20} />, section: 'marketing' },
+    { name: 'Підписники', href: '/admin/subscribers', icon: <Mail size={20} />, section: 'marketing' },
     { name: 'Автоматизації', href: '/admin/automations', icon: <Zap size={20} />, section: 'marketing' },
     { name: 'Теги', href: '/admin/settings/tags', icon: <Tags size={20} />, section: 'settings' },
 ];
