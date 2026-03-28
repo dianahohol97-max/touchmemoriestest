@@ -116,7 +116,6 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
                 background: 'rgba(255,255,255,0.1)',
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
-                borderRadius: '40px',
                 color: '#ffffff',
                 fontSize: '0.875rem',
                 fontWeight: 600,
