@@ -82,21 +82,23 @@ export default function ProNasPage() {
           </section>
 
           {/* CTA Section */}
-          <section className="bg-[#1e2d7d] rounded-lg p-12 text-white text-center">
-            <h2 className="text-3xl font-bold mb-4 text-white">Збережіть свої спогади назавжди</h2>
-            <p className="text-white/90 mb-8 text-lg max-w-2xl mx-auto">
+          <section className="bg-[#1e2d7d] rounded-lg p-12 text-center" style={{ color: '#ffffff' }}>
+            <h2 className="text-3xl font-bold mb-4" style={{ color: '#ffffff' }}>Збережіть свої спогади назавжди</h2>
+            <p className="mb-8 text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.9)' }}>
               Оберіть формат, який підходить саме вам — і ми зробимо все інше.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/catalog"
-                className="inline-block bg-white text-[#1e2d7d] px-8 py-4 rounded-lg font-bold hover:bg-stone-100 transition-colors text-center"
+                className="inline-block px-8 py-4 rounded-lg font-bold hover:bg-stone-100 transition-colors text-center"
+                style={{ backgroundColor: '#ffffff', color: '#1e2d7d' }}
               >
                 Перейти до каталогу
               </Link>
               <Link
-                href="/constructor/photobook"
-                className="inline-block bg-transparent border-2 border-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:text-[#1e2d7d] transition-all text-center"
+                href="/order/book?product=photobook-velour"
+                className="inline-block border-2 border-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:text-[#1e2d7d] transition-all text-center"
+                style={{ color: '#ffffff' }}
               >
                 Створити зараз
               </Link>
