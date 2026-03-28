@@ -37,7 +37,7 @@ interface PhotoPrintConstructorProps { productSlug: string; }
 // ─── Photo Preview Component ──────────────────────────────────────────────────
 function PhotoPreview({
   photo, sizeKey, showBorder, isPolaroid, isNonstandard,
-  onCropChange,
+  onCropChange, onTextChange,
 }: {
   photo: PhotoFile;
   sizeKey: string;
@@ -55,6 +55,38 @@ function PhotoPreview({
   let borderMm = 0;
   let polaroidBottomMm = 0;
   let polaroidSideMm = 0;
+
+  // Crop drag (must be before any return)
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0, cropX: 50, cropY: 50 });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY, cropX: photo.cropX, cropY: photo.cropY };
+    const onMove = (me: MouseEvent) => {
+      if (!isDragging.current) return;
+      const zoomFactor = photo.zoom || 1;
+      const sensitivity = 30 / zoomFactor;
+      const dx = (me.clientX - dragStart.current.x) / sensitivity;
+      const dy = (me.clientY - dragStart.current.y) / sensitivity;
+      onCropChange(
+        photo.id,
+        Math.max(0, Math.min(100, dragStart.current.cropX - dx)),
+        Math.max(0, Math.min(100, dragStart.current.cropY - dy)),
+        photo.zoom
+      );
+    };
+    const onUp = () => { isDragging.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    onCropChange(photo.id, photo.cropX, photo.cropY, Math.max(0.5, Math.min(3, (photo.zoom || 1) + delta)));
+  };
 
   if (isPolaroid) {
     // sizeKey for polaroid is like "7.6x10.1" or "8.6x10.7"
@@ -137,38 +169,7 @@ function PhotoPreview({
   const photoAreaW = photoW * scale;
   const photoAreaH = photoH * scale;
 
-  // Crop drag
-  const isDragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0, cropX: 50, cropY: 50 });
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    isDragging.current = true;
-    dragStart.current = { x: e.clientX, y: e.clientY, cropX: photo.cropX, cropY: photo.cropY };
-    const onMove = (me: MouseEvent) => {
-      if (!isDragging.current) return;
-      // Sensitivity inversely proportional to zoom: more zoom = less crop movement per px
-      const zoomFactor = photo.zoom || 1;
-      const sensitivity = 30 / zoomFactor; // lower = less sensitive, feels natural
-      const dx = (me.clientX - dragStart.current.x) / sensitivity;
-      const dy = (me.clientY - dragStart.current.y) / sensitivity;
-      onCropChange(
-        photo.id,
-        Math.max(0, Math.min(100, dragStart.current.cropX - dx)),
-        Math.max(0, Math.min(100, dragStart.current.cropY - dy)),
-        photo.zoom
-      );
-    };
-    const onUp = () => { isDragging.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.05 : 0.05;
-    onCropChange(photo.id, photo.cropX, photo.cropY, Math.max(0.5, Math.min(3, (photo.zoom||1) + delta)));
-  };
 
   const cropMarkLen = 10;
   const cropMarkGap = 4;
