@@ -57,7 +57,7 @@ function NewsletterFormFooter() {
                 {subscribed ? (
                     <p className="text-green-600 text-sm font-medium">✓ Дякуємо за підписку!</p>
                 ) : (
-                    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                         <input
                             type="email"
                             required
