@@ -382,3 +382,58 @@ footer a:hover { color: var(--primary); }
   .section-padding { padding-top: 48px; padding-bottom: 48px; }
   .container { padding: 0 20px; }
 }
+
+
+/* =================================================================
+   BRAND KIT OVERRIDES — buttons, cards, icons
+   Applied globally without touching layout or fonts
+   ================================================================= */
+
+/* All rounded-lg/xl/2xl/3xl buttons → pill */
+button.rounded-lg, a.rounded-lg,
+button.rounded-md, a.rounded-md,
+button.rounded-xl, a.rounded-xl,
+button.rounded-2xl, a.rounded-2xl,
+button.rounded-3xl, a.rounded-3xl {
+  border-radius: 9999px !important;
+}
+
+/* Primary filled buttons → navy shadow */
+button[class*="bg-primary"], a[class*="bg-primary"],
+button[class*="bg-\\[#1e2d7d\\]"], a[class*="bg-\\[#1e2d7d\\]"] {
+  box-shadow: 0 4px 16px rgba(38,58,153,0.25) !important;
+}
+button[class*="bg-primary"]:hover, a[class*="bg-primary"]:hover,
+button[class*="bg-\\[#1e2d7d\\]"]:hover, a[class*="bg-\\[#1e2d7d\\]"]:hover {
+  box-shadow: 0 8px 24px rgba(38,58,153,0.35) !important;
+}
+
+/* Product cards → remove stone border, add navy shadow */
+a[class*="rounded-2xl"], div[class*="rounded-2xl"] {
+  border-color: transparent !important;
+  box-shadow: 0 10px 30px rgba(38,58,153,0.06) !important;
+}
+a[class*="rounded-2xl"]:hover {
+  box-shadow: 0 20px 50px rgba(38,58,153,0.12) !important;
+}
+
+/* Carousel nav arrows → navy shadow */
+button[aria-label*="Previous"], button[aria-label*="Next"] {
+  box-shadow: 0 4px 20px rgba(38,58,153,0.35) !important;
+}
+
+/* Footer social icons */
+footer a[aria-label] {
+  transition: color 0.2s ease, transform 0.2s ease !important;
+}
+footer a[aria-label]:hover {
+  color: #263A99 !important;
+  transform: scale(1.15) !important;
+}
+
+/* Search / email input focus ring */
+input:focus {
+  border-color: rgba(38,58,153,0.4) !important;
+  box-shadow: 0 0 0 3px rgba(38,58,153,0.08) !important;
+  outline: none !important;
+}
