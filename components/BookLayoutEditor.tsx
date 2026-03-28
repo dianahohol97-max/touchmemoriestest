@@ -554,19 +554,16 @@ export default function BookLayoutEditor() {
               canvasW={cW}
               canvasH={cH}
               config={{
-                coverType: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
+                coverMaterial: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
                 coverColorName: config.selectedCoverColor || 'кремовий',
                 decoType: coverState.decoType,
-                decoSize: config.selectedDecorationSize,
                 flexColor: coverState.flexColor,
                 metalColor: coverState.metalColor,
                 photoId: coverState.photoId,
-                flexText: coverState.flexText,
-                metalText: coverState.metalText,
-                engravingText: coverState.engravingText,
+                decoText: coverState.flexText || coverState.metalText || coverState.engravingText || '',
               }}
               photos={photos}
-              onChange={(cfg) => setCoverState(prev => ({ ...prev, decoType: cfg.decoType, photoId: cfg.photoId ?? null, flexText: cfg.flexText || '', metalText: cfg.metalText || '', engravingText: cfg.engravingText || '' }))}
+              onChange={(cfg: any) => setCoverState(prev => ({ ...prev, decoType: cfg.decoType as CoverDecoType, photoId: cfg.photoId ?? null, flexText: cfg.decoText || prev.flexText, metalText: cfg.decoText || prev.metalText, engravingText: cfg.decoText || prev.engravingText }))}
             />
           ) : (
           <div onClick={onCanvasClick}
