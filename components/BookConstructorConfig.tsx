@@ -234,51 +234,65 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     useEffect(() => {
         if (loading || !product) return;
 
-        const size = searchParams.get('Розмір') || searchParams.get('size');
-        const pages = searchParams.get('Кількість сторінок') || searchParams.get('pages');
-        const kalka = searchParams.get('Калька перед першою сторінкою') || searchParams.get('kalka');
-        const lamination = searchParams.get('Тип ламінації') || searchParams.get('lamination');
+        const size = searchParams.get('size');
+        const pages = searchParams.get('pages');
+        const tracing = searchParams.get('tracing');
+        const lamination = searchParams.get('lamination');
+        const cover = searchParams.get('cover');
+        const decoration = searchParams.get('decoration');
+        const spine = searchParams.get('spine');
 
-        let filled = false;
+        if (!size || !pages) return; // No pre-fill params
 
-        if (size) {
-            // Normalize: "20x20" → "20×20" for matching photobook_sizes
-            const sizeNorm = size.replace(/[хxX]/g, '×');
-            // Try to match against photobookSizes
-            const sizeMatch = photobookSizes.find((s: any) => s.name === sizeNorm || s.name === size);
-            if (sizeMatch) {
-                setSelectedSize(sizeMatch.name);
-                filled = true;
-            } else {
-                setSelectedSize(size);
-                filled = true;
+        // Size: normalize "20x20" → "20×20"
+        const sizeNorm = size.replace(/[хxX]/g, '×');
+        const sizeMatch = photobookSizes.find((s: any) => s.name === sizeNorm || s.name === size);
+        setSelectedSize(sizeMatch?.name || sizeNorm);
+
+        // Pages
+        setSelectedPageCount(pages.includes('сторінок') ? pages : `${pages} сторінок`);
+
+        // Cover type: from URL or derive from product slug
+        if (cover) {
+            setSelectedCoverType(cover);
+        } else {
+            const pt = getProductType();
+            if (pt === 'photobook') {
+                const sl = productSlug.toLowerCase();
+                if (sl.includes('velour') || sl.includes('velyur')) setSelectedCoverType('Велюр');
+                else if (sl.includes('leather')) setSelectedCoverType('Шкірзамінник');
+                else if (sl.includes('fabric') || sl.includes('tkanina')) setSelectedCoverType('Тканина');
+                else if (sl.includes('printed') || sl.includes('drukov')) setSelectedCoverType('Друкована');
             }
         }
-        if (pages) {
-            setSelectedPageCount(pages.includes('сторінок') ? pages : `${pages} сторінок`);
-            filled = true;
-        }
-        if (kalka) {
-            setEnableKalka(kalka === 'true' || kalka.includes('калькою') || kalka.includes('Так'));
-        }
-        if (lamination) {
-            setSelectedLamination(lamination);
+
+        // Kalka / tracing
+        if (tracing) {
+            setEnableKalka(tracing === 'with' || tracing === 'true' || tracing.includes('калькою'));
         }
 
-        // Auto-advance if size + pages are both provided
-        if (size && pages) {
-            setAutoAdvance(true);
-        }
+        // Lamination (printed cover only)
+        if (lamination) setSelectedLamination(lamination);
+
+        // Decoration
+        if (decoration) setSelectedDecorationType(decoration);
+
+        setAutoAdvance(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loading, product]);
+    }, [loading, product, photobookSizes.length]);
 
     // Auto-advance: skip Step 1 and go directly to photo upload
     useEffect(() => {
-        if (autoAdvance && !loading && product && isFormValid()) {
-            handleContinue();
-        }
+        if (!autoAdvance || loading || !product) return;
+        // Wait a tick for state to settle
+        const timer = setTimeout(() => {
+            if (selectedSize && selectedPageCount) {
+                handleContinue();
+            }
+        }, 100);
+        return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [autoAdvance, loading, product, selectedSize, selectedPageCount]);
+    }, [autoAdvance, selectedSize, selectedPageCount, selectedCoverType]);
 
     const calculatePrice = (): number => {
         if (!product) return 0;

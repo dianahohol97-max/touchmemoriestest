@@ -576,11 +576,22 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             href={(() => {
                                                 const slug = product.slug || resolvedParams.slug;
                                                 const base = getConstructorUrl(slug);
-                                                // Append selected options as query params
+                                                // Append selected options as English-key query params
                                                 if (base.includes('/order/book') && Object.keys(customProductOptions).length > 0) {
+                                                    const keyMap: Record<string, string> = {
+                                                        'Розмір': 'size',
+                                                        'Кількість сторінок': 'pages',
+                                                        'Тип ламінації': 'lamination',
+                                                        'Калька перед першою сторінкою': 'tracing',
+                                                        'Тип обкладинки': 'cover',
+                                                        'Корінець': 'spine',
+                                                        'Оздоблення': 'decoration',
+                                                    };
                                                     const url = new URL(base, 'http://x');
                                                     Object.entries(customProductOptions).forEach(([key, val]) => {
-                                                        if (val !== undefined && val !== '') url.searchParams.set(key, String(val));
+                                                        if (val !== undefined && val !== '') {
+                                                            url.searchParams.set(keyMap[key] || key, String(val));
+                                                        }
                                                     });
                                                     return url.pathname + '?' + url.searchParams.toString();
                                                 }
