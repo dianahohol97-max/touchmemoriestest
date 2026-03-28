@@ -623,6 +623,9 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
           slug === 'personalized-glossy-magazine' || slug === 'fotozhurnal-tverd-obkladynka'
         )) return null;
 
+        // Skip "Тип ламінації" for non-printed photobooks (only printed covers have lamination)
+        if (option.name === 'Тип ламінації' && isPhotobookProduct && !isPrintedProduct) return null;
+
         const isText = option.type === 'text';
         const selectedValue = selectedOptions[option.name];
         const hasPrice = option.prices && selectedValue;
@@ -785,29 +788,36 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         const selectedSize = selectedOptions['Розмір'];
         const sizeNormalized = selectedSize ? String(selectedSize).replace(/х/g, '×') : '';
 
-        // 1. Try decoration_variants from Supabase (exact cover+size → any cover+size → type only)
-        let variants = decorationVariants.filter((dv: any) =>
-          dv.decoration_type?.name === decoLabel &&
-          dv.cover_type?.name === coverTypeName &&
-          (sizeNormalized ? dv.size?.name === sizeNormalized : true)
+        // All variants for this decoration type
+        const allForType = decorationVariants.filter((dv: any) =>
+          dv.decoration_type?.name === decoLabel
         );
-        if (variants.length === 0) {
-          variants = decorationVariants.filter((dv: any) =>
-            dv.decoration_type?.name === decoLabel &&
-            (sizeNormalized ? dv.size?.name === sizeNormalized : true)
-          );
-        }
-        if (variants.length === 0) {
+
+        // Filter by size: show variants matching selected size OR size-independent (size is null)
+        let variants: any[] = [];
+        if (allForType.length > 0) {
+          if (sizeNormalized) {
+            // Show: exact cover+size match, or any cover+size match, or size-independent
+            variants = allForType.filter((dv: any) =>
+              dv.size?.name === sizeNormalized || !dv.size
+            );
+            // Prefer exact cover match
+            const exactCover = variants.filter((dv: any) => dv.cover_type?.name === coverTypeName);
+            if (exactCover.length > 0) variants = exactCover;
+          } else {
+            // No size selected: show only size-independent variants
+            variants = allForType.filter((dv: any) => !dv.size);
+          }
+          // Deduplicate by variant_name
           const seen = new Set<string>();
-          variants = decorationVariants.filter((dv: any) => {
-            if (dv.decoration_type?.name !== decoLabel) return false;
+          variants = variants.filter((dv: any) => {
             if (seen.has(dv.variant_name)) return false;
             seen.add(dv.variant_name);
             return true;
           });
         }
 
-        // 2. Build items list: from DB variants or hardcoded fallback
+        // Build items list: from DB variants or hardcoded fallback
         let items: { name: string; surcharge?: number }[] = [];
         if (variants.length > 0) {
           items = variants.map((v: any) => ({ name: v.variant_name, surcharge: Number(v.surcharge) || 0 }));
