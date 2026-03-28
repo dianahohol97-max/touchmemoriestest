@@ -79,7 +79,7 @@ function PhotoPreview({
     return (
       <div style={{ display:'inline-block', position:'relative' }}>
         <div style={{ width:canvasWPolaroid, height:canvasHPolaroid, position:'relative', background:'#fff', boxShadow:'0 4px 20px rgba(0,0,0,0.15)', userSelect:'none' }} onWheel={(e)=>{e.preventDefault();const delta=e.deltaY>0?-0.05:0.05;onCropChange(photo.id,photo.cropX,photo.cropY,Math.max(0.5,Math.min(3,(photo.zoom||1)+delta)));}}>
-          <div style={{ position:'absolute', left:borderPxPolaroid, top:borderTopPx, width:photoAreaWP, height:photoAreaHP, overflow:'hidden', cursor:'grab', background:'#f0f0f0' }} onMouseDown={handleMouseDown}>
+          <div style={{ position:'absolute', left:borderPxPolaroid, top:borderTopPx, width:photoAreaWP, height:photoAreaHP, overflow:'hidden', cursor:'grab', background:'#fff' }} onMouseDown={handleMouseDown}>
             <img src={photo.preview} draggable={false} style={{ width:`${(photo.zoom||1)*100}%`, height:`${(photo.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${photo.cropX}% ${photo.cropY}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none' }}/>
           </div>
           {/* White borders */}
@@ -113,9 +113,9 @@ function PhotoPreview({
       </div>
     );
   } else if (isNonstandard) {
-    // Default ratio 4:3 for nonstandard
+    // Default ratio 4:3 for nonstandard preview
     photoW = 15; photoH = 10;
-    borderMm = 3; // always 3mm white border
+    borderMm = 3; // always 3mm white border — forced
   } else if (size) {
     photoW = size.w; photoH = size.h;
     borderMm = showBorder ? 3 : 0; // 3mm white border on all sides
@@ -147,9 +147,17 @@ function PhotoPreview({
     dragStart.current = { x: e.clientX, y: e.clientY, cropX: photo.cropX, cropY: photo.cropY };
     const onMove = (me: MouseEvent) => {
       if (!isDragging.current) return;
-      const dx = (me.clientX - dragStart.current.x) / photoAreaW * 100;
-      const dy = (me.clientY - dragStart.current.y) / photoAreaH * 100;
-      onCropChange(photo.id, Math.max(0,Math.min(100,dragStart.current.cropX-dx*0.5)), Math.max(0,Math.min(100,dragStart.current.cropY-dy*0.5)), photo.zoom);
+      // Sensitivity inversely proportional to zoom: more zoom = less crop movement per px
+      const zoomFactor = photo.zoom || 1;
+      const sensitivity = 30 / zoomFactor; // lower = less sensitive, feels natural
+      const dx = (me.clientX - dragStart.current.x) / sensitivity;
+      const dy = (me.clientY - dragStart.current.y) / sensitivity;
+      onCropChange(
+        photo.id,
+        Math.max(0, Math.min(100, dragStart.current.cropX - dx)),
+        Math.max(0, Math.min(100, dragStart.current.cropY - dy)),
+        photo.zoom
+      );
     };
     const onUp = () => { isDragging.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
     window.addEventListener('mousemove', onMove);
@@ -168,7 +176,7 @@ function PhotoPreview({
   return (
     <div style={{ display: 'inline-block', position: 'relative' }}>
       <div
-        style={{ width: canvasW, height: canvasH, position: 'relative', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', userSelect: 'none' }}
+        style={{ width: canvasW, height: canvasH, position: 'relative', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', userSelect: 'none', overflow: 'hidden' }}
         onWheel={handleWheel}
       >
         {/* Photo area */}
@@ -197,7 +205,7 @@ function PhotoPreview({
         </div>
 
         {/* White border areas — 3mm on all sides */}
-        {(showBorder || isNonstandard || isPolaroid) && borderPx > 0 && (
+        {(showBorder || isNonstandard || isPolaroid) && borderPx >= 1 && (
           <>
             <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:borderPx, background:'#fff', pointerEvents:'none', zIndex:2 }}/>
             <div style={{ position:'absolute', left:0, bottom:0, width:canvasW, height:borderBottomPx, background:'#fff', pointerEvents:'none', zIndex:2 }}/>
