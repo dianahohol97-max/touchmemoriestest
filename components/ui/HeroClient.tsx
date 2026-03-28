@@ -143,7 +143,7 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
               background: '#1e2a78',
               color: '#ffffff',
               padding: '0.65rem 1.75rem',
-              borderRadius: '9999px',
+              borderRadius: '10px',
               fontWeight: 700,
               fontSize: '0.95rem',
               textDecoration: 'none',
