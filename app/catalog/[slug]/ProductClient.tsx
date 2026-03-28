@@ -63,12 +63,16 @@ const getConstructorUrl = (slug: string): string => {
 };
 
 const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, product: any): string => {
-  // For photoprint, poster, and photomagnet products, build order URL with selected options
-  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('полароїд') || slug.includes('поляроїд') || slug.includes('poster') || slug.includes('magnet')) {
+  // Posters → use getConstructorUrl which has the full poster mapping
+  if (slug.includes('poster')) {
+    return getConstructorUrl(slug);
+  }
+
+  // For photoprint and photomagnet products, build order URL with selected options
+  if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('полароїд') || slug.includes('поляроїд') || slug.includes('magnet')) {
     const params = new URLSearchParams();
     params.set('product', slug);
 
-    // Add selected size if available
     if (product.options && Array.isArray(product.options)) {
       product.options.forEach((opt: any) => {
         const selectedIdx = selectedOptions[opt.name];
@@ -78,7 +82,6 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
       });
     }
 
-    // Route to correct order flow based on product type
     if (slug.includes('magnet')) {
       return `/order/photomagnets?${params.toString()}`;
     }
