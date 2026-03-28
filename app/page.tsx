@@ -28,114 +28,82 @@ import { getAdminClient } from '@/lib/supabase/admin';
 export const revalidate = 0; // Force fresh data fetch (no cache)
 
 export default async function Home() {
-  const supabase = getAdminClient();
+  let products: any[] = [];
+  let categories: any[] = [];
+  let allCategories: any[] = [];
+  let travelArticles: any[] = [];
+  let featuredBlogPosts: any[] = [];
+  let blocks: any[] = [];
 
-  // DEBUG: Test Supabase connection
-  console.log('[Homepage] Supabase client initialized');
-  const { data: testData, error: testError } = await supabase.from('hero_buttons').select('*');
-  console.log('[Homepage] TEST QUERY hero_buttons:', JSON.stringify({
-    data: testData,
-    error: testError,
-    count: testData?.length || 0
-  }));
+  try {
+    const supabase = getAdminClient();
+    console.log('[Homepage] supabase client exists:', !!supabase);
 
-  const { data: products, error: productsError } = await supabase
-    .from('products')
-    .select('*, categories(name, slug)')
-    .eq('is_active', true)
-    .eq('is_popular', true)
-    .order('popular_order', { ascending: true })
-    .limit(8);
+    if (!supabase) {
+      console.error('[Homepage] FATAL: Supabase client is null - env vars missing');
+    } else {
+      // Test query
+      const { data: testData, error: testError } = await supabase.from('hero_buttons').select('count');
+      console.log('[Homepage] TEST hero_buttons:', JSON.stringify({ count: testData, error: testError }));
 
-  if (productsError) {
-    console.error('[Homepage] Error fetching products:', productsError);
+      const { data: p, error: pe } = await supabase
+        .from('products')
+        .select('*, categories(name, slug)')
+        .eq('is_active', true)
+        .eq('is_popular', true)
+        .eq('status', 'active')
+        .order('popular_order', { ascending: true })
+        .limit(8);
+      if (pe) console.error('[Homepage] products error:', JSON.stringify(pe));
+      products = p || [];
+      console.log('[Homepage] products:', products.length);
+
+      const { data: c } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .limit(3);
+      categories = c || [];
+
+      const { data: ac } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      allCategories = ac || [];
+      console.log('[Homepage] categories:', categories.length, 'all:', allCategories.length);
+
+      // Fetch featured articles for Travel Book section
+      const { data: ta } = await supabase
+        .from('featured_articles')
+        .select('*')
+        .eq('section', 'travel')
+        .eq('is_active', true)
+        .order('position', { ascending: true })
+        .limit(2);
+      travelArticles = ta || [];
+
+      // Fetch featured blog posts for Blog section
+      const { data: fb } = await supabase
+        .from('blog_posts')
+        .select('*, category:blog_categories(name, slug)')
+        .eq('is_published', true)
+        .eq('is_featured', true)
+        .order('published_at', { ascending: false })
+        .limit(3);
+      featuredBlogPosts = fb || [];
+      console.log('[Homepage] travel articles:', travelArticles.length, 'featured posts:', featuredBlogPosts.length);
+
+      const { data: b } = await supabase
+        .from('site_blocks')
+        .select('*')
+        .order('position_order', { ascending: true });
+      blocks = b || [];
+    }
+  } catch (err) {
+    console.error('[Homepage] CAUGHT FATAL ERROR:', err);
   }
-  console.log('[Homepage] Products found:', products?.length || 0);
-
-  const { data: categories, error: categoriesError } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true })
-    .limit(3);
-
-  if (categoriesError) {
-    console.error('[Homepage] Error fetching categories:', categoriesError);
-  }
-  console.log('[Homepage] Categories found:', categories?.length || 0);
-
-  const { data: allCategories, error: allCategoriesError } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true });
-
-  if (allCategoriesError) {
-    console.error('[Homepage] Error fetching allCategories:', allCategoriesError);
-  }
-  console.log('[Homepage] All categories found:', allCategories?.length || 0);
-
-  // Fetch featured travel blog post
-  const { data: travelCategoryData } = await supabase
-    .from('blog_categories')
-    .select('id')
-    .eq('slug', 'travel')
-    .single();
-
-  let travelPost = null;
-  if (travelCategoryData) {
-    const { data: travelPostData } = await supabase
-      .from('blog_posts')
-      .select(`
-        *,
-        category:blog_categories(name, slug)
-      `)
-      .eq('category_id', travelCategoryData.id)
-      .eq('is_published', true)
-      .eq('is_featured', true)
-      .order('published_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    travelPost = travelPostData;
-  }
-
-  // Fetch blog posts for Blog section
-  const { data: blogPosts } = await supabase
-    .from('blog_posts')
-    .select(`
-      *,
-      category:blog_categories(name, slug)
-    `)
-    .eq('is_published', true)
-    .order('published_at', { ascending: false })
-    .limit(6);
-
-  // Fetch featured articles for Travel Book section
-  const { data: travelArticles } = await supabase
-    .from('featured_articles')
-    .select('*')
-    .eq('section', 'travel')
-    .eq('is_active', true)
-    .order('position', { ascending: true })
-    .limit(2);
-
-  // Fetch featured blog posts for Blog section
-  const { data: featuredBlogPosts } = await supabase
-    .from('blog_posts')
-    .select(`
-      *,
-      category:blog_categories(name, slug)
-    `)
-    .eq('is_published', true)
-    .eq('is_featured', true)
-    .order('published_at', { ascending: false })
-    .limit(3);
-
-  const { data: blocks } = await supabase
-    .from('site_blocks')
-    .select('*')
-    .order('position_order', { ascending: true });
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
