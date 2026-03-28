@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { useRouter } from 'next/navigation';
@@ -8,11 +8,12 @@ import { submitOrder } from '@/lib/submitOrder';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getProductSEO } from '@/lib/seoContent';
+import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 
 const PRINT_TYPES = [
-  { key: 'standard', label: 'Стандартні розміри' },
-  { key: 'nonstandard', label: 'Нестандартні розміри' },
-  { key: 'polaroid', label: 'Polaroid' },
+  { key: 'standard', label: 'Стандартні розміри', slug: 'photoprint-standard' },
+  { key: 'nonstandard', label: 'Нестандартні розміри', slug: 'photoprint-nonstandard' },
+  { key: 'polaroid', label: 'Polaroid', slug: 'polaroid-print' },
 ];
 
 const SIZES = {
@@ -46,10 +47,49 @@ interface Photo {
 export default function PhotoPrintsPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const productInfo = getProductSEO('photoPrints')!;
+  const fallbackInfo = getProductSEO('photoPrints')!;
+
+  const supabase = useMemo(() => createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  ), []);
+
+  // DB products keyed by print type
+  const [dbProducts, setDbProducts] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    async function fetchPrintProducts() {
+      const slugs = PRINT_TYPES.map(t => t.slug);
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .in('slug', slugs)
+        .eq('is_active', true);
+      if (data) {
+        const map: Record<string, any> = {};
+        data.forEach((p: any) => {
+          const type = PRINT_TYPES.find(t => t.slug === p.slug);
+          if (type) map[type.key] = p;
+        });
+        setDbProducts(map);
+      }
+    }
+    fetchPrintProducts();
+  }, [supabase]);
 
   // Basic options
   const [printType, setPrintType] = useState<'standard' | 'nonstandard' | 'polaroid'>('standard');
+
+  // Dynamic product info based on selected print type
+  const dbProd = dbProducts[printType];
+  const productInfo = {
+    nameUk: dbProd?.name || fallbackInfo.nameUk,
+    tagline: dbProd?.short_description || fallbackInfo.tagline,
+    shortDescription: dbProd?.short_description || fallbackInfo.shortDescription,
+    fullDescription: dbProd?.description || fallbackInfo.fullDescription,
+    startingPrice: dbProd?.price ? `${dbProd.price} ₴` : fallbackInfo.startingPrice,
+    specs: fallbackInfo.specs,
+  };
   const [printSize, setPrintSize] = useState('10×15');
   const [pricePerPrint, setPricePerPrint] = useState(8);
   const [paperFinish, setPaperFinish] = useState<'matte' | 'glossy'>('matte');
