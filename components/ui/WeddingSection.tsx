@@ -59,13 +59,13 @@ export function WeddingSection() {
                                 transition={{ duration: 0.8, delay: catIdx * 0.2 }}
                                 className="space-y-4"
                             >
-                                <span className="text-[13px] font-black uppercase tracking-[0.2em] text-primary/40 block">
+                                <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#263A99] block" style={{ letterSpacing: "0.14em", opacity: 0.6 }}>
                                     {category.subtitle}
                                 </span>
                                 <h2 className="text-[40px] lg:text-[48px] font-black text-primary leading-none tracking-tight">
                                     {category.title}
                                 </h2>
-                                <div className="w-16 h-1 bg-primary/10 rounded-full" />
+                                
                             </motion.div>
 
                             {/* Product Cards Grid */}
