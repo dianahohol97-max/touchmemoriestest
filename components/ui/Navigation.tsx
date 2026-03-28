@@ -155,14 +155,14 @@ export function Navigation() {
                 isScrolled ? "bg-white/95 shadow-sm backdrop-blur-md" : "bg-white border-b border-border"
             )}
         >
-            <div className="flex justify-between items-center w-full px-10 gap-8">
-                <Link href="/" className="font-heading font-extrabold text-xl tracking-[0.15em] text-primary no-underline transition-opacity hover:opacity-90 shrink-0 whitespace-nowrap min-w-fit">
+            <div className="flex justify-between items-center w-full px-4 gap-4">
+                <Link href="/" className="font-heading font-extrabold text-[17px] tracking-[0.08em] text-primary no-underline transition-opacity hover:opacity-90 shrink-0 whitespace-nowrap min-w-fit">
                     TOUCH.MEMORIES
                 </Link>
 
                 {/* Desktop Nav */}
                 <nav className={cn("desktop-only items-center gap-12 shrink", styles.navFlex)}>
-                    <div className="flex gap-6 text-[12px] uppercase tracking-[0.1em] font-bold items-center font-heading">
+                    <div className="flex gap-3 text-[11px] uppercase tracking-[0.06em] font-bold items-center font-heading">
                         {mainNavLinks.map(link => {
                             // If link has children, render as dropdown
                             if (link.children && link.children.length > 0) {
@@ -316,7 +316,7 @@ export function Navigation() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-5 text-primary">
+                    <div className="flex items-center gap-3 text-primary">
                         <button
                             onClick={() => setSearchOpen(true)}
                             aria-label="Search"
