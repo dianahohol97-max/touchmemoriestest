@@ -408,12 +408,13 @@ button[class*="bg-\\[#1e2d7d\\]"]:hover, a[class*="bg-\\[#1e2d7d\\]"]:hover {
   box-shadow: 0 8px 24px rgba(38,58,153,0.35) !important;
 }
 
-/* Product cards → remove stone border, add navy shadow */
-a[class*="rounded-2xl"], div[class*="rounded-2xl"] {
+/* Product cards — navy shadow only, no border-radius override */
+a[class*="rounded-2xl"][class*="border-stone"],
+a[class*="border-stone-100"] {
   border-color: transparent !important;
   box-shadow: 0 10px 30px rgba(38,58,153,0.06) !important;
 }
-a[class*="rounded-2xl"]:hover {
+a[class*="rounded-2xl"][class*="border-stone"]:hover {
   box-shadow: 0 20px 50px rgba(38,58,153,0.12) !important;
 }
 
