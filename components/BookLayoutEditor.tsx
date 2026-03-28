@@ -302,15 +302,27 @@ export default function BookLayoutEditor() {
       {/* BODY */}
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
 
-        {/* LEFT PANEL */}
-        <div style={{ width:220, borderRight:'1px solid #e2e8f0', background:'#fff', display:'flex', flexDirection:'column', flexShrink:0 }}>
-          <div style={{ display:'flex', borderBottom:'1px solid #e2e8f0' }}>
-            {[['photos','Фото',[<ImageIcon key="i" size={12}/>]],['layouts','Шаблони',[<LayoutGrid key="i" size={12}/>]],['text','Текст',[<Type key="i" size={12}/>]]].map(([id,label,icon]:any) => (
-              <button key={id} onClick={() => setLeftTab(id as any)} style={{ flex:1, padding:'8px 2px', border:'none', cursor:'pointer', fontWeight:700, fontSize:10, background:leftTab===id?'#f0f3ff':'#fff', color:leftTab===id?'#1e2d7d':'#64748b', borderBottom:leftTab===id?'2px solid #1e2d7d':'2px solid transparent', display:'flex', alignItems:'center', justifyContent:'center', gap:3 }}>
-                {icon} {label}
+        {/* LEFT PANEL — vertical icon nav + content */}
+        <div style={{ display:'flex', flexShrink:0, borderRight:'1px solid #e2e8f0' }}>
+          {/* Icon sidebar */}
+          <div style={{ width:72, background:'#fff', display:'flex', flexDirection:'column', alignItems:'center', paddingTop:8, borderRight:'1px solid #f1f5f9', flexShrink:0 }}>
+            {([
+              ['photos',   <ImageIcon key="ph" size={22}/>,    'Зображення'],
+              ['layouts',  <LayoutGrid key="la" size={22}/>,   'Шаблон'],
+              ['text',     <Type key="tx" size={22}/>,         'Текст'],
+            ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
+              <button key={id} onClick={() => setLeftTab(id as any)}
+                style={{ width:'100%', padding:'10px 4px', border:'none', cursor:'pointer', background:leftTab===id?'#1e2d7d':'transparent', color:leftTab===id?'#fff':'#64748b', display:'flex', flexDirection:'column', alignItems:'center', gap:5, borderRadius:0, transition:'background 0.15s', marginBottom:2 }}>
+                {icon}
+                <span style={{ fontSize:10, fontWeight:700, lineHeight:1.2, textAlign:'center' }}>{label}</span>
               </button>
             ))}
           </div>
+          {/* Content panel */}
+          <div style={{ width:200, background:'#fff', display:'flex', flexDirection:'column' }}>
+            <div style={{ padding:'10px 12px', borderBottom:'1px solid #f1f5f9', fontWeight:800, fontSize:12, color:'#1e2d7d' }}>
+              {leftTab==='photos'?'Зображення':leftTab==='layouts'?'Шаблон':'Текст'}
+            </div>
 
           <div style={{ flex:1, overflow:'auto', padding:10 }}>
 
@@ -410,6 +422,7 @@ export default function BookLayoutEditor() {
               </div>
             )}
 
+          </div>
           </div>
         </div>
 
