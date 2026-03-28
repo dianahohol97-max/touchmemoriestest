@@ -202,8 +202,10 @@ export default function BookPhotoUpload() {
 
         sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(photosData));
 
-        // Navigate to layout editor (Phase 3)
-        router.push(`/editor/book/layout?product=${config?.productSlug}`);
+        // Navigate to layout editor (Phase 3) — preserve all URL params
+        const currentParams = new URLSearchParams(window.location.search);
+        currentParams.set('product', config?.productSlug || '');
+        router.push(`/editor/book/layout?${currentParams.toString()}`);
     };
 
     // Cleanup on unmount
@@ -241,6 +243,17 @@ export default function BookPhotoUpload() {
                         <div className="text-sm text-blue-700 space-y-1">
                             {config.selectedSize && <p>• Розмір: {config.selectedSize}</p>}
                             <p>• {config.selectedPageCount}</p>
+                            {(() => {
+                                const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+                                const textLayout = params.get('text_layout');
+                                const cover = params.get('cover');
+                                return (
+                                    <>
+                                        {cover && <p>• Обкладинка: {cover}</p>}
+                                        {textLayout && <p>• {textLayout === 'with' ? 'З версткою тексту (+175 ₴)' : 'Без тексту'}</p>}
+                                    </>
+                                );
+                            })()}
                             <p>• Орієнтовна вартість: {config.totalPrice} ₴</p>
                         </div>
                     </div>
@@ -251,9 +264,6 @@ export default function BookPhotoUpload() {
             <div className={`mb-6 p-4 rounded-lg ${photos.length === 0 ? 'bg-orange-50 border border-orange-200' : 'bg-green-50 border border-green-200'}`}>
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className={`font-semibold ${photos.length === 0 ? 'text-orange-800' : 'text-green-800'}`}>
-                            {photos.length}/500 фотографій завантажено
-                        </p>
                         {recommendedRange && (
                             <p className="text-sm text-gray-600 mt-1">
                                 Рекомендовано: {recommendedRange} фото

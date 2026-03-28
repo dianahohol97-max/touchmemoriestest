@@ -477,8 +477,20 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         sessionStorage.setItem('bookConstructorConfig', JSON.stringify(config));
 
-        // Navigate to photo upload step (Phase 2)
-        router.push(`/editor/book/upload?product=${productSlug}`);
+        // Navigate to photo upload step (Phase 2) with all params
+        const params = new URLSearchParams();
+        params.set('product', productSlug);
+        if (selectedSize) params.set('size', selectedSize);
+        if (selectedPageCount) params.set('pages', selectedPageCount.replace(/[^\d]/g, ''));
+        if (selectedCoverType) params.set('cover', selectedCoverType);
+        if (enableKalka) params.set('tracing', 'with');
+        if (selectedLamination) params.set('lamination', selectedLamination);
+        if (selectedDecorationType !== 'none') params.set('decoration', selectedDecorationType);
+        if (selectedDecorationVariant) params.set('decoration_variant', selectedDecorationVariant);
+        // Pass through any URL params from catalog page (like text_layout)
+        const textLayout = searchParams.get('text_layout');
+        if (textLayout) params.set('text_layout', textLayout);
+        router.push(`/editor/book/upload?${params.toString()}`);
     };
 
     const isFormValid = (): boolean => {
