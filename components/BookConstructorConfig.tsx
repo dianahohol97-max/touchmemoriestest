@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
@@ -107,10 +107,10 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     // Lamination state (for Друкована cover only)
     const [selectedLamination, setSelectedLamination] = useState<string>('');
 
-    const supabase = createBrowserClient(
+    const supabase = useMemo(() => createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    ), []);
 
     useEffect(() => {
         async function fetchProduct() {
@@ -167,34 +167,33 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 console.error('[BookConstructor] Error fetching prices:', pricesError);
             }
 
+            console.log('[BookConstructor] prices fetched:', pricesData?.length || 0);
             if (pricesData) {
                 setPhotobookPrices(pricesData);
             }
 
             // Fetch cover types
-            const { data: coverTypesData } = await supabase
+            const { data: coverTypesData, error: coverError } = await supabase
                 .from('cover_types')
                 .select('*')
-                .order('id', { ascending: true });
+                .order('sort_order', { ascending: true });
 
+            if (coverError) console.error('[BookConstructor] cover_types error:', coverError);
+
+            console.log('[BookConstructor] cover_types fetched:', coverTypesData?.length || 0);
             if (coverTypesData) {
                 setCoverTypes(coverTypesData);
-                if (coverTypesData.length > 0) {
-                    setSelectedCoverType(coverTypesData[0].name);
-                }
             }
 
             // Fetch photobook sizes
             const { data: sizesData } = await supabase
                 .from('photobook_sizes')
                 .select('*')
-                .order('id', { ascending: true });
+                .order('sort_order', { ascending: true });
 
+            console.log('[BookConstructor] sizes fetched:', sizesData?.length || 0);
             if (sizesData) {
                 setPhotobookSizes(sizesData);
-                if (sizesData.length > 0) {
-                    setSelectedSize(sizesData[0].name);
-                }
             }
 
             // Fetch decoration types
@@ -226,7 +225,8 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         fetchProduct();
         fetchPhotobookPricing();
-    }, [productSlug, supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [productSlug]);
 
     const calculatePrice = (): number => {
         if (!product) return 0;
