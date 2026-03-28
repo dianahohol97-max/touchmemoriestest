@@ -438,3 +438,56 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(38,58,153,0.08) !important;
   outline: none !important;
 }
+
+
+/* =================================================================
+   NAV & FOOTER OVERFLOW FIX
+   Compress spacing so all items fit on screen at 100% zoom
+   ================================================================= */
+
+/* Navigation — reduce horizontal padding and gaps */
+header.fixed > div,
+header[class*="fixed"] > div {
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  gap: 16px !important;
+}
+
+/* Nav links gap — was gap-12 (48px), reduce to gap-4 (16px) */
+nav > div > div > div[class*="flex"][class*="gap"] {
+  gap: 16px !important;
+}
+
+/* Nav link font size — slightly smaller to fit */
+nav a[class*="uppercase"],
+nav button[class*="uppercase"],
+nav a[class*="text-\\[12px\\]"],
+nav button[class*="text-\\[12px\\]"] {
+  font-size: 11px !important;
+  letter-spacing: 0.06em !important;
+  white-space: nowrap;
+}
+
+/* Nav right icons gap */
+nav div[class*="flex"][class*="gap-5"] {
+  gap: 12px !important;
+}
+
+/* Logo — slightly smaller */
+header a[class*="font-extrabold"],
+header span[class*="font-extrabold"] {
+  font-size: 1rem !important;
+  letter-spacing: 0.1em !important;
+}
+
+/* Footer — ensure it fills width but doesn't overflow */
+footer .container,
+footer > div[class*="container"],
+footer > div[class*="mx-auto"] {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+}
+
+footer > div[class*="grid"] {
+  gap: 24px !important;
+}
