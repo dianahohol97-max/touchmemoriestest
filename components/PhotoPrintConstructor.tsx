@@ -105,12 +105,13 @@ function PhotoPreview({
     borderMm = 3; // always 3mm white border
   } else if (size) {
     photoW = size.w; photoH = size.h;
-    borderMm = showBorder ? 3 : 0;
+    borderMm = showBorder ? 3 : 0; // 3mm white border on all sides
   } else {
     photoW = 10; photoH = 15; borderMm = showBorder ? 3 : 0;
   }
 
   // Total print dimensions including border
+  // Total print = photo + border on each side (3mm = equal on all 4 sides for standard)
   const totalW = photoW + (isPolaroid ? polaroidSideMm * 2 : borderMm * 2);
   const totalH = photoH + (isPolaroid ? polaroidSideMm + polaroidBottomMm : borderMm * 2);
 
@@ -182,18 +183,21 @@ function PhotoPreview({
           />
         </div>
 
-        {/* White border areas */}
-        {(showBorder || isNonstandard || isPolaroid) && (
+        {/* White border areas — 3mm on all sides */}
+        {(showBorder || isNonstandard || isPolaroid) && borderPx > 0 && (
           <>
-            {/* top */}
-            <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:borderPx, background:'#fff', pointerEvents:'none' }}/>
-            {/* bottom */}
-            <div style={{ position:'absolute', left:0, bottom:0, width:canvasW, height:borderBottomPx, background:'#fff', pointerEvents:'none' }}/>
-            {/* left */}
-            <div style={{ position:'absolute', left:0, top:0, width:borderPx, height:canvasH, background:'#fff', pointerEvents:'none' }}/>
-            {/* right */}
-            <div style={{ position:'absolute', right:0, top:0, width:borderPx, height:canvasH, background:'#fff', pointerEvents:'none' }}/>
+            <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:borderPx, background:'#fff', pointerEvents:'none', zIndex:2 }}/>
+            <div style={{ position:'absolute', left:0, bottom:0, width:canvasW, height:borderBottomPx, background:'#fff', pointerEvents:'none', zIndex:2 }}/>
+            <div style={{ position:'absolute', left:0, top:0, width:borderPx, height:canvasH, background:'#fff', pointerEvents:'none', zIndex:2 }}/>
+            <div style={{ position:'absolute', right:0, top:0, width:borderPx, height:canvasH, background:'#fff', pointerEvents:'none', zIndex:2 }}/>
           </>
+        )}
+
+        {/* Border size label */}
+        {showBorder && borderPx > 0 && (
+          <div style={{ position:'absolute', bottom:2, left:'50%', transform:'translateX(-50%)', fontSize:8, color:'#999', pointerEvents:'none', zIndex:5, background:'rgba(255,255,255,0.8)', padding:'1px 4px', borderRadius:3, whiteSpace:'nowrap' }}>
+            рамка 3 мм
+          </div>
         )}
 
         {/* Crop marks (corner + edge lines in grey) */}
