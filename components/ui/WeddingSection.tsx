@@ -80,7 +80,7 @@ export function WeddingSection() {
                                     >
                                         {/* Image Container */}
                                         <Link href={product.href} className="block">
-                                            <div className="relative aspect-[4/5] rounded-[3px] overflow-hidden shadow-[var(--card-shadow)] bg-gray-50 group-hover:shadow-[var(--card-shadow-hover)] transition-all duration-500">
+                                            <div className="relative aspect-[4/5] rounded-xl overflow-hidden shadow-[var(--card-shadow)] bg-gray-50 group-hover:shadow-[var(--card-shadow-hover)] transition-all duration-500">
                                                 <Image
                                                     src={product.image}
                                                     alt={product.name}
