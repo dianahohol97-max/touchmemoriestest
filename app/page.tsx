@@ -2,7 +2,7 @@ import styles from './page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Hero } from '@/components/ui/Hero';
 import PopularProducts from '@/components/ui/PopularProducts';
-import { FeaturedProducts } from '@/components/ui/FeaturedProducts';
+
 import { Categories } from '@/components/ui/Categories';
 import { HowItWorks } from '@/components/ui/HowItWorks';
 import { BlogSection } from '@/components/ui/BlogSection';
@@ -115,11 +115,6 @@ export default async function Home() {
         <div style={{ order: 15 }}>
           <PopularProducts />
         </div>
-
-        {/* Featured Products */}
-        <SectionWrapper name="featured_products" defaultOrder={2}>
-          <FeaturedProducts products={products || []} />
-        </SectionWrapper>
 
         <SectionWrapper name="categories_books" defaultOrder={25}>
           <ConstructorSelection />
