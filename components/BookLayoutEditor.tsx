@@ -193,10 +193,14 @@ export default function BookLayoutEditor() {
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'>('photos');
   const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '' });
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
+  const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
+  const [pageShapes, setPageShapes] = useState<Record<number, Shape[]>>({});
+  const [pageFrames, setPageFrames] = useState<Record<number, FrameConfig>>({});
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [textTool, setTextTool] = useState(false);
-  const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null); // "pageIdx-slotIdx"
+  const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
+  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [tFontSize, setTFontSize] = useState(28);
@@ -268,6 +272,16 @@ export default function BookLayoutEditor() {
       ...prev,
       [currentIdx]: typeof slots === 'function' ? slots(prev[currentIdx] || []) : slots,
     }));
+  };
+
+  const getCurBg = (idx: number): PageBackground => pageBgs[idx] || DEFAULT_BG;
+  const getCurFrame = (idx: number): FrameConfig => pageFrames[idx] || DEFAULT_FRAME;
+  const getCurShapes = (idx: number): Shape[] => pageShapes[idx] || [];
+
+  const addShape = (type: ShapeType, pageIdx: number) => {
+    const id = 'shape-' + Date.now();
+    const newShape: Shape = { id, type, x: pageW*0.2, y: cH*0.2, w: pageW*0.35, h: type==='line'?0:cH*0.25, fill: type==='line'?'transparent':'#1e2d7d', stroke: '#1e2d7d', strokeWidth: type==='line'?4:0, opacity: 80, rotation: 0 };
+    setPageShapes(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx]||[]), newShape] }));
   };
 
   const addFreeSlot = () => {
@@ -417,7 +431,15 @@ export default function BookLayoutEditor() {
 
         {/* ICON SIDEBAR */}
         <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
-          {([['photos', <ImageIcon key="p" size={22} />, 'Зображення'], ['layouts', <LayoutGrid key="l" size={22} />, 'Шаблон'], ['text', <Type key="t" size={22} />, 'Текст'], ...(currentIdx===0?[['cover', <span key="c" style={{fontSize:20}}>🎨</span>, 'Обкладинка']]:[])] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
+          {([
+            ['photos', <ImageIcon key="p" size={20}/>, 'Зображення'],
+            ['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'],
+            ['text', <Type key="t" size={20}/>, 'Текст'],
+            ['bg', <span key="bg" style={{fontSize:18}}>🎨</span>, 'Фон'],
+            ['shapes', <span key="sh" style={{fontSize:18}}>◻</span>, 'Фігури'],
+            ['frames', <span key="fr" style={{fontSize:18}}>⬜</span>, 'Рамки'],
+            ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:18}}>📖</span>, 'Обкладинка']]:[] as any),
+          ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
             <button key={id} onClick={() => setLeftTab(id as any)}
               style={{ width: '100%', padding: '12px 4px', border: 'none', cursor: 'pointer', background: leftTab === id ? '#1e2d7d' : 'transparent', color: leftTab === id ? '#fff' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, marginBottom: 2, transition: 'background 0.15s' }}>
               {icon}
@@ -566,6 +588,42 @@ export default function BookLayoutEditor() {
                 )}
               </div>
             )}
+
+            {/* BACKGROUND */}
+            {leftTab === 'bg' && (() => {
+              const spreadPageIdx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+              return (
+                <BackgroundControls
+                  bg={getCurBg(spreadPageIdx)}
+                  onChange={bg => setPageBgs(prev=>({...prev,[spreadPageIdx]:bg}))}
+                />
+              );
+            })()}
+
+            {/* SHAPES */}
+            {leftTab === 'shapes' && (() => {
+              const spreadPageIdx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+              const shapes = getCurShapes(spreadPageIdx);
+              const selShape = shapes.find(s=>s.id===selectedShapeId) ?? null;
+              return (
+                <ShapeControls
+                  selectedShape={selShape}
+                  onChange={patch => selShape && setPageShapes(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(s=>s.id===selShape.id?{...s,...patch}:s)}))}
+                  onAdd={type => addShape(type, spreadPageIdx)}
+                />
+              );
+            })()}
+
+            {/* FRAMES */}
+            {leftTab === 'frames' && (() => {
+              const spreadPageIdx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+              return (
+                <FrameControls
+                  frame={getCurFrame(spreadPageIdx)}
+                  onChange={frame => setPageFrames(prev=>({...prev,[spreadPageIdx]:frame}))}
+                />
+              );
+            })()}
 
             {/* TEXT */}
             {leftTab === 'text' && (
@@ -739,6 +797,16 @@ export default function BookLayoutEditor() {
                         dragPhotoId={dragPhotoId}
                         onChange={(newSlots) => setFreeSlots(prev=>({...prev,[pageIdx]:newSlots}))}
                       />
+                      {/* Background layer */}
+                      <BackgroundLayer bg={getCurBg(pageIdx)} canvasW={pageW} canvasH={cH}/>
+                      {/* Shapes layer */}
+                      <ShapesLayer
+                        shapes={getCurShapes(pageIdx)}
+                        canvasW={pageW} canvasH={cH}
+                        onChange={shapes => setPageShapes(prev=>({...prev,[pageIdx]:shapes}))}
+                      />
+                      {/* Frame layer */}
+                      <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
                       {/* Spine shadow */}
                       {side===0 && <div style={{position:'absolute',right:0,top:0,width:4,height:'100%',background:'linear-gradient(to right,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
                       {side===1 && <div style={{position:'absolute',left:0,top:0,width:4,height:'100%',background:'linear-gradient(to left,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
