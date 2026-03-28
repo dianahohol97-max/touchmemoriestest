@@ -30,13 +30,13 @@ interface BookConfig {
 
 // Layout types for each spread
 type LayoutType =
-  | 'full'        // 1 photo fills entire spread
-  | 'half-half'   // 2 photos side by side
-  | 'top-bottom'  // 2 photos top/bottom
-  | 'left-3'      // 1 big left + 2 small right
-  | 'grid4'       // 4 equal photos
-  | 'text-right'  // photo left + text right
-  | 'text-left';  // text left + photo right
+  | 'full' | 'single-left' | 'single-right' | 'single-center'
+  | 'half-half' | 'top-bottom' | 'big-small-r' | 'big-small-l' | 'panorama'
+  | 'left-3' | 'right-3' | 'top-2-bot-1' | 'top-1-bot-2' | 'triple-row'
+  | 'grid4' | 'grid4-wide' | 'l-shape-4'
+  | 'grid5-hero' | 'grid5-cross'
+  | 'grid6-2x3' | 'grid6-3x2'
+  | 'text-right' | 'text-left' | 'text-only';
 
 interface SlotData {
   photoId: string | null;
@@ -56,13 +56,38 @@ interface Spread {
 
 // ─── Layout Definitions ──────────────────────────────────────────────────────
 
-const LAYOUTS: { id: LayoutType; label: string; slots: number; icon: string }[] = [
-  { id: 'full',       label: '1 фото',        slots: 1, icon: '⬛' },
-  { id: 'half-half',  label: '2 поруч',       slots: 2, icon: '◧◨' },
-  { id: 'top-bottom', label: '2 зверху/знизу', slots: 2, icon: '⬒' },
-  { id: 'left-3',     label: '1+2',           slots: 3, icon: '▣' },
-  { id: 'grid4',      label: '4 фото',        slots: 4, icon: '⊞' },
-  { id: 'text-right', label: 'Фото+текст',    slots: 2, icon: '▤' },
+const LAYOUTS: { id: LayoutType; label: string; slots: number; icon: string; group: string }[] = [
+  // 1 фото
+  { id: 'full',         label: 'На весь розворот', slots: 1, icon: '⬛', group: '1 фото' },
+  { id: 'single-left',  label: 'Одне ліворуч',    slots: 1, icon: '◧',  group: '1 фото' },
+  { id: 'single-right', label: 'Одне праворуч',   slots: 1, icon: '◨',  group: '1 фото' },
+  { id: 'single-center',label: 'Одне по центру',  slots: 1, icon: '◻',  group: '1 фото' },
+  // 2 фото
+  { id: 'half-half',    label: '2 поруч рівно',   slots: 2, icon: '◧◨', group: '2 фото' },
+  { id: 'top-bottom',   label: '2 зверху/знизу',  slots: 2, icon: '⬒',  group: '2 фото' },
+  { id: 'big-small-r',  label: 'Велике + мале',   slots: 2, icon: '▬▪', group: '2 фото' },
+  { id: 'big-small-l',  label: 'Мале + велике',   slots: 2, icon: '▪▬', group: '2 фото' },
+  { id: 'panorama',     label: 'Панорама 2:1',     slots: 2, icon: '▭',  group: '2 фото' },
+  // 3 фото
+  { id: 'left-3',       label: '1 великий + 2',   slots: 3, icon: '▣',  group: '3 фото' },
+  { id: 'right-3',      label: '2 + 1 великий',   slots: 3, icon: '⊟',  group: '3 фото' },
+  { id: 'top-2-bot-1',  label: '2 зверху + 1',    slots: 3, icon: '⊞',  group: '3 фото' },
+  { id: 'top-1-bot-2',  label: '1 зверху + 2',    slots: 3, icon: '⊟',  group: '3 фото' },
+  { id: 'triple-row',   label: '3 в ряд',          slots: 3, icon: '⊟',  group: '3 фото' },
+  // 4 фото
+  { id: 'grid4',        label: '4 рівно',          slots: 4, icon: '⊞',  group: '4 фото' },
+  { id: 'grid4-wide',   label: '1 широке + 3',    slots: 4, icon: '▤',  group: '4 фото' },
+  { id: 'l-shape-4',    label: 'Г-подібний',       slots: 4, icon: '▣',  group: '4 фото' },
+  // 5 фото
+  { id: 'grid5-hero',   label: '1 велике + 4',    slots: 5, icon: '⊞',  group: '5 фото' },
+  { id: 'grid5-cross',  label: '5 у хрест',        slots: 5, icon: '⊕',  group: '5 фото' },
+  // 6 фото
+  { id: 'grid6-2x3',    label: '2×3 сітка',        slots: 6, icon: '⊞',  group: '6 фото' },
+  { id: 'grid6-3x2',    label: '3×2 сітка',        slots: 6, icon: '⊟',  group: '6 фото' },
+  // Текст
+  { id: 'text-right',   label: 'Фото + текст',     slots: 2, icon: '▤',  group: 'Текст' },
+  { id: 'text-left',    label: 'Текст + фото',     slots: 2, icon: '▧',  group: 'Текст' },
+  { id: 'text-only',    label: 'Тільки текст',     slots: 1, icon: '☰',  group: 'Текст' },
 ];
 
 function makeSlots(count: number): SlotData[] {
@@ -316,7 +341,47 @@ export default function BookLayoutEditor() {
     );
   };
 
-  // ─── Spread Canvas ───
+  // ─── Layout Preview (mini thumbnail for picker) ───
+  const LayoutPreview = ({ layout, active }: { layout: LayoutType; active: boolean }) => {
+    const c = active ? '#1e2d7d' : '#cbd5e1';
+    const bg = active ? '#dbeafe' : '#f1f5f9';
+    const s: React.CSSProperties = { display: 'block', background: bg, borderRadius: 2 };
+    const W = 44; const H = 28; const g = 1.5;
+    const w2 = (W-g)/2; const h2 = (H-g)/2; const w3 = (W-2*g)/3; const h3 = (H-2*g)/3;
+    const boxes: {x:number;y:number;w:number;h:number}[] = [];
+    if (layout==='full') boxes.push({x:0,y:0,w:W,h:H});
+    else if (layout==='single-left') boxes.push({x:0,y:0,w:W*0.6,h:H});
+    else if (layout==='single-right') boxes.push({x:W*0.4,y:0,w:W*0.6,h:H});
+    else if (layout==='single-center') boxes.push({x:W*0.1,y:H*0.05,w:W*0.8,h:H*0.9});
+    else if (layout==='half-half') { boxes.push({x:0,y:0,w:w2,h:H}); boxes.push({x:w2+g,y:0,w:w2,h:H}); }
+    else if (layout==='top-bottom') { boxes.push({x:0,y:0,w:W,h:h2}); boxes.push({x:0,y:h2+g,w:W,h:h2}); }
+    else if (layout==='big-small-r') { boxes.push({x:0,y:0,w:W*0.65,h:H}); boxes.push({x:W*0.65+g,y:H*0.2,w:W*0.35-g,h:H*0.6}); }
+    else if (layout==='big-small-l') { boxes.push({x:0,y:H*0.2,w:W*0.35-g,h:H*0.6}); boxes.push({x:W*0.35,y:0,w:W*0.65,h:H}); }
+    else if (layout==='panorama') { boxes.push({x:0,y:H*0.1,w:w2,h:H*0.8}); boxes.push({x:w2+g,y:H*0.1,w:w2,h:H*0.8}); }
+    else if (layout==='left-3') { boxes.push({x:0,y:0,w:W*0.55,h:H}); boxes.push({x:W*0.55+g,y:0,w:W*0.45-g,h:h2}); boxes.push({x:W*0.55+g,y:h2+g,w:W*0.45-g,h:h2}); }
+    else if (layout==='right-3') { boxes.push({x:0,y:0,w:W*0.45-g,h:h2}); boxes.push({x:0,y:h2+g,w:W*0.45-g,h:h2}); boxes.push({x:W*0.45,y:0,w:W*0.55,h:H}); }
+    else if (layout==='top-2-bot-1') { boxes.push({x:0,y:0,w:w2,h:h2}); boxes.push({x:w2+g,y:0,w:w2,h:h2}); boxes.push({x:0,y:h2+g,w:W,h:h2}); }
+    else if (layout==='top-1-bot-2') { boxes.push({x:0,y:0,w:W,h:h2}); boxes.push({x:0,y:h2+g,w:w2,h:h2}); boxes.push({x:w2+g,y:h2+g,w:w2,h:h2}); }
+    else if (layout==='triple-row') { [0,1,2].forEach(i => boxes.push({x:i*(w3+g),y:0,w:w3,h:H})); }
+    else if (layout==='grid4') { [[0,0],[w2+g,0],[0,h2+g],[w2+g,h2+g]].forEach(([x,y])=>boxes.push({x,y,w:w2,h:h2})); }
+    else if (layout==='grid4-wide') { const bh=H*0.55; boxes.push({x:0,y:0,w:W,h:bh}); [0,1,2].forEach(i=>boxes.push({x:i*(w3+g),y:bh+g,w:w3,h:H-bh-g})); }
+    else if (layout==='l-shape-4') { const bw=W*0.55; const sh=(H-2*g)/3; boxes.push({x:0,y:0,w:bw,h:H}); [0,1,2].forEach(i=>boxes.push({x:bw+g,y:i*(sh+g),w:W-bw-g,h:sh})); }
+    else if (layout==='grid5-hero') { const bw=W*0.55; const sh=h2; boxes.push({x:0,y:0,w:bw,h:H}); boxes.push({x:bw+g,y:0,w:W-bw-g,h:sh}); const sw=(W-bw-2*g)/2; [0,1].forEach(i=>boxes.push({x:bw+g+i*(sw+g),y:sh+g,w:sw,h:sh})); }
+    else if (layout==='grid5-cross') { [[0,0],[w2+g,0],[0,h2+g],[w2+g,h2+g]].forEach(([x,y])=>boxes.push({x,y,w:w2,h:h2})); boxes.push({x:W/2-W*0.15,y:h2*0.35,w:W*0.3,h:h2*0.3}); }
+    else if (layout==='grid6-2x3') { [0,1].forEach(col=>[0,1,2].forEach(row=>boxes.push({x:col*(w2+g),y:row*(h3+g),w:w2,h:h3}))); }
+    else if (layout==='grid6-3x2') { [0,1,2].forEach(col=>[0,1].forEach(row=>boxes.push({x:col*(w3+g),y:row*(h2+g),w:w3,h:h2}))); }
+    else if (layout==='text-right') { boxes.push({x:0,y:0,w:W*0.6,h:H}); boxes.push({x:W*0.6+g,y:0,w:W*0.4-g,h:H}); }
+    else if (layout==='text-left') { boxes.push({x:0,y:0,w:W*0.4-g,h:H}); boxes.push({x:W*0.4,y:0,w:W*0.6,h:H}); }
+    else if (layout==='text-only') { boxes.push({x:0,y:0,w:W,h:H}); }
+    return (
+      <svg width={W} height={H} style={{ display: 'block', borderRadius: 3, overflow: 'hidden', background: active ? '#e8eeff' : '#f1f5f9' }}>
+        {boxes.map((b,i) => <rect key={i} x={b.x} y={b.y} width={b.w} height={b.h} rx={1} fill={c} opacity={0.7} />)}
+        <rect x={W/2-0.5} y={0} width={1} height={H} fill={active ? '#1e2d7d' : '#d1d5db'} opacity={0.4} />
+      </svg>
+    );
+  };
+
+    // ─── Spread Canvas ───
   const SpreadCanvas = ({ spreadIdx }: { spreadIdx: number }) => {
     const spread = spreads[spreadIdx];
     if (!spread) return null;
@@ -330,42 +395,151 @@ export default function BookLayoutEditor() {
 
     let slotDefs: { slotIdx: number; style: React.CSSProperties }[] = [];
 
+    const g = gap;
+    const w2 = (W - g) / 2; const h2 = (H - g) / 2;
+    const w3 = (W - 2*g) / 3; const h3 = (H - 2*g) / 3;
+
     if (layout === 'full') {
       slotDefs = [{ slotIdx: 0, style: { ...baseStyle, left: 0, top: 0, width: W, height: H } }];
+    } else if (layout === 'single-left') {
+      slotDefs = [{ slotIdx: 0, style: { ...baseStyle, left: 0, top: 0, width: W*0.6, height: H } }];
+    } else if (layout === 'single-right') {
+      slotDefs = [{ slotIdx: 0, style: { ...baseStyle, left: W*0.4, top: 0, width: W*0.6, height: H } }];
+    } else if (layout === 'single-center') {
+      const pad = W * 0.1;
+      slotDefs = [{ slotIdx: 0, style: { ...baseStyle, left: pad, top: H*0.05, width: W - pad*2, height: H*0.9 } }];
     } else if (layout === 'half-half') {
-      const w = (W - gap) / 2;
       slotDefs = [
-        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0, width: w, height: H } },
-        { slotIdx: 1, style: { ...baseStyle, left: w+gap, top: 0, width: w, height: H } },
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0, width: w2, height: H } },
+        { slotIdx: 1, style: { ...baseStyle, left: w2+g, top: 0, width: w2, height: H } },
       ];
     } else if (layout === 'top-bottom') {
-      const h = (H - gap) / 2;
       slotDefs = [
-        { slotIdx: 0, style: { ...baseStyle, left: 0, top: 0,    width: W, height: h } },
-        { slotIdx: 1, style: { ...baseStyle, left: 0, top: h+gap, width: W, height: h } },
+        { slotIdx: 0, style: { ...baseStyle, left: 0, top: 0,    width: W, height: h2 } },
+        { slotIdx: 1, style: { ...baseStyle, left: 0, top: h2+g, width: W, height: h2 } },
+      ];
+    } else if (layout === 'big-small-r') {
+      const lw = W * 0.65;
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0, width: lw, height: H } },
+        { slotIdx: 1, style: { ...baseStyle, left: lw+g, top: H*0.2, width: W-lw-g, height: H*0.6 } },
+      ];
+    } else if (layout === 'big-small-l') {
+      const rw = W * 0.65;
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0, top: H*0.2, width: W-rw-g, height: H*0.6 } },
+        { slotIdx: 1, style: { ...baseStyle, left: W-rw, top: 0, width: rw, height: H } },
+      ];
+    } else if (layout === 'panorama') {
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0, top: H*0.1, width: W*0.5-g/2, height: H*0.8 } },
+        { slotIdx: 1, style: { ...baseStyle, left: W*0.5+g/2, top: H*0.1, width: W*0.5-g/2, height: H*0.8 } },
       ];
     } else if (layout === 'left-3') {
-      const lw = W * 0.55; const rw = W - lw - gap;
-      const rh = (H - gap) / 2;
+      const lw = W * 0.55; const rw = W - lw - g; const rh = (H - g) / 2;
       slotDefs = [
-        { slotIdx: 0, style: { ...baseStyle, left: 0,      top: 0,      width: lw, height: H } },
-        { slotIdx: 1, style: { ...baseStyle, left: lw+gap, top: 0,      width: rw, height: rh } },
-        { slotIdx: 2, style: { ...baseStyle, left: lw+gap, top: rh+gap, width: rw, height: rh } },
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,      width: lw, height: H } },
+        { slotIdx: 1, style: { ...baseStyle, left: lw+g, top: 0,      width: rw, height: rh } },
+        { slotIdx: 2, style: { ...baseStyle, left: lw+g, top: rh+g,   width: rw, height: rh } },
+      ];
+    } else if (layout === 'right-3') {
+      const rw = W * 0.55; const lw = W - rw - g; const lh = (H - g) / 2;
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,    width: lw, height: lh } },
+        { slotIdx: 1, style: { ...baseStyle, left: 0,    top: lh+g, width: lw, height: lh } },
+        { slotIdx: 2, style: { ...baseStyle, left: lw+g, top: 0,    width: rw, height: H } },
+      ];
+    } else if (layout === 'top-2-bot-1') {
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,    width: w2, height: h2 } },
+        { slotIdx: 1, style: { ...baseStyle, left: w2+g, top: 0,    width: w2, height: h2 } },
+        { slotIdx: 2, style: { ...baseStyle, left: 0,    top: h2+g, width: W,  height: h2 } },
+      ];
+    } else if (layout === 'top-1-bot-2') {
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,    width: W,  height: h2 } },
+        { slotIdx: 1, style: { ...baseStyle, left: 0,    top: h2+g, width: w2, height: h2 } },
+        { slotIdx: 2, style: { ...baseStyle, left: w2+g, top: h2+g, width: w2, height: h2 } },
+      ];
+    } else if (layout === 'triple-row') {
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,      top: 0, width: w3, height: H } },
+        { slotIdx: 1, style: { ...baseStyle, left: w3+g,   top: 0, width: w3, height: H } },
+        { slotIdx: 2, style: { ...baseStyle, left: (w3+g)*2, top: 0, width: w3, height: H } },
       ];
     } else if (layout === 'grid4') {
-      const w = (W - gap) / 2; const h = (H - gap) / 2;
       slotDefs = [
-        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,    width: w, height: h } },
-        { slotIdx: 1, style: { ...baseStyle, left: w+gap, top: 0,    width: w, height: h } },
-        { slotIdx: 2, style: { ...baseStyle, left: 0,    top: h+gap, width: w, height: h } },
-        { slotIdx: 3, style: { ...baseStyle, left: w+gap, top: h+gap, width: w, height: h } },
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,    width: w2, height: h2 } },
+        { slotIdx: 1, style: { ...baseStyle, left: w2+g, top: 0,    width: w2, height: h2 } },
+        { slotIdx: 2, style: { ...baseStyle, left: 0,    top: h2+g, width: w2, height: h2 } },
+        { slotIdx: 3, style: { ...baseStyle, left: w2+g, top: h2+g, width: w2, height: h2 } },
+      ];
+    } else if (layout === 'grid4-wide') {
+      const bh = H * 0.55; const sh = H - bh - g;
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,    width: W,  height: bh } },
+        { slotIdx: 1, style: { ...baseStyle, left: 0,    top: bh+g, width: w3, height: sh } },
+        { slotIdx: 2, style: { ...baseStyle, left: w3+g, top: bh+g, width: w3, height: sh } },
+        { slotIdx: 3, style: { ...baseStyle, left: (w3+g)*2, top: bh+g, width: w3, height: sh } },
+      ];
+    } else if (layout === 'l-shape-4') {
+      const bw = W * 0.55; const sw = W - bw - g;
+      const sh = (H - g) / 3;
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,      width: bw, height: H } },
+        { slotIdx: 1, style: { ...baseStyle, left: bw+g, top: 0,      width: sw, height: sh } },
+        { slotIdx: 2, style: { ...baseStyle, left: bw+g, top: sh+g,   width: sw, height: sh } },
+        { slotIdx: 3, style: { ...baseStyle, left: bw+g, top: (sh+g)*2, width: sw, height: sh } },
+      ];
+    } else if (layout === 'grid5-hero') {
+      const sh = (H - g) / 2; const sw = (W - g) / 2; const bw = W * 0.55;
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,    width: bw, height: H } },
+        { slotIdx: 1, style: { ...baseStyle, left: bw+g, top: 0,    width: W-bw-g, height: sh } },
+        { slotIdx: 2, style: { ...baseStyle, left: bw+g, top: sh+g, width: (W-bw-g-g)/2, height: sh } },
+        { slotIdx: 3, style: { ...baseStyle, left: bw+g+(W-bw-g-g)/2+g, top: sh+g, width: (W-bw-g-g)/2, height: sh } },
+        { slotIdx: 4, style: { ...baseStyle, left: bw+g, top: H*0.75, width: W-bw-g, height: H*0.25 } },
+      ];
+    } else if (layout === 'grid5-cross') {
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,    width: w2, height: h2 } },
+        { slotIdx: 1, style: { ...baseStyle, left: w2+g, top: 0,    width: w2, height: h2 } },
+        { slotIdx: 2, style: { ...baseStyle, left: W/2-W*0.2, top: h2*0.3, width: W*0.4, height: h2*0.4 } },
+        { slotIdx: 3, style: { ...baseStyle, left: 0,    top: h2+g, width: w2, height: h2 } },
+        { slotIdx: 4, style: { ...baseStyle, left: w2+g, top: h2+g, width: w2, height: h2 } },
+      ];
+    } else if (layout === 'grid6-2x3') {
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0,    width: w2, height: h3 } },
+        { slotIdx: 1, style: { ...baseStyle, left: w2+g, top: 0,    width: w2, height: h3 } },
+        { slotIdx: 2, style: { ...baseStyle, left: 0,    top: h3+g, width: w2, height: h3 } },
+        { slotIdx: 3, style: { ...baseStyle, left: w2+g, top: h3+g, width: w2, height: h3 } },
+        { slotIdx: 4, style: { ...baseStyle, left: 0,    top: (h3+g)*2, width: w2, height: h3 } },
+        { slotIdx: 5, style: { ...baseStyle, left: w2+g, top: (h3+g)*2, width: w2, height: h3 } },
+      ];
+    } else if (layout === 'grid6-3x2') {
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0,      top: 0,    width: w3, height: h2 } },
+        { slotIdx: 1, style: { ...baseStyle, left: w3+g,   top: 0,    width: w3, height: h2 } },
+        { slotIdx: 2, style: { ...baseStyle, left: (w3+g)*2, top: 0,    width: w3, height: h2 } },
+        { slotIdx: 3, style: { ...baseStyle, left: 0,      top: h2+g, width: w3, height: h2 } },
+        { slotIdx: 4, style: { ...baseStyle, left: w3+g,   top: h2+g, width: w3, height: h2 } },
+        { slotIdx: 5, style: { ...baseStyle, left: (w3+g)*2, top: h2+g, width: w3, height: h2 } },
       ];
     } else if (layout === 'text-right') {
       const lw = W * 0.6;
       slotDefs = [
-        { slotIdx: 0, style: { ...baseStyle, left: 0,      top: 0, width: lw, height: H } },
-        { slotIdx: 1, style: { ...baseStyle, left: lw+gap, top: 0, width: W-lw-gap, height: H, background: '#f8f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center' } },
+        { slotIdx: 0, style: { ...baseStyle, left: 0,    top: 0, width: lw, height: H } },
+        { slotIdx: 1, style: { ...baseStyle, left: lw+g, top: 0, width: W-lw-g, height: H, background: '#f8f9ff' } },
       ];
+    } else if (layout === 'text-left') {
+      const rw = W * 0.6;
+      slotDefs = [
+        { slotIdx: 0, style: { ...baseStyle, left: 0, top: 0, width: W-rw-g, height: H, background: '#f8f9ff' } },
+        { slotIdx: 1, style: { ...baseStyle, left: W-rw, top: 0, width: rw, height: H } },
+      ];
+    } else if (layout === 'text-only') {
+      slotDefs = [{ slotIdx: 0, style: { ...baseStyle, left: 0, top: 0, width: W, height: H, background: '#f8f9ff' } }];
     }
 
     return (
@@ -467,16 +641,24 @@ export default function BookLayoutEditor() {
               </div>
             ) : (
               /* Layouts panel */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 4 }}>ПОТОЧНИЙ РОЗВОРОТ</div>
-                {LAYOUTS.map(l => {
-                  const active = currentSpread?.layout === l.id;
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {['1 фото','2 фото','3 фото','4 фото','5 фото','6 фото','Текст'].map(group => {
+                  const groupLayouts = LAYOUTS.filter(l => l.group === group);
                   return (
-                    <button key={l.id} onClick={() => changeLayout(l.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: active ? '#1e2d7d' : '#374151', textAlign: 'left' }}>
-                      <span style={{ fontSize: 18 }}>{l.icon}</span>
-                      <span>{l.label}</span>
-                      {active && <span style={{ marginLeft: 'auto', fontSize: 11, color: '#1e2d7d' }}>✓</span>}
-                    </button>
+                    <div key={group}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', padding: '8px 4px 4px', textTransform: 'uppercase' }}>{group}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                        {groupLayouts.map(l => {
+                          const active = currentSpread?.layout === l.id;
+                          return (
+                            <button key={l.id} onClick={() => changeLayout(l.id)} title={l.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '8px 4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', fontSize: 10, fontWeight: 600, color: active ? '#1e2d7d' : '#374151' }}>
+                              <LayoutPreview layout={l.id} active={active} />
+                              <span style={{ fontSize: 9, textAlign: 'center', lineHeight: 1.2 }}>{l.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4 }}>
