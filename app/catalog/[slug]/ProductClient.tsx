@@ -461,23 +461,30 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                                     {/* Conditional decoration sub-options from product.options JSON */}
                                     {product.options && Array.isArray(product.options) && (() => {
-                                        // Map: sub-option name → required Оздоблення value
-                                        const SUBTYPE_MAP: Record<string, string> = {
-                                            'Варіант акрилу': 'acryl',
-                                            'Варіант фотовставки': 'photovstavka',
+                                        // Map: sub-option name → which decoration values trigger it
+                                        const SUBTYPE_MAP: Record<string, string[]> = {
+                                            'Варіант акрилу': ['acryl', 'Акрил'],
+                                            'Варіант фотовставки': ['photovstavka', 'Фотовставка'],
                                         };
-                                        // customProductOptions stores the value directly (e.g. "acryl")
-                                        const ozValue = customProductOptions['Оздоблення'] || '';
+                                        // ProductOptionsSelector writes 'Тип оздоблення' with label
+                                        // product.options JSON uses 'Оздоблення' with value
+                                        const ozValue = customProductOptions['Тип оздоблення']
+                                            || customProductOptions['Оздоблення'] || '';
 
                                         return product.options
                                             .filter((opt: any) => {
-                                                const requiredParent = SUBTYPE_MAP[opt.name];
-                                                if (!requiredParent) return false;
-                                                return ozValue === requiredParent;
+                                                const triggers = SUBTYPE_MAP[opt.name];
+                                                if (!triggers) return false;
+                                                return triggers.some(t => ozValue === t);
                                             })
                                             .map((opt: any) => {
                                                 const items = opt.options || opt.values || [];
                                                 if (!items.length) return null;
+                                                // Auto-select first item if only 1 option and nothing selected yet
+                                                const firstVal = items[0]?.value || items[0]?.name || items[0];
+                                                if (items.length === 1 && !customProductOptions[opt.name]) {
+                                                    setTimeout(() => setCustomProductOptions(prev => ({ ...prev, [opt.name]: firstVal })), 0);
+                                                }
                                                 return (
                                                     <div key={opt.name}>
                                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e2d7d' }}>
@@ -607,8 +614,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 fontWeight: 700,
                                                 textAlign: 'center',
                                                 transition: 'background-color 0.2s',
-                                                opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5,
-                                                pointerEvents: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'auto' : 'none',
+                                                opacity: 1,
+                                                pointerEvents: 'auto',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center'
