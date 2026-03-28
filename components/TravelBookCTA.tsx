@@ -10,7 +10,7 @@ export function TravelBookCTA() {
     <>
       <div className="flex gap-3 flex-wrap">
         <Link
-          href="/editor/new?product=travelbook&format=20x30&pages=12"
+          href="/order/book?product=travelbook-20x30"
           className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-full font-semibold hover:bg-[#263a99] transition-colors duration-200"
         >
           Відкрити конструктор
