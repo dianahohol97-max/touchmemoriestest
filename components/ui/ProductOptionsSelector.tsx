@@ -103,6 +103,14 @@ const VELOUR_OZDOBLENNYA = [
   { value: 'laser',   label: 'Гравірування' },
 ];
 
+// Fallback decoration variants for types that may not be in DB
+const FALLBACK_DECORATION_VARIANTS: Record<string, string[]> = {
+  'Тиснення': ['Тиснення 1', 'Тиснення 2', 'Тиснення 3', 'Тиснення 4', 'Тиснення 5', 'Тиснення 6', 'Тиснення 7', 'Тиснення 8', 'Тиснення 9', 'Тиснення 26'],
+  'Гравірування': ['Гравірування 05', 'Гравірування 06', 'Гравірування 07', 'Гравірування 08', 'Гравірування 09', 'Гравірування 10', 'Гравірування 11', 'Гравірування 12', 'Гравірування 13', 'Гравірування 14', 'Гравірування 15', 'Гравірування 16', 'Гравірування 17', 'Гравірування 18', 'Гравірування 19', 'Гравірування 20', 'Гравірування 21', 'Гравірування 22', 'Гравірування 23', 'Гравірування 24', 'Гравірування 25', 'Власний макет'],
+  'Гравіювання': ['Гравірування 05', 'Гравірування 06', 'Гравірування 07', 'Гравірування 08', 'Гравірування 09', 'Гравірування 10', 'Гравірування 11', 'Гравірування 12', 'Гравірування 13', 'Гравірування 14', 'Гравірування 15', 'Гравірування 16', 'Гравірування 17', 'Гравірування 18', 'Гравірування 19', 'Гравірування 20', 'Гравірування 21', 'Гравірування 22', 'Гравірування 23', 'Гравірування 24', 'Гравірування 25', 'Власний макет'],
+  'Флекс': ['Флекс друк'],
+};
+
 // 3D Price table for Velour photobooks: Size -> Pages -> Калька -> Price
 const VELOUR_PRICES: Record<string, Record<string, Record<string, number>>> = {
   '20х20': {
@@ -785,11 +793,61 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, produc
           // Fallback: try decoration_variants from Supabase
           const decoLabel = VELOUR_OZDOBLENNYA.find(o => o.value === selectedOzdoblennya)?.label;
           const selectedSize = selectedOptions['Розмір'];
-          const variants = decorationVariants.filter((dv: any) =>
+          const sizeNormalized = selectedSize ? String(selectedSize).replace(/х/g, '×') : '';
+
+          // Try exact match first (cover + size), then cover only, then type only
+          let variants = decorationVariants.filter((dv: any) =>
             dv.decoration_type?.name === decoLabel &&
             dv.cover_type?.name === coverTypeName &&
-            (selectedSize ? dv.size?.name === String(selectedSize).replace(/х/g, '×') : true)
+            (sizeNormalized ? dv.size?.name === sizeNormalized : true)
           );
+          if (variants.length === 0) {
+            // Fallback: any cover type, just match decoration type + size
+            variants = decorationVariants.filter((dv: any) =>
+              dv.decoration_type?.name === decoLabel &&
+              (sizeNormalized ? dv.size?.name === sizeNormalized : true)
+            );
+          }
+          if (variants.length === 0) {
+            // Fallback: just match decoration type, dedupe by variant_name
+            const seen = new Set<string>();
+            variants = decorationVariants.filter((dv: any) => {
+              if (dv.decoration_type?.name !== decoLabel) return false;
+              if (seen.has(dv.variant_name)) return false;
+              seen.add(dv.variant_name);
+              return true;
+            });
+          }
+          // Final fallback: use hardcoded variants for types not in DB
+          if (variants.length === 0 && decoLabel) {
+            const fallbackNames = FALLBACK_DECORATION_VARIANTS[decoLabel];
+            if (fallbackNames) {
+              return (
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
+                    Варіант {decoLabel.toLowerCase()}
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {fallbackNames.map((name) => (
+                      <button key={name} type="button"
+                        onClick={() => {
+                          setSelectedDecorationVariant(name);
+                          const newOptions = { ...selectedOptions, 'Варіант оздоблення': name };
+                          onChange(newOptions, calculatePrice(newOptions) || undefined);
+                        }}
+                        className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                          selectedDecorationVariant === name
+                            ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
+                        }`}>
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+          }
           if (variants.length === 0) return null;
           return (
             <div>
