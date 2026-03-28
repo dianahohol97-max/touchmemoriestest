@@ -98,6 +98,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [coverTypes, setCoverTypes] = useState<any[]>([]);
     const [photobookSizes, setPhotobookSizes] = useState<any[]>([]);
 
+    // Decoration state
+    const [decorationTypes, setDecorationTypes] = useState<any[]>([]);
+    const [decorationVariants, setDecorationVariants] = useState<any[]>([]);
+    const [selectedDecorationType, setSelectedDecorationType] = useState<string>('none');
+    const [selectedDecorationVariant, setSelectedDecorationVariant] = useState<string>('');
+
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -183,6 +189,32 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     setSelectedSize(sizesData[0].name);
                 }
             }
+
+            // Fetch decoration types
+            const { data: decTypesData } = await supabase
+                .from('decoration_types')
+                .select('*')
+                .order('sort_order', { ascending: true });
+
+            if (decTypesData) {
+                setDecorationTypes(decTypesData);
+            }
+
+            // Fetch decoration variants with joins
+            const { data: decVariantsData } = await supabase
+                .from('decoration_variants')
+                .select(`
+                    *,
+                    decoration_type:decoration_types(id, name),
+                    cover_type:cover_types(id, name),
+                    size:photobook_sizes(id, name)
+                `)
+                .eq('active', true)
+                .order('sort_order', { ascending: true });
+
+            if (decVariantsData) {
+                setDecorationVariants(decVariantsData);
+            }
         }
 
         fetchProduct();
@@ -214,6 +246,19 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 // Add калька surcharge if enabled
                 if (enableKalka && priceEntry.kalka_surcharge) {
                     total += priceEntry.kalka_surcharge;
+                }
+
+                // Add decoration surcharge
+                if (selectedDecorationType !== 'none' && selectedDecorationVariant) {
+                    const decVariant = decorationVariants.find(
+                        (dv: any) => dv.decoration_type?.name === selectedDecorationType &&
+                        dv.variant_name === selectedDecorationVariant &&
+                        dv.cover_type?.name === selectedCoverType &&
+                        dv.size?.name === selectedSize
+                    );
+                    if (decVariant) {
+                        total += Number(decVariant.surcharge) || 0;
+                    }
                 }
 
                 return total;
@@ -324,6 +369,18 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             selectedCopies,
             enableEndpaper,
             enableKalka,
+            selectedDecorationType: selectedDecorationType !== 'none' ? selectedDecorationType : null,
+            selectedDecorationVariant: selectedDecorationVariant || null,
+            decorationSurcharge: (() => {
+                if (selectedDecorationType === 'none' || !selectedDecorationVariant) return 0;
+                const v = decorationVariants.find(
+                    (dv: any) => dv.decoration_type?.name === selectedDecorationType &&
+                    dv.variant_name === selectedDecorationVariant &&
+                    dv.cover_type?.name === selectedCoverType &&
+                    dv.size?.name === selectedSize
+                );
+                return v ? Number(v.surcharge) : 0;
+            })(),
             selectedCover: selectedCover ? {
                 id: selectedCover.id,
                 city_name: selectedCover.city_name,
@@ -447,6 +504,82 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             </div>
                         </div>
                     )}
+
+                    {/* ── Photobook: Decoration selector ── */}
+                    {productType === 'photobook' && selectedCoverType && decorationTypes.length > 0 && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                Оздоблення обкладинки
+                            </label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => { setSelectedDecorationType('none'); setSelectedDecorationVariant(''); }}
+                                    className={`p-3 rounded-lg border-2 text-center transition-all text-sm ${
+                                        selectedDecorationType === 'none'
+                                            ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                            : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                    }`}
+                                >
+                                    <span className="block font-bold">Без оздоблення</span>
+                                </button>
+                                {decorationTypes.map((dt: any) => {
+                                    // Check if this decoration type has variants for selected cover+size
+                                    const hasVariants = decorationVariants.some(
+                                        (dv: any) => dv.decoration_type?.name === dt.name &&
+                                        dv.cover_type?.name === selectedCoverType &&
+                                        dv.size?.name === selectedSize
+                                    );
+                                    if (!hasVariants) return null;
+                                    return (
+                                        <button
+                                            key={dt.id}
+                                            type="button"
+                                            onClick={() => { setSelectedDecorationType(dt.name); setSelectedDecorationVariant(''); }}
+                                            className={`p-3 rounded-lg border-2 text-center transition-all text-sm ${
+                                                selectedDecorationType === dt.name
+                                                    ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                                    : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                            }`}
+                                        >
+                                            <span className="block font-bold">{dt.name}</span>
+                                            {dt.name_en && <span className="block text-xs text-gray-500 mt-0.5">{dt.name_en}</span>}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Photobook: Decoration variant sub-options ── */}
+                    {productType === 'photobook' && selectedDecorationType !== 'none' && selectedCoverType && selectedSize && (() => {
+                        const variants = decorationVariants.filter(
+                            (dv: any) => dv.decoration_type?.name === selectedDecorationType &&
+                            dv.cover_type?.name === selectedCoverType &&
+                            dv.size?.name === selectedSize
+                        );
+                        if (variants.length === 0) return null;
+                        return (
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Варіант {selectedDecorationType.toLowerCase()} <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={selectedDecorationVariant}
+                                    onChange={(e) => setSelectedDecorationVariant(e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
+                                >
+                                    <option value="">Оберіть варіант</option>
+                                    {variants.map((v: any) => (
+                                        <option key={v.id} value={v.variant_name}>
+                                            {v.variant_name}
+                                            {Number(v.surcharge) > 0 ? ` (+${v.surcharge} ₴)` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        );
+                    })()}
 
                     {/* ── Photobook: Page count selector from photobook_prices ── */}
                     {productType === 'photobook' && photobookPrices.length > 0 && selectedSize && selectedCoverType && (
