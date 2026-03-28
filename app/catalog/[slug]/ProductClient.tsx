@@ -455,6 +455,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             setCustomProductOptions(options);
                                             setDynamicPrice(calculatedPrice ?? null);
                                         }}
+                                        productOptions={product.options && Array.isArray(product.options) ? product.options : undefined}
                                     />
 
                                     <div>

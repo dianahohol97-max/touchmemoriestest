@@ -438,9 +438,10 @@ interface ProductOptionsSelectorProps {
   slug: string;
   selectedOptions: Record<string, string | number>;
   onChange: (options: Record<string, string | number>, calculatedPrice?: number) => void;
+  productOptions?: any[];
 }
 
-export function ProductOptionsSelector({ slug, selectedOptions, onChange }: ProductOptionsSelectorProps) {
+export function ProductOptionsSelector({ slug, selectedOptions, onChange, productOptions }: ProductOptionsSelectorProps) {
   const productType = detectProductType(slug);
   const s = slug?.toLowerCase() || '';
   const isVelourProduct = s.includes('velour') || s.includes('velyur');
@@ -763,58 +764,87 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         </div>
       )}
 
-      {/* Decoration Variant Selector (shown when a decoration type other than 'none' is selected) */}
-      {isPhotobookProduct && selectedOzdoblennya !== 'none' && (() => {
-        const decoLabel = VELOUR_OZDOBLENNYA.find(o => o.value === selectedOzdoblennya)?.label;
-        const selectedSize = selectedOptions['Розмір'];
-        // Determine cover type from slug
-        let coverName = 'Друкована';
-        const s = slug.toLowerCase();
-        if (s.includes('velour') || s.includes('velyur')) coverName = 'Велюр';
-        else if (s.includes('leather')) coverName = 'Шкірзамінник';
-        else if (s.includes('fabric') || s.includes('tkanina')) coverName = 'Тканина';
+      {/* Decoration Sub-Options from product.options JSON (conditional on Оздоблення selection) */}
+      {hasColorAndDecoration && selectedOzdoblennya !== 'none' && productOptions && (() => {
+        // Map decoration value to which sub-option names should be visible
+        const decoSubOptionMap: Record<string, string[]> = {
+          'acrylic': ['Варіант акрилу'],
+          'photo':   ['Варіант фотовставки'],
+          'metal':   ['Розмір металевої вставки', 'Варіант металевої вставки'],
+          'stamp':   ['Варіант тиснення'],
+          'laser':   ['Варіант гравірування'],
+        };
+        const visibleSubOptions = decoSubOptionMap[selectedOzdoblennya] || [];
 
-        // Filter variants by decoration type, cover, and size
-        const variants = decorationVariants.filter((dv: any) =>
-          dv.decoration_type?.name === decoLabel &&
-          dv.cover_type?.name === coverName &&
-          (selectedSize ? dv.size?.name === String(selectedSize).replace(/х/g, '×') : true)
+        // Filter product options to only show relevant sub-options
+        const subOptions = productOptions.filter((opt: any) =>
+          visibleSubOptions.some(name => opt.name === name) && opt.values && opt.values.length > 0
         );
 
-        if (variants.length === 0) return null;
+        if (subOptions.length === 0) {
+          // Fallback: try decoration_variants from Supabase
+          const decoLabel = VELOUR_OZDOBLENNYA.find(o => o.value === selectedOzdoblennya)?.label;
+          const selectedSize = selectedOptions['Розмір'];
+          const variants = decorationVariants.filter((dv: any) =>
+            dv.decoration_type?.name === decoLabel &&
+            dv.cover_type?.name === coverTypeName &&
+            (selectedSize ? dv.size?.name === String(selectedSize).replace(/х/g, '×') : true)
+          );
+          if (variants.length === 0) return null;
+          return (
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
+                Варіант {decoLabel?.toLowerCase()}
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {variants.map((v: any) => (
+                  <button key={v.id} type="button"
+                    onClick={() => {
+                      setSelectedDecorationVariant(v.variant_name);
+                      const newOptions = { ...selectedOptions, 'Варіант оздоблення': v.variant_name };
+                      onChange(newOptions, calculatePrice(newOptions) || undefined);
+                    }}
+                    className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                      selectedDecorationVariant === v.variant_name
+                        ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
+                    }`}>
+                    {v.variant_name}{Number(v.surcharge) > 0 ? ` (+${v.surcharge} ₴)` : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        }
 
-        return (
-          <div>
+        // Render sub-options from product.options JSON
+        return subOptions.map((opt: any) => (
+          <div key={opt.name}>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
-              Варіант {decoLabel?.toLowerCase()}
+              {opt.name}
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {variants.map((v: any) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedDecorationVariant(v.variant_name);
-                    const newOptions = {
-                      ...selectedOptions,
-                      'Варіант оздоблення': v.variant_name
-                    };
-                    const price = calculatePrice(newOptions);
-                    onChange(newOptions, price || undefined);
-                  }}
-                  className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                    selectedDecorationVariant === v.variant_name
-                      ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
-                  }`}
-                >
-                  {v.variant_name}
-                  {Number(v.surcharge) > 0 ? ` (+${v.surcharge} ₴)` : ''}
-                </button>
-              ))}
+              {opt.values.map((val: any, idx: number) => {
+                const valName = typeof val === 'string' ? val : val.name || val;
+                const isSelected = selectedOptions[opt.name] === valName || selectedOptions[opt.name] === idx;
+                return (
+                  <button key={idx} type="button"
+                    onClick={() => {
+                      const newOptions = { ...selectedOptions, [opt.name]: valName };
+                      onChange(newOptions, calculatePrice(newOptions) || undefined);
+                    }}
+                    className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                      isSelected
+                        ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
+                    }`}>
+                    {valName}
+                  </button>
+                );
+              })}
             </div>
           </div>
-        );
+        ));
       })()}
     </div>
   );
