@@ -251,7 +251,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     selectedValue = selectedCopies;
                 }
 
-                if (selectedValue) {
+                if (selectedValue && option.values) {
                     const valueOption = option.values.find(v => v.name === selectedValue);
                     if (valueOption) {
                         if (valueOption.price !== undefined) {
@@ -414,7 +414,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
 
                     {/* Dynamic Options from Supabase */}
-                    {product.options && (product.options as ProductOption[]).map((option) => (
+                    {product.options && (product.options as ProductOption[]).filter((option) => option.values && option.values.length > 0).map((option) => (
                         <div key={option.name}>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 {option.name} <span className="text-red-500">*</span>
@@ -437,7 +437,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 }}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
                             >
-                                {option.values.map((value) => (
+                                {(option.values || []).map((value) => (
                                     <option key={value.name} value={value.name}>
                                         {value.name}
                                         {value.priceModifier !== undefined && value.priceModifier !== 0 &&
