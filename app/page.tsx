@@ -156,7 +156,7 @@ export default async function Home() {
                             {article.category_label}
                           </span>
                         )}
-                        <h3 className="text-white hover:text-white/90 text-xl font-serif leading-snug transition-colors">
+                        <h3 className="text-white hover:text-white/90 text-xl font-heading font-bold leading-snug transition-colors">
                           {article.title}
                         </h3>
                       </div>
@@ -180,7 +180,7 @@ export default async function Home() {
 
               {/* RIGHT COLUMN: Travel Book content + constructor visualization */}
               <div className="lg:sticky lg:top-24">
-                <div className="bg-white rounded-lg shadow-lg p-8">
+                <div className="bg-white rounded-xl shadow-sm p-8">
 
                   {/* Heading */}
                   <h2 className="text-4xl lg:text-5xl font-black text-[#1e2d7d] leading-tight mb-6">
@@ -263,13 +263,13 @@ export default async function Home() {
             {/* Header */}
             <div className="flex items-end justify-between mb-12">
               <div>
-                <h2 className="text-3xl lg:text-4xl font-serif font-light text-stone-800">
+                <h2 className="text-3xl lg:text-4xl font-heading font-black text-primary tracking-tight">
                   Ідеї та поради
                 </h2>
               </div>
               <Link
                 href="/blog"
-                className="hidden sm:block text-sm text-stone-500 hover:text-stone-800 tracking-wider uppercase border-b border-stone-300 hover:border-stone-700 pb-0.5 transition-colors"
+                className="hidden sm:block text-sm font-bold text-primary/50 hover:text-primary tracking-widest uppercase transition-colors"
               >
                 Всі статті →
               </Link>
@@ -295,7 +295,7 @@ export default async function Home() {
                             {featuredBlogPosts[0].category.name}
                           </span>
                         )}
-                        <h3 className="text-white text-xl lg:text-2xl font-serif leading-snug">
+                        <h3 className="text-white text-xl lg:text-2xl font-heading font-bold leading-snug">
                           {featuredBlogPosts[0].title}
                         </h3>
                         {featuredBlogPosts[0].read_time && (
@@ -326,7 +326,7 @@ export default async function Home() {
                               {post.category.name}
                             </span>
                           )}
-                          <h3 className="text-white text-base font-serif leading-snug">
+                          <h3 className="text-white text-base font-heading font-bold leading-snug">
                             {post.title}
                           </h3>
                         </div>
