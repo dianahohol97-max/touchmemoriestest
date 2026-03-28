@@ -775,14 +775,18 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
 
       {/* Decoration Sub-Options — only "Металева вставка" uses decoration_variants table */}
       {hasColorAndDecoration && selectedOzdoblennya === 'metal' && (() => {
-        const selectedSize = selectedOptions['Розмір'];
-        const sizeNormalized = selectedSize ? String(selectedSize).replace(/х/g, '×') : '';
+        // Get size from either internal state or parent props
+        const selectedSize = selectedOptions['Розмір'] || '';
+        const sizeNormalized = selectedSize ? String(selectedSize).replace(/[хxXх]/g, '×') : '';
 
         // Filter decoration_variants for Металева вставка by size
-        let variants = decorationVariants.filter((dv: any) =>
-          dv.decoration_type?.name === 'Металева вставка' &&
-          (sizeNormalized ? (dv.size?.name === sizeNormalized || !dv.size) : !dv.size)
-        );
+        // Show variants matching selected size OR size-independent (size is null)
+        let variants = decorationVariants.filter((dv: any) => {
+          if (dv.decoration_type?.name !== 'Металева вставка') return false;
+          if (!dv.size) return true; // size-independent — always show
+          if (!sizeNormalized) return false; // no size selected — only show size-independent
+          return dv.size.name === sizeNormalized;
+        });
         // Prefer exact cover match
         const exactCover = variants.filter((dv: any) => dv.cover_type?.name === coverTypeName);
         if (exactCover.length > 0) variants = exactCover;
