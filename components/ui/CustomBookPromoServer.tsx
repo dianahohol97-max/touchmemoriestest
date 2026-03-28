@@ -8,9 +8,9 @@ export async function CustomBookPromoServer() {
     const { data: sectionData } = await supabase
         .from('section_content')
         .select('*')
-        .eq('section_name', 'custom_book_promo')
+        .eq('section_name', 'custom_book')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
     return <CustomBookPromoClient sectionContent={sectionData || undefined} />;
 }

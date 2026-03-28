@@ -6,10 +6,10 @@ export async function HowItWorksServer() {
 
     // Fetch feature cards
     const { data: featureCards } = await supabase
-        .from('why_choose_us_cards')
+        .from('feature_cards')
         .select('*')
         .eq('is_active', true)
-        .order('display_order');
+        .order('sort_order');
 
     return <HowItWorksClient featureCards={featureCards || []} />;
 }

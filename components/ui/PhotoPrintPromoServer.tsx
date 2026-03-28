@@ -8,9 +8,9 @@ export async function PhotoPrintPromoServer() {
     const { data: sectionData } = await supabase
         .from('section_content')
         .select('*')
-        .eq('section_name', 'photo_print_promo')
+        .eq('section_name', 'photo_print')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
     return <PhotoPrintPromoClient sectionContent={sectionData || undefined} />;
 }

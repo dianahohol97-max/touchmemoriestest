@@ -10,7 +10,7 @@ export async function PhotoboothSectionServer() {
         .select('*')
         .eq('section_name', 'photobooth_promo')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
     return <PhotoboothSectionClient sectionContent={sectionData || undefined} />;
 }

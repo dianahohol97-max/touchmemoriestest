@@ -33,7 +33,7 @@ export async function PopularProductsServer() {
             .select('*')
             .eq('section_name', 'popular_products')
             .eq('is_active', true)
-            .single();
+            .maybeSingle();
 
         if (sectionError && sectionError.code !== 'PGRST116') {
             console.error('[PopularProductsServer] Error fetching section_content:', JSON.stringify(sectionError));

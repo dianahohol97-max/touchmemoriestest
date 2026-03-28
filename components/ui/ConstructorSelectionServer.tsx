@@ -10,7 +10,7 @@ export async function ConstructorSelectionServer() {
         .select('*')
         .eq('section_name', 'constructor_selection')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
     return <ConstructorSelectionClient sectionContent={sectionData || undefined} />;
 }
