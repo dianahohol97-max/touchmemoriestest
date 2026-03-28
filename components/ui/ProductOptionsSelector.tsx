@@ -618,6 +618,11 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {options.map((option, idx) => {
+        // Skip "Тип обкладинки" for products already split by cover type
+        if (option.name === 'Тип обкладинки' && (
+          slug === 'personalized-glossy-magazine' || slug === 'fotozhurnal-tverd-obkladynka'
+        )) return null;
+
         const isText = option.type === 'text';
         const selectedValue = selectedOptions[option.name];
         const hasPrice = option.prices && selectedValue;
