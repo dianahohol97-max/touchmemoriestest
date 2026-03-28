@@ -393,8 +393,92 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 <h2 className="text-xl font-bold text-[#1e2d7d] mb-6">Оберіть параметри</h2>
 
                 <div className="space-y-6">
-                    {/* Size Selector (for photobooks) */}
-                    {product.variants && product.variants.length > 0 && (
+
+                    {/* ── Photobook: Size selector from photobook_sizes ── */}
+                    {productType === 'photobook' && photobookSizes.length > 0 && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                Розмір <span className="text-red-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {photobookSizes.sort((a: any, b: any) => a.sort_order - b.sort_order).map((size: any) => (
+                                    <button
+                                        key={size.id}
+                                        type="button"
+                                        onClick={() => setSelectedSize(size.name)}
+                                        className={`p-4 rounded-lg border-2 text-center transition-all ${
+                                            selectedSize === size.name
+                                                ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                                : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                        }`}
+                                    >
+                                        <span className="block text-lg font-bold">{size.name}</span>
+                                        <span className="block text-xs text-gray-500 mt-1">{size.width_cm}×{size.height_cm} см</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Photobook: Cover type selector from cover_types ── */}
+                    {productType === 'photobook' && coverTypes.length > 0 && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                Тип обкладинки <span className="text-red-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {coverTypes.sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
+                                    <button
+                                        key={cover.id}
+                                        type="button"
+                                        onClick={() => setSelectedCoverType(cover.name)}
+                                        className={`p-4 rounded-lg border-2 text-center transition-all ${
+                                            selectedCoverType === cover.name
+                                                ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                                : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                        }`}
+                                    >
+                                        <span className="block text-base font-bold">{cover.name}</span>
+                                        {cover.name_en && (
+                                            <span className="block text-xs text-gray-500 mt-1">{cover.name_en}</span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Photobook: Page count selector from photobook_prices ── */}
+                    {productType === 'photobook' && photobookPrices.length > 0 && selectedSize && selectedCoverType && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Кількість сторінок <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                value={selectedPageCount}
+                                onChange={(e) => setSelectedPageCount(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
+                            >
+                                <option value="">Оберіть кількість сторінок</option>
+                                {[...new Set(photobookPrices
+                                    .filter((p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize)
+                                    .map((p: any) => p.page_count)
+                                )].sort((a, b) => a - b).map((pageCount) => {
+                                    const priceEntry = photobookPrices.find(
+                                        (p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize && p.page_count === pageCount
+                                    );
+                                    return (
+                                        <option key={pageCount} value={`${pageCount} сторінок`}>
+                                            {pageCount} сторінок — {priceEntry?.base_price || 0} ₴
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* ── Non-photobook: Size from product.variants ── */}
+                    {productType !== 'photobook' && product.variants && product.variants.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Розмір <span className="text-red-500">*</span>
@@ -413,8 +497,8 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* Dynamic Options from Supabase */}
-                    {product.options && (product.options as ProductOption[]).filter((option) => option.values && option.values.length > 0).map((option) => (
+                    {/* ── Non-photobook: Dynamic options from product.options ── */}
+                    {productType !== 'photobook' && product.options && (product.options as ProductOption[]).filter((option) => option.values && option.values.length > 0).map((option) => (
                         <div key={option.name}>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 {option.name} <span className="text-red-500">*</span>
