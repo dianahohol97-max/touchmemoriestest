@@ -1,5 +1,6 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 
 type ProductOption = {
   name: string;
@@ -442,8 +443,30 @@ interface ProductOptionsSelectorProps {
 export function ProductOptionsSelector({ slug, selectedOptions, onChange }: ProductOptionsSelectorProps) {
   const productType = detectProductType(slug);
   const isVelourProduct = slug?.toLowerCase().includes('velour') || slug?.toLowerCase().includes('velyur') || productType === 'photobook-velour';
+  const isPhotobookProduct = productType === 'photobook';
   const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
   const [selectedOzdoblennya, setSelectedOzdoblennya] = useState('none');
+  const [selectedDecorationVariant, setSelectedDecorationVariant] = useState('');
+  const [decorationVariants, setDecorationVariants] = useState<any[]>([]);
+
+  const supabase = useMemo(() => createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  ), []);
+
+  // Fetch decoration variants for photobook products
+  useEffect(() => {
+    if (!isPhotobookProduct) return;
+    async function fetchVariants() {
+      const { data } = await supabase
+        .from('decoration_variants')
+        .select('*, decoration_type:decoration_types(id, name), cover_type:cover_types(id, name), size:photobook_sizes(id, name)')
+        .eq('active', true)
+        .order('sort_order', { ascending: true });
+      if (data) setDecorationVariants(data);
+    }
+    fetchVariants();
+  }, [isPhotobookProduct, supabase]);
 
   if (!productType) {
     return null;
@@ -690,10 +713,12 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                 type="button"
                 onClick={() => {
                   setSelectedOzdoblennya(opt.value);
+                  setSelectedDecorationVariant('');
                   // Update parent with new decoration selection
                   const newOptions = {
                     ...selectedOptions,
-                    'Тип оздоблення': opt.label
+                    'Тип оздоблення': opt.label,
+                    'Варіант оздоблення': ''
                   };
                   const price = calculatePrice(newOptions);
                   onChange(newOptions, price || undefined);
@@ -710,6 +735,60 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
           </div>
         </div>
       )}
+
+      {/* Decoration Variant Selector (shown when a decoration type other than 'none' is selected) */}
+      {isPhotobookProduct && selectedOzdoblennya !== 'none' && (() => {
+        const decoLabel = VELOUR_OZDOBLENNYA.find(o => o.value === selectedOzdoblennya)?.label;
+        const selectedSize = selectedOptions['Розмір'];
+        // Determine cover type from slug
+        let coverName = 'Друкована';
+        const s = slug.toLowerCase();
+        if (s.includes('velour') || s.includes('velyur')) coverName = 'Велюр';
+        else if (s.includes('leather')) coverName = 'Шкірзамінник';
+        else if (s.includes('fabric') || s.includes('tkanina')) coverName = 'Тканина';
+
+        // Filter variants by decoration type, cover, and size
+        const variants = decorationVariants.filter((dv: any) =>
+          dv.decoration_type?.name === decoLabel &&
+          dv.cover_type?.name === coverName &&
+          (selectedSize ? dv.size?.name === String(selectedSize).replace(/х/g, '×') : true)
+        );
+
+        if (variants.length === 0) return null;
+
+        return (
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
+              Варіант {decoLabel?.toLowerCase()}
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {variants.map((v: any) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedDecorationVariant(v.variant_name);
+                    const newOptions = {
+                      ...selectedOptions,
+                      'Варіант оздоблення': v.variant_name
+                    };
+                    const price = calculatePrice(newOptions);
+                    onChange(newOptions, price || undefined);
+                  }}
+                  className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                    selectedDecorationVariant === v.variant_name
+                      ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
+                  }`}
+                >
+                  {v.variant_name}
+                  {Number(v.surcharge) > 0 ? ` (+${v.surcharge} ₴)` : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
