@@ -1,60 +1,51 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { ImageIcon, Type, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { ImageIcon } from 'lucide-react';
 
-// Cover material types
-type CoverType = 'printed' | 'velour' | 'leatherette' | 'fabric';
+type CoverMaterial = 'printed' | 'velour' | 'leatherette' | 'fabric';
 type DecoType = 'none' | 'acrylic' | 'photo_insert' | 'flex' | 'metal' | 'engraving';
+type AcrylSize = '100x100' | 'circle145';
 type FlexColor = 'gold' | 'silver' | 'white' | 'black';
 type MetalColor = 'gold' | 'silver' | 'black';
 
-// Velour color map
+// Velour colors matching the product page
 const VELOUR_COLORS: Record<string, string> = {
-  'кремовий':  '#F5ECD7',
-  'бежевий':   '#E8D5B0',
-  'білий':     '#F8F8F5',
-  'чорний':    '#1A1A1A',
-  'темно-синій':'#1B2A4A',
-  'бордо':     '#6B1A2A',
-  'сірий':     '#8A8A8A',
-  'пудровий':  '#E8C5C0',
-  'зелений':   '#2D5A3D',
-  'коричневий':'#6B4423',
+  'кремовий':     '#F2E6D0',
+  'бежевий':      '#D9C4A0',
+  'білий':        '#F8F6F1',
+  'чорний':       '#1C1C1C',
+  'темно-синій':  '#1B2A4A',
+  'бордо':        '#5C1A28',
+  'сірий':        '#7A7A7A',
+  'пудровий':     '#E8C5BF',
+  'зелений':      '#2B5240',
+  'коричневий':   '#614020',
+  'темно-коричневий': '#3D2410',
 };
 
-const LEATHERETTE_COLORS: Record<string, string> = {
-  'чорний':    '#1A1A1A',
-  'коричневий':'#5C3317',
-  'бордо':     '#6B1A2A',
-  'білий':     '#F0EDE8',
-  'темно-синій':'#1B2A4A',
-};
+const FLEX_OPTIONS: { id: FlexColor; label: string; hex: string; textShadow?: string }[] = [
+  { id: 'gold',   label: 'Золото',  hex: '#D4AF37', textShadow: '0 0 8px rgba(212,175,55,0.6)' },
+  { id: 'silver', label: 'Срібло',  hex: '#C0C0C0', textShadow: '0 0 6px rgba(192,192,192,0.5)' },
+  { id: 'white',  label: 'Білий',   hex: '#FFFFFF', textShadow: '0 1px 3px rgba(0,0,0,0.3)' },
+  { id: 'black',  label: 'Чорний',  hex: '#1A1A1A', textShadow: 'none' },
+];
 
-const FLEX_COLORS: Record<FlexColor, { label: string; hex: string }> = {
-  gold:   { label: 'Золото',  hex: '#D4AF37' },
-  silver: { label: 'Срібло',  hex: '#C0C0C0' },
-  white:  { label: 'Білий',   hex: '#FFFFFF' },
-  black:  { label: 'Чорний',  hex: '#1A1A1A' },
-};
+const METAL_OPTIONS: { id: MetalColor; label: string; gradient: string; textColor: string }[] = [
+  { id: 'gold',   label: 'Золото',  gradient: 'linear-gradient(135deg, #9A6F00 0%, #FFD700 45%, #D4AF37 55%, #8B6000 100%)', textColor: '#3D2A00' },
+  { id: 'silver', label: 'Срібло',  gradient: 'linear-gradient(135deg, #5A5A5A 0%, #E8E8E8 45%, #C8C8C8 55%, #4A4A4A 100%)', textColor: '#1A1A1A' },
+  { id: 'black',  label: 'Чорне',   gradient: 'linear-gradient(135deg, #0A0A0A 0%, #3A3A3A 45%, #2A2A2A 55%, #0A0A0A 100%)', textColor: '#C0C0C0' },
+];
 
-const METAL_COLORS: Record<MetalColor, { label: string; gradient: string }> = {
-  gold:   { label: 'Золото',  gradient: 'linear-gradient(135deg, #B8860B, #FFD700, #B8860B)' },
-  silver: { label: 'Срібло',  gradient: 'linear-gradient(135deg, #808080, #E8E8E8, #808080)' },
-  black:  { label: 'Чорне',   gradient: 'linear-gradient(135deg, #1A1A1A, #444, #1A1A1A)' },
-};
-
-interface CoverConfig {
-  coverType: CoverType;
+export interface CoverConfig {
+  coverMaterial: CoverMaterial;
   coverColorName: string;
   decoType: DecoType;
-  decoSize?: string;       // e.g. "145x100"
+  acrylSize?: AcrylSize;
   flexColor?: FlexColor;
   metalColor?: MetalColor;
   photoId?: string | null;
-  flexText?: string;
-  metalText?: string;
-  engravingText?: string;
+  decoText?: string;
 }
 
 interface CoverEditorProps {
@@ -62,60 +53,89 @@ interface CoverEditorProps {
   canvasH: number;
   config: CoverConfig;
   photos: { id: string; preview: string }[];
-  onChange: (cfg: CoverConfig) => void;
+  onChange: (cfg: Partial<CoverConfig>) => void;
+}
+
+function darkenHex(hex: string, amount = 40): string {
+  const n = parseInt(hex.replace('#',''), 16);
+  const r = Math.max(0, (n >> 16) - amount);
+  const g = Math.max(0, ((n >> 8) & 0xFF) - amount);
+  const b = Math.max(0, (n & 0xFF) - amount);
+  return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
 }
 
 export function CoverEditor({ canvasW, canvasH, config, photos, onChange }: CoverEditorProps) {
   const [dragOver, setDragOver] = useState(false);
-  const [draggingPhotoId, setDraggingPhotoId] = useState<string | null>(null);
 
-  const isSoft = ['velour','leatherette','fabric'].includes(config.coverType);
-  const bgColor = isSoft
-    ? (config.coverType === 'velour' ? VELOUR_COLORS[config.coverColorName] : LEATHERETTE_COLORS[config.coverColorName]) ?? '#E8D5B0'
-    : '#f0f0f0';
+  const isSoft = config.coverMaterial !== 'printed';
+  const bgColor = isSoft ? (VELOUR_COLORS[config.coverColorName?.toLowerCase()] ?? '#F2E6D0') : '#fff';
 
-  // Deco box size relative to canvas
-  const decoSizePx = (() => {
-    if (!config.decoSize) return { w: canvasW * 0.5, h: canvasH * 0.35 };
-    const [wMM, hMM] = config.decoSize.split('x').map(Number);
-    // scale: canvas represents ~200mm wide page
-    const scale = canvasW / 200;
-    return { w: wMM * scale, h: hMM * scale };
-  })();
+  // Velour texture overlay
+  const textureOverlay = config.coverMaterial === 'velour'
+    ? 'radial-gradient(ellipse at 25% 25%, rgba(255,255,255,0.14) 0%, transparent 50%), radial-gradient(ellipse at 75% 75%, rgba(0,0,0,0.1) 0%, transparent 50%)'
+    : config.coverMaterial === 'leatherette'
+    ? 'repeating-linear-gradient(45deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 7px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 7px)'
+    : 'none';
 
-  const decoX = (canvasW - decoSizePx.w) / 2;
-  const decoY = (canvasH - decoSizePx.h) / 2;
-
-  const photo = photos.find(p => p.id === config.photoId);
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const id = e.dataTransfer.getData('photoId') || draggingPhotoId;
-    if (id) onChange({ ...config, photoId: id });
+  // Deco box dimensions
+  const getDecoBox = () => {
+    const scale = canvasW / 200; // 200mm = one page width
+    if (config.decoType === 'acrylic' || config.decoType === 'photo_insert') {
+      if (config.acrylSize === 'circle145') {
+        const d = 145 * scale;
+        return { w: d, h: d, round: true };
+      }
+      // 100x100
+      const s = 100 * scale;
+      return { w: s, h: s, round: false };
+    }
+    if (config.decoType === 'flex' || config.decoType === 'engraving') {
+      return { w: canvasW * 0.7, h: canvasH * 0.12, round: false };
+    }
+    if (config.decoType === 'metal') {
+      return { w: canvasW * 0.6, h: canvasH * 0.18, round: false };
+    }
+    return { w: canvasW * 0.5, h: canvasH * 0.3, round: false };
   };
 
-  // Texture overlay for velour
-  const textureStyle: React.CSSProperties = config.coverType === 'velour'
-    ? { backgroundImage: `radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.12) 0%, transparent 60%), linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.08) 100%)` }
-    : config.coverType === 'leatherette'
-    ? { backgroundImage: `repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 8px)` }
-    : {};
+  const photo = photos.find(p => p.id === config.photoId) ?? null;
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setDragOver(false);
+    const id = e.dataTransfer.getData('text/plain');
+    if (id) onChange({ photoId: id });
+  };
+
+  const box = getDecoBox();
+  const boxLeft = (canvasW - box.w) / 2;
+  const boxTop = (canvasH - box.h) / 2;
 
   return (
     <div
-      style={{ position: 'relative', width: canvasW, height: canvasH, borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', flexShrink: 0, background: bgColor, ...textureStyle }}
       onDragOver={e => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
+      style={{
+        position: 'relative',
+        width: canvasW, height: canvasH,
+        borderRadius: 4, overflow: 'hidden',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        flexShrink: 0,
+        background: bgColor,
+      }}
     >
-      {/* Printed cover — full photo */}
-      {config.coverType === 'printed' && (
-        <div style={{ position: 'absolute', inset: 0, background: photo ? 'transparent' : '#f1f5f9', border: dragOver ? '3px dashed #1e2d7d' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Texture */}
+      {isSoft && (
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: textureOverlay, pointerEvents: 'none', zIndex: 1 }} />
+      )}
+
+      {/* ── ДРУКОВАНА: повне фото ── */}
+      {!isSoft && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
           {photo ? (
             <img src={photo.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#94a3b8' }}>
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#94a3b8', background: dragOver ? '#dbeafe' : '#f1f5f9', border: dragOver ? '2px dashed #1e2d7d' : 'none' }}>
               <ImageIcon size={32} />
               <span style={{ fontSize: 12, fontWeight: 600 }}>Перетягніть фото на обкладинку</span>
             </div>
@@ -123,101 +143,150 @@ export function CoverEditor({ canvasW, canvasH, config, photos, onChange }: Cove
         </div>
       )}
 
-      {/* Soft cover — colored background */}
+      {/* ── М'ЯКА ОБКЛАДИНКА ── */}
       {isSoft && (
-        <>
-          {/* No deco */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+          {/* БЕЗ ОЗДОБЛЕННЯ */}
           {config.decoType === 'none' && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 12, fontWeight: 600 }}>
-              Без оздоблення
-            </div>
+            <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+              {config.coverColorName || 'Без оздоблення'}
+            </span>
           )}
 
-          {/* Acrylic / Photo insert */}
+          {/* АКРИЛ або ФОТОВСТАВКА */}
           {(config.decoType === 'acrylic' || config.decoType === 'photo_insert') && (
             <div
-              style={{ position: 'absolute', left: decoX, top: decoY, width: decoSizePx.w, height: decoSizePx.h, border: dragOver ? '3px dashed #1e2d7d' : '2px solid rgba(255,255,255,0.6)', borderRadius: 4, overflow: 'hidden', background: photo ? 'transparent' : 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              style={{
+                position: 'absolute',
+                left: boxLeft, top: boxTop,
+                width: box.w, height: box.h,
+                borderRadius: box.round ? '50%' : 4,
+                border: `2px solid rgba(255,255,255,${dragOver ? '0.9' : '0.5'})`,
+                overflow: 'hidden',
+                background: photo ? 'transparent' : 'rgba(255,255,255,0.12)',
+                boxShadow: config.decoType === 'acrylic' ? '0 2px 12px rgba(0,0,0,0.2), inset 0 1px 2px rgba(255,255,255,0.3)' : '0 2px 8px rgba(0,0,0,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}
             >
               {photo ? (
                 <>
                   <img src={photo.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                  {/* Acrylic glass effect */}
                   {config.decoType === 'acrylic' && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(220,240,255,0.15)', backdropFilter: 'blur(0.5px)', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)', pointerEvents: 'none' }} />
                   )}
-                  <button onClick={() => onChange({ ...config, photoId: null })}
-                    style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                  <button
+                    onClick={() => onChange({ photoId: null })}
+                    style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+                    ×
+                  </button>
                 </>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.7)' }}>
-                  <ImageIcon size={24} />
-                  <span style={{ fontSize: 10, fontWeight: 600, textAlign: 'center' }}>
-                    {config.decoType === 'acrylic' ? 'Акрил' : 'Фотовставка'}<br />
-                    {config.decoSize || ''}
+                  <ImageIcon size={22} />
+                  <span style={{ fontSize: 10, fontWeight: 700, textAlign: 'center' }}>
+                    {config.decoType === 'acrylic' ? 'Акрил' : 'Фотовставка'}
+                    <br />
+                    {config.acrylSize === 'circle145' ? 'Ø145 мм' : '100×100 мм'}
                   </span>
                 </div>
               )}
             </div>
           )}
 
-          {/* Flex */}
-          {config.decoType === 'flex' && (
-            <div style={{ position: 'absolute', left: decoX, top: decoY, width: decoSizePx.w, height: decoSizePx.h / 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={e => onChange({ ...config, flexText: e.currentTarget.textContent || '' })}
-                style={{ color: FLEX_COLORS[config.flexColor || 'gold'].hex, fontSize: Math.max(14, decoSizePx.w / 10), fontFamily: 'Playfair Display, serif', fontWeight: 700, textShadow: config.flexColor === 'gold' || config.flexColor === 'silver' ? '0 1px 2px rgba(0,0,0,0.3)' : 'none', outline: 'none', cursor: 'text', textAlign: 'center', minWidth: 40 }}
-              >
-                {config.flexText || 'Ваш текст'}
-              </span>
-            </div>
-          )}
+          {/* ФЛЕКС */}
+          {config.decoType === 'flex' && (() => {
+            const fc = FLEX_OPTIONS.find(f => f.id === (config.flexColor || 'gold'))!;
+            return (
+              <div style={{ position: 'absolute', left: boxLeft, top: boxTop, width: box.w, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={e => onChange({ decoText: e.currentTarget.textContent || '' })}
+                  style={{
+                    color: fc.hex,
+                    textShadow: fc.textShadow,
+                    fontSize: Math.max(16, canvasW / 9) + 'px',
+                    fontFamily: 'Playfair Display, Georgia, serif',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    outline: 'none',
+                    cursor: 'text',
+                    textAlign: 'center',
+                    minWidth: 40,
+                    userSelect: 'text',
+                  }}
+                >
+                  {config.decoText || 'Ваш текст'}
+                </span>
+              </div>
+            );
+          })()}
 
-          {/* Metal insert */}
-          {config.decoType === 'metal' && (
-            <div style={{ position: 'absolute', left: decoX, top: decoY, width: decoSizePx.w, height: decoSizePx.h * 0.6, borderRadius: 4, background: METAL_COLORS[config.metalColor || 'silver'].gradient, boxShadow: '0 2px 8px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={e => onChange({ ...config, metalText: e.currentTarget.textContent || '' })}
-                style={{ color: config.metalColor === 'gold' ? '#5C3A00' : config.metalColor === 'silver' ? '#2A2A2A' : '#E0E0E0', fontSize: Math.max(12, decoSizePx.w / 12), fontFamily: 'Montserrat, sans-serif', fontWeight: 700, outline: 'none', cursor: 'text', textAlign: 'center', padding: '0 8px' }}
-              >
-                {config.metalText || 'Ваш текст'}
-              </span>
-            </div>
-          )}
+          {/* МЕТАЛЕВА ВСТАВКА */}
+          {config.decoType === 'metal' && (() => {
+            const mc = METAL_OPTIONS.find(m => m.id === (config.metalColor || 'silver'))!;
+            return (
+              <div style={{
+                position: 'absolute', left: boxLeft, top: boxTop,
+                width: box.w, height: box.h,
+                borderRadius: 3,
+                background: mc.gradient,
+                boxShadow: '0 3px 12px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={e => onChange({ decoText: e.currentTarget.textContent || '' })}
+                  style={{ color: mc.textColor, fontSize: Math.max(13, canvasW / 11) + 'px', fontFamily: 'Montserrat, sans-serif', fontWeight: 700, letterSpacing: '0.05em', outline: 'none', cursor: 'text', textAlign: 'center', padding: '0 10px' }}
+                >
+                  {config.decoText || 'Ваш текст'}
+                </span>
+              </div>
+            );
+          })()}
 
-          {/* Engraving */}
+          {/* ГРАВІРУВАННЯ */}
           {config.decoType === 'engraving' && (
-            <div style={{ position: 'absolute', left: decoX, top: decoY, width: decoSizePx.w, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', left: boxLeft, top: boxTop, width: box.w, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span
                 contentEditable
                 suppressContentEditableWarning
-                onBlur={e => onChange({ ...config, engravingText: e.currentTarget.textContent || '' })}
-                style={{ color: adjustColor(bgColor, -40), fontSize: Math.max(14, decoSizePx.w / 10), fontFamily: 'Playfair Display, serif', fontWeight: 600, outline: 'none', cursor: 'text', textAlign: 'center' }}
+                onBlur={e => onChange({ decoText: e.currentTarget.textContent || '' })}
+                style={{
+                  color: darkenHex(bgColor, 50),
+                  fontSize: Math.max(16, canvasW / 9) + 'px',
+                  fontFamily: 'Playfair Display, Georgia, serif',
+                  fontWeight: 600,
+                  letterSpacing: '0.06em',
+                  outline: 'none',
+                  cursor: 'text',
+                  textAlign: 'center',
+                  textShadow: `0 1px 0 ${darkenHex(bgColor, 80)}, 0 -1px 0 rgba(255,255,255,0.15)`,
+                  userSelect: 'text',
+                }}
               >
-                {config.engravingText || 'Ваш текст'}
+                {config.decoText || 'Ваш текст'}
               </span>
             </div>
           )}
-        </>
+
+        </div>
       )}
 
       {/* Size label */}
-      {isSoft && config.decoType !== 'none' && config.decoSize && (
-        <div style={{ position: 'absolute', bottom: 6, right: 8, fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
-          {config.decoSize} мм
+      {isSoft && config.decoType !== 'none' && (
+        <div style={{ position: 'absolute', bottom: 6, right: 8, fontSize: 9, color: 'rgba(255,255,255,0.35)', fontWeight: 600, zIndex: 3, letterSpacing: '0.05em' }}>
+          {config.decoType === 'acrylic' && (config.acrylSize === 'circle145' ? 'Акрил Ø145мм' : 'Акрил 100×100мм')}
+          {config.decoType === 'photo_insert' && 'Фотовставка'}
+          {config.decoType === 'flex' && 'Флекс'}
+          {config.decoType === 'metal' && 'Металева вставка'}
+          {config.decoType === 'engraving' && 'Гравірування'}
         </div>
       )}
     </div>
   );
-}
-
-// Darken hex color by amount
-function adjustColor(hex: string, amount: number): string {
-  const num = parseInt(hex.replace('#',''), 16);
-  const r = Math.max(0, Math.min(255, (num >> 16) + amount));
-  const g = Math.max(0, Math.min(255, ((num >> 8) & 0xFF) + amount));
-  const b = Math.max(0, Math.min(255, (num & 0xFF) + amount));
-  return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
 }
