@@ -263,8 +263,9 @@ function CatalogContent() {
                                             cursor: 'pointer',
                                             whiteSpace: 'nowrap',
                                             transition: 'all 0.2s ease',
+                                          borderRadius: '10px',
                                         }}
-                                        className="hover:opacity-90 rounded-full"
+                                        className="hover:opacity-90"
                                     >
                                         {cat.name}
                                     </button>
@@ -322,7 +323,7 @@ function CatalogContent() {
                             {sortedProducts.map((product) => (
                                 <div key={product.id} className="relative">
                                     {product.is_popular && (
-                                        <div className="absolute top-4 left-4 z-20 flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                                        <div className="absolute top-4 left-4 z-20 flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-md text-xs font-bold shadow-sm">
                                             Популярне
                                         </div>
                                     )}
