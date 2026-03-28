@@ -479,12 +479,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                                     {/* Conditional decoration sub-options from product.options JSON */}
                                     {product.options && Array.isArray(product.options) && (() => {
+                                        // Only acryl and photovstavka use product.options JSON
+                                        // metal uses decoration_variants table (handled in ProductOptionsSelector)
+                                        // flex and graviruvannya have NO subtypes
                                         const SUBTYPE_MAP: Record<string, string> = {
                                             'Варіант акрилу': 'acryl',
                                             'Варіант фотовставки': 'photovstavka',
-                                            'Варіант металевої вставки': 'metal',
-                                            'Варіант тиснення': 'tisnennya',
-                                            'Варіант гравірування': 'graviruvannya',
                                         };
                                         // Get current Оздоблення value
                                         const ozdoblennya = customProductOptions['Тип оздоблення'] || customProductOptions['Оздоблення'] || '';

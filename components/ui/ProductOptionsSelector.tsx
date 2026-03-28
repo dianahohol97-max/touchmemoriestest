@@ -95,21 +95,14 @@ const VELOUR_COLORS = [
 
 // Velour cover decoration options
 const VELOUR_OZDOBLENNYA = [
-  { value: 'none',    label: 'Без оздоблення' },
-  { value: 'acrylic', label: 'Акрил' },
-  { value: 'photo',   label: 'Фотовставка' },
-  { value: 'metal',   label: 'Металева вставка' },
-  { value: 'stamp',   label: 'Тиснення' },
-  { value: 'laser',   label: 'Гравірування' },
+  { value: 'none',           label: 'Без оздоблення' },
+  { value: 'acryl',          label: 'Акрил' },
+  { value: 'photovstavka',   label: 'Фотовставка' },
+  { value: 'metal',          label: 'Металева вставка' },
+  { value: 'flex',           label: 'Флекс' },
+  { value: 'graviruvannya',  label: 'Гравірування' },
 ];
 
-// Fallback decoration variants for types that may not be in DB
-const FALLBACK_DECORATION_VARIANTS: Record<string, string[]> = {
-  'Тиснення': ['Тиснення 1', 'Тиснення 2', 'Тиснення 3', 'Тиснення 4', 'Тиснення 5', 'Тиснення 6', 'Тиснення 7', 'Тиснення 8', 'Тиснення 9', 'Тиснення 26'],
-  'Гравірування': ['Гравірування 05', 'Гравірування 06', 'Гравірування 07', 'Гравірування 08', 'Гравірування 09', 'Гравірування 10', 'Гравірування 11', 'Гравірування 12', 'Гравірування 13', 'Гравірування 14', 'Гравірування 15', 'Гравірування 16', 'Гравірування 17', 'Гравірування 18', 'Гравірування 19', 'Гравірування 20', 'Гравірування 21', 'Гравірування 22', 'Гравірування 23', 'Гравірування 24', 'Гравірування 25', 'Власний макет'],
-  'Гравіювання': ['Гравірування 05', 'Гравірування 06', 'Гравірування 07', 'Гравірування 08', 'Гравірування 09', 'Гравірування 10', 'Гравірування 11', 'Гравірування 12', 'Гравірування 13', 'Гравірування 14', 'Гравірування 15', 'Гравірування 16', 'Гравірування 17', 'Гравірування 18', 'Гравірування 19', 'Гравірування 20', 'Гравірування 21', 'Гравірування 22', 'Гравірування 23', 'Гравірування 24', 'Гравірування 25', 'Власний макет'],
-  'Флекс': ['Флекс друк'],
-};
 
 // 3D Price table for Velour photobooks: Size -> Pages -> Калька -> Price
 const VELOUR_PRICES: Record<string, Record<string, Record<string, number>>> = {
@@ -780,75 +773,48 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         </div>
       )}
 
-      {/* Decoration Sub-Options — conditional on Оздоблення selection */}
-      {hasColorAndDecoration && selectedOzdoblennya !== 'none' && (() => {
-        const decoLabel = VELOUR_OZDOBLENNYA.find(o => o.value === selectedOzdoblennya)?.label;
-        if (!decoLabel) return null;
-
+      {/* Decoration Sub-Options — only "Металева вставка" uses decoration_variants table */}
+      {hasColorAndDecoration && selectedOzdoblennya === 'metal' && (() => {
         const selectedSize = selectedOptions['Розмір'];
         const sizeNormalized = selectedSize ? String(selectedSize).replace(/х/g, '×') : '';
 
-        // All variants for this decoration type
-        const allForType = decorationVariants.filter((dv: any) =>
-          dv.decoration_type?.name === decoLabel
+        // Filter decoration_variants for Металева вставка by size
+        let variants = decorationVariants.filter((dv: any) =>
+          dv.decoration_type?.name === 'Металева вставка' &&
+          (sizeNormalized ? (dv.size?.name === sizeNormalized || !dv.size) : !dv.size)
         );
+        // Prefer exact cover match
+        const exactCover = variants.filter((dv: any) => dv.cover_type?.name === coverTypeName);
+        if (exactCover.length > 0) variants = exactCover;
+        // Deduplicate
+        const seen = new Set<string>();
+        variants = variants.filter((dv: any) => {
+          if (seen.has(dv.variant_name)) return false;
+          seen.add(dv.variant_name);
+          return true;
+        });
 
-        // Filter by size: show variants matching selected size OR size-independent (size is null)
-        let variants: any[] = [];
-        if (allForType.length > 0) {
-          if (sizeNormalized) {
-            // Show: exact cover+size match, or any cover+size match, or size-independent
-            variants = allForType.filter((dv: any) =>
-              dv.size?.name === sizeNormalized || !dv.size
-            );
-            // Prefer exact cover match
-            const exactCover = variants.filter((dv: any) => dv.cover_type?.name === coverTypeName);
-            if (exactCover.length > 0) variants = exactCover;
-          } else {
-            // No size selected: show only size-independent variants
-            variants = allForType.filter((dv: any) => !dv.size);
-          }
-          // Deduplicate by variant_name
-          const seen = new Set<string>();
-          variants = variants.filter((dv: any) => {
-            if (seen.has(dv.variant_name)) return false;
-            seen.add(dv.variant_name);
-            return true;
-          });
-        }
-
-        // Build items list: from DB variants or hardcoded fallback
-        let items: { name: string; surcharge?: number }[] = [];
-        if (variants.length > 0) {
-          items = variants.map((v: any) => ({ name: v.variant_name, surcharge: Number(v.surcharge) || 0 }));
-        } else {
-          const fallback = FALLBACK_DECORATION_VARIANTS[decoLabel];
-          if (fallback) {
-            items = fallback.map(name => ({ name, surcharge: 0 }));
-          }
-        }
-
-        if (items.length === 0) return null;
+        if (variants.length === 0) return null;
 
         return (
           <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
-              Варіант {decoLabel.toLowerCase()}
+              Варіант металевої вставки
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {items.map((item) => (
-                <button key={item.name} type="button"
+              {variants.map((v: any) => (
+                <button key={v.id} type="button"
                   onClick={() => {
-                    setSelectedDecorationVariant(item.name);
-                    const newOptions = { ...selectedOptions, 'Варіант оздоблення': item.name };
+                    setSelectedDecorationVariant(v.variant_name);
+                    const newOptions = { ...selectedOptions, 'Варіант оздоблення': v.variant_name };
                     onChange(newOptions, calculatePrice(newOptions) || undefined);
                   }}
                   className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                    selectedDecorationVariant === item.name
+                    selectedDecorationVariant === v.variant_name
                       ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
                   }`}>
-                  {item.name}{item.surcharge && item.surcharge > 0 ? ` (+${item.surcharge} ₴)` : ''}
+                  {v.variant_name}{Number(v.surcharge) > 0 ? ` (+${v.surcharge} ₴)` : ''}
                 </button>
               ))}
             </div>
