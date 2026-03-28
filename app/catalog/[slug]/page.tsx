@@ -1,6 +1,5 @@
 import { Metadata, ResolvingMetadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createAnonClient } from '@supabase/supabase-js';
 import ProductClient from './ProductClient';
 import { notFound } from 'next/navigation';
 
@@ -8,25 +7,9 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-// Revalidate every hour
-export const revalidate = 3600;
-
-// Generate static params for all products
-export async function generateStaticParams() {
-  const supabase = createAnonClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-  const { data: products } = await supabase
-    .from('products')
-    .select('slug')
-    .eq('is_active', true);
-
-  return (products ?? []).map((product) => ({
-    slug: product.slug,
-  }));
-}
+// Force dynamic rendering so product data is always fresh
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function generateMetadata(
   { params }: Props,
