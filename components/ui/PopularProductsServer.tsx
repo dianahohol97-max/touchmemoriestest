@@ -18,7 +18,6 @@ export async function PopularProductsServer() {
             .select('id, name, slug, price, sale_price, price_from, images')
             .eq('is_popular', true)
             .eq('is_active', true)
-            .eq('status', 'active')
             .order('popular_order', { ascending: true, nullsFirst: false })
             .limit(8);
 

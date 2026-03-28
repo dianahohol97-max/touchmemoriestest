@@ -51,7 +51,6 @@ export default async function Home() {
         .select('*, categories(name, slug)')
         .eq('is_active', true)
         .eq('is_popular', true)
-        .eq('status', 'active')
         .order('popular_order', { ascending: true })
         .limit(8);
       if (pe) console.error('[Homepage] products error:', JSON.stringify(pe));
