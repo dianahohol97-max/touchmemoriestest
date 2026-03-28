@@ -1,555 +1,471 @@
 'use client';
-
-import { useState, useEffect, useRef } from 'react';
-import { Upload, X, Check, AlertTriangle, ShoppingCart, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Upload, X, AlertTriangle, ShoppingCart, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 
+// ─── Size definitions ─────────────────────────────────────────────────────────
+const STANDARD_SIZES: Record<string, { w: number; h: number; label: string }> = {
+  '10x15': { w: 10, h: 15, label: '10×15 см' },
+  '13x18': { w: 13, h: 18, label: '13×18 см' },
+  '15x21': { w: 15, h: 21, label: '15×21 см' },
+  '20x25': { w: 20, h: 25, label: '20×25 см' },
+  '20x30': { w: 20, h: 30, label: '20×30 см' },
+  '30x40': { w: 30, h: 40, label: '30×40 см' },
+};
+
+// Polaroid: 8x8 photo zone + wide bottom border
+const POLAROID_DIMS = { w: 8, h: 8, borderSide: 0.6, borderBottom: 1.8 }; // cm
+
 interface PhotoFile {
-    id: string;
-    file: File;
-    preview: string;
-    width: number;
-    height: number;
+  id: string; file: File; preview: string; width: number; height: number;
+  cropX: number; cropY: number; zoom: number;
 }
-
 interface ProductOption {
-    name: string;
-    values: Array<{
-        name: string;
-        price?: number;
-        priceModifier?: number;
-    }>;
+  name: string;
+  values?: Array<{ name: string; price?: number; priceModifier?: number }>;
+  options?: Array<{ label: string; value: string; price?: number }>;
 }
+interface PhotoPrintConstructorProps { productSlug: string; }
 
-interface PhotoPrintConstructorProps {
-    productSlug: string;
-}
+// ─── Photo Preview Component ──────────────────────────────────────────────────
+function PhotoPreview({
+  photo, sizeKey, showBorder, isPolaroid, isNonstandard,
+  onCropChange,
+}: {
+  photo: PhotoFile;
+  sizeKey: string;
+  showBorder: boolean;
+  isPolaroid: boolean;
+  isNonstandard: boolean;
+  onCropChange: (id: string, cropX: number, cropY: number, zoom: number) => void;
+}) {
+  const MAX_W = 320;
+  const size = STANDARD_SIZES[sizeKey];
+  
+  // Calculate canvas dimensions
+  let photoW: number, photoH: number;
+  let borderMm = 0;
+  let polaroidBottomMm = 0;
+  let polaroidSideMm = 0;
 
-export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstructorProps) {
-    const { addItem } = useCartStore();
-    const [photos, setPhotos] = useState<PhotoFile[]>([]);
-    const [product, setProduct] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [dragging, setDragging] = useState(false);
-    const [selectedSize, setSelectedSize] = useState<string>('');
-    const [selectedFinish, setSelectedFinish] = useState<string>('');
-    const [selectedBorder, setSelectedBorder] = useState<string>('');
-    const [showSummary, setShowSummary] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+  if (isPolaroid) {
+    photoW = POLAROID_DIMS.w;
+    photoH = POLAROID_DIMS.h;
+    polaroidSideMm = POLAROID_DIMS.borderSide;
+    polaroidBottomMm = POLAROID_DIMS.borderBottom;
+  } else if (isNonstandard) {
+    // Default ratio 4:3 for nonstandard
+    photoW = 15; photoH = 10;
+    borderMm = 3; // always 3mm white border
+  } else if (size) {
+    photoW = size.w; photoH = size.h;
+    borderMm = showBorder ? 3 : 0;
+  } else {
+    photoW = 10; photoH = 15; borderMm = showBorder ? 3 : 0;
+  }
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+  // Total print dimensions including border
+  const totalW = photoW + (isPolaroid ? polaroidSideMm * 2 : borderMm * 2);
+  const totalH = photoH + (isPolaroid ? polaroidSideMm + polaroidBottomMm : borderMm * 2);
 
-    useEffect(() => {
-        async function fetchProduct() {
-            const { data } = await supabase
-                .from('products')
-                .select('*')
-                .eq('slug', productSlug)
-                .eq('is_active', true)
-                .single();
+  // Scale to fit MAX_W
+  const scale = MAX_W / totalW;
+  const canvasW = MAX_W;
+  const canvasH = Math.round(totalH * scale);
+  const borderPx = (isPolaroid ? polaroidSideMm : borderMm) * scale;
+  const borderBottomPx = isPolaroid ? polaroidBottomMm * scale : borderMm * scale;
+  const photoAreaW = photoW * scale;
+  const photoAreaH = photoH * scale;
 
-            if (data) {
-                setProduct(data);
+  // Crop drag
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0, cropX: 50, cropY: 50 });
 
-                // Set default values from product options
-                const options = data.options as ProductOption[] || [];
-
-                // Set default size if available
-                const sizeOption = options.find(opt => opt.name === 'Розмір');
-                if (sizeOption && sizeOption.values.length > 0) {
-                    setSelectedSize(sizeOption.values[0].name);
-                }
-
-                // Set default finish (покриття)
-                const finishOption = options.find(opt => opt.name === 'Покриття');
-                if (finishOption && finishOption.values.length > 0) {
-                    setSelectedFinish(finishOption.values[0].name);
-                }
-
-                // Set default border if available
-                const borderOption = options.find(opt => opt.name === 'Біла рамочка 3мм');
-                if (borderOption && borderOption.values.length > 0) {
-                    setSelectedBorder(borderOption.values[0].name);
-                }
-            }
-            setLoading(false);
-        }
-        fetchProduct();
-    }, [productSlug, supabase]);
-
-    const handleFileSelect = async (files: FileList | null) => {
-        if (!files || files.length === 0) return;
-
-        const newPhotos: PhotoFile[] = [];
-
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            if (!file.type.startsWith('image/')) continue;
-
-            // Check max 500 photos limit
-            if (photos.length + newPhotos.length >= 500) {
-                toast.error('Максимум 500 фото на проект');
-                break;
-            }
-
-            const preview = URL.createObjectURL(file);
-
-            // Get image dimensions
-            try {
-                const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-                    const image = new window.Image();
-                    image.onload = () => resolve(image);
-                    image.onerror = reject;
-                    image.src = preview;
-                });
-
-                newPhotos.push({
-                    id: Math.random().toString(36).substring(7),
-                    file,
-                    preview,
-                    width: img.width,
-                    height: img.height
-                });
-            } catch (error) {
-                URL.revokeObjectURL(preview);
-                console.error('Error loading image:', error);
-            }
-        }
-
-        setPhotos(prev => [...prev, ...newPhotos]);
-        if (newPhotos.length > 0) {
-            toast.success(`Завантажено ${newPhotos.length} фото`);
-        }
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY, cropX: photo.cropX, cropY: photo.cropY };
+    const onMove = (me: MouseEvent) => {
+      if (!isDragging.current) return;
+      const dx = (me.clientX - dragStart.current.x) / photoAreaW * 100;
+      const dy = (me.clientY - dragStart.current.y) / photoAreaH * 100;
+      onCropChange(photo.id, Math.max(0,Math.min(100,dragStart.current.cropX-dx*0.5)), Math.max(0,Math.min(100,dragStart.current.cropY-dy*0.5)), photo.zoom);
     };
+    const onUp = () => { isDragging.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
-    const handleDrop = async (e: React.DragEvent) => {
-        e.preventDefault();
-        setDragging(false);
-        await handleFileSelect(e.dataTransfer.files);
-    };
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    onCropChange(photo.id, photo.cropX, photo.cropY, Math.max(0.5, Math.min(3, (photo.zoom||1) + delta)));
+  };
 
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        setDragging(true);
-    };
+  const cropMarkLen = 10;
+  const cropMarkGap = 4;
 
-    const handleDragLeave = () => {
-        setDragging(false);
-    };
-
-    const removePhoto = (id: string) => {
-        const photo = photos.find(p => p.id === id);
-        if (photo) {
-            URL.revokeObjectURL(photo.preview);
-        }
-        setPhotos(photos.filter(p => p.id !== id));
-    };
-
-    const calculatePrice = () => {
-        if (!product || photos.length === 0) return 0;
-
-        const options = product.options as ProductOption[] || [];
-        const sizeOption = options.find(opt => opt.name === 'Розмір');
-
-        let unitPrice = product.price || 0;
-
-        if (sizeOption && selectedSize) {
-            const selectedSizeOption = sizeOption.values.find(v => v.name === selectedSize);
-            if (selectedSizeOption) {
-                // Use absolute price if available, otherwise add priceModifier to base price
-                if (selectedSizeOption.price !== undefined) {
-                    unitPrice = selectedSizeOption.price;
-                } else if (selectedSizeOption.priceModifier !== undefined) {
-                    unitPrice = (product.price || 0) + selectedSizeOption.priceModifier;
-                }
-            }
-        }
-
-        return unitPrice * photos.length;
-    };
-
-    const checkPhotoQuality = (photo: PhotoFile) => {
-        if (!selectedSize) return { ok: true, message: '' };
-
-        // Parse dimensions from size string (e.g., "10×15 см" -> {width: 10, height: 15})
-        const match = selectedSize.match(/(\d+(?:\.\d+)?)×(\d+(?:\.\d+)?)/);
-        if (!match) return { ok: true, message: '' };
-
-        const printWidth = parseFloat(match[1]);
-        const printHeight = parseFloat(match[2]);
-
-        const dpi = 300;
-        const requiredWidth = (printWidth / 2.54) * dpi;
-        const requiredHeight = (printHeight / 2.54) * dpi;
-
-        if (photo.width < requiredWidth || photo.height < requiredHeight) {
-            return {
-                ok: false,
-                message: `Низька роздільність. Рекомендовано: ${Math.round(requiredWidth)}×${Math.round(requiredHeight)}px`
-            };
-        }
-        return { ok: true, message: 'Якість відмінна' };
-    };
-
-    const handleAddToCart = () => {
-        if (photos.length === 0) {
-            toast.error('Додайте хоча б одне фото');
-            return;
-        }
-
-        if (!selectedSize && product?.options?.some((opt: ProductOption) => opt.name === 'Розмір')) {
-            toast.error('Оберіть розмір');
-            return;
-        }
-
-        // Only require finish if product has finish options
-        const hasFinishOption = product?.options?.some((opt: ProductOption) => opt.name === 'Покриття');
-        if (hasFinishOption && !selectedFinish) {
-            toast.error('Оберіть покриття');
-            return;
-        }
-
-        const totalPrice = calculatePrice();
-
-        const options: Record<string, string> = {
-            'Кількість фото': photos.length.toString()
-        };
-
-        if (selectedSize) {
-            options['Розмір'] = selectedSize;
-        }
-
-        if (selectedFinish) {
-            options['Покриття'] = selectedFinish;
-        }
-
-        if (selectedBorder) {
-            options['Біла рамочка 3мм'] = selectedBorder;
-        }
-
-        addItem({
-            id: `${product.id}_${selectedSize}_${selectedFinish}_${Date.now()}`,
-            product_id: product.id,
-            name: product.name,
-            price: totalPrice,
-            qty: 1,
-            image: product.images?.[0] || '',
-            options,
-            slug: product.slug,
-            personalization_note: `${photos.length} фото для друку`
-        });
-
-        toast.success('Замовлення додано до кошика');
-
-        // Reset constructor
-        setPhotos([]);
-        setShowSummary(false);
-    };
-
-    const getSizeOptions = () => {
-        if (!product) return [];
-        const options = product.options as ProductOption[] || [];
-        const sizeOption = options.find(opt => opt.name === 'Розмір');
-        return sizeOption?.values || [];
-    };
-
-    const getFinishOptions = () => {
-        if (!product) return [];
-        const options = product.options as ProductOption[] || [];
-        const finishOption = options.find(opt => opt.name === 'Покриття');
-        return finishOption?.values || [];
-    };
-
-    const getBorderOptions = () => {
-        if (!product) return [];
-        const options = product.options as ProductOption[] || [];
-        const borderOption = options.find(opt => opt.name === 'Біла рамочка 3мм');
-        return borderOption?.values || [];
-    };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <div className="text-gray-500">Завантаження...</div>
-            </div>
-        );
-    }
-
-    if (!product) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <div className="text-red-500">Продукт не знайдено</div>
-            </div>
-        );
-    }
-
-    const totalPrice = calculatePrice();
-    const sizeOptions = getSizeOptions();
-    const finishOptions = getFinishOptions();
-    const borderOptions = getBorderOptions();
-
-    return (
-        <div className="max-w-6xl mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-[#1e2d7d] mb-2">{product.name}</h1>
-                <p className="text-gray-600">{product.short_description}</p>
-            </div>
-
-            {/* Photo Counter */}
-            <div className={`mb-6 p-4 rounded-lg ${photos.length === 0 ? 'bg-orange-50 border border-orange-200' : 'bg-blue-50 border border-blue-200'}`}>
-                <p className={`font-semibold ${photos.length === 0 ? 'text-orange-800' : 'text-blue-800'}`}>
-                    {photos.length}/500 Фотографій
-                </p>
-            </div>
-
-            {/* Upload Zone */}
-            <div
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer mb-8 ${
-                    dragging
-                        ? 'border-[#1e2d7d] bg-[#dbeafe]'
-                        : 'border-gray-300 bg-[#f8f9fc] hover:border-[#1e2d7d] hover:bg-[#f0f2f8]'
-                }`}
-                onClick={() => fileInputRef.current?.click()}
-            >
-                <Upload className="w-12 h-12 text-[#1e2d7d] mx-auto mb-4" />
-                <p className="text-lg font-semibold text-[#1e2d7d] mb-2">
-                    Перетягніть фото сюди
-                </p>
-                <p className="text-sm text-gray-500 mb-4">
-                    або просто перетягніть фото сюди
-                </p>
-                <button
-                    className="px-6 py-3 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] transition-colors"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                    }}
-                >
-                    Мої пристрої
-                </button>
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => handleFileSelect(e.target.files)}
-                    className="hidden"
-                />
-                <p className="text-xs text-gray-400 mt-4">
-                    JPG, PNG, HEIC — максимум 500 фото
-                </p>
-            </div>
-
-            {/* Photo Thumbnail Grid */}
-            {photos.length > 0 && (
-                <div className="mb-8">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                        Завантажені фото ({photos.length})
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 max-h-[400px] overflow-y-auto p-2">
-                        {photos.map((photo) => {
-                            const quality = checkPhotoQuality(photo);
-                            return (
-                                <div key={photo.id} className="relative group">
-                                    <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 hover:border-[#1e2d7d] transition-colors">
-                                        <img
-                                            src={photo.preview}
-                                            alt="Photo"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                    {!quality.ok && (
-                                        <div className="absolute top-1 left-1 bg-yellow-500 rounded-full p-1">
-                                            <AlertTriangle className="w-3 h-3 text-white" />
-                                        </div>
-                                    )}
-                                    <button
-                                        onClick={() => removePhoto(photo.id)}
-                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* Configuration Section */}
-            {photos.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-                    <h3 className="text-xl font-bold text-[#1e2d7d] mb-6">Налаштування друку</h3>
-
-                    <div className="space-y-6">
-                        {/* Size Selector */}
-                        {sizeOptions.length > 0 && (
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Розмір <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={selectedSize}
-                                    onChange={(e) => setSelectedSize(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
-                                >
-                                    {sizeOptions.map((option) => (
-                                        <option key={option.name} value={option.name}>
-                                            {option.name} {option.price ? `— ${option.price} ₴` : ''}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-
-                        {/* Finish Selector */}
-                        {finishOptions.length > 0 && (
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Покриття <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={selectedFinish}
-                                    onChange={(e) => setSelectedFinish(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
-                                >
-                                    {finishOptions.map((option) => (
-                                        <option key={option.name} value={option.name}>
-                                            {option.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-
-                        {/* Border Selector */}
-                        {borderOptions.length > 0 && (
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Біла рамочка 3мм
-                                </label>
-                                <select
-                                    value={selectedBorder}
-                                    onChange={(e) => setSelectedBorder(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
-                                >
-                                    {borderOptions.map((option) => (
-                                        <option key={option.name} value={option.name}>
-                                            {option.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-
-                        {/* Real-time Price Display */}
-                        <div className="pt-4 border-t border-gray-200">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-gray-600">Кількість фото:</span>
-                                <span className="font-semibold text-gray-800">{photos.length}</span>
-                            </div>
-                            {selectedSize && (
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-gray-600">Ціна за 1 фото:</span>
-                                    <span className="font-semibold text-gray-800">
-                                        {(() => {
-                                            const option = sizeOptions.find(o => o.name === selectedSize);
-                                            if (option) {
-                                                if (option.price !== undefined) {
-                                                    return option.price;
-                                                } else if (option.priceModifier !== undefined) {
-                                                    return (product.price || 0) + option.priceModifier;
-                                                }
-                                            }
-                                            return product.price;
-                                        })()} ₴
-                                    </span>
-                                </div>
-                            )}
-                            <div className="flex justify-between items-center text-lg pt-2 border-t">
-                                <span className="font-bold text-gray-800">Загальна вартість:</span>
-                                <span className="font-bold text-[#1e2d7d] text-2xl">{totalPrice} ₴</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Order Summary (if showSummary is true) */}
-            {showSummary && photos.length > 0 && (
-                <div className="bg-[#f0f2f8] rounded-xl border border-[#1e2d7d]/20 p-6 mb-8">
-                    <h3 className="text-xl font-bold text-[#1e2d7d] mb-4">Підсумок замовлення</h3>
-                    <div className="space-y-3">
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">Продукт:</span>
-                            <span className="font-semibold text-gray-800">{product.name}</span>
-                        </div>
-                        {selectedSize && (
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Розмір:</span>
-                                <span className="font-semibold text-gray-800">{selectedSize}</span>
-                            </div>
-                        )}
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">Покриття:</span>
-                            <span className="font-semibold text-gray-800">{selectedFinish}</span>
-                        </div>
-                        {selectedBorder && (
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Біла рамочка:</span>
-                                <span className="font-semibold text-gray-800">{selectedBorder}</span>
-                            </div>
-                        )}
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">Кількість фото:</span>
-                            <span className="font-semibold text-gray-800">{photos.length}</span>
-                        </div>
-                        <div className="flex justify-between pt-3 border-t text-lg">
-                            <span className="font-bold text-gray-800">Загальна вартість:</span>
-                            <span className="font-bold text-[#1e2d7d] text-2xl">{totalPrice} ₴</span>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Action Buttons */}
-            {photos.length > 0 && (
-                <div className="flex gap-4">
-                    {!showSummary ? (
-                        <button
-                            onClick={() => setShowSummary(true)}
-                            className="flex-1 flex items-center justify-center gap-2 px-8 py-4 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] transition-colors text-lg"
-                        >
-                            Переглянути підсумок
-                        </button>
-                    ) : (
-                        <>
-                            <button
-                                onClick={() => setShowSummary(false)}
-                                className="flex-1 px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-lg"
-                            >
-                                Назад до редагування
-                            </button>
-                            <button
-                                onClick={handleAddToCart}
-                                className="flex-1 flex items-center justify-center gap-2 px-8 py-4 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] transition-colors text-lg"
-                            >
-                                <ShoppingCart className="w-5 h-5" />
-                                Додати до кошика
-                            </button>
-                        </>
-                    )}
-                </div>
-            )}
+  return (
+    <div style={{ display: 'inline-block', position: 'relative' }}>
+      <div
+        style={{ width: canvasW, height: canvasH, position: 'relative', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', userSelect: 'none' }}
+        onWheel={handleWheel}
+      >
+        {/* Photo area */}
+        <div style={{
+          position: 'absolute',
+          left: borderPx, top: borderPx,
+          width: photoAreaW, height: photoAreaH,
+          overflow: 'hidden', cursor: 'grab',
+          background: '#f0f0f0',
+        }}
+          onMouseDown={handleMouseDown}
+        >
+          <img
+            src={photo.preview}
+            draggable={false}
+            style={{
+              width: `${(photo.zoom||1)*100}%`,
+              height: `${(photo.zoom||1)*100}%`,
+              objectFit: 'cover',
+              objectPosition: `${photo.cropX}% ${photo.cropY}%`,
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%,-50%)',
+              userSelect: 'none', pointerEvents: 'none',
+            }}
+          />
         </div>
-    );
+
+        {/* White border areas */}
+        {(showBorder || isNonstandard || isPolaroid) && (
+          <>
+            {/* top */}
+            <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:borderPx, background:'#fff', pointerEvents:'none' }}/>
+            {/* bottom */}
+            <div style={{ position:'absolute', left:0, bottom:0, width:canvasW, height:borderBottomPx, background:'#fff', pointerEvents:'none' }}/>
+            {/* left */}
+            <div style={{ position:'absolute', left:0, top:0, width:borderPx, height:canvasH, background:'#fff', pointerEvents:'none' }}/>
+            {/* right */}
+            <div style={{ position:'absolute', right:0, top:0, width:borderPx, height:canvasH, background:'#fff', pointerEvents:'none' }}/>
+          </>
+        )}
+
+        {/* Crop marks (corner + edge lines in grey) */}
+        {[
+          // Top-left
+          { x: borderPx - cropMarkGap - cropMarkLen, y: borderPx, w: cropMarkLen, h: 1 },
+          { x: borderPx, y: borderPx - cropMarkGap - cropMarkLen, w: 1, h: cropMarkLen },
+          // Top-right
+          { x: borderPx + photoAreaW + cropMarkGap, y: borderPx, w: cropMarkLen, h: 1 },
+          { x: borderPx + photoAreaW, y: borderPx - cropMarkGap - cropMarkLen, w: 1, h: cropMarkLen },
+          // Bottom-left
+          { x: borderPx - cropMarkGap - cropMarkLen, y: borderPx + photoAreaH, w: cropMarkLen, h: 1 },
+          { x: borderPx, y: borderPx + photoAreaH + cropMarkGap, w: 1, h: cropMarkLen },
+          // Bottom-right
+          { x: borderPx + photoAreaW + cropMarkGap, y: borderPx + photoAreaH, w: cropMarkLen, h: 1 },
+          { x: borderPx + photoAreaW, y: borderPx + photoAreaH + cropMarkGap, w: 1, h: cropMarkLen },
+        ].map((line, i) => (
+          <div key={i} style={{ position:'absolute', left:line.x, top:line.y, width:line.w, height:line.h, background:'#aaa', pointerEvents:'none' }}/>
+        ))}
+
+        {/* Polaroid handwriting area hint */}
+        {isPolaroid && (
+          <div style={{ position:'absolute', left:borderPx, bottom:4, width:photoAreaW, textAlign:'center', fontSize:9, color:'#bbb', pointerEvents:'none', letterSpacing:'0.1em' }}>
+            напис тут
+          </div>
+        )}
+
+        {/* Zoom indicator */}
+        {(photo.zoom||1) !== 1 && (
+          <div style={{ position:'absolute', bottom:borderBottomPx+4, right:borderPx+4, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:8, pointerEvents:'none' }}>
+            {Math.round((photo.zoom||1)*100)}%
+          </div>
+        )}
+      </div>
+
+      {/* Zoom controls */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:6 }}>
+        <button onClick={() => onCropChange(photo.id, photo.cropX, photo.cropY, Math.max(0.5,(photo.zoom||1)-0.1))}
+          style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14 }}>−</button>
+        <span style={{ fontSize:11, fontWeight:700, color:'#475569', minWidth:40, textAlign:'center' }}>{Math.round((photo.zoom||1)*100)}%</span>
+        <button onClick={() => onCropChange(photo.id, photo.cropX, photo.cropY, Math.min(3,(photo.zoom||1)+0.1))}
+          style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14 }}>+</button>
+        <button onClick={() => onCropChange(photo.id, 50, 50, 1)}
+          style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:10, color:'#64748b' }}>↺</button>
+      </div>
+      <p style={{ fontSize:10, color:'#94a3b8', textAlign:'center', marginTop:4 }}>Тягніть фото для кадрування • коліщатко для масштабу</p>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstructorProps) {
+  const { addItem } = useCartStore();
+  const [photos, setPhotos] = useState<PhotoFile[]>([]);
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [dragging, setDragging] = useState(false);
+  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedFinish, setSelectedFinish] = useState('');
+  const [selectedBorder, setSelectedBorder] = useState('none');
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+  const isPolaroid = productSlug === 'polaroid-print';
+  const isNonstandard = productSlug === 'photoprint-nonstandard';
+
+  useEffect(() => {
+    async function fetchProduct() {
+      const { data } = await supabase.from('products').select('*').eq('slug', productSlug).eq('is_active', true).single();
+      if (data) {
+        setProduct(data);
+        const options = (data.options as ProductOption[]) || [];
+        const sizeOpt = options.find(o => o.name === 'Розмір');
+        const sizes = sizeOpt?.values || sizeOpt?.options?.map(o=>({name:o.label})) || [];
+        if (sizes.length > 0) setSelectedSize(sizes[0].name || '');
+        const finishOpt = options.find(o => o.name === 'Покриття');
+        const finishes = finishOpt?.values || finishOpt?.options?.map(o=>({name:o.label})) || [];
+        if (finishes.length > 0) setSelectedFinish(finishes[0].name || '');
+      }
+      setLoading(false);
+    }
+    fetchProduct();
+  }, [productSlug]);
+
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const newPhotos: PhotoFile[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('image/')) continue;
+      if (photos.length + newPhotos.length >= 500) { toast.error('Максимум 500 фото'); break; }
+      const preview = URL.createObjectURL(file);
+      try {
+        const img = await new Promise<HTMLImageElement>((res, rej) => { const im = new window.Image(); im.onload=()=>res(im); im.onerror=rej; im.src=preview; });
+        newPhotos.push({ id: Math.random().toString(36).slice(7), file, preview, width: img.width, height: img.height, cropX: 50, cropY: 50, zoom: 1 });
+      } catch { URL.revokeObjectURL(preview); }
+    }
+    setPhotos(prev => [...prev, ...newPhotos]);
+    if (newPhotos.length) { toast.success(`Завантажено ${newPhotos.length} фото`); setActivePhotoIdx(photos.length); }
+  };
+
+  const updateCrop = (id: string, cropX: number, cropY: number, zoom: number) => {
+    setPhotos(prev => prev.map(p => p.id === id ? { ...p, cropX, cropY, zoom } : p));
+  };
+
+  const removePhoto = (id: string) => {
+    setPhotos(prev => { const updated = prev.filter(p => p.id !== id); if (activePhotoIdx >= updated.length) setActivePhotoIdx(Math.max(0, updated.length - 1)); return updated; });
+  };
+
+  // Parse size key from label like "10×15 см — 8 грн" → "10x15"
+  const getSizeKey = (label: string): string => {
+    const m = label.match(/(\d+)[×x](\d+)/);
+    return m ? `${m[1]}x${m[2]}` : '';
+  };
+
+  const getSizeOptions = () => {
+    if (!product) return [];
+    const opts = (product.options as ProductOption[]) || [];
+    const sizeOpt = opts.find(o => o.name === 'Розмір');
+    return sizeOpt?.values || sizeOpt?.options?.map(o=>({name:o.label, price:o.price})) || [];
+  };
+
+  const getFinishOptions = () => {
+    if (!product) return [];
+    const opts = (product.options as ProductOption[]) || [];
+    const fOpt = opts.find(o => o.name === 'Покриття');
+    return fOpt?.values || fOpt?.options?.map(o=>({name:o.label})) || [];
+  };
+
+  const calculatePrice = () => {
+    if (!product || photos.length === 0) return 0;
+    const sizeOptions = getSizeOptions();
+    let unitPrice = product.price || 0;
+    if (selectedSize) {
+      const sel = sizeOptions.find(o => o.name === selectedSize);
+      if (sel?.price !== undefined) unitPrice = sel.price;
+    }
+    return unitPrice * photos.length;
+  };
+
+  const handleAddToCart = () => {
+    if (photos.length === 0) { toast.error('Додайте хоча б одне фото'); return; }
+    addItem({
+      id: `${product.id}_${Date.now()}`,
+      product_id: product.id, name: product.name,
+      price: calculatePrice(), qty: 1,
+      image: product.images?.[0] || '', slug: product.slug,
+      options: { 'Кількість фото': photos.length.toString(), ...(selectedSize && {'Розмір': selectedSize}), ...(selectedFinish && {'Покриття': selectedFinish}), ...(!isNonstandard && !isPolaroid && {'Біла рамочка': selectedBorder === 'with' ? 'Так' : 'Ні'}) },
+      personalization_note: `${photos.length} фото для друку`
+    });
+    toast.success('Додано до кошика!');
+    setPhotos([]);
+  };
+
+  if (loading) return <div className="flex items-center justify-center py-12 text-gray-500">Завантаження...</div>;
+  if (!product) return <div className="flex items-center justify-center py-12 text-red-500">Продукт не знайдено</div>;
+
+  const activePhoto = photos[activePhotoIdx];
+  const sizeOptions = getSizeOptions();
+  const finishOptions = getFinishOptions();
+  const sizeKey = getSizeKey(selectedSize);
+  const showBorder = !isNonstandard && !isPolaroid && selectedBorder === 'with';
+  const hasBorderOption = !isNonstandard && !isPolaroid && (product.options as ProductOption[])?.some(o => o.name === 'Біла рамочка 3мм');
+
+  return (
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px', fontFamily: 'var(--font-primary, sans-serif)' }}>
+      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>{product.name}</h1>
+      <p style={{ color: '#64748b', marginBottom: 24 }}>{product.short_description}</p>
+
+      <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+
+        {/* LEFT: Preview */}
+        <div style={{ flex: '0 0 auto' }}>
+          {activePhoto ? (
+            <div>
+              <PhotoPreview
+                photo={activePhoto}
+                sizeKey={sizeKey || '10x15'}
+                showBorder={showBorder}
+                isPolaroid={isPolaroid}
+                isNonstandard={isNonstandard}
+                onCropChange={updateCrop}
+              />
+              {/* Photo navigation */}
+              {photos.length > 1 && (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:12 }}>
+                  <button onClick={() => setActivePhotoIdx(i=>Math.max(0,i-1))} disabled={activePhotoIdx===0}
+                    style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', opacity:activePhotoIdx===0?0.3:1 }}>←</button>
+                  <span style={{ fontSize:12, color:'#64748b', fontWeight:600 }}>{activePhotoIdx+1} / {photos.length}</span>
+                  <button onClick={() => setActivePhotoIdx(i=>Math.min(photos.length-1,i+1))} disabled={activePhotoIdx===photos.length-1}
+                    style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', opacity:activePhotoIdx===photos.length-1?0.3:1 }}>→</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Upload placeholder */
+            <div
+              onDrop={async e => { e.preventDefault(); setDragging(false); await handleFileSelect(e.dataTransfer.files); }}
+              onDragOver={e => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onClick={() => fileInputRef.current?.click()}
+              style={{ width:320, height:280, border:`2px dashed ${dragging?'#1e2d7d':'#cbd5e1'}`, borderRadius:12, background:dragging?'#dbeafe':'#f8fafc', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12, cursor:'pointer', transition:'all 0.2s' }}>
+              <Upload size={40} color="#1e2d7d" />
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontWeight:700, color:'#1e2d7d', fontSize:15 }}>Завантажте фото</div>
+                <div style={{ color:'#94a3b8', fontSize:12, marginTop:4 }}>або перетягніть сюди</div>
+              </div>
+              <button style={{ padding:'8px 20px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>
+                Вибрати фото
+              </button>
+            </div>
+          )}
+
+          {/* Thumbnail strip */}
+          {photos.length > 0 && (
+            <div style={{ display:'flex', gap:6, marginTop:12, flexWrap:'wrap', maxWidth:320 }}>
+              {photos.map((ph, idx) => (
+                <div key={ph.id} onClick={() => setActivePhotoIdx(idx)}
+                  style={{ position:'relative', width:52, height:52, borderRadius:6, overflow:'hidden', border:idx===activePhotoIdx?'2px solid #1e2d7d':'2px solid transparent', cursor:'pointer', flexShrink:0 }}>
+                  <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  <button onClick={e=>{e.stopPropagation();removePhoto(ph.id);}} style={{ position:'absolute',top:1,right:1,width:16,height:16,borderRadius:'50%',background:'rgba(239,68,68,0.85)',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',opacity:0 }} className="thumb-del">×</button>
+                </div>
+              ))}
+              <style>{`.thumb-del{opacity:0!important} div:hover>.thumb-del{opacity:1!important}`}</style>
+              {/* Add more */}
+              <div onClick={() => fileInputRef.current?.click()} style={{ width:52, height:52, borderRadius:6, border:'2px dashed #cbd5e1', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#94a3b8', fontSize:20, flexShrink:0 }}>+</div>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT: Options */}
+        <div style={{ flex:1, minWidth:260 }}>
+          <div style={{ background:'#fff', borderRadius:12, border:'1px solid #e2e8f0', padding:20, marginBottom:16 }}>
+            <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:16 }}>Налаштування</h3>
+
+            {/* Photo counter */}
+            <div style={{ padding:'10px 14px', borderRadius:8, background:photos.length===0?'#fff7ed':'#eff6ff', border:`1px solid ${photos.length===0?'#fed7aa':'#bfdbfe'}`, marginBottom:16 }}>
+              <span style={{ fontWeight:700, color:photos.length===0?'#c2410c':'#1d4ed8', fontSize:13 }}>{photos.length}/500 фотографій</span>
+            </div>
+
+            {/* Size */}
+            {sizeOptions.length > 0 && (
+              <div style={{ marginBottom:16 }}>
+                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>Розмір *</label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                  {sizeOptions.map(opt => (
+                    <button key={opt.name} onClick={() => setSelectedSize(opt.name)}
+                      style={{ padding:'6px 12px', border:selectedSize===opt.name?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:selectedSize===opt.name?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:selectedSize===opt.name?'#1e2d7d':'#374151' }}>
+                      {opt.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Finish */}
+            {finishOptions.length > 0 && (
+              <div style={{ marginBottom:16 }}>
+                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>Покриття</label>
+                <div style={{ display:'flex', gap:6 }}>
+                  {finishOptions.map(opt => (
+                    <button key={opt.name} onClick={() => setSelectedFinish(opt.name)}
+                      style={{ padding:'6px 14px', border:selectedFinish===opt.name?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:selectedFinish===opt.name?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:selectedFinish===opt.name?'#1e2d7d':'#374151' }}>
+                      {opt.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Border */}
+            {hasBorderOption && (
+              <div style={{ marginBottom:16 }}>
+                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>Біла рамочка 3мм</label>
+                <div style={{ display:'flex', gap:6 }}>
+                  {[{v:'none',l:'Без рамочки'},{v:'with',l:'З рамочкою'}].map(({v,l}) => (
+                    <button key={v} onClick={() => setSelectedBorder(v)}
+                      style={{ padding:'6px 14px', border:selectedBorder===v?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:selectedBorder===v?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:selectedBorder===v?'#1e2d7d':'#374151' }}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Nonstandard info */}
+            {isNonstandard && (
+              <div style={{ padding:'10px 14px', borderRadius:8, background:'#f0fdf4', border:'1px solid #bbf7d0', marginBottom:16 }}>
+                <p style={{ fontSize:12, color:'#15803d', fontWeight:600, margin:0 }}>✓ Автоматична біла рамка 3мм</p>
+              </div>
+            )}
+
+            {/* Price */}
+            <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:14 }}>
+              {selectedSize && photos.length > 0 && (
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                  <span style={{ fontSize:13, color:'#64748b' }}>{photos.length} фото × {(() => { const s = sizeOptions.find(o=>o.name===selectedSize); return s?.price ?? product.price ?? 0; })()} ₴</span>
+                </div>
+              )}
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontWeight:800, fontSize:16, color:'#1e2d7d' }}>Разом:</span>
+                <span style={{ fontWeight:900, fontSize:26, color:'#1e2d7d' }}>{calculatePrice()} ₴</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Add to cart */}
+          <button onClick={handleAddToCart} disabled={photos.length===0}
+            style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px', background:photos.length===0?'#94a3b8':'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:16, cursor:photos.length===0?'not-allowed':'pointer', boxShadow:photos.length===0?'none':'0 4px 16px rgba(30,45,125,0.3)', transition:'all 0.2s' }}>
+            <ShoppingCart size={18} /> Додати до кошика
+          </button>
+
+          <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={e=>handleFileSelect(e.target.files)} style={{ display:'none' }} />
+        </div>
+      </div>
+    </div>
+  );
 }
