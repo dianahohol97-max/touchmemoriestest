@@ -454,15 +454,22 @@ export default function BookLayoutEditor() {
             {leftTab === 'cover' && currentIdx === 0 && (
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 <div style={{ fontSize:11, fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.08em' }}>Оздоблення</div>
-                {[
-                  { id:'none',        label:'Без оздоблення' },
-                  { id:'acrylic',     label:'Акрил' },
-                  { id:'photo_insert',label:'Фотовставка' },
-                  { id:'flex',        label:'Флекс' },
-                  { id:'metal',       label:'Металева вставка' },
-                  { id:'engraving',   label:'Гравіювання' },
-                ].map(opt => (
-                  <button key={opt.id} onClick={() => setCoverState(prev => ({ ...prev, decoType: opt.id as CoverDecoType }))}
+                {(config.selectedCoverType?.toLowerCase().includes('шкір') ? [
+                  { id:'none', label:'Без оздоблення' },
+                  { id:'acryl', label:'Акрил' },
+                  { id:'photovstavka', label:'Фотовставка' },
+                  { id:'metal', label:'Металева вставка' },
+                  { id:'flex', label:'Флекс' },
+                ] : [
+                  { id:'none', label:'Без оздоблення' },
+                  { id:'acryl', label:'Акрил' },
+                  { id:'photovstavka', label:'Фотовставка' },
+                  { id:'metal', label:'Металева вставка' },
+                  { id:'flex', label:'Флекс' },
+                  { id:'graviruvannya', label:'Гравірування' },
+                ]).map(opt => (
+                  <button key={opt.id}
+                    onClick={() => setCoverState(prev => ({ ...prev, decoType: opt.id as CoverDecoType, decoVariant: '' }))}
                     style={{ padding:'8px 12px', border: coverState.decoType===opt.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:8, background: coverState.decoType===opt.id ? '#f0f3ff' : '#fff', cursor:'pointer', fontWeight:600, fontSize:12, color: coverState.decoType===opt.id ? '#1e2d7d' : '#374151', textAlign:'left' }}>
                     {opt.label}
                   </button>
