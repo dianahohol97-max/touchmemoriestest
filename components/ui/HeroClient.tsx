@@ -111,7 +111,7 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
               href={pill.url}
               style={{
                 padding: '0.5rem 1.5rem',
-                borderRadius: '9999px',
+                borderRadius: '10px',
                 border: '1px solid rgba(255,255,255,0.3)',
                 background: 'rgba(255,255,255,0.1)',
                 backdropFilter: 'blur(12px)',
