@@ -475,8 +475,66 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             setCustomProductOptions(options);
                                             setDynamicPrice(calculatedPrice ?? null);
                                         }}
-                                        productOptions={product.options && Array.isArray(product.options) ? product.options : undefined}
                                     />
+
+                                    {/* Conditional decoration sub-options from product.options JSON */}
+                                    {product.options && Array.isArray(product.options) && (() => {
+                                        const SUBTYPE_MAP: Record<string, string> = {
+                                            'Варіант акрилу': 'acryl',
+                                            'Варіант фотовставки': 'photovstavka',
+                                            'Варіант металевої вставки': 'metal',
+                                            'Варіант тиснення': 'tisnennya',
+                                            'Варіант гравірування': 'graviruvannya',
+                                        };
+                                        // Get current Оздоблення value
+                                        const ozdoblennya = customProductOptions['Тип оздоблення'] || customProductOptions['Оздоблення'] || '';
+                                        const ozdoblennyaValue = (() => {
+                                            // Find the Оздоблення option group to get the raw value
+                                            const ozGroup = product.options.find((o: any) => o.name === 'Оздоблення');
+                                            if (!ozGroup?.options) return '';
+                                            const selected = ozGroup.options.find((o: any) => o.label === ozdoblennya);
+                                            return selected?.value || '';
+                                        })();
+
+                                        return product.options
+                                            .filter((opt: any) => {
+                                                const requiredParent = SUBTYPE_MAP[opt.name];
+                                                if (!requiredParent) return false; // Not a subtype group
+                                                return ozdoblennyaValue === requiredParent;
+                                            })
+                                            .map((opt: any) => {
+                                                const items = opt.options || opt.values || [];
+                                                if (!items.length) return null;
+                                                return (
+                                                    <div key={opt.name}>
+                                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e2d7d' }}>
+                                                            {opt.name}
+                                                        </label>
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                                            {items.map((item: any, i: number) => {
+                                                                const label = item.label || item.name || item;
+                                                                const value = item.value || item.name || item;
+                                                                const price = item.price || 0;
+                                                                const isSelected = customProductOptions[opt.name] === value;
+                                                                return (
+                                                                    <button key={i} type="button"
+                                                                        onClick={() => {
+                                                                            setCustomProductOptions(prev => ({ ...prev, [opt.name]: value }));
+                                                                        }}
+                                                                        className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                                                                            isSelected
+                                                                                ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
+                                                                                : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
+                                                                        }`}>
+                                                                        {label}{price > 0 ? ` (+${price} ₴)` : ''}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            });
+                                    })()}
 
                                     <div>
                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>Кількість</label>
