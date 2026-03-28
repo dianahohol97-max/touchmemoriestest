@@ -250,10 +250,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     else if (dynamicPrice !== null && dynamicPrice > 0) {
         finalPrice = dynamicPrice;
     }
-    // Source 3: Generic — base_price + sum of selected modifiers from product.options
-    else if (product.options && Array.isArray(product.options)) {
-        let modifierTotal = 0;
+
+    // Source 3: ALWAYS add modifiers from product.options that aren't covered by sources 1-2
+    // This catches DB-only options like "Верстка тексту" that hardcoded PRODUCT_OPTIONS doesn't know about
+    if (product.options && Array.isArray(product.options)) {
+        // Names already handled by ProductOptionsSelector (hardcoded PRODUCT_OPTIONS)
+        const hardcodedNames = new Set(['Розмір', 'Кількість сторінок', 'Тип обкладинки',
+            'Калька перед першою сторінкою', 'Тип ламінації', 'Текст']);
+
+        let extraModifiers = 0;
         product.options.forEach((opt: any) => {
+            // Skip options already accounted for in dynamicPrice or photobook lookup
+            if (hardcodedNames.has(opt.name)) return;
+
             const selected = customProductOptions[opt.name];
             if (selected === undefined) return;
             const items = opt.options || opt.values || [];
@@ -262,10 +271,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 i.label === selected || i.name === selected
             );
             if (match && typeof match === 'object') {
-                modifierTotal += Number(match.price || match.priceModifier || 0);
+                extraModifiers += Number(match.price || match.priceModifier || 0);
             }
         });
-        finalPrice += modifierTotal;
+        finalPrice += extraModifiers;
     }
 
     const handleAddToCart = () => {
@@ -471,10 +480,53 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         slug={product.slug || ''}
                                         selectedOptions={customProductOptions}
                                         onChange={(options, calculatedPrice) => {
-                                            setCustomProductOptions(options);
+                                            setCustomProductOptions(prev => ({ ...prev, ...options }));
                                             setDynamicPrice(calculatedPrice ?? null);
                                         }}
                                     />
+
+                                    {/* DB-only options not rendered by ProductOptionsSelector */}
+                                    {product.options && Array.isArray(product.options) && (() => {
+                                        const hardcodedNames = new Set(['Розмір', 'Кількість сторінок', 'Тип обкладинки',
+                                            'Калька перед першою сторінкою', 'Тип ламінації', 'Текст', 'Оздоблення',
+                                            'Варіант акрилу', 'Варіант фотовставки', 'Варіант металевої вставки',
+                                            'Варіант тиснення', 'Варіант гравірування', 'Корінець']);
+                                        return product.options
+                                            .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0))
+                                            .map((opt: any) => {
+                                                const items = opt.options || opt.values || [];
+                                                return (
+                                                    <div key={opt.name}>
+                                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e2d7d' }}>
+                                                            {opt.name}
+                                                        </label>
+                                                        <select
+                                                            value={customProductOptions[opt.name] || ''}
+                                                            onChange={(e) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: e.target.value }))}
+                                                            style={{
+                                                                width: '100%', padding: '10px 14px',
+                                                                border: customProductOptions[opt.name] ? '2px solid #1e2d7d' : '1px solid #d1d5db',
+                                                                borderRadius: '8px', fontSize: '14px', cursor: 'pointer',
+                                                                backgroundColor: customProductOptions[opt.name] ? '#f0f3ff' : 'white',
+                                                                color: customProductOptions[opt.name] ? '#1e2d7d' : '#64748b',
+                                                                fontWeight: customProductOptions[opt.name] ? 700 : 400,
+                                                            }}
+                                                        >
+                                                            {items.map((item: any, idx: number) => {
+                                                                const label = item.label || item.name || item;
+                                                                const value = item.value || item.name || item;
+                                                                const price = Number(item.price || 0);
+                                                                return (
+                                                                    <option key={idx} value={value}>
+                                                                        {label}{price > 0 ? ` (+${price} ₴)` : ''}
+                                                                    </option>
+                                                                );
+                                                            })}
+                                                        </select>
+                                                    </div>
+                                                );
+                                            });
+                                    })()}
 
                                     {/* Conditional decoration sub-options from product.options JSON */}
                                     {product.options && Array.isArray(product.options) && (() => {
