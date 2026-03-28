@@ -94,13 +94,26 @@ function makeSlots(count: number): SlotData[] {
   return Array.from({ length: count }, () => ({ photoId: null, cropX: 50, cropY: 50 }));
 }
 
+// Real page proportions in mm (width = single page width, height = page height)
+const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
+  '20×20': { w: 200, h: 200 },
+  '25×25': { w: 250, h: 250 },
+  '20×30': { w: 200, h: 300 },
+  '30×20': { w: 300, h: 200 },
+  '30×30': { w: 300, h: 300 },
+  'A4':    { w: 210, h: 297 },
+};
+// Canvas fits inside 700px wide area
+const MAX_CANVAS_W = 700;
+const MAX_CANVAS_H = 480;
+// Legacy alias kept for LayoutPreview
 const SPREAD_DIMENSIONS: Record<string, { width: number; height: number }> = {
-  '20×20': { width: 400, height: 200 },
-  '25×25': { width: 500, height: 250 },
-  '20×30': { width: 420, height: 300 },
-  '30×20': { width: 600, height: 200 },
-  '30×30': { width: 600, height: 300 },
-  'A4':    { width: 420, height: 297 },
+  '20×20': { width: 200, height: 200 },
+  '25×25': { width: 250, height: 250 },
+  '20×30': { width: 200, height: 300 },
+  '30×20': { width: 300, height: 200 },
+  '30×30': { width: 300, height: 300 },
+  'A4':    { width: 210, height: 297 },
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -159,12 +172,17 @@ export default function BookLayoutEditor() {
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) : null;
   const usedIds = new Set(spreads.flatMap(s => s.slots.map(sl => sl.photoId).filter(Boolean)));
   const currentSpread = spreads[currentIdx];
-  const dims = config?.selectedSize
-    ? SPREAD_DIMENSIONS[config.selectedSize.replace(/[хxX]/g, '×')] || SPREAD_DIMENSIONS['A4']
-    : SPREAD_DIMENSIONS['A4'];
+  const sizeKey = config?.selectedSize?.replace(/[хxX]/g, '×') || 'A4';
+  const dims = SPREAD_DIMENSIONS[sizeKey] || SPREAD_DIMENSIONS['A4'];
+  const prop = PAGE_PROPORTIONS[sizeKey] || PAGE_PROPORTIONS['A4'];
+  // Spread = 2 pages wide, so aspect = (2*w) / h
+  const spreadAspect = (2 * prop.w) / prop.h;
+  // Fit into MAX area respecting aspect ratio, then apply zoom
+  const baseW = Math.min(MAX_CANVAS_W, MAX_CANVAS_H * spreadAspect);
+  const baseH = baseW / spreadAspect;
   const scale = zoom / 100;
-  const canvasW = dims.width * scale * 2;
-  const canvasH = dims.height * scale;
+  const canvasW = baseW * scale;
+  const canvasH = baseH * scale;
   const allFilled = spreads.every(s => s.slots.every(sl => sl.photoId !== null));
 
   // ─── Layout change ───
