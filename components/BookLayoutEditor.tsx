@@ -227,8 +227,9 @@ export default function BookLayoutEditor() {
     const total = m ? parseInt(m[0]) : 20;
     const ps: Page[] = [];
     ps.push({ id: 0, label: 'Обкладинка', layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
-    for (let i = 1; i <= total; i++) {
-      ps.push({ id: i, label: `Стор. ${i}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
+    // Content pages in pairs (spreads)
+    for (let i = 1; i <= total; i += 2) {
+      ps.push({ id: i, label: `${i}–${Math.min(i+1, total)}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
     }
     setPages(ps);
   }, [config]);
@@ -239,10 +240,12 @@ export default function BookLayoutEditor() {
 
   const sizeKey = config?.selectedSize ?? 'A4';
   const prop = PAGE_PROPORTIONS[sizeKey] ?? PAGE_PROPORTIONS['A4'];
+  // Spread = 2 pages side by side
   const baseH = 460;
-  const baseW = baseH * prop.w / prop.h;
-  const cW = baseW * zoom / 100;
+  const baseW = baseH * (2 * prop.w) / prop.h; // spread width = 2 pages
+  const cW = baseW * zoom / 100; // full spread width
   const cH = baseH * zoom / 100;
+  const pageW = cW / 2; // single page width
 
   // Init cover state from config
   useEffect(() => {
@@ -267,19 +270,25 @@ export default function BookLayoutEditor() {
   };
 
   const addFreeSlot = () => {
+    const targetPageIdx = getActivePageIdx();
     const id = 'free-' + Date.now();
     const newSlot: FreeSlot = {
-      id, x: cW * 0.25, y: cH * 0.25,
-      w: cW * 0.4, h: cH * 0.35,
+      id, x: pageW * 0.2, y: cH * 0.2,
+      w: pageW * 0.5, h: cH * 0.4,
       shape: 'rect', photoId: null, cropX: 50, cropY: 50, zoom: 1,
     };
-    setCurFreeSlots(prev => [...prev, newSlot]);
+    setFreeSlots(prev => ({ ...prev, [targetPageIdx]: [...(prev[targetPageIdx]||[]), newSlot] }));
   };
+
+  // In spread view, changeLayout applies to the hovered/selected page side
+  const [activeSide, setActiveSide] = useState<0|1>(0);
+  const getActivePageIdx = () => currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + activeSide;
 
   const changeLayout = (layout: LayoutType) => {
     const def = LAYOUTS.find(l => l.id === layout)!;
+    const targetIdx = getActivePageIdx();
     setPages(prev => prev.map((p, i) => {
-      if (i !== currentIdx) return p;
+      if (i !== targetIdx) return p;
       const ns = makeSlots(def.slots);
       p.slots.forEach((sl, si) => { if (si < ns.length) ns[si].photoId = sl.photoId; });
       return { ...p, layout, slots: ns };
@@ -340,6 +349,24 @@ export default function BookLayoutEditor() {
     const id = 'txt-' + Date.now();
     setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
+  };
+
+  // Per-page text helpers for spread view
+  const onCanvasClickForPage = (e: React.MouseEvent<HTMLDivElement>, pageIdx: number) => {
+    if (!textTool) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const id = 'txt-' + Date.now();
+    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / pageW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
+    setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
+  };
+  const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
+  const deleteTxtForPage = (id: string, pageIdx: number) => { setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) })); setSelectedTextId(null); setEditingTextId(null); };
+  const startTxtDragForPage = (e: React.MouseEvent, id: string, tx: number, ty: number, pageIdx: number) => {
+    e.stopPropagation(); e.preventDefault();
+    txtRef.current = { id, sx: e.clientX, sy: e.clientY, tx, ty };
+    const onMove = (me: MouseEvent) => { if (!txtRef.current) return; updateTxtForPage(txtRef.current.id, { x: Math.max(0,Math.min(95,txtRef.current.tx+((me.clientX-txtRef.current.sx)/pageW)*100)), y: Math.max(0,Math.min(95,txtRef.current.ty+((me.clientY-txtRef.current.sy)/cH)*100)) }, pageIdx); };
+    const onUp = () => { txtRef.current=null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
+    window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
   };
 
   const updateTxt = (id: string, ch: Partial<TextBlock>) => setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
@@ -582,7 +609,7 @@ export default function BookLayoutEditor() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: 32, background: '#f4f6fb' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} style={{ background: 'none', border: 'none', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', opacity: currentIdx === 0 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronLeft size={20} /></button>
-            <span>{cur?.label}</span>
+            <span>{cur?.label || 'Обкладинка'}</span>
             <button onClick={() => setCurrentIdx(i => Math.min(pages.length - 1, i + 1))} disabled={currentIdx === pages.length - 1} style={{ background: 'none', border: 'none', cursor: currentIdx === pages.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIdx === pages.length - 1 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronRight size={20} /></button>
           </div>
 
@@ -603,126 +630,123 @@ export default function BookLayoutEditor() {
               onChange={(cfg: any) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }) }))}
             />
           ) : (
-          <div onClick={onCanvasClick}
-            style={{ position: 'relative', width: cW, height: cH, background: '#fff', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default', flexShrink: 0 }}>
-
-            {slotDefs.map(({ i, s }) => {
-              const slot = cur?.slots[i];
-              const photo = slot ? getPhoto(slot.photoId) : null;
-              const key = `${currentIdx}-${i}`;
-              const isOver = dropTarget === key;
-              return (
-                <div key={i} onDragOver={e => { e.preventDefault(); setDropTarget(key); }} onDragLeave={() => setDropTarget(null)} onDrop={e => onDrop(e, currentIdx, i)}
-                  style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f1f5f9'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1px dashed #cbd5e1'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}>
-                  {photo ? (
-                    <>
-                      {/* Photo with zoom+pan */}
-                      <div
-                        style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
-                        onWheel={e => {
-                          if (photoEditSlot !== key) return;
-                          e.preventDefault();
-                          const delta = e.deltaY > 0 ? -0.05 : 0.05;
-                          const newZoom = Math.max(0.5, Math.min(4, (slot!.zoom || 1) + delta));
-                          const [pi, si] = key.split('-').map(Number);
-                          setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, zoom: newZoom }) }));
-                        }}
-                        onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}
-                      >
-                        <img src={photo.preview} alt=""
-                          onMouseDown={e => { if (photoEditSlot === key) startCrop(e, key, slot!.cropX, slot!.cropY); }}
-                          style={{
-                            width: `${(slot!.zoom || 1) * 100}%`,
-                            height: `${(slot!.zoom || 1) * 100}%`,
-                            objectFit: 'cover',
-                            objectPosition: `${slot!.cropX}% ${slot!.cropY}%`,
-                            userSelect: 'none',
-                            cursor: photoEditSlot === key ? 'grab' : 'default',
-                            display: 'block',
-                            position: 'absolute',
-                            top: '50%', left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                          }}
-                          draggable={false}
-                        />
-                        {/* Photo edit toolbar */}
-                        {photoEditSlot === key && (
-                          <div
-                            onMouseDown={e => e.stopPropagation()}
-                            style={{ position: 'absolute', bottom: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(0,0,0,0.7)', borderRadius: 20, padding: '4px 10px', zIndex: 40, backdropFilter: 'blur(4px)' }}>
-                            <button onClick={e => { e.stopPropagation(); const [pi,si] = key.split('-').map(Number); setPages(prev => prev.map((p,i)=>i!==pi?p:{...p,slots:p.slots.map((sl,j)=>j!==si?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})})); }}
-                              style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, padding: '0 2px', lineHeight: 1 }}>−</button>
-                            <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, minWidth: 32, textAlign: 'center' }}>{Math.round((slot!.zoom||1)*100)}%</span>
-                            <button onClick={e => { e.stopPropagation(); const [pi,si] = key.split('-').map(Number); setPages(prev => prev.map((p,i)=>i!==pi?p:{...p,slots:p.slots.map((sl,j)=>j!==si?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})})); }}
-                              style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, padding: '0 2px', lineHeight: 1 }}>+</button>
-                            <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.3)', margin: '0 2px' }} />
-                            <button onClick={e => { e.stopPropagation(); const [pi,si] = key.split('-').map(Number); setPages(prev => prev.map((p,i)=>i!==pi?p:{...p,slots:p.slots.map((sl,j)=>j!==si?sl:{...sl,zoom:1,cropX:50,cropY:50})})); }}
-                              style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '0 2px' }}>↺</button>
+          <div
+            style={{ position: 'relative', width: cW, height: cH, display: 'flex', flexShrink: 0 }}
+            onClick={currentIdx === 0 ? undefined : onCanvasClick}
+          >
+            {currentIdx === 0 ? (
+              /* Cover page — full width */
+              <div style={{ width: cW, height: cH, position: 'relative', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}>
+                <CoverEditor
+                  canvasW={cW}
+                  canvasH={cH}
+                  sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
+                  config={{
+                    coverMaterial: (config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
+                    coverColorName: config.selectedCoverColor || '',
+                    decoType: coverState.decoType as any,
+                    decoVariant: coverState.decoVariant,
+                    photoId: coverState.photoId,
+                    decoText: coverState.decoText,
+                  }}
+                  photos={photos}
+                  onChange={(cfg) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }) }))}
+                />
+              </div>
+            ) : (
+              /* Spread: left page + right page */
+              <>
+                {[0, 1].map(side => {
+                  const pageIdx = currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + side;
+                  const page = pages[pageIdx];
+                  if (!page) return (
+                    <div key={side} style={{ width: pageW, height: cH, background: '#f8fafc', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? '-4px 0 16px rgba(0,0,0,0.1)' : '4px 0 16px rgba(0,0,0,0.1)' }} />
+                  );
+                  const pageDefs = getSlotDefs(page.layout, pageW, cH);
+                  const pageKey = (si: number) => `${pageIdx}-${si}`;
+                  return (
+                    <div key={side}
+                      style={{ width: pageW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default' }}
+                      onClick={(e) => { if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
+                    >
+                      {pageDefs.map(({ i, s }) => {
+                        const slot = page?.slots[i];
+                        const photo = slot ? getPhoto(slot.photoId) : null;
+                        const key = pageKey(i);
+                        const isOver = dropTarget === key;
+                        return (
+                          <div key={i}
+                            onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
+                            onDragLeave={() => setDropTarget(null)}
+                            onDrop={e => onDrop(e, pageIdx, i)}
+                            style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f1f5f9'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1px dashed #cbd5e1'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
+                          >
+                            {photo ? (
+                              <>
+                                <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
+                                  onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                  onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
+                                  <img src={photo.preview} alt=""
+                                    onMouseDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX, slot!.cropY); }}
+                                    style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}
+                                    draggable={false}/>
+                                  {photoEditSlot===key && (
+                                    <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.7)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
+                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
+                                      <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:28,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
+                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>+</button>
+                                      <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
+                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
+                                    </div>
+                                  )}
+                                </div>
+                                <button onClick={()=>clearSlot(pageIdx,i)} style={{position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity 0.15s'}} className="del-btn"><Trash2 size={10}/></button>
+                                <style>{`.del-btn{opacity:0!important}div:hover>.del-btn{opacity:1!important}`}</style>
+                              </>
+                            ) : (
+                              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:'#94a3b8',gap:4}}>
+                                <ImageIcon size={16}/><span style={{fontSize:9,fontWeight:600}}>Фото</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <button onClick={() => clearSlot(currentIdx, i)} style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.15s' }} className="del-btn">
-                        <Trash2 size={10} />
-                      </button>
-                      <style>{`.del-btn { opacity: 0 !important; } div:hover > .del-btn { opacity: 1 !important; }`}</style>
-                    </>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', gap: 4 }}>
-                      <ImageIcon size={20} /><span style={{ fontSize: 10, fontWeight: 600 }}>Перетягніть фото</span>
+                        );
+                      })}
+                      {/* Text blocks for this page */}
+                      {page?.textBlocks?.map(tb => {
+                        const isSel = selectedTextId === tb.id;
+                        const isEd = editingTextId === tb.id;
+                        return (
+                          <div key={tb.id}
+                            onMouseDown={e=>{e.stopPropagation();setSelectedTextId(tb.id);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
+                            onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);}}
+                            style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex:20,cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30}}>
+                            {isEd?(
+                              <textarea autoFocus defaultValue={tb.text} onBlur={e=>{updateTxtForPage(tb.id,{text:e.target.value},pageIdx);setEditingTextId(null);}} onClick={e=>e.stopPropagation()} style={{background:'transparent',border:'none',outline:'none',fontSize:(tb.fontSize*(zoom/100))+'px',fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',resize:'none',overflow:'hidden',minWidth:60,display:'block'}} rows={2}/>
+                            ):(
+                              <span style={{fontSize:(tb.fontSize*(zoom/100))+'px',fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre',userSelect:'none',textShadow:'0 1px 2px rgba(0,0,0,0.2)'}}>{tb.text}</span>
+                            )}
+                            {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,pageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
+                          </div>
+                        );
+                      })}
+                      {/* Free slots */}
+                      <FreeSlotLayer
+                        slots={freeSlots[pageIdx] || []}
+                        photos={photos}
+                        canvasW={pageW}
+                        canvasH={cH}
+                        dragPhotoId={dragPhotoId}
+                        onChange={(newSlots) => setFreeSlots(prev=>({...prev,[pageIdx]:newSlots}))}
+                      />
+                      {/* Spine shadow */}
+                      {side===0 && <div style={{position:'absolute',right:0,top:0,width:4,height:'100%',background:'linear-gradient(to right,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
+                      {side===1 && <div style={{position:'absolute',left:0,top:0,width:4,height:'100%',background:'linear-gradient(to left,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
+                      {/* Page number */}
+                      <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',fontSize:8,color:'#94a3b8',fontWeight:600,pointerEvents:'none'}}>{pageIdx}</div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {cur?.textBlocks.map(tb => {
-              const isSel = selectedTextId === tb.id;
-              const isEd = editingTextId === tb.id;
-              return (
-                <div key={tb.id}
-                  onMouseDown={e => { e.stopPropagation(); setSelectedTextId(tb.id); if (!isEd) startTxtDrag(e, tb.id, tb.x, tb.y); }}
-                  onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); }}
-                  style={{ position: 'absolute', left: tb.x + '%', top: tb.y + '%', transform: 'translate(-50%,-50%)', zIndex: 20, cursor: isEd ? 'text' : 'move', outline: isSel ? '2px solid #3b82f6' : 'none', borderRadius: 3, padding: '2px 4px', background: isSel ? 'rgba(255,255,255,0.1)' : 'transparent', minWidth: 40 }}>
-                  {isEd ? (
-                    <textarea autoFocus defaultValue={tb.text} onBlur={e => { updateTxt(tb.id, { text: e.target.value }); setEditingTextId(null); }} onClick={e => e.stopPropagation()}
-                      style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: (tb.fontSize * zoom / 100) + 'px', fontFamily: tb.fontFamily, color: tb.color, fontWeight: tb.bold ? 700 : 400, fontStyle: tb.italic ? 'italic' : 'normal', resize: 'none', overflow: 'hidden', minWidth: 80, display: 'block' }} rows={2} />
-                  ) : (
-                    <span style={{ fontSize: (tb.fontSize * zoom / 100) + 'px', fontFamily: tb.fontFamily, color: tb.color, fontWeight: tb.bold ? 700 : 400, fontStyle: tb.italic ? 'italic' : 'normal', display: 'block', whiteSpace: 'pre', userSelect: 'none', textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>{tb.text}</span>
-                  )}
-                  {isSel && !isEd && <button onMouseDown={e => { e.stopPropagation(); deleteTxt(tb.id); }} style={{ position: 'absolute', top: -8, right: -8, width: 18, height: 18, borderRadius: '50%', background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>×</button>}
-                </div>
-              );
-            })}
+                  );
+                })}
+                {/* Box shadow wrap */}
+              </>
+            )}
           </div>
-
-          )}
-          <div style={{ marginTop: 10, fontSize: 11, color: '#94a3b8' }}>
-            {currentIdx === 0 ? 'Перетягніть фото на оздоблення' : textTool ? '↖ Клікніть де додати текст' : 'Затисніть фото для зміни кадрування'}
-          </div>
-        </div>
-
-        {/* RIGHT: PAGE THUMBNAILS */}
-        <div style={{ width: 160, borderLeft: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-          <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Сторінки</span>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>{pages.length}</span>
-          </div>
-          <div style={{ flex: 1, overflow: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {pages.map((pg, idx) => {
-              const active = idx === currentIdx;
-              const ph = getPhoto(pg.slots[0]?.photoId ?? null);
-              return (
-                <button key={pg.id} onClick={() => setCurrentIdx(idx)}
-                  style={{ width: '100%', padding: '4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}>
-                  <div style={{ width: '100%', aspectRatio: `${prop.w}/${prop.h}`, background: ph ? `url(${ph.preview}) center/cover` : '#e8ecf4', borderRadius: 3, marginBottom: 3 }} />
-                  <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#1e2d7d' : '#64748b' }}>{pg.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
