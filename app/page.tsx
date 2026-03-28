@@ -142,7 +142,7 @@ export default async function Home() {
               <div className="space-y-6">
 
                 {travelArticles && travelArticles.map((article: any) => (
-                  <div key={article.id} className="bg-white rounded-[3px] shadow-md overflow-hidden">
+                  <div key={article.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div className="aspect-video bg-gradient-to-br from-[#f0f3ff] to-stone-100 relative overflow-hidden">
                       <img
                         src={article.image_url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'}
@@ -152,11 +152,11 @@ export default async function Home() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-6">
                         {article.category_label && (
-                          <span className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide mb-2">
+                          <span className="inline-block text-white text-[10px] font-bold px-3 py-1 rounded-md uppercase tracking-widest mb-2" style={{ background: "rgba(38,58,153,0.7)", backdropFilter: "blur(4px)", letterSpacing: "0.12em" }}>
                             {article.category_label}
                           </span>
                         )}
-                        <h3 className="text-white hover:text-white/90 text-xl font-serif leading-snug transition-colors">
+                        <h3 className="text-white hover:text-white/90 text-xl font-heading font-bold leading-snug transition-colors">
                           {article.title}
                         </h3>
                       </div>
@@ -180,7 +180,7 @@ export default async function Home() {
 
               {/* RIGHT COLUMN: Travel Book content + constructor visualization */}
               <div className="lg:sticky lg:top-24">
-                <div className="bg-white rounded-lg shadow-lg p-8">
+                <div className="bg-white rounded-xl shadow-sm p-8">
 
                   {/* Heading */}
                   <h2 className="text-4xl lg:text-5xl font-black text-[#1e2d7d] leading-tight mb-6">
@@ -263,13 +263,13 @@ export default async function Home() {
             {/* Header */}
             <div className="flex items-end justify-between mb-12">
               <div>
-                <h2 className="text-3xl lg:text-4xl font-serif font-light text-stone-800">
+                <h2 className="text-3xl lg:text-4xl font-heading font-black text-primary tracking-tight">
                   Ідеї та поради
                 </h2>
               </div>
               <Link
                 href="/blog"
-                className="hidden sm:block text-sm text-stone-500 hover:text-stone-800 tracking-wider uppercase border-b border-stone-300 hover:border-stone-700 pb-0.5 transition-colors"
+                className="hidden sm:block text-sm font-bold text-primary/50 hover:text-primary tracking-widest uppercase transition-colors"
               >
                 Всі статті →
               </Link>
@@ -282,7 +282,7 @@ export default async function Home() {
               {featuredBlogPosts && featuredBlogPosts[0] && (
                 <article className="md:col-span-6 group cursor-pointer">
                   <Link href={`/blog/${featuredBlogPosts[0].slug}`}>
-                    <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/10' }}>
+                    <div className="relative overflow-hidden bg-stone-100 rounded-xl" style={{ aspectRatio: '16/10' }}>
                       <img
                         src={featuredBlogPosts[0].featured_image || 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80'}
                         alt={featuredBlogPosts[0].title}
@@ -291,11 +291,11 @@ export default async function Home() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-6">
                         {featuredBlogPosts[0].category && (
-                          <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
+                          <span className="inline-block text-white text-xs uppercase mb-3" style={{ background: 'rgba(38,58,153,0.75)', borderRadius: '6px', padding: '4px 10px', letterSpacing: '0.1em' }}>
                             {featuredBlogPosts[0].category.name}
                           </span>
                         )}
-                        <h3 className="text-white text-xl lg:text-2xl font-serif leading-snug">
+                        <h3 className="text-white text-xl lg:text-2xl font-heading font-bold leading-snug">
                           {featuredBlogPosts[0].title}
                         </h3>
                         {featuredBlogPosts[0].read_time && (
@@ -313,7 +313,7 @@ export default async function Home() {
                 {featuredBlogPosts && featuredBlogPosts.slice(1, 3).map((post: any) => (
                   <article key={post.id} className="group cursor-pointer flex-1">
                     <Link href={`/blog/${post.slug}`}>
-                      <div className="relative overflow-hidden bg-stone-100" style={{ aspectRatio: '16/9' }}>
+                      <div className="relative overflow-hidden bg-stone-100 rounded-xl" style={{ aspectRatio: '16/9' }}>
                         <img
                           src={post.featured_image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80'}
                           alt={post.title}
@@ -322,11 +322,11 @@ export default async function Home() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-4">
                           {post.category && (
-                            <span className="inline-block text-white text-xs uppercase mb-3" style={{ backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '4px', padding: '4px 10px', letterSpacing: '1.5px' }}>
+                            <span className="inline-block text-white text-xs uppercase mb-3" style={{ background: 'rgba(38,58,153,0.75)', borderRadius: '6px', padding: '4px 10px', letterSpacing: '0.1em' }}>
                               {post.category.name}
                             </span>
                           )}
-                          <h3 className="text-white text-base font-serif leading-snug">
+                          <h3 className="text-white text-base font-heading font-bold leading-snug">
                             {post.title}
                           </h3>
                         </div>

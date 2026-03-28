@@ -32,128 +32,126 @@ interface HeroClientProps {
   siteContent?: Record<string, string>;
 }
 
-export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroClientProps) {
-  const { content, blocks } = useTheme();
+// Exact reference image — photobook on wooden table
+const REFERENCE_BG = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAi6aUgQKQ9hSFhflZSGt68udg-k8aOkxZO9iYck0N6AeNbVuvpGYFq9TP1xG4LwI3jR1PLlGYTs1FvlfnrlEn94z5bAGwGRmnyf7uLwe0uj4o0AosWr_8bEhrJLN_UANMkWGowF755IUoZk8LQt6tj4VdxfAdhPWhef_cqqUq65-Sh34vOTUmHtyHBZEzh_MRZrYHLHusTjEIqt9WaZiw_cRCMafyN14MBI8XLJ8EgWkL90uMWITtKCm1RIjpzGs3uLe4cH2oP4Ow';
 
-  // ── Content from DB / fallback ──────────────────────────────────────────
+// Exact 6 pills from reference with correct category URLs
+const REFERENCE_PILLS = [
+  { id: '1', text: 'Фотокнига', url: '/catalog?category=photobooks' },
+  { id: '2', text: 'Глянцевий журнал', url: '/catalog?category=hlyantsevi-zhurnaly' },
+  { id: '3', text: 'Журнал з твердою обкладинкою', url: '/catalog?category=hlyantsevi-zhurnaly' },
+  { id: '4', text: 'Тревелбук', url: '/catalog?category=travelbooks' },
+  { id: '5', text: 'Книга побажань', url: '/catalog?category=guestbooks' },
+  { id: '6', text: 'Фотоальбоми', url: '/catalog?category=photobooks' },
+];
+
+export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroClientProps) {
+  const { content } = useTheme();
+
   const overlineText =
     heroContent?.overline_text ||
     siteContent['hero_overline'] ||
     content['hero_overline'] ||
-    "Створено з любов\'ю";
-
-  const titleLine1 =
-    heroContent?.title_line1 ||
-    siteContent['hero_title_line1'] ||
-    content['hero_title_line1'] ||
-    'Доторкнись до';
-
-  const titleLine2 =
-    heroContent?.title_line2 ||
-    siteContent['hero_title_line2'] ||
-    content['hero_title_line2'] ||
-    'спогадів';
+    "Створено з любов'ю";
 
   const bgImage =
     heroContent?.background_image_url ||
     siteContent['hero_image_url'] ||
     content['hero_image_url'] ||
-    PRODUCT_IMAGES.hero;
-
-  // ── CTA ─────────────────────────────────────────────────────────────────
-  const ctaText = siteContent['hero_cta_text'] || content['hero_cta_text'] || 'Переглянути каталог';
-  const ctaUrl  = siteContent['hero_cta_url']  || content['hero_cta_url']  || '/catalog';
-
-  // ── Pills: DB buttons або дефолт ────────────────────────────────────────
-  const defaultPills = [
-    { id: '1', button_text: 'Фотокнига',                   button_url: '/catalog?category=photobooks' },
-    { id: '2', button_text: 'Глянцевий журнал',             button_url: '/catalog?category=hlyantsevi-zhurnaly' },
-    { id: '3', button_text: 'Журнал з твердою обкладинкою', button_url: '/catalog?category=hlyantsevi-zhurnaly' },
-    { id: '4', button_text: 'Тревелбук',                    button_url: '/catalog?category=travelbooks' },
-    { id: '5', button_text: 'Книга побажань',               button_url: '/catalog?category=guestbooks' },
-    { id: '6', button_text: 'Фотоальбоми',                  button_url: '/catalog?category=photobooks' },
-  ];
-  const pills = heroButtons.length > 0 ? heroButtons : defaultPills;
+    REFERENCE_BG;
 
   return (
-    <header
-      className="relative w-full flex items-end overflow-hidden"
-      style={{ height: '921px' }}
-    >
+    <header className="relative h-[921px] w-full flex items-end overflow-hidden">
+
       {/* Background image */}
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url('${bgImage}')` }}
       />
 
-      {/* Scrim: transparent → deep navy */}
+      {/* Scrim — exact from reference */}
       <div
         className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(to bottom, rgba(2,16,100,0) 60%, rgba(2,16,100,0.8) 100%)',
-        }}
+        style={{ background: 'linear-gradient(to bottom, rgba(2, 16, 100, 0) 60%, rgba(2, 16, 100, 0.8) 100%)' }}
       />
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-[1440px] mx-auto px-8 pb-20 text-white">
+      <div className="relative z-10 w-full max-w-[1440px] mx-auto px-8 pb-20">
 
         {/* Eyebrow */}
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: easing }}
-          className="font-heading font-bold uppercase text-sm tracking-widest mb-4 opacity-90"
+          style={{ color: '#ffffff', fontFamily: 'inherit', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: '0.875rem', marginBottom: '1rem', opacity: 0.9 }}
         >
           {overlineText}
         </motion.p>
 
-        {/* Headline */}
+        {/* Headline — white, exact size */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: easing, delay: 0.1 }}
-          className="font-heading font-black leading-none tracking-tighter mb-12 max-w-4xl text-white"
-          style={{ fontSize: 'clamp(3.5rem, 8vw, 7rem)' }}
+          style={{ color: '#ffffff', fontSize: 'clamp(3rem, 8vw, 6rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em', marginBottom: '3rem', maxWidth: '56rem' }}
         >
-          {titleLine1} {titleLine2}
+          Доторкнись до спогадів
         </motion.h1>
 
-        {/* Category pills */}
+        {/* Exact 6 pills from reference */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: easing, delay: 0.25 }}
-          className="flex flex-wrap gap-4 mb-10"
+          style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}
         >
-          {pills.map((pill) => (
+          {REFERENCE_PILLS.map((pill) => (
             <Link
               key={pill.id}
-              href={pill.button_url}
-              className="px-6 py-2 rounded-full text-sm font-semibold text-white transition-colors duration-200"
+              href={pill.url}
               style={{
+                padding: '0.5rem 1.5rem',
+                borderRadius: '10px',
                 border: '1px solid rgba(255,255,255,0.3)',
                 background: 'rgba(255,255,255,0.1)',
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
+                color: '#ffffff',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                textDecoration: 'none',
+                transition: 'background 0.2s',
+                whiteSpace: 'nowrap',
               }}
             >
-              {pill.button_text}
+              {pill.text}
             </Link>
           ))}
         </motion.div>
 
-        {/* Primary CTA */}
+        {/* CTA — exact from reference */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: easing, delay: 0.4 }}
         >
           <Link
-            href={ctaUrl}
-            className="inline-flex items-center font-heading font-bold text-lg text-white rounded-full px-10 py-4 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg"
-            style={{ background: '#1E2F85' }}
+            href="/catalog"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: '#1e2a78',
+              color: '#ffffff',
+              padding: '0.65rem 1.75rem',
+              borderRadius: '10px',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              textDecoration: 'none',
+              transition: 'all 0.3s',
+              boxShadow: '0 4px 20px rgba(38,58,153,0.35)',
+            }}
           >
-            {ctaText}
+            Переглянути каталог
           </Link>
         </motion.div>
 

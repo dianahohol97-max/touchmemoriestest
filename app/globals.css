@@ -382,3 +382,95 @@ footer a:hover { color: var(--primary); }
   .section-padding { padding-top: 48px; padding-bottom: 48px; }
   .container { padding: 0 20px; }
 }
+
+
+/* =================================================================
+   NAV & FOOTER OVERFLOW FIX
+   Compress spacing so all items fit on screen at 100% zoom
+   ================================================================= */
+
+/* Navigation — reduce horizontal padding and gaps */
+header.fixed > div,
+header[class*="fixed"] > div {
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  gap: 16px !important;
+}
+
+/* Nav links gap — was gap-12 (48px), reduce to gap-4 (16px) */
+nav > div > div > div[class*="flex"][class*="gap"] {
+  gap: 16px !important;
+}
+
+/* Nav link font size — slightly smaller to fit */
+nav a[class*="uppercase"],
+nav button[class*="uppercase"],
+nav a[class*="text-\\[12px\\]"],
+nav button[class*="text-\\[12px\\]"] {
+  font-size: 11px !important;
+  letter-spacing: 0.06em !important;
+  white-space: nowrap;
+}
+
+/* Nav right icons gap */
+nav div[class*="flex"][class*="gap-5"] {
+  gap: 12px !important;
+}
+
+/* Logo — slightly smaller */
+header a[class*="font-extrabold"],
+header span[class*="font-extrabold"] {
+  font-size: 1rem !important;
+  letter-spacing: 0.1em !important;
+}
+
+/* Footer — ensure it fills width but doesn't overflow */
+footer .container,
+footer > div[class*="container"],
+footer > div[class*="mx-auto"] {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+}
+
+footer > div[class*="grid"] {
+  gap: 24px !important;
+}
+
+
+/* ================================================================
+   GLOBAL BUTTON RADIUS — safe override
+   Targets only padded buttons/links, NOT icon circles or images
+   ================================================================ */
+
+/* Filled navy buttons */
+a[class*="bg-[#1e2d7d]"][class*="px-"],
+button[class*="bg-[#1e2d7d]"][class*="px-"],
+a[class*="bg-primary"][class*="px-"],
+button[class*="bg-primary"][class*="px-"] {
+  border-radius: 10px !important;
+}
+
+/* Outlined navy buttons */
+a[class*="border-[#1e2d7d]"][class*="px-"],
+button[class*="border-[#1e2d7d]"][class*="px-"],
+a[class*="border-primary"][class*="px-"],
+button[class*="border-primary"][class*="px-"] {
+  border-radius: 10px !important;
+}
+
+/* Material Symbols icon font */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: inherit;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
