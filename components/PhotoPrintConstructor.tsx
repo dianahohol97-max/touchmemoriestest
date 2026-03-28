@@ -25,6 +25,7 @@ const POLAROID_SIZES: Record<string, { totalW: number; totalH: number; borderSid
 interface PhotoFile {
   id: string; file: File; preview: string; width: number; height: number;
   cropX: number; cropY: number; zoom: number;
+  polaroidText?: string; // text on white bottom border
 }
 interface ProductOption {
   name: string;
@@ -44,6 +45,7 @@ function PhotoPreview({
   isPolaroid: boolean;
   isNonstandard: boolean;
   onCropChange: (id: string, cropX: number, cropY: number, zoom: number) => void;
+  onTextChange?: (id: string, text: string) => void;
 }) {
   const MAX_W = 320;
   const size = STANDARD_SIZES[sizeKey];
@@ -87,7 +89,18 @@ function PhotoPreview({
           <div style={{ position:'absolute', right:0, top:0, width:borderPxPolaroid, height:canvasHPolaroid, background:'#fff', pointerEvents:'none' }}/>
           {/* Crop marks */}
           {[{x:borderPxPolaroid-14,y:borderTopPx,w:10,h:1},{x:borderPxPolaroid,y:borderTopPx-14,w:1,h:10},{x:borderPxPolaroid+photoAreaWP+4,y:borderTopPx,w:10,h:1},{x:borderPxPolaroid+photoAreaWP,y:borderTopPx-14,w:1,h:10},{x:borderPxPolaroid-14,y:borderTopPx+photoAreaHP,w:10,h:1},{x:borderPxPolaroid,y:borderTopPx+photoAreaHP+4,w:1,h:10},{x:borderPxPolaroid+photoAreaWP+4,y:borderTopPx+photoAreaHP,w:10,h:1},{x:borderPxPolaroid+photoAreaWP,y:borderTopPx+photoAreaHP+4,w:1,h:10}].map((l,i)=><div key={i} style={{position:'absolute',left:l.x,top:l.y,width:l.w,height:l.h,background:'#aaa',pointerEvents:'none'}}/>)}
-          <div style={{ position:'absolute', left:borderPxPolaroid, bottom:6, width:photoAreaWP, textAlign:'center', fontSize:10, color:'#bbb', pointerEvents:'none', fontStyle:'italic' }}>напис тут</div>
+          {/* Polaroid text input on white bottom border */}
+          <div style={{ position:'absolute', left:borderPxPolaroid, bottom:4, width:photoAreaWP, display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>
+            <input
+              type="text"
+              placeholder="Підпис..."
+              value={photo.polaroidText || ''}
+              onChange={e => onTextChange?.(photo.id, e.target.value)}
+              onClick={e => e.stopPropagation()}
+              maxLength={40}
+              style={{ width:'90%', border:'none', outline:'none', background:'transparent', textAlign:'center', fontSize: Math.max(9, borderBottomPxP*0.28) + 'px', fontFamily:'Dancing Script, cursive', color:'#444', padding:'2px 4px' }}
+            />
+          </div>
           {(photo.zoom||1)!==1 && <div style={{ position:'absolute', bottom:borderBottomPxP+4, right:borderPxPolaroid+4, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:8, pointerEvents:'none' }}>{Math.round((photo.zoom||1)*100)}%</div>}
         </div>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:6 }}>
@@ -218,10 +231,18 @@ function PhotoPreview({
           <div key={i} style={{ position:'absolute', left:line.x, top:line.y, width:line.w, height:line.h, background:'#aaa', pointerEvents:'none' }}/>
         ))}
 
-        {/* Polaroid handwriting area hint */}
+        {/* Polaroid text input */}
         {isPolaroid && (
-          <div style={{ position:'absolute', left:borderPx, bottom:4, width:photoAreaW, textAlign:'center', fontSize:9, color:'#bbb', pointerEvents:'none', letterSpacing:'0.1em' }}>
-            напис тут
+          <div style={{ position:'absolute', left:borderPx, bottom:4, width:photoAreaW, display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>
+            <input
+              type="text"
+              placeholder="Підпис..."
+              value={photo.polaroidText || ''}
+              onChange={e => onTextChange?.(photo.id, e.target.value)}
+              onClick={e => e.stopPropagation()}
+              maxLength={40}
+              style={{ width:'88%', border:'none', outline:'none', background:'transparent', textAlign:'center', fontSize: Math.max(9, borderBottomPx*0.28) + 'px', fontFamily:'Dancing Script, cursive', color:'#444', padding:'2px 4px' }}
+            />
           </div>
         )}
 
@@ -233,13 +254,22 @@ function PhotoPreview({
         )}
       </div>
 
-      {/* Zoom controls */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:6 }}>
+      {/* Zoom controls with manual input */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:6 }}>
         <button onClick={() => onCropChange(photo.id, photo.cropX, photo.cropY, Math.max(0.5,(photo.zoom||1)-0.1))}
-          style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14 }}>−</button>
-        <span style={{ fontSize:11, fontWeight:700, color:'#475569', minWidth:40, textAlign:'center' }}>{Math.round((photo.zoom||1)*100)}%</span>
+          style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14, lineHeight:1 }}>−</button>
+        <input
+          type="number" min={50} max={300} step={5}
+          value={Math.round((photo.zoom||1)*100)}
+          onChange={e => {
+            const v = Math.max(50, Math.min(300, parseInt(e.target.value) || 100));
+            onCropChange(photo.id, photo.cropX, photo.cropY, v/100);
+          }}
+          style={{ width:58, padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, fontWeight:700, color:'#475569', textAlign:'center', MozAppearance:'textfield' }}
+        />
+        <span style={{ fontSize:11, color:'#94a3b8' }}>%</span>
         <button onClick={() => onCropChange(photo.id, photo.cropX, photo.cropY, Math.min(3,(photo.zoom||1)+0.1))}
-          style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14 }}>+</button>
+          style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14, lineHeight:1 }}>+</button>
         <button onClick={() => onCropChange(photo.id, 50, 50, 1)}
           style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:10, color:'#64748b' }}>↺</button>
       </div>
@@ -259,6 +289,7 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
   const [selectedFinish, setSelectedFinish] = useState('');
   const [selectedBorder, setSelectedBorder] = useState('none');
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const POLAROID_TEXT_PRICE = 5; // грн per photo with text
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -304,6 +335,10 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
     setPhotos(prev => prev.map(p => p.id === id ? { ...p, cropX, cropY, zoom } : p));
   };
 
+  const updateText = (id: string, text: string) => {
+    setPhotos(prev => prev.map(p => p.id === id ? { ...p, polaroidText: text } : p));
+  };
+
   const removePhoto = (id: string) => {
     setPhotos(prev => { const updated = prev.filter(p => p.id !== id); if (activePhotoIdx >= updated.length) setActivePhotoIdx(Math.max(0, updated.length - 1)); return updated; });
   };
@@ -337,7 +372,12 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
       const sel = sizeOptions.find(o => o.name === selectedSize);
       if (sel?.price !== undefined) unitPrice = sel.price;
     }
-    return unitPrice * photos.length;
+    const basePrice = unitPrice * photos.length;
+    // Polaroid text surcharge: +5 грн per photo with text
+    const textSurcharge = isPolaroid
+      ? photos.filter(p => p.polaroidText && p.polaroidText.trim().length > 0).length * POLAROID_TEXT_PRICE
+      : 0;
+    return basePrice + textSurcharge;
   };
 
   const handleAddToCart = () => {
@@ -350,7 +390,9 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
       price: calculatePrice(), qty: 1,
       image: product.images?.[0] || '', slug: product.slug,
       options: { 'Кількість фото': photos.length.toString(), ...(selectedSize && {'Розмір': selectedSize}), ...(selectedFinish && {'Покриття': selectedFinish}), ...(!isNonstandard && !isPolaroid && {'Біла рамочка': selectedBorder === 'with' ? 'Так' : 'Ні'}) },
-      personalization_note: `${photos.length} фото для друку`
+      personalization_note: isPolaroid
+        ? `${photos.length} фото. Написи: ${photos.filter(p=>p.polaroidText?.trim()).map((p,i)=>`фото ${photos.indexOf(p)+1}: "${p.polaroidText}"`).join(', ') || 'немає'}`
+        : `${photos.length} фото для друку`
     });
     toast.success('Додано до кошика!');
     setPhotos([]);
@@ -384,6 +426,7 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
                 isPolaroid={isPolaroid}
                 isNonstandard={isNonstandard}
                 onCropChange={updateCrop}
+                onTextChange={isPolaroid ? updateText : undefined}
               />
               {/* Photo navigation */}
               {photos.length > 1 && (
@@ -500,8 +543,14 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
             {/* Price */}
             <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:14 }}>
               {selectedSize && photos.length > 0 && (
-                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
                   <span style={{ fontSize:13, color:'#64748b' }}>{photos.length} фото × {(() => { const s = sizeOptions.find(o=>o.name===selectedSize); return s?.price ?? product.price ?? 0; })()} ₴</span>
+                </div>
+              )}
+              {isPolaroid && photos.filter(p=>p.polaroidText?.trim()).length > 0 && (
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                  <span style={{ fontSize:12, color:'#64748b' }}>Підпис ({photos.filter(p=>p.polaroidText?.trim()).length} фото) × {POLAROID_TEXT_PRICE} ₴</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:'#64748b' }}>{photos.filter(p=>p.polaroidText?.trim()).length * POLAROID_TEXT_PRICE} ₴</span>
                 </div>
               )}
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
