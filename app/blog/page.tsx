@@ -114,18 +114,18 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                 {/* Hero Featured Article */}
                 {!category && featuredPost && currentPage === 1 && (
                     <Link href={`/blog/${featuredPost.slug}`} style={{ display: 'block', textDecoration: 'none', marginBottom: '60px' }}>
-                        <div style={{ position: 'relative', borderRadius: "3px", overflow: 'hidden', height: '500px', display: 'flex', alignItems: 'flex-end', backgroundColor: '#e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+                        <div style={{ position: 'relative', borderRadius: "12px", overflow: 'hidden', height: '500px', display: 'flex', alignItems: 'flex-end', backgroundColor: '#e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
                             {featuredPost.cover_image && (
                                 <Image src={featuredPost.cover_image} alt={featuredPost.title} fill style={{ objectFit: 'cover' }} priority />
                             )}
                             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(38, 58, 153, 0.9) 0%, rgba(38, 58, 153, 0.4) 50%, transparent 100%)' }} />
                             <div style={{ position: 'relative', padding: '48px', width: '100%', maxWidth: '800px', color: 'white' }}>
                                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                                    <span style={{ backgroundColor: '#263A99', color: 'white', padding: '4px 12px', borderRadius: "3px", fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    <span style={{ backgroundColor: '#263A99', color: 'white', padding: '4px 12px', borderRadius: "12px", fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                         Featured
                                     </span>
                                     {featuredPost.blog_categories && (
-                                        <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', padding: '4px 12px', borderRadius: "3px", fontSize: '13px', fontWeight: 600 }}>
+                                        <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', padding: '4px 12px', borderRadius: "12px", fontSize: '13px', fontWeight: 600 }}>
                                             {stripEmoji(featuredPost.blog_categories.name)}
                                         </span>
                                     )}
@@ -168,10 +168,10 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
                             {(posts && posts.length > 0 ? posts : ARTICLES as any).map((post: any, index: number) => (
                                 <Link key={post.id || post.slug} href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%', group: 'article' } as any}>
-                                    <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
+                                    <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "12px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
                                         {(post.cover_image || post.image) && <Image src={post.cover_image || post.image} alt={post.title} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
                                         {(post.blog_categories || post.category) && (
-                                            <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '6px 14px', borderRadius: "3px", fontSize: '12px', fontWeight: 800, color: '#263A99', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                                            <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '6px 14px', borderRadius: "12px", fontSize: '12px', fontWeight: 800, color: '#263A99', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                                                 {stripEmoji(post.blog_categories?.name || post.category)}
                                             </div>
                                         )}
@@ -187,9 +187,9 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 {post.author_avatar ? (
                                                     // eslint-disable-next-line @next/next/no-img-element
-                                                    <img src={post.author_avatar} alt="" style={{ width: '28px', height: '28px', borderRadius: "3px" }} />
+                                                    <img src={post.author_avatar} alt="" style={{ width: '28px', height: '28px', borderRadius: "12px" }} />
                                                 ) : (
-                                                    <div style={{ width: '28px', height: '28px', borderRadius: "3px", backgroundColor: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                                                    <div style={{ width: '28px', height: '28px', borderRadius: "12px", backgroundColor: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                                                         <User size={14} />
                                                     </div>
                                                 )}
@@ -214,7 +214,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                     <Link
                                         key={i}
                                         href={`/blog?page=${i + 1}${category ? `&category=${category}` : ''}`}
-                                        style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: "3px", fontWeight: 700, fontSize: '15px', textDecoration: 'none', backgroundColor: currentPage === i + 1 ? '#263A99' : 'white', color: currentPage === i + 1 ? 'white' : '#64748b', border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0' }}
+                                        style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: "12px", fontWeight: 700, fontSize: '15px', textDecoration: 'none', backgroundColor: currentPage === i + 1 ? '#263A99' : 'white', color: currentPage === i + 1 ? 'white' : '#64748b', border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0' }}
                                     >
                                         {i + 1}
                                     </Link>
@@ -227,7 +227,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
                         {/* Newsletter */}
-                        <div style={{ backgroundColor: '#263A99', borderRadius: "3px", padding: '24px', color: 'white', textAlign: 'center' }}>
+                        <div style={{ backgroundColor: '#263A99', borderRadius: "12px", padding: '24px', color: 'white', textAlign: 'center' }}>
                             <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>Залишайся на зв'язку</h3>
                             <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px' }}>Нові статті та ідеї — прямо на пошту.</p>
                             <form style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} action="/api/newsletter" method="POST">
@@ -255,7 +255,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
 
                         {/* Popular Posts */}
                         {popularPosts && popularPosts.length > 0 && (
-                            <div style={{ backgroundColor: 'white', borderRadius: "3px", padding: '24px', border: '1px solid #f1f5f9' }}>
+                            <div style={{ backgroundColor: 'white', borderRadius: "12px", padding: '24px', border: '1px solid #f1f5f9' }}>
                                 <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>Популярне</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     {popularPosts.map((post, index) => (
@@ -275,12 +275,12 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
 
                         {/* Featured Products */}
                         {featuredProducts && featuredProducts.length > 0 && (
-                            <div style={{ backgroundColor: 'white', borderRadius: "3px", padding: '24px', border: '1px solid #f1f5f9' }}>
+                            <div style={{ backgroundColor: 'white', borderRadius: "12px", padding: '24px', border: '1px solid #f1f5f9' }}>
                                 <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>Наші продукти</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                     {featuredProducts.map(product => (
                                         <Link key={product.id} href={`/products/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                            <div style={{ width: '80px', height: '80px', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#f8fafc', position: 'relative', flexShrink: 0 }}>
+                                            <div style={{ width: '80px', height: '80px', borderRadius: "12px", overflow: 'hidden', backgroundColor: '#f8fafc', position: 'relative', flexShrink: 0 }}>
                                                 {product.images && product.images[0] && (
                                                     <Image src={product.images[0]} alt={product.name} fill style={{ objectFit: 'cover' }} />
                                                 )}
@@ -307,4 +307,4 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
     );
 }
 
-const tabStyle = { padding: '8px 20px', borderRadius: '9999px', fontWeight: 700, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' as any, border: '1px solid #e2e8f0', transition: 'all 0.2s' };
+const tabStyle = { padding: '8px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' as any, border: '1px solid #e2e8f0', transition: 'all 0.2s' };
