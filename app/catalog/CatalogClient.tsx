@@ -263,6 +263,7 @@ function CatalogContent() {
                                             cursor: 'pointer',
                                             whiteSpace: 'nowrap',
                                             transition: 'all 0.2s ease',
+                                          borderRadius: '10px',
                                         }}
                                         className="hover:opacity-90"
                                     >
