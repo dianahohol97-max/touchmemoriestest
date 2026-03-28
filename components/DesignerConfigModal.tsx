@@ -190,7 +190,7 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
       decorationVariant: selectedDecoVariant, timestamp: Date.now()
     }));
 
-    router.push(`/order/book?${params.toString()}`);
+    router.push(`/order/designer?${params.toString()}`);
     onClose();
   };
 
