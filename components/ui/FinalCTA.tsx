@@ -59,7 +59,7 @@ export function FinalCTA() {
                     >
                         <div className="grid grid-cols-3 gap-3">
                             {Array.from({ length: 9 }).map((_, i) => (
-                                <div key={i} className="aspect-square bg-gray-300 rounded-full overflow-hidden">
+                                <div key={i} className="aspect-square bg-gray-300 rounded-xl overflow-hidden">
                                     <img
                                         src={`/images/wishbook-${i + 1}.jpg`}
                                         alt={`Книга побажань ${i + 1}`}
