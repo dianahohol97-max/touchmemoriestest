@@ -95,7 +95,7 @@ export function GiftIdeasClient({ collections, sectionContent }: GiftIdeasClient
                   background: '#ffffff',
                   color: '#1e2d7d',
                   padding: '1rem 3rem',
-                  borderRadius: '9999px',
+                  borderRadius: '10px',
                   fontSize: '1.1rem',
                   border: 'none',
                   cursor: 'pointer',
