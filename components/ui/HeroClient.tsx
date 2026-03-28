@@ -39,7 +39,7 @@ const REFERENCE_BG = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAi6aUg
 const REFERENCE_PILLS = [
   { id: '1', text: 'Фотокнига', url: '/catalog?category=photobooks' },
   { id: '2', text: 'Глянцевий журнал', url: '/catalog/personalized-glossy-magazine' },
-  { id: '3', text: 'Журнал з твердою обкладинкою', url: '/catalog/magazine-hardcover' },
+  { id: '3', text: 'Журнал з твердою обкладинкою', url: '/catalog/fotozhurnal-tverd-obkladynka' },
   { id: '4', text: 'Тревелбук', url: '/catalog/travelbook-20x30' },
   { id: '5', text: 'Книга побажань', url: '/catalog?category=guestbooks' },
   { id: '6', text: 'Фотоальбоми', url: '/catalog?category=photoalbomy-failykovi' },
