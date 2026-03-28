@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as Imag
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
+import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
 
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
 interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; }
@@ -750,3 +751,31 @@ export default function BookLayoutEditor() {
               </>
             )}
           </div>
+          )}
+        </div>
+
+        {/* RIGHT PANEL — Spread Navigator */}
+        <div style={{ width: 180, borderLeft: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Розвороти</span>
+            <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{pages.length}</span>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {pages.map((pg, idx) => {
+              const active = idx === currentIdx;
+              const ph = getPhoto(pg.slots[0]?.photoId ?? null);
+              return (
+                <button key={pg.id} onClick={() => setCurrentIdx(idx)}
+                  style={{ width: '100%', padding: '4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}>
+                  <div style={{ width: '100%', aspectRatio: `${prop.w}/${prop.h}`, background: ph ? `url(${ph.preview}) center/cover` : '#e8ecf4', borderRadius: 3, marginBottom: 3 }} />
+                  <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#1e2d7d' : '#64748b' }}>{pg.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
