@@ -7,14 +7,15 @@ export type SlotShape = 'rect' | 'square' | 'circle' | 'rounded';
 
 export interface FreeSlot {
   id: string;
-  x: number;      // px from canvas left
-  y: number;      // px from canvas top
-  w: number;      // px width
-  h: number;      // px height
+  x: number;
+  y: number;
+  w: number;
+  h: number;
   shape: SlotShape;
   photoId: string | null;
   cropX: number;
   cropY: number;
+  zoom: number;
 }
 
 interface FreeSlotLayerProps {
@@ -154,12 +155,31 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
             }}
           >
             {photo ? (
-              <img
-                src={photo.preview}
-                onMouseDown={e => { e.stopPropagation(); setSelectedId(slot.id); startCropDrag(e, slot.id, slot.cropX, slot.cropY); }}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slot.cropX}% ${slot.cropY}%`, display: 'block', userSelect: 'none', cursor: 'grab' }}
-                draggable={false}
-              />
+              <div
+                style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}
+                onWheel={e => { e.preventDefault(); e.stopPropagation(); const delta = e.deltaY > 0 ? -0.05 : 0.05; update(slot.id, { zoom: Math.max(0.5, Math.min(4, (slot.zoom||1) + delta)) }); }}
+              >
+                <img
+                  src={photo.preview}
+                  onMouseDown={e => { e.stopPropagation(); setSelectedId(slot.id); startCropDrag(e, slot.id, slot.cropX, slot.cropY); }}
+                  style={{
+                    width: `${(slot.zoom||1)*100}%`,
+                    height: `${(slot.zoom||1)*100}%`,
+                    objectFit: 'cover',
+                    objectPosition: `${slot.cropX}% ${slot.cropY}%`,
+                    display: 'block', userSelect: 'none', cursor: 'grab',
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%,-50%)',
+                  }}
+                  draggable={false}
+                />
+                {/* Zoom indicator */}
+                {(slot.zoom||1) !== 1 && (
+                  <div style={{ position:'absolute', bottom:4, right:4, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 5px', borderRadius:8, pointerEvents:'none' }}>
+                    {Math.round((slot.zoom||1)*100)}%
+                  </div>
+                )}
+              </div>
             ) : (
               <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'rgba(255,255,255,0.6)', pointerEvents: 'none' }}>
                 <ImageIcon size={20} />
