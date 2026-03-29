@@ -38,6 +38,7 @@ export default function CreateOrderPage() {
     });
 
     const [notes, setNotes] = useState('');
+    const [source, setSource] = useState('instagram');
 
     const supabase = createClient();
 
@@ -110,7 +111,8 @@ export default function CreateOrderPage() {
                     subtotal,
                     total
                 },
-                notes: notes ? `\n--- Внутрішні нотатки ---\n${notes}` : ''
+                notes: notes ? `\n--- Внутрішні нотатки ---\n${notes}` : '',
+                source
             };
 
             const res = await fetch('/api/admin/orders/create', {
@@ -245,6 +247,19 @@ export default function CreateOrderPage() {
                             />
                         </div>
                     </div>
+                </div>
+
+                {/* Source */}
+                <div style={cardStyle}>
+                    <h2 style={cardTitleStyle}>Джерело замовлення</h2>
+                    <select value={source} onChange={e => setSource(e.target.value)} style={inputStyle}>
+                        <option value="instagram">Instagram</option>
+                        <option value="site">Сайт</option>
+                        <option value="telegram">Telegram</option>
+                        <option value="phone">Телефон</option>
+                        <option value="manual">Вручну</option>
+                        <option value="other">Інше</option>
+                    </select>
                 </div>
 
                 {/* Items Section */}

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
     try {
         const payload = await request.json();
-        const { customer, items, delivery, totals, notes } = payload;
+        const { customer, items, delivery, totals, notes, source } = payload;
 
         // Bypassing RLS for admin operations (system must use Service Role here)
         const supabase = getAdminClient();
@@ -74,7 +74,8 @@ export async function POST(request: Request) {
             order_status: 'pending',
             payment_status: 'pending',
             fiscal_status: 'pending',
-            notes: orderNotes.trim()
+            notes: orderNotes.trim(),
+            source: source || 'manual'
         };
 
         const { data: order, error: orderErr } = await supabase
