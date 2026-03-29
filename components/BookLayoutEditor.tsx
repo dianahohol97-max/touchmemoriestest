@@ -1420,7 +1420,18 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         onChange={newShapes => setPageShapes(prev=>({...prev,[pageIdx]:newShapes}))}
                         selectedId={selectedShapeId}
                         onSelectId={id => { setSelectedShapeId(id); if (id) setLeftTab('shapes'); }}
-                        onMoveToOtherPage={shape => setCrossPageDragShapeId(shape.id)}
+                        onMoveToOtherPage={shape => {
+                          // Move shape to the other page in this spread
+                          const otherSide = side === 0 ? 1 : 0;
+                          const otherPageIdx = currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + otherSide;
+                          if (otherPageIdx === pageIdx || !pages[otherPageIdx]) return;
+                          setPageShapes(prev => ({
+                            ...prev,
+                            [pageIdx]: (prev[pageIdx] || []).filter(s => s.id !== shape.id),
+                            [otherPageIdx]: [...(prev[otherPageIdx] || []), { ...shape }],
+                          }));
+                          setActiveSide(otherSide as 0 | 1);
+                        }}
                       />
                       {/* Cross-page drop zone: visible when dragging a shape */}
                       {crossPageDragShapeId && (() => {
