@@ -69,14 +69,13 @@ interface ShapesLayerProps {
   canvasW: number;
   canvasH: number;
   onChange: (shapes: Shape[]) => void;
-  onSelectId?: (id: string | null) => void;
   selectedId?: string | null;
+  onSelectId?: (id: string | null) => void;
 }
 
 const HANDLE_SIZE = 8;
 
-export function ShapesLayer(props: ShapesLayerProps) {
-  const { shapes, canvasW, canvasH, onChange } = props;
+export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: externalSelectedId, onSelectId }: ShapesLayerProps) {
   const [localSelectedId, setLocalSelectedId] = useState<string|null>(null);
   const selectedId = props.selectedId !== undefined ? props.selectedId : localSelectedId;
   const setSelectedId = (id: string|null) => { setLocalSelectedId(id); props.onSelectId?.(id); };
