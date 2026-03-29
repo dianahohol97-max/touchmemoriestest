@@ -52,61 +52,61 @@ interface TextBlock { id: string; text: string; x: number; y: number; fontSize: 
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
 const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[] = [
-  // 1 фото
-  { id: 'p-full',         label: 'На всю сторінку',  slots: 1, group: '1 фото' },
-  { id: 'p-center',       label: 'По центру',         slots: 1, group: '1 фото' },
-  { id: 'p-top',          label: 'Зверху',            slots: 1, group: '1 фото' },
-  { id: 'p-bottom',       label: 'Знизу',             slots: 1, group: '1 фото' },
-  { id: 'p-left',         label: 'Ліворуч',           slots: 1, group: '1 фото' },
-  { id: 'p-right',        label: 'Праворуч',          slots: 1, group: '1 фото' },
-  // 2 фото
-  { id: 'p-2-v',          label: '2 вертикально',     slots: 2, group: '2 фото' },
-  { id: 'p-2-h',          label: '2 горизонтально',   slots: 2, group: '2 фото' },
-  { id: 'p-2-big-top',    label: 'Велике зверху',     slots: 2, group: '2 фото' },
-  { id: 'p-2-big-bottom', label: 'Велике знизу',      slots: 2, group: '2 фото' },
-  { id: 'p-2-big-left',   label: 'Велике ліворуч',    slots: 2, group: '2 фото' },
-  { id: 'p-2-big-right',  label: 'Велике праворуч',   slots: 2, group: '2 фото' },
-  { id: 'p-2-diag',       label: 'Діагональ',         slots: 2, group: '2 фото' },
-  // 3 фото
-  { id: 'p-3-row',        label: '3 в рядок',         slots: 3, group: '3 фото' },
-  { id: 'p-3-col',        label: '3 в стовпець',      slots: 3, group: '3 фото' },
-  { id: 'p-3-top2',       label: '2 зверху + 1',      slots: 3, group: '3 фото' },
-  { id: 'p-3-bot2',       label: '1 + 2 знизу',       slots: 3, group: '3 фото' },
-  { id: 'p-3-left2',      label: '2 ліво + 1',        slots: 3, group: '3 фото' },
-  { id: 'p-3-right2',     label: '1 + 2 право',       slots: 3, group: '3 фото' },
-  { id: 'p-3-hero-top',   label: 'Велике + 2 знизу',  slots: 3, group: '3 фото' },
-  { id: 'p-3-hero-left',  label: 'Велике + 2 право',  slots: 3, group: '3 фото' },
-  // 4 фото
-  { id: 'p-4-grid',       label: '4 рівно',           slots: 4, group: '4 фото' },
-  { id: 'p-4-hero-top',   label: 'Велике + 3 знизу',  slots: 4, group: '4 фото' },
-  { id: 'p-4-hero-left',  label: 'Велике + 3 право',  slots: 4, group: '4 фото' },
-  { id: 'p-4-strip-h',    label: '4 горизонт смуга',  slots: 4, group: '4 фото' },
-  { id: 'p-4-strip-v',    label: '4 вертик смуга',    slots: 4, group: '4 фото' },
-  { id: 'p-4-l-shape',    label: 'Г-подібний',        slots: 4, group: '4 фото' },
-  // 5 фото
-  { id: 'p-5-hero',       label: 'Велике + 4',        slots: 5, group: '5 фото' },
-  { id: 'p-5-grid',       label: '5 сітка',           slots: 5, group: '5 фото' },
-  { id: 'p-5-strip',      label: '1 + 4 смуга',       slots: 5, group: '5 фото' },
-  // 6 фото
-  { id: 'p-6-grid',       label: '6 рівно (2×3)',     slots: 6, group: '6 фото' },
-  { id: 'p-6-3x2',        label: '6 рівно (3×2)',     slots: 6, group: '6 фото' },
-  { id: 'p-6-hero',       label: 'Велике + 5',        slots: 6, group: '6 фото' },
-  // 7-9 фото
-  { id: 'p-7-grid',       label: '7 сітка',           slots: 7, group: '7–9 фото' },
-  { id: 'p-8-grid',       label: '8 сітка',           slots: 8, group: '7–9 фото' },
-  { id: 'p-9-grid',       label: '9 рівно (3×3)',     slots: 9, group: '7–9 фото' },
-  // Текст
-  { id: 'p-text',         label: 'Тільки текст',      slots: 0, group: 'Текст' },
-  { id: 'p-text-top',     label: 'Фото + текст знизу', slots: 1, group: 'Текст' },
-  { id: 'p-text-bottom',  label: 'Текст + фото знизу', slots: 1, group: 'Текст' },
+  // 1 ÑÐ¾ÑÐ¾
+  { id: 'p-full',         label: 'ÐÐ° Ð²ÑÑ ÑÑÐ¾ÑÑÐ½ÐºÑ',  slots: 1, group: '1 ÑÐ¾ÑÐ¾' },
+  { id: 'p-center',       label: 'ÐÐ¾ ÑÐµÐ½ÑÑÑ',         slots: 1, group: '1 ÑÐ¾ÑÐ¾' },
+  { id: 'p-top',          label: 'ÐÐ²ÐµÑÑÑ',            slots: 1, group: '1 ÑÐ¾ÑÐ¾' },
+  { id: 'p-bottom',       label: 'ÐÐ½Ð¸Ð·Ñ',             slots: 1, group: '1 ÑÐ¾ÑÐ¾' },
+  { id: 'p-left',         label: 'ÐÑÐ²Ð¾ÑÑÑ',           slots: 1, group: '1 ÑÐ¾ÑÐ¾' },
+  { id: 'p-right',        label: 'ÐÑÐ°Ð²Ð¾ÑÑÑ',          slots: 1, group: '1 ÑÐ¾ÑÐ¾' },
+  // 2 ÑÐ¾ÑÐ¾
+  { id: 'p-2-v',          label: '2 Ð²ÐµÑÑÐ¸ÐºÐ°Ð»ÑÐ½Ð¾',     slots: 2, group: '2 ÑÐ¾ÑÐ¾' },
+  { id: 'p-2-h',          label: '2 Ð³Ð¾ÑÐ¸Ð·Ð¾Ð½ÑÐ°Ð»ÑÐ½Ð¾',   slots: 2, group: '2 ÑÐ¾ÑÐ¾' },
+  { id: 'p-2-big-top',    label: 'ÐÐµÐ»Ð¸ÐºÐµ Ð·Ð²ÐµÑÑÑ',     slots: 2, group: '2 ÑÐ¾ÑÐ¾' },
+  { id: 'p-2-big-bottom', label: 'ÐÐµÐ»Ð¸ÐºÐµ Ð·Ð½Ð¸Ð·Ñ',      slots: 2, group: '2 ÑÐ¾ÑÐ¾' },
+  { id: 'p-2-big-left',   label: 'ÐÐµÐ»Ð¸ÐºÐµ Ð»ÑÐ²Ð¾ÑÑÑ',    slots: 2, group: '2 ÑÐ¾ÑÐ¾' },
+  { id: 'p-2-big-right',  label: 'ÐÐµÐ»Ð¸ÐºÐµ Ð¿ÑÐ°Ð²Ð¾ÑÑÑ',   slots: 2, group: '2 ÑÐ¾ÑÐ¾' },
+  { id: 'p-2-diag',       label: 'ÐÑÐ°Ð³Ð¾Ð½Ð°Ð»Ñ',         slots: 2, group: '2 ÑÐ¾ÑÐ¾' },
+  // 3 ÑÐ¾ÑÐ¾
+  { id: 'p-3-row',        label: '3 Ð² ÑÑÐ´Ð¾Ðº',         slots: 3, group: '3 ÑÐ¾ÑÐ¾' },
+  { id: 'p-3-col',        label: '3 Ð² ÑÑÐ¾Ð²Ð¿ÐµÑÑ',      slots: 3, group: '3 ÑÐ¾ÑÐ¾' },
+  { id: 'p-3-top2',       label: '2 Ð·Ð²ÐµÑÑÑ + 1',      slots: 3, group: '3 ÑÐ¾ÑÐ¾' },
+  { id: 'p-3-bot2',       label: '1 + 2 Ð·Ð½Ð¸Ð·Ñ',       slots: 3, group: '3 ÑÐ¾ÑÐ¾' },
+  { id: 'p-3-left2',      label: '2 Ð»ÑÐ²Ð¾ + 1',        slots: 3, group: '3 ÑÐ¾ÑÐ¾' },
+  { id: 'p-3-right2',     label: '1 + 2 Ð¿ÑÐ°Ð²Ð¾',       slots: 3, group: '3 ÑÐ¾ÑÐ¾' },
+  { id: 'p-3-hero-top',   label: 'ÐÐµÐ»Ð¸ÐºÐµ + 2 Ð·Ð½Ð¸Ð·Ñ',  slots: 3, group: '3 ÑÐ¾ÑÐ¾' },
+  { id: 'p-3-hero-left',  label: 'ÐÐµÐ»Ð¸ÐºÐµ + 2 Ð¿ÑÐ°Ð²Ð¾',  slots: 3, group: '3 ÑÐ¾ÑÐ¾' },
+  // 4 ÑÐ¾ÑÐ¾
+  { id: 'p-4-grid',       label: '4 ÑÑÐ²Ð½Ð¾',           slots: 4, group: '4 ÑÐ¾ÑÐ¾' },
+  { id: 'p-4-hero-top',   label: 'ÐÐµÐ»Ð¸ÐºÐµ + 3 Ð·Ð½Ð¸Ð·Ñ',  slots: 4, group: '4 ÑÐ¾ÑÐ¾' },
+  { id: 'p-4-hero-left',  label: 'ÐÐµÐ»Ð¸ÐºÐµ + 3 Ð¿ÑÐ°Ð²Ð¾',  slots: 4, group: '4 ÑÐ¾ÑÐ¾' },
+  { id: 'p-4-strip-h',    label: '4 Ð³Ð¾ÑÐ¸Ð·Ð¾Ð½Ñ ÑÐ¼ÑÐ³Ð°',  slots: 4, group: '4 ÑÐ¾ÑÐ¾' },
+  { id: 'p-4-strip-v',    label: '4 Ð²ÐµÑÑÐ¸Ðº ÑÐ¼ÑÐ³Ð°',    slots: 4, group: '4 ÑÐ¾ÑÐ¾' },
+  { id: 'p-4-l-shape',    label: 'Ð-Ð¿Ð¾Ð´ÑÐ±Ð½Ð¸Ð¹',        slots: 4, group: '4 ÑÐ¾ÑÐ¾' },
+  // 5 ÑÐ¾ÑÐ¾
+  { id: 'p-5-hero',       label: 'ÐÐµÐ»Ð¸ÐºÐµ + 4',        slots: 5, group: '5 ÑÐ¾ÑÐ¾' },
+  { id: 'p-5-grid',       label: '5 ÑÑÑÐºÐ°',           slots: 5, group: '5 ÑÐ¾ÑÐ¾' },
+  { id: 'p-5-strip',      label: '1 + 4 ÑÐ¼ÑÐ³Ð°',       slots: 5, group: '5 ÑÐ¾ÑÐ¾' },
+  // 6 ÑÐ¾ÑÐ¾
+  { id: 'p-6-grid',       label: '6 ÑÑÐ²Ð½Ð¾ (2Ã3)',     slots: 6, group: '6 ÑÐ¾ÑÐ¾' },
+  { id: 'p-6-3x2',        label: '6 ÑÑÐ²Ð½Ð¾ (3Ã2)',     slots: 6, group: '6 ÑÐ¾ÑÐ¾' },
+  { id: 'p-6-hero',       label: 'ÐÐµÐ»Ð¸ÐºÐµ + 5',        slots: 6, group: '6 ÑÐ¾ÑÐ¾' },
+  // 7-9 ÑÐ¾ÑÐ¾
+  { id: 'p-7-grid',       label: '7 ÑÑÑÐºÐ°',           slots: 7, group: '7â9 ÑÐ¾ÑÐ¾' },
+  { id: 'p-8-grid',       label: '8 ÑÑÑÐºÐ°',           slots: 8, group: '7â9 ÑÐ¾ÑÐ¾' },
+  { id: 'p-9-grid',       label: '9 ÑÑÐ²Ð½Ð¾ (3Ã3)',     slots: 9, group: '7â9 ÑÐ¾ÑÐ¾' },
+  // Ð¢ÐµÐºÑÑ
+  { id: 'p-text',         label: 'Ð¢ÑÐ»ÑÐºÐ¸ ÑÐµÐºÑÑ',      slots: 0, group: 'Ð¢ÐµÐºÑÑ' },
+  { id: 'p-text-top',     label: 'Ð¤Ð¾ÑÐ¾ + ÑÐµÐºÑÑ Ð·Ð½Ð¸Ð·Ñ', slots: 1, group: 'Ð¢ÐµÐºÑÑ' },
+  { id: 'p-text-bottom',  label: 'Ð¢ÐµÐºÑÑ + ÑÐ¾ÑÐ¾ Ð·Ð½Ð¸Ð·Ñ', slots: 1, group: 'Ð¢ÐµÐºÑÑ' },
 ];
 
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
-  '20x20': { w: 200, h: 200 }, '20×20': { w: 200, h: 200 },
-  '25x25': { w: 250, h: 250 }, '25×25': { w: 250, h: 250 },
-  '20x30': { w: 200, h: 300 }, '20×30': { w: 200, h: 300 },
-  '30x20': { w: 300, h: 200 }, '30×20': { w: 300, h: 200 },
-  '30x30': { w: 300, h: 300 }, '30×30': { w: 300, h: 300 },
+  '20x20': { w: 200, h: 200 }, '20Ã20': { w: 200, h: 200 },
+  '25x25': { w: 250, h: 250 }, '25Ã25': { w: 250, h: 250 },
+  '20x30': { w: 200, h: 300 }, '20Ã30': { w: 200, h: 300 },
+  '30x20': { w: 300, h: 200 }, '30Ã20': { w: 300, h: 200 },
+  '30x30': { w: 300, h: 300 }, '30Ã30': { w: 300, h: 300 },
   'A4': { w: 210, h: 297 },
 };
 
@@ -115,11 +115,11 @@ function makeSlots(n: number): SlotData[] {
 }
 
 const FONT_GROUPS = [
-  { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans','Open Sans'] },
-  { group: 'Класичні', fonts: ['Playfair Display','Georgia','Cormorant Garamond','EB Garamond','Libre Baskerville','Lora','Merriweather'] },
-  { group: 'Каліграфічні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Alex Brush','Pinyon Script','Italianno','Allura','Tangerine'] },
-  { group: 'Кириличні', fonts: ['Marck Script','Philosopher','Russo One','Comfortaa','Lobster','Caveat','Poiret One','Cuprum','Jura','Neucha','Didact Gothic'] },
-  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Spectral','Rozha One'] },
+  { group: 'Ð¡ÑÑÐ°ÑÐ½Ñ', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans','Open Sans'] },
+  { group: 'ÐÐ»Ð°ÑÐ¸ÑÐ½Ñ', fonts: ['Playfair Display','Georgia','Cormorant Garamond','EB Garamond','Libre Baskerville','Lora','Merriweather'] },
+  { group: 'ÐÐ°Ð»ÑÐ³ÑÐ°ÑÑÑÐ½Ñ', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Alex Brush','Pinyon Script','Italianno','Allura','Tangerine'] },
+  { group: 'ÐÐ¸ÑÐ¸Ð»Ð¸ÑÐ½Ñ', fonts: ['Marck Script','Philosopher','Russo One','Comfortaa','Lobster','Caveat','Poiret One','Cuprum','Jura','Neucha','Didact Gothic'] },
+  { group: 'ÐÐµÐºÐ¾ÑÐ°ÑÐ¸Ð²Ð½Ñ', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Spectral','Rozha One'] },
 ];
 const FONTS = FONT_GROUPS.flatMap(g => g.fonts);
 const COLORS = ['#1e2d7d', '#ffffff', '#000000', '#e63946', '#2a9d8f', '#f4a261', '#264653', '#e9c46a'];
@@ -266,7 +266,7 @@ export default function BookLayoutEditor() {
   useEffect(() => {
     const cfg = sessionStorage.getItem('bookConstructorConfig');
     if (cfg) setConfig(JSON.parse(cfg));
-    else { toast.error('Конфігурація не знайдена'); router.push('/order/book'); }
+    else { toast.error('ÐÐ¾Ð½ÑÑÐ³ÑÑÐ°ÑÑÑ Ð½Ðµ Ð·Ð½Ð°Ð¹Ð´ÐµÐ½Ð°'); router.push('/order/book'); }
     const ph = sessionStorage.getItem('bookConstructorPhotos');
     if (ph) setPhotos(JSON.parse(ph));
   }, [router]);
@@ -282,10 +282,10 @@ export default function BookLayoutEditor() {
     const m = config.selectedPageCount.match(/(\d+)/);
     const total = m ? parseInt(m[0]) : 20;
     const ps: Page[] = [];
-    ps.push({ id: 0, label: 'Обкладинка', layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
+    ps.push({ id: 0, label: 'ÐÐ±ÐºÐ»Ð°Ð´Ð¸Ð½ÐºÐ°', layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
     // Content pages in pairs (spreads)
     for (let i = 1; i <= total; i += 2) {
-      ps.push({ id: i, label: `${i}–${Math.min(i+1, total)}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
+      ps.push({ id: i, label: `${i}â${Math.min(i+1, total)}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
     }
     setPages(ps);
   }, [config]);
@@ -308,11 +308,11 @@ export default function BookLayoutEditor() {
     if (!config) return;
     const deco = config.selectedDecoration?.toLowerCase() || '';
     let decoType: CoverDecoType = 'none';
-    if (deco.includes('акрил')) decoType = 'acryl';
-    else if (deco.includes('фотовставка') || deco.includes('photo')) decoType = 'photovstavka';
-    else if (deco.includes('флекс') || deco.includes('flex')) decoType = 'flex';
-    else if (deco.includes('метал')) decoType = 'metal';
-    else if (deco.includes('гравір')) decoType = 'graviruvannya';
+    if (deco.includes('Ð°ÐºÑÐ¸Ð»')) decoType = 'acryl';
+    else if (deco.includes('ÑÐ¾ÑÐ¾Ð²ÑÑÐ°Ð²ÐºÐ°') || deco.includes('photo')) decoType = 'photovstavka';
+    else if (deco.includes('ÑÐ»ÐµÐºÑ') || deco.includes('flex')) decoType = 'flex';
+    else if (deco.includes('Ð¼ÐµÑÐ°Ð»')) decoType = 'metal';
+    else if (deco.includes('Ð³ÑÐ°Ð²ÑÑ')) decoType = 'graviruvannya';
     const dc = config.selectedDecorationColor?.toLowerCase() || '';
     setCoverState(prev => ({ ...prev, decoType }));
   }, [config]);
@@ -325,7 +325,7 @@ export default function BookLayoutEditor() {
     }));
   };
 
-  // Shuffle layout for active page — pick next compatible layout with same slot count
+  // Shuffle layout for active page â pick next compatible layout with same slot count
   const shuffleLayout = () => {
     const targetIdx = getActivePageIdx();
     const currentPage = pages[targetIdx];
@@ -356,8 +356,8 @@ export default function BookLayoutEditor() {
     const newId2 = pages.length + 1;
     setPages(prev => [
       ...prev,
-      { id: newId1, label: `Стор. ${newId1}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] },
-      { id: newId2, label: `Стор. ${newId2}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] },
+      { id: newId1, label: `Ð¡ÑÐ¾Ñ. ${newId1}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] },
+      { id: newId2, label: `Ð¡ÑÐ¾Ñ. ${newId2}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] },
     ]);
     // Navigate to new spread
     const newSpreadIdx = Math.ceil(pages.length / 2);
@@ -365,7 +365,7 @@ export default function BookLayoutEditor() {
   };
 
   const removeLastSpread = () => {
-    if (pages.length <= 3) { toast.error('Мінімум 1 розворот'); return; }
+    if (pages.length <= 3) { toast.error('ÐÑÐ½ÑÐ¼ÑÐ¼ 1 ÑÐ¾Ð·Ð²Ð¾ÑÐ¾Ñ'); return; }
     setPages(prev => prev.slice(0, -2));
     setCurrentIdx(prev => Math.min(prev, Math.ceil((pages.length - 3) / 2)));
   };
@@ -415,7 +415,7 @@ export default function BookLayoutEditor() {
   const autoFill = () => {
     let pi = 0;
     setPages(prev => prev.map(p => ({ ...p, slots: p.slots.map(sl => { if (sl.photoId) return sl; const ph = photos[pi]; if (!ph) return sl; pi++; return { ...sl, photoId: ph.id }; }) })));
-    toast.success('Фото розставлено');
+    toast.success('Ð¤Ð¾ÑÐ¾ ÑÐ¾Ð·ÑÑÐ°Ð²Ð»ÐµÐ½Ð¾');
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -429,7 +429,7 @@ export default function BookLayoutEditor() {
         const img = new window.Image();
         img.onload = () => {
           newPhotos.push({ id: 'up-' + Date.now() + '-' + Math.random(), preview: ev.target!.result as string, width: img.width, height: img.height, name: file.name });
-          if (++done === files.length) { setPhotos(prev => [...prev, ...newPhotos]); toast.success(`Завантажено ${files.length} фото`); }
+          if (++done === files.length) { setPhotos(prev => [...prev, ...newPhotos]); toast.success(`ÐÐ°Ð²Ð°Ð½ÑÐ°Ð¶ÐµÐ½Ð¾ ${files.length} ÑÐ¾ÑÐ¾`); }
         };
         img.src = ev.target!.result as string;
       };
@@ -467,7 +467,7 @@ export default function BookLayoutEditor() {
     if (!textTool) { setSelectedTextId(null); return; }
     const rect = e.currentTarget.getBoundingClientRect();
     const id = 'txt-' + Date.now();
-    setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
+    setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Ð¢ÐµÐºÑÑ', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
   };
 
@@ -476,7 +476,7 @@ export default function BookLayoutEditor() {
     if (!textTool) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const id = 'txt-' + Date.now();
-    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / pageW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
+    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Ð¢ÐµÐºÑÑ', x: ((e.clientX - rect.left) / pageW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
   };
   const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
@@ -502,66 +502,66 @@ export default function BookLayoutEditor() {
 
   const addToCart = () => {
     if (!config) return;
-    addItem({ id: `pb-${Date.now()}`, name: config.productName || 'Фотокнига', price: dynamicPrice, qty: 1, image: getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '', options: { 'Розмір': config.selectedSize || '', 'Сторінок': config.selectedPageCount }, personalization_note: `${pages.length} сторінок` });
-    toast.success('Додано до кошика!');
+    addItem({ id: `pb-${Date.now()}`, name: config.productName || 'Ð¤Ð¾ÑÐ¾ÐºÐ½Ð¸Ð³Ð°', price: dynamicPrice, qty: 1, image: getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '', options: { 'Ð Ð¾Ð·Ð¼ÑÑ': config.selectedSize || '', 'Ð¡ÑÐ¾ÑÑÐ½Ð¾Ðº': config.selectedPageCount }, personalization_note: `${pages.length} ÑÑÐ¾ÑÑÐ½Ð¾Ðº` });
+    toast.success('ÐÐ¾Ð´Ð°Ð½Ð¾ Ð´Ð¾ ÐºÐ¾ÑÐ¸ÐºÐ°!');
     router.push('/cart');
   };
 
-  if (!config || pages.length === 0) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
+  if (!config || pages.length === 0) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>ÐÐ°Ð²Ð°Ð½ÑÐ°Ð¶ÐµÐ½Ð½Ñ...</div>;
 
 
-// ── Real prices from photobook_prices table ──────────────────────────────────
+// ââ Real prices from photobook_prices table ââââââââââââââââââââââââââââââââââ
 // Key format: "coverType_WxH_pages"  e.g. "velour_20x20_20"
 const PHOTOBOOK_PRICES: Record<string, number> = {
-  // Велюр / Тканина / Шкірзамінник (same prices) — 20×20
+  // ÐÐµÐ»ÑÑ / Ð¢ÐºÐ°Ð½Ð¸Ð½Ð° / Ð¨ÐºÑÑÐ·Ð°Ð¼ÑÐ½Ð½Ð¸Ðº (same prices) â 20Ã20
   velour_20x20_6:1050, velour_20x20_8:1100, velour_20x20_10:1150, velour_20x20_12:1200,
   velour_20x20_14:1250, velour_20x20_16:1300, velour_20x20_18:1350, velour_20x20_20:1400,
   velour_20x20_22:1450, velour_20x20_24:1500, velour_20x20_26:1550, velour_20x20_28:1600,
   velour_20x20_30:1650, velour_20x20_32:1700, velour_20x20_34:1750, velour_20x20_36:1800,
   velour_20x20_38:1850, velour_20x20_40:1900, velour_20x20_42:1950, velour_20x20_44:2000,
   velour_20x20_46:2050, velour_20x20_48:2100, velour_20x20_50:2150,
-  // Велюр — 25×25
+  // ÐÐµÐ»ÑÑ â 25Ã25
   velour_25x25_8:1290, velour_25x25_10:1365, velour_25x25_12:1445, velour_25x25_14:1525,
   velour_25x25_16:1605, velour_25x25_18:1685, velour_25x25_20:1765, velour_25x25_22:1840,
   velour_25x25_24:1925, velour_25x25_26:2010, velour_25x25_28:2095, velour_25x25_30:2175,
   velour_25x25_32:2255, velour_25x25_34:2335, velour_25x25_36:2415, velour_25x25_38:2495,
   velour_25x25_40:2575, velour_25x25_42:2655, velour_25x25_44:2735, velour_25x25_46:2820,
   velour_25x25_48:2905, velour_25x25_50:2990,
-  // Велюр — 30×30
+  // ÐÐµÐ»ÑÑ â 30Ã30
   velour_30x30_16:1700, velour_30x30_18:1790, velour_30x30_20:1880, velour_30x30_22:1970,
   velour_30x30_24:2060, velour_30x30_26:2150, velour_30x30_28:2240, velour_30x30_30:2330,
   velour_30x30_32:2420, velour_30x30_34:2510, velour_30x30_36:2600, velour_30x30_38:2690,
   velour_30x30_40:2780, velour_30x30_42:2875, velour_30x30_44:2970, velour_30x30_46:3065,
   velour_30x30_48:3160, velour_30x30_50:3255,
-  // Друкована — 20×20
+  // ÐÑÑÐºÐ¾Ð²Ð°Ð½Ð° â 20Ã20
   printed_20x20_6:450, printed_20x20_8:500, printed_20x20_10:550, printed_20x20_12:600,
   printed_20x20_14:650, printed_20x20_16:700, printed_20x20_18:750, printed_20x20_20:800,
   printed_20x20_22:850, printed_20x20_24:900, printed_20x20_26:950, printed_20x20_28:1000,
   printed_20x20_30:1050, printed_20x20_32:1110, printed_20x20_34:1170, printed_20x20_36:1230,
   printed_20x20_38:1290, printed_20x20_40:1350, printed_20x20_42:1410, printed_20x20_44:1470,
   printed_20x20_46:1530, printed_20x20_48:1590, printed_20x20_50:1650,
-  // Друкована — 20×30
+  // ÐÑÑÐºÐ¾Ð²Ð°Ð½Ð° â 20Ã30
   printed_20x30_10:740, printed_20x30_12:815, printed_20x30_14:890, printed_20x30_16:965,
   printed_20x30_18:1040, printed_20x30_20:1115, printed_20x30_22:1190, printed_20x30_24:1265,
   printed_20x30_26:1340, printed_20x30_28:1415, printed_20x30_30:1490, printed_20x30_32:1565,
   printed_20x30_34:1640, printed_20x30_36:1715, printed_20x30_38:1790, printed_20x30_40:1865,
   printed_20x30_42:1940, printed_20x30_44:2015, printed_20x30_46:2090, printed_20x30_48:2165,
   printed_20x30_50:2240,
-  // Друкована — 30×20
+  // ÐÑÑÐºÐ¾Ð²Ð°Ð½Ð° â 30Ã20
   printed_30x20_10:740, printed_30x20_12:815, printed_30x20_14:890, printed_30x20_16:965,
   printed_30x20_18:1040, printed_30x20_20:1115, printed_30x20_22:1190, printed_30x20_24:1265,
   printed_30x20_26:1340, printed_30x20_28:1415, printed_30x20_30:1490, printed_30x20_32:1565,
   printed_30x20_34:1640, printed_30x20_36:1715, printed_30x20_38:1790, printed_30x20_40:1865,
   printed_30x20_42:1940, printed_30x20_44:2015, printed_30x20_46:2090, printed_30x20_48:2165,
   printed_30x20_50:2240,
-  // Друкована — 25×25
+  // ÐÑÑÐºÐ¾Ð²Ð°Ð½Ð° â 25Ã25
   printed_25x25_8:700, printed_25x25_10:770, printed_25x25_12:845, printed_25x25_14:995,
   printed_25x25_16:1070, printed_25x25_18:1145, printed_25x25_20:1220, printed_25x25_22:1295,
   printed_25x25_24:1370, printed_25x25_26:1445, printed_25x25_28:1520, printed_25x25_30:1595,
   printed_25x25_32:1670, printed_25x25_34:1745, printed_25x25_36:1820, printed_25x25_38:1895,
   printed_25x25_40:1970, printed_25x25_42:2045, printed_25x25_44:2120, printed_25x25_46:2195,
   printed_25x25_48:2270, printed_25x25_50:2345,
-  // Друкована — 30×30
+  // ÐÑÑÐºÐ¾Ð²Ð°Ð½Ð° â 30Ã30
   printed_30x30_16:1105, printed_30x30_18:1190, printed_30x30_20:1275, printed_30x30_22:1360,
   printed_30x30_24:1445, printed_30x30_26:1530, printed_30x30_28:1615, printed_30x30_30:1700,
   printed_30x30_32:1785, printed_30x30_34:1840, printed_30x30_36:1960, printed_30x30_38:2050,
@@ -571,17 +571,17 @@ const PHOTOBOOK_PRICES: Record<string, number> = {
 
 function getCoverTypeKey(coverType: string): string {
   const ct = (coverType || '').toLowerCase();
-  if (ct.includes('велюр') || ct.includes('velour')) return 'velour';
-  if (ct.includes('тканин') || ct.includes('fabric')) return 'velour'; // same prices as velour
-  if (ct.includes('шкір') || ct.includes('leather')) return 'velour'; // same prices as velour
-  if (ct.includes('друков') || ct.includes('print')) return 'printed';
+  if (ct.includes('Ð²ÐµÐ»ÑÑ') || ct.includes('velour')) return 'velour';
+  if (ct.includes('ÑÐºÐ°Ð½Ð¸Ð½') || ct.includes('fabric')) return 'velour'; // same prices as velour
+  if (ct.includes('ÑÐºÑÑ') || ct.includes('leather')) return 'velour'; // same prices as velour
+  if (ct.includes('Ð´ÑÑÐºÐ¾Ð²') || ct.includes('print')) return 'printed';
   return 'velour';
 }
 
 function lookupPrice(coverType: string, sizeValue: string, pageCount: number): number {
   const ctKey = getCoverTypeKey(coverType);
-  // Normalize size: "20x20", "20×20", "20x30" etc → "20x20"
-  const sizeKey = (sizeValue || '20x20').replace(/[×х]/g, 'x').replace(/\s*см/g, '').trim();
+  // Normalize size: "20x20", "20Ã20", "20x30" etc â "20x20"
+  const sizeKey = (sizeValue || '20x20').replace(/[ÃÑ]/g, 'x').replace(/\s*ÑÐ¼/g, '').trim();
   // Find exact match first
   const key = `${ctKey}_${sizeKey}_${pageCount}`;
   if (PHOTOBOOK_PRICES[key] !== undefined) return PHOTOBOOK_PRICES[key];
@@ -596,10 +596,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
 
   // Dynamic price calculation using real DB prices
   const currentPageCount = Math.max(0, pages.length - 1); // exclude cover
-  const sizeVal = (config.selectedSize || '20x20').replace(/[×х]/g, 'x').replace(/\s*см/g, '').trim();
-  const dynamicPrice = lookupPrice(config.selectedCoverType || 'Велюр', sizeVal, currentPageCount);
+  const sizeVal = (config.selectedSize || '20x20').replace(/[ÃÑ]/g, 'x').replace(/\s*ÑÐ¼/g, '').trim();
+  const dynamicPrice = lookupPrice(config.selectedCoverType || 'ÐÐµÐ»ÑÑ', sizeVal, currentPageCount);
   const basePageCount = parseInt(config.selectedPageCount?.match(/\d+/)?.[0] || '20');
-  const basePrice = lookupPrice(config.selectedCoverType || 'Велюр', sizeVal, basePageCount);
+  const basePrice = lookupPrice(config.selectedCoverType || 'ÐÐµÐ»ÑÑ', sizeVal, basePageCount);
   const priceDiff = dynamicPrice - basePrice;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
@@ -613,7 +613,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
             onClick={() => {
-              if (window.confirm('Вийти з редактора? Незбережені зміни буде втрачено.')) {
+              if (window.confirm('ÐÐ¸Ð¹ÑÐ¸ Ð· ÑÐµÐ´Ð°ÐºÑÐ¾ÑÐ°? ÐÐµÐ·Ð±ÐµÑÐµÐ¶ÐµÐ½Ñ Ð·Ð¼ÑÐ½Ð¸ Ð±ÑÐ´Ðµ Ð²ÑÑÐ°ÑÐµÐ½Ð¾.')) {
                 router.back();
               }
             }}
@@ -622,16 +622,16 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 5l-7 7 7 7"/>
             </svg>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>НАЗАД</span>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>ÐÐÐÐÐ</span>
           </button>
           <div style={{ width: 1, height: 32, background: '#e2e8f0' }}/>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: '#1e2d7d' }}>{config.productName || 'Фотокнига'}</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Редактор • {photos.length} фото • {pages.length} сторінок</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: '#1e2d7d' }}>{config.productName || 'Ð¤Ð¾ÑÐ¾ÐºÐ½Ð¸Ð³Ð°'}</div>
+            <div style={{ fontSize: 11, color: '#64748b' }}>Ð ÐµÐ´Ð°ÐºÑÐ¾Ñ â¢ {photos.length} ÑÐ¾ÑÐ¾ â¢ {pages.length} ÑÑÐ¾ÑÑÐ½Ð¾Ðº</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button onClick={autoFill} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#1e2d7d' }}><Wand2 size={14} /> Авто</button>
+          <button onClick={autoFill} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#1e2d7d' }}><Wand2 size={14} /> ÐÐ²ÑÐ¾</button>
           <button onClick={() => setZoom(z => Math.max(30, z - 10))} style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer' }}><ZoomOut size={14} /></button>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', minWidth: 36, textAlign: 'center' }}>{zoom}%</span>
           <button onClick={() => setZoom(z => Math.min(130, z + 10))} style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer' }}><ZoomIn size={14} /></button>
@@ -639,26 +639,26 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           {/* Live price */}
           <div style={{ textAlign:'right', paddingRight:4 }}>
-            <div style={{ fontSize:11, color:'#94a3b8' }}>{pages.length - 1} стор. ({Math.ceil((pages.length-1)/2)} розворот{Math.ceil((pages.length-1)/2)===1?'':'и'})</div>
+            <div style={{ fontSize:11, color:'#94a3b8' }}>{pages.length - 1} ÑÑÐ¾Ñ. ({Math.ceil((pages.length-1)/2)} ÑÐ¾Ð·Ð²Ð¾ÑÐ¾Ñ{Math.ceil((pages.length-1)/2)===1?'':'Ð¸'})</div>
             <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d' }}>
-              {dynamicPrice} ₴
-              {priceDiff !== 0 && <span style={{ fontSize:11, color: priceDiff > 0 ? '#10b981':'#ef4444', marginLeft:4 }}>{priceDiff>0?'+':''}{priceDiff}₴</span>}
+              {dynamicPrice} â´
+              {priceDiff !== 0 && <span style={{ fontSize:11, color: priceDiff > 0 ? '#10b981':'#ef4444', marginLeft:4 }}>{priceDiff>0?'+':''}{priceDiff}â´</span>}
             </div>
           </div>
           {/* Preview */}
           <button onClick={() => setShowPreview(true)}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}>
-            <Eye size={14}/> Превью
+            <Eye size={14}/> ÐÑÐµÐ²ÑÑ
           </button>
           {/* Help */}
-          <button onClick={() => { setTooltipStep(0); setShowTooltips(true); }} title="Підказки"
+          <button onClick={() => { setTooltipStep(0); setShowTooltips(true); }} title="ÐÑÐ´ÐºÐ°Ð·ÐºÐ¸"
             style={{ padding:'9px 10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', color:'#64748b', display:'flex', alignItems:'center' }}>
             <HelpCircle size={14}/>
           </button>
           {/* Add to cart */}
           <button onClick={addToCart}
             style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(38,58,153,0.3)' }}>
-            <ShoppingCart size={15}/> До кошика
+            <ShoppingCart size={15}/> ÐÐ¾ ÐºÐ¾ÑÐ¸ÐºÐ°
           </button>
         </div>
       </div>
@@ -669,15 +669,15 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         {/* ICON SIDEBAR */}
         <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
           {([
-            ['photos', <ImageIcon key="p" size={20}/>, 'Зображення'],
-            ['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'],
-            ['text', <Type key="t" size={20}/>, 'Текст'],
-            ['bg', <span key="bg" style={{fontSize:16}}>▣</span>, 'Фон'],
-            ['shapes', <span key="sh" style={{fontSize:16}}>◇</span>, 'Фігури'],
-            ['frames', <span key="fr" style={{fontSize:16}}>▤</span>, 'Рамки'],
-            ['stickers', <span key="stk" style={{fontSize:18}}>★</span>, 'Стікери'],
-            ['options', <Settings key="opt" size={20}/>, 'Опції'],
-            ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:16}}>▣</span>, 'Обкладинка']]:[] as any),
+            ['photos', <ImageIcon key="p" size={20}/>, 'ÐÐ¾Ð±ÑÐ°Ð¶ÐµÐ½Ð½Ñ'],
+            ['layouts', <LayoutGrid key="l" size={20}/>, 'Ð¨Ð°Ð±Ð»Ð¾Ð½'],
+            ['text', <Type key="t" size={20}/>, 'Ð¢ÐµÐºÑÑ'],
+            ['bg', <span key="bg" style={{fontSize:16}}>â£</span>, 'Ð¤Ð¾Ð½'],
+            ['shapes', <span key="sh" style={{fontSize:16}}>â</span>, 'Ð¤ÑÐ³ÑÑÐ¸'],
+            ['frames', <span key="fr" style={{fontSize:16}}>â¤</span>, 'Ð Ð°Ð¼ÐºÐ¸'],
+            ['stickers', <span key="stk" style={{fontSize:18}}>â</span>, 'Ð¡ÑÑÐºÐµÑÐ¸'],
+            ['options', <Settings key="opt" size={20}/>, 'ÐÐ¿ÑÑÑ'],
+            ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:16}}>â£</span>, 'ÐÐ±ÐºÐ»Ð°Ð´Ð¸Ð½ÐºÐ°']]:[] as any),
           ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
             <button key={id} onClick={() => setLeftTab(id as any)}
               style={{ width: '100%', padding: '12px 4px', border: 'none', cursor: 'pointer', background: leftTab === id ? '#1e2d7d' : 'transparent', color: leftTab === id ? '#fff' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, marginBottom: 2, transition: 'background 0.15s' }}>
@@ -690,7 +690,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         {/* CONTENT PANEL */}
         <div style={{ width: 200, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: 800, fontSize: 12, color: '#1e2d7d' }}>
-            {leftTab === 'photos' ? 'Зображення' : leftTab === 'layouts' ? 'Шаблон' : 'Текст'}
+            {leftTab === 'photos' ? 'ÐÐ¾Ð±ÑÐ°Ð¶ÐµÐ½Ð½Ñ' : leftTab === 'layouts' ? 'Ð¨Ð°Ð±Ð»Ð¾Ð½' : 'Ð¢ÐµÐºÑÑ'}
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: 10 }}>
 
@@ -700,13 +700,13 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleUpload} style={{ display: 'none' }} />
                 <button onClick={() => fileRef.current?.click()}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #263a99', borderRadius: 10, background: '#f0f3ff', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#1e2d7d', width: '100%' }}>
-                  <ImageIcon size={15} /> Завантажити фото
+                  <ImageIcon size={15} /> ÐÐ°Ð²Ð°Ð½ÑÐ°Ð¶Ð¸ÑÐ¸ ÑÐ¾ÑÐ¾
                 </button>
-                {/* Add free slot button — only on content pages */}
+                {/* Add free slot button â only on content pages */}
                 {currentIdx !== 0 && (
                   <button onClick={addFreeSlot}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #10b981', borderRadius: 10, background: '#f0fdf4', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#059669', width: '100%' }}>
-                    + Додати слот вручну
+                    + ÐÐ¾Ð´Ð°ÑÐ¸ ÑÐ»Ð¾Ñ Ð²ÑÑÑÐ½Ñ
                   </button>
                 )}
 
@@ -720,7 +720,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   }}
                 />
 
-                {photos.length === 0 && <p style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', margin: 0 }}>Додайте фото щоб почати</p>}
+                {photos.length === 0 && <p style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', margin: 0 }}>ÐÐ¾Ð´Ð°Ð¹ÑÐµ ÑÐ¾ÑÐ¾ ÑÐ¾Ð± Ð¿Ð¾ÑÐ°ÑÐ¸</p>}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                   {photos.map((ph, i) => {
                     const used = usedIds.has(ph.id);
@@ -728,7 +728,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       <div key={ph.id} draggable={!used} onDragStart={() => !used && setDragPhotoId(ph.id)} onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
                         style={{ position: 'relative', aspectRatio: '1', borderRadius: 6, overflow: 'hidden', cursor: used ? 'default' : 'grab', opacity: used ? 0.45 : 1, border: '1px solid #e2e8f0' }}>
                         <img src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-                        {used && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✓</div>}
+                        {used && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>â</div>}
                         <span style={{ position: 'absolute', bottom: 2, left: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 3 }}>{i + 1}</span>
                       </div>
                     );
@@ -740,7 +740,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {/* LAYOUTS */}
             {leftTab === 'layouts' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7–9 фото', 'Текст'].map(group => {
+                {['1 ÑÐ¾ÑÐ¾', '2 ÑÐ¾ÑÐ¾', '3 ÑÐ¾ÑÐ¾', '4 ÑÐ¾ÑÐ¾', '5 ÑÐ¾ÑÐ¾', '6 ÑÐ¾ÑÐ¾', '7â9 ÑÐ¾ÑÐ¾', 'Ð¢ÐµÐºÑÑ'].map(group => {
                   const gl = LAYOUTS.filter(l => l.group === group);
                   return (
                     <div key={group}>
@@ -763,7 +763,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4 }}>
                   <button onClick={() => setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, slots: makeSlots(LAYOUTS.find(l => l.id === p.layout)?.slots || 0) }))}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #fee2e2', borderRadius: 8, background: '#fff7f7', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#ef4444', width: '100%' }}>
-                    <RotateCcw size={13} /> Очистити сторінку
+                    <RotateCcw size={13} /> ÐÑÐ¸ÑÑÐ¸ÑÐ¸ ÑÑÐ¾ÑÑÐ½ÐºÑ
                   </button>
                 </div>
               </div>
@@ -775,14 +775,14 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
 
                 {/* Decoration type */}
                 <div>
-                  <div style={{ fontSize:11, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>ОЗДОБЛЕННЯ</div>
+                  <div style={{ fontSize:11, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>ÐÐÐÐÐÐÐÐÐÐ¯</div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff' }}>
                     <span style={{ fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
-                      {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':'Фотовставка','metal':'Металева вставка','flex':'Флекс','graviruvannya':'Гравірування'} as Record<string,string>)[coverState.decoType] || 'Без оздоблення'}
+                      {({'none':'ÐÐµÐ· Ð¾Ð·Ð´Ð¾Ð±Ð»ÐµÐ½Ð½Ñ','acryl':'ÐÐºÑÐ¸Ð»','photovstavka':'Ð¤Ð¾ÑÐ¾Ð²ÑÑÐ°Ð²ÐºÐ°','metal':'ÐÐµÑÐ°Ð»ÐµÐ²Ð° Ð²ÑÑÐ°Ð²ÐºÐ°','flex':'Ð¤Ð»ÐµÐºÑ','graviruvannya':'ÐÑÐ°Ð²ÑÑÑÐ²Ð°Ð½Ð½Ñ'} as Record<string,string>)[coverState.decoType] || 'ÐÐµÐ· Ð¾Ð·Ð´Ð¾Ð±Ð»ÐµÐ½Ð½Ñ'}
                       {coverState.decoVariant ? <span style={{ fontWeight:400, color:'#64748b', marginLeft:6, fontSize:11 }}>{coverState.decoVariant}</span> : null}
                     </span>
                     <button onClick={() => setShowDecoList(v=>!v)} style={{ fontSize:11, fontWeight:700, color:'#1e2d7d', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>
-                      {showDecoList ? 'Сховати' : 'Змінити'}
+                      {showDecoList ? 'Ð¡ÑÐ¾Ð²Ð°ÑÐ¸' : 'ÐÐ¼ÑÐ½Ð¸ÑÐ¸'}
                     </button>
                   </div>
                   {showDecoList && (
@@ -791,7 +791,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         <button key={id}
                           onClick={() => { setCoverState(prev=>({...prev, decoType:id, decoVariant:''})); setShowDecoList(false); }}
                           style={{ padding:'7px 12px', border:coverState.decoType===id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:coverState.decoType===id?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:coverState.decoType===id?'#1e2d7d':'#374151', textAlign:'left' }}>
-                          {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':'Фотовставка','metal':'Металева вставка','flex':'Флекс','graviruvannya':'Гравірування'} as Record<string,string>)[id]}
+                          {({'none':'ÐÐµÐ· Ð¾Ð·Ð´Ð¾Ð±Ð»ÐµÐ½Ð½Ñ','acryl':'ÐÐºÑÐ¸Ð»','photovstavka':'Ð¤Ð¾ÑÐ¾Ð²ÑÑÐ°Ð²ÐºÐ°','metal':'ÐÐµÑÐ°Ð»ÐµÐ²Ð° Ð²ÑÑÐ°Ð²ÐºÐ°','flex':'Ð¤Ð»ÐµÐºÑ','graviruvannya':'ÐÑÐ°Ð²ÑÑÑÐ²Ð°Ð½Ð½Ñ'} as Record<string,string>)[id]}
                         </button>
                       ))}
                     </div>
@@ -800,15 +800,15 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
 
                 {/* Variant selector */}
                 {(() => {
-                  const sizeKey = (config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
+                  const sizeKey = (config.selectedSize||'20x20').replace(/[ÃÑ]/g,'x').replace(/\s*ÑÐ¼/g,'').trim();
                   const variants =
-                    coverState.decoType==='acryl' ? (ACRYLIC_VARIANTS[sizeKey]||['100×100 мм']) :
-                    coverState.decoType==='photovstavka' ? (PHOTO_INSERT_VARIANTS[sizeKey]||['100×100 мм']) :
-                    coverState.decoType==='metal' ? (METAL_VARIANTS[sizeKey]||['60×60 золотий','60×60 срібний']) : [];
+                    coverState.decoType==='acryl' ? (ACRYLIC_VARIANTS[sizeKey]||['100Ã100 Ð¼Ð¼']) :
+                    coverState.decoType==='photovstavka' ? (PHOTO_INSERT_VARIANTS[sizeKey]||['100Ã100 Ð¼Ð¼']) :
+                    coverState.decoType==='metal' ? (METAL_VARIANTS[sizeKey]||['60Ã60 Ð·Ð¾Ð»Ð¾ÑÐ¸Ð¹','60Ã60 ÑÑÑÐ±Ð½Ð¸Ð¹']) : [];
                   if (!variants.length) return null;
                   return (
                     <div>
-                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Розмір вставки</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Ð Ð¾Ð·Ð¼ÑÑ Ð²ÑÑÐ°Ð²ÐºÐ¸</div>
                       <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
                         {variants.map(v => (
                           <button key={v} onClick={() => setCoverState(prev=>({...prev, decoVariant:v}))}
@@ -825,7 +825,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 {coverState.decoType === 'flex' && (
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <div>
-                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Колір флексу</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>ÐÐ¾Ð»ÑÑ ÑÐ»ÐµÐºÑÑ</div>
                       <div style={{ display:'flex', gap:6 }}>
                         {FLEX_COLORS.map(c => (
                           <button key={c.value} onClick={() => setCoverState(prev=>({...prev, decoColor:c.value}))} title={c.label}
@@ -834,17 +834,17 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Ð¨ÑÐ¸ÑÑ</div>
                       <select value={coverState.textFontFamily} onChange={e=>setCoverState(prev=>({...prev,textFontFamily:e.target.value}))}
                         style={{ width:'100%', padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, fontFamily:coverState.textFontFamily }}>
-                        <optgroup label="Кириличні каліграфічні">
+                        <optgroup label="ÐÐ¸ÑÐ¸Ð»Ð¸ÑÐ½Ñ ÐºÐ°Ð»ÑÐ³ÑÐ°ÑÑÑÐ½Ñ">
                           <option value="Marck Script">Marck Script</option>
                           <option value="Caveat">Caveat</option>
                           <option value="Philosopher">Philosopher</option>
                           <option value="Comfortaa">Comfortaa</option>
                           <option value="Lobster">Lobster</option>
                         </optgroup>
-                        <optgroup label="Латинські каліграфічні">
+                        <optgroup label="ÐÐ°ÑÐ¸Ð½ÑÑÐºÑ ÐºÐ°Ð»ÑÐ³ÑÐ°ÑÑÑÐ½Ñ">
                           <option value="Dancing Script">Dancing Script</option>
                           <option value="Great Vibes">Great Vibes</option>
                           <option value="Pinyon Script">Pinyon Script</option>
@@ -853,13 +853,13 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                           <option value="Italianno">Italianno</option>
                           <option value="Pacifico">Pacifico</option>
                         </optgroup>
-                        <optgroup label="Елегантні засічкові">
+                        <optgroup label="ÐÐ»ÐµÐ³Ð°Ð½ÑÐ½Ñ Ð·Ð°ÑÑÑÐºÐ¾Ð²Ñ">
                           <option value="Playfair Display">Playfair Display</option>
                           <option value="Cormorant Garamond">Cormorant Garamond</option>
                           <option value="Cinzel">Cinzel</option>
                           <option value="EB Garamond">EB Garamond</option>
                         </optgroup>
-                        <optgroup label="Сучасні">
+                        <optgroup label="Ð¡ÑÑÐ°ÑÐ½Ñ">
                           <option value="Montserrat">Montserrat</option>
                           <option value="Raleway">Raleway</option>
                           <option value="Bebas Neue">Bebas Neue</option>
@@ -869,7 +869,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                     <div>
                       <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#94a3b8', marginBottom:3 }}>
-                        <span>Розмір</span><span>{coverState.textFontSize||'авто'}px</span>
+                        <span>Ð Ð¾Ð·Ð¼ÑÑ</span><span>{coverState.textFontSize||'Ð°Ð²ÑÐ¾'}px</span>
                       </div>
                       <input type="range" min={12} max={80} value={coverState.textFontSize||24}
                         onChange={e=>setCoverState(prev=>({...prev,textFontSize:+e.target.value}))}
@@ -882,22 +882,22 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 {coverState.decoType === 'graviruvannya' && (
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <div>
-                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт гравіювання</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Ð¨ÑÐ¸ÑÑ Ð³ÑÐ°Ð²ÑÑÐ²Ð°Ð½Ð½Ñ</div>
                       <select value={coverState.textFontFamily} onChange={e=>setCoverState(prev=>({...prev,textFontFamily:e.target.value}))}
                         style={{ width:'100%', padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, fontFamily:coverState.textFontFamily }}>
-                        <optgroup label="Кириличні каліграфічні">
+                        <optgroup label="ÐÐ¸ÑÐ¸Ð»Ð¸ÑÐ½Ñ ÐºÐ°Ð»ÑÐ³ÑÐ°ÑÑÑÐ½Ñ">
                           <option value="Marck Script">Marck Script</option>
                           <option value="Caveat">Caveat</option>
                           <option value="Philosopher">Philosopher</option>
                           <option value="Comfortaa">Comfortaa</option>
                         </optgroup>
-                        <optgroup label="Латинські каліграфічні">
+                        <optgroup label="ÐÐ°ÑÐ¸Ð½ÑÑÐºÑ ÐºÐ°Ð»ÑÐ³ÑÐ°ÑÑÑÐ½Ñ">
                           <option value="Dancing Script">Dancing Script</option>
                           <option value="Great Vibes">Great Vibes</option>
                           <option value="Pinyon Script">Pinyon Script</option>
                           <option value="Sacramento">Sacramento</option>
                         </optgroup>
-                        <optgroup label="Елегантні">
+                        <optgroup label="ÐÐ»ÐµÐ³Ð°Ð½ÑÐ½Ñ">
                           <option value="Playfair Display">Playfair Display</option>
                           <option value="Cinzel">Cinzel</option>
                           <option value="Cormorant Garamond">Cormorant Garamond</option>
@@ -907,7 +907,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                     <div>
                       <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#94a3b8', marginBottom:3 }}>
-                        <span>Розмір</span><span>{coverState.textFontSize||'авто'}px</span>
+                        <span>Ð Ð¾Ð·Ð¼ÑÑ</span><span>{coverState.textFontSize||'Ð°Ð²ÑÐ¾'}px</span>
                       </div>
                       <input type="range" min={12} max={80} value={coverState.textFontSize||24}
                         onChange={e=>setCoverState(prev=>({...prev,textFontSize:+e.target.value}))}
@@ -916,10 +916,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   </div>
                 )}
 
-                {/* Metal color — gold/silver only */}
+                {/* Metal color â gold/silver only */}
                 {coverState.decoType === 'metal' && (
                   <div>
-                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Колір металу</div>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>ÐÐ¾Ð»ÑÑ Ð¼ÐµÑÐ°Ð»Ñ</div>
                     <div style={{ display:'flex', gap:6 }}>
                       {METAL_COLORS.map(c => (
                         <button key={c.value} onClick={() => setCoverState(prev=>({...prev, decoColor:c.value}))} title={c.label}
@@ -931,11 +931,11 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
 
                 {/* Extra text blocks */}
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Написи на обкладинці</div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>ÐÐ°Ð¿Ð¸ÑÐ¸ Ð½Ð° Ð¾Ð±ÐºÐ»Ð°Ð´Ð¸Ð½ÑÑ</div>
                   <button
-                    onClick={() => setCoverState(prev=>({...prev, extraTexts:[...(prev.extraTexts||[]), {id:'et-'+Date.now(), text:'Ваш напис', x:50, y:75, fontFamily:prev.textFontFamily||'Marck Script', fontSize:20, color:'#ffffff'}]}))}
+                    onClick={() => setCoverState(prev=>({...prev, extraTexts:[...(prev.extraTexts||[]), {id:'et-'+Date.now(), text:'ÐÐ°Ñ Ð½Ð°Ð¿Ð¸Ñ', x:50, y:75, fontFamily:prev.textFontFamily||'Marck Script', fontSize:20, color:'#ffffff'}]}))}
                     style={{ width:'100%', padding:'7px', border:'1px dashed #1e2d7d', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d', marginBottom:6 }}>
-                    + Додати напис
+                    + ÐÐ¾Ð´Ð°ÑÐ¸ Ð½Ð°Ð¿Ð¸Ñ
                   </button>
                   {(coverState.extraTexts||[]).map(et => (
                     <div key={et.id} style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', marginBottom:4 }}>
@@ -944,7 +944,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         onChange={e => setCoverState(prev=>({...prev, extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,color:e.target.value}:t2)}))}
                         style={{ width:22, height:22, border:'none', padding:0, cursor:'pointer', borderRadius:'50%' }}/>
                       <button onClick={() => setCoverState(prev=>({...prev, extraTexts:(prev.extraTexts||[]).filter(t2=>t2.id!==et.id)}))}
-                        style={{ width:18, height:18, borderRadius:'50%', background:'#fee2e2', color:'#ef4444', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>×</button>
+                        style={{ width:18, height:18, borderRadius:'50%', background:'#fee2e2', color:'#ef4444', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>Ã</button>
                     </div>
                   ))}
                 </div>
@@ -1001,14 +1001,14 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 <input
                   type="text"
-                  placeholder="Пошук стікерів..."
+                  placeholder="ÐÐ¾ÑÑÐº ÑÑÑÐºÐµÑÑÐ²..."
                   value={stickerSearch}
                   onChange={e=>setStickerSearch(e.target.value)}
                   style={{ padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none' }}
                 />
                 {/* Category filter */}
                 <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
-                  {['Всі',...[...new Set(dbStickers.map(s=>s.category))]].map(cat => (
+                  {['ÐÑÑ',...[...new Set(dbStickers.map(s=>s.category))]].map(cat => (
                     <button key={cat}
                       style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:20, fontSize:11, background:'#fff', cursor:'pointer', fontWeight:600, color:'#374151' }}>
                       {cat}
@@ -1036,7 +1036,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     })
                   }
                 </div>
-                {dbStickers.length === 0 && <p style={{ fontSize:11, color:'#94a3b8', textAlign:'center' }}>Стікери завантажуються...</p>}
+                {dbStickers.length === 0 && <p style={{ fontSize:11, color:'#94a3b8', textAlign:'center' }}>Ð¡ÑÑÐºÐµÑÐ¸ Ð·Ð°Ð²Ð°Ð½ÑÐ°Ð¶ÑÑÑÑÑÑ...</p>}
               </div>
             )}
 
@@ -1045,24 +1045,24 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
                 {/* Book size */}
                 <div>
-                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Розмір книги</div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Ð Ð¾Ð·Ð¼ÑÑ ÐºÐ½Ð¸Ð³Ð¸</div>
                   <div style={{ padding:'10px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff', fontSize:13, fontWeight:700, color:'#1e2d7d' }}>
-                    {config.selectedSize || '20×20 см'}
+                    {config.selectedSize || '20Ã20 ÑÐ¼'}
                   </div>
-                  <p style={{ fontSize:10, color:'#94a3b8', marginTop:4 }}>Розмір обрано при замовленні</p>
+                  <p style={{ fontSize:10, color:'#94a3b8', marginTop:4 }}>Ð Ð¾Ð·Ð¼ÑÑ Ð¾Ð±ÑÐ°Ð½Ð¾ Ð¿ÑÐ¸ Ð·Ð°Ð¼Ð¾Ð²Ð»ÐµÐ½Ð½Ñ</p>
                 </div>
 
 <div>
-                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип обкладинки</div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Ð¢Ð¸Ð¿ Ð¾Ð±ÐºÐ»Ð°Ð´Ð¸Ð½ÐºÐ¸</div>
                   <div style={{ padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:13, fontWeight:600, color:'#374151' }}>
-                    {config.selectedCoverType || 'Велюр'}
-                    {config.selectedCoverColor && !config.selectedCoverType?.toLowerCase().includes('друков') ? <span style={{ color:'#94a3b8', marginLeft:6, fontWeight:400 }}>· {config.selectedCoverColor}</span> : null}
+                    {config.selectedCoverType || 'ÐÐµÐ»ÑÑ'}
+                    {config.selectedCoverColor && !config.selectedCoverType?.toLowerCase().includes('Ð´ÑÑÐºÐ¾Ð²') ? <span style={{ color:'#94a3b8', marginLeft:6, fontWeight:400 }}>Â· {config.selectedCoverColor}</span> : null}
                   </div>
                 </div>
 
                 {/* Pages count */}
                 <div>
-                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Кількість сторінок</div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>ÐÑÐ»ÑÐºÑÑÑÑ ÑÑÐ¾ÑÑÐ½Ð¾Ðº</div>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <div style={{ flex:1, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:14, fontWeight:700, color:'#1e2d7d', textAlign:'center' }}>
                       {pages.length - 1}
@@ -1073,24 +1073,24 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </button>
                     <button onClick={removeLastSpread}
                       style={{ padding:'9px 12px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', fontWeight:700, fontSize:12, color:'#ef4444' }}>
-                      − 2
+                      â 2
                     </button>
                   </div>
                   <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
-                    <span style={{ fontSize:11, color:'#94a3b8' }}>Ціна:</span>
-                    <span style={{ fontSize:13, fontWeight:800, color:'#1e2d7d' }}>{dynamicPrice} ₴</span>
+                    <span style={{ fontSize:11, color:'#94a3b8' }}>Ð¦ÑÐ½Ð°:</span>
+                    <span style={{ fontSize:13, fontWeight:800, color:'#1e2d7d' }}>{dynamicPrice} â´</span>
                   </div>
                 </div>
 
-{/* Lamination — only for printed covers */}
-                {config.selectedCoverType?.toLowerCase().includes('друков') && (
+{/* Lamination â only for printed covers */}
+                {config.selectedCoverType?.toLowerCase().includes('Ð´ÑÑÐºÐ¾Ð²') && (
                   <div>
-                    <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип ламінації</div>
+                    <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Ð¢Ð¸Ð¿ Ð»Ð°Ð¼ÑÐ½Ð°ÑÑÑ</div>
                     <div style={{ display:'flex', gap:6 }}>
-                      {['Глянцева', 'Матова'].map(lam => (
+                      {['ÐÐ»ÑÐ½ÑÐµÐ²Ð°', 'ÐÐ°ÑÐ¾Ð²Ð°'].map(lam => (
                         <button key={lam}
-                          onClick={() => {/* lamination stored in config — read only for now */}}
-                          style={{ flex:1, padding:'8px', border: (config.selectedLamination||'Глянцева')===lam ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:(config.selectedLamination||'Глянцева')===lam?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:(config.selectedLamination||'Глянцева')===lam?'#1e2d7d':'#374151' }}>
+                          onClick={() => {/* lamination stored in config â read only for now */}}
+                          style={{ flex:1, padding:'8px', border: (config.selectedLamination||'ÐÐ»ÑÐ½ÑÐµÐ²Ð°')===lam ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:(config.selectedLamination||'ÐÐ»ÑÐ½ÑÐµÐ²Ð°')===lam?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:(config.selectedLamination||'ÐÐ»ÑÐ½ÑÐµÐ²Ð°')===lam?'#1e2d7d':'#374151' }}>
                           {lam}
                         </button>
                       ))}
@@ -1098,37 +1098,37 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   </div>
                 )}
 
-{/* Cover templates — only for printed covers */}
-                {config.selectedCoverType?.toLowerCase().includes('друков') && (
+{/* Cover templates â only for printed covers */}
+                {config.selectedCoverType?.toLowerCase().includes('Ð´ÑÑÐºÐ¾Ð²') && (
                   <div>
-                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Дизайн обкладинки</div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>ÐÐ¸Ð·Ð°Ð¹Ð½ Ð¾Ð±ÐºÐ»Ð°Ð´Ð¸Ð½ÐºÐ¸</div>
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
                     {[
-                      { id:'blank', label:'Чистий аркуш', bg:'#f1f5f9', isBlank:true },
-                      { id:'minimal', label:'Мінімалістичний', bg:'linear-gradient(135deg,#f8f9fa,#e9ecef)', isBlank:false },
-                      { id:'full-photo', label:'Велике фото', bg:'linear-gradient(135deg,#1e2d7d,#3b5bdb)', isBlank:false },
-                      { id:'elegant', label:'Елегантний', bg:'linear-gradient(135deg,#2d3748,#4a5568)', isBlank:false },
+                      { id:'blank', label:'Ð§Ð¸ÑÑÐ¸Ð¹ Ð°ÑÐºÑÑ', bg:'#f1f5f9', isBlank:true },
+                      { id:'minimal', label:'ÐÑÐ½ÑÐ¼Ð°Ð»ÑÑÑÐ¸ÑÐ½Ð¸Ð¹', bg:'linear-gradient(135deg,#f8f9fa,#e9ecef)', isBlank:false },
+                      { id:'full-photo', label:'ÐÐµÐ»Ð¸ÐºÐµ ÑÐ¾ÑÐ¾', bg:'linear-gradient(135deg,#1e2d7d,#3b5bdb)', isBlank:false },
+                      { id:'elegant', label:'ÐÐ»ÐµÐ³Ð°Ð½ÑÐ½Ð¸Ð¹', bg:'linear-gradient(135deg,#2d3748,#4a5568)', isBlank:false },
                     ].map(tpl => (
                       <button key={tpl.id}
                         onClick={() => {/* apply cover template */}}
                         style={{ padding:'0', border:'2px solid #e2e8f0', borderRadius:8, overflow:'hidden', cursor:'pointer', background:'none', textAlign:'center' }}>
                         <div style={{ height:60, background:tpl.bg, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          {tpl.isBlank && <span style={{ fontSize:10, color:'#94a3b8' }}>порожня</span>}
+                          {tpl.isBlank && <span style={{ fontSize:10, color:'#94a3b8' }}>Ð¿Ð¾ÑÐ¾Ð¶Ð½Ñ</span>}
                         </div>
                         <div style={{ padding:'5px 4px', fontSize:10, fontWeight:600, color:'#374151', background:'#fff' }}>{tpl.label}</div>
                       </button>
                     ))}
                   </div>
-                  <p style={{ fontSize:10, color:'#94a3b8', marginTop:6 }}>Більше шаблонів обкладинок — незабаром</p>
+                  <p style={{ fontSize:10, color:'#94a3b8', marginTop:6 }}>ÐÑÐ»ÑÑÐµ ÑÐ°Ð±Ð»Ð¾Ð½ÑÐ² Ð¾Ð±ÐºÐ»Ð°Ð´Ð¸Ð½Ð¾Ðº â Ð½ÐµÐ·Ð°Ð±Ð°ÑÐ¾Ð¼</p>
                   </div>
                 )}
 
                 {/* Kalka option */}
-                {(config.selectedCoverType?.toLowerCase().includes('велюр') || config.selectedCoverType?.toLowerCase().includes('шкір') || config.selectedCoverType?.toLowerCase().includes('тканин')) && (
+                {(config.selectedCoverType?.toLowerCase().includes('Ð²ÐµÐ»ÑÑ') || config.selectedCoverType?.toLowerCase().includes('ÑÐºÑÑ') || config.selectedCoverType?.toLowerCase().includes('ÑÐºÐ°Ð½Ð¸Ð½')) && (
                   <div>
-                    <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Калька перед 1-ю стор.</div>
+                    <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>ÐÐ°Ð»ÑÐºÐ° Ð¿ÐµÑÐµÐ´ 1-Ñ ÑÑÐ¾Ñ.</div>
                     <div style={{ display:'flex', gap:6 }}>
-                      {['Без кальки', 'З калькою +280₴'].map(k => (
+                      {['ÐÐµÐ· ÐºÐ°Ð»ÑÐºÐ¸', 'Ð ÐºÐ°Ð»ÑÐºÐ¾Ñ +280â´'].map(k => (
                         <button key={k}
                           style={{ flex:1, padding:'8px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontWeight:600, fontSize:11, color:'#374151' }}>
                           {k}
@@ -1145,10 +1145,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <button onClick={() => setTextTool(t => !t)}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: textTool ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: textTool ? '#f0f3ff' : '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: textTool ? '#1e2d7d' : '#374151' }}>
-                  <Type size={15} /> {textTool ? '↖ Клікніть на сторінку' : 'Додати текст'}
+                  <Type size={15} /> {textTool ? 'â ÐÐ»ÑÐºÐ½ÑÑÑ Ð½Ð° ÑÑÐ¾ÑÑÐ½ÐºÑ' : 'ÐÐ¾Ð´Ð°ÑÐ¸ ÑÐµÐºÑÑ'}
                 </button>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Шрифт</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Ð¨ÑÐ¸ÑÑ</div>
                   <select value={tFontFamily}
                     onChange={e => { const v=e.target.value; setTFontFamily(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontFamily: v }, selectedTextPageIdx); }}
                     style={{ padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, width:'100%', fontFamily:tFontFamily }}>
@@ -1158,9 +1158,9 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       </optgroup>
                     ))}
                   </select>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Розмір: {tFontSize}px</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Ð Ð¾Ð·Ð¼ÑÑ: {tFontSize}px</div>
                   <input type="range" min={8} max={120} value={tFontSize} onChange={e => { const v = +e.target.value; setTFontSize(v); if (selectedTextId) updateTxt(selectedTextId, { fontSize: v }); }} style={{ width: '100%' }} />
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Колір</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>ÐÐ¾Ð»ÑÑ</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {COLORS.map(c => <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxtForPage(selectedTextId, { color: c }, selectedTextPageIdx); }} style={{ width: 22, height: 22, borderRadius: '50%', background: c, border: tColor === c ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor: 'pointer' }} />)}
                     <input type="color" value={tColor} onChange={e => { setTColor(e.target.value); if (selectedTextId) updateTxtForPage(selectedTextId, { color: e.target.value }, selectedTextPageIdx); }} style={{ width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0 }} />
@@ -1172,9 +1172,9 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 </div>
                 {selectedTextId && (
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 6px' }}>Двічі клікніть для редагування</p>
+                    <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 6px' }}>ÐÐ²ÑÑÑ ÐºÐ»ÑÐºÐ½ÑÑÑ Ð´Ð»Ñ ÑÐµÐ´Ð°Ð³ÑÐ²Ð°Ð½Ð½Ñ</p>
                     <button onClick={() => deleteTxtForPage(selectedTextId!, selectedTextPageIdx)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', border: '1px solid #fee2e2', borderRadius: 8, background: '#fff7f7', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#ef4444', width: '100%' }}>
-                      <Trash2 size={13} /> Видалити
+                      <Trash2 size={13} /> ÐÐ¸Ð´Ð°Ð»Ð¸ÑÐ¸
                     </button>
                   </div>
                 )}
@@ -1188,19 +1188,19 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: 32, background: '#f4f6fb' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} style={{ background: 'none', border: 'none', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', opacity: currentIdx === 0 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronLeft size={20} /></button>
-            <span style={{ minWidth: 60, textAlign: 'center' }}>{cur?.label || 'Обкладинка'}</span>
+            <span style={{ minWidth: 60, textAlign: 'center' }}>{cur?.label || 'ÐÐ±ÐºÐ»Ð°Ð´Ð¸Ð½ÐºÐ°'}</span>
             <button onClick={() => setCurrentIdx(i => Math.min(pages.length - 1, i + 1))} disabled={currentIdx === pages.length - 1} style={{ background: 'none', border: 'none', cursor: currentIdx === pages.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIdx === pages.length - 1 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronRight size={20} /></button>
             {/* Shuffle layout button */}
             {currentIdx !== 0 && (
               <button
                 onClick={shuffleLayout}
-                title="Змінити розкладку сторінки (зберігає фото)"
+                title="ÐÐ¼ÑÐ½Ð¸ÑÐ¸ ÑÐ¾Ð·ÐºÐ»Ð°Ð´ÐºÑ ÑÑÐ¾ÑÑÐ½ÐºÐ¸ (Ð·Ð±ÐµÑÑÐ³Ð°Ñ ÑÐ¾ÑÐ¾)"
                 style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 8, padding: '5px 12px', border: '1px solid #c7d2fe', borderRadius: 8, background: '#f0f3ff', cursor: 'pointer', color: '#1e2d7d', fontWeight: 700, fontSize: 12, transition: 'all 0.15s' }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#e0e7ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = '#f0f3ff')}
               >
                 <Shuffle size={13} />
-                Інший шаблон
+                ÐÐ½ÑÐ¸Ð¹ ÑÐ°Ð±Ð»Ð¾Ð½
               </button>
             )}
           </div>
@@ -1208,7 +1208,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
           {/* Active page indicator */}
           {currentIdx !== 0 && (
             <div style={{ fontSize:11, color:'#94a3b8', marginBottom:8, textAlign:'center' }}>
-              Активна сторінка: <b style={{color:'#1e2d7d'}}>{activeSide === 0 ? 'ліва' : 'права'}</b> — клікніть на сторінку для вибору
+              ÐÐºÑÐ¸Ð²Ð½Ð° ÑÑÐ¾ÑÑÐ½ÐºÐ°: <b style={{color:'#1e2d7d'}}>{activeSide === 0 ? 'Ð»ÑÐ²Ð°' : 'Ð¿ÑÐ°Ð²Ð°'}</b> â ÐºÐ»ÑÐºÐ½ÑÑÑ Ð½Ð° ÑÑÐ¾ÑÑÐ½ÐºÑ Ð´Ð»Ñ Ð²Ð¸Ð±Ð¾ÑÑ
             </div>
           )}
           {currentIdx === 0 ? (
@@ -1217,22 +1217,22 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: (() => {
                   const mat = (config.selectedCoverType||'').toLowerCase();
                   const name = config.selectedCoverColor||'';
-                  if (mat.includes('велюр')||mat.includes('velour')) return '#C4AA88';
-                  if (mat.includes('тканин')||mat.includes('fabric')) return '#C4AA88';
-                  if (mat.includes('шкір')||mat.includes('leather')) return '#D9C8B0';
+                  if (mat.includes('Ð²ÐµÐ»ÑÑ')||mat.includes('velour')) return '#C4AA88';
+                  if (mat.includes('ÑÐºÐ°Ð½Ð¸Ð½')||mat.includes('fabric')) return '#C4AA88';
+                  if (mat.includes('ÑÐºÑÑ')||mat.includes('leather')) return '#D9C8B0';
                   return '#e8ecf4';
                 })(), borderRight: '2px solid rgba(0,0,0,0.12)' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <span style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>
+                    <span style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ÐÐÐÐÐ¯</span>
                   </div>
                 </div>
                 {/* Front cover with decoration */}
                 <CoverEditor
                   canvasW={pageW}
                   canvasH={cH}
-                  sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
+                  sizeValue={(config.selectedSize || '20x20').replace(/[ÃÑ]/g,'x').replace(/\s*ÑÐ¼/,'')}
                   config={{
-                    coverMaterial: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
+                    coverMaterial: (config.selectedCoverType?.toLowerCase().includes('Ð²ÐµÐ»ÑÑ') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('ÑÐºÑÑ') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('ÑÐºÐ°Ð½Ð¸Ð½') ? 'fabric' : 'printed') as any,
                     coverColorName: config.selectedCoverColor || '',
                     decoType: coverState.decoType as any,
                     decoVariant: coverState.decoVariant,
@@ -1262,21 +1262,21 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {currentIdx === 0 ? (
               /* Cover: left=back spine(grey), right=front cover with deco */
               <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
-                {/* Back cover — plain */}
-                <div style={{ width: pageW, height: cH, background: (() => { const n=config.selectedCoverColor||''; const mat=config.selectedCoverType?.toLowerCase()||''; if(mat.includes('шкір')) return ({...{'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Чорний':'#1A1A1A'}})[n]||'#D9C8B0'; if(mat.includes('тканин')) return '#C4AA88'; return '#e8ecf4'; })(), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
+                {/* Back cover â plain */}
+                <div style={{ width: pageW, height: cH, background: (() => { const n=config.selectedCoverColor||''; const mat=config.selectedCoverType?.toLowerCase()||''; if(mat.includes('ÑÐºÑÑ')) return ({...{'ÐÑÐ»Ð¸Ð¹':'#F5F5F0','ÐÐµÐ¶ÐµÐ²Ð¸Ð¹':'#D9C8B0','ÐÑÑÐ¾ÑÐ½Ð¸Ð¹':'#D4A76A','Ð ÑÐ´Ð¸Ð¹':'#C8844E','ÐÐ¾ÑÐ´Ð¾ ÑÐµÐ¼Ð½Ð¸Ð¹':'#7A2838','Ð§Ð¾ÑÐ½Ð¸Ð¹':'#1A1A1A'}})[n]||'#D9C8B0'; if(mat.includes('ÑÐºÐ°Ð½Ð¸Ð½')) return '#C4AA88'; return '#e8ecf4'; })(), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <span style={{ color:'rgba(255,255,255,0.15)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ ОБКЛАДИНКА</span>
+                    <span style={{ color:'rgba(255,255,255,0.15)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ÐÐÐÐÐ¯ ÐÐÐÐÐÐÐÐÐÐ</span>
                   </div>
                   {/* Spine line */}
                   <div style={{ position:'absolute', right:0, top:0, width:2, height:'100%', background:'rgba(0,0,0,0.15)' }}/>
                 </div>
-                {/* Front cover — with deco */}
+                {/* Front cover â with deco */}
                 <CoverEditor
                   canvasW={pageW}
                   canvasH={cH}
-                  sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
+                  sizeValue={(config.selectedSize || '20x20').replace(/[ÃÑ]/g,'x').replace(/\s*ÑÐ¼/,'')}
                   config={{
-                    coverMaterial: (config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
+                    coverMaterial: (config.selectedCoverType?.toLowerCase().includes('ÑÐºÑÑ') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('ÑÐºÐ°Ð½Ð¸Ð½') ? 'fabric' : 'printed') as any,
                     coverColorName: config.selectedCoverColor || '',
                     decoType: coverState.decoType as any,
                     decoVariant: coverState.decoVariant,
@@ -1332,11 +1332,11 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                                     style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}/>
                                   {photoEditSlot===key && (
                                     <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.7)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
-                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
+                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>â</button>
                                       <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:28,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
                                       <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>+</button>
                                       <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
-                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
+                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>âº</button>
                                     </div>
                                   )}
                                 </div>
@@ -1345,7 +1345,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                               </>
                             ) : (
                               <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:'#94a3b8',gap:4}}>
-                                <ImageIcon size={16}/><span style={{fontSize:9,fontWeight:600}}>Фото</span>
+                                <ImageIcon size={16}/><span style={{fontSize:9,fontWeight:600}}>Ð¤Ð¾ÑÐ¾</span>
                               </div>
                             )}
                           </div>
@@ -1374,7 +1374,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             ):(
                               <span style={{fontSize:(tb.fontSize*(zoom/100))+'px',fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre',userSelect:'none',textShadow:'0 1px 2px rgba(0,0,0,0.2)'}}>{tb.text}</span>
                             )}
-                            {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,pageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
+                            {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,pageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>Ã</button>}
                           </div>
                         );
                       })}
@@ -1415,7 +1415,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                           }}>
                           <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>
                           <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(s=>s.id!==stk.id)}));}}
-                            style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>
+                            style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>Ã</button>
                         </div>
                       ))}
                       {/* Spine shadow */}
@@ -1433,10 +1433,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
           )}
         </div>
 
-        {/* RIGHT PANEL — Spread Navigator */}
+        {/* RIGHT PANEL â Spread Navigator */}
         <div style={{ width: 180, borderLeft: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Розвороти</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Ð Ð¾Ð·Ð²Ð¾ÑÐ¾ÑÐ¸</span>
             <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{pages.length}</span>
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1462,87 +1462,87 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
           <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:420, boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }}>
             {tooltipStep === 0 && (
               <>
-                <div style={{ fontSize:24, marginBottom:12 }}>👋</div>
-                <h3 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:8 }}>Ласкаво просимо до редактора!</h3>
+                <div style={{ fontSize:24, marginBottom:12 }}>ð</div>
+                <h3 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:8 }}>ÐÐ°ÑÐºÐ°Ð²Ð¾ Ð¿ÑÐ¾ÑÐ¸Ð¼Ð¾ Ð´Ð¾ ÑÐµÐ´Ð°ÐºÑÐ¾ÑÐ°!</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:20 }}>
-                  Тут ви можете створити свою унікальну фотокнигу. Давайте розберемось як це працює.
+                  Ð¢ÑÑ Ð²Ð¸ Ð¼Ð¾Ð¶ÐµÑÐµ ÑÑÐ²Ð¾ÑÐ¸ÑÐ¸ ÑÐ²Ð¾Ñ ÑÐ½ÑÐºÐ°Ð»ÑÐ½Ñ ÑÐ¾ÑÐ¾ÐºÐ½Ð¸Ð³Ñ. ÐÐ°Ð²Ð°Ð¹ÑÐµ ÑÐ¾Ð·Ð±ÐµÑÐµÐ¼Ð¾ÑÑ ÑÐº ÑÐµ Ð¿ÑÐ°ÑÑÑ.
                 </p>
                 <button onClick={() => setTooltipStep(1)} style={{ width:'100%', padding:'12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
-                  Почати →
+                  ÐÐ¾ÑÐ°ÑÐ¸ â
                 </button>
               </>
             )}
             {tooltipStep === 1 && (
               <>
                 <div style={{ fontSize:24, marginBottom:12 }}></div>
-                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Зображення</h3>
+                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>ÐÐ¾Ð±ÑÐ°Ð¶ÐµÐ½Ð½Ñ</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
-                  В панелі <b>Зображення</b> завантажте фото та перетягніть їх на слоти сторінки.
+                  Ð Ð¿Ð°Ð½ÐµÐ»Ñ <b>ÐÐ¾Ð±ÑÐ°Ð¶ÐµÐ½Ð½Ñ</b> Ð·Ð°Ð²Ð°Ð½ÑÐ°Ð¶ÑÐµ ÑÐ¾ÑÐ¾ ÑÐ° Ð¿ÐµÑÐµÑÑÐ³Ð½ÑÑÑ ÑÑ Ð½Ð° ÑÐ»Ð¾ÑÐ¸ ÑÑÐ¾ÑÑÐ½ÐºÐ¸.
                 </p>
                 <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
-                  Натисніть <b>Авто</b> — редактор розставить всі фото автоматично.
+                  ÐÐ°ÑÐ¸ÑÐ½ÑÑÑ <b>ÐÐ²ÑÐ¾</b> â ÑÐµÐ´Ð°ÐºÑÐ¾Ñ ÑÐ¾Ð·ÑÑÐ°Ð²Ð¸ÑÑ Ð²ÑÑ ÑÐ¾ÑÐ¾ Ð°Ð²ÑÐ¾Ð¼Ð°ÑÐ¸ÑÐ½Ð¾.
                 </p>
                 <div style={{ display:'flex', gap:8 }}>
-                  <button onClick={() => setTooltipStep(0)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
-                  <button onClick={() => setTooltipStep(2)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
+                  <button onClick={() => setTooltipStep(0)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>â ÐÐ°Ð·Ð°Ð´</button>
+                  <button onClick={() => setTooltipStep(2)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>ÐÐ°Ð»Ñ â</button>
                 </div>
               </>
             )}
             {tooltipStep === 2 && (
               <>
-                <div style={{ fontSize:24, marginBottom:12 }}>📐</div>
-                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Шаблони та активна сторінка</h3>
+                <div style={{ fontSize:24, marginBottom:12 }}>ð</div>
+                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Ð¨Ð°Ð±Ð»Ð¾Ð½Ð¸ ÑÐ° Ð°ÐºÑÐ¸Ð²Ð½Ð° ÑÑÐ¾ÑÑÐ½ÐºÐ°</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
-                  <b>Клікніть на ліву або праву сторінку</b> розвороту щоб зробити її активною.
+                  <b>ÐÐ»ÑÐºÐ½ÑÑÑ Ð½Ð° Ð»ÑÐ²Ñ Ð°Ð±Ð¾ Ð¿ÑÐ°Ð²Ñ ÑÑÐ¾ÑÑÐ½ÐºÑ</b> ÑÐ¾Ð·Ð²Ð¾ÑÐ¾ÑÑ ÑÐ¾Ð± Ð·ÑÐ¾Ð±Ð¸ÑÐ¸ ÑÑ Ð°ÐºÑÐ¸Ð²Ð½Ð¾Ñ.
                 </p>
                 <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
-                  Потім оберіть шаблон у лівій панелі — він застосується до активної сторінки.
+                  ÐÐ¾ÑÑÐ¼ Ð¾Ð±ÐµÑÑÑÑ ÑÐ°Ð±Ð»Ð¾Ð½ Ñ Ð»ÑÐ²ÑÐ¹ Ð¿Ð°Ð½ÐµÐ»Ñ â Ð²ÑÐ½ Ð·Ð°ÑÑÐ¾ÑÑÑÑÑÑÑ Ð´Ð¾ Ð°ÐºÑÐ¸Ð²Ð½Ð¾Ñ ÑÑÐ¾ÑÑÐ½ÐºÐ¸.
                 </p>
                 <div style={{ display:'flex', gap:8 }}>
-                  <button onClick={() => setTooltipStep(1)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
-                  <button onClick={() => setTooltipStep(3)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
+                  <button onClick={() => setTooltipStep(1)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>â ÐÐ°Ð·Ð°Ð´</button>
+                  <button onClick={() => setTooltipStep(3)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>ÐÐ°Ð»Ñ â</button>
                 </div>
               </>
             )}
             {tooltipStep === 3 && (
               <>
-                <div style={{ fontSize:24, marginBottom:12 }}>✏️</div>
-                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Текст, фон та фігури</h3>
+                <div style={{ fontSize:24, marginBottom:12 }}>âï¸</div>
+                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Ð¢ÐµÐºÑÑ, ÑÐ¾Ð½ ÑÐ° ÑÑÐ³ÑÑÐ¸</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
-                  В панелі <b>Текст</b> — натисніть «Додати текст», потім клікніть на сторінку.
+                  Ð Ð¿Ð°Ð½ÐµÐ»Ñ <b>Ð¢ÐµÐºÑÑ</b> â Ð½Ð°ÑÐ¸ÑÐ½ÑÑÑ Â«ÐÐ¾Ð´Ð°ÑÐ¸ ÑÐµÐºÑÑÂ», Ð¿Ð¾ÑÑÐ¼ ÐºÐ»ÑÐºÐ½ÑÑÑ Ð½Ð° ÑÑÐ¾ÑÑÐ½ÐºÑ.
                 </p>
                 <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
-                  <b>Фон</b> — колір або фото для кожної сторінки окремо.<br/>
-                  <b>Фігури</b> — геометричні елементи на сторінці.<br/>
-                  <b>Рамки</b> — декоративні рамки поверх сторінки.
+                  <b>Ð¤Ð¾Ð½</b> â ÐºÐ¾Ð»ÑÑ Ð°Ð±Ð¾ ÑÐ¾ÑÐ¾ Ð´Ð»Ñ ÐºÐ¾Ð¶Ð½Ð¾Ñ ÑÑÐ¾ÑÑÐ½ÐºÐ¸ Ð¾ÐºÑÐµÐ¼Ð¾.<br/>
+                  <b>Ð¤ÑÐ³ÑÑÐ¸</b> â Ð³ÐµÐ¾Ð¼ÐµÑÑÐ¸ÑÐ½Ñ ÐµÐ»ÐµÐ¼ÐµÐ½ÑÐ¸ Ð½Ð° ÑÑÐ¾ÑÑÐ½ÑÑ.<br/>
+                  <b>Ð Ð°Ð¼ÐºÐ¸</b> â Ð´ÐµÐºÐ¾ÑÐ°ÑÐ¸Ð²Ð½Ñ ÑÐ°Ð¼ÐºÐ¸ Ð¿Ð¾Ð²ÐµÑÑ ÑÑÐ¾ÑÑÐ½ÐºÐ¸.
                 </p>
                 <div style={{ display:'flex', gap:8 }}>
-                  <button onClick={() => setTooltipStep(2)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
-                  <button onClick={() => setTooltipStep(4)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
+                  <button onClick={() => setTooltipStep(2)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>â ÐÐ°Ð·Ð°Ð´</button>
+                  <button onClick={() => setTooltipStep(4)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>ÐÐ°Ð»Ñ â</button>
                 </div>
               </>
             )}
             {tooltipStep === 4 && (
               <>
-                <div style={{ fontSize:24, marginBottom:12 }}>👁️</div>
-                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Превью та замовлення</h3>
+                <div style={{ fontSize:24, marginBottom:12 }}>ðï¸</div>
+                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>ÐÑÐµÐ²ÑÑ ÑÐ° Ð·Ð°Ð¼Ð¾Ð²Ð»ÐµÐ½Ð½Ñ</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
-                  Натисніть <b>Превью</b> щоб переглянути фотокнигу з перегортанням сторінок.
+                  ÐÐ°ÑÐ¸ÑÐ½ÑÑÑ <b>ÐÑÐµÐ²ÑÑ</b> ÑÐ¾Ð± Ð¿ÐµÑÐµÐ³Ð»ÑÐ½ÑÑÐ¸ ÑÐ¾ÑÐ¾ÐºÐ½Ð¸Ð³Ñ Ð· Ð¿ÐµÑÐµÐ³Ð¾ÑÑÐ°Ð½Ð½ÑÐ¼ ÑÑÐ¾ÑÑÐ½Ð¾Ðº.
                 </p>
                 <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
-                  Хочете більше сторінок? Натисніть <b>+ Розворот</b> в правій панелі. Ціна оновлюється автоматично.
+                  Ð¥Ð¾ÑÐµÑÐµ Ð±ÑÐ»ÑÑÐµ ÑÑÐ¾ÑÑÐ½Ð¾Ðº? ÐÐ°ÑÐ¸ÑÐ½ÑÑÑ <b>+ Ð Ð¾Ð·Ð²Ð¾ÑÐ¾Ñ</b> Ð² Ð¿ÑÐ°Ð²ÑÐ¹ Ð¿Ð°Ð½ÐµÐ»Ñ. Ð¦ÑÐ½Ð° Ð¾Ð½Ð¾Ð²Ð»ÑÑÑÑÑÑ Ð°Ð²ÑÐ¾Ð¼Ð°ÑÐ¸ÑÐ½Ð¾.
                 </p>
                 <button onClick={() => {
                   setShowTooltips(false);
                   localStorage.setItem('editor_tooltips_seen', '1');
                 }} style={{ width:'100%', padding:'12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
-                  Зрозуміло, почнемо! 🚀
+                  ÐÑÐ¾Ð·ÑÐ¼ÑÐ»Ð¾, Ð¿Ð¾ÑÐ½ÐµÐ¼Ð¾! ð
                 </button>
                 <button onClick={() => {
                   setShowTooltips(false);
                   localStorage.setItem('editor_tooltips_seen', '1');
                 }} style={{ width:'100%', padding:'8px', background:'none', border:'none', cursor:'pointer', fontSize:12, color:'#94a3b8', marginTop:8 }}>
-                  Більше не показувати
+                  ÐÑÐ»ÑÑÐµ Ð½Ðµ Ð¿Ð¾ÐºÐ°Ð·ÑÐ²Ð°ÑÐ¸
                 </button>
               </>
             )}
