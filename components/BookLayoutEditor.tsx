@@ -385,17 +385,19 @@ export default function BookLayoutEditor() {
 
   const changeLayout = (layout: LayoutType) => {
     const def = LAYOUTS.find(l => l.id === layout);
-    if (!def) { console.warn('Layout not found:', layout); return; }
+    if (!def) return;
     const targetIdx = getActivePageIdx();
-    const newSlotCount = LAYOUT_SLOTS[layout] ?? def.slots?.length ?? 1;
     setPages(prev => prev.map((p, i) => {
       if (i !== targetIdx) return p;
-      // Preserve existing photos in slots
-      const existingPhotos = p.slots.map(s => s.photoId).filter(Boolean);
+      const newSlotCount = def.slots;
+      const oldPhotos = p.slots.map(s => s.photoId).filter(Boolean) as string[];
       const newSlots = Array.from({ length: newSlotCount }, (_, si) => ({
-        photoId: existingPhotos[si] ?? null,
+        photoId: oldPhotos[si] || null,
+        style: {}
       }));
       return { ...p, layout, slots: newSlots };
+    }));
+  };
     }));
   };
     }));
@@ -428,7 +430,14 @@ export default function BookLayoutEditor() {
   };
 
   const onDrop = (e: DragEvent, pi: number, si: number) => {
-    e.preventDefault(); setDropTarget(null);
+    e.preventDefault();
+    const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
+    if (!photoId) return;
+    setPages(prev => prev.map((p, pi2) => pi2 !== pi ? p : {
+      ...p, slots: p.slots.map((s, si2) => si2 !== si ? s : { ...s, photoId })
+    }));
+    // eslint-disable-next-line no-useless-return
+    return;; setDropTarget(null);
     if (!dragPhotoId) return;
     setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, photoId: dragPhotoId }) }));
     setDragPhotoId(null);
@@ -912,17 +921,22 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
 
             {/* SHAPES */}
             {leftTab === 'shapes' && (() => {
-              const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
-              const shapes = getCurShapes(spi);
-              const selShape = shapes.find(s=>s.id===selectedShapeId) ?? null;
+              // Find which page has the selected shape
+              const allPageIdxs = currentIdx===0 ? [0] : [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
+              let spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+              let selShape = null;
+              for (const pi of allPageIdxs) {
+                const found = getCurShapes(pi).find(s=>s.id===selectedShapeId);
+                if (found) { selShape = found; spi = pi; break; }
+              }
               return (
                 <ShapeControls
                   selectedShape={selShape}
                   onChange={patch => {
                     if (!selShape) return;
-                    setPageShapes(prev=>({...prev,[spi]:(prev[spi]||[]).map(s=>s.id===selShape.id?{...s,...patch}:s)}));
+                    setPageShapes(prev=>({...prev,[spi]:(prev[spi]||[]).map(s=>s.id===selShape!.id?{...s,...patch}:s)}));
                   }}
-                  onAdd={type => addShape(type, spi)}
+                  onAdd={type => { const newSpi = currentIdx===0?0:(currentIdx-1)*2+1+activeSide; addShape(type, newSpi); }}
                 />
               );
             })()}
@@ -1211,7 +1225,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                           <div key={i}
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
-                            onDrop={e => onDrop(e, pageIdx, i)}
+                            onDrop={e => onDrop(e, pageIdx, i)} onDragOver={e => e.preventDefault()}
                             style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f1f5f9'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1px dashed #cbd5e1'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
                           >
                             {photo ? (
