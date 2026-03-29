@@ -739,6 +739,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               </div>
             )}
 
+            )>
             {/* COVER */}
             {leftTab === 'cover' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
@@ -833,7 +834,6 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   ))}
                 </div>
               </div>
-            )>
             {/* BACKGROUND */}
             {leftTab === 'bg' && (
               <BackgroundControls
