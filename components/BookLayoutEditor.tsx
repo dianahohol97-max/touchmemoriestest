@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
-import { CoverEditor, FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS } from './CoverEditor';
+import { CoverEditor, FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS, LEATHERETTE_COLORS, FABRIC_COLORS } from './CoverEditor';
 import { BookPreviewModal } from './BookPreviewModal';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
 import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from './BackgroundLayer';
@@ -242,6 +242,8 @@ export default function BookLayoutEditor() {
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [crossPageDragShapeId, setCrossPageDragShapeId] = useState<string|null>(null);
+  const [coverColorOverride, setCoverColorOverride] = useState<string|null>(null);
+  const effectiveCoverColor = coverColorOverride ?? (config?.selectedCoverColor || '');
   const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;x:number;y:number;w:number;h:number}[]>>({});
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
@@ -801,6 +803,35 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {leftTab === 'cover' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
                 <div>
+                  {/* Cover color picker */}
+                  {config?.selectedCoverType && config.selectedCoverType !== 'Друкована' && (() => {
+                    const mat = config.selectedCoverType?.toLowerCase() || '';
+                    const colors = mat.includes('шкір') ? LEATHERETTE_COLORS : mat.includes('тканин') ? FABRIC_COLORS : {
+                      'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8',
+                      'Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038',
+                      'Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840',
+                    };
+                    return (
+                      <div style={{ marginBottom:10 }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір обкладинки</div>
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginBottom:4 }}>
+                          {Object.entries(colors).map(([name, hex]) => (
+                            <button key={name} title={name}
+                              onClick={() => setCoverColorOverride(name)}
+                              style={{ width:24, height:24, borderRadius:'50%', background:hex,
+                                border: effectiveCoverColor === name ? '3px solid #1e2d7d' : '1.5px solid #e2e8f0',
+                                cursor:'pointer', flexShrink:0,
+                                boxShadow: effectiveCoverColor === name ? '0 0 0 2px #fff, 0 0 0 3px #1e2d7d' : 'none',
+                                transition:'all 0.12s',
+                              }}/>
+                          ))}
+                        </div>
+                        {effectiveCoverColor && (
+                          <div style={{ fontSize:10, color:'#64748b' }}>{effectiveCoverColor}</div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div style={{ fontSize:11, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>ОЗДОБЛЕННЯ</div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff' }}>
                     <span style={{ fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
@@ -1042,7 +1073,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип обкладинки</div>
                   <div style={{ padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:13, color:'#374151' }}>
                     {config?.selectedCoverType || '—'}
-                    {config?.selectedCoverColor ? <span style={{ color:'#94a3b8', marginLeft:6 }}>· {config.selectedCoverColor}</span> : null}
+                    {effectiveCoverColor ? <span style={{ color:'#94a3b8', marginLeft:6 }}>· {config.selectedCoverColor}</span> : null}
                   </div>
                 </div>
                 {config?.selectedLamination && (
@@ -1124,7 +1155,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 {/* Back cover */}
                 <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: (() => {
                   const mat = (config.selectedCoverType||'').toLowerCase();
-                  const name = config.selectedCoverColor||'';
+                  const name = effectiveCoverColor;
                   if (mat.includes('велюр')||mat.includes('velour')) return '#C4AA88';
                   if (mat.includes('тканин')||mat.includes('fabric')) return '#C4AA88';
                   if (mat.includes('шкір')||mat.includes('leather')) return '#D9C8B0';
@@ -1141,7 +1172,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
                   config={{
                     coverMaterial: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
-                    coverColorName: config.selectedCoverColor || '',
+                    coverColorName: effectiveCoverColor,
                     decoType: coverState.decoType as any,
                     decoVariant: coverState.decoVariant,
                     decoColor: coverState.decoColor,
@@ -1171,7 +1202,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               /* Cover: left=back spine(grey), right=front cover with deco */
               <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — plain */}
-                <div style={{ width: pageW, height: cH, background: (() => { const n=config.selectedCoverColor||''; const mat=config.selectedCoverType?.toLowerCase()||''; if(mat.includes('шкір')) return ({...{'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Чорний':'#1A1A1A'}})[n]||'#D9C8B0'; if(mat.includes('тканин')) return '#C4AA88'; return '#e8ecf4'; })(), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
+                <div style={{ width: pageW, height: cH, background: (() => { const n=effectiveCoverColor; const mat=config.selectedCoverType?.toLowerCase()||''; if(mat.includes('шкір')) return ({...{'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Чорний':'#1A1A1A'}})[n]||'#D9C8B0'; if(mat.includes('тканин')) return '#C4AA88'; return '#e8ecf4'; })(), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <span style={{ color:'rgba(255,255,255,0.15)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ ОБКЛАДИНКА</span>
                   </div>
@@ -1185,7 +1216,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
                   config={{
                     coverMaterial: (config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
-                    coverColorName: config.selectedCoverColor || '',
+                    coverColorName: effectiveCoverColor,
                     decoType: coverState.decoType as any,
                     decoVariant: coverState.decoVariant,
                     photoId: coverState.photoId,
