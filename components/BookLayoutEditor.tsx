@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor, FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS } from './CoverEditor';
@@ -310,6 +310,31 @@ export default function BookLayoutEditor() {
       ...prev,
       [currentIdx]: typeof slots === 'function' ? slots(prev[currentIdx] || []) : slots,
     }));
+  };
+
+  // Shuffle layout for active page — pick next compatible layout with same slot count
+  const shuffleLayout = () => {
+    const targetIdx = getActivePageIdx();
+    const currentPage = pages[targetIdx];
+    if (!currentPage) return;
+    const currentSlotCount = currentPage.slots.length;
+    // Get all layouts with same slot count
+    const compatibleLayouts = LAYOUTS.filter(l => {
+      const slotCount = l.slots;
+      return slotCount === currentSlotCount;
+    });
+    if (compatibleLayouts.length <= 1) {
+      // Try layouts with +/-1 slot
+      const broader = LAYOUTS.filter(l => Math.abs(l.slots - currentSlotCount) <= 1);
+      if (broader.length === 0) return;
+      const current = broader.findIndex(l => l.id === currentPage.layout);
+      const nextIdx = (current + 1) % broader.length;
+      changeLayout(broader[nextIdx].id as LayoutType);
+    } else {
+      const current = compatibleLayouts.findIndex(l => l.id === currentPage.layout);
+      const nextIdx = (current + 1) % compatibleLayouts.length;
+      changeLayout(compatibleLayouts[nextIdx].id as LayoutType);
+    }
   };
 
   // Add spread (2 pages)
@@ -887,8 +912,21 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: 32, background: '#f4f6fb' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} style={{ background: 'none', border: 'none', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', opacity: currentIdx === 0 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronLeft size={20} /></button>
-            <span>{cur?.label || 'Обкладинка'}</span>
+            <span style={{ minWidth: 60, textAlign: 'center' }}>{cur?.label || 'Обкладинка'}</span>
             <button onClick={() => setCurrentIdx(i => Math.min(pages.length - 1, i + 1))} disabled={currentIdx === pages.length - 1} style={{ background: 'none', border: 'none', cursor: currentIdx === pages.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIdx === pages.length - 1 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronRight size={20} /></button>
+            {/* Shuffle layout button */}
+            {currentIdx !== 0 && (
+              <button
+                onClick={shuffleLayout}
+                title="Змінити розкладку сторінки (зберігає фото)"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 8, padding: '5px 12px', border: '1px solid #c7d2fe', borderRadius: 8, background: '#f0f3ff', cursor: 'pointer', color: '#1e2d7d', fontWeight: 700, fontSize: 12, transition: 'all 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#e0e7ff')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#f0f3ff')}
+              >
+                <Shuffle size={13} />
+                Інший шаблон
+              </button>
+            )}
           </div>
 
           {/* Active page indicator */}
