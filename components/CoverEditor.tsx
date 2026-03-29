@@ -91,6 +91,10 @@ export interface CoverConfig {
   textFontFamily: string;
   textFontSize: number;
   extraTexts?: ExtraTextBlock[];
+  // Printed cover
+  printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded' };
+  printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
+  printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
 }
 
 interface CoverEditorProps {
@@ -114,6 +118,45 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
   const dragRef = useRef<{startX:number;startY:number;startTX:number;startTY:number}|null>(null);
 
   const isSoft = config.coverMaterial !== 'printed';
+
+  // Printed cover: photo slot drag/resize
+  const startSlotDrag = (e: React.MouseEvent, type: string) => {
+    e.stopPropagation(); e.preventDefault();
+    const slot = config.printedPhotoSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' as const };
+    const orig = { ...slot };
+    const sx = e.clientX, sy = e.clientY;
+    const onMove = (me: MouseEvent) => {
+      const dx = (me.clientX - sx) / canvasW * 100;
+      const dy = (me.clientY - sy) / canvasH * 100;
+      if (type === 'move') {
+        onChange({ printedPhotoSlot: { ...orig, x: Math.max(0, Math.min(100-orig.w, orig.x+dx)), y: Math.max(0, Math.min(100-orig.h, orig.y+dy)) } });
+      } else if (type === 'se') {
+        onChange({ printedPhotoSlot: { ...orig, w: Math.max(10, orig.w+dx), h: Math.max(10, orig.h+dy) } });
+      } else if (type === 'sw') {
+        onChange({ printedPhotoSlot: { ...orig, x: orig.x+dx, w: Math.max(10, orig.w-dx), h: Math.max(10, orig.h+dy) } });
+      } else if (type === 'ne') {
+        onChange({ printedPhotoSlot: { ...orig, y: orig.y+dy, w: Math.max(10, orig.w+dx), h: Math.max(10, orig.h-dy) } });
+      } else if (type === 'nw') {
+        onChange({ printedPhotoSlot: { ...orig, x: orig.x+dx, y: orig.y+dy, w: Math.max(10, orig.w-dx), h: Math.max(10, orig.h-dy) } });
+      }
+    };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+  };
+
+  // Printed cover: text block drag
+  const startTextDrag = (e: React.MouseEvent, id: string, tx: number, ty: number) => {
+    e.stopPropagation(); e.preventDefault();
+    const texts = config.printedTextBlocks ?? [];
+    const sx = e.clientX, sy = e.clientY;
+    const onMove = (me: MouseEvent) => {
+      const dx = (me.clientX - sx) / canvasW * 100;
+      const dy = (me.clientY - sy) / canvasH * 100;
+      onChange({ printedTextBlocks: texts.map(t => t.id === id ? { ...t, x: Math.max(2, Math.min(98, tx+dx)), y: Math.max(2, Math.min(98, ty+dy)) } : t) });
+    };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+  };
 
   const bgColor = (() => {
     if (!isSoft) return '#fff';
@@ -180,26 +223,66 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
         boxShadow:'0 8px 32px rgba(0,0,0,0.18)', flexShrink:0, background:bgColor }}>
       {isSoft && <div style={{ position:'absolute', inset:0, backgroundImage:texture, pointerEvents:'none', zIndex:1 }}/>}
 
-      {/* Printed cover — photo + draggable text overlay */}
-      {!isSoft && (
-        <div style={{ position:'absolute', inset:0, zIndex:2 }}>
-          <div style={{ position:'absolute', inset:0, background: photo?'transparent':(dragOver?'#dbeafe':'#f1f5f9'), display:'flex', alignItems:'center', justifyContent:'center', border:dragOver?'2px dashed #1e2d7d':'none' }}>
-            {photo ? <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
-              : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, color:'#94a3b8' }}><ImageIcon size={32}/><span style={{ fontSize:12, fontWeight:600 }}>Перетягніть фото на обкладинку</span></div>}
-          </div>
-          {config.decoText && (
-            <div onMouseDown={handleTextMouseDown}
-              style={{ position:'absolute', left:`${textX}%`, top:`${textY}%`, transform:'translate(-50%,-50%)', cursor:'move', zIndex:10, padding:'4px 8px', border:'1px dashed rgba(0,0,0,0.3)', borderRadius:4 }}>
-              <span contentEditable suppressContentEditableWarning
-                onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
-                onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
-                style={{ color:config.decoColor||'#1e2d7d', fontSize:(config.textFontSize||24)+'px', fontFamily:(config.textFontFamily||'Playfair Display')+',serif', fontWeight:700, outline:'none', cursor:'text', display:'block', whiteSpace:'nowrap' }}>
-                {config.decoText}
-              </span>
+      {/* Printed cover — draggable photo slot + text blocks + overlay */}
+      {!isSoft && (() => {
+        const slot = config.printedPhotoSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' as const };
+        const texts = config.printedTextBlocks ?? [];
+        const overlay = config.printedOverlay ?? { type: 'none' as const, color: '#000000', opacity: 40, gradient: 'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };
+        const slotPx = { x: slot.x/100*canvasW, y: slot.y/100*canvasH, w: slot.w/100*canvasW, h: slot.h/100*canvasH };
+        const br = slot.shape === 'circle' ? '50%' : slot.shape === 'rounded' ? '12px' : '0px';
+        return (
+          <>
+            {/* Photo slot */}
+            <div
+              onDragOver={e=>{e.preventDefault();e.stopPropagation();setDragOver(true);}}
+              onDragLeave={()=>setDragOver(false)}
+              onDrop={e=>{e.preventDefault();setDragOver(false);const id=e.dataTransfer.getData('text/plain');if(id)onChange({photoId:id});}}
+              onMouseDown={e => startSlotDrag(e, 'move')}
+              style={{ position:'absolute', left:slotPx.x, top:slotPx.y, width:slotPx.w, height:slotPx.h,
+                borderRadius:br, overflow:'hidden', cursor:'move', zIndex:2,
+                border: dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)'),
+                background: photo ? 'transparent' : (dragOver ? 'rgba(59,130,246,0.08)' : '#f1f5f9') }}>
+              {photo
+                ? <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }} draggable={false}/>
+                : <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, color:'#94a3b8' }}>
+                    <ImageIcon size={28}/><span style={{ fontSize:11, fontWeight:600, textAlign:'center' }}>Перетягніть фото</span>
+                  </div>}
+              {photo && <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()}>×</button>}
             </div>
-          )}
-        </div>
-      )}
+            {/* Resize handles */}
+            {(['nw','ne','se','sw'] as const).map(dir => {
+              const lp = (dir==='ne'||dir==='se') ? slotPx.x+slotPx.w : slotPx.x;
+              const tp = (dir==='se'||dir==='sw') ? slotPx.y+slotPx.h : slotPx.y;
+              return (
+                <div key={dir} onMouseDown={e=>startSlotDrag(e,dir)}
+                  style={{ position:'absolute', left:lp-8, top:tp-8, width:16, height:16,
+                    borderRadius:'50%', background:'#3b82f6', border:'2.5px solid #fff',
+                    cursor:`${dir}-resize`, zIndex:10, boxShadow:'0 1px 4px rgba(0,0,0,0.4)' }}/>
+              );
+            })}
+            {/* Overlay */}
+            {overlay.type === 'color' && <div style={{ position:'absolute', inset:0, zIndex:3, pointerEvents:'none', background:overlay.color, opacity:overlay.opacity/100 }}/>}
+            {overlay.type === 'gradient' && <div style={{ position:'absolute', inset:0, zIndex:3, pointerEvents:'none', backgroundImage:overlay.gradient }}/>}
+            {/* Text blocks */}
+            {texts.map(tb => (
+              <div key={tb.id} onMouseDown={e => startTextDrag(e, tb.id, tb.x, tb.y)}
+                style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)',
+                  cursor:'move', zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3 }}>
+                <span contentEditable suppressContentEditableWarning
+                  onBlur={e=>onChange({printedTextBlocks:texts.map(t=>t.id===tb.id?{...t,text:e.currentTarget.textContent||''}:t)})}
+                  onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
+                  style={{ color:tb.color||'#fff', fontSize:tb.fontSize+'px', fontFamily:tb.fontFamily+',serif',
+                    fontWeight:tb.bold?700:400, outline:'none', cursor:'text', display:'block', whiteSpace:'nowrap', textShadow:'0 1px 3px rgba(0,0,0,0.5)' }}>
+                  {tb.text}
+                </span>
+                <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
+                  onMouseDown={e=>e.stopPropagation()}
+                  style={{ position:'absolute',top:-8,right:-8,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>
+              </div>
+            ))}
+          </>
+        );
+      })()}
 
       {/* Soft cover decorations */}
       {isSoft && (

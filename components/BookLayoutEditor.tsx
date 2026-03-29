@@ -875,6 +875,81 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {/* COVER */}
             {leftTab === 'cover' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {/* PRINTED COVER CONTROLS */}
+                {config?.selectedCoverType?.toLowerCase().includes('друков') && (() => {
+                  const pt = coverState.printedTextBlocks ?? [];
+                  const ov = coverState.printedOverlay ?? { type:'none', color:'#000000', opacity:40, gradient:'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };
+                  const ps = coverState.printedPhotoSlot ?? { x:0, y:0, w:100, h:100, shape:'rect' };
+                  return (
+                    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                      {/* Photo slot shape */}
+                      <div>
+                        <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Форма фотослота</div>
+                        <div style={{ display:'flex', gap:4 }}>
+                          {(['rect','rounded','circle'] as const).map(sh => (
+                            <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
+                              style={{ flex:1, padding:'6px 4px', border: ps.shape===sh ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: ps.shape===sh ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:16 }}>
+                              {sh==='rect'?'▭':sh==='rounded'?'▢':'◯'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Reset slot */}
+                      <button onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{x:0,y:0,w:100,h:100,shape:'rect'}}))}
+                        style={{ padding:'6px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:11, fontWeight:600, color:'#64748b' }}>
+                        ↺ На весь розмір
+                      </button>
+                      {/* Overlay */}
+                      <div>
+                        <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Накладення</div>
+                        <div style={{ display:'flex', gap:4, marginBottom:6 }}>
+                          {(['none','color','gradient'] as const).map(ot => (
+                            <button key={ot} onClick={()=>setCoverState(p=>({...p,printedOverlay:{...ov,type:ot}}))}
+                              style={{ flex:1, padding:'5px 2px', border: ov.type===ot ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: ov.type===ot ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:9, fontWeight:700, color: ov.type===ot ? '#1e2d7d' : '#64748b' }}>
+                              {ot==='none'?'Немає':ot==='color'?'Колір':'Градієнт'}
+                            </button>
+                          ))}
+                        </div>
+                        {ov.type === 'color' && (
+                          <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                            <input type="color" value={ov.color} onChange={e=>setCoverState(p=>({...p,printedOverlay:{...ov,color:e.target.value}}))}
+                              style={{ width:32, height:28, border:'none', borderRadius:4, cursor:'pointer' }}/>
+                            <input type="range" min={5} max={90} value={ov.opacity} onChange={e=>setCoverState(p=>({...p,printedOverlay:{...ov,opacity:+e.target.value}}))}
+                              style={{ flex:1 }}/>
+                            <span style={{ fontSize:10, color:'#94a3b8', minWidth:28 }}>{ov.opacity}%</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Add text */}
+                      <div>
+                        <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Текст на обкладинці</div>
+                        <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:[...(p.printedTextBlocks||[]),{id:'ptxt-'+Date.now(),text:'Ваш текст',x:50,y:50,fontSize:24,fontFamily:'Playfair Display',color:'#ffffff',bold:true}]}))}
+                          style={{ width:'100%', padding:'7px 10px', border:'1px dashed #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:700, color:'#1e2d7d' }}>
+                          + Додати текст
+                        </button>
+                        {pt.map(tb => (
+                          <div key={tb.id} style={{ marginTop:6, padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', display:'flex', flexDirection:'column', gap:4 }}>
+                            <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                              <input value={tb.text} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,text:e.target.value}:t)}))}
+                                style={{ flex:1, padding:'3px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:11 }}/>
+                              <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:pt.filter(t=>t.id!==tb.id)}))}
+                                style={{ width:20, height:20, borderRadius:'50%', background:'#ef4444', color:'#fff', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                            </div>
+                            <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                              <input type="color" value={tb.color} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,color:e.target.value}:t)}))}
+                                style={{ width:24, height:24, border:'none', borderRadius:3, cursor:'pointer' }}/>
+                              <input type="range" min={10} max={72} value={tb.fontSize} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontSize:+e.target.value}:t)}))}
+                                style={{ flex:1 }}/>
+                              <span style={{ fontSize:10, color:'#94a3b8', minWidth:20 }}>{tb.fontSize}</span>
+                              <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,bold:!t.bold}:t)}))}
+                                style={{ padding:'2px 6px', border: tb.bold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:4, background: tb.bold?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:700 }}>B</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div>
                   {/* Photo picker for acrylic/photo insert */}
                   {(coverState.decoType === 'acryl' || coverState.decoType === 'photovstavka') && (
@@ -1140,8 +1215,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         <img src={sticker.url} style={{ width:32, height:32, objectFit:'contain' }} alt={sticker.name}/>
                         <span style={{ fontSize:9, color:'#64748b', textAlign:'center' }}>{sticker.name}</span>
                       </button>
-                    );
-                  })}
+                    ))}
                 </div>
               </div>
             )}
