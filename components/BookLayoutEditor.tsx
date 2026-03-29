@@ -835,7 +835,6 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               </div>
             )>
                 <div style={{ fontSize:11, fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.08em' }}>Оздоблення</div>
-{/* Show selected decoration from product page or allow change */}
                 {(() => {
                   const decoLabels: Record<string, string> = {
                     none: 'Без оздоблення', acryl: 'Акрил',
