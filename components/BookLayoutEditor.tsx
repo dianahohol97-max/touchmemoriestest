@@ -399,14 +399,16 @@ export default function BookLayoutEditor() {
     const def = LAYOUTS.find(l => l.id === layout);
     if (!def) return;
     const targetIdx = getActivePageIdx();
-    const newSlotCount = def.slots;
     setPages(prev => prev.map((p, i) => {
       if (i !== targetIdx) return p;
-      const existingPhotos = p.slots.map(s => s.photoId).filter(Boolean);
-      const newSlots: SlotData[] = Array.from({ length: newSlotCount }, (_, si) => ({
-        photoId: existingPhotos[si] ?? null, cropX: 50, cropY: 50, zoom: 1,
+      const oldPhotos = p.slots.map(s2 => s2.photoId).filter(Boolean) as string[];
+      const newSlots: SlotData[] = Array.from({ length: def.slots }, (_, si) => ({
+        photoId: oldPhotos[si] ?? null,
+        cropX: 0, cropY: 0, zoom: 1,
       }));
       return { ...p, layout, slots: newSlots };
+    }));
+  };
     }));
   };
 
@@ -1297,7 +1299,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                           <div key={i}
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
-                            onDrop={e => onDrop(e, pageIdx, i)}
+                            onDrop={e => onDrop(e, pageIdx, i)} onDragOver={e => e.preventDefault()}
                             style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f1f5f9'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1px dashed #cbd5e1'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
                           >
                             {photo ? (
@@ -1305,7 +1307,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                                 <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                  <img src={photo.preview} draggable={false} onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
+                                  <img src={photo.preview} draggable={true} onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} draggable={false} onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
                                     onMouseDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX, slot!.cropY); }}
                                     style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}/>
                                   {photoEditSlot===key && (
