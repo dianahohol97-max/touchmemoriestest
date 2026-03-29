@@ -42,6 +42,9 @@ interface CoverState {
   textFontFamily: string;
   textFontSize: number;
   extraTexts: { id: string; text: string; x: number; y: number; fontFamily: string; fontSize: number; color: string; }[];
+  printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded' };
+  printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
+  printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
 }
 
 type LayoutType =
@@ -1361,6 +1364,9 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     textFontFamily: coverState.textFontFamily,
                     textFontSize: coverState.textFontSize,
                     extraTexts: coverState.extraTexts || [],
+                    printedPhotoSlot: coverState.printedPhotoSlot,
+                    printedTextBlocks: coverState.printedTextBlocks,
+                    printedOverlay: coverState.printedOverlay,
                   }}
                   photos={photos}
                   onChange={(cfg) => setCoverState(prev => ({ ...prev,
@@ -1369,6 +1375,9 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     ...(cfg.textX !== undefined && { textX: cfg.textX }),
                     ...(cfg.textY !== undefined && { textY: cfg.textY }),
                     ...(cfg.extraTexts !== undefined && { extraTexts: cfg.extraTexts }),
+                    ...(cfg.printedPhotoSlot !== undefined && { printedPhotoSlot: cfg.printedPhotoSlot }),
+                    ...(cfg.printedTextBlocks !== undefined && { printedTextBlocks: cfg.printedTextBlocks }),
+                    ...(cfg.printedOverlay !== undefined && { printedOverlay: cfg.printedOverlay }),
                   }))}
                 />
               </div>
