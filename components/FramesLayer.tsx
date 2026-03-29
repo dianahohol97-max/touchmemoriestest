@@ -55,6 +55,7 @@ export const FRAMES = [
       `<rect x="8" y="8" width="${w-16}" height="${h-16}" fill="none" stroke="${color}" stroke-width="3" stroke-dasharray="12,6" opacity="${op/100}"/>`,
   },
 
+  // REMOVED: Decorative and Floral frames — use SVG only simple
   // ── Decorative frames ──
   {
     id: 'corners',
@@ -189,7 +190,7 @@ interface FrameControlsProps {
 }
 
 export function FrameControls({ frame, onChange }: FrameControlsProps) {
-  const groups = [...new Set(FRAMES.map(f=>f.group))];
+  const groups = ['Прості']; // Only simple frames
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
       {groups.map(group => (
