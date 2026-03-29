@@ -530,8 +530,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (product?.options) {
             const options = product.options as ProductOption[];
             const requiredCoverType = options.some(o => o.name === 'Тип обкладинки');
-        const needsColor = selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor;
-        if (needsColor) { alert('Будь ласка, оберіть колір обкладинки'); return; }
+        if (selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) { alert('Будь ласка, оберіть колір обкладинки'); return; }
             if (requiredCoverType && !selectedCoverType) return false;
             const requiredPageCount = options.some(o => o.name === 'Кількість сторінок');
             if (requiredPageCount && !selectedPageCount) return false;
