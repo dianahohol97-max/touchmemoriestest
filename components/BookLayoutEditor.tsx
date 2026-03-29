@@ -409,7 +409,7 @@ export default function BookLayoutEditor() {
     const pool = compatible.length > 0 ? compatible : LAYOUTS;
     const cur = pool.findIndex(l => l.id === page.layout);
     const next = (cur + 1) % pool.length;
-    changeLayout(pool[next].id as LayoutType);
+    changeLayout(pool[next].id as LayoutType, targetIdx);
   };
 
   const addSpread = () => {
@@ -466,19 +466,24 @@ export default function BookLayoutEditor() {
     }));
   };
 
-  const changeLayout = (layout: LayoutType) => {
+  const changeLayout = (layout: LayoutType, forceIdx?: number) => {
     const def = LAYOUTS.find(l => l.id === layout);
     if (!def) return;
-    const targetIdx = getActivePageIdx();
-    setPages(prev => prev.map((p, i) => {
-      if (i !== targetIdx) return p;
-      const oldPhotos = p.slots.map(s2 => s2.photoId).filter(Boolean) as string[];
-      const newSlots: SlotData[] = Array.from({ length: def.slots }, (_, si) => ({
-        photoId: oldPhotos[si] ?? null,
-        cropX: 0, cropY: 0, zoom: 1,
-      }));
-      return { ...p, layout, slots: newSlots };
-    }));
+    const targetIdx = forceIdx !== undefined ? forceIdx : getActivePageIdx();
+    console.log('[changeLayout]', { layout, targetIdx, currentIdx, activeSide, pagesLen: pages.length });
+    setPages(prev => {
+      const next = prev.map((p, i) => {
+        if (i !== targetIdx) return p;
+        const oldPhotos = p.slots.map(s2 => s2.photoId).filter(Boolean) as string[];
+        const newSlots: SlotData[] = Array.from({ length: def.slots }, (_, si) => ({
+          photoId: oldPhotos[si] ?? null,
+          cropX: 0, cropY: 0, zoom: 1,
+        }));
+        return { ...p, layout, slots: newSlots };
+      });
+      console.log('[changeLayout] pages updated, targetIdx', targetIdx, 'new layout:', next[targetIdx]?.layout);
+      return next;
+    });
   };
 
   const autoFill = () => {
@@ -814,9 +819,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', padding: '8px 4px 4px', textTransform: 'uppercase' }}>{group}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                         {gl.map(l => {
-                          const active = pages[getActivePageIdx()]?.layout === l.id;
+                          const activeIdx = getActivePageIdx();
+                          const active = pages[activeIdx]?.layout === l.id;
                           return (
-                            <button key={l.id} onClick={() => changeLayout(l.id)} title={l.label}
+                            <button key={l.id} onClick={() => changeLayout(l.id, activeIdx)} title={l.label}
                               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '7px 4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: active ? '#1e2d7d' : '#fff', cursor: 'pointer' }}>
                               <LayoutSVG layout={l.id} active={active} />
                               <span style={{ fontSize: 9, fontWeight: 600, color: active ? '#fff' : '#374151', textAlign: 'center', lineHeight: 1.2 }}>{l.label}</span>
@@ -828,7 +834,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   );
                 })}
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4 }}>
-                  <button onClick={() => setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, slots: makeSlots(LAYOUTS.find(l => l.id === p.layout)?.slots || 0) }))}
+                  <button onClick={() => { const idx = getActivePageIdx(); setPages(prev => prev.map((p, i) => i !== idx ? p : { ...p, slots: makeSlots(LAYOUTS.find(l => l.id === p.layout)?.slots || 0) })); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #fee2e2', borderRadius: 8, background: '#fff7f7', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#ef4444', width: '100%' }}>
                     <RotateCcw size={13} /> Очистити сторінку
                   </button>
