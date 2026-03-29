@@ -838,7 +838,32 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                   );
                 })}
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4 }}>
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <button onClick={() => {
+                    const idx = getActivePageIdx();
+                    const page = pages[idx];
+                    if (!page) return;
+                    const defs = getSlotDefs(page.layout, pageW, cH);
+                    if (defs.length === 0) { return; }
+                    const newFreeSlots: FreeSlot[] = defs.map((def, di) => ({
+                      id: 'free-' + Date.now() + '-' + di,
+                      x: Number(def.s.left) || 0,
+                      y: Number(def.s.top) || 0,
+                      w: Number(def.s.width) || pageW,
+                      h: Number(def.s.height) || cH,
+                      shape: 'rect' as const,
+                      photoId: page.slots[di]?.photoId ?? null,
+                      cropX: page.slots[di]?.cropX ?? 50,
+                      cropY: page.slots[di]?.cropY ?? 50,
+                      zoom: page.slots[di]?.zoom ?? 1,
+                    }));
+                    setFreeSlots(prev => ({ ...prev, [idx]: [...(prev[idx] || []), ...newFreeSlots] }));
+                    setPages(prev => prev.map((p, i) => i !== idx ? p : { ...p, layout: 'p-text', slots: [] }));
+                    setSelectedFreeSlotId(newFreeSlots[0]?.id ?? null);
+                  }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #c7d2fe', borderRadius: 8, background: '#f0f3ff', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#1e2d7d', width: '100%' }}>
+                    ✦ Редагувати слоти вільно
+                  </button>
                   <button onClick={() => { const idx = getActivePageIdx(); setPages(prev => prev.map((p, i) => i !== idx ? p : { ...p, slots: makeSlots(LAYOUTS.find(l => l.id === p.layout)?.slots || 0) })); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #fee2e2', borderRadius: 8, background: '#fff7f7', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#ef4444', width: '100%' }}>
                     <RotateCcw size={13} /> Очистити сторінку
