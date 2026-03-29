@@ -296,11 +296,14 @@ export default function CreateOrderPage() {
                                                                     <div
                                                                         key={p.id}
                                                                         onClick={() => {
-                                                                            updateItem(item.id, 'product_id', p.id);
-                                                                            updateItem(item.id, 'name', p.name);
-                                                                            updateItem(item.id, 'price', p.price);
-                                                                            updateItem(item.id, 'cost_price', p.cost_price || 0);
-                                                                            updateItem(item.id, 'variants', p.variants || []);
+                                                                            setItems(prev => prev.map(it => it.id === item.id ? {
+                                                                                ...it,
+                                                                                product_id: p.id,
+                                                                                name: p.name,
+                                                                                price: p.price,
+                                                                                cost_price: p.cost_price || 0,
+                                                                                variants: p.variants || [],
+                                                                            } : it));
                                                                             setIsProductDropdownOpen(null);
                                                                         }}
                                                                         style={dropdownItemStyle}
