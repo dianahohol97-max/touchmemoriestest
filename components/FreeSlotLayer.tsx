@@ -25,6 +25,8 @@ interface FreeSlotLayerProps {
   canvasH: number;
   dragPhotoId: string | null;
   onChange: (slots: FreeSlot[]) => void;
+  selectedId?: string | null;
+  onSelect?: (id: string | null) => void;
 }
 
 const MIN_SIZE = 40;
@@ -52,8 +54,13 @@ function getHandlePos(h: Handle, x: number, y: number, w: number, h2: number): {
   return map[h];
 }
 
-export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, onChange }: FreeSlotLayerProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, onChange, selectedId: externalSelectedId, onSelect }: FreeSlotLayerProps) {
+  const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
+  const selectedId = externalSelectedId !== undefined ? externalSelectedId : internalSelectedId;
+  const setSelectedId = (id: string | null) => {
+    setInternalSelectedId(id);
+    onSelect?.(id);
+  };
   const dragRef = useRef<{ type: 'move' | Handle; id: string; startX: number; startY: number; origSlot: FreeSlot } | null>(null);
 
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
@@ -215,14 +222,15 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
               onMouseDown={e => { e.stopPropagation(); startDrag(e, slot.id, h); }}
               style={{
                 position: 'absolute',
-                left: pos.left - 5,
-                top: pos.top - 5,
-                width: 10, height: 10,
+                left: pos.left - 8,
+                top: pos.top - 8,
+                width: 16, height: 16,
                 borderRadius: '50%',
-                background: '#fff',
-                border: '2px solid #3b82f6',
+                background: '#3b82f6',
+                border: '2.5px solid #fff',
                 cursor: handleCursor(h),
                 zIndex: 60,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
               }}
             />
           );

@@ -248,6 +248,7 @@ export default function BookLayoutEditor() {
     return { decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] };
   });
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
+  const [selectedFreeSlotId, setSelectedFreeSlotId] = useState<string | null>(null);
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
   const [pageShapes, setPageShapes] = useState<Record<number, Shape[]>>({});
   const [pageFrames, setPageFrames] = useState<Record<number, FrameConfig>>({});
@@ -450,6 +451,7 @@ export default function BookLayoutEditor() {
       shape: 'rect', photoId: null, cropX: 50, cropY: 50, zoom: 1,
     };
     setFreeSlots(prev => ({ ...prev, [targetPageIdx]: [...(prev[targetPageIdx]||[]), newSlot] }));
+    setSelectedFreeSlotId(id);
   };
 
   // In spread view, changeLayout applies to the hovered/selected page side
@@ -1313,7 +1315,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     <div key={side}
                       onMouseDown={() => setActiveSide(side as 0|1)}
                       style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
-                      onClick={(e) => { setActiveSide(side as 0|1); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
+                      onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
                     >
                       {pageDefs.map(({ i, s }) => {
                         const slot = page?.slots[i];
@@ -1392,6 +1394,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         canvasH={cH}
                         dragPhotoId={dragPhotoId}
                         onChange={(newSlots) => setFreeSlots(prev=>({...prev,[pageIdx]:newSlots}))}
+                        selectedId={selectedFreeSlotId}
+                        onSelect={setSelectedFreeSlotId}
                       />
                       {/* Background layer */}
                       <BackgroundLayer bg={getCurBg(pageIdx)} canvasW={pageW} canvasH={cH}/>
