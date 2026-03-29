@@ -812,7 +812,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', padding: '8px 4px 4px', textTransform: 'uppercase' }}>{group}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                         {gl.map(l => {
-                          const active = cur?.layout === l.id;
+                          const active = pages[getActivePageIdx()]?.layout === l.id;
                           return (
                             <button key={l.id} onClick={() => changeLayout(l.id)} title={l.label}
                               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '7px 4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: active ? '#1e2d7d' : '#fff', cursor: 'pointer' }}>
