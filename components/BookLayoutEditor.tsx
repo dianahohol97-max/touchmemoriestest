@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
-import { CoverEditor } from './CoverEditor';
+import { CoverEditor, FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS } from './CoverEditor';
 import { BookPreviewModal } from './BookPreviewModal';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
 import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from './BackgroundLayer';
@@ -900,11 +900,21 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     coverColorName: config.selectedCoverColor || '',
                     decoType: coverState.decoType as any,
                     decoVariant: coverState.decoVariant,
+                    decoColor: coverState.decoColor,
                     photoId: coverState.photoId,
                     decoText: coverState.decoText,
+                    textX: coverState.textX,
+                    textY: coverState.textY,
+                    textFontFamily: coverState.textFontFamily,
+                    textFontSize: coverState.textFontSize,
                   }}
                   photos={photos}
-                  onChange={(cfg) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }) }))}
+                  onChange={(cfg) => setCoverState(prev => ({ ...prev,
+                    ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }),
+                    ...(cfg.decoText !== undefined && { decoText: cfg.decoText }),
+                    ...(cfg.textX !== undefined && { textX: cfg.textX }),
+                    ...(cfg.textY !== undefined && { textY: cfg.textY }),
+                  }))}
                 />
               </div>
           ) : (
