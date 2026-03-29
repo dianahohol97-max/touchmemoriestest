@@ -211,6 +211,7 @@ export default function BookLayoutEditor() {
   const [textTool, setTextTool] = useState(false);
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -636,40 +637,43 @@ export default function BookLayoutEditor() {
             )}
 
             {/* BACKGROUND */}
-            {leftTab === 'bg' && (() => {
-              const spreadPageIdx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
-              return (
-                <BackgroundControls
-                  bg={getCurBg(spreadPageIdx)}
-                  onChange={bg => setPageBgs(prev=>({...prev,[spreadPageIdx]:bg}))}
-                />
-              );
-            })()}
+            {leftTab === 'bg' && (
+              <BackgroundControls
+                bg={getCurBg(currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide)}
+                onChange={bg => {
+                  const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                  setPageBgs(prev=>({...prev,[idx]:bg}));
+                }}
+              />
+            )}
 
             {/* SHAPES */}
             {leftTab === 'shapes' && (() => {
-              const spreadPageIdx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
-              const shapes = getCurShapes(spreadPageIdx);
+              const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+              const shapes = getCurShapes(spi);
               const selShape = shapes.find(s=>s.id===selectedShapeId) ?? null;
               return (
                 <ShapeControls
                   selectedShape={selShape}
-                  onChange={patch => selShape && setPageShapes(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(s=>s.id===selShape.id?{...s,...patch}:s)}))}
-                  onAdd={type => addShape(type, spreadPageIdx)}
+                  onChange={patch => {
+                    if (!selShape) return;
+                    setPageShapes(prev=>({...prev,[spi]:(prev[spi]||[]).map(s=>s.id===selShape.id?{...s,...patch}:s)}));
+                  }}
+                  onAdd={type => addShape(type, spi)}
                 />
               );
             })()}
 
             {/* FRAMES */}
-            {leftTab === 'frames' && (() => {
-              const spreadPageIdx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
-              return (
-                <FrameControls
-                  frame={getCurFrame(spreadPageIdx)}
-                  onChange={frame => setPageFrames(prev=>({...prev,[spreadPageIdx]:frame}))}
-                />
-              );
-            })()}
+            {leftTab === 'frames' && (
+              <FrameControls
+                frame={getCurFrame(currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide)}
+                onChange={frame => {
+                  const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                  setPageFrames(prev=>({...prev,[idx]:frame}));
+                }}
+              />
+            )}
 
             {/* TEXT */}
             {leftTab === 'text' && (
@@ -681,7 +685,7 @@ export default function BookLayoutEditor() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Шрифт</div>
                   <select value={tFontFamily}
-                    onChange={e => { const v=e.target.value; setTFontFamily(v); if (selectedTextId) updateTxt(selectedTextId, { fontFamily: v }); }}
+                    onChange={e => { const v=e.target.value; setTFontFamily(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontFamily: v }, selectedTextPageIdx); }}
                     style={{ padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, width:'100%', fontFamily:tFontFamily }}>
                     {FONT_GROUPS.map(g => (
                       <optgroup key={g.group} label={g.group}>
@@ -693,8 +697,8 @@ export default function BookLayoutEditor() {
                   <input type="range" min={8} max={120} value={tFontSize} onChange={e => { const v = +e.target.value; setTFontSize(v); if (selectedTextId) updateTxt(selectedTextId, { fontSize: v }); }} style={{ width: '100%' }} />
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Колір</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                    {COLORS.map(c => <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxt(selectedTextId, { color: c }); }} style={{ width: 22, height: 22, borderRadius: '50%', background: c, border: tColor === c ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor: 'pointer' }} />)}
-                    <input type="color" value={tColor} onChange={e => { setTColor(e.target.value); if (selectedTextId) updateTxt(selectedTextId, { color: e.target.value }); }} style={{ width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0 }} />
+                    {COLORS.map(c => <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxtForPage(selectedTextId, { color: c }, selectedTextPageIdx); }} style={{ width: 22, height: 22, borderRadius: '50%', background: c, border: tColor === c ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor: 'pointer' }} />)}
+                    <input type="color" value={tColor} onChange={e => { setTColor(e.target.value); if (selectedTextId) updateTxtForPage(selectedTextId, { color: e.target.value }, selectedTextPageIdx); }} style={{ width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0 }} />
                   </div>
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button onClick={() => { const v = !tBold; setTBold(v); if (selectedTextId) updateTxt(selectedTextId, { bold: v }); }} style={{ flex: 1, padding: '6px', border: tBold ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: tBold ? '#f0f3ff' : '#fff', cursor: 'pointer', fontWeight: 900, fontSize: 14, color: tBold ? '#1e2d7d' : '#374151' }}>B</button>
@@ -704,7 +708,7 @@ export default function BookLayoutEditor() {
                 {selectedTextId && (
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 6px' }}>Двічі клікніть для редагування</p>
-                    <button onClick={() => deleteTxt(selectedTextId!)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', border: '1px solid #fee2e2', borderRadius: 8, background: '#fff7f7', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#ef4444', width: '100%' }}>
+                    <button onClick={() => deleteTxtForPage(selectedTextId!, selectedTextPageIdx)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', border: '1px solid #fee2e2', borderRadius: 8, background: '#fff7f7', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#ef4444', width: '100%' }}>
                       <Trash2 size={13} /> Видалити
                     </button>
                   </div>
@@ -723,6 +727,12 @@ export default function BookLayoutEditor() {
             <button onClick={() => setCurrentIdx(i => Math.min(pages.length - 1, i + 1))} disabled={currentIdx === pages.length - 1} style={{ background: 'none', border: 'none', cursor: currentIdx === pages.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIdx === pages.length - 1 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronRight size={20} /></button>
           </div>
 
+          {/* Active page indicator */}
+          {currentIdx !== 0 && (
+            <div style={{ fontSize:11, color:'#94a3b8', marginBottom:8, textAlign:'center' }}>
+              Активна сторінка: <b style={{color:'#1e2d7d'}}>{activeSide === 0 ? 'ліва' : 'права'}</b> — клікніть на сторінку для вибору
+            </div>
+          )}
           {currentIdx === 0 ? (
             <CoverEditor
               canvasW={cW}
@@ -742,7 +752,6 @@ export default function BookLayoutEditor() {
           ) : (
           <div
             style={{ position: 'relative', width: cW, height: cH, display: 'flex', flexShrink: 0 }}
-            onClick={currentIdx === 0 ? undefined : onCanvasClick}
           >
             {currentIdx === 0 ? (
               /* Cover: left=back spine(grey), right=front cover with deco */
@@ -785,8 +794,9 @@ export default function BookLayoutEditor() {
                   const pageKey = (si: number) => `${pageIdx}-${si}`;
                   return (
                     <div key={side}
-                      style={{ width: pageW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default' }}
-                      onClick={(e) => { if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
+                      onMouseDown={() => setActiveSide(side as 0|1)}
+                      style={{ width: pageW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
+                      onClick={(e) => { setActiveSide(side as 0|1); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
                     >
                       {pageDefs.map(({ i, s }) => {
                         const slot = page?.slots[i];
@@ -836,11 +846,20 @@ export default function BookLayoutEditor() {
                         const isEd = editingTextId === tb.id;
                         return (
                           <div key={tb.id}
-                            onMouseDown={e=>{e.stopPropagation();setSelectedTextId(tb.id);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
-                            onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);}}
+                            onMouseDown={e=>{e.stopPropagation();setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
+                            onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);}}
                             style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex:20,cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30}}>
                             {isEd?(
-                              <textarea autoFocus defaultValue={tb.text} onBlur={e=>{updateTxtForPage(tb.id,{text:e.target.value},pageIdx);setEditingTextId(null);}} onClick={e=>e.stopPropagation()} style={{background:'transparent',border:'none',outline:'none',fontSize:(tb.fontSize*(zoom/100))+'px',fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',resize:'none',overflow:'hidden',minWidth:60,display:'block'}} rows={2}/>
+                              <textarea
+                autoFocus
+                defaultValue={tb.text}
+                onBlur={e=>{updateTxtForPage(tb.id,{text:e.target.value},pageIdx);setEditingTextId(null);}}
+                onChange={e=>{updateTxtForPage(tb.id,{text:e.target.value},pageIdx);}}
+                onClick={e=>e.stopPropagation()}
+                onMouseDown={e=>e.stopPropagation()}
+                style={{background:'transparent',border:'none',outline:'1px dashed rgba(59,130,246,0.5)',fontSize:(tb.fontSize*(zoom/100))+'px',fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',resize:'none',minWidth:80,display:'block',padding:'2px'}}
+                rows={2}
+              />
                             ):(
                               <span style={{fontSize:(tb.fontSize*(zoom/100))+'px',fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre',userSelect:'none',textShadow:'0 1px 2px rgba(0,0,0,0.2)'}}>{tb.text}</span>
                             )}
@@ -863,7 +882,7 @@ export default function BookLayoutEditor() {
                       <ShapesLayer
                         shapes={getCurShapes(pageIdx)}
                         canvasW={pageW} canvasH={cH}
-                        onChange={shapes => setPageShapes(prev=>({...prev,[pageIdx]:shapes}))}
+                        onChange={newShapes => setPageShapes(prev=>({...prev,[pageIdx]:newShapes}))}
                       />
                       {/* Frame layer */}
                       <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
