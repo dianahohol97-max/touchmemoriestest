@@ -1031,12 +1031,11 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   <p style={{ fontSize:10, color:'#94a3b8', marginTop:4 }}>Розмір обрано при замовленні</p>
                 </div>
 
-                {/* Cover type */}
-                <div>
+<div>
                   <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип обкладинки</div>
                   <div style={{ padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:13, fontWeight:600, color:'#374151' }}>
                     {config.selectedCoverType || 'Велюр'}
-                    {config.selectedCoverColor ? <span style={{ color:'#94a3b8', marginLeft:6, fontWeight:400 }}>· {config.selectedCoverColor}</span> : null}
+                    {config.selectedCoverColor && !config.selectedCoverType?.toLowerCase().includes('друков') ? <span style={{ color:'#94a3b8', marginLeft:6, fontWeight:400 }}>· {config.selectedCoverColor}</span> : null}
                   </div>
                 </div>
 
@@ -1062,22 +1061,25 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   </div>
                 </div>
 
-                {/* Lamination / paper type */}
-                <div>
-                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип ламінації</div>
-                  <div style={{ display:'flex', gap:6 }}>
-                    {['Глянцева', 'Матова'].map(lam => (
-                      <button key={lam}
-                        onClick={() => {/* lamination stored in config — read only for now */}}
-                        style={{ flex:1, padding:'8px', border: (config.selectedLamination||'Глянцева')===lam ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:(config.selectedLamination||'Глянцева')===lam?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:(config.selectedLamination||'Глянцева')===lam?'#1e2d7d':'#374151' }}>
-                        {lam}
-                      </button>
-                    ))}
+{/* Lamination — only for printed covers */}
+                {config.selectedCoverType?.toLowerCase().includes('друков') && (
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип ламінації</div>
+                    <div style={{ display:'flex', gap:6 }}>
+                      {['Глянцева', 'Матова'].map(lam => (
+                        <button key={lam}
+                          onClick={() => {/* lamination stored in config — read only for now */}}
+                          style={{ flex:1, padding:'8px', border: (config.selectedLamination||'Глянцева')===lam ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:(config.selectedLamination||'Глянцева')===lam?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:(config.selectedLamination||'Глянцева')===lam?'#1e2d7d':'#374151' }}>
+                          {lam}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Cover templates */}
-                <div>
+{/* Cover templates — only for printed covers */}
+                {config.selectedCoverType?.toLowerCase().includes('друков') && (
+                  <div>
                   <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Дизайн обкладинки</div>
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
                     {[
@@ -1097,7 +1099,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     ))}
                   </div>
                   <p style={{ fontSize:10, color:'#94a3b8', marginTop:6 }}>Більше шаблонів обкладинок — незабаром</p>
-                </div>
+                  </div>
+                )}
 
                 {/* Kalka option */}
                 {(config.selectedCoverType?.toLowerCase().includes('велюр') || config.selectedCoverType?.toLowerCase().includes('шкір') || config.selectedCoverType?.toLowerCase().includes('тканин')) && (
