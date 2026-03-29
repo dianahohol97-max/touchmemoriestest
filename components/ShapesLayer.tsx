@@ -77,11 +77,6 @@ const HANDLE_SIZE = 8;
 
 export function ShapesLayer(props: ShapesLayerProps) {
   const { shapes, canvasW, canvasH, onChange } = props;
-  const [selectedId, setSelectedIdLocal] = useState<string|null>(props.selectedId ?? null);
-  const setSelectedId = (id: string|null) => {
-    setSelectedIdLocal(id);
-    props.onSelect?.(id);
-  };
   const [localSelectedId, setLocalSelectedId] = useState<string|null>(null);
   const selectedId = props.selectedId !== undefined ? props.selectedId : localSelectedId;
   const setSelectedId = (id: string|null) => { setLocalSelectedId(id); props.onSelectId?.(id); };
@@ -116,7 +111,7 @@ export function ShapesLayer(props: ShapesLayerProps) {
         const sel = selectedId===shape.id;
         return (
           <div key={shape.id}
-            onMouseDown={e=>{setSelectedId(shape.id);props.onSelect?.(shape.id);startDrag(e,shape.id,'move');}}
+            onMouseDown={e=>{setSelectedId(shape.id);props.onSelectId?.(shape.id);startDrag(e,shape.id,'move');}}
             style={{ position:'absolute', left:shape.x, top:shape.y, width:shape.w, height:shape.h, cursor:'move', zIndex:sel?45:25, outline:sel?'2px solid #3b82f6':'none', transform:`rotate(${shape.rotation}deg)`, transformOrigin:'center' }}>
             <svg width={shape.w} height={shape.h} style={{ display:'block', overflow:'visible' }}>
               {renderShapeSVG(shape)}
