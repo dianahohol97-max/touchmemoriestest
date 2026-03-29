@@ -42,6 +42,43 @@ export default function CertificatesAdminPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [extendMonths, setExtendMonths] = useState(1);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newCert, setNewCert] = useState({
+    code: '', amount: 0, recipient_name: '', recipient_email: '', recipient_phone: '',
+    sender_name: '', message: '', expires_at: '', source: 'manual', notes: ''
+  });
+  const [savingCert, setSavingCert] = useState(false);
+
+  const generateCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'TM-';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    setNewCert(prev => ({ ...prev, code }));
+  };
+
+  const handleCreateCert = async () => {
+    if (!newCert.code || !newCert.amount) { toast.error('Код та сума обов\'язкові'); return; }
+    setSavingCert(true);
+    const { error } = await supabase.from('gift_certificates').insert({
+      code: newCert.code,
+      amount: newCert.amount,
+      recipient_name: newCert.recipient_name || null,
+      recipient_email: newCert.recipient_email || null,
+      recipient_phone: newCert.recipient_phone || null,
+      sender_name: newCert.sender_name || null,
+      message: newCert.message || null,
+      expires_at: newCert.expires_at || null,
+      source: newCert.source,
+      notes: newCert.notes || null,
+      status: 'active',
+    });
+    setSavingCert(false);
+    if (error) { toast.error('Помилка: ' + error.message); return; }
+    toast.success('Сертифікат створено!');
+    setShowCreateModal(false);
+    setNewCert({ code: '', amount: 0, recipient_name: '', recipient_email: '', recipient_phone: '', sender_name: '', message: '', expires_at: '', source: 'manual', notes: '' });
+    fetchCertificates();
+  };
 
   // Fetch certificates
   const fetchCertificates = async () => {
@@ -173,9 +210,15 @@ export default function CertificatesAdminPage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-stone-900 mb-2">Подарункові сертифікати</h1>
-        <p className="text-stone-600">Управління виданими сертифікатами</p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-stone-900 mb-2">Подарункові сертифікати</h1>
+          <p className="text-stone-600">Управління виданими сертифікатами</p>
+        </div>
+        <button onClick={() => { generateCode(); setShowCreateModal(true); }}
+          className="flex items-center gap-2 px-5 py-3 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] transition-colors">
+          <Plus size={18} /> Створити сертифікат
+        </button>
       </div>
 
       {/* Stats */}
@@ -576,6 +619,84 @@ export default function CertificatesAdminPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Create Certificate Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[#1e2d7d]">Створити сертифікат</h2>
+              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Код сертифікату</label>
+                <div className="flex gap-2">
+                  <input type="text" value={newCert.code} onChange={e => setNewCert(p => ({...p, code: e.target.value.toUpperCase()}))}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="TM-XXXXXX" />
+                  <button onClick={generateCode} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Згенерувати</button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Сума (₴) *</label>
+                <input type="number" value={newCert.amount || ''} onChange={e => setNewCert(p => ({...p, amount: Number(e.target.value)}))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="500" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Отримувач</label>
+                  <input type="text" value={newCert.recipient_name} onChange={e => setNewCert(p => ({...p, recipient_name: e.target.value}))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Ім'я" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Email / Телефон</label>
+                  <input type="text" value={newCert.recipient_email} onChange={e => setNewCert(p => ({...p, recipient_email: e.target.value}))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="email або +380..." />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Відправник</label>
+                <input type="text" value={newCert.sender_name} onChange={e => setNewCert(p => ({...p, sender_name: e.target.value}))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Ім'я відправника" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Повідомлення</label>
+                <textarea value={newCert.message} onChange={e => setNewCert(p => ({...p, message: e.target.value}))} rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" placeholder="Текст привітання" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Дійсний до</label>
+                  <input type="date" value={newCert.expires_at} onChange={e => setNewCert(p => ({...p, expires_at: e.target.value}))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Джерело</label>
+                  <select value={newCert.source} onChange={e => setNewCert(p => ({...p, source: e.target.value}))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="manual">Вручну</option>
+                    <option value="website">Сайт</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="other">Інше</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Нотатки (внутрішні)</label>
+                <textarea value={newCert.notes} onChange={e => setNewCert(p => ({...p, notes: e.target.value}))} rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" placeholder="Для внутрішнього використання" />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex gap-3">
+              <button onClick={() => setShowCreateModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50">Скасувати</button>
+              <button onClick={handleCreateCert} disabled={savingCert}
+                className="flex-1 px-4 py-2 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] disabled:opacity-50">
+                {savingCert ? 'Збереження...' : 'Створити'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
