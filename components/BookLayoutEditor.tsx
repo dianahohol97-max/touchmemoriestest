@@ -539,7 +539,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
     Math.abs(curr - pageCount) < Math.abs(prev - pageCount) ? curr : prev
   );
   const fallbackKey = `${ctKey}_${sizeKey}_${closest}`;
-  return PHOTOBOOK_PRICES[fallbackKey] ?? config.totalPrice;
+  return PHOTOBOOK_PRICES[fallbackKey] ?? config?.totalPrice ?? 0;
 }
 
   // Dynamic price calculation using real DB prices
