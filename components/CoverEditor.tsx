@@ -21,6 +21,12 @@ export const FABRIC_COLORS: Record<string, string> = {
 };
 
 // Decoration variants per size
+export const VELOUR_COLORS: Record<string, string> = {
+  'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8',
+  'Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038',
+  'Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840',
+};
+
 export const ACRYLIC_VARIANTS: Record<string, string[]> = {
   '20x20':['100×100 мм','Ø145 мм'],
   '25x25':['100×100 мм','Ø145 мм'],
@@ -114,8 +120,8 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
     const name = config.coverColorName;
     if (config.coverMaterial === 'leatherette') return LEATHERETTE_COLORS[name] ?? '#D9C8B0';
     if (config.coverMaterial === 'fabric') return FABRIC_COLORS[name] ?? '#C4AA88';
-    // velour — use leatherette colors as approximation
-    return LEATHERETTE_COLORS[name] ?? '#C4AA88';
+    // velour
+    return VELOUR_COLORS[name] ?? LEATHERETTE_COLORS[name] ?? '#D9C8B0';
   })();
 
   const texture = config.coverMaterial === 'leatherette'
