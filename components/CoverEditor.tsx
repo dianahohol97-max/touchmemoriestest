@@ -51,7 +51,7 @@ export const FLEX_COLORS = [
 export const METAL_COLORS = [
   { label:'Золотий', value:'gold',   color:'#D4AF37' },
   { label:'Срібний', value:'silver', color:'#C0C0C0' },
-];
+]; // Note: no black metal
 
 function parseVariantDims(variant: string): { w: number; h: number; round: boolean } {
   if (variant.startsWith('Ø')) {
@@ -125,7 +125,10 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
   // Flex/metal color resolving
   const flexColorVal = config.decoColor || 'gold';
   const flexHex = FLEX_COLORS.find(c=>c.value===flexColorVal)?.color || '#D4AF37';
-  const metalHex = flexColorVal === 'silver' ? 'linear-gradient(135deg,#5A5A5A 0%,#E8E8E8 40%,#C8C8C8 55%,#4A4A4A 100%)' : 'linear-gradient(135deg,#9A7000 0%,#FFD700 40%,#D4AF37 55%,#8B6000 100%)';
+  const metalGrad = flexColorVal === 'silver'
+    ? 'linear-gradient(135deg,#5A5A5A 0%,#E8E8E8 40%,#C8C8C8 55%,#4A4A4A 100%)'
+    : 'linear-gradient(135deg,#9A7000 0%,#FFD700 40%,#D4AF37 55%,#8B6000 100%)';
+  const metalHex = metalGrad;
 
   // Text drag
   const handleTextMouseDown = (e: React.MouseEvent) => {
