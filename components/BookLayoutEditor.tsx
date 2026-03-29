@@ -770,166 +770,185 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             )}
 
             {/* COVER */}
-            {leftTab === 'cover' && currentIdx === 0 && (
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                <div style={{ fontSize:11, fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.08em' }}>Оздоблення</div>
-{/* Show selected decoration from product page or allow change */}
-                {(() => {
-                  const decoLabels: Record<string, string> = {
-                    none: 'Без оздоблення', acryl: 'Акрил',
-                    photovstavka: 'Фотовставка', metal: 'Металева вставка',
-                    flex: 'Флекс', graviruvannya: 'Гравірування',
-                  };
-                  // use showDecoList from component state
-                  const allDecoOpts = config.selectedCoverType?.toLowerCase().includes('шкір')
-                    ? ['none','acryl','photovstavka','metal','flex']
-                    : ['none','acryl','photovstavka','metal','flex','graviruvannya'];
+        {leftTab === 'cover' && (
+              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
 
-                  return (
-                    <>
-                      {/* Current deco display */}
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff' }}>
-                        <span style={{ fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
-                          {decoLabels[coverState.decoType] || 'Без оздоблення'}
-                          {coverState.decoVariant ? <span style={{ fontWeight:400, color:'#64748b', marginLeft:6, fontSize:11 }}>{coverState.decoVariant}</span> : null}
-                        </span>
-                        <button
-                          onClick={() => setShowDecoList(v => !v)}  
-                          style={{ fontSize:11, fontWeight:700, color:'#1e2d7d', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>
-                          {showDecoList ? 'Сховати' : 'Змінити'}
+                {/* Decoration type */}
+                <div>
+                  <div style={{ fontSize:11, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>ОЗДОБЛЕННЯ</div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff' }}>
+                    <span style={{ fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
+                      {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':'Фотовставка','metal':'Металева вставка','flex':'Флекс','graviruvannya':'Гравірування'} as Record<string,string>)[coverState.decoType] || 'Без оздоблення'}
+                      {coverState.decoVariant ? <span style={{ fontWeight:400, color:'#64748b', marginLeft:6, fontSize:11 }}>{coverState.decoVariant}</span> : null}
+                    </span>
+                    <button onClick={() => setShowDecoList(v=>!v)} style={{ fontSize:11, fontWeight:700, color:'#1e2d7d', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>
+                      {showDecoList ? 'Сховати' : 'Змінити'}
+                    </button>
+                  </div>
+                  {showDecoList && (
+                    <div style={{ display:'flex', flexDirection:'column', gap:3, marginTop:4 }}>
+                      {(['none','acryl','photovstavka','metal','flex','graviruvannya'] as CoverDecoType[]).map(id => (
+                        <button key={id}
+                          onClick={() => { setCoverState(prev=>({...prev, decoType:id, decoVariant:''})); setShowDecoList(false); }}
+                          style={{ padding:'7px 12px', border:coverState.decoType===id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:coverState.decoType===id?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:coverState.decoType===id?'#1e2d7d':'#374151', textAlign:'left' }}>
+                          {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':'Фотовставка','metal':'Металева вставка','flex':'Флекс','graviruvannya':'Гравірування'} as Record<string,string>)[id]}
                         </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Variant selector */}
+                {(() => {
+                  const sizeKey = (config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
+                  const variants =
+                    coverState.decoType==='acryl' ? (ACRYLIC_VARIANTS[sizeKey]||['100×100 мм']) :
+                    coverState.decoType==='photovstavka' ? (PHOTO_INSERT_VARIANTS[sizeKey]||['100×100 мм']) :
+                    coverState.decoType==='metal' ? (METAL_VARIANTS[sizeKey]||['60×60 золотий','60×60 срібний']) : [];
+                  if (!variants.length) return null;
+                  return (
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Розмір вставки</div>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                        {variants.map(v => (
+                          <button key={v} onClick={() => setCoverState(prev=>({...prev, decoVariant:v}))}
+                            style={{ padding:'5px 9px', border:coverState.decoVariant===v?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background:coverState.decoVariant===v?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:600, color:coverState.decoVariant===v?'#1e2d7d':'#374151' }}>
+                            {v}
+                          </button>
+                        ))}
                       </div>
-                      {/* Expandable list */}
-                      {showDecoList && (
-                        <div style={{ display:'flex', flexDirection:'column', gap:4, marginTop:6 }}>
-                          {allDecoOpts.map(id => (
-                            <button key={id}
-                              onClick={() => {
-                                const firstVariant = id==='acryl' ? (ACRYLIC_VARIANTS[(config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim()]||['100×100 мм'])[0]
-                                  : id==='photovstavka' ? (PHOTO_INSERT_VARIANTS[(config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim()]||['100×100 мм'])[0]
-                                  : id==='metal' ? (METAL_VARIANTS[(config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim()]||['60×60 золотий'])[0]
-                                  : '';
-                                setCoverState(prev => ({ ...prev, decoType: id as CoverDecoType, decoVariant: firstVariant }));
-                                setShowDecoList(false);
-                              }}
-                              style={{ padding:'8px 12px', border: coverState.decoType===id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:8, background: coverState.decoType===id ? '#f0f3ff' : '#fff', cursor:'pointer', fontWeight:600, fontSize:12, color: coverState.decoType===id ? '#1e2d7d' : '#374151', textAlign:'left' }}>
-                              {decoLabels[id]}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </>
+                    </div>
                   );
                 })()}
 
-                {/* Flex color + font + size */}
-                      {coverState.decoType === 'flex' && (
-                        <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:10 }}>
-                          <div>
-                            <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір флексу</div>
-                            <div style={{ display:'flex', gap:8 }}>
-                              {FLEX_COLORS.map(c => (
-                                <button key={c.value}
-                                  onClick={() => setCoverState(prev => ({...prev, decoColor: c.value}))}
-                                  title={c.label}
-                                  style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, background:'none', border:'none', cursor:'pointer', padding:0 }}>
-                                  <div style={{ width:30, height:30, borderRadius:'50%', background:c.color, border: coverState.decoColor===c.value ? '3px solid #1e2d7d':'2px solid #e2e8f0', boxShadow:c.value==='white'?'inset 0 0 0 1px #ccc':'none' }}/>
-                                  <span style={{ fontSize:9, color: coverState.decoColor===c.value ? '#1e2d7d':'#94a3b8', fontWeight: coverState.decoColor===c.value?700:400 }}>{c.label}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Шрифт</div>
-                            <select value={coverState.textFontFamily}
-                              onChange={e => setCoverState(prev => ({...prev, textFontFamily: e.target.value}))}
-                              style={{ width:'100%', padding:'7px 8px', border:'1px solid #e2e8f0', borderRadius:7, fontSize:12, fontFamily:coverState.textFontFamily }}>
-                              {['Playfair Display','Cinzel','Cormorant Garamond','Dancing Script','Great Vibes','Montserrat','Philosopher','Pinyon Script','Sacramento','Bebas Neue'].map(f=>(
-                                <option key={f} value={f}>{f}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                              <span style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Розмір тексту</span>
-                              <span style={{ fontSize:11, fontWeight:800, color:'#1e2d7d' }}>{coverState.textFontSize||32} px</span>
-                            </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                              <button onClick={()=>setCoverState(p=>({...p,textFontSize:Math.max(10,(p.textFontSize||32)-2)}))} style={{ width:28,height:28,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:15 }}>−</button>
-                              <input type="range" min={10} max={80} value={coverState.textFontSize||32}
-                                onChange={e=>setCoverState(p=>({...p,textFontSize:+e.target.value}))} style={{ flex:1 }}/>
-                              <button onClick={()=>setCoverState(p=>({...p,textFontSize:Math.min(80,(p.textFontSize||32)+2)}))} style={{ width:28,height:28,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:15 }}>+</button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                {/* Flex controls */}
+                {coverState.decoType === 'flex' && (
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Колір флексу</div>
+                      <div style={{ display:'flex', gap:6 }}>
+                        {FLEX_COLORS.map(c => (
+                          <button key={c.value} onClick={() => setCoverState(prev=>({...prev, decoColor:c.value}))} title={c.label}
+                            style={{ width:28, height:28, borderRadius:'50%', background:c.color, border:coverState.decoColor===c.value?'3px solid #1e2d7d':'2px solid #e2e8f0', cursor:'pointer', boxShadow:c.value==='white'?'inset 0 0 0 1px #d1d5db':'' }}/>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт</div>
+                      <select value={coverState.textFontFamily} onChange={e=>setCoverState(prev=>({...prev,textFontFamily:e.target.value}))}
+                        style={{ width:'100%', padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, fontFamily:coverState.textFontFamily }}>
+                        <optgroup label="Кириличні каліграфічні">
+                          <option value="Marck Script">Marck Script</option>
+                          <option value="Caveat">Caveat</option>
+                          <option value="Philosopher">Philosopher</option>
+                          <option value="Comfortaa">Comfortaa</option>
+                          <option value="Lobster">Lobster</option>
+                        </optgroup>
+                        <optgroup label="Латинські каліграфічні">
+                          <option value="Dancing Script">Dancing Script</option>
+                          <option value="Great Vibes">Great Vibes</option>
+                          <option value="Pinyon Script">Pinyon Script</option>
+                          <option value="Sacramento">Sacramento</option>
+                          <option value="Alex Brush">Alex Brush</option>
+                          <option value="Italianno">Italianno</option>
+                          <option value="Pacifico">Pacifico</option>
+                        </optgroup>
+                        <optgroup label="Елегантні засічкові">
+                          <option value="Playfair Display">Playfair Display</option>
+                          <option value="Cormorant Garamond">Cormorant Garamond</option>
+                          <option value="Cinzel">Cinzel</option>
+                          <option value="EB Garamond">EB Garamond</option>
+                        </optgroup>
+                        <optgroup label="Сучасні">
+                          <option value="Montserrat">Montserrat</option>
+                          <option value="Raleway">Raleway</option>
+                          <option value="Bebas Neue">Bebas Neue</option>
+                          <option value="Josefin Sans">Josefin Sans</option>
+                        </optgroup>
+                      </select>
+                    </div>
+                    <div>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#94a3b8', marginBottom:3 }}>
+                        <span>Розмір</span><span>{coverState.textFontSize||'авто'}px</span>
+                      </div>
+                      <input type="range" min={12} max={80} value={coverState.textFontSize||24}
+                        onChange={e=>setCoverState(prev=>({...prev,textFontSize:+e.target.value}))}
+                        style={{ width:'100%' }}/>
+                    </div>
+                  </div>
+                )}
 
-                      {/* Engraving font + size */}
-                      {coverState.decoType === 'graviruvannya' && (
-                        <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:10 }}>
-                          <div>
-                            <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Шрифт гравіювання</div>
-                            <select value={coverState.textFontFamily}
-                              onChange={e=>setCoverState(p=>({...p,textFontFamily:e.target.value}))}
-                              style={{ width:'100%', padding:'7px 8px', border:'1px solid #e2e8f0', borderRadius:7, fontSize:12, fontFamily:coverState.textFontFamily }}>
-                              {['Playfair Display','Cinzel','Cormorant Garamond','Montserrat','Philosopher','Great Vibes','Dancing Script'].map(f=>(
-                                <option key={f} value={f}>{f}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                              <span style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Розмір тексту</span>
-                              <span style={{ fontSize:11, fontWeight:800, color:'#1e2d7d' }}>{coverState.textFontSize||32} px</span>
-                            </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                              <button onClick={()=>setCoverState(p=>({...p,textFontSize:Math.max(10,(p.textFontSize||32)-2)}))} style={{ width:28,height:28,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:15 }}>−</button>
-                              <input type="range" min={10} max={80} value={coverState.textFontSize||32}
-                                onChange={e=>setCoverState(p=>({...p,textFontSize:+e.target.value}))} style={{ flex:1 }}/>
-                              <button onClick={()=>setCoverState(p=>({...p,textFontSize:Math.min(80,(p.textFontSize||32)+2)}))} style={{ width:28,height:28,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:15 }}>+</button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                {/* Engraving controls */}
+                {coverState.decoType === 'graviruvannya' && (
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт гравіювання</div>
+                      <select value={coverState.textFontFamily} onChange={e=>setCoverState(prev=>({...prev,textFontFamily:e.target.value}))}
+                        style={{ width:'100%', padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, fontFamily:coverState.textFontFamily }}>
+                        <optgroup label="Кириличні каліграфічні">
+                          <option value="Marck Script">Marck Script</option>
+                          <option value="Caveat">Caveat</option>
+                          <option value="Philosopher">Philosopher</option>
+                          <option value="Comfortaa">Comfortaa</option>
+                        </optgroup>
+                        <optgroup label="Латинські каліграфічні">
+                          <option value="Dancing Script">Dancing Script</option>
+                          <option value="Great Vibes">Great Vibes</option>
+                          <option value="Pinyon Script">Pinyon Script</option>
+                          <option value="Sacramento">Sacramento</option>
+                        </optgroup>
+                        <optgroup label="Елегантні">
+                          <option value="Playfair Display">Playfair Display</option>
+                          <option value="Cinzel">Cinzel</option>
+                          <option value="Cormorant Garamond">Cormorant Garamond</option>
+                          <option value="Montserrat">Montserrat</option>
+                        </optgroup>
+                      </select>
+                    </div>
+                    <div>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#94a3b8', marginBottom:3 }}>
+                        <span>Розмір</span><span>{coverState.textFontSize||'авто'}px</span>
+                      </div>
+                      <input type="range" min={12} max={80} value={coverState.textFontSize||24}
+                        onChange={e=>setCoverState(prev=>({...prev,textFontSize:+e.target.value}))}
+                        style={{ width:'100%' }}/>
+                    </div>
+                  </div>
+                )}
 
-                      {/* Metal color — gold/silver only */}
-                      {/* Variant size selector */}
-                      {(() => {
-                        const sizeKey = (config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
-                        const variants = (METAL_VARIANTS[sizeKey]||METAL_VARIANTS['20x20']||[]);
-                        if (variants.length <= 1) return null;
-                        return (
-                          <div style={{ marginBottom:10 }}>
-                            <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Розмір вставки</div>
-                            <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
-                              {variants.map(v => (
-                                <button key={v} onClick={() => setCoverState(prev=>({...prev, decoVariant: v}))}
-                                  style={{ padding:'5px 9px', border: coverState.decoVariant===v ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: coverState.decoVariant===v ? '#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:600, color: coverState.decoVariant===v ? '#1e2d7d':'#374151' }}>
-                                  {v}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                      {coverState.decoType === 'metal' && (
-                  <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір металу</div>
+                {/* Metal color — gold/silver only */}
+                {coverState.decoType === 'metal' && (
+                  <div>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Колір металу</div>
                     <div style={{ display:'flex', gap:6 }}>
-                      {([['gold','linear-gradient(135deg,#B8860B,#FFD700)','Золотий'],['silver','linear-gradient(135deg,#808080,#E8E8E8)','Срібний']] as [string,string,string][]).map(([v,grad,c]) => (
-                        <div key={v} onClick={() => setCoverState(s => ({...s, decoColor: v}))}
-                          style={{ width:28, height:28, borderRadius:'50%', background:grad, border: coverState.decoVariant===v ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor:'pointer' }}
-                          title={c} />
+                      {METAL_COLORS.map(c => (
+                        <button key={c.value} onClick={() => setCoverState(prev=>({...prev, decoColor:c.value}))} title={c.label}
+                          style={{ width:28, height:28, borderRadius:'50%', background:c.color, border:coverState.decoColor===c.value?'3px solid #1e2d7d':'2px solid #e2e8f0', cursor:'pointer' }}/>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {config.selectedCoverColor && (
-                  <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8, fontSize:11, color:'#64748b' }}>
-                    Колір: <strong>{config.selectedCoverColor}</strong>
-                  </div>
-                )}
+                {/* Extra text blocks */}
+                <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Написи на обкладинці</div>
+                  <button
+                    onClick={() => setCoverState(prev=>({...prev, extraTexts:[...(prev.extraTexts||[]), {id:'et-'+Date.now(), text:'Ваш напис', x:50, y:75, fontFamily:prev.textFontFamily||'Marck Script', fontSize:20, color:'#ffffff'}]}))}
+                    style={{ width:'100%', padding:'7px', border:'1px dashed #1e2d7d', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d', marginBottom:6 }}>
+                    + Додати напис
+                  </button>
+                  {(coverState.extraTexts||[]).map(et => (
+                    <div key={et.id} style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', marginBottom:4 }}>
+                      <span style={{ flex:1, fontSize:11, color:'#374151', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:et.fontFamily }}>{et.text}</span>
+                      <input type="color" value={et.color.startsWith('#')?et.color:'#ffffff'}
+                        onChange={e => setCoverState(prev=>({...prev, extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,color:e.target.value}:t2)}))}
+                        style={{ width:22, height:22, border:'none', padding:0, cursor:'pointer', borderRadius:'50%' }}/>
+                      <button onClick={() => setCoverState(prev=>({...prev, extraTexts:(prev.extraTexts||[]).filter(t2=>t2.id!==et.id)}))}
+                        style={{ width:18, height:18, borderRadius:'50%', background:'#fee2e2', color:'#ef4444', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>×</button>
+                    </div>
+                  ))}
+                </div>
+
               </div>
             )}
 
@@ -1268,6 +1287,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     textY: coverState.textY,
                     textFontFamily: coverState.textFontFamily,
                     textFontSize: coverState.textFontSize,
+                    extraTexts: coverState.extraTexts,
                   }}
                   photos={photos}
                   onChange={(cfg: any) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }), ...(cfg.decoColor !== undefined && { decoColor: cfg.decoColor }), ...(cfg.textX !== undefined && { textX: cfg.textX }), ...(cfg.textY !== undefined && { textY: cfg.textY }), ...(cfg.textFontFamily !== undefined && { textFontFamily: cfg.textFontFamily }), ...(cfg.textFontSize !== undefined && { textFontSize: cfg.textFontSize }) }))}
