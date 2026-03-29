@@ -1593,6 +1593,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         onChange={newShapes => setPageShapes(prev=>({...prev,[pageIdx]:newShapes}))}
                         selectedId={selectedShapeId}
                         onSelectId={id => { setSelectedShapeId(id); if (id) setLeftTab('shapes'); }}
+                        onDragShapeStart={id => setCrossPageDragShapeId(id)}
+                        onDragShapeEnd={() => setCrossPageDragShapeId(null)}
                         onMoveToOtherPage={shape => {
                           // Move shape to the other page in this spread
                           const otherSide = side === 0 ? 1 : 0;
@@ -1747,7 +1749,30 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               };
               return (
                 <button key={spreadIdx} onClick={() => setCurrentIdx(spreadIdx)}
-                  style={{ width: '100%', padding: '4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}>
+                  onDragOver={e => { if (crossPageDragShapeId) e.preventDefault(); }}
+                  onDrop={e => {
+                    const shapeId = e.dataTransfer.getData('shape-id');
+                    if (!shapeId) return;
+                    let sourceIdx = -1; let movedShape: any = null;
+                    Object.entries(pageShapes).forEach(([pi, ss]) => {
+                      const f = (ss as any[]).find((s:any) => s.id === shapeId);
+                      if (f) { sourceIdx = Number(pi); movedShape = f; }
+                    });
+                    if (movedShape && sourceIdx !== -1) {
+                      const targetPageIdx = leftIdx; // drop to left page of this spread
+                      if (targetPageIdx !== sourceIdx) {
+                        setPageShapes(prev => ({
+                          ...prev,
+                          [sourceIdx]: (prev[sourceIdx]||[]).filter((s:any) => s.id !== shapeId),
+                          [targetPageIdx]: [...(prev[targetPageIdx]||[]), { ...movedShape, x: 20, y: 20 }],
+                        }));
+                        setSelectedShapeId(shapeId);
+                        setCurrentIdx(spreadIdx);
+                      }
+                    }
+                    setCrossPageDragShapeId(null);
+                  }}
+                  style={{ width: '100%', padding: '4px', border: crossPageDragShapeId ? '2px dashed #3b82f6' : (active ? '2px solid #1e2d7d' : '1px solid #e2e8f0'), borderRadius: 6, background: crossPageDragShapeId ? 'rgba(59,130,246,0.05)' : (active ? '#f0f3ff' : '#fff'), cursor: crossPageDragShapeId ? 'copy' : 'pointer', textAlign: 'center' }}>
                   <div style={{ width: '100%', aspectRatio: `${prop.w*2}/${prop.h}`, display:'flex', borderRadius: 3, marginBottom: 3, overflow:'hidden' }}>
                     {renderThumbPage(pgL, 'left')}
                     {renderThumbPage(pgR, 'right')}

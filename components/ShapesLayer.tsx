@@ -72,11 +72,13 @@ interface ShapesLayerProps {
   selectedId?: string | null;
   onSelectId?: (id: string | null) => void;
   onMoveToOtherPage?: (shape: Shape) => void;
+  onDragShapeStart?: (shapeId: string) => void;
+  onDragShapeEnd?: () => void;
 }
 
 const HANDLE_SIZE = 8;
 
-export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: externalSelectedId, onSelectId, onMoveToOtherPage }: ShapesLayerProps) {
+export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: externalSelectedId, onSelectId, onMoveToOtherPage, onDragShapeStart, onDragShapeEnd }: ShapesLayerProps) {
   const [localSelectedId, setLocalSelectedId] = useState<string|null>(null);
   const selectedId = externalSelectedId !== undefined ? externalSelectedId : localSelectedId;
   const setSelectedId = (id: string|null) => { setLocalSelectedId(id); onSelectId?.(id); };
@@ -111,8 +113,9 @@ export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: ex
         const sel = selectedId===shape.id;
         return (
           <div key={shape.id}
-            draggable={!!onMoveToOtherPage}
-            onDragStart={e => { e.dataTransfer.setData('shape-id', shape.id); e.dataTransfer.effectAllowed = 'move'; }}
+            draggable
+            onDragStart={e => { e.dataTransfer.setData('shape-id', shape.id); e.dataTransfer.effectAllowed = 'move'; onDragShapeStart?.(shape.id); }}
+            onDragEnd={() => onDragShapeEnd?.()}
             onMouseDown={e=>{setSelectedId(shape.id);onSelectId?.(shape.id);startDrag(e,shape.id,'move');}}
             style={{ position:'absolute', left:shape.x, top:shape.y, width:shape.w, height:shape.h, cursor:'move', zIndex:sel?45:25, outline:sel?'2px solid #3b82f6':'none', transform:`rotate(${shape.rotation}deg)`, transformOrigin:'center' }}>
             <svg width={shape.w} height={shape.h} style={{ display:'block', overflow:'visible' }}>
