@@ -854,21 +854,37 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             </div>
           )}
           {currentIdx === 0 ? (
-            <CoverEditor
-              canvasW={cW}
-              canvasH={cH}
-              sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
-              config={{
-                coverMaterial: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
-                coverColorName: config.selectedCoverColor || '',
-                decoType: coverState.decoType as any,
-                decoVariant: coverState.decoVariant,
-                photoId: coverState.photoId,
-                decoText: coverState.decoText,
-              }}
-              photos={photos}
-              onChange={(cfg: any) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }) }))}
-            />
+            <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
+                {/* Back cover */}
+                <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: (() => {
+                  const mat = (config.selectedCoverType||'').toLowerCase();
+                  const name = config.selectedCoverColor||'';
+                  if (mat.includes('велюр')||mat.includes('velour')) return '#C4AA88';
+                  if (mat.includes('тканин')||mat.includes('fabric')) return '#C4AA88';
+                  if (mat.includes('шкір')||mat.includes('leather')) return '#D9C8B0';
+                  return '#e8ecf4';
+                })(), borderRight: '2px solid rgba(0,0,0,0.12)' }}>
+                  <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <span style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>
+                  </div>
+                </div>
+                {/* Front cover with decoration */}
+                <CoverEditor
+                  canvasW={pageW}
+                  canvasH={cH}
+                  sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
+                  config={{
+                    coverMaterial: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
+                    coverColorName: config.selectedCoverColor || '',
+                    decoType: coverState.decoType as any,
+                    decoVariant: coverState.decoVariant,
+                    photoId: coverState.photoId,
+                    decoText: coverState.decoText,
+                  }}
+                  photos={photos}
+                  onChange={(cfg) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }) }))}
+                />
+              </div>
           ) : (
           <div
             style={{ position: 'relative', width: cW, height: cH, display: 'flex', flexShrink: 0 }}
