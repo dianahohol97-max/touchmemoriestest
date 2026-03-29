@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { ImageIcon, Trash2, Square, Circle } from 'lucide-react';
 
 export type SlotShape = 'rect' | 'square' | 'circle' | 'rounded';
@@ -161,10 +161,22 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
               boxShadow: sel ? '0 0 0 1px rgba(59,130,246,0.5)' : 'none',
             }}
           >
-            {photo ? (
+            {photo && (() => {
+              // Non-passive wheel ref for zoom
+              const photoRef = (el: HTMLDivElement | null) => {
+                if (!el) return;
+                const handler = (e: WheelEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const delta = e.deltaY > 0 ? -0.05 : 0.05;
+                  update(slot.id, { zoom: Math.max(0.5, Math.min(4, (slot.zoom||1) + delta)) });
+                };
+                el.addEventListener('wheel', handler, { passive: false });
+              };
+              return (
               <div
+                ref={photoRef}
                 style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}
-                onWheel={e => { e.preventDefault(); e.stopPropagation(); const delta = e.deltaY > 0 ? -0.05 : 0.05; update(slot.id, { zoom: Math.max(0.5, Math.min(4, (slot.zoom||1) + delta)) }); }}
               >
                 <img
                   src={photo.preview}
@@ -180,14 +192,26 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
                   }}
                   draggable={false}
                 />
-                {/* Zoom indicator */}
-                {(slot.zoom||1) !== 1 && (
+                {/* Zoom controls */}
+                {sel && (
+                  <div onMouseDown={e=>e.stopPropagation()} style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:4, background:'rgba(0,0,0,0.65)', borderRadius:16, padding:'3px 8px', zIndex:40 }}>
+                    <button onClick={e=>{e.stopPropagation();update(slot.id,{zoom:Math.max(0.5,(slot.zoom||1)-0.1)});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:16, padding:'0 2px', lineHeight:1 }}>−</button>
+                    <span style={{ color:'#fff', fontSize:9, fontWeight:700, minWidth:28, textAlign:'center' }}>{Math.round((slot.zoom||1)*100)}%</span>
+                    <button onClick={e=>{e.stopPropagation();update(slot.id,{zoom:Math.min(4,(slot.zoom||1)+0.1)});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:16, padding:'0 2px', lineHeight:1 }}>+</button>
+                    <div style={{ width:1, height:12, background:'rgba(255,255,255,0.3)', margin:'0 2px' }}/>
+                    <button onClick={e=>{e.stopPropagation();update(slot.id,{zoom:1,cropX:50,cropY:50});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:9, fontWeight:700, padding:'0 2px' }}>↺</button>
+                  </div>
+                )}
+                {/* Zoom indicator when not selected */}
+                {!sel && (slot.zoom||1) !== 1 && (
                   <div style={{ position:'absolute', bottom:4, right:4, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 5px', borderRadius:8, pointerEvents:'none' }}>
                     {Math.round((slot.zoom||1)*100)}%
                   </div>
                 )}
               </div>
-            ) : (
+              );
+            })()}
+            {!photo && (
               <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'rgba(255,255,255,0.6)', pointerEvents: 'none' }}>
                 <ImageIcon size={20} />
                 <span style={{ fontSize: 9, fontWeight: 700 }}>Перетягніть фото</span>
