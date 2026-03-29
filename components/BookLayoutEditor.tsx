@@ -989,7 +989,15 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Розмір вставки</div>
                       <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
                         {variants.map(v => (
-                          <button key={v} onClick={() => setCoverState(prev=>({...prev, decoVariant:v}))}
+                          <button key={v} onClick={() => setCoverState(prev => {
+                            const patch: any = { decoVariant: v };
+                            // Auto-set metal color from variant name
+                            if (prev.decoType === 'metal') {
+                              if (v.includes('золотий')) patch.decoColor = 'gold';
+                              else if (v.includes('срібний')) patch.decoColor = 'silver';
+                            }
+                            return {...prev, ...patch};
+                          })}
                             style={{ padding:'5px 9px', border:coverState.decoVariant===v?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background:coverState.decoVariant===v?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:600, color:coverState.decoVariant===v?'#1e2d7d':'#374151' }}>
                             {v}
                           </button>
