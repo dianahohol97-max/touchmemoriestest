@@ -1317,7 +1317,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     <div key={side} style={{ width: pageW, height: cH, background: '#f8fafc', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? '-4px 0 16px rgba(0,0,0,0.1)' : '4px 0 16px rgba(0,0,0,0.1)' }} />
                   );
                   const pageDefs = getSlotDefs(page.layout, pageW, cH);
-                  console.log('[canvas render]', { side, pageIdx, layout: page.layout, pageW, cH, defsCount: pageDefs.length, slotsCount: page.slots.length });
+                  if (side === 0) console.log('[SLOTS]', { layout: page.layout, pageW: Math.round(pageW), cH: Math.round(cH), defsCount: pageDefs.length, firstDef: pageDefs[0]?.s });
                   const pageKey = (si: number) => `${pageIdx}-${si}`;
                   return (
                     <div key={pageRenderKey}
@@ -1337,7 +1337,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
                             onDrop={e => onDrop(e, pageIdx, i)}
-                            style={{ ...s, zIndex: 1, background: photo ? 'transparent' : (isOver ? '#dbeafe' : 'rgba(99,102,241,0.06)'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '2px dashed #818cf8'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
+                            style={{ ...s, zIndex: 1, background: photo ? 'transparent' : (isOver ? '#dbeafe' : 'rgba(99,102,241,0.15)'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '2px dashed #818cf8'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default', boxSizing: 'border-box' }}
                           >
                             {photo ? (
                               <>
