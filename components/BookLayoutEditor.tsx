@@ -385,12 +385,11 @@ export default function BookLayoutEditor() {
 
   const changeLayout = (layout: LayoutType) => {
     const def = LAYOUTS.find(l => l.id === layout);
-    if (!def) { console.warn('Layout not found:', layout); return; }
+    if (!def) return;
     const targetIdx = getActivePageIdx();
     const newSlotCount = def.slots;
     setPages(prev => prev.map((p, i) => {
       if (i !== targetIdx) return p;
-      // Preserve existing photos in slots
       const existingPhotos = p.slots.map(s => s.photoId).filter(Boolean);
       const newSlots: SlotData[] = Array.from({ length: newSlotCount }, (_, si) => ({
         photoId: existingPhotos[si] ?? null, cropX: 50, cropY: 50, zoom: 1,
@@ -426,7 +425,14 @@ export default function BookLayoutEditor() {
   };
 
   const onDrop = (e: DragEvent, pi: number, si: number) => {
-    e.preventDefault(); setDropTarget(null);
+    e.preventDefault();
+    const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
+    if (!photoId) return;
+    setPages(prev => prev.map((p, pi2) => pi2 !== pi ? p : {
+      ...p, slots: p.slots.map((s, si2) => si2 !== si ? s : { ...s, photoId })
+    }));
+    // eslint-disable-next-line no-useless-return
+    return;; setDropTarget(null);
     if (!dragPhotoId) return;
     setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, photoId: dragPhotoId }) }));
     setDragPhotoId(null);
@@ -910,17 +916,22 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
 
             {/* SHAPES */}
             {leftTab === 'shapes' && (() => {
-              const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
-              const shapes = getCurShapes(spi);
-              const selShape = shapes.find(s=>s.id===selectedShapeId) ?? null;
+              // Find which page has the selected shape
+              const allPageIdxs = currentIdx===0 ? [0] : [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
+              let spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+              let selShape = null;
+              for (const pi of allPageIdxs) {
+                const found = getCurShapes(pi).find(s=>s.id===selectedShapeId);
+                if (found) { selShape = found; spi = pi; break; }
+              }
               return (
                 <ShapeControls
                   selectedShape={selShape}
                   onChange={patch => {
                     if (!selShape) return;
-                    setPageShapes(prev=>({...prev,[spi]:(prev[spi]||[]).map(s=>s.id===selShape.id?{...s,...patch}:s)}));
+                    setPageShapes(prev=>({...prev,[spi]:(prev[spi]||[]).map(s=>s.id===selShape!.id?{...s,...patch}:s)}));
                   }}
-                  onAdd={type => addShape(type, spi)}
+                  onAdd={type => { const newSpi = currentIdx===0?0:(currentIdx-1)*2+1+activeSide; addShape(type, newSpi); }}
                 />
               );
             })()}
