@@ -95,6 +95,7 @@ export interface CoverConfig {
   printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded' };
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
+  printedBgColor?: string;
 }
 
 interface CoverEditorProps {
@@ -159,7 +160,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
   };
 
   const bgColor = (() => {
-    if (!isSoft) return '#fff';
+    if (!isSoft) return config.printedBgColor || '#fff';
     const name = config.coverColorName;
     if (config.coverMaterial === 'leatherette') return LEATHERETTE_COLORS[name] ?? '#D9C8B0';
     if (config.coverMaterial === 'fabric') return FABRIC_COLORS[name] ?? '#C4AA88';

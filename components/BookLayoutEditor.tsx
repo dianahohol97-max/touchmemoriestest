@@ -45,6 +45,9 @@ interface CoverState {
   printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded' };
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
+  printedBgColor?: string;
+  backCoverBgColor?: string;
+  backCoverPhotoId?: string | null;
 }
 
 type LayoutType =
@@ -330,6 +333,7 @@ export default function BookLayoutEditor() {
 
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
   const usedIds = new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean)));
+  const isPrinted = (config?.selectedCoverType || '').toLowerCase().includes('друков') || (config?.selectedCoverType || '').toLowerCase().includes('print');
   const cur = pages[currentIdx];
 
   const sizeKey = config?.selectedSize ?? 'A4';
@@ -953,6 +957,42 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                   );
                 })()}
+
+                {/* Printed cover — bg color + back cover controls */}
+                {isPrinted && (
+                  <div style={{ display:'flex', flexDirection:'column', gap:10, borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір фону передньої</div>
+                      <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                        <input type="color" value={coverState.printedBgColor || '#ffffff'}
+                          onChange={e=>setCoverState(p=>({...p,printedBgColor:e.target.value}))}
+                          style={{ width:36, height:28, border:'1px solid #e2e8f0', borderRadius:5, cursor:'pointer', padding:2 }}/>
+                        <span style={{ fontSize:10, color:'#94a3b8' }}>{coverState.printedBgColor || '#ffffff'}</span>
+                        <button onClick={()=>setCoverState(p=>({...p,printedBgColor:'#ffffff'}))}
+                          style={{ padding:'3px 7px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Задня обкладинка</div>
+                      <div style={{ display:'flex', gap:6, alignItems:'center', marginBottom:6 }}>
+                        <span style={{ fontSize:10, color:'#94a3b8', flexShrink:0 }}>Колір фону</span>
+                        <input type="color" value={coverState.backCoverBgColor || '#f1f5f9'}
+                          onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
+                          style={{ width:30, height:24, border:'1px solid #e2e8f0', borderRadius:4, cursor:'pointer', padding:1 }}/>
+                        <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
+                          style={{ padding:'2px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
+                      </div>
+                      <div style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>Перетягніть фото прямо на задню обкладинку</div>
+                      {coverState.backCoverPhotoId && (
+                        <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
+                          style={{ width:'100%', padding:'5px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
+                          × Видалити фото з задньої
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   {/* Photo picker for acrylic/photo insert */}
                   {(coverState.decoType === 'acryl' || coverState.decoType === 'photovstavka') && (
@@ -1330,22 +1370,33 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
           )}
           {currentIdx === 0 ? (
             <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
-                {/* Back cover */}
-                <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: (() => {
+                {/* Back cover — editable */}
+                {(() => {
                   const mat = (config.selectedCoverType||'').toLowerCase();
                   const n = effectiveCoverColor;
-                  const velourColors: Record<string,string> = {'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8','Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038','Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840'};
-                  const leatherColors: Record<string,string> = {'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C','Рожевий ніжний':'#E8B4B8','Червоний насичений':'#A01030','Коричневий':'#8E5038','Вишневий':'#7A2020','Графітовий темний':'#3A3038','Темно-синій':'#1A2040','Чорний':'#1A1A1A'};
-                  const fabricColors: Record<string,string> = {'Бежевий/пісочний':'#C4AA88','Теракотовий':'#A04838','Фуксія':'#B838A0','Марсала/бордо':'#602838','Коричневий':'#6E4830','Сірий/графітовий':'#586058','Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020'};
-                  if (mat.includes('тканин')||mat.includes('fabric')) return fabricColors[n]||'#C4AA88';
-                  if (mat.includes('шкір')||mat.includes('leather')) return leatherColors[n]||'#D9C8B0';
-                  if (mat.includes('велюр')||mat.includes('velour')) return velourColors[n]||'#D9C8B0';
-                  return '#e8ecf4';
-                })(), borderRight: '2px solid rgba(0,0,0,0.12)' }}>
-                  <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <span style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>
-                  </div>
-                </div>
+                  const softBg = mat.includes('тканин')||mat.includes('fabric')
+                    ? ({'Бежевий/пісочний':'#C4AA88','Теракотовий':'#A04838','Фуксія':'#B838A0','Марсала/бордо':'#602838','Коричневий':'#6E4830','Сірий/графітовий':'#586058','Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020'} as Record<string,string>)[n]||'#C4AA88'
+                    : mat.includes('шкір')||mat.includes('leather')
+                    ? ({'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C','Рожевий ніжний':'#E8B4B8','Червоний насичений':'#A01030','Коричневий':'#8E5038','Вишневий':'#7A2020','Графітовий темний':'#3A3038','Темно-синій':'#1A2040','Чорний':'#1A1A1A'} as Record<string,string>)[n]||'#D9C8B0'
+                    : mat.includes('велюр')||mat.includes('velour')
+                    ? ({'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8','Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038','Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840'} as Record<string,string>)[n]||'#D9C8B0'
+                    : '#f1f5f9';
+                  const backBg = isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : softBg;
+                  const backPhoto = isPrinted ? getPhoto(coverState.backCoverPhotoId ?? null) : null;
+                  const [backDragOver, setBackDragOver] = [false, (_:any)=>{}]; // simple state
+                  return (
+                    <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: backBg, borderRight: '2px solid rgba(0,0,0,0.12)' }}
+                      onDragOver={e=>{e.preventDefault();}}
+                      onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverPhotoId:id}));}}>
+                      {backPhoto && <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} draggable={false}/>}
+                      {backPhoto && isPrinted && <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:4,right:8,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }}>×</button>}
+                      <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                        {isPrinted && !backPhoto && <span style={{ color:'rgba(0,0,0,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ — перетягніть фото</span>}
+                        {!isPrinted && <span style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {/* Front cover with decoration */}
                 <CoverEditor
                   canvasW={pageW}
@@ -1367,6 +1418,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     printedPhotoSlot: coverState.printedPhotoSlot,
                     printedTextBlocks: coverState.printedTextBlocks,
                     printedOverlay: coverState.printedOverlay,
+                    printedBgColor: coverState.printedBgColor,
                   }}
                   photos={photos}
                   onChange={(cfg) => setCoverState(prev => ({ ...prev,
@@ -1630,8 +1682,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               return (
                 <button key="cover" onClick={() => setCurrentIdx(0)}
                   style={{ width: '100%', padding: '4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}>
-                  <div style={{ width: '100%', aspectRatio: `${prop.w*2}/${prop.h}`, background: '#d4b896', borderRadius: 3, marginBottom: 3, position:'relative', overflow:'hidden' }}>
-                    <div style={{ position:'absolute', right:0, top:0, width:'50%', height:'100%', background: ph ? 'transparent' : '#c4a882' }}>
+                  <div style={{ width: '100%', aspectRatio: `${prop.w*2}/${prop.h}`, background: isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : '#d4b896', borderRadius: 3, marginBottom: 3, position:'relative', overflow:'hidden' }}>
+                    <div style={{ position:'absolute', right:0, top:0, width:'50%', height:'100%', background: isPrinted ? (coverState.printedBgColor || '#fff') : '#c4a882' }}>
                       {ph && <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
                     </div>
                     <div style={{ position:'absolute', left:0, top:0, width:'50%', height:'100%', background:'rgba(0,0,0,0.08)' }}/>
