@@ -428,7 +428,8 @@ export default function BookLayoutEditor() {
   const removeLastSpread = () => {
     if (pages.length <= 3) { toast.error('Мінімум 1 розворот'); return; }
     setPages(prev => prev.slice(0, -2));
-    setCurrentIdx(prev => Math.min(prev, Math.ceil((pages.length - 3) / 2)));
+    const newSpreadCount = Math.ceil((pages.length - 3) / 2);
+    setCurrentIdx(prev => Math.min(prev, newSpreadCount));
   };
 
   const getCurBg = (idx: number): PageBackground => pageBgs[idx] || DEFAULT_BG;
@@ -1206,8 +1207,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: 32, background: '#f4f6fb' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} style={{ background: 'none', border: 'none', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', opacity: currentIdx === 0 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronLeft size={20} /></button>
-            <span>{cur?.label || 'Обкладинка'}</span>
-            <button onClick={() => setCurrentIdx(i => Math.min(pages.length - 1, i + 1))} disabled={currentIdx === pages.length - 1} style={{ background: 'none', border: 'none', cursor: currentIdx === pages.length - 1 ? 'not-allowed' : 'pointer', opacity: currentIdx === pages.length - 1 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronRight size={20} /></button>
+            <span>{currentIdx === 0 ? 'Обкладинка' : `${(currentIdx-1)*2+1}–${(currentIdx-1)*2+2}`}</span>
+            <button onClick={() => setCurrentIdx(i => Math.min(Math.ceil((pages.length - 1) / 2), i + 1))} disabled={currentIdx === Math.ceil((pages.length - 1) / 2)} style={{ background: 'none', border: 'none', cursor: currentIdx === Math.ceil((pages.length - 1) / 2) ? 'not-allowed' : 'pointer', opacity: currentIdx === Math.ceil((pages.length - 1) / 2) ? 0.3 : 1, color: '#1e2d7d' }}><ChevronRight size={20} /></button>
             {currentIdx !== 0 && (
               <button onClick={shuffleLayout} title="Змінити розкладку"
                 style={{ display:'flex', alignItems:'center', gap:5, marginLeft:8, padding:'5px 12px', border:'1px solid #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', color:'#1e2d7d', fontWeight:700, fontSize:12 }}>
@@ -1492,7 +1493,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         <div style={{ width: 180, borderLeft: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Розвороти</span>
-            <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{pages.length}</span>
+            <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{Math.ceil((pages.length - 1) / 2)}</span>
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {/* Cover spread */}
