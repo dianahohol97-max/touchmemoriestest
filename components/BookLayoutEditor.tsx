@@ -21,6 +21,11 @@ interface CoverState {
   decoVariant: string;
   photoId: string | null;
   decoText: string;
+  decoColor: string;
+  textX: number;
+  textY: number;
+  textFontFamily: string;
+  textFontSize: number;
 }
 
 type LayoutType =
@@ -202,7 +207,7 @@ export default function BookLayoutEditor() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(70);
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'>('photos');
-  const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '' });
+  const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Georgia', textFontSize: 14 });
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
   const [pageShapes, setPageShapes] = useState<Record<number, Shape[]>>({});
@@ -944,9 +949,14 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     decoVariant: coverState.decoVariant,
                     photoId: coverState.photoId,
                     decoText: coverState.decoText,
+                    decoColor: coverState.decoColor,
+                    textX: coverState.textX,
+                    textY: coverState.textY,
+                    textFontFamily: coverState.textFontFamily,
+                    textFontSize: coverState.textFontSize,
                   }}
                   photos={photos}
-                  onChange={(cfg) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }) }))}
+                  onChange={(cfg: any) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }), ...(cfg.decoColor !== undefined && { decoColor: cfg.decoColor }), ...(cfg.textX !== undefined && { textX: cfg.textX }), ...(cfg.textY !== undefined && { textY: cfg.textY }), ...(cfg.textFontFamily !== undefined && { textFontFamily: cfg.textFontFamily }), ...(cfg.textFontSize !== undefined && { textFontSize: cfg.textFontSize }) }))}
                 />
               </div>
             ) : (
