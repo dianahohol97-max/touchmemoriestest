@@ -1219,6 +1219,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     textY: coverState.textY,
                     textFontFamily: coverState.textFontFamily,
                     textFontSize: coverState.textFontSize,
+                    extraTexts: coverState.extraTexts,
                   }}
                   photos={photos}
                   onChange={(cfg) => setCoverState(prev => ({ ...prev,
@@ -1226,6 +1227,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     ...(cfg.decoText !== undefined && { decoText: cfg.decoText }),
                     ...(cfg.textX !== undefined && { textX: cfg.textX }),
                     ...(cfg.textY !== undefined && { textY: cfg.textY }),
+                    ...(cfg.extraTexts !== undefined && { extraTexts: cfg.extraTexts }),
                   }))}
                 />
               </div>
