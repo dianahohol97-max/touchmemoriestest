@@ -1317,6 +1317,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     <div key={side} style={{ width: pageW, height: cH, background: '#f8fafc', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? '-4px 0 16px rgba(0,0,0,0.1)' : '4px 0 16px rgba(0,0,0,0.1)' }} />
                   );
                   const pageDefs = getSlotDefs(page.layout, pageW, cH);
+                  console.log('[canvas render]', { side, pageIdx, layout: page.layout, pageW, cH, defsCount: pageDefs.length, slotsCount: page.slots.length });
                   const pageKey = (si: number) => `${pageIdx}-${si}`;
                   return (
                     <div key={pageRenderKey}
