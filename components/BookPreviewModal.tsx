@@ -6,14 +6,20 @@ interface PageSlot { photoId: string | null }
 interface TextBlock { id:string; text:string; x:number; y:number; fontSize:number; fontFamily:string; color:string; bold:boolean; italic:boolean }
 interface Page { id:number; label:string; slots:PageSlot[]; textBlocks?:TextBlock[] }
 
+interface FreeSlot { id:string; x:number; y:number; w:number; h:number; shape:string; photoId:string|null; zoom:number; cropX:number; cropY:number }
 interface BookPreviewProps {
   pages: Page[];
   photos: { id:string; preview:string }[];
   propW: number; propH: number;
   onClose: () => void;
+  freeSlots?: Record<number, FreeSlot[]>;
+  coverState?: any;
+  isPrinted?: boolean;
+  selectedCoverType?: string;
+  effectiveCoverColor?: string;
 }
 
-export function BookPreviewModal({ pages, photos, propW, propH, onClose }: BookPreviewProps) {
+export function BookPreviewModal({ pages, photos, propW, propH, onClose, freeSlots={}, coverState, isPrinted, selectedCoverType='', effectiveCoverColor='' }: BookPreviewProps) {
   const [spread, setSpread] = useState(0);
   const [animDir, setAnimDir] = useState<'none'|'next'|'prev'>('none');
   const [isAnimating, setIsAnimating] = useState(false);
@@ -55,9 +61,34 @@ export function BookPreviewModal({ pages, photos, propW, propH, onClose }: BookP
   const renderPage = (pageIdx: number, side: 'left'|'right') => {
     if (pageIdx === 0 && side === 'left') {
       // Back cover
+      const backBg = isPrinted ? (coverState?.backCoverBgColor || '#f1f5f9') : '#e8ecf4';
+      const backPhoto = isPrinted && coverState?.backCoverPhotoId ? photos.find(p=>p.id===coverState.backCoverPhotoId) : null;
       return (
-        <div style={{ width:pageW, height:pageH, background:'#e8ecf4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <span style={{ color:'rgba(0,0,0,0.2)', fontSize:10, writingMode:'vertical-rl', letterSpacing:3, textTransform:'uppercase' }}>ЗАДНЯ</span>
+        <div style={{ width:pageW, height:pageH, background:backBg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, position:'relative', overflow:'hidden' }}>
+          {backPhoto && <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} draggable={false}/>}
+          <span style={{ color:'rgba(0,0,0,0.15)', fontSize:9, writingMode:'vertical-rl', letterSpacing:3, textTransform:'uppercase' }}>ЗАДНЯ</span>
+        </div>
+      );
+    }
+    if (pageIdx === 0 && side === 'right' && isPrinted) {
+      // Printed front cover
+      const frontBg = coverState?.printedBgColor || '#fff';
+      const slot = coverState?.printedPhotoSlot ?? { x:0,y:0,w:100,h:100,shape:'rect' };
+      const overlay = coverState?.printedOverlay ?? { type:'none', color:'#000',opacity:40,gradient:'' };
+      const photo = coverState?.photoId ? photos.find(p=>p.id===coverState.photoId) : null;
+      const br = slot.shape==='circle'?'50%':slot.shape==='rounded'?'12px':'0px';
+      return (
+        <div style={{ width:pageW, height:pageH, background:frontBg, position:'relative', overflow:'hidden', flexShrink:0 }}>
+          <div style={{ position:'absolute', left:`${slot.x/100*pageW}px`, top:`${slot.y/100*pageH}px`, width:`${slot.w/100*pageW}px`, height:`${slot.h/100*pageH}px`, borderRadius:br, overflow:'hidden' }}>
+            {photo && <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+          </div>
+          {overlay.type==='color' && <div style={{ position:'absolute',inset:0, background:overlay.color, opacity:overlay.opacity/100, pointerEvents:'none' }}/>}
+          {overlay.type==='gradient' && <div style={{ position:'absolute',inset:0, backgroundImage:overlay.gradient, pointerEvents:'none' }}/>}
+          {(coverState?.printedTextBlocks||[]).map((tb:any) => (
+            <div key={tb.id} style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', pointerEvents:'none' }}>
+              <span style={{ fontSize:`${tb.fontSize*0.85}px`, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?700:400, whiteSpace:'nowrap', textShadow:'0 1px 3px rgba(0,0,0,0.5)' }}>{tb.text}</span>
+            </div>
+          ))}
         </div>
       );
     }
@@ -66,10 +97,20 @@ export function BookPreviewModal({ pages, photos, propW, propH, onClose }: BookP
       return <div style={{ width:pageW, height:pageH, background:'#f8f9fa', flexShrink:0 }}/>;
     }
     const mainPhoto = getPhoto(page.slots[0]?.photoId ?? null);
+    const pageFs = freeSlots[pageIdx] || [];
     return (
       <div style={{ width:pageW, height:pageH, position:'relative', background:'#fff', overflow:'hidden', flexShrink:0 }}>
         {mainPhoto && <img src={mainPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
-        {!mainPhoto && <div style={{ width:'100%', height:'100%', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'#94a3b8', fontSize:11 }}>{page.label}</span></div>}
+        {!mainPhoto && pageFs.length === 0 && <div style={{ width:'100%', height:'100%', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ color:'#94a3b8', fontSize:11 }}>{page.label}</span></div>}
+        {pageFs.map((fs:FreeSlot) => {
+          const ph = fs.photoId ? photos.find(p=>p.id===fs.photoId) : null;
+          const br = fs.shape==='circle'?'50%':fs.shape==='rounded'?'12px':fs.shape==='square'?'4px':'0';
+          return (
+            <div key={fs.id} style={{ position:'absolute', left:fs.x, top:fs.y, width:fs.w, height:fs.h, borderRadius:br, overflow:'hidden', background:ph?'transparent':'rgba(99,102,241,0.08)', border:ph?'none':'1px dashed #818cf8' }}>
+              {ph && <img src={ph.preview} style={{ width:`${(fs.zoom||1)*100}%`, height:`${(fs.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${fs.cropX}% ${fs.cropY}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }} draggable={false}/>}
+            </div>
+          );
+        })}
         {(page.textBlocks||[]).map(tb => (
           <div key={tb.id} style={{ position:'absolute', left:tb.x+'%', top:tb.y+'%', transform:'translate(-50%,-50%)', pointerEvents:'none' }}>
             <span style={{ fontSize:(tb.fontSize*0.85)+'px', fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?700:400, fontStyle:tb.italic?'italic':'normal', whiteSpace:'pre' }}>{tb.text}</span>
