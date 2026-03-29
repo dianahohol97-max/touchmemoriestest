@@ -424,18 +424,14 @@ export default function BookLayoutEditor() {
     e.target.value = '';
   };
 
-  const onDrop = (e: DragEvent, pi: number, si: number) => {
+  const onDrop = (e: React.DragEvent, pi: number, si: number) => {
     e.preventDefault();
     const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
     if (!photoId) return;
     setPages(prev => prev.map((p, pi2) => pi2 !== pi ? p : {
-      ...p, slots: p.slots.map((s, si2) => si2 !== si ? s : { ...s, photoId })
+      ...p,
+      slots: p.slots.map((s2, si2) => si2 !== si ? s2 : { ...s2, photoId }),
     }));
-    // eslint-disable-next-line no-useless-return
-    return;; setDropTarget(null);
-    if (!dragPhotoId) return;
-    setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, photoId: dragPhotoId }) }));
-    setDragPhotoId(null);
   };
   const clearSlot = (pi: number, si: number) => setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, photoId: null }) }));
 
@@ -1220,7 +1216,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                           <div key={i}
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
-                            onDrop={e => onDrop(e, pageIdx, i)}
+                            onDrop={e => onDrop(e, pageIdx, i)} onDragOver={e => e.preventDefault()}
                             style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f1f5f9'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1px dashed #cbd5e1'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
                           >
                             {photo ? (
@@ -1228,7 +1224,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                                 <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                  <img src={photo.preview} alt=""
+                                  <img src={photo.preview} draggable={true} onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
                                     onMouseDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX, slot!.cropY); }}
                                     style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}
                                     draggable={false}/>
