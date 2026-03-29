@@ -383,8 +383,6 @@ export default function BookLayoutEditor() {
       return { ...p, layout, slots: newSlots };
     }));
   };
-    }));
-  };
 
   const autoFill = () => {
     let pi = 0;
