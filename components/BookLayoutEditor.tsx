@@ -257,6 +257,10 @@ export default function BookLayoutEditor() {
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [crossPageDragShapeId, setCrossPageDragShapeId] = useState<string|null>(null);
+  const [crossDragPos, setCrossDragPos] = useState<{x:number;y:number}|null>(null);
+  const crossDragShape = crossPageDragShapeId
+    ? Object.values(pageShapes).flat().find((s:any) => s.id === crossPageDragShapeId) ?? null
+    : null;
   const [coverColorOverride, setCoverColorOverride] = useState<string|null>(null);
   const effectiveCoverColor = coverColorOverride ?? (config?.selectedCoverColor || '');
   const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;x:number;y:number;w:number;h:number}[]>>({});
@@ -786,7 +790,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   {photos.map((ph, i) => {
                     const used = usedIds.has(ph.id);
                     return (
-                      <div key={ph.id} draggable={!used} onDragStart={() => !used && setDragPhotoId(ph.id)} onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
+                      <div key={ph.id} draggable={!used} onDragStart={e => { if(used) return; setDragPhotoId(ph.id); e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }} onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
                         style={{ position: 'relative', aspectRatio: '1', borderRadius: 6, overflow: 'hidden', cursor: used ? 'default' : 'grab', opacity: used ? 0.45 : 1, border: '1px solid #e2e8f0' }}>
                         <img src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
                         {used && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✓</div>}
@@ -1361,31 +1365,44 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         onSelectId={id => { setSelectedShapeId(id); if (id) setLeftTab('shapes'); }}
                         onMoveToOtherPage={shape => setCrossPageDragShapeId(shape.id)}
                       />
-                      {/* Cross-page drop target overlay */}
-                      <div style={{ position:'absolute', inset:0, zIndex:50, pointerEvents: crossPageDragShapeId ? 'auto' : 'none', opacity: crossPageDragShapeId ? 1 : 0 }}
-                        onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
-                        onDrop={e => {
-                          const shapeId = e.dataTransfer.getData('shape-id');
-                          if (!shapeId) return;
-                          // Find shape across all pages
-                          let sourcePageIdx = -1, movedShape: any = null;
-                          Object.entries(pageShapes).forEach(([pi, shapes]) => {
-                            const found = (shapes as any[]).find((s: any) => s.id === shapeId);
-                            if (found) { sourcePageIdx = Number(pi); movedShape = found; }
-                          });
-                          if (movedShape && sourcePageIdx !== -1 && sourcePageIdx !== pageIdx) {
-                            // Remove from source page, add to target page
-                            setPageShapes(prev => ({
-                              ...prev,
-                              [sourcePageIdx]: (prev[sourcePageIdx]||[]).filter((s:any) => s.id !== shapeId),
-                              [pageIdx]: [...(prev[pageIdx]||[]), { ...movedShape, x: pageW/2 - movedShape.w/2, y: cH/2 - movedShape.h/2 }]
-                            }));
-                            setSelectedShapeId(shapeId);
-                          }
-                          setCrossPageDragShapeId(null);
-                        }}
-                        onDragLeave={() => setCrossPageDragShapeId(null)}
-                      />
+                      {/* Cross-page drop zone: visible when dragging a shape */}
+                      {crossPageDragShapeId && (() => {
+                        const curShapePageIdx = Object.entries(pageShapes).find(([,shapes]) =>
+                          (shapes as any[]).some((s:any) => s.id === crossPageDragShapeId)
+                        )?.[0];
+                        const isSource = curShapePageIdx === String(pageIdx);
+                        return !isSource ? (
+                          <div
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={e => {
+                              const shapeId = e.dataTransfer.getData('shape-id');
+                              if (!shapeId) return;
+                              let sourceIdx = -1; let movedShape: any = null;
+                              Object.entries(pageShapes).forEach(([pi, ss]) => {
+                                const f = (ss as any[]).find((s:any) => s.id === shapeId);
+                                if (f) { sourceIdx = Number(pi); movedShape = f; }
+                              });
+                              if (movedShape && sourceIdx !== -1 && sourceIdx !== pageIdx) {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const nx = Math.max(0, Math.min(pageW - movedShape.w, e.clientX - rect.left - movedShape.w/2));
+                                const ny = Math.max(0, Math.min(cH - movedShape.h, e.clientY - rect.top - movedShape.h/2));
+                                setPageShapes(prev => ({
+                                  ...prev,
+                                  [sourceIdx]: (prev[sourceIdx]||[]).filter((s:any) => s.id !== shapeId),
+                                  [pageIdx]: [...(prev[pageIdx]||[]), { ...movedShape, x: nx, y: ny }]
+                                }));
+                                setSelectedShapeId(shapeId);
+                              }
+                              setCrossPageDragShapeId(null);
+                            }}
+                            style={{ position:'absolute', inset:0, zIndex:60,
+                              background:'rgba(30,45,125,0.08)', border:'2px dashed rgba(30,45,125,0.3)',
+                              display:'flex', alignItems:'center', justifyContent:'center', borderRadius:4 }}
+                          >
+                            <span style={{ fontSize:11, fontWeight:700, color:'rgba(30,45,125,0.5)', pointerEvents:'none' }}>Перенести сюди</span>
+                          </div>
+                        ) : null;
+                      })()}
                       {/* Frame layer */}
                       <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
                       {/* Sticker layer */}
