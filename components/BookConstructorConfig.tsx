@@ -456,6 +456,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     };
 
     const handleContinue = () => {
+        // Validate cover color for soft covers
+        if (selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) {
+            alert('Будь ласка, оберіть колір обкладинки');
+            return;
+        }
         // Store configuration in sessionStorage
         const config = {
             productSlug,
@@ -521,6 +526,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             if (!selectedPageCount) return false;
             if (selectedCoverType === 'Друкована' && !selectedLamination) return false;
             if (selectedDecorationType !== 'none' && !selectedDecorationVariant) return false;
+            if (selectedCoverType !== 'Друкована' && !selectedCoverColor) return false;
             return true;
         }
 
@@ -530,7 +536,6 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (product?.options) {
             const options = product.options as ProductOption[];
             const requiredCoverType = options.some(o => o.name === 'Тип обкладинки');
-        if (selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) { alert('Будь ласка, оберіть колір обкладинки'); return; }
             if (requiredCoverType && !selectedCoverType) return false;
             const requiredPageCount = options.some(o => o.name === 'Кількість сторінок');
             if (requiredPageCount && !selectedPageCount) return false;
