@@ -161,11 +161,24 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
         boxShadow:'0 8px 32px rgba(0,0,0,0.18)', flexShrink:0, background:bgColor }}>
       {isSoft && <div style={{ position:'absolute', inset:0, backgroundImage:texture, pointerEvents:'none', zIndex:1 }}/>}
 
-      {/* Printed cover */}
+      {/* Printed cover — photo + draggable text overlay */}
       {!isSoft && (
-        <div style={{ position:'absolute', inset:0, zIndex:2, background: photo?'transparent':(dragOver?'#dbeafe':'#f1f5f9'), display:'flex', alignItems:'center', justifyContent:'center', border:dragOver?'2px dashed #1e2d7d':'none' }}>
-          {photo ? <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
-            : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, color:'#94a3b8' }}><ImageIcon size={32}/><span style={{ fontSize:12, fontWeight:600 }}>Перетягніть фото</span></div>}
+        <div style={{ position:'absolute', inset:0, zIndex:2 }}>
+          <div style={{ position:'absolute', inset:0, background: photo?'transparent':(dragOver?'#dbeafe':'#f1f5f9'), display:'flex', alignItems:'center', justifyContent:'center', border:dragOver?'2px dashed #1e2d7d':'none' }}>
+            {photo ? <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+              : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, color:'#94a3b8' }}><ImageIcon size={32}/><span style={{ fontSize:12, fontWeight:600 }}>Перетягніть фото на обкладинку</span></div>}
+          </div>
+          {config.decoText && (
+            <div onMouseDown={handleTextMouseDown}
+              style={{ position:'absolute', left:`${textX}%`, top:`${textY}%`, transform:'translate(-50%,-50%)', cursor:'move', zIndex:10, padding:'4px 8px', border:'1px dashed rgba(0,0,0,0.3)', borderRadius:4 }}>
+              <span contentEditable suppressContentEditableWarning
+                onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
+                onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
+                style={{ color:config.decoColor||'#1e2d7d', fontSize:(config.textFontSize||24)+'px', fontFamily:(config.textFontFamily||'Playfair Display')+',serif', fontWeight:700, outline:'none', cursor:'text', display:'block', whiteSpace:'nowrap' }}>
+                {config.decoText}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
