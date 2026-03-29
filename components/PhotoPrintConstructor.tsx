@@ -25,7 +25,11 @@ const POLAROID_SIZES: Record<string, { totalW: number; totalH: number; borderSid
 interface PhotoFile {
   id: string; file: File; preview: string; width: number; height: number;
   cropX: number; cropY: number; zoom: number;
-  polaroidText?: string; // text on white bottom border
+  polaroidText?: string;
+  rotation: number;       // 0, 90, 180, 270
+  orientation: 'portrait' | 'landscape';
+  border: boolean;        // individual border setting
+  qty: number;            // print quantity for this photo
 }
 interface ProductOption {
   name: string;
@@ -298,7 +302,59 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
   const [selectedFinish, setSelectedFinish] = useState('');
   const [selectedBorder, setSelectedBorder] = useState('none');
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
-  const POLAROID_TEXT_PRICE = 5; // грн per photo with text
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
+  const POLAROID_TEXT_PRICE = 5;
+
+  const selectedPhotos = photos.filter(p => selectedPhotoIds.has(p.id));
+  const allSelected = photos.length > 0 && selectedPhotoIds.size === photos.length;
+
+  const toggleSelect = (id: string) => {
+    setSelectedPhotoIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const selectAll = () => setSelectedPhotoIds(new Set(photos.map(p => p.id)));
+  const clearSelection = () => setSelectedPhotoIds(new Set());
+
+  // Bulk operations on selected photos
+  const rotateSelected = (dir: 'cw' | 'ccw') => {
+    setPhotos(prev => prev.map(p => {
+      if (!selectedPhotoIds.has(p.id)) return p;
+      const delta = dir === 'cw' ? 90 : -90;
+      return { ...p, rotation: ((p.rotation || 0) + delta + 360) % 360 };
+    }));
+  };
+  const setOrientationSelected = (o: 'portrait' | 'landscape') => {
+    setPhotos(prev => prev.map(p => selectedPhotoIds.has(p.id) ? { ...p, orientation: o } : p));
+  };
+  const setBorderSelected = (b: boolean) => {
+    setPhotos(prev => prev.map(p => selectedPhotoIds.has(p.id) ? { ...p, border: b } : p));
+  };
+  const setQtySelected = (delta: number) => {
+    setPhotos(prev => prev.map(p => {
+      if (!selectedPhotoIds.has(p.id)) return p;
+      return { ...p, qty: Math.max(1, (p.qty || 1) + delta) };
+    }));
+  };
+  const setQtyExact = (qty: number) => {
+    setPhotos(prev => prev.map(p => selectedPhotoIds.has(p.id) ? { ...p, qty: Math.max(1, qty) } : p));
+  };
+  const duplicateSelected = () => {
+    const dupes = photos
+      .filter(p => selectedPhotoIds.has(p.id))
+      .map(p => ({ ...p, id: Math.random().toString(36).slice(7) + Date.now() }));
+    setPhotos(prev => [...prev, ...dupes]);
+    toast.success(`Продубльовано ${dupes.length} фото`);
+  };
+  const deleteSelected = () => {
+    const count = selectedPhotoIds.size;
+    setPhotos(prev => prev.filter(p => !selectedPhotoIds.has(p.id)));
+    clearSelection();
+    setActivePhotoIdx(0);
+    toast.success(`Видалено ${count} фото`);
+  }; // грн per photo with text
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -333,7 +389,7 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
       const preview = URL.createObjectURL(file);
       try {
         const img = await new Promise<HTMLImageElement>((res, rej) => { const im = new window.Image(); im.onload=()=>res(im); im.onerror=rej; im.src=preview; });
-        newPhotos.push({ id: Math.random().toString(36).slice(7), file, preview, width: img.width, height: img.height, cropX: 50, cropY: 50, zoom: 1 });
+        newPhotos.push({ id: Math.random().toString(36).slice(7), file, preview, width: img.width, height: img.height, cropX: 50, cropY: 50, zoom: 1, rotation: 0, orientation: img.width >= img.height ? 'landscape' : 'portrait', border: selectedBorder === 'with', qty: 1 });
       } catch { URL.revokeObjectURL(preview); }
     }
     setPhotos(prev => [...prev, ...newPhotos]);
@@ -381,7 +437,9 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
       const sel = sizeOptions.find(o => o.name === selectedSize);
       if (sel?.price !== undefined) unitPrice = sel.price;
     }
-    const basePrice = unitPrice * photos.length;
+    // Sum per-photo quantities
+    const totalQty = photos.reduce((sum, p) => sum + (p.qty || 1), 0);
+    const basePrice = unitPrice * totalQty;
     // Polaroid text surcharge: +5 грн per photo with text
     const textSurcharge = isPolaroid
       ? photos.filter(p => p.polaroidText && p.polaroidText.trim().length > 0).length * POLAROID_TEXT_PRICE
@@ -399,6 +457,7 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
       price: calculatePrice(), qty: 1,
       image: product.images?.[0] || '', slug: product.slug,
       options: { 'Кількість фото': photos.length.toString(), ...(selectedSize && {'Розмір': selectedSize}), ...(selectedFinish && {'Покриття': selectedFinish}), ...(!isNonstandard && !isPolaroid && {'Біла рамочка': selectedBorder === 'with' ? 'Так' : 'Ні'}) },
+      qty: photos.reduce((s,p)=>s+(p.qty||1),0), // total qty
       personalization_note: isPolaroid
         ? `${photos.length} фото. Написи: ${photos.filter(p=>p.polaroidText?.trim()).map((p,i)=>`фото ${photos.indexOf(p)+1}: "${p.polaroidText}"`).join(', ') || 'немає'}`
         : `${photos.length} фото для друку`
@@ -473,7 +532,15 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
               {photos.map((ph, idx) => (
                 <div key={ph.id} onClick={() => setActivePhotoIdx(idx)}
                   style={{ position:'relative', width:52, height:52, borderRadius:6, overflow:'hidden', border:idx===activePhotoIdx?'2px solid #1e2d7d':'2px solid transparent', cursor:'pointer', flexShrink:0 }}>
-                  <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover', transform:`rotate(${ph.rotation||0}deg)`, transition:'transform 0.2s' }} />
+                  {/* Selection checkbox */}
+                  <div
+                    onMouseDown={e => { e.stopPropagation(); toggleSelect(ph.id); }}
+                    style={{ position:'absolute', top:2, left:2, width:16, height:16, borderRadius:3, background: selectedPhotoIds.has(ph.id) ? '#e05a2b':'rgba(255,255,255,0.8)', border: selectedPhotoIds.has(ph.id) ? '2px solid #e05a2b':'2px solid rgba(0,0,0,0.2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#fff', fontWeight:900 }}>
+                    {selectedPhotoIds.has(ph.id) ? '✓' : ''}
+                  </div>
+                  {/* Qty badge */}
+                  {(ph.qty||1) > 1 && <div style={{ position:'absolute', bottom:1, right:1, background:'#1e2d7d', color:'#fff', fontSize:9, fontWeight:800, padding:'1px 4px', borderRadius:4 }}>×{ph.qty}</div>}
                   <button onClick={e=>{e.stopPropagation();removePhoto(ph.id);}} style={{ position:'absolute',top:1,right:1,width:16,height:16,borderRadius:'50%',background:'rgba(239,68,68,0.85)',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',opacity:0 }} className="thumb-del">×</button>
                 </div>
               ))}
@@ -486,6 +553,97 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
 
         {/* RIGHT: Options */}
         <div style={{ flex:1, minWidth:260 }}>
+          {/* ── Selection Panel ── */}
+          {photos.length > 0 && (
+            <div style={{ background:'#fff', borderRadius:12, border:'1px solid #e2e8f0', padding:16, marginBottom:12 }}>
+
+              {/* Select all row */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontWeight:700, fontSize:14, color:'#1e2d7d' }}>
+                  <input type="checkbox" checked={allSelected} onChange={e => e.target.checked ? selectAll() : clearSelection()}
+                    style={{ width:16, height:16, accentColor:'#e05a2b', cursor:'pointer' }}/>
+                  Вибрати всі
+                </label>
+                {selectedPhotoIds.size > 0 && (
+                  <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                    <span style={{ fontSize:12, color:'#64748b' }}>Вибрані фото: <b>{selectedPhotoIds.size}</b></span>
+                    <button onClick={clearSelection} style={{ fontSize:12, color:'#e05a2b', fontWeight:700, background:'none', border:'none', cursor:'pointer' }}>Очистити виділення</button>
+                    <button onClick={clearSelection} style={{ background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:16, lineHeight:1 }}>×</button>
+                  </div>
+                )}
+              </div>
+
+              {selectedPhotoIds.size > 0 && (
+                <>
+                  {/* Edit selected */}
+                  <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12, marginBottom:12 }}>
+                    <div style={{ fontWeight:700, fontSize:13, color:'#374151', marginBottom:10 }}>Редагувати вибрані фото</div>
+
+                    {/* Rotate + Orientation */}
+                    <div style={{ display:'flex', gap:16, marginBottom:12 }}>
+                      <div>
+                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Обернути</div>
+                        <div style={{ display:'flex', gap:4 }}>
+                          <button onClick={() => rotateSelected('ccw')} title="Проти годинникової" style={{ width:38, height:38, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>↺</button>
+                          <button onClick={() => rotateSelected('cw')} title="За годинниковою" style={{ width:38, height:38, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>↻</button>
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Орієнтація</div>
+                        <div style={{ display:'flex', gap:4 }}>
+                          <button onClick={() => setOrientationSelected('portrait')} title="Вертикальна"
+                            style={{ width:38, height:38, border: selectedPhotos.every(p=>p.orientation==='portrait') ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: selectedPhotos.every(p=>p.orientation==='portrait') ? '#f0f3ff':'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                            <div style={{ width:14, height:20, border:'2px solid currentColor', borderRadius:2, color: selectedPhotos.every(p=>p.orientation==='portrait') ? '#1e2d7d':'#374151' }}/>
+                          </button>
+                          <button onClick={() => setOrientationSelected('landscape')} title="Горизонтальна"
+                            style={{ width:38, height:38, border: selectedPhotos.every(p=>p.orientation==='landscape') ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: selectedPhotos.every(p=>p.orientation==='landscape') ? '#f0f3ff':'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                            <div style={{ width:20, height:14, border:'2px solid currentColor', borderRadius:2, color: selectedPhotos.every(p=>p.orientation==='landscape') ? '#1e2d7d':'#374151' }}/>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Border per photo */}
+                    {!isPolaroid && (
+                      <div style={{ marginBottom:12 }}>
+                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Кадрування</div>
+                        <select
+                          value={selectedPhotos.every(p=>p.border) ? 'with' : 'none'}
+                          onChange={e => setBorderSelected(e.target.value === 'with')}
+                          style={{ width:'100%', padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, background:'#fff', cursor:'pointer' }}>
+                          <option value="none">Без рамки</option>
+                          <option value="with">З рамкою 3мм</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Quantity per photo */}
+                    <div style={{ marginBottom:12 }}>
+                      <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Кількість</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:0, border:'1px solid #e2e8f0', borderRadius:8, overflow:'hidden', width:'fit-content' }}>
+                        <button onClick={() => setQtySelected(-1)} style={{ width:40, height:38, border:'none', background:'#f8fafc', cursor:'pointer', fontSize:18, color:'#374151', fontWeight:700 }}>−</button>
+                        <input
+                          type="number" min={1} max={999}
+                          value={selectedPhotos.length === 1 ? (selectedPhotos[0].qty || 1) : ''}
+                          placeholder={selectedPhotos.length > 1 ? '—' : '1'}
+                          onChange={e => setQtyExact(parseInt(e.target.value) || 1)}
+                          style={{ width:60, height:38, border:'none', borderLeft:'1px solid #e2e8f0', borderRight:'1px solid #e2e8f0', textAlign:'center', fontSize:14, fontWeight:700, color:'#1e2d7d', outline:'none', MozAppearance:'textfield' }}
+                        />
+                        <button onClick={() => setQtySelected(1)} style={{ width:40, height:38, border:'none', background:'#f8fafc', cursor:'pointer', fontSize:18, color:'#374151', fontWeight:700 }}>+</button>
+                      </div>
+                    </div>
+
+                    {/* Duplicate + Delete */}
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button onClick={duplicateSelected} style={{ flex:1, padding:'9px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#374151' }}>Дублювати</button>
+                      <button onClick={deleteSelected} style={{ flex:1, padding:'9px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', fontWeight:700, fontSize:13, color:'#ef4444' }}>Видалити</button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           <div style={{ background:'#fff', borderRadius:12, border:'1px solid #e2e8f0', padding:20, marginBottom:16 }}>
             <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:16 }}>Налаштування</h3>
 
@@ -553,7 +711,9 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
             <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:14 }}>
               {selectedSize && photos.length > 0 && (
                 <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                  <span style={{ fontSize:13, color:'#64748b' }}>{photos.length} фото × {(() => { const s = sizeOptions.find(o=>o.name===selectedSize); return s?.price ?? product.price ?? 0; })()} ₴</span>
+                  <span style={{ fontSize:13, color:'#64748b' }}>
+                    {photos.reduce((s,p)=>s+(p.qty||1),0)} шт × {(() => { const s = sizeOptions.find(o=>o.name===selectedSize); return s?.price ?? product.price ?? 0; })()} ₴
+                  </span>
                 </div>
               )}
               {isPolaroid && photos.filter(p=>p.polaroidText?.trim()).length > 0 && (
