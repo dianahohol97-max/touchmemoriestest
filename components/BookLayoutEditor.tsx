@@ -744,7 +744,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             ['frames', <span key="fr" style={{fontSize:16,fontWeight:700}}>⬜</span>, 'Рамки'],
             ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:18}}>▣</span>, 'Обкладинка']]:[] as any),
           ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
-            <button key={id} onClick={() => setLeftTab(id as any)}
+            <button key={id} onClick={() => { setLeftTab(id as any); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); }}
               style={{ width: '100%', padding: '12px 4px', border: 'none', cursor: 'pointer', background: leftTab === id ? '#1e2d7d' : 'transparent', color: leftTab === id ? '#fff' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, marginBottom: 2, transition: 'background 0.15s' }}>
               {icon}
               <span style={{ fontSize: 10, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
@@ -838,6 +838,37 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {leftTab === 'cover' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
                 <div>
+                  {/* Photo picker for acrylic/photo insert */}
+                  {(coverState.decoType === 'acryl' || coverState.decoType === 'photovstavka') && (
+                    <div style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>
+                        Фото для вставки — перетягніть на рамку
+                      </div>
+                      {photos.length === 0 ? (
+                        <div style={{ fontSize:10, color:'#94a3b8', padding:'8px', background:'#f8fafc', borderRadius:6, textAlign:'center' }}>
+                          Спочатку завантажте фото у вкладці Зображення
+                        </div>
+                      ) : (
+                        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
+                          {photos.slice(0,9).map(ph => (
+                            <div key={ph.id}
+                              draggable
+                              onDragStart={e => { e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }}
+                              style={{ aspectRatio:'1', borderRadius:4, overflow:'hidden', cursor:'grab', border: coverState.photoId===ph.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0' }}>
+                              <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {coverState.photoId && (
+                        <button onClick={() => setCoverState(prev=>({...prev, photoId:null}))}
+                          style={{ marginTop:4, width:'100%', padding:'4px', fontSize:10, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:4, cursor:'pointer' }}>
+                          × Видалити фото з вставки
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* Cover color picker */}
                   {config?.selectedCoverType && config.selectedCoverType !== 'Друкована' && (() => {
                     const mat = config.selectedCoverType?.toLowerCase() || '';
@@ -1273,7 +1304,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   return (
                     <div key={side}
                       onMouseDown={() => setActiveSide(side as 0|1)}
-                      style={{ width: pageW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
+                      style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
                       onClick={(e) => { setActiveSide(side as 0|1); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
                     >
                       {pageDefs.map(({ i, s }) => {
@@ -1286,7 +1317,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
                             onDrop={e => onDrop(e, pageIdx, i)}
-                            style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f0f4ff'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1.5px dashed #a5b4fc'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
+                            style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : 'rgba(99,102,241,0.06)'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '2px dashed #818cf8'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
                           >
                             {photo ? (
                               <>
@@ -1310,9 +1341,9 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                                 <style>{`.del-btn{opacity:0!important}div:hover>.del-btn{opacity:1!important}`}</style>
                               </>
                             ) : (
-                              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:'#cbd5e1',gap:6,border:'1px dashed #e2e8f0',borderRadius:4}}>
-                                <ImageIcon size={20} color="#cbd5e1"/>
-                                <span style={{fontSize:9,fontWeight:600,color:'#cbd5e1'}}>Перетягніть фото</span>
+                              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:'#818cf8',gap:6,pointerEvents:'none'}}>
+                                <ImageIcon size={Math.min(24, Math.max(12, (s.width as number||100)*0.15))} color="#818cf8"/>
+                                <span style={{fontSize:8,fontWeight:700,color:'#818cf8',textAlign:'center',letterSpacing:'0.05em'}}>ФОТО</span>
                               </div>
                             )}
                           </div>
