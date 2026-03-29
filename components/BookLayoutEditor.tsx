@@ -270,7 +270,7 @@ export default function BookLayoutEditor() {
     : null;
   const [coverColorOverride, setCoverColorOverride] = useState<string|null>(null);
   const effectiveCoverColor = coverColorOverride ?? (config?.selectedCoverColor || '');
-  const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;x:number;y:number;w:number|string;h:number|string}[]>>({});
+  const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;emoji?:string;x:number;y:number;w:number|string;h:number|string}[]>>({});
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -1248,31 +1248,35 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   style={{ padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none' }}/>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
                   {[
-                    {name:'Серце', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/2764.svg'},
-                    {name:'Зірка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/2b50.svg'},
-                    {name:'Сонце', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/2600.svg'},
-                    {name:'Квітка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f338.svg'},
-                    {name:'Корона', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f451.svg'},
-                    {name:'Метелик', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f98b.svg'},
-                    {name:'Місяць', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f319.svg'},
-                    {name:'Хмара', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/2601.svg'},
-                    {name:'Діамант', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f48e.svg'},
-                    {name:'Веселка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f308.svg'},
-                    {name:'Полум\'я', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f525.svg'},
-                    {name:'Блискавка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/26a1.svg'},
+                    {name:'Серце', emoji:'❤️', url:''},
+                    {name:'Зірка', emoji:'⭐', url:''},
+                    {name:'Сонце', emoji:'☀️', url:''},
+                    {name:'Квітка', emoji:'🌸', url:''},
+                    {name:'Корона', emoji:'👑', url:''},
+                    {name:'Метелик', emoji:'🦋', url:''},
+                    {name:'Місяць', emoji:'🌙', url:''},
+                    {name:'Хмара', emoji:'☁️', url:''},
+                    {name:'Діамант', emoji:'💎', url:''},
+                    {name:'Веселка', emoji:'🌈', url:''},
+                    {name:"Полум'я", emoji:'🔥', url:''},
+                    {name:'Блискавка', emoji:'⚡', url:''},
+                    {name:'Зірочки', emoji:'✨', url:''},
+                    {name:'Бант', emoji:'🎀', url:''},
+                    {name:'Кулька', emoji:'🎈', url:''},
+                    {name:'Сніжинка', emoji:'❄️', url:''},
                   ].map(sticker => (
                     <button key={sticker.name}
                       onClick={() => {
                         const spi = getActivePageIdx();
-                        const newS = { id:'stk-'+Date.now(), url:sticker.url, x:30, y:30, w:'60px', h:'60px' };
+                        const newS = { id:'stk-'+Date.now(), url:sticker.url, emoji:(sticker as any).emoji||'', x:30, y:30, w:'60px', h:'60px' };
                         setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
                       }}
-                        style={{ padding:6, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}
-                        title={sticker.name}>
-                        <img src={sticker.url} style={{ width:32, height:32, objectFit:'contain' }} alt={sticker.name}/>
-                        <span style={{ fontSize:9, color:'#64748b', textAlign:'center' }}>{sticker.name}</span>
-                      </button>
-                    ))}
+                      style={{ padding:6, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}
+                      title={sticker.name}>
+                      <span style={{ fontSize:28, lineHeight:1 }}>{(sticker as any).emoji || '★'}</span>
+                      <span style={{ fontSize:9, color:'#64748b', textAlign:'center' }}>{sticker.name}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -1662,7 +1666,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             const onUp=()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);};
                             window.addEventListener('mousemove',onMove);window.addEventListener('mouseup',onUp);
                           }}>
-                          <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>
+                          {stk.emoji ? <span style={{ fontSize:Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
                           <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(s=>s.id!==stk.id)}));}}
                             style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
                         </div>
