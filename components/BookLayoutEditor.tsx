@@ -258,6 +258,20 @@ export default function BookLayoutEditor() {
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
   const [pageShapes, setPageShapes] = useState<Record<number, Shape[]>>({});
   const [pageFrames, setPageFrames] = useState<Record<number, FrameConfig>>({});
+
+  // Undo history
+  type HistoryEntry = { pages: Page[]; freeSlots: Record<number, FreeSlot[]> };
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const pushHistory = () => {
+    setHistory(prev => [...prev.slice(-19), { pages: JSON.parse(JSON.stringify(pages)), freeSlots: JSON.parse(JSON.stringify(freeSlots)) }]);
+  };
+  const undo = () => {
+    if (history.length === 0) return;
+    const prev = history[history.length - 1];
+    setPages(prev.pages);
+    setFreeSlots(prev.freeSlots);
+    setHistory(h => h.slice(0, -1));
+  };
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [textTool, setTextTool] = useState(false);
@@ -289,6 +303,18 @@ export default function BookLayoutEditor() {
   const cropRef = useRef<{ key: string; sx: number; sy: number; cx: number; cy: number } | null>(null);
   const txtRef = useRef<{ id: string; sx: number; sy: number; tx: number; ty: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Ctrl+Z undo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [history]);
 
   useEffect(() => {
     const fams = ['Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin+Sans',
@@ -478,6 +504,7 @@ export default function BookLayoutEditor() {
     const def = LAYOUTS.find(l => l.id === layout);
     if (!def) return;
     const targetIdx = forceIdx !== undefined ? forceIdx : getActivePageIdx();
+    pushHistory(); // save state before change
 
     const page = pages[targetIdx];
     const oldPhotos = page ? page.slots.map(s2 => s2.photoId).filter(Boolean) as string[] : [];
@@ -498,7 +525,7 @@ export default function BookLayoutEditor() {
       setPages(prev => prev.map((p, i) =>
         i !== targetIdx ? p : { ...p, layout: 'p-text', slots: [] }
       ));
-      setFreeSlots(prev => ({ ...prev, [targetIdx]: [...(prev[targetIdx] || []), ...newFreeSlots] }));
+      setFreeSlots(prev => ({ ...prev, [targetIdx]: newFreeSlots }));
       setSelectedFreeSlotId(newFreeSlots[0]?.id ?? null);
     } else {
       // Text-only layout — no slots
@@ -733,6 +760,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={autoFill} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#1e2d7d' }}><Wand2 size={14} /> Авто</button>
+          <button onClick={undo} disabled={history.length === 0} title="Скасувати (Ctrl+Z)" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: history.length === 0 ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, color: history.length === 0 ? '#cbd5e1' : '#1e2d7d', opacity: history.length === 0 ? 0.5 : 1 }}><RotateCcw size={14} /> Undo</button>
           <button onClick={() => setZoom(z => Math.max(30, z - 10))} style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer' }}><ZoomOut size={14} /></button>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', minWidth: 36, textAlign: 'center' }}>{zoom}%</span>
           <button onClick={() => setZoom(z => Math.min(130, z + 10))} style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer' }}><ZoomIn size={14} /></button>
@@ -1910,6 +1938,11 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
           photos={photos}
           propW={prop.w}
           propH={prop.h}
+          freeSlots={freeSlots}
+          coverState={coverState}
+          isPrinted={isPrinted}
+          selectedCoverType={config?.selectedCoverType || ''}
+          effectiveCoverColor={effectiveCoverColor}
           onClose={() => setShowPreview(false)}
         />
       )}
