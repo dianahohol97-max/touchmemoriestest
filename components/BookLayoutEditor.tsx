@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
+import { BookPreviewModal } from './BookPreviewModal';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
 import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from './BackgroundLayer';
 import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
@@ -213,6 +214,12 @@ export default function BookLayoutEditor() {
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showTooltips, setShowTooltips] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !localStorage.getItem('editor_tooltips_seen');
+  });
+  const [tooltipStep, setTooltipStep] = useState(0);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [tFontSize, setTFontSize] = useState(28);
@@ -298,6 +305,26 @@ export default function BookLayoutEditor() {
       ...prev,
       [currentIdx]: typeof slots === 'function' ? slots(prev[currentIdx] || []) : slots,
     }));
+  };
+
+  // Add spread (2 pages)
+  const addSpread = () => {
+    const newId1 = pages.length;
+    const newId2 = pages.length + 1;
+    setPages(prev => [
+      ...prev,
+      { id: newId1, label: `Стор. ${newId1}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] },
+      { id: newId2, label: `Стор. ${newId2}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] },
+    ]);
+    // Navigate to new spread
+    const newSpreadIdx = Math.ceil(pages.length / 2);
+    setCurrentIdx(newSpreadIdx);
+  };
+
+  const removeLastSpread = () => {
+    if (pages.length <= 3) { toast.error('Мінімум 1 розворот'); return; }
+    setPages(prev => prev.slice(0, -2));
+    setCurrentIdx(prev => Math.min(prev, Math.ceil((pages.length - 3) / 2)));
   };
 
   const getCurBg = (idx: number): PageBackground => pageBgs[idx] || DEFAULT_BG;
@@ -423,10 +450,17 @@ export default function BookLayoutEditor() {
 
   const addToCart = () => {
     if (!config) return;
-    addItem({ id: `pb-${Date.now()}`, name: config.productName || 'Фотокнига', price: config.totalPrice, qty: 1, image: getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '', options: { 'Розмір': config.selectedSize || '', 'Сторінок': config.selectedPageCount }, personalization_note: `${pages.length} сторінок` });
+    addItem({ id: `pb-${Date.now()}`, name: config.productName || 'Фотокнига', price: dynamicPrice, qty: 1, image: getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '', options: { 'Розмір': config.selectedSize || '', 'Сторінок': config.selectedPageCount }, personalization_note: `${pages.length} сторінок` });
     toast.success('Додано до кошика!');
     router.push('/cart');
   };
+
+  // Dynamic price calculation based on current page count
+  const currentPageCount = Math.max(0, pages.length - 1); // exclude cover
+  const basePageCount = parseInt(config.selectedPageCount?.match(/\d+/)?.[0] || '20');
+  const extraPages = Math.max(0, currentPageCount - basePageCount);
+  const pricePerPage = 50; // ₴ per 2 pages (1 spread)
+  const dynamicPrice = config.totalPrice + Math.round(extraPages / 2) * pricePerPage;
 
   if (!config || pages.length === 0) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
 
@@ -923,6 +957,112 @@ export default function BookLayoutEditor() {
         </div>
 
       </div>
+
+      {/* Tooltips onboarding */}
+      {showTooltips && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:500, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:420, boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }}>
+            {tooltipStep === 0 && (
+              <>
+                <div style={{ fontSize:24, marginBottom:12 }}>👋</div>
+                <h3 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:8 }}>Ласкаво просимо до редактора!</h3>
+                <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:20 }}>
+                  Тут ви можете створити свою унікальну фотокнигу. Давайте розберемось як це працює.
+                </p>
+                <button onClick={() => setTooltipStep(1)} style={{ width:'100%', padding:'12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
+                  Почати →
+                </button>
+              </>
+            )}
+            {tooltipStep === 1 && (
+              <>
+                <div style={{ fontSize:24, marginBottom:12 }}>🖼</div>
+                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Зображення</h3>
+                <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
+                  В панелі <b>Зображення</b> завантажте фото та перетягніть їх на слоти сторінки.
+                </p>
+                <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
+                  Натисніть <b>Авто</b> — редактор розставить всі фото автоматично.
+                </p>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={() => setTooltipStep(0)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
+                  <button onClick={() => setTooltipStep(2)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
+                </div>
+              </>
+            )}
+            {tooltipStep === 2 && (
+              <>
+                <div style={{ fontSize:24, marginBottom:12 }}>📐</div>
+                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Шаблони та активна сторінка</h3>
+                <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
+                  <b>Клікніть на ліву або праву сторінку</b> розвороту щоб зробити її активною.
+                </p>
+                <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
+                  Потім оберіть шаблон у лівій панелі — він застосується до активної сторінки.
+                </p>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={() => setTooltipStep(1)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
+                  <button onClick={() => setTooltipStep(3)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
+                </div>
+              </>
+            )}
+            {tooltipStep === 3 && (
+              <>
+                <div style={{ fontSize:24, marginBottom:12 }}>✏️</div>
+                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Текст, фон та фігури</h3>
+                <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
+                  В панелі <b>Текст</b> — натисніть «Додати текст», потім клікніть на сторінку.
+                </p>
+                <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
+                  <b>Фон</b> — колір або фото для кожної сторінки окремо.<br/>
+                  <b>Фігури</b> — геометричні елементи на сторінці.<br/>
+                  <b>Рамки</b> — декоративні рамки поверх сторінки.
+                </p>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={() => setTooltipStep(2)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
+                  <button onClick={() => setTooltipStep(4)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
+                </div>
+              </>
+            )}
+            {tooltipStep === 4 && (
+              <>
+                <div style={{ fontSize:24, marginBottom:12 }}>👁️</div>
+                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Превью та замовлення</h3>
+                <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
+                  Натисніть <b>Превью</b> щоб переглянути фотокнигу з перегортанням сторінок.
+                </p>
+                <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
+                  Хочете більше сторінок? Натисніть <b>+ Розворот</b> в правій панелі. Ціна оновлюється автоматично.
+                </p>
+                <button onClick={() => {
+                  setShowTooltips(false);
+                  localStorage.setItem('editor_tooltips_seen', '1');
+                }} style={{ width:'100%', padding:'12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
+                  Зрозуміло, почнемо! 🚀
+                </button>
+                <button onClick={() => {
+                  setShowTooltips(false);
+                  localStorage.setItem('editor_tooltips_seen', '1');
+                }} style={{ width:'100%', padding:'8px', background:'none', border:'none', cursor:'pointer', fontSize:12, color:'#94a3b8', marginTop:8 }}>
+                  Більше не показувати
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <BookPreviewModal
+          pages={pages}
+          photos={photos}
+          propW={prop.w}
+          propH={prop.h}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
+
     </div>
   );
 }
