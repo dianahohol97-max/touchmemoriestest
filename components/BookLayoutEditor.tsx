@@ -781,7 +781,14 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         <div style={{ display:'flex', flexDirection:'column', gap:4, marginTop:6 }}>
                           {allDecoOpts.map(id => (
                             <button key={id}
-                              onClick={() => { setCoverState(prev => ({ ...prev, decoType: id as CoverDecoType, decoVariant: '' })); setShowDecoList(false); }}
+                              onClick={() => {
+                                const firstVariant = id==='acryl' ? (ACRYLIC_VARIANTS[(config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim()]||['100×100 мм'])[0]
+                                  : id==='photovstavka' ? (PHOTO_INSERT_VARIANTS[(config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim()]||['100×100 мм'])[0]
+                                  : id==='metal' ? (METAL_VARIANTS[(config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim()]||['60×60 золотий'])[0]
+                                  : '';
+                                setCoverState(prev => ({ ...prev, decoType: id as CoverDecoType, decoVariant: firstVariant }));
+                                setShowDecoList(false);
+                              }}
                               style={{ padding:'8px 12px', border: coverState.decoType===id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:8, background: coverState.decoType===id ? '#f0f3ff' : '#fff', cursor:'pointer', fontWeight:600, fontSize:12, color: coverState.decoType===id ? '#1e2d7d' : '#374151', textAlign:'left' }}>
                               {decoLabels[id]}
                             </button>
@@ -809,8 +816,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір металу</div>
                     <div style={{ display:'flex', gap:6 }}>
-                      {([['gold','linear-gradient(135deg,#B8860B,#FFD700)','Gold'],['silver','linear-gradient(135deg,#808080,#E8E8E8)','Silver'],['black','linear-gradient(135deg,#1A1A1A,#444)','Black']] as [string,string,string][]).map(([v,grad,c]) => (
-                        <div key={v} onClick={() => setCoverState(s => ({...s, decoVariant: v}))}
+                      {([['gold','linear-gradient(135deg,#B8860B,#FFD700)','Золотий'],['silver','linear-gradient(135deg,#808080,#E8E8E8)','Срібний']] as [string,string,string][]).map(([v,grad,c]) => (
+                        <div key={v} onClick={() => setCoverState(s => ({...s, decoColor: v}))}
                           style={{ width:28, height:28, borderRadius:'50%', background:grad, border: coverState.decoVariant===v ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor:'pointer' }}
                           title={c} />
                       ))}
