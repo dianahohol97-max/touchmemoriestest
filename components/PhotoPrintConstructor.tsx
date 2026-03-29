@@ -454,7 +454,7 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
     addItem({
       id: `${product.id}_${Date.now()}`,
       product_id: product.id, name: product.name,
-      price: calculatePrice(), qty: 1,
+      price: calculatePrice(),
       image: product.images?.[0] || '', slug: product.slug,
       options: { 'Кількість фото': photos.length.toString(), ...(selectedSize && {'Розмір': selectedSize}), ...(selectedFinish && {'Покриття': selectedFinish}), ...(!isNonstandard && !isPolaroid && {'Біла рамочка': selectedBorder === 'with' ? 'Так' : 'Ні'}) },
       qty: photos.reduce((s,p)=>s+(p.qty||1),0), // total qty
