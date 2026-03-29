@@ -1323,6 +1323,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     <div key={side} style={{ width: pageW, height: cH, background: '#f8fafc', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? '-4px 0 16px rgba(0,0,0,0.1)' : '4px 0 16px rgba(0,0,0,0.1)' }} />
                   );
                   const pageDefs = getSlotDefs(page.layout, pageW, cH);
+                  if (side === 0) console.log('[SLOTS]', { layout: page.layout, pageW: Math.round(pageW), cH: Math.round(cH), defsCount: pageDefs.length, firstDef: pageDefs[0]?.s });
                   const pageKey = (si: number) => `${pageIdx}-${si}`;
                   return (
                     <div key={pageRenderKey}
@@ -1330,6 +1331,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
                       onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
                     >
+                      {/* Background layer — MUST be first so it's below slots */}
+                      <BackgroundLayer bg={getCurBg(pageIdx)} canvasW={pageW} canvasH={cH}/>
                       {pageDefs.map(({ i, s }) => {
                         const slot = page?.slots[i];
                         const photo = slot ? getPhoto(slot.photoId) : null;
@@ -1340,7 +1343,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
                             onDrop={e => onDrop(e, pageIdx, i)}
-                            style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : 'rgba(99,102,241,0.06)'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '2px dashed #818cf8'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
+                            style={{ ...s, zIndex: 1, background: photo ? 'transparent' : (isOver ? '#dbeafe' : 'rgba(99,102,241,0.15)'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '2px dashed #818cf8'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default', boxSizing: 'border-box' }}
                           >
                             {photo ? (
                               <>
@@ -1410,8 +1413,6 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         selectedId={selectedFreeSlotId}
                         onSelect={setSelectedFreeSlotId}
                       />
-                      {/* Background layer */}
-                      <BackgroundLayer bg={getCurBg(pageIdx)} canvasW={pageW} canvasH={cH}/>
                       {/* Shapes layer */}
                       <ShapesLayer
                         shapes={getCurShapes(pageIdx)}
