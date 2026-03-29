@@ -13,9 +13,9 @@ import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
-interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; }
+interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; }
 
-type CoverDecoType = 'none'|'acrylic'|'photo_insert'|'flex'|'metal'|'engraving'|'graviruvannya'|'acryl'|'photovstavka';
+type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
 interface CoverState {
   decoType: CoverDecoType;
   decoVariant: string;
@@ -294,13 +294,13 @@ export default function BookLayoutEditor() {
   // Init cover state from config
   useEffect(() => {
     if (!config) return;
-    const deco = config.selectedDecoration?.toLowerCase() || '';
+    const deco = (config.selectedDecorationType || config.selectedDecoration || '').toLowerCase();
     let decoType: CoverDecoType = 'none';
-    if (deco.includes('акрил')) decoType = 'acrylic';
-    else if (deco.includes('фотовставка') || deco.includes('photo')) decoType = 'photo_insert';
+    if (deco.includes('акрил') || deco.includes('acrylic') || deco.includes('acryl')) decoType = 'acryl';
+    else if (deco.includes('фотовставка') || deco.includes('photo_insert') || deco.includes('photo insert')) decoType = 'photovstavka';
     else if (deco.includes('флекс') || deco.includes('flex')) decoType = 'flex';
-    else if (deco.includes('метал')) decoType = 'metal';
-    else if (deco.includes('гравір')) decoType = 'engraving';
+    else if (deco.includes('метал') || deco.includes('metal')) decoType = 'metal';
+    else if (deco.includes('гравір') || deco.includes('engraving') || deco.includes('graviruvannya')) decoType = 'graviruvannya';
     const dc = config.selectedDecorationColor?.toLowerCase() || '';
     setCoverState(prev => ({ ...prev, decoType }));
   }, [config]);
