@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor, FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS } from './CoverEditor';
@@ -13,7 +13,7 @@ import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
-interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; }
+interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; }
 
 type CoverDecoType = 'none'|'acrylic'|'photo_insert'|'flex'|'metal'|'engraving';
 interface CoverState {
@@ -653,6 +653,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             ['bg', <span key="bg" style={{fontSize:18}}>🎨</span>, 'Фон'],
             ['shapes', <span key="sh" style={{fontSize:18}}>◻</span>, 'Фігури'],
             ['frames', <span key="fr" style={{fontSize:18}}>⬜</span>, 'Рамки'],
+            ['options', <Settings key="opt" size={20}/>, 'Опції'],
             ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:18}}>📖</span>, 'Обкладинка']]:[] as any),
           ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
             <button key={id} onClick={() => setLeftTab(id as any)}
@@ -862,6 +863,103 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   setPageFrames(prev=>({...prev,[idx]:frame}));
                 }}
               />
+            )}
+
+            {/* OPTIONS PANEL */}
+            {leftTab === 'options' && (
+              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+                {/* Book size */}
+                <div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Розмір книги</div>
+                  <div style={{ padding:'10px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff', fontSize:13, fontWeight:700, color:'#1e2d7d' }}>
+                    {config.selectedSize || '20×20 см'}
+                  </div>
+                  <p style={{ fontSize:10, color:'#94a3b8', marginTop:4 }}>Розмір обрано при замовленні</p>
+                </div>
+
+                {/* Cover type */}
+                <div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип обкладинки</div>
+                  <div style={{ padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:13, fontWeight:600, color:'#374151' }}>
+                    {config.selectedCoverType || 'Велюр'}
+                    {config.selectedCoverColor ? <span style={{ color:'#94a3b8', marginLeft:6, fontWeight:400 }}>· {config.selectedCoverColor}</span> : null}
+                  </div>
+                </div>
+
+                {/* Pages count */}
+                <div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Кількість сторінок</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ flex:1, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:14, fontWeight:700, color:'#1e2d7d', textAlign:'center' }}>
+                      {pages.length - 1}
+                    </div>
+                    <button onClick={addSpread}
+                      style={{ padding:'9px 12px', border:'1px solid #d1fae5', borderRadius:8, background:'#f0fdf4', cursor:'pointer', fontWeight:700, fontSize:12, color:'#059669' }}>
+                      + 2
+                    </button>
+                    <button onClick={removeLastSpread}
+                      style={{ padding:'9px 12px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', fontWeight:700, fontSize:12, color:'#ef4444' }}>
+                      − 2
+                    </button>
+                  </div>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
+                    <span style={{ fontSize:11, color:'#94a3b8' }}>Ціна:</span>
+                    <span style={{ fontSize:13, fontWeight:800, color:'#1e2d7d' }}>{dynamicPrice} ₴</span>
+                  </div>
+                </div>
+
+                {/* Lamination / paper type */}
+                <div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип ламінації</div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    {['Глянцева', 'Матова'].map(lam => (
+                      <button key={lam}
+                        onClick={() => {/* lamination stored in config — read only for now */}}
+                        style={{ flex:1, padding:'8px', border: (config.selectedLamination||'Глянцева')===lam ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:(config.selectedLamination||'Глянцева')===lam?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:(config.selectedLamination||'Глянцева')===lam?'#1e2d7d':'#374151' }}>
+                        {lam}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Cover templates */}
+                <div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Дизайн обкладинки</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                    {[
+                      { id:'blank', label:'Чистий аркуш', bg:'#f1f5f9', isBlank:true },
+                      { id:'minimal', label:'Мінімалістичний', bg:'linear-gradient(135deg,#f8f9fa,#e9ecef)', isBlank:false },
+                      { id:'full-photo', label:'Велике фото', bg:'linear-gradient(135deg,#1e2d7d,#3b5bdb)', isBlank:false },
+                      { id:'elegant', label:'Елегантний', bg:'linear-gradient(135deg,#2d3748,#4a5568)', isBlank:false },
+                    ].map(tpl => (
+                      <button key={tpl.id}
+                        onClick={() => {/* apply cover template */}}
+                        style={{ padding:'0', border:'2px solid #e2e8f0', borderRadius:8, overflow:'hidden', cursor:'pointer', background:'none', textAlign:'center' }}>
+                        <div style={{ height:60, background:tpl.bg, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          {tpl.isBlank && <span style={{ fontSize:10, color:'#94a3b8' }}>порожня</span>}
+                        </div>
+                        <div style={{ padding:'5px 4px', fontSize:10, fontWeight:600, color:'#374151', background:'#fff' }}>{tpl.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{ fontSize:10, color:'#94a3b8', marginTop:6 }}>Більше шаблонів обкладинок — незабаром</p>
+                </div>
+
+                {/* Kalka option */}
+                {(config.selectedCoverType?.toLowerCase().includes('велюр') || config.selectedCoverType?.toLowerCase().includes('шкір') || config.selectedCoverType?.toLowerCase().includes('тканин')) && (
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Калька перед 1-ю стор.</div>
+                    <div style={{ display:'flex', gap:6 }}>
+                      {['Без кальки', 'З калькою +280₴'].map(k => (
+                        <button key={k}
+                          style={{ flex:1, padding:'8px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontWeight:600, fontSize:11, color:'#374151' }}>
+                          {k}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* TEXT */}
