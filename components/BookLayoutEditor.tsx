@@ -241,6 +241,7 @@ export default function BookLayoutEditor() {
   const [textTool, setTextTool] = useState(false);
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const [crossPageDragShapeId, setCrossPageDragShapeId] = useState<string|null>(null);
   const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;x:number;y:number;w:number;h:number}[]>>({});
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
@@ -911,7 +912,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                   </div>
                 )}
-                {coverState.decoType !== 'none' && (
+                {(coverState.decoType === 'flex' || coverState.decoType === 'graviruvannya') && (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Написи на обкладинці</div>
                   <button onClick={() => setCoverState(prev=>({...prev, extraTexts:[...(prev.extraTexts||[]), {id:'et-'+Date.now(), text:'Ваш напис', x:50, y:75, fontFamily:prev.textFontFamily||'Marck Script', fontSize:20, color:'#ffffff'}]}))}
@@ -1303,6 +1304,32 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         onChange={newShapes => setPageShapes(prev=>({...prev,[pageIdx]:newShapes}))}
                         selectedId={selectedShapeId}
                         onSelectId={id => { setSelectedShapeId(id); if (id) setLeftTab('shapes'); }}
+                        onMoveToOtherPage={shape => setCrossPageDragShapeId(shape.id)}
+                      />
+                      {/* Cross-page drop target overlay */}
+                      <div style={{ position:'absolute', inset:0, zIndex:50, pointerEvents: crossPageDragShapeId ? 'auto' : 'none', opacity: crossPageDragShapeId ? 1 : 0 }}
+                        onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                        onDrop={e => {
+                          const shapeId = e.dataTransfer.getData('shape-id');
+                          if (!shapeId) return;
+                          // Find shape across all pages
+                          let sourcePageIdx = -1, movedShape: any = null;
+                          Object.entries(pageShapes).forEach(([pi, shapes]) => {
+                            const found = (shapes as any[]).find((s: any) => s.id === shapeId);
+                            if (found) { sourcePageIdx = Number(pi); movedShape = found; }
+                          });
+                          if (movedShape && sourcePageIdx !== -1 && sourcePageIdx !== pageIdx) {
+                            // Remove from source page, add to target page
+                            setPageShapes(prev => ({
+                              ...prev,
+                              [sourcePageIdx]: (prev[sourcePageIdx]||[]).filter((s:any) => s.id !== shapeId),
+                              [pageIdx]: [...(prev[pageIdx]||[]), { ...movedShape, x: pageW/2 - movedShape.w/2, y: cH/2 - movedShape.h/2 }]
+                            }));
+                            setSelectedShapeId(shapeId);
+                          }
+                          setCrossPageDragShapeId(null);
+                        }}
+                        onDragLeave={() => setCrossPageDragShapeId(null)}
                       />
                       {/* Frame layer */}
                       <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
