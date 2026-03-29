@@ -404,7 +404,7 @@ export default function BookLayoutEditor() {
       const oldPhotos = p.slots.map(s2 => s2.photoId).filter(Boolean) as string[];
       const newSlots: SlotData[] = Array.from({ length: def.slots }, (_, si) => ({
         photoId: oldPhotos[si] ?? null,
-        cropX: 0, cropY: 0, zoom: 1,
+        cropX: 50, cropY: 50, zoom: 1,
       }));
       return { ...p, layout, slots: newSlots };
     }));
@@ -1297,13 +1297,15 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 {[0, 1].map(side => {
                   const pageIdx = currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + side;
                   const page = pages[pageIdx];
+                  // Force key to include layout so React re-renders when layout changes
+                  const pageRenderKey = `${side}-${page?.layout || 'empty'}-${page?.slots?.length || 0}`;
                   if (!page) return (
                     <div key={side} style={{ width: pageW, height: cH, background: '#f8fafc', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? '-4px 0 16px rgba(0,0,0,0.1)' : '4px 0 16px rgba(0,0,0,0.1)' }} />
                   );
                   const pageDefs = getSlotDefs(page.layout, pageW, cH);
                   const pageKey = (si: number) => `${pageIdx}-${si}`;
                   return (
-                    <div key={side}
+                    <div key={pageRenderKey}
                       onMouseDown={() => setActiveSide(side as 0|1)}
                       style={{ width: pageW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
                       onClick={(e) => { setActiveSide(side as 0|1); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
