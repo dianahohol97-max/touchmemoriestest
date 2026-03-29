@@ -15,7 +15,7 @@ import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesL
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
 interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; }
 
-type CoverDecoType = 'none'|'acrylic'|'photo_insert'|'flex'|'metal'|'engraving';
+type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
 interface CoverState {
   decoType: CoverDecoType;
   decoVariant: string;
@@ -299,7 +299,7 @@ export default function BookLayoutEditor() {
     else if (deco.includes('фотовставка') || deco.includes('photo')) decoType = 'photo_insert';
     else if (deco.includes('флекс') || deco.includes('flex')) decoType = 'flex';
     else if (deco.includes('метал')) decoType = 'metal';
-    else if (deco.includes('гравір')) decoType = 'engraving';
+    else if (deco.includes('гравір')) decoType = 'graviruvannya';
     const dc = config.selectedDecorationColor?.toLowerCase() || '';
     setCoverState(prev => ({ ...prev, decoType }));
   }, [config]);
