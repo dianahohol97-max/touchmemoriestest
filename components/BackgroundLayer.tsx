@@ -30,8 +30,7 @@ interface BgLayerProps {
 export function BackgroundLayer({ bg, canvasW, canvasH }: BgLayerProps) {
   return (
     <div style={{ position:'absolute', inset:0, zIndex:0, overflow:'hidden', borderRadius:'inherit' }}>
-      {/* Base white — always white underneath for transparency effect */}
-      <div style={{ position:'absolute', inset:0, background: '#fff' }} />
+      <div style={{ position:'absolute', inset:0, background:'#fff' }} />
       {/* Image layer */}
       {bg.type==='image' && bg.imageUrl && (
         <img
@@ -46,7 +45,6 @@ export function BackgroundLayer({ bg, canvasW, canvasH }: BgLayerProps) {
         />
       )}
       {/* Color with opacity */}
-      {/* Color opacity overlay — always apply opacity */}
       {bg.type==='color' && (
         <div style={{ position:'absolute', inset:0, background: bg.color, opacity: bg.opacity/100 }} />
       )}
