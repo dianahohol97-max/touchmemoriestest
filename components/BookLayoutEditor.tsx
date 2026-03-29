@@ -478,18 +478,34 @@ export default function BookLayoutEditor() {
     const def = LAYOUTS.find(l => l.id === layout);
     if (!def) return;
     const targetIdx = forceIdx !== undefined ? forceIdx : getActivePageIdx();
-    setPages(prev => {
-      const next = prev.map((p, i) => {
-        if (i !== targetIdx) return p;
-        const oldPhotos = p.slots.map(s2 => s2.photoId).filter(Boolean) as string[];
-        const newSlots: SlotData[] = Array.from({ length: def.slots }, (_, si) => ({
-          photoId: oldPhotos[si] ?? null,
-          cropX: 50, cropY: 50, zoom: 1,
-        }));
-        return { ...p, layout, slots: newSlots };
-      });
-      return next;
-    });
+
+    const page = pages[targetIdx];
+    const oldPhotos = page ? page.slots.map(s2 => s2.photoId).filter(Boolean) as string[] : [];
+
+    if (def.slots > 0) {
+      // Auto-convert to FreeSlots so user can drag/resize/reshape immediately
+      const defs = getSlotDefs(layout, pageW, cH);
+      const newFreeSlots: FreeSlot[] = defs.map((d, di) => ({
+        id: 'free-' + Date.now() + '-' + di,
+        x: Number(d.s.left) || 0,
+        y: Number(d.s.top) || 0,
+        w: Number(d.s.width) || pageW,
+        h: Number(d.s.height) || cH,
+        shape: 'rect' as const,
+        photoId: oldPhotos[di] ?? null,
+        cropX: 50, cropY: 50, zoom: 1,
+      }));
+      setPages(prev => prev.map((p, i) =>
+        i !== targetIdx ? p : { ...p, layout: 'p-text', slots: [] }
+      ));
+      setFreeSlots(prev => ({ ...prev, [targetIdx]: [...(prev[targetIdx] || []), ...newFreeSlots] }));
+      setSelectedFreeSlotId(newFreeSlots[0]?.id ?? null);
+    } else {
+      // Text-only layout — no slots
+      setPages(prev => prev.map((p, i) =>
+        i !== targetIdx ? p : { ...p, layout, slots: [] }
+      ));
+    }
   };
 
   const autoFill = () => {
@@ -846,31 +862,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   );
                 })}
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <button onClick={() => {
-                    const idx = getActivePageIdx();
-                    const page = pages[idx];
-                    if (!page) return;
-                    const defs = getSlotDefs(page.layout, pageW, cH);
-                    if (defs.length === 0) { return; }
-                    const newFreeSlots: FreeSlot[] = defs.map((def, di) => ({
-                      id: 'free-' + Date.now() + '-' + di,
-                      x: Number(def.s.left) || 0,
-                      y: Number(def.s.top) || 0,
-                      w: Number(def.s.width) || pageW,
-                      h: Number(def.s.height) || cH,
-                      shape: 'rect' as const,
-                      photoId: page.slots[di]?.photoId ?? null,
-                      cropX: page.slots[di]?.cropX ?? 50,
-                      cropY: page.slots[di]?.cropY ?? 50,
-                      zoom: page.slots[di]?.zoom ?? 1,
-                    }));
-                    setFreeSlots(prev => ({ ...prev, [idx]: [...(prev[idx] || []), ...newFreeSlots] }));
-                    setPages(prev => prev.map((p, i) => i !== idx ? p : { ...p, layout: 'p-text', slots: [] }));
-                    setSelectedFreeSlotId(newFreeSlots[0]?.id ?? null);
-                  }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #c7d2fe', borderRadius: 8, background: '#f0f3ff', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#1e2d7d', width: '100%' }}>
-                    ✦ Редагувати слоти вільно
-                  </button>
+
                   <button onClick={() => { const idx = getActivePageIdx(); setPages(prev => prev.map((p, i) => i !== idx ? p : { ...p, slots: makeSlots(LAYOUTS.find(l => l.id === p.layout)?.slots || 0) })); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #fee2e2', borderRadius: 8, background: '#fff7f7', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#ef4444', width: '100%' }}>
                     <RotateCcw size={13} /> Очистити сторінку
