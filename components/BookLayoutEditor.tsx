@@ -811,14 +811,31 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 )}
 
                 {/* Free slot shape controls */}
-                <FreeSlotControls
-                  selectedSlot={curFreeSlots.find(s => true) ?? null}
-                  onChangeShape={(shape: SlotShape) => {
-                    // Apply to last added/selected slot
-                    const last = curFreeSlots[curFreeSlots.length - 1];
-                    if (last) setCurFreeSlots(prev => prev.map(s => s.id === last.id ? { ...s, shape } : s));
-                  }}
-                />
+                {(() => {
+                  // Find selected slot across ALL pages
+                  let selectedSlot: FreeSlot | null = null;
+                  let selectedSlotPageIdx = -1;
+                  if (selectedFreeSlotId) {
+                    for (const [pi, slots] of Object.entries(freeSlots)) {
+                      const found = (slots as FreeSlot[]).find(s => s.id === selectedFreeSlotId);
+                      if (found) { selectedSlot = found; selectedSlotPageIdx = Number(pi); break; }
+                    }
+                  }
+                  return (
+                    <FreeSlotControls
+                      selectedSlot={selectedSlot}
+                      onChangeShape={(shape: SlotShape) => {
+                        if (!selectedSlot || selectedSlotPageIdx < 0) return;
+                        setFreeSlots(prev => ({
+                          ...prev,
+                          [selectedSlotPageIdx]: (prev[selectedSlotPageIdx] || []).map(s =>
+                            s.id === selectedFreeSlotId ? { ...s, shape } : s
+                          )
+                        }));
+                      }}
+                    />
+                  );
+                })()}
 
                 {photos.length === 0 && <p style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', margin: 0 }}>Додайте фото щоб почати</p>}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
