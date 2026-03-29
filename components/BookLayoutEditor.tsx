@@ -1243,7 +1243,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   canvasH={cH}
                   sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
                   config={{
-                    coverMaterial: (config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
+                    coverMaterial: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
                     coverColorName: effectiveCoverColor,
                     decoType: coverState.decoType as any,
                     decoVariant: coverState.decoVariant,
