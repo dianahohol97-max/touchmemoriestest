@@ -182,14 +182,6 @@ function LayoutSVG({ layout, active }: { layout: LayoutType; active: boolean }) 
   const W = 36, H = 46;
   const defs = getSlotDefs(layout, W, H);
   const c = active ? '#fff' : '#94a3b8';
-  // Live price calculation
-  const currentPageCount = Math.max(0, pages.length - 1);
-  const sizeVal = (config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
-  const dynamicPrice = lookupPrice(config.selectedCoverType || 'Велюр', sizeVal, currentPageCount);
-  const basePageCount = parseInt(config.selectedPageCount?.match(/\d+/)?.[0] || '20');
-  const basePrice = lookupPrice(config.selectedCoverType || 'Велюр', sizeVal, basePageCount);
-  const priceDiff = dynamicPrice - basePrice;
-
   return (
     <svg width={W} height={H} style={{ display: 'block', borderRadius: 2, overflow: 'hidden', background: active ? 'rgba(255,255,255,0.15)' : '#f1f5f9', flexShrink: 0 }}>
       {defs.map(({ i, s }) => (
