@@ -318,9 +318,9 @@ export default function BookLayoutEditor() {
     const total = m ? parseInt(m[0]) : 20;
     const ps: Page[] = [];
     ps.push({ id: 0, label: 'Обкладинка', layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
-    // Content pages in pairs (spreads)
-    for (let i = 1; i <= total; i += 2) {
-      ps.push({ id: i, label: `${i}–${Math.min(i+1, total)}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
+    // Content pages: 2 individual pages per spread
+    for (let i = 1; i <= total; i++) {
+      ps.push({ id: i, label: `${i}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
     }
     setPages(ps);
   }, [config]);
