@@ -455,14 +455,14 @@ export default function BookLayoutEditor() {
     router.push('/cart');
   };
 
+  if (!config || pages.length === 0) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
+
   // Dynamic price calculation based on current page count
   const currentPageCount = Math.max(0, pages.length - 1); // exclude cover
   const basePageCount = parseInt(config.selectedPageCount?.match(/\d+/)?.[0] || '20');
   const extraPages = Math.max(0, currentPageCount - basePageCount);
   const pricePerPage = 50; // ₴ per 2 pages (1 spread)
   const dynamicPrice = config.totalPrice + Math.round(extraPages / 2) * pricePerPage;
-
-  if (!config || pages.length === 0) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
@@ -802,7 +802,7 @@ export default function BookLayoutEditor() {
                 <CoverEditor
                   canvasW={pageW}
                   canvasH={cH}
-                  sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')
+                  sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
                   config={{
                     coverMaterial: (config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
                     coverColorName: config.selectedCoverColor || '',
@@ -814,7 +814,7 @@ export default function BookLayoutEditor() {
                   photos={photos}
                   onChange={(cfg) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }) }))}
                 />
-              </div> {/* end cover outer div */}
+              </div>
             ) : (
               /* Spread: left page + right page */
               <>
