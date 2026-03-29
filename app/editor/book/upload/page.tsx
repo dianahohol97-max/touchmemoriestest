@@ -20,7 +20,7 @@ function BookUploadContent() {
 
 export default function BookUploadPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">ÐÐ°Ð²Ð°Ð½ÑÐ°Ð¶ÐµÐ½Ð½Ñ...</div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">ÃÂÃÂ°ÃÂ²ÃÂ°ÃÂ½ÃÂÃÂ°ÃÂ¶ÃÂµÃÂ½ÃÂ½ÃÂ...</div>}>
             <BookUploadContent />
         </Suspense>
     );
