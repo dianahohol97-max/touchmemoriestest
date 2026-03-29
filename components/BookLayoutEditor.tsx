@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor, FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS } from './CoverEditor';
@@ -15,7 +15,7 @@ import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesL
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
 interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; }
 
-type CoverDecoType = 'none'|'acrylic'|'photo_insert'|'flex'|'metal'|'engraving';
+type CoverDecoType = 'none'|'acrylic'|'photo_insert'|'flex'|'metal'|'engraving'|'graviruvannya'|'acryl'|'photovstavka';
 interface CoverState {
   decoType: CoverDecoType;
   decoVariant: string;
@@ -26,6 +26,7 @@ interface CoverState {
   textY: number;
   textFontFamily: string;
   textFontSize: number;
+  extraTexts: { id: string; text: string; x: number; y: number; fontFamily: string; fontSize: number; color: string; }[];
 }
 
 type LayoutType =
@@ -207,7 +208,7 @@ export default function BookLayoutEditor() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(70);
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'>('photos');
-  const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Georgia', textFontSize: 14 });
+  const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] });
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
   const [pageShapes, setPageShapes] = useState<Record<number, Shape[]>>({});
@@ -739,7 +740,6 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               </div>
             )}
 
-            )>
             {/* COVER */}
             {leftTab === 'cover' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
@@ -834,6 +834,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   ))}
                 </div>
               </div>
+            )}
             {/* BACKGROUND */}
             {leftTab === 'bg' && (
               <BackgroundControls
@@ -1044,7 +1045,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                           <div key={i}
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
-                            onDrop={e => onDrop(e, pageIdx, i)} onDragOver={e => e.preventDefault()}
+                            onDrop={e => onDrop(e, pageIdx, i)}
                             style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f1f5f9'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1px dashed #cbd5e1'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
                           >
                             {photo ? (
@@ -1054,8 +1055,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img src={photo.preview} draggable={true} onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
                                     onMouseDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX, slot!.cropY); }}
-                                    style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}
-                                    draggable={false}/>
+                                    style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}/>
                                   {photoEditSlot===key && (
                                     <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.7)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
                                       <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
