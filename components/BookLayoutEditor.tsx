@@ -364,13 +364,7 @@ export default function BookLayoutEditor() {
     setCoverState(prev => ({ ...prev, decoType, decoVariant: autoVariant, decoColor }));
   }, [config]);
 
-  const curFreeSlots = freeSlots[currentIdx] || [];
-  const setCurFreeSlots = (slots: FreeSlot[] | ((prev: FreeSlot[]) => FreeSlot[])) => {
-    setFreeSlots(prev => ({
-      ...prev,
-      [currentIdx]: typeof slots === 'function' ? slots(prev[currentIdx] || []) : slots,
-    }));
-  };
+  // curFreeSlots defined below after getActivePageIdx
 
   // Add spread (2 pages)
   const shuffleLayout = () => {
@@ -428,6 +422,14 @@ export default function BookLayoutEditor() {
   // In spread view, changeLayout applies to the hovered/selected page side
   const [activeSide, setActiveSide] = useState<0|1>(0);
   const getActivePageIdx = () => currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + activeSide;
+  const curFreeSlots = freeSlots[getActivePageIdx()] || [];
+  const setCurFreeSlots = (slots: FreeSlot[] | ((prev: FreeSlot[]) => FreeSlot[])) => {
+    const idx = getActivePageIdx();
+    setFreeSlots(prev => ({
+      ...prev,
+      [idx]: typeof slots === 'function' ? slots(prev[idx] || []) : slots,
+    }));
+  };
 
   const changeLayout = (layout: LayoutType) => {
     const def = LAYOUTS.find(l => l.id === layout);
@@ -932,17 +934,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                   );
                 })()}
-                {coverState.decoType==='metal' && (
-                  <div>
-                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Колір металу</div>
-                    <div style={{ display:'flex', gap:6 }}>
-                      {([{v:'gold',c:'#D4AF37',l:'Золотий'},{v:'silver',c:'#C0C0C0',l:'Срібний'}]).map(mc => (
-                        <button key={mc.v} onClick={() => setCoverState(prev=>({...prev, decoColor:mc.v}))} title={mc.l}
-                          style={{ width:28, height:28, borderRadius:'50%', background:mc.c, border:coverState.decoColor===mc.v?'3px solid #1e2d7d':'2px solid #e2e8f0', cursor:'pointer' }}/>
-                      ))}
-                    </div>
-                  </div>
-                )}
+
                 {(coverState.decoType === 'flex' || coverState.decoType === 'graviruvannya') && (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Написи на обкладинці</div>
@@ -1155,10 +1147,13 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 {/* Back cover */}
                 <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: (() => {
                   const mat = (config.selectedCoverType||'').toLowerCase();
-                  const name = effectiveCoverColor;
-                  if (mat.includes('велюр')||mat.includes('velour')) return '#C4AA88';
-                  if (mat.includes('тканин')||mat.includes('fabric')) return '#C4AA88';
-                  if (mat.includes('шкір')||mat.includes('leather')) return '#D9C8B0';
+                  const n = effectiveCoverColor;
+                  const velourColors: Record<string,string> = {'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8','Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038','Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840'};
+                  const leatherColors: Record<string,string> = {'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C','Рожевий ніжний':'#E8B4B8','Червоний насичений':'#A01030','Коричневий':'#8E5038','Вишневий':'#7A2020','Графітовий темний':'#3A3038','Темно-синій':'#1A2040','Чорний':'#1A1A1A'};
+                  const fabricColors: Record<string,string> = {'Бежевий/пісочний':'#C4AA88','Теракотовий':'#A04838','Фуксія':'#B838A0','Марсала/бордо':'#602838','Коричневий':'#6E4830','Сірий/графітовий':'#586058','Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020'};
+                  if (mat.includes('тканин')||mat.includes('fabric')) return fabricColors[n]||'#C4AA88';
+                  if (mat.includes('шкір')||mat.includes('leather')) return leatherColors[n]||'#D9C8B0';
+                  if (mat.includes('велюр')||mat.includes('velour')) return velourColors[n]||'#D9C8B0';
                   return '#e8ecf4';
                 })(), borderRight: '2px solid rgba(0,0,0,0.12)' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -1202,7 +1197,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               /* Cover: left=back spine(grey), right=front cover with deco */
               <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — plain */}
-                <div style={{ width: pageW, height: cH, background: (() => { const n=effectiveCoverColor; const mat=config.selectedCoverType?.toLowerCase()||''; if(mat.includes('шкір')) return ({...{'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Чорний':'#1A1A1A'}})[n]||'#D9C8B0'; if(mat.includes('тканин')) return '#C4AA88'; return '#e8ecf4'; })(), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
+                <div style={{ width: pageW, height: cH, background: (() => { const n=effectiveCoverColor; const mat=config.selectedCoverType?.toLowerCase()||''; const vc={'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8','Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038','Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840'} as Record<string,string>; const lc={'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C','Рожевий ніжний':'#E8B4B8','Червоний насичений':'#A01030','Коричневий':'#8E5038','Вишневий':'#7A2020','Графітовий темний':'#3A3038','Темно-синій':'#1A2040','Чорний':'#1A1A1A'} as Record<string,string>; const fc={'Бежевий/пісочний':'#C4AA88','Теракотовий':'#A04838','Фуксія':'#B838A0','Марсала/бордо':'#602838','Коричневий':'#6E4830','Сірий/графітовий':'#586058','Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020'} as Record<string,string>; if(mat.includes('тканин')||mat.includes('fabric')) return fc[n]||'#C4AA88'; if(mat.includes('шкір')||mat.includes('leather')) return lc[n]||'#D9C8B0'; if(mat.includes('велюр')||mat.includes('velour')) return vc[n]||'#D9C8B0'; return '#e8ecf4'; })(), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <span style={{ color:'rgba(255,255,255,0.15)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ ОБКЛАДИНКА</span>
                   </div>
@@ -1258,7 +1253,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
                             onDrop={e => onDrop(e, pageIdx, i)}
-                            style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f8fafc'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1.5px dashed #d1d5db'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
+                            style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f0f4ff'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1.5px dashed #a5b4fc'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
                           >
                             {photo ? (
                               <>
