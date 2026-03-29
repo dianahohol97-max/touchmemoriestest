@@ -182,6 +182,14 @@ function LayoutSVG({ layout, active }: { layout: LayoutType; active: boolean }) 
   const W = 36, H = 46;
   const defs = getSlotDefs(layout, W, H);
   const c = active ? '#fff' : '#94a3b8';
+  // Live price calculation
+  const currentPageCount = Math.max(0, pages.length - 1);
+  const sizeVal = (config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
+  const dynamicPrice = lookupPrice(config.selectedCoverType || 'Велюр', sizeVal, currentPageCount);
+  const basePageCount = parseInt(config.selectedPageCount?.match(/\d+/)?.[0] || '20');
+  const basePrice = lookupPrice(config.selectedCoverType || 'Велюр', sizeVal, basePageCount);
+  const priceDiff = dynamicPrice - basePrice;
+
   return (
     <svg width={W} height={H} style={{ display: 'block', borderRadius: 2, overflow: 'hidden', background: active ? 'rgba(255,255,255,0.15)' : '#f1f5f9', flexShrink: 0 }}>
       {defs.map(({ i, s }) => (
@@ -567,9 +575,31 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
           <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', minWidth: 36, textAlign: 'center' }}>{zoom}%</span>
           <button onClick={() => setZoom(z => Math.min(130, z + 10))} style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer' }}><ZoomIn size={14} /></button>
         </div>
-        <button onClick={addToCart} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(38,58,153,0.3)' }}>
-          <ShoppingCart size={15} /> Додати до кошика • {config.totalPrice} ₴
-        </button>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          {/* Live price */}
+          <div style={{ textAlign:'right', paddingRight:4 }}>
+            <div style={{ fontSize:11, color:'#94a3b8' }}>{pages.length - 1} стор. ({Math.ceil((pages.length-1)/2)} розворот{Math.ceil((pages.length-1)/2)===1?'':'и'})</div>
+            <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d' }}>
+              {dynamicPrice} ₴
+              {priceDiff !== 0 && <span style={{ fontSize:11, color: priceDiff > 0 ? '#10b981':'#ef4444', marginLeft:4 }}>{priceDiff>0?'+':''}{priceDiff}₴</span>}
+            </div>
+          </div>
+          {/* Preview */}
+          <button onClick={() => setShowPreview(true)}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}>
+            <Eye size={14}/> Превью
+          </button>
+          {/* Help */}
+          <button onClick={() => { setTooltipStep(0); setShowTooltips(true); }} title="Підказки"
+            style={{ padding:'9px 10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', color:'#64748b', display:'flex', alignItems:'center' }}>
+            <HelpCircle size={14}/>
+          </button>
+          {/* Add to cart */}
+          <button onClick={addToCart}
+            style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(38,58,153,0.3)' }}>
+            <ShoppingCart size={15}/> До кошика
+          </button>
+        </div>
       </div>
 
       {/* BODY */}
