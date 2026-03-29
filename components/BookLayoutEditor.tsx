@@ -12,7 +12,7 @@ import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
-interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; }
+interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; }
 
 type CoverDecoType = 'none'|'acrylic'|'photo_insert'|'flex'|'metal'|'engraving';
 interface CoverState {
@@ -211,6 +211,7 @@ export default function BookLayoutEditor() {
   const [textTool, setTextTool] = useState(false);
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const [showDecoList, setShowDecoList] = useState(false);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [tFontSize, setTFontSize] = useState(28);
@@ -558,26 +559,47 @@ export default function BookLayoutEditor() {
             {leftTab === 'cover' && currentIdx === 0 && (
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 <div style={{ fontSize:11, fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.08em' }}>Оздоблення</div>
-                {(config.selectedCoverType?.toLowerCase().includes('шкір') ? [
-                  { id:'none', label:'Без оздоблення' },
-                  { id:'acryl', label:'Акрил' },
-                  { id:'photovstavka', label:'Фотовставка' },
-                  { id:'metal', label:'Металева вставка' },
-                  { id:'flex', label:'Флекс' },
-                ] : [
-                  { id:'none', label:'Без оздоблення' },
-                  { id:'acryl', label:'Акрил' },
-                  { id:'photovstavka', label:'Фотовставка' },
-                  { id:'metal', label:'Металева вставка' },
-                  { id:'flex', label:'Флекс' },
-                  { id:'graviruvannya', label:'Гравірування' },
-                ]).map(opt => (
-                  <button key={opt.id}
-                    onClick={() => setCoverState(prev => ({ ...prev, decoType: opt.id as CoverDecoType, decoVariant: '' }))}
-                    style={{ padding:'8px 12px', border: coverState.decoType===opt.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:8, background: coverState.decoType===opt.id ? '#f0f3ff' : '#fff', cursor:'pointer', fontWeight:600, fontSize:12, color: coverState.decoType===opt.id ? '#1e2d7d' : '#374151', textAlign:'left' }}>
-                    {opt.label}
-                  </button>
-                ))}
+{/* Show selected decoration from product page or allow change */}
+                {(() => {
+                  const decoLabels: Record<string, string> = {
+                    none: 'Без оздоблення', acryl: 'Акрил',
+                    photovstavka: 'Фотовставка', metal: 'Металева вставка',
+                    flex: 'Флекс', graviruvannya: 'Гравірування',
+                  };
+                  // use showDecoList from component state
+                  const allDecoOpts = config.selectedCoverType?.toLowerCase().includes('шкір')
+                    ? ['none','acryl','photovstavka','metal','flex']
+                    : ['none','acryl','photovstavka','metal','flex','graviruvannya'];
+
+                  return (
+                    <>
+                      {/* Current deco display */}
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff' }}>
+                        <span style={{ fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
+                          {decoLabels[coverState.decoType] || 'Без оздоблення'}
+                          {coverState.decoVariant ? <span style={{ fontWeight:400, color:'#64748b', marginLeft:6, fontSize:11 }}>{coverState.decoVariant}</span> : null}
+                        </span>
+                        <button
+                          onClick={() => setShowDecoList(v => !v)}  
+                          style={{ fontSize:11, fontWeight:700, color:'#1e2d7d', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>
+                          {showDecoList ? 'Сховати' : 'Змінити'}
+                        </button>
+                      </div>
+                      {/* Expandable list */}
+                      {showDecoList && (
+                        <div style={{ display:'flex', flexDirection:'column', gap:4, marginTop:6 }}>
+                          {allDecoOpts.map(id => (
+                            <button key={id}
+                              onClick={() => { setCoverState(prev => ({ ...prev, decoType: id as CoverDecoType, decoVariant: '' })); setShowDecoList(false); }}
+                              style={{ padding:'8px 12px', border: coverState.decoType===id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:8, background: coverState.decoType===id ? '#f0f3ff' : '#fff', cursor:'pointer', fontWeight:600, fontSize:12, color: coverState.decoType===id ? '#1e2d7d' : '#374151', textAlign:'left' }}>
+                              {decoLabels[id]}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {coverState.decoType === 'flex' && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
@@ -723,12 +745,21 @@ export default function BookLayoutEditor() {
             onClick={currentIdx === 0 ? undefined : onCanvasClick}
           >
             {currentIdx === 0 ? (
-              /* Cover page — full width */
-              <div style={{ width: cW, height: cH, position: 'relative', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}>
+              /* Cover: left=back spine(grey), right=front cover with deco */
+              <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
+                {/* Back cover — plain */}
+                <div style={{ width: pageW, height: cH, background: (() => { const n=config.selectedCoverColor||''; const mat=config.selectedCoverType?.toLowerCase()||''; if(mat.includes('шкір')) return ({...{'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Чорний':'#1A1A1A'}})[n]||'#D9C8B0'; if(mat.includes('тканин')) return '#C4AA88'; return '#e8ecf4'; })(), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
+                  <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <span style={{ color:'rgba(255,255,255,0.15)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ ОБКЛАДИНКА</span>
+                  </div>
+                  {/* Spine line */}
+                  <div style={{ position:'absolute', right:0, top:0, width:2, height:'100%', background:'rgba(0,0,0,0.15)' }}/>
+                </div>
+                {/* Front cover — with deco */}
                 <CoverEditor
-                  canvasW={cW}
+                  canvasW={pageW}
                   canvasH={cH}
-                  sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
+                  sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')
                   config={{
                     coverMaterial: (config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
                     coverColorName: config.selectedCoverColor || '',
@@ -740,7 +771,7 @@ export default function BookLayoutEditor() {
                   photos={photos}
                   onChange={(cfg) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }) }))}
                 />
-              </div>
+              </div> {/* end cover outer div */}
             ) : (
               /* Spread: left page + right page */
               <>
