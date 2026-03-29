@@ -301,8 +301,40 @@ export default function BookLayoutEditor() {
     else if (deco.includes('флекс') || deco.includes('flex')) decoType = 'flex';
     else if (deco.includes('метал') || deco.includes('metal')) decoType = 'metal';
     else if (deco.includes('гравір') || deco.includes('engraving') || deco.includes('graviruvannya')) decoType = 'graviruvannya';
+    // Map decoVariant from config
+    // config.selectedDecorationVariant = e.g. "60×60 золотий" or raw variant name
+    const variant = config.selectedDecorationVariant || '';
+
+    // Map decoColor from config
     const dc = config.selectedDecorationColor?.toLowerCase() || '';
-    setCoverState(prev => ({ ...prev, decoType }));
+    let decoColor = '#D4AF37'; // default gold
+    if (dc.includes('срібн') || dc.includes('silver')) decoColor = '#C0C0C0';
+    else if (dc.includes('білий') || dc.includes('white')) decoColor = '#FFFFFF';
+    else if (dc.includes('чорн') || dc.includes('black')) decoColor = '#1A1A1A';
+
+    // Auto-select first variant for size if none provided
+    const sizeKey = (config.selectedSize || '20x20').replace(/[×х]/g, 'x').replace(/\s*см/g, '').trim();
+    let autoVariant = variant;
+    if (!autoVariant && decoType !== 'none' && decoType !== 'flex' && decoType !== 'graviruvannya') {
+      const variantMap: Record<string, Record<string, string[]>> = {
+        acryl: ACRYLIC_VARIANTS,
+        photovstavka: PHOTO_INSERT_VARIANTS,
+        metal: METAL_VARIANTS,
+      };
+      const variants = variantMap[decoType]?.[sizeKey] || variantMap[decoType]?.['20x20'] || [];
+      // Pick variant matching color if possible
+      if (decoType === 'metal' && variants.length > 0) {
+        if (dc.includes('срібн') || dc.includes('silver')) {
+          autoVariant = variants.find(v => v.includes('срібний')) || variants[0];
+        } else {
+          autoVariant = variants.find(v => v.includes('золотий')) || variants[0];
+        }
+      } else {
+        autoVariant = variants[0] || '';
+      }
+    }
+
+    setCoverState(prev => ({ ...prev, decoType, decoVariant: autoVariant, decoColor }));
   }, [config]);
 
   const curFreeSlots = freeSlots[currentIdx] || [];
