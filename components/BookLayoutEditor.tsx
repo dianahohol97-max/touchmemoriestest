@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
+import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { CoverEditor, FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS } from './CoverEditor';
 import { BookPreviewModal } from './BookPreviewModal';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
