@@ -207,7 +207,7 @@ export default function BookLayoutEditor() {
   const [pages, setPages] = useState<Page[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(70);
-  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'>('photos');
+  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'>('photos');
   const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] });
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
@@ -218,6 +218,7 @@ export default function BookLayoutEditor() {
   const [textTool, setTextTool] = useState(false);
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;x:number;y:number;w:number;h:number}[]>>({});
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -693,7 +694,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         {/* CONTENT PANEL */}
         <div style={{ width: 200, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: 800, fontSize: 12, color: '#1e2d7d' }}>
-            {leftTab === 'photos' ? 'Зображення' : leftTab === 'layouts' ? 'Шаблон' : 'Текст'}
+            {({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','frames':'Рамки','stickers':'Стікери','options':'Опції','cover':'Обкладинка'} as Record<string,string>)[leftTab] || leftTab}
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: 10 }}>
 
@@ -914,6 +915,85 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             )}
 
             {/* TEXT */}
+            {leftTab === 'stickers' && (
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                <input type="text" placeholder="Пошук стікерів..." 
+                  style={{ padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none' }}/>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
+                  {[
+                    {name:'Серце', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/2764.svg'},
+                    {name:'Зірка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/2b50.svg'},
+                    {name:'Сонце', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/2600.svg'},
+                    {name:'Квітка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f338.svg'},
+                    {name:'Корона', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f451.svg'},
+                    {name:'Метелик', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f98b.svg'},
+                    {name:'Місяць', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f319.svg'},
+                    {name:'Хмара', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/2601.svg'},
+                    {name:'Діамант', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f48e.svg'},
+                    {name:'Веселка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f308.svg'},
+                    {name:'Полум\'я', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f525.svg'},
+                    {name:'Блискавка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/26a1.svg'},
+                  ].map(sticker => {
+                    const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                    return (
+                      <button key={sticker.name}
+                        onClick={() => {
+                          const newS = { id:'stk-'+Date.now(), url:sticker.url, x:30, y:30, w:60, h:60 };
+                          setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
+                        }}
+                        style={{ padding:6, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}
+                        title={sticker.name}>
+                        <img src={sticker.url} style={{ width:32, height:32, objectFit:'contain' }} alt={sticker.name}/>
+                        <span style={{ fontSize:9, color:'#64748b', textAlign:'center' }}>{sticker.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {leftTab === 'options' && (
+              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Розмір книги</div>
+                  <div style={{ padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:13, fontWeight:700, color:'#374151' }}>
+                    {config?.selectedSize || '20×20 см'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Кількість сторінок</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ flex:1, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:14, fontWeight:700, color:'#1e2d7d', textAlign:'center' }}>
+                      {pages.length - 1}
+                    </div>
+                    <button onClick={addSpread}
+                      style={{ padding:'9px 14px', border:'1px solid #d1fae5', borderRadius:8, background:'#f0fdf4', cursor:'pointer', fontWeight:700, fontSize:13, color:'#059669' }}>+2</button>
+                    <button onClick={removeLastSpread}
+                      style={{ padding:'9px 14px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', fontWeight:700, fontSize:13, color:'#ef4444' }}>−2</button>
+                  </div>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginTop:8 }}>
+                    <span style={{ fontSize:11, color:'#94a3b8' }}>Ціна:</span>
+                    <span style={{ fontSize:14, fontWeight:800, color:'#1e2d7d' }}>{dynamicPrice} ₴</span>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип обкладинки</div>
+                  <div style={{ padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:13, color:'#374151' }}>
+                    {config?.selectedCoverType || '—'}
+                    {config?.selectedCoverColor ? <span style={{ color:'#94a3b8', marginLeft:6 }}>· {config.selectedCoverColor}</span> : null}
+                  </div>
+                </div>
+                {config?.selectedLamination && (
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Ламінація</div>
+                    <div style={{ padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:13, color:'#374151' }}>
+                      {config.selectedLamination}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {leftTab === 'text' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <button onClick={() => setTextTool(t => !t)}
@@ -1165,6 +1245,25 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       />
                       {/* Frame layer */}
                       <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
+                      {/* Sticker layer */}
+                      {(pageStickers[pageIdx]||[]).map(stk => (
+                        <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40 }}
+                          onMouseDown={e => {
+                            e.stopPropagation();
+                            const startX=e.clientX, startY=e.clientY, origX=stk.x, origY=stk.y;
+                            const onMove=(me:MouseEvent)=>{
+                              const dx=(me.clientX-startX)/pageW*100;
+                              const dy=(me.clientY-startY)/cH*100;
+                              setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx)),y:Math.max(0,Math.min(90,origY+dy))}:s)}));
+                            };
+                            const onUp=()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);};
+                            window.addEventListener('mousemove',onMove);window.addEventListener('mouseup',onUp);
+                          }}>
+                          <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>
+                          <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(s=>s.id!==stk.id)}));}}
+                            style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
+                        </div>
+                      ))}
                       {/* Spine shadow */}
                       {side===0 && <div style={{position:'absolute',right:0,top:0,width:4,height:'100%',background:'linear-gradient(to right,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
                       {side===1 && <div style={{position:'absolute',left:0,top:0,width:4,height:'100%',background:'linear-gradient(to left,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
