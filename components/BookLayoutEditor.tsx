@@ -523,12 +523,18 @@ export default function BookLayoutEditor() {
 
   const startCrop = (e: React.MouseEvent, key: string, cx: number, cy: number) => {
     e.preventDefault();
+    e.stopPropagation();
+    const [pi, si] = key.split('-').map(Number);
+    // Get current zoom for sensitivity scaling
+    const currentZoom = pages[pi]?.slots[si]?.zoom || 1;
+    const sensitivity = 30 / Math.max(0.5, currentZoom); // less sensitive at higher zoom
     cropRef.current = { key, sx: e.clientX, sy: e.clientY, cx, cy };
     const onMove = (me: MouseEvent) => {
       if (!cropRef.current) return;
-      const [pi, si] = cropRef.current.key.split('-').map(Number);
-      const nx = Math.max(0, Math.min(100, cropRef.current.cx - (me.clientX - cropRef.current.sx) / 3));
-      const ny = Math.max(0, Math.min(100, cropRef.current.cy - (me.clientY - cropRef.current.sy) / 3));
+      const dx = (me.clientX - cropRef.current.sx) / sensitivity;
+      const dy = (me.clientY - cropRef.current.sy) / sensitivity;
+      const nx = Math.max(0, Math.min(100, cropRef.current.cx - dx));
+      const ny = Math.max(0, Math.min(100, cropRef.current.cy - dy));
       setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, cropX: nx, cropY: ny }) }));
     };
     const onUp = () => { cropRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
@@ -1341,7 +1347,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                                 <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                  <img src={photo.preview} draggable={true} onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
+                                  <img src={photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
                                     onMouseDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX, slot!.cropY); }}
                                     style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}/>
                                   {photoEditSlot===key && (
