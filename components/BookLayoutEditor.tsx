@@ -219,6 +219,9 @@ export default function BookLayoutEditor() {
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
+  const [stickerSearch, setStickerSearch] = useState('');
+  const [dbStickers, setDbStickers] = useState<{id:string;name:string;category:string;image_url:string;tags:string[]}[]>([]);
+  const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;x:number;y:number;w:number;h:number}[]>>({});
   const [showPreview, setShowPreview] = useState(false);
   const [showTooltips, setShowTooltips] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -235,6 +238,14 @@ export default function BookLayoutEditor() {
   const cropRef = useRef<{ key: string; sx: number; sy: number; cx: number; cy: number } | null>(null);
   const txtRef = useRef<{ id: string; sx: number; sy: number; tx: number; ty: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Load stickers from DB
+  useEffect(() => {
+    const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    sb.from('editor_stickers').select('*').eq('is_active', true).order('sort_order').then(({data}) => {
+      if (data) setDbStickers(data);
+    });
+  }, []);
 
   useEffect(() => {
     const fams = ['Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin+Sans','Open+Sans',
@@ -661,6 +672,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             ['bg', <span key="bg" style={{fontSize:16}}>▣</span>, 'Фон'],
             ['shapes', <span key="sh" style={{fontSize:16}}>◇</span>, 'Фігури'],
             ['frames', <span key="fr" style={{fontSize:16}}>▤</span>, 'Рамки'],
+            ['stickers', <span key="stk" style={{fontSize:18}}>★</span>, 'Стікери'],
             ['options', <Settings key="opt" size={20}/>, 'Опції'],
             ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:16}}>▣</span>, 'Обкладинка']]:[] as any),
           ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
@@ -941,6 +953,50 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   setPageFrames(prev=>({...prev,[idx]:frame}));
                 }}
               />
+            )}
+
+            {/* STICKERS PANEL */}
+            {leftTab === 'stickers' && (
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                <input
+                  type="text"
+                  placeholder="Пошук стікерів..."
+                  value={stickerSearch}
+                  onChange={e=>setStickerSearch(e.target.value)}
+                  style={{ padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none' }}
+                />
+                {/* Category filter */}
+                <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                  {['Всі',...[...new Set(dbStickers.map(s=>s.category))]].map(cat => (
+                    <button key={cat}
+                      style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:20, fontSize:11, background:'#fff', cursor:'pointer', fontWeight:600, color:'#374151' }}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                {/* Stickers grid */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
+                  {dbStickers
+                    .filter(s => !stickerSearch || s.name.toLowerCase().includes(stickerSearch.toLowerCase()) || s.tags.some(tag=>tag.includes(stickerSearch.toLowerCase())))
+                    .map(sticker => {
+                      const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                      return (
+                        <button key={sticker.id}
+                          onClick={() => {
+                            const newS = { id:'stk-'+Date.now(), url:sticker.image_url, x:30, y:30, w:60, h:60 };
+                            setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
+                          }}
+                          style={{ padding:6, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}
+                          title={sticker.name}>
+                          <img src={sticker.image_url} style={{ width:32, height:32, objectFit:'contain' }} alt={sticker.name}/>
+                          <span style={{ fontSize:9, color:'#64748b', textAlign:'center' }}>{sticker.name}</span>
+                        </button>
+                      );
+                    })
+                  }
+                </div>
+                {dbStickers.length === 0 && <p style={{ fontSize:11, color:'#94a3b8', textAlign:'center' }}>Стікери завантажуються...</p>}
+              </div>
             )}
 
             {/* OPTIONS PANEL */}
@@ -1297,6 +1353,25 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       />
                       {/* Frame layer */}
                       <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
+                      {/* Stickers layer */}
+                      {(pageStickers[pageIdx]||[]).map(stk => (
+                        <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40 }}
+                          onMouseDown={e => {
+                            e.stopPropagation();
+                            const startX=e.clientX, startY=e.clientY, origX=stk.x, origY=stk.y;
+                            const onMove=(me:MouseEvent)=>{
+                              const dx=(me.clientX-startX)/pageW*100;
+                              const dy=(me.clientY-startY)/cH*100;
+                              setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx)),y:Math.max(0,Math.min(90,origY+dy))}:s)}));
+                            };
+                            const onUp=()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);};
+                            window.addEventListener('mousemove',onMove);window.addEventListener('mouseup',onUp);
+                          }}>
+                          <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>
+                          <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(s=>s.id!==stk.id)}));}}
+                            style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>
+                        </div>
+                      ))}
                       {/* Spine shadow */}
                       {side===0 && <div style={{position:'absolute',right:0,top:0,width:4,height:'100%',background:'linear-gradient(to right,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
                       {side===1 && <div style={{position:'absolute',left:0,top:0,width:4,height:'100%',background:'linear-gradient(to left,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
