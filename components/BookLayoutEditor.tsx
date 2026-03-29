@@ -114,11 +114,11 @@ function makeSlots(n: number): SlotData[] {
 }
 
 const FONT_GROUPS = [
-  { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans'] },
-  { group: 'Класичні', fonts: ['Playfair Display','Georgia','Cormorant Garamond','EB Garamond','Libre Baskerville'] },
-  { group: 'Каліграфічні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Alex Brush','Pinyon Script','Italianno'] },
-  { group: 'Кириличні', fonts: ['Marck Script','Philosopher','Russo One','Comfortaa','Lobster','Caveat','Poiret One','Open Sans'] },
-  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous'] },
+  { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans','Open Sans'] },
+  { group: 'Класичні', fonts: ['Playfair Display','Georgia','Cormorant Garamond','EB Garamond','Libre Baskerville','Lora','Merriweather'] },
+  { group: 'Каліграфічні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Alex Brush','Pinyon Script','Italianno','Allura','Tangerine'] },
+  { group: 'Кириличні', fonts: ['Marck Script','Philosopher','Russo One','Comfortaa','Lobster','Caveat','Poiret One','Cuprum','Jura','Neucha','Didact Gothic'] },
+  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Spectral','Rozha One'] },
 ];
 const FONTS = FONT_GROUPS.flatMap(g => g.fonts);
 const COLORS = ['#1e2d7d', '#ffffff', '#000000', '#e63946', '#2a9d8f', '#f4a261', '#264653', '#e9c46a'];
@@ -237,12 +237,13 @@ export default function BookLayoutEditor() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fams = ['Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin+Sans',
-      'Playfair+Display','Cormorant+Garamond','EB+Garamond','Libre+Baskerville',
+    const fams = ['Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin+Sans','Open+Sans',
+      'Playfair+Display','Cormorant+Garamond','EB+Garamond','Libre+Baskerville','Lora','Merriweather',
       'Dancing+Script','Great+Vibes','Pacifico','Sacramento','Satisfy',
-      'Alex+Brush','Pinyon+Script','Italianno','Marck+Script','Philosopher',
-      'Russo+One','Comfortaa','Lobster','Caveat','Poiret+One','Open+Sans',
-      'Abril+Fatface','Cinzel','Bebas+Neue','Righteous'];
+      'Alex+Brush','Pinyon+Script','Italianno','Allura','Tangerine',
+      'Marck+Script','Philosopher','Russo+One','Comfortaa','Lobster','Caveat','Poiret+One',
+      'Cuprum','Jura','Neucha','Didact+Gothic',
+      'Abril+Fatface','Cinzel','Bebas+Neue','Righteous','Spectral','Rozha+One'];
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = 'https://fonts.googleapis.com/css2?family=' + fams.join('&family=') + '&display=swap';
@@ -383,13 +384,20 @@ export default function BookLayoutEditor() {
   const getActivePageIdx = () => currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + activeSide;
 
   const changeLayout = (layout: LayoutType) => {
-    const def = LAYOUTS.find(l => l.id === layout)!;
+    const def = LAYOUTS.find(l => l.id === layout);
+    if (!def) { console.warn('Layout not found:', layout); return; }
     const targetIdx = getActivePageIdx();
+    const newSlotCount = LAYOUT_SLOTS[layout] ?? def.slots?.length ?? 1;
     setPages(prev => prev.map((p, i) => {
       if (i !== targetIdx) return p;
-      const ns = makeSlots(def.slots);
-      p.slots.forEach((sl, si) => { if (si < ns.length) ns[si].photoId = sl.photoId; });
-      return { ...p, layout, slots: ns };
+      // Preserve existing photos in slots
+      const existingPhotos = p.slots.map(s => s.photoId).filter(Boolean);
+      const newSlots = Array.from({ length: newSlotCount }, (_, si) => ({
+        photoId: existingPhotos[si] ?? null,
+      }));
+      return { ...p, layout, slots: newSlots };
+    }));
+  };
     }));
   };
 
@@ -650,11 +658,11 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             ['photos', <ImageIcon key="p" size={20}/>, 'Зображення'],
             ['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'],
             ['text', <Type key="t" size={20}/>, 'Текст'],
-            ['bg', <span key="bg" style={{fontSize:18}}>🎨</span>, 'Фон'],
-            ['shapes', <span key="sh" style={{fontSize:18}}>◻</span>, 'Фігури'],
-            ['frames', <span key="fr" style={{fontSize:18}}>⬜</span>, 'Рамки'],
+            ['bg', <span key="bg" style={{fontSize:16}}>▣</span>, 'Фон'],
+            ['shapes', <span key="sh" style={{fontSize:16}}>◇</span>, 'Фігури'],
+            ['frames', <span key="fr" style={{fontSize:16}}>▤</span>, 'Рамки'],
             ['options', <Settings key="opt" size={20}/>, 'Опції'],
-            ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:18}}>📖</span>, 'Обкладинка']]:[] as any),
+            ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:16}}>▣</span>, 'Обкладинка']]:[] as any),
           ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
             <button key={id} onClick={() => setLeftTab(id as any)}
               style={{ width: '100%', padding: '12px 4px', border: 'none', cursor: 'pointer', background: leftTab === id ? '#1e2d7d' : 'transparent', color: leftTab === id ? '#fff' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, marginBottom: 2, transition: 'background 0.15s' }}>
@@ -1279,6 +1287,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         shapes={getCurShapes(pageIdx)}
                         canvasW={pageW} canvasH={cH}
                         onChange={newShapes => setPageShapes(prev=>({...prev,[pageIdx]:newShapes}))}
+                        selectedId={selectedShapeId}
+                        onSelectId={id => { setSelectedShapeId(id); setActiveSide(side as 0|1); }}
                       />
                       {/* Frame layer */}
                       <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
@@ -1338,7 +1348,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             )}
             {tooltipStep === 1 && (
               <>
-                <div style={{ fontSize:24, marginBottom:12 }}>🖼</div>
+                <div style={{ fontSize:24, marginBottom:12 }}></div>
                 <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Зображення</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
                   В панелі <b>Зображення</b> завантажте фото та перетягніть їх на слоти сторінки.
