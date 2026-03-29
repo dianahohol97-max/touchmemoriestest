@@ -951,6 +951,28 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                               <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,bold:!t.bold}:t)}))}
                                 style={{ padding:'2px 6px', border: tb.bold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:4, background: tb.bold?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:700 }}>B</button>
                             </div>
+                            <select value={tb.fontFamily} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontFamily:e.target.value}:t)}))}
+                              style={{ width:'100%', padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, cursor:'pointer', fontFamily:tb.fontFamily }}>
+                              {[
+                                ['Playfair Display','Playfair Display'],
+                                ['Cormorant Garamond','Cormorant Garamond'],
+                                ['Cinzel','Cinzel'],
+                                ['EB Garamond','EB Garamond'],
+                                ['Dancing Script','Dancing Script'],
+                                ['Great Vibes','Great Vibes'],
+                                ['Pinyon Script','Pinyon Script'],
+                                ['Sacramento','Sacramento'],
+                                ['Pacifico','Pacifico'],
+                                ['Lobster','Lobster'],
+                                ['Caveat','Caveat'],
+                                ['Montserrat','Montserrat'],
+                                ['Raleway','Raleway'],
+                                ['Oswald','Oswald'],
+                                ['Bebas Neue','Bebas Neue'],
+                              ].map(([val, label]) => (
+                                <option key={val} value={val} style={{ fontFamily:val }}>{label}</option>
+                              ))}
+                            </select>
                           </div>
                         ))}
                       </div>
