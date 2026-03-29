@@ -51,11 +51,35 @@ function AdminDashboardContent() {
     const [loading, setLoading] = useState(true);
     const [recentOrders, setRecentOrders] = useState<any[]>([]);
     const [alerts, setAlerts] = useState<any[]>([]);
+    const [sourceStats, setSourceStats] = useState<{source: string; count: number}[]>([]);
+
+    const fetchSourceStats = async () => {
+        try {
+            const now = new Date();
+            let since: Date;
+            if (period === 'today') since = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            else if (period === 'week') { since = new Date(now); since.setDate(since.getDate() - 7); }
+            else { since = new Date(now); since.setMonth(since.getMonth() - 1); }
+
+            const { data: orders } = await supabase
+                .from('orders')
+                .select('source')
+                .gte('created_at', since.toISOString());
+
+            if (orders) {
+                const counts: Record<string, number> = {};
+                orders.forEach((o: any) => { const s = o.source || 'other'; counts[s] = (counts[s] || 0) + 1; });
+                const stats = Object.entries(counts).map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count);
+                setSourceStats(stats);
+            }
+        } catch (err) { console.error('Source stats error:', err); }
+    };
 
     useEffect(() => {
         fetchAnalytics();
         fetchRecentOrders();
         fetchAlerts();
+        fetchSourceStats();
 
         // Realtime orders
         const channel = supabase
@@ -306,6 +330,40 @@ function AdminDashboardContent() {
             </div>
 
             <div style={chartsLayout}>
+                {/* Order Sources */}
+                {sourceStats.length > 0 && (() => {
+                    const SOURCE_LABELS: Record<string, string> = {
+                        site: 'Сайт', instagram: 'Instagram', telegram: 'Telegram',
+                        phone: 'Телефон', manual: 'Вручну', other: 'Інше',
+                    };
+                    const SOURCE_COLORS: Record<string, string> = {
+                        site: '#6366f1', instagram: '#ec4899', telegram: '#3b82f6',
+                        phone: '#10b981', manual: '#f59e0b', other: '#94a3b8',
+                    };
+                    const totalOrders = sourceStats.reduce((s, r) => s + r.count, 0);
+                    return (
+                        <div style={{ background: '#fff', borderRadius: 16, padding: '24px 28px', border: '1px solid #f1f5f9', marginBottom: 24 }}>
+                            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', marginBottom: 16 }}>Джерела замовлень</h2>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {sourceStats.map(({ source, count }) => {
+                                    const pct = totalOrders > 0 ? Math.round(count / totalOrders * 100) : 0;
+                                    return (
+                                        <div key={source} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <div style={{ width: 120, fontSize: 13, fontWeight: 600, color: '#374151' }}>{SOURCE_LABELS[source] || source}</div>
+                                            <div style={{ flex: 1, height: 24, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
+                                                <div style={{ width: `${pct}%`, height: '100%', background: SOURCE_COLORS[source] || '#94a3b8', borderRadius: 6, transition: 'width 0.5s ease', minWidth: pct > 0 ? 4 : 0 }} />
+                                            </div>
+                                            <div style={{ width: 40, fontSize: 13, fontWeight: 700, color: '#1e293b', textAlign: 'right' }}>{count}</div>
+                                            <div style={{ width: 40, fontSize: 12, color: '#64748b', textAlign: 'right' }}>{pct}%</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 12 }}>Всього: {totalOrders} замовлень</div>
+                        </div>
+                    );
+                })()}
+
                 {/* Main Revenue Chart */}
                 <div style={chartCardLarge}>
                     <div style={cardHeader}>
