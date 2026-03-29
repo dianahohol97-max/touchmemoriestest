@@ -891,6 +891,25 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       )}
 
                       {/* Metal color — gold/silver only */}
+                      {/* Variant size selector */}
+                      {(() => {
+                        const sizeKey = (config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
+                        const variants = (METAL_VARIANTS[sizeKey]||METAL_VARIANTS['20x20']||[]);
+                        if (variants.length <= 1) return null;
+                        return (
+                          <div style={{ marginBottom:10 }}>
+                            <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Розмір вставки</div>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                              {variants.map(v => (
+                                <button key={v} onClick={() => setCoverState(prev=>({...prev, decoVariant: v}))}
+                                  style={{ padding:'5px 9px', border: coverState.decoVariant===v ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: coverState.decoVariant===v ? '#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:600, color: coverState.decoVariant===v ? '#1e2d7d':'#374151' }}>
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
                       {coverState.decoType === 'metal' && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір металу</div>
