@@ -69,12 +69,17 @@ interface ShapesLayerProps {
   canvasW: number;
   canvasH: number;
   onChange: (shapes: Shape[]) => void;
+  onSelectId?: (id: string | null) => void;
+  selectedId?: string | null;
 }
 
 const HANDLE_SIZE = 8;
 
-export function ShapesLayer({ shapes, canvasW, canvasH, onChange }: ShapesLayerProps) {
-  const [selectedId, setSelectedId] = useState<string|null>(null);
+export function ShapesLayer(props: ShapesLayerProps) {
+  const { shapes, canvasW, canvasH, onChange } = props;
+  const [localSelectedId, setLocalSelectedId] = useState<string|null>(null);
+  const selectedId = props.selectedId !== undefined ? props.selectedId : localSelectedId;
+  const setSelectedId = (id: string|null) => { setLocalSelectedId(id); props.onSelectId?.(id); };
   const dragRef = useRef<{type:'move'|'se'|'rotate'; id:string; sx:number; sy:number; orig:Shape}|null>(null);
 
   const update = (id:string, patch:Partial<Shape>) => onChange(shapes.map(s=>s.id===id?{...s,...patch}:s));
