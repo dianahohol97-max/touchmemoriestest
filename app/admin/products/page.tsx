@@ -21,6 +21,7 @@ interface Product {
     sale_price: number | null;
     product_attributes: any;
     custom_attributes: any;
+    is_active?: boolean;
 }
 
 interface Attribute {
@@ -62,13 +63,18 @@ export default function ProductsManagementPage() {
     async function fetchProducts() {
         setLoading(true);
         try {
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from('products')
-                .select('id, name, slug, price, sale_price, product_attributes, custom_attributes')
-                .eq('is_active', true)
+                .select('id, name, slug, price, sale_price, product_attributes, custom_attributes, is_active')
                 .order('name');
 
+            if (error) {
+                console.error('Supabase error:', error);
+                toast.error('Помилка завантаження: ' + error.message);
+            }
+
             if (data) {
+                console.log('[Admin Products] Fetched:', data.length);
                 setProducts(data);
                 if (data.length > 0) {
                     setSelectedProduct(data[0]);
@@ -185,7 +191,7 @@ export default function ProductsManagementPage() {
                                         : 'bg-gray-50 hover:bg-gray-100 text-gray-900'
                                 }`}
                             >
-                                <div className="font-medium text-sm truncate">{product.name}</div>
+                                <div className="font-medium text-sm truncate">{product.name} {product.is_active === false && <span className="text-red-400 text-xs">(неактивний)</span>}</div>
                                 <div className="text-xs opacity-75 mt-1">{product.price} ₴</div>
                             </button>
                         ))}
