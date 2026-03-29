@@ -166,7 +166,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
             </aside>
 
             {/* Main Content */}
-            <main style={{ marginLeft: '320px', flex: 1, padding: '40px 60px' }}>
+            <main style={{ marginLeft: '320px', flex: 1, padding: '40px 60px', overflowY: 'auto', height: '100vh' }}>
                 {children}
             </main>
         </div>
