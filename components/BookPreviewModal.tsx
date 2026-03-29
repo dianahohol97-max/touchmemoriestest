@@ -75,7 +75,7 @@ export function BookPreviewModal({ pages, photos, propW, propH, onClose }: BookP
             <span style={{ fontSize:(tb.fontSize*0.85)+'px', fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?700:400, fontStyle:tb.italic?'italic':'normal', whiteSpace:'pre' }}>{tb.text}</span>
           </div>
         ))}
-        <div style={{ position:'absolute', bottom:6, [side==='left'?'left':'right']:10, fontSize:9, color:'rgba(0,0,0,0.25)' }}>{pageIdx}</div>
+        <div style={{ position:'absolute', bottom:6, [side==='left'?'left':'right']:10, fontSize:9, color:'rgba(0,0,0,0.25)' }}>{pageIdx > 0 ? pageIdx : ''}</div>
       </div>
     );
   };
@@ -91,7 +91,10 @@ export function BookPreviewModal({ pages, photos, propW, propH, onClose }: BookP
     ? 'rotateY(12deg) scale(0.97)'
     : 'rotateY(0deg) scale(1)';
 
-  const spreadLabel = spread === 0 ? 'Обкладинка' : `Розворот ${spread} / ${spreadCount - 1}`;
+  const spreadLabel = spread === 0 ? 'Обкладинка' : (() => {
+    const l = leftPageIdx, r = rightPageIdx <= pages.length - 1 ? rightPageIdx : null;
+    return `Розворот ${spread} / ${spreadCount - 1} (стор. ${l}${r ? `–${r}` : ''})`;
+  })();
 
   return (
     <div

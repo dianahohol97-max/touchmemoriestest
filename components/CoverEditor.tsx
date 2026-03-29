@@ -21,6 +21,12 @@ export const FABRIC_COLORS: Record<string, string> = {
 };
 
 // Decoration variants per size
+export const VELOUR_COLORS: Record<string, string> = {
+  'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8',
+  'Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038',
+  'Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840',
+};
+
 export const ACRYLIC_VARIANTS: Record<string, string[]> = {
   '20x20':['100×100 мм','Ø145 мм'],
   '25x25':['100×100 мм','Ø145 мм'],
@@ -114,8 +120,8 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
     const name = config.coverColorName;
     if (config.coverMaterial === 'leatherette') return LEATHERETTE_COLORS[name] ?? '#D9C8B0';
     if (config.coverMaterial === 'fabric') return FABRIC_COLORS[name] ?? '#C4AA88';
-    // velour — use leatherette colors as approximation
-    return LEATHERETTE_COLORS[name] ?? '#C4AA88';
+    // velour
+    return VELOUR_COLORS[name] ?? LEATHERETTE_COLORS[name] ?? '#D9C8B0';
   })();
 
   const texture = config.coverMaterial === 'leatherette'
@@ -208,24 +214,32 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
 
           {/* ACRYL */}
           {config.decoType === 'acryl' && (
-            <div style={{ position:'absolute', left:boxL, top:boxT, width:boxW, height:boxH, borderRadius:dims.round?'50%':5,
-              overflow:'hidden', border:'2px solid rgba(255,255,255,0.5)', boxShadow:'0 2px 16px rgba(0,0,0,0.25)',
-              background:photo?'transparent':'rgba(255,255,255,0.12)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <div
+              onDragOver={e=>{e.preventDefault();e.stopPropagation();setDragOver(true);}}
+              onDragLeave={e=>{e.stopPropagation();setDragOver(false);}}
+              onDrop={e=>{e.preventDefault();e.stopPropagation();setDragOver(false);const id=e.dataTransfer.getData('photoId')||e.dataTransfer.getData('text/plain');if(id)onChange({photoId:id});}}
+              style={{ position:'absolute', left:boxL, top:boxT, width:boxW, height:boxH, borderRadius:dims.round?'50%':5,
+              overflow:'hidden', border:dragOver?'3px dashed #60a5fa':'2px solid rgba(255,255,255,0.5)', boxShadow:'0 2px 16px rgba(0,0,0,0.25)',
+              background:photo?'transparent':dragOver?'rgba(96,165,250,0.25)':'rgba(255,255,255,0.12)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'copy', zIndex:5 }}>
               {photo ? <><img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
-              : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Акрил<br/>{config.decoVariant}</span></div>}
+              : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Перетягніть фото<br/>на акрил</span></div>}
             </div>
           )}
 
           {/* PHOTO INSERT */}
           {config.decoType === 'photovstavka' && (
-            <div style={{ position:'absolute', left:boxL, top:boxT, width:boxW, height:boxH, borderRadius:3,
-              overflow:'hidden', border:'2px dashed rgba(255,255,255,0.5)', background:photo?'transparent':'rgba(255,255,255,0.1)',
-              display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <div
+              onDragOver={e=>{e.preventDefault();e.stopPropagation();setDragOver(true);}}
+              onDragLeave={e=>{e.stopPropagation();setDragOver(false);}}
+              onDrop={e=>{e.preventDefault();e.stopPropagation();setDragOver(false);const id=e.dataTransfer.getData('photoId')||e.dataTransfer.getData('text/plain');if(id)onChange({photoId:id});}}
+              style={{ position:'absolute', left:boxL, top:boxT, width:boxW, height:boxH, borderRadius:3,
+              overflow:'hidden', border:dragOver?'3px dashed #60a5fa':'2px dashed rgba(255,255,255,0.5)', background:photo?'transparent':dragOver?'rgba(96,165,250,0.2)':'rgba(255,255,255,0.1)',
+              display:'flex', alignItems:'center', justifyContent:'center', cursor:'copy', zIndex:5 }}>
               {photo ? <><img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
-              : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Фотовставка<br/>{config.decoVariant}</span></div>}
+              : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Перетягніть фото<br/>у вставку</span></div>}
             </div>
           )}
 

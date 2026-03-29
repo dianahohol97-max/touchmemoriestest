@@ -76,6 +76,23 @@ interface BookConstructorConfigProps {
     productSlug: string;
 }
 
+
+const VELOUR_COLORS: Record<string, string> = {
+  'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8',
+  'Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038',
+  'Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840',
+};
+const LEATHERETTE_BOOK_COLORS: Record<string, string> = {
+  'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E',
+  'Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C',
+  'Рожевий ніжний':'#E8B4B8','Червоний насичений':'#A01030','Коричневий':'#8E5038',
+  'Вишневий':'#7A2020','Графітовий темний':'#3A3038','Темно-синій':'#1A2040','Чорний':'#1A1A1A',
+};
+const FABRIC_BOOK_COLORS: Record<string, string> = {
+  'Бежевий/пісочний':'#C4AA88','Теракотовий':'#A04838','Фуксія':'#B838A0',
+  'Марсала/бордо':'#602838','Коричневий':'#6E4830','Сірий/графітовий':'#586058',
+  'Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020',
+};
 export default function BookConstructorConfig({ productSlug }: BookConstructorConfigProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -108,6 +125,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
     // Lamination state (for Друкована cover only)
     const [selectedLamination, setSelectedLamination] = useState<string>('');
+    const [selectedCoverColor, setSelectedCoverColor] = useState<string>('');
 
     const supabase = useMemo(() => createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -279,6 +297,14 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Decoration
         if (decoration) setSelectedDecorationType(decoration);
 
+        // Auto-set default cover color if not already set
+        if (!selectedCoverColor) {
+            const sl = productSlug.toLowerCase();
+            if (sl.includes('velour') || sl.includes('velyur')) setSelectedCoverColor('Бежевий');
+            else if (sl.includes('leather')) setSelectedCoverColor('Бежевий');
+            else if (sl.includes('fabric') || sl.includes('tkanina')) setSelectedCoverColor('Бежевий/пісочний');
+            // Друкована doesn't need color
+        }
         setAutoAdvance(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loading, product, photobookSizes.length]);
@@ -290,7 +316,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const timer = setTimeout(() => {
             // Photobooks need size + pages; magazines/travelbooks need just pages
             const canAdvance = pt === 'photobook'
-                ? (selectedSize && selectedPageCount)
+                ? (selectedSize && selectedPageCount && (selectedCoverType === 'Друкована' || selectedCoverColor))
                 : selectedPageCount;
             if (canAdvance) {
                 handleContinue();
@@ -438,6 +464,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     };
 
     const handleContinue = () => {
+        // Validate cover color for soft covers
+        if (selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) {
+            alert('Будь ласка, оберіть колір обкладинки');
+            return;
+        }
         // Store configuration in sessionStorage
         const config = {
             productSlug,
@@ -449,6 +480,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             enableEndpaper,
             enableKalka,
             selectedLamination: selectedLamination || null,
+            selectedCoverColor: selectedCoverColor || null,
             selectedDecorationType: selectedDecorationType !== 'none' ? selectedDecorationType : null,
             selectedDecorationVariant: selectedDecorationVariant || null,
             decorationSurcharge: (() => {
@@ -502,6 +534,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             if (!selectedPageCount) return false;
             if (selectedCoverType === 'Друкована' && !selectedLamination) return false;
             if (selectedDecorationType !== 'none' && !selectedDecorationVariant) return false;
+            if (selectedCoverType !== 'Друкована' && !selectedCoverColor) return false;
             return true;
         }
 
@@ -596,7 +629,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     <button
                                         key={cover.id}
                                         type="button"
-                                        onClick={() => { setSelectedCoverType(cover.name); setSelectedDecorationType('none'); setSelectedDecorationVariant(''); setSelectedLamination(''); setSelectedPageCount(''); }}
+                                        onClick={() => { setSelectedCoverType(cover.name); setSelectedDecorationType('none'); setSelectedDecorationVariant(''); setSelectedLamination(''); setSelectedPageCount(''); setSelectedCoverColor(''); }}
                                         className={`p-4 rounded-lg border-2 text-center transition-all ${
                                             selectedCoverType === cover.name
                                                 ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
@@ -612,6 +645,42 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             </div>
                         </div>
                     )}
+
+                    {/* ── Cover color picker for soft covers ── */}
+                    {productType === 'photobook' && selectedCoverType && selectedCoverType !== 'Друкована' && (() => {
+                        const colors = selectedCoverType === 'Шкірзамінник' ? LEATHERETTE_BOOK_COLORS
+                            : selectedCoverType === 'Тканина' ? FABRIC_BOOK_COLORS
+                            : VELOUR_COLORS;
+                        return (
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                    Колір обкладинки <span className="text-red-500">*</span>
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.entries(colors).map(([name, hex]) => (
+                                        <button
+                                            key={name}
+                                            type="button"
+                                            title={name}
+                                            onClick={() => setSelectedCoverColor(name)}
+                                            className="relative"
+                                            style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: hex,
+                                                border: selectedCoverColor === name ? '3px solid #1e2d7d' : '2px solid #e2e8f0',
+                                                cursor: 'pointer',
+                                                boxShadow: selectedCoverColor === name ? '0 0 0 2px #fff, 0 0 0 4px #1e2d7d' : 'none',
+                                                transition: 'all 0.15s',
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                                {selectedCoverColor && (
+                                    <p className="text-sm text-gray-500 mt-2">Обрано: <strong>{selectedCoverColor}</strong></p>
+                                )}
+                            </div>
+                        );
+                    })()}
 
                     {/* ── Photobook: Lamination for Друкована cover ── */}
                     {productType === 'photobook' && selectedCoverType === 'Друкована' && (
