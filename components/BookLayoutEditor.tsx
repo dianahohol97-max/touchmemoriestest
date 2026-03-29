@@ -799,20 +799,78 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   );
                 })()}
 
-                {coverState.decoType === 'flex' && (
-                  <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір флексу</div>
-                    <div style={{ display:'flex', gap:6 }}>
-                      {([['gold','#D4AF37','Gold'],['silver','#C0C0C0','Silver'],['white','#F0F0F0','White'],['black','#1A1A1A','Black']] as [string,string,string][]).map(([v,hex,c]) => (
-                        <div key={v} onClick={() => setCoverState(s => ({...s, decoVariant: v}))}
-                          style={{ width:28, height:28, borderRadius:'50%', background:hex, border: coverState.decoVariant===v ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor:'pointer' }}
-                          title={c} />
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Flex color + font + size */}
+                      {coverState.decoType === 'flex' && (
+                        <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:10 }}>
+                          <div>
+                            <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір флексу</div>
+                            <div style={{ display:'flex', gap:8 }}>
+                              {FLEX_COLORS.map(c => (
+                                <button key={c.value}
+                                  onClick={() => setCoverState(prev => ({...prev, decoColor: c.value}))}
+                                  title={c.label}
+                                  style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, background:'none', border:'none', cursor:'pointer', padding:0 }}>
+                                  <div style={{ width:30, height:30, borderRadius:'50%', background:c.color, border: coverState.decoColor===c.value ? '3px solid #1e2d7d':'2px solid #e2e8f0', boxShadow:c.value==='white'?'inset 0 0 0 1px #ccc':'none' }}/>
+                                  <span style={{ fontSize:9, color: coverState.decoColor===c.value ? '#1e2d7d':'#94a3b8', fontWeight: coverState.decoColor===c.value?700:400 }}>{c.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Шрифт</div>
+                            <select value={coverState.textFontFamily}
+                              onChange={e => setCoverState(prev => ({...prev, textFontFamily: e.target.value}))}
+                              style={{ width:'100%', padding:'7px 8px', border:'1px solid #e2e8f0', borderRadius:7, fontSize:12, fontFamily:coverState.textFontFamily }}>
+                              {['Playfair Display','Cinzel','Cormorant Garamond','Dancing Script','Great Vibes','Montserrat','Philosopher','Pinyon Script','Sacramento','Bebas Neue'].map(f=>(
+                                <option key={f} value={f}>{f}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                              <span style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Розмір тексту</span>
+                              <span style={{ fontSize:11, fontWeight:800, color:'#1e2d7d' }}>{coverState.textFontSize||32} px</span>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              <button onClick={()=>setCoverState(p=>({...p,textFontSize:Math.max(10,(p.textFontSize||32)-2)}))} style={{ width:28,height:28,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:15 }}>−</button>
+                              <input type="range" min={10} max={80} value={coverState.textFontSize||32}
+                                onChange={e=>setCoverState(p=>({...p,textFontSize:+e.target.value}))} style={{ flex:1 }}/>
+                              <button onClick={()=>setCoverState(p=>({...p,textFontSize:Math.min(80,(p.textFontSize||32)+2)}))} style={{ width:28,height:28,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:15 }}>+</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
-                {coverState.decoType === 'metal' && (
+                      {/* Engraving font + size */}
+                      {coverState.decoType === 'graviruvannya' && (
+                        <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:10 }}>
+                          <div>
+                            <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Шрифт гравіювання</div>
+                            <select value={coverState.textFontFamily}
+                              onChange={e=>setCoverState(p=>({...p,textFontFamily:e.target.value}))}
+                              style={{ width:'100%', padding:'7px 8px', border:'1px solid #e2e8f0', borderRadius:7, fontSize:12, fontFamily:coverState.textFontFamily }}>
+                              {['Playfair Display','Cinzel','Cormorant Garamond','Montserrat','Philosopher','Great Vibes','Dancing Script'].map(f=>(
+                                <option key={f} value={f}>{f}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                              <span style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Розмір тексту</span>
+                              <span style={{ fontSize:11, fontWeight:800, color:'#1e2d7d' }}>{coverState.textFontSize||32} px</span>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              <button onClick={()=>setCoverState(p=>({...p,textFontSize:Math.max(10,(p.textFontSize||32)-2)}))} style={{ width:28,height:28,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:15 }}>−</button>
+                              <input type="range" min={10} max={80} value={coverState.textFontSize||32}
+                                onChange={e=>setCoverState(p=>({...p,textFontSize:+e.target.value}))} style={{ flex:1 }}/>
+                              <button onClick={()=>setCoverState(p=>({...p,textFontSize:Math.min(80,(p.textFontSize||32)+2)}))} style={{ width:28,height:28,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:15 }}>+</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Metal color — gold/silver only */}
+                      {coverState.decoType === 'metal' && ({coverState.decoType === 'metal' && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір металу</div>
                     <div style={{ display:'flex', gap:6 }}>
