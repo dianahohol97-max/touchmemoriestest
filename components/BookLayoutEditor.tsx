@@ -264,7 +264,7 @@ export default function BookLayoutEditor() {
     : null;
   const [coverColorOverride, setCoverColorOverride] = useState<string|null>(null);
   const effectiveCoverColor = coverColorOverride ?? (config?.selectedCoverColor || '');
-  const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;x:number;y:number;w:number;h:number}[]>>({});
+  const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;x:number;y:number;w:number|string;h:number|string}[]>>({});
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -1128,14 +1128,13 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     {name:'Веселка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f308.svg'},
                     {name:'Полум\'я', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f525.svg'},
                     {name:'Блискавка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/26a1.svg'},
-                  ].map(sticker => {
-                    const spi = getActivePageIdx();
-                    return (
-                      <button key={sticker.name}
-                        onClick={() => {
-                          const newS = { id:'stk-'+Date.now(), url:sticker.url, x:30, y:30, w:60, h:60 };
-                          setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
-                        }}
+                  ].map(sticker => (
+                    <button key={sticker.name}
+                      onClick={() => {
+                        const spi = getActivePageIdx();
+                        const newS = { id:'stk-'+Date.now(), url:sticker.url, x:30, y:30, w:'60px', h:'60px' };
+                        setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
+                      }}
                         style={{ padding:6, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}
                         title={sticker.name}>
                         <img src={sticker.url} style={{ width:32, height:32, objectFit:'contain' }} alt={sticker.name}/>
