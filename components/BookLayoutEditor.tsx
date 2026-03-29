@@ -893,10 +893,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       <div>
                         <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Форма фотослота</div>
                         <div style={{ display:'flex', gap:4 }}>
-                          {(['rect','rounded','circle'] as const).map(sh => (
+                          {(['rounded','circle'] as const).map(sh => (
                             <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
                               style={{ flex:1, padding:'6px 4px', border: ps.shape===sh ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: ps.shape===sh ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:16 }}>
-                              {sh==='rect'?'▭':sh==='rounded'?'▢':'◯'}
+                              {sh==='rounded'?'▢':'◯'}
                             </button>
                           ))}
                         </div>
@@ -1054,8 +1054,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       </div>
                     );
                   })()}
-                  <div style={{ fontSize:11, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>ОЗДОБЛЕННЯ</div>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff' }}>
+                  <div style={{ fontSize:11, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6, display: isPrinted ? 'none' : 'block' }}>ОЗДОБЛЕННЯ</div>
+                  <div style={{ display: isPrinted ? 'none' : 'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff' }}>
                     <span style={{ fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
                       {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':'Фотовставка','metal':'Металева вставка','flex':'Флекс','graviruvannya':'Гравірування'} as Record<string,string>)[coverState.decoType] || 'Без'}
                       {coverState.decoVariant ? <span style={{ fontWeight:400, color:'#64748b', marginLeft:6, fontSize:11 }}>{coverState.decoVariant}</span> : null}
@@ -1064,7 +1064,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       {showDecoList ? 'Сховати' : 'Змінити'}
                     </button>
                   </div>
-                  {showDecoList && (
+                  {showDecoList && !isPrinted && (
                     <div style={{ display:'flex', flexDirection:'column', gap:3, marginTop:4 }}>
                       {(['none','acryl','photovstavka','metal','flex','graviruvannya'] as CoverDecoType[]).map(id => (
                         <button key={id} onClick={() => {
