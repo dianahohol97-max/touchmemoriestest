@@ -399,14 +399,16 @@ export default function BookLayoutEditor() {
     const def = LAYOUTS.find(l => l.id === layout);
     if (!def) return;
     const targetIdx = getActivePageIdx();
-    const newSlotCount = def.slots;
     setPages(prev => prev.map((p, i) => {
       if (i !== targetIdx) return p;
-      const existingPhotos = p.slots.map(s => s.photoId).filter(Boolean);
-      const newSlots: SlotData[] = Array.from({ length: newSlotCount }, (_, si) => ({
-        photoId: existingPhotos[si] ?? null, cropX: 50, cropY: 50, zoom: 1,
+      const oldPhotos = p.slots.map(s2 => s2.photoId).filter(Boolean) as string[];
+      const newSlots: SlotData[] = Array.from({ length: def.slots }, (_, si) => ({
+        photoId: oldPhotos[si] ?? null,
+        cropX: 0, cropY: 0, zoom: 1,
       }));
       return { ...p, layout, slots: newSlots };
+    }));
+  };
     }));
   };
 
@@ -891,6 +893,25 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       )}
 
                       {/* Metal color — gold/silver only */}
+                      {/* Variant size selector */}
+                      {(() => {
+                        const sizeKey = (config.selectedSize||'20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
+                        const variants = (METAL_VARIANTS[sizeKey]||METAL_VARIANTS['20x20']||[]);
+                        if (variants.length <= 1) return null;
+                        return (
+                          <div style={{ marginBottom:10 }}>
+                            <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Розмір вставки</div>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                              {variants.map(v => (
+                                <button key={v} onClick={() => setCoverState(prev=>({...prev, decoVariant: v}))}
+                                  style={{ padding:'5px 9px', border: coverState.decoVariant===v ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: coverState.decoVariant===v ? '#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:600, color: coverState.decoVariant===v ? '#1e2d7d':'#374151' }}>
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
                       {coverState.decoType === 'metal' && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір металу</div>
@@ -1012,12 +1033,11 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   <p style={{ fontSize:10, color:'#94a3b8', marginTop:4 }}>Розмір обрано при замовленні</p>
                 </div>
 
-                {/* Cover type */}
-                <div>
+<div>
                   <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип обкладинки</div>
                   <div style={{ padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:13, fontWeight:600, color:'#374151' }}>
                     {config.selectedCoverType || 'Велюр'}
-                    {config.selectedCoverColor ? <span style={{ color:'#94a3b8', marginLeft:6, fontWeight:400 }}>· {config.selectedCoverColor}</span> : null}
+                    {config.selectedCoverColor && !config.selectedCoverType?.toLowerCase().includes('друков') ? <span style={{ color:'#94a3b8', marginLeft:6, fontWeight:400 }}>· {config.selectedCoverColor}</span> : null}
                   </div>
                 </div>
 
@@ -1043,22 +1063,25 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   </div>
                 </div>
 
-                {/* Lamination / paper type */}
-                <div>
-                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип ламінації</div>
-                  <div style={{ display:'flex', gap:6 }}>
-                    {['Глянцева', 'Матова'].map(lam => (
-                      <button key={lam}
-                        onClick={() => {/* lamination stored in config — read only for now */}}
-                        style={{ flex:1, padding:'8px', border: (config.selectedLamination||'Глянцева')===lam ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:(config.selectedLamination||'Глянцева')===lam?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:(config.selectedLamination||'Глянцева')===lam?'#1e2d7d':'#374151' }}>
-                        {lam}
-                      </button>
-                    ))}
+{/* Lamination — only for printed covers */}
+                {config.selectedCoverType?.toLowerCase().includes('друков') && (
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Тип ламінації</div>
+                    <div style={{ display:'flex', gap:6 }}>
+                      {['Глянцева', 'Матова'].map(lam => (
+                        <button key={lam}
+                          onClick={() => {/* lamination stored in config — read only for now */}}
+                          style={{ flex:1, padding:'8px', border: (config.selectedLamination||'Глянцева')===lam ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:(config.selectedLamination||'Глянцева')===lam?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:(config.selectedLamination||'Глянцева')===lam?'#1e2d7d':'#374151' }}>
+                          {lam}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Cover templates */}
-                <div>
+{/* Cover templates — only for printed covers */}
+                {config.selectedCoverType?.toLowerCase().includes('друков') && (
+                  <div>
                   <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Дизайн обкладинки</div>
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
                     {[
@@ -1078,7 +1101,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     ))}
                   </div>
                   <p style={{ fontSize:10, color:'#94a3b8', marginTop:6 }}>Більше шаблонів обкладинок — незабаром</p>
-                </div>
+                  </div>
+                )}
 
                 {/* Kalka option */}
                 {(config.selectedCoverType?.toLowerCase().includes('велюр') || config.selectedCoverType?.toLowerCase().includes('шкір') || config.selectedCoverType?.toLowerCase().includes('тканин')) && (
@@ -1200,6 +1224,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     textY: coverState.textY,
                     textFontFamily: coverState.textFontFamily,
                     textFontSize: coverState.textFontSize,
+                    extraTexts: coverState.extraTexts,
                   }}
                   photos={photos}
                   onChange={(cfg) => setCoverState(prev => ({ ...prev,
@@ -1207,6 +1232,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     ...(cfg.decoText !== undefined && { decoText: cfg.decoText }),
                     ...(cfg.textX !== undefined && { textX: cfg.textX }),
                     ...(cfg.textY !== undefined && { textY: cfg.textY }),
+                    ...(cfg.extraTexts !== undefined && { extraTexts: cfg.extraTexts }),
                   }))}
                 />
               </div>
@@ -1273,7 +1299,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                           <div key={i}
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
-                            onDrop={e => onDrop(e, pageIdx, i)}
+                            onDrop={e => onDrop(e, pageIdx, i)} onDragOver={e => e.preventDefault()}
                             style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f1f5f9'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1px dashed #cbd5e1'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
                           >
                             {photo ? (
@@ -1281,7 +1307,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                                 <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                  <img src={photo.preview} draggable={false} onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
+                                  <img src={photo.preview} draggable={true} onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} draggable={false} onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
                                     onMouseDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX, slot!.cropY); }}
                                     style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}/>
                                   {photoEditSlot===key && (

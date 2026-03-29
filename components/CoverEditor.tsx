@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ImageIcon, Move } from 'lucide-react';
 
 export type CoverMaterial = 'velour' | 'leatherette' | 'fabric' | 'printed';
@@ -69,17 +69,22 @@ function darkenHex(hex: string, amount=45): string {
   return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
 }
 
+export interface ExtraTextBlock {
+  id: string; text: string; x: number; y: number;
+  fontFamily: string; fontSize: number; color: string;
+}
 export interface CoverConfig {
   coverMaterial: CoverMaterial;
   coverColorName: string;
   decoType: DecoType;
   decoVariant: string;
-  decoColor: string;   // flex/metal color value: 'gold'|'silver'|'white'|'black'
+  decoColor: string;
   photoId: string | null;
   decoText: string;
-  textX: number; textY: number; // 0-100 percent
+  textX: number; textY: number;
   textFontFamily: string;
   textFontSize: number;
+  extraTexts?: ExtraTextBlock[];
 }
 
 interface CoverEditorProps {
@@ -92,6 +97,14 @@ interface CoverEditorProps {
 
 export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange }: CoverEditorProps) {
   const [dragOver, setDragOver] = useState(false);
+  // Load Cyrillic calligraphic fonts
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Marck+Script&family=Caveat&family=Philosopher&family=Comfortaa&family=Lobster&family=Dancing+Script&family=Great+Vibes&family=Pinyon+Script&family=Sacramento&family=Alex+Brush&family=Italianno&family=Pacifico&family=Playfair+Display&family=Cormorant+Garamond&family=Cinzel&family=EB+Garamond&family=Raleway&family=Josefin+Sans&family=Bebas+Neue&display=swap';
+    document.head.appendChild(link);
+    return () => { try { document.head.removeChild(link); } catch {} };
+  }, []);
   const dragRef = useRef<{startX:number;startY:number;startTX:number;startTY:number}|null>(null);
 
   const isSoft = config.coverMaterial !== 'printed';
@@ -279,6 +292,40 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
       {isSoft && config.decoType!=='none' && config.decoVariant && (
         <div style={{ position:'absolute', bottom:5, right:7, fontSize:9, color:'rgba(255,255,255,0.3)', fontWeight:600, zIndex:3, letterSpacing:'0.05em' }}>{config.decoVariant}</div>
       )}
+
+      {/* Extra text blocks — draggable on any cover type */}
+      {(config.extraTexts||[]).map(et => {
+        const etDragRef = { current: null as {sx:number;sy:number;stx:number;sty:number}|null };
+        return (
+          <div key={et.id}
+            onMouseDown={e => {
+              e.stopPropagation();
+              etDragRef.current = { sx:e.clientX, sy:e.clientY, stx:et.x, sty:et.y };
+              const onMove = (me:MouseEvent) => {
+                if (!etDragRef.current) return;
+                const dx=(me.clientX-etDragRef.current.sx)/canvasW*100;
+                const dy=(me.clientY-etDragRef.current.sy)/canvasH*100;
+                const updated = (config.extraTexts||[]).map(t=>t.id===et.id?{...t,x:Math.max(2,Math.min(95,etDragRef.current!.stx+dx)),y:Math.max(2,Math.min(95,etDragRef.current!.sty+dy))}:t);
+                onChange({extraTexts:updated});
+              };
+              const onUp = () => { etDragRef.current=null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
+              window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+            }}
+            style={{ position:'absolute', left:`${et.x}%`, top:`${et.y}%`, transform:'translate(-50%,-50%)', cursor:'move', zIndex:20, padding:'3px 6px', border:'1px dashed rgba(255,255,255,0.25)', borderRadius:3 }}>
+            <span
+              contentEditable suppressContentEditableWarning
+              onBlur={e => {
+                const updated=(config.extraTexts||[]).map(t=>t.id===et.id?{...t,text:e.currentTarget.textContent||''}:t);
+                onChange({extraTexts:updated});
+              }}
+              onClick={e=>e.stopPropagation()}
+              onMouseDown={e=>e.stopPropagation()}
+              style={{ display:'block', fontSize:(et.fontSize||20)+'px', fontFamily:(et.fontFamily||'Playfair Display')+',serif', color:et.color||'#fff', fontWeight:600, outline:'none', cursor:'text', whiteSpace:'nowrap', textShadow:isSoft?'none':'0 1px 3px rgba(0,0,0,0.4)' }}>
+              {et.text}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
