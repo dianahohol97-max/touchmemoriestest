@@ -297,6 +297,14 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Decoration
         if (decoration) setSelectedDecorationType(decoration);
 
+        // Auto-set default cover color if not already set
+        if (!selectedCoverColor) {
+            const sl = productSlug.toLowerCase();
+            if (sl.includes('velour') || sl.includes('velyur')) setSelectedCoverColor('Бежевий');
+            else if (sl.includes('leather')) setSelectedCoverColor('Бежевий');
+            else if (sl.includes('fabric') || sl.includes('tkanina')) setSelectedCoverColor('Бежевий/пісочний');
+            // Друкована doesn't need color
+        }
         setAutoAdvance(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loading, product, photobookSizes.length]);
@@ -308,7 +316,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const timer = setTimeout(() => {
             // Photobooks need size + pages; magazines/travelbooks need just pages
             const canAdvance = pt === 'photobook'
-                ? (selectedSize && selectedPageCount)
+                ? (selectedSize && selectedPageCount && (selectedCoverType === 'Друкована' || selectedCoverColor))
                 : selectedPageCount;
             if (canAdvance) {
                 handleContinue();
