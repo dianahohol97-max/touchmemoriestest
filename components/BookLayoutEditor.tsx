@@ -1085,7 +1085,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
                             onDrop={e => onDrop(e, pageIdx, i)}
-                            style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f1f5f9'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1px dashed #cbd5e1'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
+                            style={{ ...s, background: photo ? 'transparent' : (isOver ? '#dbeafe' : '#f8fafc'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '1.5px dashed #d1d5db'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default' }}
                           >
                             {photo ? (
                               <>
@@ -1109,8 +1109,9 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                                 <style>{`.del-btn{opacity:0!important}div:hover>.del-btn{opacity:1!important}`}</style>
                               </>
                             ) : (
-                              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:'#94a3b8',gap:4}}>
-                                <ImageIcon size={16}/><span style={{fontSize:9,fontWeight:600}}>Фото</span>
+                              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:'#cbd5e1',gap:6,border:'1px dashed #e2e8f0',borderRadius:4}}>
+                                <ImageIcon size={20} color="#cbd5e1"/>
+                                <span style={{fontSize:9,fontWeight:600,color:'#cbd5e1'}}>Перетягніть фото</span>
                               </div>
                             )}
                           </div>
