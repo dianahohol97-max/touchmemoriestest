@@ -208,7 +208,30 @@ export default function BookLayoutEditor() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(70);
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'>('photos');
-  const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] });
+  const [coverState, setCoverState] = useState<CoverState>(() => {
+    // Synchronously read config to initialize cover state immediately
+    try {
+      const cfg = typeof window !== 'undefined' ? sessionStorage.getItem('bookConstructorConfig') : null;
+      if (cfg) {
+        const c = JSON.parse(cfg);
+        const deco = (c.selectedDecorationType || c.selectedDecoration || '').toLowerCase();
+        let decoType: CoverDecoType = 'none';
+        if (deco.includes('акрил') || deco.includes('acrylic') || deco.includes('acryl')) decoType = 'acryl';
+        else if (deco.includes('фотовставка') || deco.includes('photo_insert') || deco.includes('photo insert')) decoType = 'photovstavka';
+        else if (deco.includes('флекс') || deco.includes('flex')) decoType = 'flex';
+        else if (deco.includes('метал') || deco.includes('metal')) decoType = 'metal';
+        else if (deco.includes('гравір') || deco.includes('engraving') || deco.includes('graviruvannya')) decoType = 'graviruvannya';
+        const variant = c.selectedDecorationVariant || '';
+        const dc = (c.selectedDecorationColor || '').toLowerCase();
+        let decoColor = '#D4AF37';
+        if (dc.includes('срібн') || dc.includes('silver')) decoColor = '#C0C0C0';
+        else if (dc.includes('білий') || dc.includes('white')) decoColor = '#FFFFFF';
+        else if (dc.includes('чорн') || dc.includes('black')) decoColor = '#1A1A1A';
+        return { decoType, decoVariant: variant, photoId: null, decoText: '', decoColor, textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] };
+      }
+    } catch {}
+    return { decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] };
+  });
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
   const [pageShapes, setPageShapes] = useState<Record<number, Shape[]>>({});
@@ -790,7 +813,16 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   {showDecoList && (
                     <div style={{ display:'flex', flexDirection:'column', gap:3, marginTop:4 }}>
                       {(['none','acryl','photovstavka','metal','flex','graviruvannya'] as CoverDecoType[]).map(id => (
-                        <button key={id} onClick={() => { setCoverState(prev=>({...prev, decoType:id as CoverDecoType, decoVariant:''})); setShowDecoList(false); }}
+                        <button key={id} onClick={() => {
+                          const sizeKey = (config?.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
+                          const firstVariant =
+                            id==='metal' ? (METAL_VARIANTS[sizeKey]||METAL_VARIANTS['20x20']||[''])[0] :
+                            id==='acryl' ? (ACRYLIC_VARIANTS[sizeKey]||ACRYLIC_VARIANTS['20x20']||[''])[0] :
+                            id==='photovstavka' ? (PHOTO_INSERT_VARIANTS[sizeKey]||PHOTO_INSERT_VARIANTS['20x20']||[''])[0] : '';
+                          const firstColor = id==='metal' ? 'gold' : id==='flex' ? 'gold' : '#D4AF37';
+                          setCoverState(prev=>({...prev, decoType:id as CoverDecoType, decoVariant:firstVariant, decoColor:firstColor}));
+                          setShowDecoList(false);
+                        }}
                           style={{ padding:'7px 12px', border:coverState.decoType===id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:coverState.decoType===id?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:coverState.decoType===id?'#1e2d7d':'#374151', textAlign:'left' }}>
                           {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':'Фотовставка','metal':'Металева вставка','flex':'Флекс','graviruvannya':'Гравірування'} as Record<string,string>)[id]}
                         </button>
@@ -841,6 +873,33 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                   </div>
                 )}
+                {/* Variant selector — shows for acryl, photovstavka, metal */}
+                {(() => {
+                  const sizeKey = (config?.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
+                  const variants =
+                    coverState.decoType==='acryl' ? (ACRYLIC_VARIANTS[sizeKey] || ACRYLIC_VARIANTS['20x20'] || ['100×100 мм']) :
+                    coverState.decoType==='photovstavka' ? (PHOTO_INSERT_VARIANTS[sizeKey] || PHOTO_INSERT_VARIANTS['20x20'] || ['100×100 мм']) :
+                    coverState.decoType==='metal' ? (METAL_VARIANTS[sizeKey] || METAL_VARIANTS['20x20'] || ['60×60 золотий','60×60 срібний']) :
+                    [];
+                  if (!variants.length) return null;
+                  // Auto-select first variant when none selected or decoType just changed
+                  if (!coverState.decoVariant && variants.length > 0) {
+                    setTimeout(() => setCoverState(prev => prev.decoVariant ? prev : ({...prev, decoVariant: variants[0]})), 0);
+                  }
+                  return (
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Розмір вставки</div>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                        {variants.map(v => (
+                          <button key={v} onClick={() => setCoverState(prev=>({...prev, decoVariant:v}))}
+                            style={{ padding:'5px 9px', border:coverState.decoVariant===v?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background:coverState.decoVariant===v?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:600, color:coverState.decoVariant===v?'#1e2d7d':'#374151' }}>
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {coverState.decoType==='metal' && (
                   <div>
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Колір металу</div>
@@ -852,6 +911,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                   </div>
                 )}
+                {coverState.decoType !== 'none' && (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Написи на обкладинці</div>
                   <button onClick={() => setCoverState(prev=>({...prev, extraTexts:[...(prev.extraTexts||[]), {id:'et-'+Date.now(), text:'Ваш напис', x:50, y:75, fontFamily:prev.textFontFamily||'Marck Script', fontSize:20, color:'#ffffff'}]}))}
@@ -866,6 +926,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                   ))}
                 </div>
+                )}
               </div>
             )}
             {/* BACKGROUND */}
