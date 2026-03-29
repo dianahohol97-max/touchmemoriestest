@@ -1476,15 +1476,75 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Розвороти</span>
             <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{pages.length}</span>
           </div>
-          <div style={{ flex: 1, overflow: 'auto', padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {pages.map((pg, idx) => {
-              const active = idx === currentIdx;
-              const ph = getPhoto(pg.slots[0]?.photoId ?? null);
+          <div style={{ flex: 1, overflow: 'auto', padding: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Cover spread */}
+            {(() => {
+              const active = currentIdx === 0;
+              const pg = pages[0];
+              const ph = pg ? getPhoto(pg.slots[0]?.photoId ?? null) : null;
+              const TW = 130, TH = Math.round(TW * prop.h / prop.w);
               return (
-                <button key={pg.id} onClick={() => setCurrentIdx(idx)}
+                <button key="cover" onClick={() => setCurrentIdx(0)}
                   style={{ width: '100%', padding: '4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}>
-                  <div style={{ width: '100%', aspectRatio: `${prop.w}/${prop.h}`, background: ph ? `url(${ph.preview}) center/cover` : '#e8ecf4', borderRadius: 3, marginBottom: 3 }} />
-                  <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#1e2d7d' : '#64748b' }}>{pg.label}</span>
+                  <div style={{ width: '100%', aspectRatio: `${prop.w*2}/${prop.h}`, background: '#d4b896', borderRadius: 3, marginBottom: 3, position:'relative', overflow:'hidden' }}>
+                    <div style={{ position:'absolute', right:0, top:0, width:'50%', height:'100%', background: ph ? 'transparent' : '#c4a882' }}>
+                      {ph && <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                    </div>
+                    <div style={{ position:'absolute', left:0, top:0, width:'50%', height:'100%', background:'rgba(0,0,0,0.08)' }}/>
+                  </div>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#1e2d7d' : '#64748b' }}>Обкладинка</span>
+                </button>
+              );
+            })()}
+            {/* Content spreads */}
+            {Array.from({ length: Math.ceil((pages.length - 1) / 2) }, (_, si) => {
+              const spreadIdx = si + 1;
+              const active = currentIdx === spreadIdx;
+              const leftIdx = (spreadIdx - 1) * 2 + 1;
+              const rightIdx = leftIdx + 1;
+              const pgL = pages[leftIdx];
+              const pgR = pages[rightIdx];
+              const TW = 130;
+              const renderThumbPage = (pg: typeof pages[0] | undefined, side: 'left'|'right') => {
+                if (!pg) return <div style={{ flex:1, height:'100%', background:'#f1f5f9' }}/>;
+                const defs = getSlotDefs(pg.layout, TW/2, TW * prop.h / prop.w / 1);
+                return (
+                  <div style={{ flex:1, height:'100%', position:'relative', overflow:'hidden', background:'#fff',
+                    borderLeft: side==='right' ? '1px solid rgba(0,0,0,0.1)' : 'none' }}>
+                    {defs.map(({i, s}) => {
+                      const slot = pg.slots[i];
+                      const ph = slot ? getPhoto(slot.photoId) : null;
+                      const scale = (TW/2) / (cW/2);
+                      const ss: React.CSSProperties = {
+                        position: 'absolute',
+                        left: `${((s.left as number)||0) / (cW/2) * 100}%`,
+                        top: `${((s.top as number)||0) / cH * 100}%`,
+                        width: `${((s.width as number)||cW/2) / (cW/2) * 100}%`,
+                        height: `${((s.height as number)||cH) / cH * 100}%`,
+                        overflow: 'hidden',
+                        background: ph ? 'transparent' : 'rgba(99,102,241,0.12)',
+                        border: ph ? 'none' : '1px dashed #818cf8',
+                        borderRadius: 2,
+                      };
+                      return (
+                        <div key={i} style={ss}>
+                          {ph && <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              };
+              return (
+                <button key={spreadIdx} onClick={() => setCurrentIdx(spreadIdx)}
+                  style={{ width: '100%', padding: '4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}>
+                  <div style={{ width: '100%', aspectRatio: `${prop.w*2}/${prop.h}`, display:'flex', borderRadius: 3, marginBottom: 3, overflow:'hidden' }}>
+                    {renderThumbPage(pgL, 'left')}
+                    {renderThumbPage(pgR, 'right')}
+                  </div>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#1e2d7d' : '#64748b' }}>
+                    {pgL?.label?.replace('Стор. ', '')}{pgR ? `–${pgR.label?.replace('Стор. ', '')}` : ''}
+                  </span>
                 </button>
               );
             })}
