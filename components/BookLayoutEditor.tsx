@@ -644,10 +644,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             ['photos', <ImageIcon key="p" size={20}/>, 'Зображення'],
             ['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'],
             ['text', <Type key="t" size={20}/>, 'Текст'],
-            ['bg', <span key="bg" style={{fontSize:18}}></span>, 'Фон'],
-            ['shapes', <span key="sh" style={{fontSize:18}}>◻</span>, 'Фігури'],
+            ['bg', <span key="bg" style={{fontSize:16,fontWeight:700}}>Фн</span>, 'Фон'],
+            ['shapes', <span key="sh" style={{fontSize:16,fontWeight:700}}>◻</span>, 'Фігури'],
             ['stickers', <span key="stk" style={{fontSize:16}}>★</span>, 'Стікери'],
-            ['frames', <span key="fr" style={{fontSize:18}}>⬜</span>, 'Рамки'],
+            ['frames', <span key="fr" style={{fontSize:16,fontWeight:700}}>⬜</span>, 'Рамки'],
             ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:18}}>▣</span>, 'Обкладинка']]:[] as any),
           ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
             <button key={id} onClick={() => setLeftTab(id as any)}
@@ -850,13 +850,20 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {leftTab === 'shapes' && (() => {
               const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
               const shapes = getCurShapes(spi);
-              const selShape = shapes.find(s=>s.id===selectedShapeId) ?? null;
+              // Search both pages of spread for the selected shape
+              const allSpreadIdxs = currentIdx===0 ? [0] : [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
+              let selShape = null as typeof shapes[0] | null;
+              let selSpi = spi;
+              for (const pi of allSpreadIdxs) {
+                const found = getCurShapes(pi).find(s=>s.id===selectedShapeId);
+                if (found) { selShape = found; selSpi = pi; break; }
+              }
               return (
                 <ShapeControls
                   selectedShape={selShape}
                   onChange={patch => {
                     if (!selShape) return;
-                    setPageShapes(prev=>({...prev,[spi]:(prev[spi]||[]).map(s=>s.id===selShape.id?{...s,...patch}:s)}));
+                    setPageShapes(prev=>({...prev,[selSpi]:(prev[selSpi]||[]).map(s=>s.id===selShape!.id?{...s,...patch}:s)}));
                   }}
                   onAdd={type => addShape(type, spi)}
                 />
@@ -1120,6 +1127,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         shapes={getCurShapes(pageIdx)}
                         canvasW={pageW} canvasH={cH}
                         onChange={newShapes => setPageShapes(prev=>({...prev,[pageIdx]:newShapes}))}
+                        selectedId={selectedShapeId}
+                        onSelectId={id => { setSelectedShapeId(id); if (id) setLeftTab('shapes'); }}
                       />
                       {/* Frame layer */}
                       <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
