@@ -8,6 +8,21 @@ import { useCartStore } from '@/store/cart-store';
 import { CoverEditor, FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS, LEATHERETTE_COLORS, FABRIC_COLORS } from './CoverEditor';
 import { BookPreviewModal } from './BookPreviewModal';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
+
+// Cyrillic decorative fonts
+const CYRILLIC_DECORATIVE_FONTS = [
+  { label:'Marck Script', value:'Marck Script', style:'cursive' },
+  { label:'Caveat', value:'Caveat', style:'cursive' },
+  { label:'Comfortaa', value:'Comfortaa', style:'rounded' },
+  { label:'Philosopher', value:'Philosopher', style:'serif' },
+  { label:'Cormorant Garamond', value:'Cormorant Garamond', style:'elegant' },
+  { label:'Montserrat', value:'Montserrat', style:'sans' },
+  { label:'Lobster', value:'Lobster', style:'cursive' },
+  { label:'Pacifico', value:'Pacifico', style:'cursive' },
+  { label:'Rubik', value:'Rubik', style:'rounded' },
+  { label:'Nunito', value:'Nunito', style:'rounded' },
+  { label:'Ubuntu', value:'Ubuntu', style:'sans' },
+];
 import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from './BackgroundLayer';
 import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
@@ -318,6 +333,19 @@ export default function BookLayoutEditor() {
   const cH = baseH * zoom / 100;
   const pageW = cW / 2; // single page width
 
+  // Load Google Fonts
+  useEffect(() => {
+    const fonts = [
+      'Marck+Script','Caveat','Comfortaa','Philosopher','Cormorant+Garamond',
+      'Montserrat','Lobster','Pacifico','Rubik','Nunito','Ubuntu',
+      'Dancing+Script','Great+Vibes','Pinyon+Script','Sacramento','Playfair+Display','Cinzel'
+    ].map(f => `family=${f}:ital,wght@0,400;0,700;1,400`).join('&');
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?${fonts}&display=swap`;
+    document.head.appendChild(link);
+  }, []);
+
   // Init cover state from config
   useEffect(() => {
     if (!config) return;
@@ -406,6 +434,7 @@ export default function BookLayoutEditor() {
     const id = 'shape-' + Date.now();
     const newShape: Shape = { id, type, x: pageW*0.2, y: cH*0.2, w: pageW*0.35, h: type==='line'?0:cH*0.25, fill: type==='line'?'transparent':'#1e2d7d', stroke: '#1e2d7d', strokeWidth: type==='line'?4:0, opacity: 80, rotation: 0 };
     setPageShapes(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx]||[]), newShape] }));
+    setSelectedShapeId(id); // auto-select so style controls appear immediately
   };
 
   const addFreeSlot = () => {
@@ -1019,7 +1048,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     {name:'Полум\'я', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/1f525.svg'},
                     {name:'Блискавка', url:'https://cdn.jsdelivr.net/npm/twemoji@14/svg/26a1.svg'},
                   ].map(sticker => {
-                    const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                    const spi = getActivePageIdx();
                     return (
                       <button key={sticker.name}
                         onClick={() => {
