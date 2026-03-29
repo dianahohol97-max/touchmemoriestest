@@ -206,7 +206,7 @@ export default function BookLayoutEditor() {
   const [pages, setPages] = useState<Page[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(70);
-  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'>('photos');
+  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'options'>('photos');
   const [coverState, setCoverState] = useState<CoverState>({ decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Georgia', textFontSize: 14 });
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
@@ -296,8 +296,8 @@ export default function BookLayoutEditor() {
     if (!config) return;
     const deco = config.selectedDecoration?.toLowerCase() || '';
     let decoType: CoverDecoType = 'none';
-    if (deco.includes('акрил')) decoType = 'acrylic';
-    else if (deco.includes('фотовставка') || deco.includes('photo')) decoType = 'photo_insert';
+    if (deco.includes('акрил')) decoType = 'acryl';
+    else if (deco.includes('фотовставка') || deco.includes('photo')) decoType = 'photovstavka';
     else if (deco.includes('флекс') || deco.includes('flex')) decoType = 'flex';
     else if (deco.includes('метал')) decoType = 'metal';
     else if (deco.includes('гравір')) decoType = 'graviruvannya';
@@ -387,17 +387,15 @@ export default function BookLayoutEditor() {
     const def = LAYOUTS.find(l => l.id === layout);
     if (!def) { console.warn('Layout not found:', layout); return; }
     const targetIdx = getActivePageIdx();
-    const newSlotCount = LAYOUT_SLOTS[layout] ?? def.slots?.length ?? 1;
+    const newSlotCount = def.slots;
     setPages(prev => prev.map((p, i) => {
       if (i !== targetIdx) return p;
       // Preserve existing photos in slots
       const existingPhotos = p.slots.map(s => s.photoId).filter(Boolean);
-      const newSlots = Array.from({ length: newSlotCount }, (_, si) => ({
-        photoId: existingPhotos[si] ?? null,
+      const newSlots: SlotData[] = Array.from({ length: newSlotCount }, (_, si) => ({
+        photoId: existingPhotos[si] ?? null, cropX: 50, cropY: 50, zoom: 1,
       }));
       return { ...p, layout, slots: newSlots };
-    }));
-  };
     }));
   };
 
@@ -878,7 +876,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       )}
 
                       {/* Metal color — gold/silver only */}
-                      {coverState.decoType === 'metal' && ({coverState.decoType === 'metal' && (
+                      {coverState.decoType === 'metal' && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір металу</div>
                     <div style={{ display:'flex', gap:6 }}>
