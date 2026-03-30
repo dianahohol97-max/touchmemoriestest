@@ -30,6 +30,7 @@ interface OrderFile {
     page_number?: number;
     file_size?: number;
     mime_type?: string;
+    product_type?: string;
     created_at: string;
 }
 
