@@ -22,6 +22,23 @@ const POLAROID_SIZES: Record<string, { totalW: number; totalH: number; borderSid
   '8.6x10.7': { totalW: 8.6, totalH: 10.7, borderSide: 0.65, borderTop: 0.65, borderBottom: 2.0, label: '8.6×10.7 см' },
 };
 
+const POLAROID_FONTS = [
+  { label: 'Dancing Script', value: 'Dancing Script, cursive' },
+  { label: 'Caveat', value: 'Caveat, cursive' },
+  { label: 'Pacifico', value: 'Pacifico, cursive' },
+  { label: 'Lobster', value: 'Lobster, cursive' },
+  { label: 'Playfair Display', value: 'Playfair Display, serif' },
+  { label: 'Montserrat', value: 'Montserrat, sans-serif' },
+];
+const POLAROID_COLORS = [
+  { label: 'Темний', value: '#222222' },
+  { label: 'Сірий', value: '#888888' },
+  { label: 'Синій', value: '#1e2d7d' },
+  { label: 'Бордо', value: '#8B2635' },
+  { label: 'Зелений', value: '#2d6a4f' },
+  { label: 'Рожевий', value: '#d4607a' },
+];
+
 interface PhotoFile {
   id: string; file: File; preview: string; width: number; height: number;
   cropX: number; cropY: number; zoom: number;
@@ -41,7 +58,7 @@ interface PhotoPrintConstructorProps { productSlug: string; }
 // ─── Photo Preview Component ──────────────────────────────────────────────────
 function PhotoPreview({
   photo, sizeKey, showBorder, isPolaroid, isNonstandard,
-  onCropChange, onTextChange,
+  onCropChange, onTextChange, polaroidFont, polaroidColor,
 }: {
   photo: PhotoFile;
   sizeKey: string;
@@ -50,6 +67,8 @@ function PhotoPreview({
   isNonstandard: boolean;
   onCropChange: (id: string, cropX: number, cropY: number, zoom: number) => void;
   onTextChange?: (id: string, text: string) => void;
+  polaroidFont?: string;
+  polaroidColor?: string;
 }) {
   const MAX_W = 320;
   const size = STANDARD_SIZES[sizeKey];
@@ -126,7 +145,7 @@ function PhotoPreview({
           {/* Crop marks */}
           {[{x:borderPxPolaroid-14,y:borderTopPx,w:10,h:1},{x:borderPxPolaroid,y:borderTopPx-14,w:1,h:10},{x:borderPxPolaroid+photoAreaWP+4,y:borderTopPx,w:10,h:1},{x:borderPxPolaroid+photoAreaWP,y:borderTopPx-14,w:1,h:10},{x:borderPxPolaroid-14,y:borderTopPx+photoAreaHP,w:10,h:1},{x:borderPxPolaroid,y:borderTopPx+photoAreaHP+4,w:1,h:10},{x:borderPxPolaroid+photoAreaWP+4,y:borderTopPx+photoAreaHP,w:10,h:1},{x:borderPxPolaroid+photoAreaWP,y:borderTopPx+photoAreaHP+4,w:1,h:10}].map((l,i)=><div key={i} style={{position:'absolute',left:l.x,top:l.y,width:l.w,height:l.h,background:'#aaa',pointerEvents:'none'}}/>)}
           {/* Polaroid text input on white bottom border */}
-          <div style={{ position:'absolute', left:borderPxPolaroid, bottom:4, width:photoAreaWP, display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>
+          <div style={{ position:'absolute', left:borderPxPolaroid, bottom: Math.round(borderBottomPxP * 0.2), width:photoAreaWP, display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>
             <input
               type="text"
               placeholder="Підпис..."
@@ -134,7 +153,7 @@ function PhotoPreview({
               onChange={e => onTextChange?.(photo.id, e.target.value)}
               onClick={e => e.stopPropagation()}
               maxLength={40}
-              style={{ width:'90%', border:'none', outline:'none', background:'transparent', textAlign:'center', fontSize: Math.max(9, borderBottomPxP*0.28) + 'px', fontFamily:'Dancing Script, cursive', color:'#444', padding:'2px 4px' }}
+              style={{ width:'90%', border:'none', outline:'none', background:'transparent', textAlign:'center', fontSize: Math.max(10, borderBottomPxP*0.3) + 'px', fontFamily: polaroidFont || 'Dancing Script, cursive', color: polaroidColor || '#222', padding:'2px 4px' }}
             />
           </div>
           {(photo.zoom||1)!==1 && <div style={{ position:'absolute', bottom:borderBottomPxP+4, right:borderPxPolaroid+4, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:8, pointerEvents:'none' }}>{Math.round((photo.zoom||1)*100)}%</div>}
@@ -246,7 +265,7 @@ function PhotoPreview({
 
         {/* Polaroid text input */}
         {isPolaroid && (
-          <div style={{ position:'absolute', left:borderPx, bottom:4, width:photoAreaW, display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>
+          <div style={{ position:'absolute', left:borderPx, bottom: Math.round(borderBottomPx * 0.2), width:photoAreaW, display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>
             <input
               type="text"
               placeholder="Підпис..."
@@ -254,7 +273,7 @@ function PhotoPreview({
               onChange={e => onTextChange?.(photo.id, e.target.value)}
               onClick={e => e.stopPropagation()}
               maxLength={40}
-              style={{ width:'88%', border:'none', outline:'none', background:'transparent', textAlign:'center', fontSize: Math.max(9, borderBottomPx*0.28) + 'px', fontFamily:'Dancing Script, cursive', color:'#444', padding:'2px 4px' }}
+              style={{ width:'88%', border:'none', outline:'none', background:'transparent', textAlign:'center', fontSize: Math.max(10, borderBottomPx*0.3) + 'px', fontFamily: polaroidFont || 'Dancing Script, cursive', color: polaroidColor || '#222', padding:'2px 4px' }}
             />
           </div>
         )}
@@ -303,6 +322,8 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
   const [selectedBorder, setSelectedBorder] = useState('none');
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
+  const [polaroidFont, setPolaroidFont] = useState(POLAROID_FONTS[0].value);
+  const [polaroidColor, setPolaroidColor] = useState(POLAROID_COLORS[0].value);
   const POLAROID_TEXT_PRICE = 5;
 
   const selectedPhotos = photos.filter(p => selectedPhotoIds.has(p.id));
@@ -360,6 +381,17 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
 
   const isPolaroid = productSlug === 'polaroid-print';
   const isNonstandard = productSlug === 'photoprint-nonstandard';
+
+  // Load Google Fonts for polaroid captions
+  useEffect(() => {
+    if (!isPolaroid) return;
+    const families = POLAROID_FONTS.map(f => f.label.replace(/ /g, '+')).join('|');
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${families.replace(/\|/g, '&family=')}&display=swap`;
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, []);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -495,6 +527,8 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
                 isNonstandard={isNonstandard}
                 onCropChange={updateCrop}
                 onTextChange={isPolaroid ? updateText : undefined}
+                polaroidFont={polaroidFont}
+                polaroidColor={polaroidColor}
               />
               {/* Photo navigation */}
               {photos.length > 1 && (
@@ -704,6 +738,57 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
             {isNonstandard && (
               <div style={{ padding:'10px 14px', borderRadius:8, background:'#f0fdf4', border:'1px solid #bbf7d0', marginBottom:16 }}>
                 <p style={{ fontSize:12, color:'#15803d', fontWeight:600, margin:0 }}>✓ Автоматична біла рамка 3мм</p>
+              </div>
+            )}
+
+            {/* Polaroid caption style */}
+            {isPolaroid && (
+              <div style={{ marginBottom:16 }}>
+                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:8 }}>Стиль підпису</label>
+                {/* Font selector */}
+                <label style={{ display:'block', fontSize:11, color:'#94a3b8', fontWeight:600, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>Шрифт</label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
+                  {POLAROID_FONTS.map(f => (
+                    <button key={f.value} onClick={() => setPolaroidFont(f.value)}
+                      style={{
+                        padding:'5px 12px',
+                        border: polaroidFont === f.value ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                        borderRadius:8,
+                        background: polaroidFont === f.value ? '#f0f3ff' : '#fff',
+                        cursor:'pointer',
+                        fontSize:13,
+                        color: polaroidFont === f.value ? '#1e2d7d' : '#374151',
+                        fontFamily: f.value,
+                        fontWeight: polaroidFont === f.value ? 700 : 400,
+                        transition:'all 0.15s',
+                      }}>
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Color selector */}
+                <label style={{ display:'block', fontSize:11, color:'#94a3b8', fontWeight:600, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>Колір</label>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                  {POLAROID_COLORS.map(c => (
+                    <button key={c.value} onClick={() => setPolaroidColor(c.value)}
+                      title={c.label}
+                      style={{
+                        width:28, height:28,
+                        borderRadius:'50%',
+                        background: c.value,
+                        border: polaroidColor === c.value ? '3px solid #1e2d7d' : '2px solid #e2e8f0',
+                        cursor:'pointer',
+                        boxShadow: polaroidColor === c.value ? '0 0 0 2px #fff, 0 0 0 4px #1e2d7d' : 'none',
+                        transition:'all 0.15s',
+                        outline:'none',
+                      }}
+                    />
+                  ))}
+                </div>
+                {/* Preview */}
+                <p style={{ marginTop:10, fontSize:13, fontFamily:polaroidFont, color:polaroidColor, textAlign:'center', background:'#f8fafc', borderRadius:8, padding:'6px 12px', border:'1px solid #f1f5f9' }}>
+                  Підпис виглядатиме ось так
+                </p>
               </div>
             )}
 
