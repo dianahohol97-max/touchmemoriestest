@@ -115,31 +115,54 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                     <span style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '0.05em' }}>TM ADMIN</span>
                 </div>
 
-                <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {filteredItems.map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`admin-nav-item ${isActive ? 'active' : ''}`}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '12px 16px',
-                                    borderRadius: "3px",
-                                    color: isActive ? 'white' : '#94a3b8',
-                                    backgroundColor: isActive ? '#263A99' : 'transparent',
-                                    textDecoration: 'none',
-                                    fontSize: '15px',
-                                }}
-                            >
-                                {item.icon}
-                                {item.name}
-                            </Link>
-                        );
-                    })}
+                <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    {(() => {
+                        const SECTION_LABELS: Record<string, string> = {
+                            analytics: 'Аналітика',
+                            catalog: 'Каталог',
+                            orders: 'Замовлення',
+                            production: 'Виробництво',
+                            customers: 'Клієнти',
+                            ai: 'AI',
+                            content: 'Контент',
+                            finance: 'Фінанси',
+                            marketing: 'Маркетинг',
+                            settings: 'Налаштування',
+                        };
+                        let lastSection = '';
+                        return filteredItems.map((item) => {
+                            const isActive = pathname === item.href;
+                            const showHeader = item.section !== lastSection;
+                            if (showHeader) lastSection = item.section;
+                            return (
+                                <div key={item.href}>
+                                    {showHeader && (
+                                        <div style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '16px 16px 6px' }}>
+                                            {SECTION_LABELS[item.section] || item.section}
+                                        </div>
+                                    )}
+                                    <Link
+                                        href={item.href}
+                                        className={`admin-nav-item ${isActive ? 'active' : ''}`}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            padding: '9px 16px',
+                                            borderRadius: "3px",
+                                            color: isActive ? 'white' : '#94a3b8',
+                                            backgroundColor: isActive ? '#263A99' : 'transparent',
+                                            textDecoration: 'none',
+                                            fontSize: '14px',
+                                        }}
+                                    >
+                                        {item.icon}
+                                        {item.name}
+                                    </Link>
+                                </div>
+                            );
+                        });
+                    })()}
                 </nav>
 
                 <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '24px' }}>
