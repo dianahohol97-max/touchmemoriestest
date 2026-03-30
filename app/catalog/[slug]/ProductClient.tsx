@@ -49,6 +49,9 @@ const getConstructorUrl = (slug: string): string => {
   };
   if (posterMap[slug]) return posterMap[slug];
   if (s.includes('poster')) return '/order/poster';
+  // Canvas print
+  if (s.includes('polotni') || s.includes('canvas') || s.includes('полотн'))
+    return '/order/canvas';
   // Photo prints
   if (s.includes('photoprint') || s.includes('polaroid') || s.includes('полароїд') || s.includes('поляроїд'))
     return '/order/photoprint';
@@ -69,6 +72,9 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
   }
 
   // For photoprint and photomagnet products, build order URL with selected options
+  if (slug.includes('polotni') || slug.includes('canvas') || slug.includes('полотн')) {
+    return `/order/canvas`;
+  }
   if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('полароїд') || slug.includes('поляроїд') || slug.includes('magnet')) {
     const params = new URLSearchParams();
     params.set('product', slug);
@@ -655,7 +661,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         </div>
 
                         {/* Special CTA for photoprint, poster, and photomagnet products */}
-                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('полароїд') || product.slug?.includes('поляроїд') || product.slug?.includes('poster') || product.slug?.includes('magnet')) ? (
+                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('полароїд') || product.slug?.includes('поляроїд') || product.slug?.includes('poster') || product.slug?.includes('magnet') || product.slug?.includes('polotni') || product.slug?.includes('canvas')) ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <Link
                                     href={getOrderUrl(product.slug, selectedOptions, product)}
