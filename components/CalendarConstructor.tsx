@@ -274,22 +274,56 @@ function ConfigurationStep({
                             Оберіть шаблон <span className="text-red-500">*</span>
                         </label>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            {templates.map((template) => (
-                                <button
-                                    key={template}
-                                    onClick={() => setConfig({ ...config, template })}
-                                    className={`p-4 border-2 rounded-lg transition-all ${
-                                        config.template === template
-                                            ? 'border-[#1e2d7d] bg-blue-50'
-                                            : 'border-gray-200 hover:border-gray-300'
-                                    }`}
-                                >
-                                    <div className="aspect-[3/4] bg-gray-200 rounded mb-2 flex items-center justify-center">
-                                        <CalendarIcon className="w-8 h-8 text-gray-400" />
-                                    </div>
-                                    <div className="text-xs font-medium text-gray-900 capitalize">{template}</div>
-                                </button>
-                            ))}
+                            {templates.map((template) => {
+                                const templateStyles: Record<string, { bg: string; accent: string; label: string; icon: string }> = {
+                                    classic:      { bg: '#f8f5f0', accent: '#2c3e7a', label: 'Classic',      icon: '📅' },
+                                    modern:       { bg: '#f0f4ff', accent: '#1a1a2e', label: 'Modern',       icon: '🗓️' },
+                                    minimal:      { bg: '#fafafa', accent: '#888888', label: 'Minimal',      icon: '◽' },
+                                    vintage:      { bg: '#f5ede0', accent: '#8b4513', label: 'Vintage',      icon: '🍂' },
+                                    colorful:     { bg: '#fff0f5', accent: '#e91e8c', label: 'Colorful',     icon: '🎨' },
+                                    nature:       { bg: '#f0f7f0', accent: '#2e7d32', label: 'Nature',       icon: '🌿' },
+                                    urban:        { bg: '#f0f0f0', accent: '#37474f', label: 'Urban',        icon: '🏙️' },
+                                    family:       { bg: '#fff8f0', accent: '#e65100', label: 'Family',       icon: '🏡' },
+                                    travel:       { bg: '#e8f4fd', accent: '#0277bd', label: 'Travel',       icon: '✈️' },
+                                    business:     { bg: '#f5f5f5', accent: '#212121', label: 'Business',     icon: '💼' },
+                                    elegant:      { bg: '#fdf5e6', accent: '#8d6e63', label: 'Elegant',      icon: '✨' },
+                                    bright:       { bg: '#fffde7', accent: '#f57f17', label: 'Bright',       icon: '☀️' },
+                                    wood:         { bg: '#efebe9', accent: '#5d4037', label: 'Wood',         icon: '🌲' },
+                                    professional: { bg: '#eceff1', accent: '#546e7a', label: 'Professional', icon: '📊' },
+                                    photo:        { bg: '#f3e5f5', accent: '#7b1fa2', label: 'Photo',        icon: '📷' },
+                                };
+                                const s = templateStyles[template] || { bg: '#f5f5f5', accent: '#1e2d7d', label: template, icon: '📅' };
+                                const isSelected = config.template === template;
+                                return (
+                                    <button
+                                        key={template}
+                                        onClick={() => setConfig({ ...config, template })}
+                                        className={`p-2 border-2 rounded-lg transition-all ${
+                                            isSelected ? 'border-[#1e2d7d] bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <div className="aspect-[3/4] rounded mb-2 overflow-hidden relative" style={{ background: s.bg }}>
+                                            {/* Header bar */}
+                                            <div style={{ background: s.accent, height: '22%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <span style={{ color: '#fff', fontSize: '10px', fontWeight: 700, letterSpacing: 1, opacity: 0.9 }}>
+                                                    {new Date().toLocaleString('uk', { month: 'short' }).toUpperCase()} {new Date().getFullYear()}
+                                                </span>
+                                            </div>
+                                            {/* Photo area */}
+                                            <div style={{ height: '46%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', opacity: 0.7 }}>
+                                                {s.icon}
+                                            </div>
+                                            {/* Grid days */}
+                                            <div style={{ padding: '2px 4px', display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
+                                                {Array.from({ length: 21 }).map((_, i) => (
+                                                    <div key={i} style={{ height: 5, borderRadius: 1, background: i % 7 === 6 ? s.accent : (s.bg === '#fafafa' ? '#ddd' : s.accent + '30'), opacity: i < 2 ? 0 : 1 }}/>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="text-xs font-medium text-gray-900 capitalize text-center">{s.label}</div>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
