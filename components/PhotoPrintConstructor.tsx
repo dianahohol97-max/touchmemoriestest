@@ -90,9 +90,13 @@ function PhotoPreview({
     const onMove = (me: MouseEvent) => {
       if (!isDragging.current) return;
       const zoomFactor = photo.zoom || 1;
-      const sensitivity = 30 / zoomFactor;
-      const dx = (me.clientX - dragStart.current.x) / sensitivity;
-      const dy = (me.clientY - dragStart.current.y) / sensitivity;
+      // sensitivity: how many px of mouse movement = 1% of crop change
+      // at zoom=1 image fills container exactly → moving 1px = 1/containerSize * 100%
+      // at zoom=2 image is 2x container → moving 1px = 0.5/containerSize * 100%
+      // we use a fixed sensitivity that feels natural
+      const sensitivity = 2 / zoomFactor;
+      const dx = (me.clientX - dragStart.current.x) * sensitivity;
+      const dy = (me.clientY - dragStart.current.y) * sensitivity;
       onCropChange(
         photo.id,
         Math.max(0, Math.min(100, dragStart.current.cropX - dx)),
@@ -223,9 +227,8 @@ function PhotoPreview({
               width: `${(photo.zoom||1)*100}%`,
               height: `${(photo.zoom||1)*100}%`,
               objectFit: 'cover',
-              objectPosition: `${photo.cropX}% ${photo.cropY}%`,
               position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%,-50%)',
+              transform: `translate(calc(-50% + ${(50 - (photo.cropX||50)) * (photo.zoom||1) * 0.5}px), calc(-50% + ${(50 - (photo.cropY||50)) * (photo.zoom||1) * 0.5}px))`,
               userSelect: 'none', pointerEvents: 'none',
             }}
           />
