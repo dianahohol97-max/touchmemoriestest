@@ -28,7 +28,7 @@ import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
-interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; }
+interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
 interface CoverState {
@@ -317,6 +317,12 @@ export default function BookLayoutEditor() {
   // Калька state: text, uploaded illustration
   const [kalkaState, setKalkaState] = useState<{ text: string; textColor: string; fontSize: number; fontFamily: string; imageUrl: string | null; }>({ text: '', textColor: '#333333', fontSize: 24, fontFamily: 'Playfair Display', imageUrl: null });
   const kalkaImageInputRef = useRef<HTMLInputElement>(null);
+  // Форзац state: each endpaper can have optional content (costs +200₴)
+  const [endpaperState, setEndpaperState] = useState<{ first: { enabled: boolean; text: string; textColor: string; imageUrl: string | null }; last: { enabled: boolean; text: string; textColor: string; imageUrl: string | null } }>({
+    first: { enabled: false, text: '', textColor: '#333333', imageUrl: null },
+    last:  { enabled: false, text: '', textColor: '#333333', imageUrl: null },
+  });
+  const endpaperImageRef = useRef<{ first: HTMLInputElement | null; last: HTMLInputElement | null }>({ first: null, last: null });
   const [showTooltips, setShowTooltips] = useState(() => {
     if (typeof window === 'undefined') return false;
     return !localStorage.getItem('editor_tooltips_seen');
@@ -416,12 +422,15 @@ export default function BookLayoutEditor() {
 
   // Калька: first left page (page index 1) is blank/kalka, last spread is blank
   const hasKalka = !!(config?.enableKalka) && _slug.includes('photobook');
-  // Page index 1 = first left page of spread 1 = kalka page
   const kalkaPageIdx = hasKalka ? 1 : -1;
-  // Last two pages are blank endpaper spread
   const kalkaEndPageIdxStart = hasKalka ? pages.length - 2 : -1;
   const isKalkaPage = (pageIdx: number) => hasKalka && pageIdx === kalkaPageIdx;
   const isKalkaEndPage = (pageIdx: number) => hasKalka && pageIdx >= kalkaEndPageIdxStart && kalkaEndPageIdxStart > 0;
+  // Форзац: travelbook or magazine with enableEndpaper=true
+  const hasEndpaper = !!(config?.enableEndpaper) && (_slug.includes('travelbook') || _slug.includes('magazine') || _slug.includes('journal'));
+  const endpaperFirstIdx = hasEndpaper ? 1 : -1;
+  const endpaperLastIdx = hasEndpaper ? pages.length - 1 : -1;
+  const isEndpaperPage = (pageIdx: number) => hasEndpaper && (pageIdx === endpaperFirstIdx || pageIdx === endpaperLastIdx);
   const cur = pages[currentIdx];
 
   const sizeKey = getSizeKeyForProduct(config);
@@ -893,6 +902,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             ['stickers', <span key="stk" style={{fontSize:16}}>★</span>, 'Стікери'],
             ['frames', <span key="fr" style={{fontSize:16,fontWeight:700}}>⬜</span>, 'Рамки'],
             ...(hasKalka?[['kalka', <span key="kl" style={{fontSize:13,fontWeight:700}}>КЛ</span>, 'Калька']]:[] as any),
+            ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац']]:[] as any),
             ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:18}}>▣</span>, 'Обкладинка']]:[] as any),
           ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
             <button key={id} onClick={() => { setLeftTab(id as any); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); }}
@@ -1016,8 +1026,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {/* COVER */}
             {leftTab === 'cover' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                {/* PRINTED COVER CONTROLS */}
-                {config?.selectedCoverType?.toLowerCase().includes('друков') && (() => {
+                {/* PRINTED COVER CONTROLS — for all printed/soft-cover products */}
+                {isPrinted && (() => {
                   const pt = coverState.printedTextBlocks ?? [];
                   const ov = coverState.printedOverlay ?? { type:'none', color:'#000000', opacity:40, gradient:'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };
                   const ps = coverState.printedPhotoSlot ?? { x:0, y:0, w:100, h:100, shape:'rect' };
@@ -1442,6 +1452,73 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               </div>
             )}
 
+
+            {/* ФОРЗАЦ */}
+            {(leftTab as string) === 'endpaper' && hasEndpaper && (() => {
+              const renderEp = (key: 'first' | 'last', label: string) => {
+                const ep = endpaperState[key];
+                return (
+                  <div key={key} style={{ border:'1px solid #e2e8f0', borderRadius:10, padding:'12px', marginBottom:10 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                      <span style={{ fontSize:12, fontWeight:700, color:'#1e2d7d' }}>{label}</span>
+                      <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer', fontSize:11, color:'#64748b' }}>
+                        <input type="checkbox" checked={ep.enabled} onChange={e=>setEndpaperState(p=>({...p,[key]:{...p[key],enabled:e.target.checked}}))}/>
+                        Друк на форзаці +200₴
+                      </label>
+                    </div>
+                    {!ep.enabled && (
+                      <div style={{ fontSize:11, color:'#94a3b8', padding:'6px 0' }}>Білий (без друку)</div>
+                    )}
+                    {ep.enabled && (
+                      <>
+                        <div style={{ marginBottom:8 }}>
+                          <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Ілюстрація</div>
+                          <input type="file" accept="image/*" style={{ display:'none' }}
+                            ref={el => { endpaperImageRef.current[key] = el; }}
+                            onChange={e => {
+                              const f = e.target.files?.[0]; if (!f) return;
+                              setEndpaperState(p=>({...p,[key]:{...p[key],imageUrl:URL.createObjectURL(f)}}));
+                            }}/>
+                          <div style={{ display:'flex', gap:6 }}>
+                            <button onClick={()=>endpaperImageRef.current[key]?.click()}
+                              style={{ flex:1, padding:'7px', border:'1.5px dashed #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:11, fontWeight:600, color:'#1e2d7d' }}>
+                              📎 Завантажити
+                            </button>
+                            {ep.imageUrl && <button onClick={()=>setEndpaperState(p=>({...p,[key]:{...p[key],imageUrl:null}}))}
+                              style={{ padding:'7px 10px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', color:'#ef4444', fontSize:11 }}>✕</button>}
+                          </div>
+                          {ep.imageUrl && <img src={ep.imageUrl} style={{ marginTop:6, width:'100%', maxHeight:70, objectFit:'contain', borderRadius:6, border:'1px solid #e2e8f0' }}/>}
+                        </div>
+                        <div style={{ marginBottom:8 }}>
+                          <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Напис</div>
+                          <textarea value={ep.text} onChange={e=>setEndpaperState(p=>({...p,[key]:{...p[key],text:e.target.value}}))}
+                            placeholder="Напис на форзаці"
+                            style={{ width:'100%', padding:'7px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, resize:'none', height:48, boxSizing:'border-box' }}/>
+                        </div>
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <span style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Колір тексту</span>
+                          <label style={{ display:'inline-flex', alignItems:'center', gap:5, cursor:'pointer', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:'5px 8px', position:'relative', overflow:'hidden' }}>
+                            <div style={{ width:20, height:20, borderRadius:4, background:ep.textColor, border:'1px solid rgba(0,0,0,0.1)' }}/>
+                            <input type="color" value={ep.textColor} onChange={e=>setEndpaperState(p=>({...p,[key]:{...p[key],textColor:e.target.value}}))}
+                              style={{ position:'absolute', inset:0, opacity:0.01, width:'100%', height:'100%', cursor:'pointer' }}/>
+                          </label>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              };
+              return (
+                <div>
+                  <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:8, padding:'8px 10px', fontSize:11, color:'#92400e', marginBottom:12 }}>
+                    Форзац — перша та остання сторінка книги. За замовчуванням білі. Друк на форзаці +200₴
+                  </div>
+                  {renderEp('first', 'Перший форзац (ліва сторінка)')}
+                  {renderEp('last', 'Останній форзац (права сторінка)')}
+                </div>
+              );
+            })()}
+
             {/* TEXT */}
             {leftTab === 'stickers' && (
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -1742,9 +1819,36 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                   );
 
-                  if (!page) return (
-                    <div key={side} style={{ width: pageW, height: cH, background: '#f8fafc', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? '-4px 0 16px rgba(0,0,0,0.1)' : '4px 0 16px rgba(0,0,0,0.1)' }} />
-                  );
+                  // ФОРЗАЦ (для журналів і тревел-буків)
+                  if (isEndpaperPage(pageIdx)) {
+                    const isFirst = pageIdx === endpaperFirstIdx;
+                    const ep = isFirst ? endpaperState.first : endpaperState.last;
+                    const epKey = isFirst ? 'first' : 'last';
+                    return (
+                      <div key={pageRenderKey}
+                        onClick={() => setLeftTab('endpaper' as any)}
+                        style={{ width: pageW, height: cH, position: 'relative', background: '#fff',
+                          borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0',
+                          boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)',
+                          overflow: 'hidden', cursor: 'pointer',
+                          border: leftTab === ('endpaper' as any) ? '2px solid #3b82f6' : 'none' }}>
+                        {ep.imageUrl && <img src={ep.imageUrl} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.85 }} draggable={false}/>}
+                        {ep.text && (
+                          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                            <span style={{ fontSize: 20, color: ep.textColor, textAlign:'center', padding:'0 16px', whiteSpace:'pre-wrap' }}>{ep.text}</span>
+                          </div>
+                        )}
+                        <div style={{ position:'absolute', bottom:6, left:0, right:0, textAlign:'center', fontSize:9, color:'#94a3b8', fontWeight:600, letterSpacing:1, textTransform:'uppercase', pointerEvents:'none' }}>
+                          ФОРЗАЦ {isFirst ? '(перший)' : '(останній)'} {ep.enabled ? '· друк +200₴' : '· білий'}
+                        </div>
+                        {!ep.enabled && !ep.imageUrl && !ep.text && (
+                          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                            <span style={{ color:'#e2e8f0', fontSize:9, fontWeight:600, letterSpacing:1, textTransform:'uppercase', writingMode:'vertical-rl' }}>ФОРЗАЦ — тисніть для редагування</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
                   const pageDefs = getSlotDefs(page.layout, pageW, cH);
                   if (side === 0) console.log('[SLOTS]', { layout: page.layout, pageW: Math.round(pageW), cH: Math.round(cH), defsCount: pageDefs.length, firstDef: pageDefs[0]?.s });
                   const pageKey = (si: number) => `${pageIdx}-${si}`;
@@ -2200,6 +2304,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             ['stickers', <span key="stk" style={{fontSize:14}}>★</span>, 'Стікери'],
             ['frames', <span key="fr" style={{fontSize:14}}>⬜</span>, 'Рамки'],
             ...(hasKalka?[['kalka', <span key="kl" style={{fontSize:12,fontWeight:700}}>КЛ</span>, 'Калька']]:[] as any),
+            ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац']]:[] as any),
             ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:14}}>▣</span>, 'Обкл.']]:[] as any),
           ].map(([id, icon, label]) => (
             <button key={id as string} onClick={() => { setLeftTab(id as any); setMobilePanel(true); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); }}
@@ -2215,7 +2320,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
       {isMobile && mobilePanel && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, width:'100vw', maxWidth:'100vw', zIndex:300, background:'#fff', borderRadius:'16px 16px 0 0', boxShadow:'0 -8px 32px rgba(0,0,0,0.15)', maxHeight:'70vh', display:'flex', flexDirection:'column', paddingBottom:'calc(56px + env(safe-area-inset-bottom))', overflow:'hidden', boxSizing:'border-box' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid #f1f5f9' }}>
-            <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','stickers':'Стікери','cover':'Обкладинка','frames':'Рамки','kalka':'Калька'} as Record<string,string>)[leftTab]}</span>
+            <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','stickers':'Стікери','cover':'Обкладинка','frames':'Рамки','kalka':'Калька','endpaper':'Форзац'} as Record<string,string>)[leftTab]}</span>
             <button onClick={()=>setMobilePanel(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:20, lineHeight:1, padding:'0 4px' }}>×</button>
           </div>
           <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'12px 14px', boxSizing:'border-box', width:'100%', minWidth:0 }}>
