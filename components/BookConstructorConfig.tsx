@@ -673,31 +673,31 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Wishbook: Color (velour/leatherette/fabric) ── */}
+                    {/* ── Wishbook: Color swatches — same as photobook ── */}
                     {productType === 'wishbook' && selectedCoverType && selectedCoverType !== 'Друкована' && (() => {
-                        const VELOUR_COLORS = ['Бежевий','Пісочний','Молочний','Лаванда','Рожевий','Бордо','Чорний','Графітовий','Синій','Темно-зелений','Коричневий','Марсала'];
-                        const LEATHER_COLORS = ['Білий','Бежевий','Пісочний','Рудий','Бордо темний','Золотистий','Теракотовий','Рожевий ніжний','Червоний насичений','Коричневий','Вишневий','Графітовий темний','Темно-синій','Чорний'];
-                        const FABRIC_COLORS = ['Бежевий/пісочний','Теракотовий','Фуксія','Марсала/бордо','Коричневий','Сірий/графітовий','Червоний яскравий','Оливковий/зелений'];
-                        const colors = selectedCoverType.includes('Велюр') || selectedCoverType.toLowerCase().includes('velour') ? VELOUR_COLORS
-                            : selectedCoverType.includes('Шкірзам') || selectedCoverType.toLowerCase().includes('leather') ? LEATHER_COLORS
-                            : selectedCoverType.includes('Тканин') || selectedCoverType.toLowerCase().includes('fabric') ? FABRIC_COLORS
+                        const colors = selectedCoverType === 'Шкірзамінник' ? LEATHERETTE_BOOK_COLORS
+                            : selectedCoverType === 'Тканина' ? FABRIC_BOOK_COLORS
                             : VELOUR_COLORS;
                         return (
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                                     Колір обкладинки <span className="text-red-500">*</span>
+                                    {selectedCoverColor && <span className="ml-2 text-[#1e2d7d] font-normal">— {selectedCoverColor}</span>}
                                 </label>
                                 <div className="flex flex-wrap gap-2">
-                                    {colors.map(c => (
-                                        <button key={c} type="button"
-                                            onClick={() => setSelectedCoverColor(c)}
-                                            className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                                                selectedCoverColor === c
-                                                    ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
-                                                    : 'border-gray-200 hover:border-gray-400 text-gray-700'
-                                            }`}>
-                                            {c}
-                                        </button>
+                                    {Object.entries(colors).map(([name, hex]) => (
+                                        <button key={name} type="button" title={name}
+                                            onClick={() => setSelectedCoverColor(name)}
+                                            className="relative"
+                                            style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: hex,
+                                                border: selectedCoverColor === name ? '3px solid #1e2d7d' : '2px solid #e2e8f0',
+                                                cursor: 'pointer',
+                                                boxShadow: selectedCoverColor === name ? '0 0 0 2px #fff, 0 0 0 4px #1e2d7d' : 'none',
+                                                transition: 'all 0.15s',
+                                            }}
+                                        />
                                     ))}
                                 </div>
                             </div>
