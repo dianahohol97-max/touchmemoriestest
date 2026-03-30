@@ -80,7 +80,7 @@ export default function CityMapConstructor() {
             const { data } = await supabase
                 .from('products')
                 .select('*')
-                .eq('slug', 'city-map-poster')
+                .eq('slug', 'poster-city-map')
                 .eq('is_active', true)
                 .single();
 

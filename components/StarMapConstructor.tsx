@@ -81,7 +81,7 @@ export default function StarMapConstructor() {
             const { data } = await supabase
                 .from('products')
                 .select('*')
-                .eq('slug', 'star-map-poster')
+                .eq('slug', 'poster-star-map')
                 .eq('is_active', true)
                 .single();
 
