@@ -301,6 +301,14 @@ export default function BookLayoutEditor() {
     if (typeof window === 'undefined') return false;
     return !localStorage.getItem('editor_tooltips_seen');
   });
+  const [showMobileGuide, setShowMobileGuide] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 768 && !localStorage.getItem('mobile_editor_guide_seen');
+  });
+  const dismissMobileGuide = () => {
+    localStorage.setItem('mobile_editor_guide_seen', '1');
+    setShowMobileGuide(false);
+  };
   const [tooltipStep, setTooltipStep] = useState(0);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -1959,6 +1967,45 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE: First-time guide overlay */}
+      {isMobile && showMobileGuide && (
+        <div onClick={dismissMobileGuide} style={{ position:'fixed', inset:0, zIndex:500, background:'rgba(10,15,40,0.92)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', padding:'0 0 24px' }}>
+          <div onClick={e=>e.stopPropagation()} style={{ width:'100%', maxWidth:400, background:'#fff', borderRadius:'24px 24px 0 0', padding:'24px 20px 8px', display:'flex', flexDirection:'column', gap:0 }}>
+            {/* Handle */}
+            <div style={{ width:40, height:4, borderRadius:2, background:'#e2e8f0', margin:'0 auto 20px' }}/>
+            <div style={{ fontSize:18, fontWeight:800, color:'#1e2d7d', marginBottom:4, textAlign:'center' }}>Як користуватись редактором</div>
+            <div style={{ fontSize:12, color:'#94a3b8', textAlign:'center', marginBottom:20 }}>Підказки для роботи на телефоні</div>
+
+            {/* Steps */}
+            {[
+              { icon:'📸', title:'Додати фото в слот', desc:'Відкрий "Зображення" → тапни фото → тапни слот на сторінці' },
+              { icon:'✌️', title:'Збільшити/зменшити фото', desc:'Зведи або розведи два пальці на фото (pinch-zoom)' },
+              { icon:'👆👆', title:'Змінити кадрування', desc:'Двічі тапни на фото → переміщай пальцем → "Готово"' },
+              { icon:'☝️', title:'Перемістити слот', desc:'Один палець на рамці фотослота → тягни в потрібне місце' },
+              { icon:'↔️', title:'Змінити розмір слота', desc:'Тапни слот → тягни за білі кутові ручки' },
+              { icon:'⊡', title:'Редагувати обкладинку', desc:'Перейди на "Обкладинка" → налаштуй фото, текст, накладення' },
+            ].map(({ icon, title, desc }) => (
+              <div key={title} style={{ display:'flex', gap:12, alignItems:'flex-start', padding:'10px 0', borderBottom:'1px solid #f1f5f9' }}>
+                <div style={{ fontSize:22, width:36, textAlign:'center', flexShrink:0, marginTop:2 }}>{icon}</div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, color:'#1e293b', marginBottom:2 }}>{title}</div>
+                  <div style={{ fontSize:11, color:'#64748b', lineHeight:1.4 }}>{desc}</div>
+                </div>
+              </div>
+            ))}
+
+            <button onClick={dismissMobileGuide}
+              style={{ width:'100%', marginTop:16, padding:'14px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer' }}>
+              Зрозуміло, починаємо! →
+            </button>
+            <button onClick={dismissMobileGuide}
+              style={{ width:'100%', marginTop:8, marginBottom:8, padding:'10px', background:'none', color:'#94a3b8', border:'none', fontSize:12, cursor:'pointer' }}>
+              Більше не показувати
+            </button>
           </div>
         </div>
       )}
