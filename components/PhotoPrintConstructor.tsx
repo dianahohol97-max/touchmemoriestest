@@ -522,9 +522,9 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
       <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'flex-start' }}>
 
         {/* LEFT: Preview */}
-        <div style={{ flex: '0 0 auto' }}>
+        <div style={{ flex: '0 0 auto', maxWidth: 340, overflow: 'hidden' }}>
           {activePhoto ? (
-            <div>
+            <div style={{ overflow: 'hidden' }}>
               <PhotoPreview
                 photo={activePhoto}
                 sizeKey={sizeKey || '10x15'}
