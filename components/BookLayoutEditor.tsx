@@ -480,11 +480,15 @@ export default function BookLayoutEditor() {
     setCurrentIdx(newSpreadIdx);
   };
 
-  const removeLastSpread = () => {
+  const removeCurrentSpread = () => {
     if (pages.length <= 3) { toast.error('Мінімум 1 розворот'); return; }
-    setPages(prev => prev.slice(0, -2));
-    const newSpreadCount = Math.ceil((pages.length - 3) / 2);
-    setCurrentIdx(prev => Math.min(prev, newSpreadCount));
+    if (currentIdx === 0) { toast.error('Не можна видалити обкладинку'); return; }
+    // pages[0] = cover, spread N = pages[(N-1)*2+1] and pages[(N-1)*2+2]
+    const p1 = (currentIdx - 1) * 2 + 1;
+    const p2 = p1 + 1;
+    setPages(prev => prev.filter((_, i) => i !== p1 && i !== p2));
+    setCurrentIdx(prev => Math.max(1, Math.min(prev, Math.ceil((pages.length - 3) / 2))));
+    toast.success('Розворот видалено');
   };
 
   const getCurBg = (idx: number): PageBackground => pageBgs[idx] || DEFAULT_BG;
@@ -1384,19 +1388,19 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Кількість сторінок</div>
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <div style={{ flex:1, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:14, fontWeight:700, color:'#1e2d7d', textAlign:'center' }}>
-                      {pages.length - 1}
-                    </div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Розворот {currentIdx > 0 ? currentIdx : '—'} · Сторінок: {pages.length - 1}</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                     <button onClick={addSpread}
-                      style={{ padding:'9px 14px', border:'1px solid #d1fae5', borderRadius:8, background:'#f0fdf4', cursor:'pointer', fontWeight:700, fontSize:13, color:'#059669' }}>+2</button>
-                    <button onClick={removeLastSpread}
-                      style={{ padding:'9px 14px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', fontWeight:700, fontSize:13, color:'#ef4444' }}>−2</button>
+                      style={{ flex:1, padding:'9px 8px', border:'1px solid #d1fae5', borderRadius:8, background:'#f0fdf4', cursor:'pointer', fontWeight:700, fontSize:12, color:'#059669', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
+                      <span style={{fontSize:16}}>+</span> Додати розворот
+                    </button>
+                    <button onClick={removeCurrentSpread} disabled={currentIdx === 0 || pages.length <= 3}
+                      style={{ flex:1, padding:'9px 8px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor: currentIdx === 0 || pages.length <= 3 ? 'not-allowed' : 'pointer', fontWeight:700, fontSize:12, color: currentIdx === 0 || pages.length <= 3 ? '#fca5a5' : '#ef4444', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
+                      <span style={{fontSize:16}}>−</span> Видалити цей
+                    </button>
                   </div>
-                  <div style={{ display:'flex', justifyContent:'space-between', marginTop:8 }}>
-                    <span style={{ fontSize:11, color:'#94a3b8' }}>Ціна:</span>
-                    <span style={{ fontSize:14, fontWeight:800, color:'#1e2d7d' }}>{dynamicPrice} ₴</span>
+                  <div style={{ fontSize:10, color:'#94a3b8', marginTop:6, textAlign:'center' }}>
+                    Ціна оновлюється автоматично · {dynamicPrice} ₴
                   </div>
                 </div>
                 <div>
@@ -1471,6 +1475,21 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 style={{ display:'flex', alignItems:'center', gap:5, marginLeft:8, padding:'5px 12px', border:'1px solid #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', color:'#1e2d7d', fontWeight:700, fontSize:12 }}>
                 <Shuffle size={13}/> Інший шаблон
               </button>
+            )}
+            {/* Add / Remove spread — desktop only, mobile has it in Layouts panel */}
+            {!isMobile && (
+              <>
+                <button onClick={addSpread} title="Додати розворот"
+                  style={{ display:'flex', alignItems:'center', gap:3, padding:'5px 10px', border:'1px solid #d1fae5', borderRadius:8, background:'#f0fdf4', cursor:'pointer', color:'#059669', fontWeight:700, fontSize:12 }}>
+                  + розворот
+                </button>
+                {currentIdx !== 0 && (
+                  <button onClick={removeCurrentSpread} title="Видалити поточний розворот" disabled={pages.length <= 3}
+                    style={{ display:'flex', alignItems:'center', gap:3, padding:'5px 10px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:pages.length<=3?'not-allowed':'pointer', color:pages.length<=3?'#fca5a5':'#ef4444', fontWeight:700, fontSize:12, opacity:pages.length<=3?0.5:1 }}>
+                    − розворот
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -2068,19 +2087,32 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
           <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'12px 14px', boxSizing:'border-box', width:'100%', minWidth:0 }}>
             {/* Render the same content as desktop left panel */}
             {leftTab === 'layouts' && (
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
-                {LAYOUTS.filter(l => l.group !== undefined).map(l => {
-                  const activeIdx = getActivePageIdx();
-                  const active = pages[activeIdx]?.layout === l.id;
-                  return (
-                    <button key={l.id} onClick={()=>{ changeLayout(l.id, activeIdx); setMobilePanel(false); }}
-                      style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'8px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: active?'#1e2d7d':'#fff', cursor:'pointer' }}>
-                      <LayoutSVG layout={l.id} active={active}/>
-                      <span style={{ fontSize:9, fontWeight:600, color: active?'#fff':'#374151', textAlign:'center', lineHeight:1.2 }}>{l.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              <>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+                  {LAYOUTS.filter(l => l.group !== undefined).map(l => {
+                    const activeIdx = getActivePageIdx();
+                    const active = pages[activeIdx]?.layout === l.id;
+                    return (
+                      <button key={l.id} onClick={()=>{ changeLayout(l.id, activeIdx); setMobilePanel(false); }}
+                        style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'8px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: active?'#1e2d7d':'#fff', cursor:'pointer' }}>
+                        <LayoutSVG layout={l.id} active={active}/>
+                        <span style={{ fontSize:9, fontWeight:600, color: active?'#fff':'#374151', textAlign:'center', lineHeight:1.2 }}>{l.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Add/Remove spread buttons */}
+                <div style={{ display:'flex', gap:8, marginTop:10, paddingTop:10, borderTop:'1px solid #f1f5f9' }}>
+                  <button onClick={()=>{ addSpread(); setMobilePanel(false); }}
+                    style={{ flex:1, padding:'10px 6px', border:'1px solid #d1fae5', borderRadius:10, background:'#f0fdf4', cursor:'pointer', fontWeight:700, fontSize:12, color:'#059669', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
+                    <span style={{fontSize:18,lineHeight:1}}>+</span> Додати розворот
+                  </button>
+                  <button onClick={()=>{ removeCurrentSpread(); setMobilePanel(false); }} disabled={currentIdx===0||pages.length<=3}
+                    style={{ flex:1, padding:'10px 6px', border:'1px solid #fee2e2', borderRadius:10, background:'#fff7f7', cursor:currentIdx===0||pages.length<=3?'not-allowed':'pointer', fontWeight:700, fontSize:12, color:currentIdx===0||pages.length<=3?'#fca5a5':'#ef4444', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
+                    <span style={{fontSize:18,lineHeight:1}}>−</span> Видалити цей
+                  </button>
+                </div>
+              </>
             )}
             {leftTab === 'photos' && (
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
