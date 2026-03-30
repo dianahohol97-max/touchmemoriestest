@@ -146,18 +146,8 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
         return (
           <div key={slot.id}
             onMouseDown={e => {
-              // Move slot only when clicking on the border area (not directly on photo)
-              const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-              const x = e.clientX - rect.left;
-              const y = e.clientY - rect.top;
-              const border = 12; // px from edge = drag to move
-              const onEdge = x < border || y < border || x > rect.width - border || y > rect.height - border;
-              if (onEdge || !photo) {
-                setSelectedId(slot.id); onSelect?.(slot.id);
-                startDrag(e, slot.id, 'move');
-              } else {
-                setSelectedId(slot.id); onSelect?.(slot.id);
-              }
+              setSelectedId(slot.id); onSelect?.(slot.id);
+              startDrag(e, slot.id, 'move');
             }}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) { update(slot.id, { photoId: id }); setSelectedId(slot.id); onSelect?.(slot.id); } }}
@@ -196,14 +186,17 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
                 <img
                   src={photo.preview}
                   onMouseDown={e => {
-                    e.stopPropagation(); // prevent outer div from also handling
+                    // Don't stopPropagation - let outer div handle move
+                    // Only start crop drag when double-clicked (handled by onDoubleClick)
                     if (!sel) {
                       setSelectedId(slot.id);
                       onSelect?.(slot.id);
-                    } else {
-                      setSelectedId(slot.id);
-                      startCropDrag(e, slot.id, slot.cropX, slot.cropY);
                     }
+                    // outer div will handle startDrag for move
+                  }}
+                  onDoubleClick={e => {
+                    e.stopPropagation();
+                    if (sel) startCropDrag(e as any, slot.id, slot.cropX, slot.cropY);
                   }}
                   style={{
                     width: `${(slot.zoom||1)*100}%`,
@@ -219,6 +212,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
                 {/* Zoom controls */}
                 {sel && (
                   <div onMouseDown={e=>e.stopPropagation()} style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:4, background:'rgba(0,0,0,0.65)', borderRadius:16, padding:'3px 8px', zIndex:40 }}>
+                    <span style={{ color:'rgba(255,255,255,0.5)', fontSize:8, marginRight:2 }}>2x клік=пан</span>
                     <button onClick={e=>{e.stopPropagation();update(slot.id,{zoom:Math.max(0.5,(slot.zoom||1)-0.1)});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:16, padding:'0 2px', lineHeight:1 }}>−</button>
                     <span style={{ color:'#fff', fontSize:9, fontWeight:700, minWidth:28, textAlign:'center' }}>{Math.round((slot.zoom||1)*100)}%</span>
                     <button onClick={e=>{e.stopPropagation();update(slot.id,{zoom:Math.min(4,(slot.zoom||1)+0.1)});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:16, padding:'0 2px', lineHeight:1 }}>+</button>
