@@ -1963,6 +1963,14 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         </div>
       )}
 
+      {/* MOBILE: Tap-to-place floating banner */}
+      {isMobile && tapSelectedPhotoId && !mobilePanel && (
+        <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:250, background:'#1e2d7d', color:'#fff', padding:'10px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', boxShadow:'0 2px 12px rgba(0,0,0,0.2)' }}>
+          <span style={{ fontSize:13, fontWeight:600 }}>👆 Тапніть на фотослот для розміщення</span>
+          <button onClick={()=>setTapSelectedPhotoId(null)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontSize:12, fontWeight:600 }}>Скасувати</button>
+        </div>
+      )}
+
       {/* MOBILE: Bottom Tab Bar */}
       {isMobile && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'#fff', borderTop:'1px solid #e2e8f0', display:'flex', zIndex:200, paddingBottom:'env(safe-area-inset-bottom)' }}>
@@ -2014,13 +2022,34 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   <ImageIcon size={16}/> Завантажити фото
                 </button>
                 <input id="photo-upload-mobile" type="file" multiple accept="image/*" style={{display:'none'}} onChange={handleUpload}/>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
-                  {photos.map(ph => (
-                    <div key={ph.id} draggable onDragStart={e=>{setDragPhotoId(ph.id);e.dataTransfer.setData('photoId',ph.id);e.dataTransfer.setData('text/plain',ph.id);}} onDragEnd={()=>{setDragPhotoId(null);setDropTarget(null);}}
-                      style={{ aspectRatio:'1', borderRadius:6, overflow:'hidden', cursor:'grab', border:'1px solid #e2e8f0' }}>
-                      <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
-                    </div>
-                  ))}
+                {tapSelectedPhotoId && (
+                  <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'8px 10px', marginBottom:8, fontSize:11, color:'#1d4ed8', fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <span>👆 Тапніть фотослот на сторінці</span>
+                    <button onClick={()=>setTapSelectedPhotoId(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:14, padding:'0 4px' }}>×</button>
+                  </div>
+                )}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+                  {photos.map((ph, i) => {
+                    const used = usedIds.has(ph.id);
+                    const isTapped = tapSelectedPhotoId === ph.id;
+                    return (
+                      <div key={ph.id}
+                        onClick={() => {
+                          if (used) return;
+                          if (isTapped) { setTapSelectedPhotoId(null); return; }
+                          setTapSelectedPhotoId(ph.id);
+                          setMobilePanel(false); // close sheet so canvas is visible
+                        }}
+                        style={{ aspectRatio:'1', borderRadius:8, overflow:'hidden', cursor: used ? 'default' : 'pointer',
+                          border: isTapped ? '3px solid #3b82f6' : '2px solid ' + (used ? '#10b981' : '#e2e8f0'),
+                          opacity: used ? 0.6 : 1, position:'relative' }}>
+                        <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                        {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>✓</div>}
+                        {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>👆</div>}
+                        <span style={{ position:'absolute', bottom:2, left:2, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'1px 4px', borderRadius:3 }}>{i+1}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
