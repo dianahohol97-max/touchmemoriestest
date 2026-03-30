@@ -212,7 +212,7 @@ function PhotoPreview({
           left: borderPx, top: borderPx,
           width: photoAreaW, height: photoAreaH,
           overflow: 'hidden', cursor: 'grab',
-          background: '#f0f0f0',
+          background: '#ffffff',
         }}
           onMouseDown={handleMouseDown}
         >
