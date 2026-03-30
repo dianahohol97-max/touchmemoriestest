@@ -522,6 +522,32 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                     ))}
                 </select>
             </div>
+
+            {/* Elements Toggles */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Елементи карти</label>
+                <div className="flex flex-col gap-2">
+                    {[
+                        { key: 'showConstellations', label: "Лінії сузір'їв", default: true },
+                        { key: 'showMilkyWay',      label: 'Чумацький Шлях', default: true },
+                        { key: 'showGrid',           label: 'Координатна сітка', default: false },
+                    ].map(({ key, label }) => {
+                        const val = (config as any)[key] !== false;
+                        return (
+                            <label key={key} className="flex items-center justify-between px-4 py-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <span className="text-sm font-medium text-gray-700">{label}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setConfig({ ...config, [key]: !val } as any)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${val ? 'bg-[#1e2d7d]' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${val ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </label>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 }
