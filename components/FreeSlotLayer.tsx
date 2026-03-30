@@ -153,14 +153,16 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
               left: slot.x, top: slot.y,
               width: slot.w, height: slot.h,
               borderRadius: br,
-              overflow: 'hidden',
-              border: sel ? '2px solid #3b82f6' : (photo ? '1px solid rgba(99,102,241,0.2)' : '2px dashed #818cf8'),
-              background: photo ? 'transparent' : 'rgba(99,102,241,0.06)',
+              overflow: 'visible',
+              border: sel ? '2px solid #3b82f6' : (photo ? '1px solid rgba(99,102,241,0.3)' : '2px dashed #818cf8'),
+              background: 'transparent',
               cursor: 'move',
               zIndex: sel ? 50 : 30,
-              boxShadow: sel ? '0 0 0 1px rgba(59,130,246,0.5)' : 'none',
+              boxShadow: sel ? '0 0 0 2px rgba(59,130,246,0.4)' : 'none',
             }}
           >
+            {/* Clip container for photo/bg — separate from outer so overflow:hidden doesn't hide resize handles */}
+            <div style={{ position:'absolute', inset:0, borderRadius: br, overflow:'hidden', background: photo ? 'transparent' : 'rgba(99,102,241,0.06)' }}>
             {photo && (() => {
               // Non-passive wheel ref for zoom
               const photoRef = (el: HTMLDivElement | null) => {
@@ -180,7 +182,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
               >
                 <img
                   src={photo.preview}
-                  onMouseDown={e => { e.stopPropagation(); setSelectedId(slot.id); startCropDrag(e, slot.id, slot.cropX, slot.cropY); }}
+                  onMouseDown={e => { setSelectedId(slot.id); startCropDrag(e, slot.id, slot.cropX, slot.cropY); }}
                   style={{
                     width: `${(slot.zoom||1)*100}%`,
                     height: `${(slot.zoom||1)*100}%`,
@@ -212,11 +214,12 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
               );
             })()}
             {!photo && (
-              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'rgba(255,255,255,0.6)', pointerEvents: 'none' }}>
+              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#818cf8', pointerEvents: 'none' }}>
                 <ImageIcon size={20} />
                 <span style={{ fontSize: 9, fontWeight: 700 }}>Перетягніть фото</span>
               </div>
             )}
+            </div>{/* end clip div */}
 
             {/* Delete button */}
             {sel && (
