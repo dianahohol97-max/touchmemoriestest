@@ -2133,6 +2133,112 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       style={{ width:36, height:36, border:'none', borderRadius:6, cursor:'pointer' }}/>
                   </div>
                 </div>
+              );
+            })()}
+
+            {/* TEXT */}
+            {leftTab === 'text' && (() => {
+              const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+              const curPage = pages[currentIdx];
+              const textBlocks = currentIdx === 0 ? [] : (curPage?.textBlocks || []);
+              return (
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  {/* Add text button */}
+                  <button
+                    onClick={() => {
+                      const id = 'txt-' + Date.now();
+                      setPages(prev => prev.map((p, i) => i !== currentIdx ? p : {
+                        ...p,
+                        textBlocks: [...p.textBlocks, {
+                          id, text: 'Текст', x: 50, y: 50,
+                          fontSize: tFontSize, fontFamily: tFontFamily,
+                          color: tColor, bold: tBold, italic: tItalic
+                        }]
+                      }));
+                      setSelectedTextId(id);
+                      setSelectedTextPageIdx(currentIdx);
+                    }}
+                    style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
+                    <span style={{fontSize:18}}>T</span> + Додати текст на сторінку
+                  </button>
+
+                  {/* Style controls */}
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Шрифт</div>
+                    <select value={tFontFamily}
+                      onChange={e => { const v=e.target.value; setTFontFamily(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontFamily: v }, selectedTextPageIdx); }}
+                      style={{ padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, width:'100%', fontFamily:tFontFamily }}>
+                      {FONT_GROUPS.map(g => (
+                        <optgroup key={g.group} label={g.group}>
+                          {g.fonts.map(f => <option key={f} value={f}>{f}</option>)}
+                        </optgroup>
+                      ))}
+                    </select>
+
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Розмір</div>
+                      <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>{tFontSize}px</span>
+                    </div>
+                    <input type="range" min={8} max={120} value={tFontSize}
+                      onChange={e => { const v=+e.target.value; setTFontSize(v); if (selectedTextId) updateTxt(selectedTextId, { fontSize: v }); }}
+                      style={{ width:'100%' }} />
+
+                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Колір</div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
+                      {COLORS.map(c => (
+                        <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxtForPage(selectedTextId, { color: c }, selectedTextPageIdx); }}
+                          style={{ width:26, height:26, borderRadius:'50%', background:c, border:tColor===c?'3px solid #1e2d7d':'2px solid #e2e8f0', cursor:'pointer' }} />
+                      ))}
+                      <input type="color" value={tColor}
+                        onChange={e => { setTColor(e.target.value); if (selectedTextId) updateTxtForPage(selectedTextId, { color: e.target.value }, selectedTextPageIdx); }}
+                        style={{ width:26, height:26, borderRadius:'50%', border:'none', cursor:'pointer', padding:0 }} />
+                    </div>
+
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button onClick={() => { const v=!tBold; setTBold(v); if (selectedTextId) updateTxt(selectedTextId, { bold: v }); }}
+                        style={{ flex:1, padding:'8px', border:tBold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:tBold?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:900, fontSize:16, color:tBold?'#1e2d7d':'#374151' }}>B</button>
+                      <button onClick={() => { const v=!tItalic; setTItalic(v); if (selectedTextId) updateTxt(selectedTextId, { italic: v }); }}
+                        style={{ flex:1, padding:'8px', border:tItalic?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:tItalic?'#f0f3ff':'#fff', cursor:'pointer', fontStyle:'italic', fontSize:16, color:tItalic?'#1e2d7d':'#374151' }}>I</button>
+                    </div>
+                  </div>
+
+                  {/* Existing text blocks list */}
+                  {textBlocks.length > 0 && (
+                    <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:8 }}>Тексти на сторінці:</div>
+                      {textBlocks.map(tb => (
+                        <div key={tb.id}
+                          onClick={() => { setSelectedTextId(tb.id); setSelectedTextPageIdx(currentIdx); setTFontFamily(tb.fontFamily); setTFontSize(tb.fontSize); setTColor(tb.color); setTBold(tb.bold); setTItalic(!!tb.italic); }}
+                          style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', border:selectedTextId===tb.id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:selectedTextId===tb.id?'#f0f3ff':'#fff', cursor:'pointer', marginBottom:6 }}>
+                          <span style={{ flex:1, fontSize:13, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?700:400, fontStyle:tb.italic?'italic':'normal', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{tb.text}</span>
+                          <button onClick={e => { e.stopPropagation(); deleteTxtForPage(tb.id, currentIdx); if (selectedTextId===tb.id) setSelectedTextId(null); }}
+                            style={{ width:24, height:24, borderRadius:'50%', background:'#fee2e2', border:'none', color:'#ef4444', cursor:'pointer', fontSize:14, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Edit selected text inline */}
+                  {selectedTextId && (() => {
+                    const tb = textBlocks.find(t => t.id === selectedTextId);
+                    if (!tb) return null;
+                    return (
+                      <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Редагувати текст:</div>
+                        <input
+                          value={tb.text}
+                          onChange={e => updateTxtForPage(selectedTextId, { text: e.target.value }, selectedTextPageIdx)}
+                          style={{ width:'100%', padding:'10px', border:'2px solid #1e2d7d', borderRadius:8, fontSize:14, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?700:400, fontStyle:tb.italic?'italic':'normal', boxSizing:'border-box' }}
+                          autoFocus
+                        />
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
+
+            {/* SHAPES */}
             {leftTab === 'shapes' && (() => {
               const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
               const allSpreadIdxs = currentIdx===0 ? [0] : [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
@@ -2149,10 +2255,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     if (!selShape) return;
                     setPageShapes(prev=>({...prev,[selSpi]:(prev[selSpi]||[]).map((s:any)=>s.id===selShape!.id?{...s,...patch}:s)}));
                   }}
-                  onAdd={type => { addShape(type, spi); /* keep panel open to style */ }}
+                  onAdd={type => { addShape(type, spi); }}
                 />
-              );
-            })()}
               );
             })()}
           </div>
