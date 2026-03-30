@@ -221,13 +221,21 @@ function LayoutSVG({ layout, active }: { layout: LayoutType; active: boolean }) 
 
 export default function BookLayoutEditor() {
   const router = useRouter();
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState(false); // bottom sheet open
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
   const { addItem } = useCartStore();
 
   const [config, setConfig] = useState<BookConfig | null>(null);
   const [photos, setPhotos] = useState<PhotoData[]>([]);
   const [pages, setPages] = useState<Page[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [zoom, setZoom] = useState(70);
+  const [zoom, setZoom] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 40 : 70);
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'>('photos');
   const [coverState, setCoverState] = useState<CoverState>(() => {
     // Synchronously read config to initialize cover state immediately
@@ -736,7 +744,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f4f6fb' }}>
 
       {/* TOP BAR */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '8px 12px' : '10px 20px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, gap: isMobile ? 8 : 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
         {/* Back button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
@@ -793,10 +801,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
       </div>
 
       {/* BODY */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isMobile ? 'column' : 'row' }}>
 
-        {/* ICON SIDEBAR */}
-        <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
+        {/* ICON SIDEBAR — desktop only */}
+        {!isMobile && <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
           {([
             ['photos', <ImageIcon key="p" size={20}/>, 'Зображення'],
             ['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'],
@@ -813,10 +821,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               <span style={{ fontSize: 10, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
             </button>
           ))}
-        </div>
+        </div>}
 
-        {/* CONTENT PANEL */}
-        <div style={{ width: 200, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        {/* CONTENT PANEL — desktop only, mobile uses bottom sheet */}
+        {!isMobile && <div style={{ width: 200, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: 800, fontSize: 12, color: '#1e2d7d' }}>
             {({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','frames':'Рамки','stickers':'Стікери','options':'Опції','cover':'Обкладинка'} as Record<string,string>)[leftTab] || leftTab}
           </div>
@@ -1409,10 +1417,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             )}
 
           </div>
-        </div>
+        </div>}
 
         {/* CANVAS */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: 32, background: '#f4f6fb' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? '12px 8px 72px 8px' : 32, background: '#f4f6fb' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} style={{ background: 'none', border: 'none', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', opacity: currentIdx === 0 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronLeft size={20} /></button>
             <span>{currentIdx === 0 ? 'Обкладинка' : `${(currentIdx-1)*2+1}–${(currentIdx-1)*2+2}`}</span>
@@ -1731,7 +1739,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
           )}
         </div>
 
-        {/* RIGHT PANEL — Spread Navigator */}
+        {/* RIGHT PANEL — Spread Navigator — desktop only */}
+        {!isMobile &&
         <div style={{ width: 180, borderLeft: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Розвороти</span>
@@ -1834,6 +1843,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             })}
           </div>
         </div>
+        }{/* end right panel */}
 
       </div>
 
@@ -1926,6 +1936,81 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   Більше не показувати
                 </button>
               </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE: Bottom Tab Bar */}
+      {isMobile && (
+        <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'#fff', borderTop:'1px solid #e2e8f0', display:'flex', zIndex:200, paddingBottom:'env(safe-area-inset-bottom)' }}>
+          {[
+            ['photos', <ImageIcon key="p" size={18}/>, 'Фото'],
+            ['layouts', <LayoutGrid key="l" size={18}/>, 'Шаблон'],
+            ['text', <Type key="t" size={18}/>, 'Текст'],
+            ['bg', <span key="bg" style={{fontSize:14,fontWeight:700}}>Фн</span>, 'Фон'],
+            ['shapes', <span key="sh" style={{fontSize:14}}>◻</span>, 'Фігури'],
+            ['stickers', <span key="stk" style={{fontSize:14}}>★</span>, 'Стікери'],
+            ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:14}}>▣</span>, 'Обкл.']]:[] as any),
+          ].map(([id, icon, label]) => (
+            <button key={id as string} onClick={() => { setLeftTab(id as any); setMobilePanel(true); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); }}
+              style={{ flex:1, padding:'8px 2px', border:'none', background: leftTab===id && mobilePanel ? '#1e2d7d' : 'transparent', color: leftTab===id && mobilePanel ? '#fff' : '#64748b', display:'flex', flexDirection:'column', alignItems:'center', gap:2, cursor:'pointer' }}>
+              {icon as React.ReactNode}
+              <span style={{ fontSize:9, fontWeight:700 }}>{label as string}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* MOBILE: Bottom Sheet Panel */}
+      {isMobile && mobilePanel && (
+        <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:300, background:'#fff', borderRadius:'16px 16px 0 0', boxShadow:'0 -8px 32px rgba(0,0,0,0.15)', maxHeight:'60vh', display:'flex', flexDirection:'column', paddingBottom:'calc(56px + env(safe-area-inset-bottom))' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid #f1f5f9' }}>
+            <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','stickers':'Стікери','cover':'Обкладинка'} as Record<string,string>)[leftTab]}</span>
+            <button onClick={()=>setMobilePanel(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:20, lineHeight:1, padding:'0 4px' }}>×</button>
+          </div>
+          <div style={{ flex:1, overflow:'auto', padding:'12px' }}>
+            {/* Render the same content as desktop left panel */}
+            {leftTab === 'layouts' && (
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+                {LAYOUTS.filter(l => l.group !== undefined).map(l => {
+                  const activeIdx = getActivePageIdx();
+                  const active = pages[activeIdx]?.layout === l.id;
+                  return (
+                    <button key={l.id} onClick={()=>{ changeLayout(l.id, activeIdx); setMobilePanel(false); }}
+                      style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'8px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: active?'#1e2d7d':'#fff', cursor:'pointer' }}>
+                      <LayoutSVG layout={l.id} active={active}/>
+                      <span style={{ fontSize:9, fontWeight:600, color: active?'#fff':'#374151', textAlign:'center', lineHeight:1.2 }}>{l.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {leftTab === 'photos' && (
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                <button onClick={()=>document.getElementById('photo-upload-mobile')?.click()} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
+                  <ImageIcon size={16}/> Завантажити фото
+                </button>
+                <input id="photo-upload-mobile" type="file" multiple accept="image/*" style={{display:'none'}} onChange={handleUpload}/>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+                  {photos.map(ph => (
+                    <div key={ph.id} draggable onDragStart={e=>{setDragPhotoId(ph.id);e.dataTransfer.setData('photoId',ph.id);e.dataTransfer.setData('text/plain',ph.id);}} onDragEnd={()=>{setDragPhotoId(null);setDropTarget(null);}}
+                      style={{ aspectRatio:'1', borderRadius:6, overflow:'hidden', cursor:'grab', border:'1px solid #e2e8f0' }}>
+                      <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {leftTab === 'stickers' && (
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:8 }}>
+                {['❤️','⭐','☀️','🌸','👑','🦋','🌙','☁️','💎','🌈','🔥','⚡','✨','🎀','🎈','❄️'].map((em,i) => (
+                  <button key={i} onClick={()=>{ const spi=getActivePageIdx(); setPageStickers(prev=>({...prev,[spi]:[...(prev[spi]||[]),{id:'stk-'+Date.now(),url:'',emoji:em,x:30,y:30,w:'60px',h:'60px'}]})); setMobilePanel(false); }}
+                    style={{ padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:24, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    {em}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         </div>
