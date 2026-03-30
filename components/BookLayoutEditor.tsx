@@ -129,7 +129,24 @@ const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
   '30x20': { w: 300, h: 200 }, '30×20': { w: 300, h: 200 },
   '30x30': { w: 300, h: 300 }, '30×30': { w: 300, h: 300 },
   'A4': { w: 210, h: 297 },
+  // Magazines (A4 format)
+  'magazine-A4': { w: 210, h: 297 },
+  // Travel Book (20×30 landscape — wider format)
+  'travelbook': { w: 300, h: 200 },
 };
+
+// Auto-detect size key from product slug and config
+function getSizeKeyForProduct(config: BookConfig | null): string {
+  if (!config) return 'A4';
+  const slug = (config.productSlug || '').toLowerCase();
+  // TravelBook — 20×30 landscape
+  if (slug.includes('travel')) return 'travelbook';
+  // Magazines — A4
+  if (slug.includes('magazine') || slug.includes('journal') || slug.includes('zhurnal') || slug.includes('fotozhurnal'))
+    return 'magazine-A4';
+  // Photobooks — use selectedSize
+  return config.selectedSize ?? 'A4';
+}
 
 function makeSlots(n: number): SlotData[] {
   return Array.from({ length: n }, () => ({ photoId: null, cropX: 50, cropY: 50, zoom: 1 }));
@@ -376,15 +393,19 @@ export default function BookLayoutEditor() {
 
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
   const usedIds = new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean)));
-  const isPrinted = (config?.selectedCoverType || '').toLowerCase().includes('друков') || 
+  const _slug = (config?.productSlug || '').toLowerCase();
+  const isPrinted = (config?.selectedCoverType || '').toLowerCase().includes('друков') ||
     (config?.selectedCoverType || '').toLowerCase().includes('print') ||
     (config?.selectedCoverType || '').toLowerCase().includes('м\'яка') ||
     (config?.selectedCoverType || '').toLowerCase().includes('soft') ||
-    (config?.productSlug || '').toLowerCase().includes('magazine') ||
-    (config?.productName || '').toLowerCase().includes('журнал');
+    _slug.includes('magazine') || _slug.includes('journal') ||
+    _slug.includes('zhurnal') || _slug.includes('fotozhurnal') ||
+    _slug.includes('travel') ||
+    (config?.productName || '').toLowerCase().includes('журнал') ||
+    (config?.productName || '').toLowerCase().includes('тревел');
   const cur = pages[currentIdx];
 
-  const sizeKey = config?.selectedSize ?? 'A4';
+  const sizeKey = getSizeKeyForProduct(config);
   const prop = PAGE_PROPORTIONS[sizeKey] ?? PAGE_PROPORTIONS['A4'];
   // Spread = 2 pages side by side
   const baseH = 460;
@@ -814,7 +835,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             <div style={{ width:1, height:32, background:'#e2e8f0' }}/>
             <div>
               <div style={{ fontWeight:800, fontSize:15, color:'#1e2d7d' }}>{config.productName || 'Фотокнига'}</div>
-              <div style={{ fontSize:11, color:'#64748b' }}>Редактор • {photos.length} фото • {pages.length} сторінок</div>
+              <div style={{ fontSize:11, color:'#64748b' }}>
+                Редактор • {photos.length} фото • {pages.length} сторінок
+                {_slug.includes('travel') ? ' • 20×30 см' : (_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')) ? ' • A4' : config?.selectedSize ? ` • ${config.selectedSize} см` : ''}
+              </div>
             </div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
