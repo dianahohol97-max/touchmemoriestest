@@ -45,36 +45,36 @@ export default function ProNasPage() {
           {/* Values Section */}
           <section className="mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Наші цінності</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
               {/* Value 1 */}
-              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
-                <div className="bg-[#dbeafe] p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto">
+              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center flex flex-col">
+                <div className="bg-[#dbeafe] p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto flex-shrink-0">
                   <Award className="text-[#1e2d7d] w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Якість</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
+                <p className="text-gray-600 text-sm leading-relaxed flex-1">
                   Преміальні матеріали, професійний друк та ретельна увага до деталей у кожному замовленні.
                 </p>
               </div>
 
               {/* Value 2 */}
-              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
-                <div className="bg-[#dbeafe] p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto">
+              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center flex flex-col">
+                <div className="bg-[#dbeafe] p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto flex-shrink-0">
                   <Heart className="text-[#1e2d7d] w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Індивідуальний підхід</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
+                <p className="text-gray-600 text-sm leading-relaxed flex-1">
                   Ми розуміємо, що кожна історія унікальна, тому допомагаємо з вибором формату та дизайну.
                 </p>
               </div>
 
               {/* Value 3 */}
-              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
-                <div className="bg-[#dbeafe] p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto">
+              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center flex flex-col">
+                <div className="bg-[#dbeafe] p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto flex-shrink-0">
                   <Users className="text-[#1e2d7d] w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Довіра клієнтів</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
+                <p className="text-gray-600 text-sm leading-relaxed flex-1">
                   Понад 20 000 задоволених клієнтів вже довірили нам свої найцінніші спогади.
                 </p>
               </div>
