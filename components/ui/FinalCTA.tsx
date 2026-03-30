@@ -41,7 +41,7 @@ export function FinalCTA() {
                                 Оформити з дизайнером
                             </button>
                             <Link
-                                href="/catalog?category=wishbook"
+                                href="/order/book?product=wishbook"
                                 className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-xl transition-colors text-center"
                             >
                                 Відкрити конструктор

@@ -129,6 +129,7 @@ const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
   '30x20': { w: 300, h: 200 }, '30×20': { w: 300, h: 200 },
   '30x30': { w: 300, h: 300 }, '30×30': { w: 300, h: 300 },
   'A4': { w: 210, h: 297 },
+  '23x23': { w: 230, h: 230 }, '23×23': { w: 230, h: 230 },
   // Magazines (A4 format)
   'magazine-A4': { w: 210, h: 297 },
   // Travel Book (20×30 landscape — wider format)
@@ -141,6 +142,11 @@ function getSizeKeyForProduct(config: BookConfig | null): string {
   const slug = (config.productSlug || '').toLowerCase();
   // TravelBook — 20×30 vertical (portrait)
   if (slug.includes('travel')) return '20x30';
+  // Wishbook — use selectedSize (20x30, 30x20, 23x23)
+  if (slug.includes('wish') || slug.includes('guest') || slug.includes('pobazhan')) {
+    const s = config?.selectedSize?.replace('×','x') || '20x30';
+    return s;
+  }
   // Magazines — A4
   if (slug.includes('magazine') || slug.includes('journal') || slug.includes('zhurnal') || slug.includes('fotozhurnal'))
     return 'magazine-A4';
@@ -417,8 +423,10 @@ export default function BookLayoutEditor() {
     _slug.includes('magazine') || _slug.includes('journal') ||
     _slug.includes('zhurnal') || _slug.includes('fotozhurnal') ||
     _slug.includes('travel') ||
+    _slug.includes('wish') || _slug.includes('guest') || _slug.includes('pobazhan') ||
     (config?.productName || '').toLowerCase().includes('журнал') ||
-    (config?.productName || '').toLowerCase().includes('тревел');
+    (config?.productName || '').toLowerCase().includes('тревел') ||
+    (config?.productName || '').toLowerCase().includes('побажань');
 
   // Калька: first left page (page index 1) is blank/kalka, last spread is blank
   const hasKalka = !!(config?.enableKalka) && _slug.includes('photobook');

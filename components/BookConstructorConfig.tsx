@@ -430,6 +430,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (productSlug.includes('photobook')) return 'photobook';
         if (productSlug.includes('magazine') || productSlug.includes('journal') || productSlug.includes('zhurnal') || productSlug.includes('fotozhurnal')) return 'magazine';
         if (productSlug.includes('travel')) return 'travelbook';
+        if (productSlug.includes('wish') || productSlug.includes('guest') || productSlug.includes('pobazhan')) return 'wishbook';
         return '';
     };
 
@@ -538,6 +539,15 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             return true;
         }
 
+        // Wishbook validation — same as photobook but fixed sizes
+        if (pt === 'wishbook') {
+            if (!selectedSize) return false;
+            if (!selectedCoverType) return false;
+            if (selectedCoverType !== 'Друкована' && !selectedCoverColor) return false;
+            if (selectedCoverType === 'Друкована' && !selectedLamination) return false;
+            return true;
+        }
+
         // Non-photobook validation
         if (product?.variants && product.variants.length > 0 && !selectedSize) return false;
 
@@ -591,6 +601,142 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 <h2 className="text-xl font-bold text-[#1e2d7d] mb-6">Оберіть параметри</h2>
 
                 <div className="space-y-6">
+
+                    {/* ── Wishbook: Fixed sizes ── */}
+                    {productType === 'wishbook' && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                Розмір <span className="text-red-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { name: '20×30', w: 20, h: 30, label: 'Вертикальна' },
+                                    { name: '30×20', w: 30, h: 20, label: 'Горизонтальна' },
+                                    { name: '23×23', w: 23, h: 23, label: 'Квадратна' },
+                                ].map(sz => (
+                                    <button key={sz.name} type="button"
+                                        onClick={() => setSelectedSize(sz.name)}
+                                        className={`p-4 rounded-lg border-2 text-center transition-all ${
+                                            selectedSize === sz.name
+                                                ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                                : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                        }`}>
+                                        <span className="block text-lg font-bold">{sz.name}</span>
+                                        <span className="block text-xs text-gray-500 mt-1">{sz.w}×{sz.h} см · {sz.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Wishbook: Cover type (same as photobook) ── */}
+                    {productType === 'wishbook' && coverTypes.length > 0 && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                Тип обкладинки <span className="text-red-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {coverTypes.sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
+                                    <button key={cover.id} type="button"
+                                        onClick={() => { setSelectedCoverType(cover.name); setSelectedDecorationType('none'); setSelectedDecorationVariant(''); setSelectedLamination(''); setSelectedCoverColor(''); }}
+                                        className={`p-4 rounded-lg border-2 text-center transition-all ${
+                                            selectedCoverType === cover.name
+                                                ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                                : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                        }`}>
+                                        <span className="block text-base font-bold">{cover.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Wishbook: Lamination (for printed cover) ── */}
+                    {productType === 'wishbook' && selectedCoverType === 'Друкована' && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                Ламінація <span className="text-red-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                {['Глянець', 'Матова'].map(lam => (
+                                    <button key={lam} type="button"
+                                        onClick={() => setSelectedLamination(lam)}
+                                        className={`p-3 rounded-lg border-2 text-center transition-all ${
+                                            selectedLamination === lam
+                                                ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                                : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                        }`}>
+                                        <span className="block font-bold">{lam}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Wishbook: Color (velour/leatherette/fabric) ── */}
+                    {productType === 'wishbook' && selectedCoverType && selectedCoverType !== 'Друкована' && (() => {
+                        const VELOUR_COLORS = ['Бежевий','Пісочний','Молочний','Лаванда','Рожевий','Бордо','Чорний','Графітовий','Синій','Темно-зелений','Коричневий','Марсала'];
+                        const LEATHER_COLORS = ['Білий','Бежевий','Пісочний','Рудий','Бордо темний','Золотистий','Теракотовий','Рожевий ніжний','Червоний насичений','Коричневий','Вишневий','Графітовий темний','Темно-синій','Чорний'];
+                        const FABRIC_COLORS = ['Бежевий/пісочний','Теракотовий','Фуксія','Марсала/бордо','Коричневий','Сірий/графітовий','Червоний яскравий','Оливковий/зелений'];
+                        const colors = selectedCoverType.includes('Велюр') || selectedCoverType.toLowerCase().includes('velour') ? VELOUR_COLORS
+                            : selectedCoverType.includes('Шкірзам') || selectedCoverType.toLowerCase().includes('leather') ? LEATHER_COLORS
+                            : selectedCoverType.includes('Тканин') || selectedCoverType.toLowerCase().includes('fabric') ? FABRIC_COLORS
+                            : VELOUR_COLORS;
+                        return (
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                    Колір обкладинки <span className="text-red-500">*</span>
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {colors.map(c => (
+                                        <button key={c} type="button"
+                                            onClick={() => setSelectedCoverColor(c)}
+                                            className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                                                selectedCoverColor === c
+                                                    ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                                    : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                            }`}>
+                                            {c}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    {/* ── Wishbook: Decoration (same as photobook, non-printed covers) ── */}
+                    {productType === 'wishbook' && selectedCoverType && selectedCoverType !== 'Друкована' && decorationVariants.length > 0 && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">Оздоблення обкладинки</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                <button type="button"
+                                    onClick={() => { setSelectedDecorationType('none'); setSelectedDecorationVariant(''); }}
+                                    className={`p-3 rounded-lg border-2 text-center transition-all ${
+                                        selectedDecorationType === 'none' ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]' : 'border-gray-200 text-gray-700'
+                                    }`}>
+                                    <span className="block font-bold text-sm">Без оздоблення</span>
+                                </button>
+                                {['acryl','photovstavka','flex','metal','graviruvannya'].map(dtype => {
+                                    const variants = decorationVariants.filter((dv: any) =>
+                                        dv.decoration_type?.slug === dtype &&
+                                        dv.cover_type?.name === selectedCoverType &&
+                                        (!selectedSize || dv.size?.name === selectedSize || !dv.size)
+                                    );
+                                    if (!variants.length) return null;
+                                    const labels: Record<string,string> = { acryl:'Акрил', photovstavka:'Фотовставка', flex:'Фотодрук Flex', metal:'Метал', graviruvannya:'Гравіювання' };
+                                    return (
+                                        <button key={dtype} type="button"
+                                            onClick={() => { setSelectedDecorationType(dtype); setSelectedDecorationVariant(variants[0]?.variant_name || ''); }}
+                                            className={`p-3 rounded-lg border-2 text-center transition-all ${
+                                                selectedDecorationType === dtype ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]' : 'border-gray-200 text-gray-700'
+                                            }`}>
+                                            <span className="block font-bold text-sm">{labels[dtype] || dtype}</span>
+                                        </button>
+                                    );
+                                }).filter(Boolean)}
+                            </div>
+                        </div>
+                    )}
 
                     {/* ── Photobook: Size selector from photobook_sizes ── */}
                     {productType === 'photobook' && photobookSizes.length > 0 && (
