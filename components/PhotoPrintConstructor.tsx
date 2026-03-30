@@ -168,20 +168,23 @@ function PhotoPreview({
       </div>
     );
   } else if (isNonstandard) {
-    // Default ratio 4:3 for nonstandard preview
-    photoW = 15; photoH = 10;
+    // Default ratio 4:3 for nonstandard preview (total print 15x10, border inside)
     borderMm = 3; // always 3mm white border — forced
+    photoW = 15 - borderMm * 2; photoH = 10 - borderMm * 2;
   } else if (size) {
-    photoW = size.w; photoH = size.h;
-    borderMm = showBorder ? 3 : 0; // 3mm white border on all sides
+    // size.w/h = total print dimensions (e.g. 10x15 cm is the ordered print)
+    // border is cut from inside the print area
+    borderMm = showBorder ? 3 : 0;
+    photoW = size.w - borderMm * 2; // photo zone inside print
+    photoH = size.h - borderMm * 2;
   } else {
-    photoW = 10; photoH = 15; borderMm = showBorder ? 3 : 0;
+    borderMm = showBorder ? 3 : 0;
+    photoW = 10 - borderMm * 2; photoH = 15 - borderMm * 2;
   }
 
-  // Total print dimensions including border
-  // Total print = photo + border on each side (3mm = equal on all 4 sides for standard)
-  const totalW = photoW + (isPolaroid ? polaroidSideMm * 2 : borderMm * 2);
-  const totalH = photoH + (isPolaroid ? polaroidSideMm + polaroidBottomMm : borderMm * 2);
+  // Total print dimensions = size.w/h (border is inside, photoW/H is the inner photo zone)
+  const totalW = isPolaroid ? photoW + polaroidSideMm * 2 : size ? size.w : isNonstandard ? 15 : 10;
+  const totalH = isPolaroid ? photoH + polaroidSideMm + polaroidBottomMm : size ? size.h : isNonstandard ? 10 : 15;
 
   // Scale to fit MAX_W
   const scale = MAX_W / totalW;
