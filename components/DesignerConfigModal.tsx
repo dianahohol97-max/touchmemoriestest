@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -167,8 +168,8 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
   const options = (dbProduct?.options || []) as any[];
   const displayName = dbProduct?.name || productName || 'Продукт';
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+  const modalContent = (
+    <div className="fixed inset-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" style={{ zIndex: 99999 }}>
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
@@ -281,4 +282,6 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
