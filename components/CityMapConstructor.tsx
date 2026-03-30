@@ -23,7 +23,7 @@ interface CityMapConfig {
     coordinates: string; // Auto-generated, display-only
 
     // Step 3: Design
-    mapStyle: 'classic-bw' | 'smooth-light' | 'dark-mode' | 'color-outdoors' | 'vintage-sepia' | 'blueprint';
+    mapStyle: string;
     textColor: 'light' | 'dark';
     layout: 'original' | 'modern' | 'no-text' | 'circle' | 'heart' | 'square-border';
     border: 'simple-frame' | 'white-mat' | 'no-border';
