@@ -19,7 +19,6 @@ interface Product {
     slug: string;
     price: number;
     sale_price: number | null;
-    product_attributes: any;
     custom_attributes: any;
     is_active?: boolean;
 }
@@ -65,7 +64,7 @@ export default function ProductsManagementPage() {
         try {
             const { data, error } = await supabase
                 .from('products')
-                .select('id, name, slug, price, sale_price, product_attributes, custom_attributes, is_active')
+                .select('id, name, slug, price, sale_price, custom_attributes, is_active')
                 .order('name');
 
             if (error) {
