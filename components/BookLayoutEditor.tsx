@@ -758,61 +758,79 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f4f6fb' }}>
 
       {/* TOP BAR */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '8px 12px' : '10px 20px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, gap: isMobile ? 8 : 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-        {/* Back button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            onClick={() => {
-              if (window.confirm('Вийти з редактора? Незбережені зміни буде втрачено.')) {
-                router.back();
-              }
-            }}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6, color: '#374151' }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M12 5l-7 7 7 7"/>
-            </svg>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>НАЗАД</span>
-          </button>
-          <div style={{ width: 1, height: 32, background: '#e2e8f0' }}/>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: '#1e2d7d' }}>{config.productName || 'Фотокнига'}</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>Редактор • {photos.length} фото • {pages.length} сторінок</div>
+      {isMobile ? (
+        /* MOBILE: 2-row compact topbar */
+        <div style={{ background:'#fff', borderBottom:'1px solid #e2e8f0', flexShrink:0 }}>
+          {/* Row 1: Back + title + Cart */}
+          <div style={{ display:'flex', alignItems:'center', padding:'6px 10px', gap:8 }}>
+            <button onClick={()=>{ if(window.confirm('Вийти з редактора?')) router.back(); }}
+              style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#374151', padding:'4px 6px', borderRadius:6, flexShrink:0 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            </button>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontWeight:800, fontSize:13, color:'#1e2d7d', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{config.productName || 'Фотокнига'}</div>
+              <div style={{ fontSize:10, color:'#94a3b8' }}>{photos.length} фото • {pages.length} стор.</div>
+            </div>
+            <div style={{ fontSize:13, fontWeight:800, color:'#1e2d7d', flexShrink:0 }}>{dynamicPrice} ₴</div>
+            <button onClick={addToCart}
+              style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', flexShrink:0 }}>
+              <ShoppingCart size={13}/> Кошик
+            </button>
+          </div>
+          {/* Row 2: Авто + Undo + Zoom + Preview */}
+          <div style={{ display:'flex', alignItems:'center', padding:'4px 10px 6px', gap:6, borderTop:'1px solid #f1f5f9' }}>
+            <button onClick={autoFill}
+              style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', border:'1px solid #e2e8f0', borderRadius:7, background:'#fff', cursor:'pointer', fontSize:12, fontWeight:600, color:'#1e2d7d' }}>
+              <Wand2 size={12}/> Авто
+            </button>
+            <button onClick={undo} disabled={history.length===0}
+              style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', border:'1px solid #e2e8f0', borderRadius:7, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', fontSize:12, fontWeight:600, color:history.length===0?'#cbd5e1':'#1e2d7d', opacity:history.length===0?0.5:1 }}>
+              <RotateCcw size={12}/> Undo
+            </button>
+            <div style={{ display:'flex', alignItems:'center', gap:4, marginLeft:'auto' }}>
+              <button onClick={()=>setZoom(z=>Math.max(30,z-10))} style={{ padding:'5px 7px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer' }}><ZoomOut size={12}/></button>
+              <span style={{ fontSize:11, fontWeight:700, color:'#475569', minWidth:30, textAlign:'center' }}>{zoom}%</span>
+              <button onClick={()=>setZoom(z=>Math.min(130,z+10))} style={{ padding:'5px 7px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer' }}><ZoomIn size={12}/></button>
+            </div>
+            <button onClick={()=>setShowPreview(true)}
+              style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:7, fontWeight:700, fontSize:12, cursor:'pointer' }}>
+              <Eye size={12}/> Превью
+            </button>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button onClick={autoFill} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#1e2d7d' }}><Wand2 size={14} /> Авто</button>
-          <button onClick={undo} disabled={history.length === 0} title="Скасувати (Ctrl+Z)" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: history.length === 0 ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, color: history.length === 0 ? '#cbd5e1' : '#1e2d7d', opacity: history.length === 0 ? 0.5 : 1 }}><RotateCcw size={14} /> Undo</button>
-          <button onClick={() => setZoom(z => Math.max(30, z - 10))} style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer' }}><ZoomOut size={14} /></button>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', minWidth: 36, textAlign: 'center' }}>{zoom}%</span>
-          <button onClick={() => setZoom(z => Math.min(130, z + 10))} style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer' }}><ZoomIn size={14} /></button>
-        </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          {/* Live price */}
-          <div style={{ textAlign:'right', paddingRight:4 }}>
-            <div style={{ fontSize:11, color:'#94a3b8' }}>{pages.length - 1} стор. ({Math.ceil((pages.length-1)/2)} розворот{Math.ceil((pages.length-1)/2)===1?'':'и'})</div>
-            <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d' }}>
-              {dynamicPrice} ₴
-              {priceDiff !== 0 && <span style={{ fontSize:11, color: priceDiff > 0 ? '#10b981':'#ef4444', marginLeft:4 }}>{priceDiff>0?'+':''}{priceDiff}₴</span>}
+      ) : (
+        /* DESKTOP: original single-row topbar */
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={()=>{ if(window.confirm('Вийти з редактора? Незбережені зміни буде втрачено.')) router.back(); }}
+              style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, background:'none', border:'none', cursor:'pointer', padding:'4px 8px', borderRadius:6, color:'#374151' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+              <span style={{ fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase' }}>НАЗАД</span>
+            </button>
+            <div style={{ width:1, height:32, background:'#e2e8f0' }}/>
+            <div>
+              <div style={{ fontWeight:800, fontSize:15, color:'#1e2d7d' }}>{config.productName || 'Фотокнига'}</div>
+              <div style={{ fontSize:11, color:'#64748b' }}>Редактор • {photos.length} фото • {pages.length} сторінок</div>
             </div>
           </div>
-          {/* Preview */}
-          <button onClick={() => setShowPreview(true)}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}>
-            <Eye size={14}/> Превью
-          </button>
-          {/* Help */}
-          <button onClick={() => { setTooltipStep(0); setShowTooltips(true); }} title="Підказки"
-            style={{ padding:'9px 10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', color:'#64748b', display:'flex', alignItems:'center' }}>
-            <HelpCircle size={14}/>
-          </button>
-          {/* Add to cart */}
-          <button onClick={addToCart}
-            style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(38,58,153,0.3)' }}>
-            <ShoppingCart size={15}/> До кошика
-          </button>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <button onClick={autoFill} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, fontWeight:600, color:'#1e2d7d' }}><Wand2 size={14}/> Авто</button>
+            <button onClick={undo} disabled={history.length===0} title="Скасувати (Ctrl+Z)" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', fontSize:13, fontWeight:600, color:history.length===0?'#cbd5e1':'#1e2d7d', opacity:history.length===0?0.5:1 }}><RotateCcw size={14}/> Undo</button>
+            <button onClick={()=>setZoom(z=>Math.max(30,z-10))} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer' }}><ZoomOut size={14}/></button>
+            <span style={{ fontSize:12, fontWeight:700, color:'#475569', minWidth:36, textAlign:'center' }}>{zoom}%</span>
+            <button onClick={()=>setZoom(z=>Math.min(130,z+10))} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer' }}><ZoomIn size={14}/></button>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ textAlign:'right', paddingRight:4 }}>
+              <div style={{ fontSize:11, color:'#94a3b8' }}>{pages.length-1} стор. ({Math.ceil((pages.length-1)/2)} розворот{Math.ceil((pages.length-1)/2)===1?'':'и'})</div>
+              <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d' }}>{dynamicPrice} ₴{priceDiff!==0&&<span style={{ fontSize:11, color:priceDiff>0?'#10b981':'#ef4444', marginLeft:4 }}>{priceDiff>0?'+':''}{priceDiff}₴</span>}</div>
+            </div>
+            <button onClick={()=>setShowPreview(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}><Eye size={14}/> Превью</button>
+            <button onClick={()=>{ setTooltipStep(0); setShowTooltips(true); }} title="Підказки" style={{ padding:'9px 10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', color:'#64748b', display:'flex', alignItems:'center' }}><HelpCircle size={14}/></button>
+            <button onClick={addToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(38,58,153,0.3)' }}><ShoppingCart size={15}/> До кошика</button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* BODY */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isMobile ? 'column' : 'row' }}>
@@ -2041,12 +2059,12 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
 
       {/* MOBILE: Bottom Sheet Panel */}
       {isMobile && mobilePanel && (
-        <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:300, background:'#fff', borderRadius:'16px 16px 0 0', boxShadow:'0 -8px 32px rgba(0,0,0,0.15)', maxHeight:'60vh', display:'flex', flexDirection:'column', paddingBottom:'calc(56px + env(safe-area-inset-bottom))' }}>
+        <div style={{ position:'fixed', bottom:0, left:0, right:0, width:'100vw', maxWidth:'100vw', zIndex:300, background:'#fff', borderRadius:'16px 16px 0 0', boxShadow:'0 -8px 32px rgba(0,0,0,0.15)', maxHeight:'70vh', display:'flex', flexDirection:'column', paddingBottom:'calc(56px + env(safe-area-inset-bottom))', overflow:'hidden', boxSizing:'border-box' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid #f1f5f9' }}>
             <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','stickers':'Стікери','cover':'Обкладинка'} as Record<string,string>)[leftTab]}</span>
             <button onClick={()=>setMobilePanel(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:20, lineHeight:1, padding:'0 4px' }}>×</button>
           </div>
-          <div style={{ flex:1, overflow:'auto', padding:'12px' }}>
+          <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'12px 14px', boxSizing:'border-box', width:'100%', minWidth:0 }}>
             {/* Render the same content as desktop left panel */}
             {leftTab === 'layouts' && (
               <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
