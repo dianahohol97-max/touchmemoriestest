@@ -2046,12 +2046,13 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             ['bg', <span key="bg" style={{fontSize:14,fontWeight:700}}>Фн</span>, 'Фон'],
             ['shapes', <span key="sh" style={{fontSize:14}}>◻</span>, 'Фігури'],
             ['stickers', <span key="stk" style={{fontSize:14}}>★</span>, 'Стікери'],
+            ['frames', <span key="fr" style={{fontSize:14}}>⬜</span>, 'Рамки'],
             ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:14}}>▣</span>, 'Обкл.']]:[] as any),
           ].map(([id, icon, label]) => (
             <button key={id as string} onClick={() => { setLeftTab(id as any); setMobilePanel(true); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); }}
-              style={{ flex:1, padding:'8px 2px', border:'none', background: leftTab===id && mobilePanel ? '#1e2d7d' : 'transparent', color: leftTab===id && mobilePanel ? '#fff' : '#64748b', display:'flex', flexDirection:'column', alignItems:'center', gap:2, cursor:'pointer' }}>
+              style={{ flex:1, padding:'8px 2px', border:'none', background: leftTab===id && mobilePanel ? '#1e2d7d' : 'transparent', color: leftTab===id && mobilePanel ? '#fff' : '#64748b', display:'flex', flexDirection:'column', alignItems:'center', gap:2, cursor:'pointer', minWidth:0 }}>
               {icon as React.ReactNode}
-              <span style={{ fontSize:9, fontWeight:700 }}>{label as string}</span>
+              <span style={{ fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>{label as string}</span>
             </button>
           ))}
         </div>
@@ -2061,7 +2062,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
       {isMobile && mobilePanel && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, width:'100vw', maxWidth:'100vw', zIndex:300, background:'#fff', borderRadius:'16px 16px 0 0', boxShadow:'0 -8px 32px rgba(0,0,0,0.15)', maxHeight:'70vh', display:'flex', flexDirection:'column', paddingBottom:'calc(56px + env(safe-area-inset-bottom))', overflow:'hidden', boxSizing:'border-box' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid #f1f5f9' }}>
-            <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','stickers':'Стікери','cover':'Обкладинка'} as Record<string,string>)[leftTab]}</span>
+            <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','stickers':'Стікери','cover':'Обкладинка','frames':'Рамки'} as Record<string,string>)[leftTab]}</span>
             <button onClick={()=>setMobilePanel(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:20, lineHeight:1, padding:'0 4px' }}>×</button>
           </div>
           <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'12px 14px', boxSizing:'border-box', width:'100%', minWidth:0 }}>
@@ -2306,11 +2307,14 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     <div style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
                       {COLORS.map(c => (
                         <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxtForPage(selectedTextId, { color: c }, selectedTextPageIdx); }}
-                          style={{ width:26, height:26, borderRadius:'50%', background:c, border:tColor===c?'3px solid #1e2d7d':'2px solid #e2e8f0', cursor:'pointer' }} />
+                          style={{ width:30, height:30, borderRadius:'50%', background:c, border:tColor===c?'3px solid #1e2d7d':'2px solid #e2e8f0', cursor:'pointer', flexShrink:0 }} />
                       ))}
-                      <input type="color" value={tColor}
-                        onChange={e => { setTColor(e.target.value); if (selectedTextId) updateTxtForPage(selectedTextId, { color: e.target.value }, selectedTextPageIdx); }}
-                        style={{ width:26, height:26, borderRadius:'50%', border:'none', cursor:'pointer', padding:0 }} />
+                      <label style={{ position:'relative', overflow:'hidden', width:30, height:30, borderRadius:'50%', border:'2px dashed #94a3b8', cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>
+                        +
+                        <input type="color" value={tColor}
+                          onChange={e => { setTColor(e.target.value); if (selectedTextId) updateTxtForPage(selectedTextId, { color: e.target.value }, selectedTextPageIdx); }}
+                          style={{ position:'absolute', inset:0, opacity:0.01, width:'100%', height:'100%', cursor:'pointer', border:'none', padding:0 }}/>
+                      </label>
                     </div>
 
                     <div style={{ display:'flex', gap:6 }}>
@@ -2378,6 +2382,28 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 />
               );
             })()}
+
+            {/* BG */}
+            {leftTab === 'bg' && (
+              <BackgroundControls
+                bg={getCurBg(currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide)}
+                onChange={bg => {
+                  const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                  setPageBgs(prev=>({...prev,[idx]:bg}));
+                }}
+              />
+            )}
+
+            {/* FRAMES */}
+            {leftTab === 'frames' && (
+              <FrameControls
+                frame={getCurFrame(currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide)}
+                onChange={frame => {
+                  const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                  setPageFrames(prev=>({...prev,[idx]:frame}));
+                }}
+              />
+            )}
           </div>
         </div>
       )}
