@@ -490,3 +490,13 @@ button[class*="border-primary"][class*="px-"] {
     display: flex !important;
   }
 }
+
+/* Blog layout — responsive grid */
+.blog-layout-grid {
+  grid-template-columns: 1fr 340px;
+}
+@media (max-width: 1024px) {
+  .blog-layout-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

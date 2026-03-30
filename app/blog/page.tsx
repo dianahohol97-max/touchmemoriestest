@@ -98,7 +98,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
     const totalPages = Math.ceil((count || 0) / limit);
 
     return (
-        <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: 'var(--font-primary)' }}>
+        <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: 'var(--font-primary)', overflowX: 'hidden' }}>
             <Navigation />
 
             <main style={{ paddingTop: '100px', paddingBottom: '80px', maxWidth: '1200px', margin: '0 auto', padding: '100px 24px 80px' }}>
@@ -146,7 +146,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                     </Link>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '48px', alignItems: 'start' }}>
+                <div className="blog-layout-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '48px', alignItems: 'start' }}>
 
                     {/* Main Content Area */}
                     <div>
