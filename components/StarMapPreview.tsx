@@ -1,429 +1,337 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { STAR_CATALOG, CONSTELLATION_LINES } from '@/lib/astronomy/starCatalog';
+import { STAR_CATALOG, CONSTELLATION_LINES, CONSTELLATION_LABELS } from '@/lib/astronomy/starCatalog';
 
 interface StarMapConfig {
     date: string; time: string; location: string;
     latitude: number; longitude: number;
     headline: string; subtitle: string; dedication: string;
-    style: 'classic-dark' | 'light-minimal' | 'circular' | 'full-bleed' | 'with-horizon' | 'heart-dark' | 'heart-light' | 'forest-peak';
+    style: string;
     backgroundColor: string; starColor: string; textColor: string; fontFamily: string;
     size: string; productType: string; price: number;
     showGrid?: boolean; showConstellations?: boolean; showMilkyWay?: boolean;
 }
 
-// ─── Astronomy ───────────────────────────────────────────────────────────────
-function getJD(dateStr: string, timeStr: string): number {
-    const [y, mo, d] = dateStr.split('-').map(Number);
-    const [h, m] = (timeStr || '22:00').split(':').map(Number);
-    const ut = h + m / 60;
-    const A = Math.floor((14 - mo) / 12);
-    const Y = y + 4800 - A, M = mo + 12 * A - 3;
-    const JDN = d + Math.floor((153*M+2)/5) + 365*Y + Math.floor(Y/4) - Math.floor(Y/100) + Math.floor(Y/400) - 32045;
-    return JDN + (ut - 12) / 24;
+// ─── Astronomy ──────────────────────────────────────────────────────────────
+function getJD(d: string, t: string) {
+    const [y,mo,dd] = d.split('-').map(Number);
+    const [h,m] = (t||'22:00').split(':').map(Number);
+    const ut = h + m/60;
+    const A = Math.floor((14-mo)/12), Y = y+4800-A, M = mo+12*A-3;
+    const JDN = dd+Math.floor((153*M+2)/5)+365*Y+Math.floor(Y/4)-Math.floor(Y/100)+Math.floor(Y/400)-32045;
+    return JDN+(ut-12)/24;
 }
-function getGMST(jd: number): number {
-    const T = (jd - 2451545) / 36525;
-    let g = 280.46061837 + 360.98564736629*(jd-2451545) + T*T*0.000387933 - T*T*T/38710000;
-    return ((g % 360) + 360) % 360 / 15;
+function gmst(jd: number) {
+    const T=(jd-2451545)/36525;
+    return (((280.46061837+360.98564736629*(jd-2451545)+T*T*0.000387933-T*T*T/38710000)%360)+360)%360/15;
 }
-function toAltAz(ra: number, dec: number, lat: number, lon: number, jd: number) {
-    const r = Math.PI/180;
-    const lst = ((getGMST(jd) + lon/15) % 24 + 24) % 24;
-    const ha = ((lst - ra) % 24 + 24) % 24;
-    const haR = ha*15*r, decR = dec*r, latR = lat*r;
-    const sinAlt = Math.sin(decR)*Math.sin(latR) + Math.cos(decR)*Math.cos(latR)*Math.cos(haR);
-    const alt = Math.asin(Math.max(-1, Math.min(1, sinAlt))) / r;
-    const cosAz = (Math.sin(decR) - Math.sin(alt*r)*Math.sin(latR)) / (Math.cos(alt*r)*Math.cos(latR));
-    let az = Math.acos(Math.max(-1, Math.min(1, cosAz))) / r;
-    if (Math.sin(haR) > 0) az = 360 - az;
-    return { alt, az };
+function altaz(ra: number, dec: number, lat: number, lon: number, jd: number) {
+    const r=Math.PI/180;
+    const lst=((gmst(jd)+lon/15)%24+24)%24;
+    const ha=((lst-ra)%24+24)%24;
+    const haR=ha*15*r, decR=dec*r, latR=lat*r;
+    const sinAlt=Math.sin(decR)*Math.sin(latR)+Math.cos(decR)*Math.cos(latR)*Math.cos(haR);
+    const alt=Math.asin(Math.max(-1,Math.min(1,sinAlt)))/r;
+    const c=(Math.sin(decR)-Math.sin(alt*r)*Math.sin(latR))/(Math.cos(alt*r)*Math.cos(latR));
+    let az=Math.acos(Math.max(-1,Math.min(1,c)))/r;
+    if(Math.sin(haR)>0) az=360-az;
+    return {alt,az};
 }
-function project(alt: number, az: number, cx: number, cy: number, R: number, fov = 90) {
-    if (alt < -5) return null;
-    const zd = 90 - alt;
-    if (zd > fov + 5) return null;
-    const r = R * Math.tan((zd * Math.PI/180) / 2) / Math.tan((fov * Math.PI/180) / 2);
-    return { x: cx + r * Math.sin(az * Math.PI/180), y: cy - r * Math.cos(az * Math.PI/180) };
+function proj(alt: number, az: number, cx: number, cy: number, R: number) {
+    if(alt < -8) return null;
+    const zd=90-alt;
+    if(zd>92) return null;
+    const r=R*Math.tan(zd*Math.PI/180/2)/Math.tan(Math.PI/2*0.999);
+    return {x:cx+r*Math.sin(az*Math.PI/180), y:cy-r*Math.cos(az*Math.PI/180)};
 }
 
-// ─── Draw helpers ─────────────────────────────────────────────────────────────
-function hexToRgb(hex: string) {
-    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-    return `${r},${g},${b}`;
-}
-
-function drawCoordGrid(ctx: CanvasRenderingContext2D, cx: number, cy: number, R: number, starColor: string) {
-    ctx.strokeStyle = `rgba(${hexToRgb(starColor)}, 0.12)`;
-    ctx.lineWidth = 0.5;
-    // Concentric circles every 30° altitude
-    for (let alt = 0; alt <= 90; alt += 30) {
-        const zd = 90 - alt;
-        const r = R * Math.tan((zd * Math.PI/180) / 2) / Math.tan((90 * Math.PI/180) / 2);
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.stroke();
-    }
-    // Radial lines every 30° azimuth
-    for (let az = 0; az < 360; az += 30) {
-        const azR = az * Math.PI/180;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + R * Math.sin(azR), cy - R * Math.cos(azR));
-        ctx.stroke();
-    }
-    // Cardinal labels
-    const cardinals = [['N', 0], ['E', 90], ['S', 180], ['W', 270]] as [string, number][];
-    ctx.fillStyle = `rgba(${hexToRgb(starColor)}, 0.45)`;
-    ctx.font = `bold 11px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    for (const [label, az] of cardinals) {
-        const azR = az * Math.PI / 180;
-        const x = cx + (R + 16) * Math.sin(azR);
-        const y = cy - (R + 16) * Math.cos(azR);
-        ctx.fillText(label, x, y);
-    }
-}
-
-function drawMilkyWay(ctx: CanvasRenderingContext2D, cx: number, cy: number, R: number, lat: number, lon: number, jd: number, starColor: string) {
-    // Milky Way band: galactic plane RA/Dec pairs (approximate)
-    const band: [number, number][] = [
-        [0,0],[0.5,-10],[1,-20],[1.5,-30],[2,-40],[2.5,-45],[3,-50],[3.5,-52],[4,-50],
-        [5,-40],[5.5,-30],[6,-20],[6.5,-10],[7,0],[7.5,10],[8,20],[8.5,25],[9,28],
-        [9.5,30],[10,28],[10.5,22],[11,15],[11.5,5],[12,-5],[12.5,-15],[13,-25],
-        [13.5,-35],[14,-45],[14.5,-50],[15,-55],[15.5,-58],[16,-60],[16.5,-60],
-        [17,-58],[17.5,-52],[18,-42],[18.5,-32],[19,-20],[19.5,-10],[20,0],
-        [20.5,10],[21,18],[21.5,22],[22,24],[22.5,22],[23,16],[23.5,8],[24,0]
-    ];
-    const pts = band.map(([ra, dec]) => {
-        const { alt, az } = toAltAz(ra, dec, lat, lon, jd);
-        return project(alt, az, cx, cy, R);
-    }).filter(Boolean) as { x: number; y: number }[];
-    if (pts.length < 3) return;
-    ctx.save();
-    ctx.globalAlpha = 0.07;
-    ctx.strokeStyle = starColor;
-    ctx.lineWidth = 24;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+// ─── Heart clip path ─────────────────────────────────────────────────────────
+function drawHeart(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number) {
     ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) {
-        // skip if jump is too large (wrapping)
-        const dx = pts[i].x - pts[i-1].x, dy = pts[i].y - pts[i-1].y;
-        if (Math.sqrt(dx*dx+dy*dy) > R * 0.5) { ctx.moveTo(pts[i].x, pts[i].y); continue; }
-        ctx.lineTo(pts[i].x, pts[i].y);
-    }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.restore();
-}
-
-// ─── Heart path ───────────────────────────────────────────────────────────────
-function heartPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number) {
-    const s = size;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy + s * 0.3);
-    ctx.bezierCurveTo(cx - s * 1.2, cy - s * 0.4, cx - s * 1.2, cy - s, cx, cy - s * 0.55);
-    ctx.bezierCurveTo(cx + s * 1.2, cy - s, cx + s * 1.2, cy - s * 0.4, cx, cy + s * 0.3);
+    ctx.moveTo(cx, cy+s*0.35);
+    ctx.bezierCurveTo(cx-s*1.25,cy-s*0.35, cx-s*1.25,cy-s, cx,cy-s*0.5);
+    ctx.bezierCurveTo(cx+s*1.25,cy-s, cx+s*1.25,cy-s*0.35, cx,cy+s*0.35);
     ctx.closePath();
 }
 
-// ─── Forest/mountain background for 'forest-peak' ────────────────────────────
-function drawForestBg(ctx: CanvasRenderingContext2D, W: number, H: number) {
-    // Sky gradient
-    const sky = ctx.createLinearGradient(0, 0, 0, H * 0.75);
-    sky.addColorStop(0, '#0a1a3a');
-    sky.addColorStop(0.5, '#1a3a6e');
-    sky.addColorStop(1, '#3a6ea8');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, W, H);
+// ─── Forest background ───────────────────────────────────────────────────────
+function drawForest(ctx: CanvasRenderingContext2D, W: number, H: number) {
+    const sky=ctx.createLinearGradient(0,0,0,H*0.7);
+    sky.addColorStop(0,'#060d1f'); sky.addColorStop(0.6,'#0e2040'); sky.addColorStop(1,'#1a4060');
+    ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
     // Mountains
-    ctx.fillStyle = '#0e2444';
-    ctx.beginPath();
-    ctx.moveTo(0, H * 0.55);
-    ctx.lineTo(W * 0.12, H * 0.3); ctx.lineTo(W * 0.25, H * 0.45);
-    ctx.lineTo(W * 0.38, H * 0.22); ctx.lineTo(W * 0.52, H * 0.38);
-    ctx.lineTo(W * 0.65, H * 0.18); ctx.lineTo(W * 0.78, H * 0.35);
-    ctx.lineTo(W * 0.88, H * 0.25); ctx.lineTo(W, H * 0.42);
-    ctx.lineTo(W, H * 0.55); ctx.closePath();
-    ctx.fill();
-    // Treeline
-    const treeColor = '#071830';
-    ctx.fillStyle = treeColor;
-    for (let x = -10; x < W + 10; x += 18) {
-        const h = 45 + Math.sin(x * 0.3) * 12 + Math.random() * 8;
-        const base = H * 0.6 + Math.sin(x * 0.15) * 8;
-        ctx.beginPath();
-        ctx.moveTo(x, base);
-        ctx.lineTo(x - 10, base - h * 0.45);
-        ctx.lineTo(x - 7, base - h * 0.45);
-        ctx.lineTo(x - 13, base - h * 0.7);
-        ctx.lineTo(x - 5, base - h * 0.7);
-        ctx.lineTo(x, base - h);
-        ctx.lineTo(x + 5, base - h * 0.7);
-        ctx.lineTo(x + 13, base - h * 0.7);
-        ctx.lineTo(x + 7, base - h * 0.45);
-        ctx.lineTo(x + 10, base - h * 0.45);
-        ctx.closePath();
-        ctx.fill();
+    ctx.fillStyle='#0a1a30';
+    ctx.beginPath(); ctx.moveTo(0,H*0.6);
+    const mts=[[0.1,0.32],[0.22,0.48],[0.35,0.24],[0.5,0.4],[0.62,0.2],[0.76,0.36],[0.88,0.27],[1,0.44]];
+    mts.forEach(([x,y])=>ctx.lineTo(x*W,y*H));
+    ctx.lineTo(W,H*0.6); ctx.closePath(); ctx.fill();
+    // Trees
+    const seed=42;
+    for(let x=-5;x<W+5;x+=15) {
+        const h=40+Math.sin(x*0.31+seed)*10;
+        const base=H*0.62+Math.sin(x*0.17)*6;
+        ctx.fillStyle='#050e1e';
+        ctx.beginPath(); ctx.moveTo(x,base);
+        ctx.lineTo(x-8,base-h*0.45); ctx.lineTo(x-5,base-h*0.45);
+        ctx.lineTo(x-10,base-h*0.72); ctx.lineTo(x-4,base-h*0.72);
+        ctx.lineTo(x,base-h); ctx.lineTo(x+4,base-h*0.72);
+        ctx.lineTo(x+10,base-h*0.72); ctx.lineTo(x+5,base-h*0.45);
+        ctx.lineTo(x+8,base-h*0.45); ctx.closePath(); ctx.fill();
     }
-    // Ground
-    ctx.fillStyle = treeColor;
-    ctx.fillRect(0, H * 0.65, W, H * 0.35);
+    ctx.fillStyle='#050e1e'; ctx.fillRect(0,H*0.67,W,H*0.33);
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+// ─── Main ────────────────────────────────────────────────────────────────────
 export default function StarMapPreview({ config }: { config: StarMapConfig }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        const canvas = canvasRef.current; if(!canvas) return;
+        const ctx = canvas.getContext('2d'); if(!ctx) return;
+        const W=600, H=800;
+        canvas.width=W; canvas.height=H;
 
-        const W = 600, H = 800;
-        canvas.width = W; canvas.height = H;
+        const isHeart  = config.style==='heart-dark'||config.style==='heart-light';
+        const isForest = config.style==='forest-peak';
+        const isFull   = config.style==='full-bleed';
+        const isLight  = config.style==='light-minimal'||config.style==='heart-light';
 
-        const isHeart = config.style === 'heart-dark' || config.style === 'heart-light';
-        const isForest = config.style === 'forest-peak';
-        const isFullBleed = config.style === 'full-bleed';
-        const isLight = config.style === 'light-minimal' || config.style === 'heart-light';
+        // ── BG ──
+        if(isForest) drawForest(ctx,W,H);
+        else { ctx.fillStyle=config.backgroundColor; ctx.fillRect(0,0,W,H); }
 
-        // ── Background ──
-        if (isForest) {
-            drawForestBg(ctx, W, H);
-        } else {
-            ctx.fillStyle = config.backgroundColor;
-            ctx.fillRect(0, 0, W, H);
-        }
+        // ── Map geometry ──
+        const mapH = isFull ? H : Math.round(H*0.64);
+        const cx=W/2, cy = isFull ? H/2 : mapH/2;
+        const R = isHeart
+            ? Math.min(W,mapH)*0.39
+            : Math.min(W/2-24, mapH/2-24)*0.96;
 
-        // ── Map layout ──
-        const mapAreaH = isFullBleed ? H : Math.round(H * 0.64);
-        const cx = W / 2;
-        const cy = isFullBleed ? H / 2 : mapAreaH / 2;
-
-        let mapR: number;
-        if (isHeart) {
-            mapR = Math.min(W, mapAreaH) * 0.38;
-        } else {
-            mapR = Math.min(W / 2 - 20, mapAreaH / 2 - 20) * 0.94;
-        }
-
-        const jd = getJD(config.date, config.time);
-        const lat = config.latitude, lon = config.longitude;
+        const jd=getJD(config.date, config.time);
+        const lat=config.latitude, lon=config.longitude;
 
         // ── Clip ──
         ctx.save();
-        if (isHeart) {
-            heartPath(ctx, cx, cy - mapR * 0.1, mapR * 1.1);
-            ctx.clip();
-        } else if (!isFullBleed) {
-            ctx.beginPath();
-            ctx.arc(cx, cy, mapR, 0, Math.PI * 2);
-            ctx.clip();
+        if(isHeart) {
+            drawHeart(ctx,cx,cy-R*0.08,R*1.12); ctx.clip();
+        } else if(!isFull) {
+            ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
         }
 
-        // ── Sky background inside clip ──
-        if (!isForest || isHeart) {
-            ctx.fillStyle = config.backgroundColor;
-            ctx.fillRect(0, 0, W, H);
+        // Fill inside clip
+        if(!isForest) { ctx.fillStyle=config.backgroundColor; ctx.fillRect(0,0,W,H); }
+        else if(isHeart) { ctx.fillStyle=config.backgroundColor; ctx.fillRect(0,0,W,H); }
+
+        // ── Milky Way band ──
+        if(config.showMilkyWay!==false) {
+            const mwPts: [number,number][] = [
+                [0,-5],[0.5,-15],[1,-25],[1.5,-35],[2,-43],[2.5,-48],[3,-51],[3.5,-52],
+                [4,-50],[4.5,-45],[5,-37],[5.5,-28],[6,-18],[6.5,-8],[7,2],[7.5,12],
+                [8,20],[8.5,24],[9,27],[9.5,29],[10,27],[10.5,21],[11,13],[11.5,3],
+                [12,-7],[12.5,-17],[13,-27],[13.5,-37],[14,-47],[14.5,-52],[15,-56],
+                [15.5,-58],[16,-59],[16.5,-59],[17,-56],[17.5,-51],[18,-43],[18.5,-33],
+                [19,-21],[19.5,-9],[20,3],[20.5,13],[21,20],[21.5,24],[22,25],
+                [22.5,22],[23,15],[23.5,7],[24,-2]
+            ];
+            const pts = mwPts.map(([ra,dec])=>{
+                const {alt,az}=altaz(ra,dec,lat,lon,jd);
+                return proj(alt,az,cx,cy,R);
+            }).filter(Boolean) as {x:number;y:number}[];
+            if(pts.length>4) {
+                ctx.save();
+                ctx.globalAlpha=0.08;
+                ctx.strokeStyle=config.starColor;
+                ctx.lineWidth=28; ctx.lineCap='round'; ctx.lineJoin='round';
+                ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+                for(let i=1;i<pts.length;i++) {
+                    const dx=pts[i].x-pts[i-1].x, dy=pts[i].y-pts[i-1].y;
+                    if(dx*dx+dy*dy>R*R*0.25){ ctx.moveTo(pts[i].x,pts[i].y); continue; }
+                    ctx.lineTo(pts[i].x,pts[i].y);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
         }
 
-        // ── Milky Way ──
-        if (config.showMilkyWay !== false) {
-            drawMilkyWay(ctx, cx, cy, mapR, lat, lon, jd, config.starColor);
-        }
-
-        // ── Coordinate grid ──
-        if (config.showGrid) {
-            drawCoordGrid(ctx, cx, cy, mapR, config.starColor);
+        // ── Coord grid ──
+        if(config.showGrid) {
+            ctx.save();
+            ctx.strokeStyle=config.starColor; ctx.globalAlpha=0.1; ctx.lineWidth=0.5;
+            for(let alt=0;alt<=90;alt+=30) {
+                const zd=90-alt;
+                const r=R*Math.tan(zd*Math.PI/180/2)/Math.tan(Math.PI/2*0.999);
+                ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+            }
+            for(let az=0;az<360;az+=30) {
+                const a=az*Math.PI/180;
+                ctx.beginPath(); ctx.moveTo(cx,cy);
+                ctx.lineTo(cx+R*Math.sin(a),cy-R*Math.cos(a)); ctx.stroke();
+            }
+            // N/S/E/W
+            ctx.globalAlpha=0.35; ctx.fillStyle=config.starColor;
+            ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            [['N',0],['E',90],['S',180],['W',270]].forEach(([l,a])=>{
+                const ar=(a as number)*Math.PI/180;
+                ctx.fillText(l as string, cx+(R+14)*Math.sin(ar), cy-(R+14)*Math.cos(ar));
+            });
+            ctx.restore();
         }
 
         // ── Constellation lines ──
-        const showConst = config.showConstellations !== false;
-        if (showConst) {
-            ctx.strokeStyle = config.starColor;
-            ctx.lineWidth = isLight ? 0.7 : 0.9;
-            ctx.globalAlpha = isLight ? 0.35 : 0.55;
-            for (const [ra1, dec1, ra2, dec2] of CONSTELLATION_LINES) {
-                const a1 = toAltAz(ra1, dec1, lat, lon, jd);
-                const a2 = toAltAz(ra2, dec2, lat, lon, jd);
-                const p1 = project(a1.alt, a1.az, cx, cy, mapR);
-                const p2 = project(a2.alt, a2.az, cx, cy, mapR);
-                if (!p1 || !p2) continue;
-                ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(p2.x, p2.y);
-                ctx.stroke();
+        if(config.showConstellations!==false) {
+            ctx.save();
+            ctx.strokeStyle=config.starColor;
+            ctx.lineWidth = isLight ? 0.8 : 1.0;
+            ctx.globalAlpha = isLight ? 0.3 : 0.5;
+            for(const [ra1,dec1,ra2,dec2] of CONSTELLATION_LINES) {
+                const p1=proj(...Object.values(altaz(ra1,dec1,lat,lon,jd)) as [number,number],cx,cy,R);
+                const p2=proj(...Object.values(altaz(ra2,dec2,lat,lon,jd)) as [number,number],cx,cy,R);
+                if(!p1||!p2) continue;
+                ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
             }
-            ctx.globalAlpha = 1;
+            ctx.restore();
         }
 
         // ── Stars ──
-        for (const [ra, dec, mag, name] of STAR_CATALOG) {
-            const { alt, az } = toAltAz(ra, dec, lat, lon, jd);
-            const pos = project(alt, az, cx, cy, mapR);
-            if (!pos) continue;
-
-            // Size: mag -1.5 → 4px, mag 5 → 0.5px
-            const size = Math.max(0.4, 3.8 - (mag + 1.5) * 0.52);
-            const alpha = Math.max(0.35, Math.min(1.0, 1.05 - mag * 0.15));
-
-            // Glow for bright stars
-            if (mag < 1.5) {
-                const glowR = size * 3.5;
-                const glow = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, glowR);
-                glow.addColorStop(0, config.starColor);
-                glow.addColorStop(0.3, config.starColor + 'aa');
-                glow.addColorStop(1, config.starColor + '00');
-                ctx.globalAlpha = alpha * 0.5;
-                ctx.fillStyle = glow;
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, glowR, 0, Math.PI * 2);
-                ctx.fill();
+        for(const [ra,dec,mag] of STAR_CATALOG) {
+            const {alt,az}=altaz(ra,dec,lat,lon,jd);
+            const pos=proj(alt,az,cx,cy,R); if(!pos) continue;
+            const size=Math.max(0.4, 3.6-(mag+1.5)*0.50);
+            const alpha=Math.max(0.3, Math.min(1.0, 1.1-mag*0.16));
+            // Glow on bright stars
+            if(mag<1.5) {
+                const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,size*4.5);
+                g.addColorStop(0,config.starColor);
+                g.addColorStop(0.35,config.starColor+'99');
+                g.addColorStop(1,config.starColor+'00');
+                ctx.globalAlpha=alpha*0.45; ctx.fillStyle=g;
+                ctx.beginPath(); ctx.arc(pos.x,pos.y,size*4.5,0,Math.PI*2); ctx.fill();
             }
-
-            ctx.globalAlpha = alpha;
-            ctx.fillStyle = config.starColor;
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Constellation labels for bright named stars
-            if (mag < 1.0 && name) {
-                ctx.globalAlpha = 0.55;
-                ctx.fillStyle = config.textColor;
-                ctx.font = `10px ${config.fontFamily}`;
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(name, pos.x + size + 4, pos.y);
-            }
+            ctx.globalAlpha=alpha; ctx.fillStyle=config.starColor;
+            ctx.beginPath(); ctx.arc(pos.x,pos.y,size,0,Math.PI*2); ctx.fill();
         }
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha=1;
+
+        // ── Constellation labels ──
+        if(config.showConstellations!==false) {
+            ctx.save();
+            ctx.font=`${isLight?'10':'9'}px ${config.fontFamily}`;
+            ctx.fillStyle=config.textColor;
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.globalAlpha=isLight?0.35:0.45;
+            for(const [ra,dec,name] of CONSTELLATION_LABELS) {
+                const {alt,az}=altaz(ra,dec,lat,lon,jd);
+                const pos=proj(alt,az,cx,cy,R); if(!pos) continue;
+                // Keep inside circle
+                const dx=pos.x-cx, dy=pos.y-cy;
+                if(dx*dx+dy*dy>(R*0.92)*(R*0.92)) continue;
+                ctx.fillText(name, pos.x, pos.y);
+            }
+            ctx.restore();
+        }
+
         ctx.restore(); // end clip
 
-        // ── Border / frame around map ──
-        if (isHeart) {
-            ctx.save();
-            heartPath(ctx, cx, cy - mapR * 0.1, mapR * 1.1);
-            ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.6)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.restore();
-        } else if (!isFullBleed) {
-            ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.5)';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.arc(cx, cy, mapR, 0, Math.PI * 2);
-            ctx.stroke();
+        // ── Border ──
+        if(isHeart) {
+            ctx.save(); drawHeart(ctx,cx,cy-R*0.08,R*1.12);
+            ctx.strokeStyle=isLight?'rgba(0,0,0,0.2)':'rgba(255,255,255,0.5)';
+            ctx.lineWidth=2; ctx.stroke(); ctx.restore();
+        } else if(!isFull) {
+            ctx.strokeStyle=isLight?'rgba(0,0,0,0.12)':'rgba(255,255,255,0.45)';
+            ctx.lineWidth=1.5;
+            ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
         }
 
-        // ── Thin outer poster border ──
-        if (!isFullBleed) {
-            ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(16, 16, W - 32, H - 32);
+        // Thin outer border
+        if(!isFull) {
+            ctx.strokeStyle=isLight?'rgba(0,0,0,0.1)':'rgba(255,255,255,0.1)';
+            ctx.lineWidth=1; ctx.strokeRect(14,14,W-28,H-28);
         }
 
         // ── Text block ──
-        const textColor = config.textColor;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle=config.textColor;
+        ctx.textAlign='center'; ctx.textBaseline='alphabetic';
 
-        if (isFullBleed) {
-            // Text over map with slight shadow
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = 8;
-            if (config.headline) {
-                ctx.font = `bold 28px ${config.fontFamily}`;
-                ctx.fillStyle = textColor;
-                ctx.fillText(config.headline, W / 2, 55);
+        if(isFull) {
+            if(config.headline) {
+                ctx.font=`bold 28px ${config.fontFamily}`;
+                ctx.globalAlpha=0.92; ctx.shadowColor='rgba(0,0,0,0.9)'; ctx.shadowBlur=10;
+                ctx.fillText(config.headline, W/2, 56);
+                ctx.shadowBlur=0; ctx.globalAlpha=1;
             }
-            ctx.shadowBlur = 0;
         } else {
-            const textTop = mapAreaH + 28;
+            const tY=mapH+30;
+            // Divider
+            ctx.strokeStyle=isLight?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.08)';
+            ctx.lineWidth=1; ctx.beginPath();
+            ctx.moveTo(W*0.2,mapH+1); ctx.lineTo(W*0.8,mapH+1); ctx.stroke();
 
-            // Divider line
-            ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(W * 0.15, mapAreaH + 1); ctx.lineTo(W * 0.85, mapAreaH + 1);
-            ctx.stroke();
-
-            if (config.headline) {
-                ctx.font = `bold 26px ${config.fontFamily}`;
-                ctx.fillStyle = textColor;
-                ctx.globalAlpha = 1;
-                // Word wrap
-                const maxW = W * 0.82;
-                const words = config.headline.split(' ');
-                let line = '', y = textTop;
-                for (let i = 0; i < words.length; i++) {
-                    const test = line + words[i] + ' ';
-                    if (ctx.measureText(test).width > maxW && i > 0) {
-                        ctx.fillText(line.trim(), W / 2, y); line = words[i] + ' '; y += 32;
-                    } else line = test;
+            // Headline (word-wrap)
+            if(config.headline) {
+                ctx.font=`bold 24px ${config.fontFamily}`;
+                const mw=W*0.8; const words=config.headline.split(' ');
+                let line='', y=tY;
+                for(let i=0;i<words.length;i++) {
+                    const t=line+words[i]+' ';
+                    if(ctx.measureText(t).width>mw&&i>0){ctx.fillText(line.trim(),W/2,y);line=words[i]+' ';y+=30;}
+                    else line=t;
                 }
-                ctx.fillText(line.trim(), W / 2, y);
+                ctx.fillText(line.trim(),W/2,y);
             }
 
-            // Heart / decoration symbol
-            const hasHeadline = !!config.headline;
-            const heartY = hasHeadline ? textTop + 68 : textTop + 20;
-            ctx.font = '18px sans-serif';
-            ctx.fillStyle = textColor;
-            ctx.globalAlpha = 0.85;
-            ctx.fillText('♥', W / 2, heartY);
-            ctx.globalAlpha = 1;
+            // Heart symbol
+            ctx.font='16px sans-serif';
+            ctx.globalAlpha=0.7;
+            ctx.fillText('♥', W/2, tY+56);
+            ctx.globalAlpha=1;
 
-            // Location + date
-            const infoY = heartY + 30;
-            ctx.font = `13px ${config.fontFamily}`;
-            ctx.fillStyle = textColor;
-            ctx.globalAlpha = 0.65;
-            if (config.location) ctx.fillText(config.location, W / 2, infoY);
-
-            // Format date nicely
-            const dateFormatted = config.date
-                ? new Date(config.date + 'T12:00:00').toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            // Location line
+            const locationLine = config.location || '';
+            // Date: from config.date formatted
+            const dateStr = config.date
+                ? new Date(config.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'long',year:'numeric'})
                 : '';
-            if (dateFormatted) ctx.fillText(dateFormatted, W / 2, infoY + 20);
 
-            // Coordinates
-            const latStr = lat >= 0 ? `${lat.toFixed(4)}° N` : `${Math.abs(lat).toFixed(4)}° S`;
-            const lonStr = lon >= 0 ? `${lon.toFixed(4)}° E` : `${Math.abs(lon).toFixed(4)}° W`;
-            ctx.font = `10px ${config.fontFamily}`;
-            ctx.fillStyle = textColor;
-            ctx.globalAlpha = 0.45;
-            ctx.fillText(`${latStr}  ${lonStr}`, W / 2, H - 22);
-            ctx.globalAlpha = 1;
+            ctx.font=`14px ${config.fontFamily}`;
+            ctx.globalAlpha=0.65;
+            if(locationLine) ctx.fillText(locationLine, W/2, tY+78);
+            if(dateStr) ctx.fillText(dateStr, W/2, tY+78+(locationLine?22:0));
 
-            if (config.subtitle) {
-                ctx.font = `13px ${config.fontFamily}`;
-                ctx.fillStyle = textColor;
-                ctx.globalAlpha = 0.6;
-                ctx.fillText(config.subtitle, W / 2, infoY + 44);
-                ctx.globalAlpha = 1;
+            // Dedication
+            if(config.dedication) {
+                const dY=tY+78+(locationLine?22:0)+(dateStr?22:0)+10;
+                ctx.font=`italic 12px ${config.fontFamily}`;
+                ctx.globalAlpha=0.55;
+                const mw=W*0.76; const words=config.dedication.split(' ');
+                let line='', y=dY;
+                for(let i=0;i<words.length;i++) {
+                    const t=line+words[i]+' ';
+                    if(ctx.measureText(t).width>mw&&i>0){ctx.fillText(line.trim(),W/2,y);line=words[i]+' ';y+=18;}
+                    else line=t;
+                }
+                ctx.fillText(line.trim(),W/2,y);
             }
+            ctx.globalAlpha=1;
+
+            // Coordinates — bottom
+            ctx.font=`10px ${config.fontFamily}`;
+            ctx.globalAlpha=0.35;
+            const latS=lat>=0?`${lat.toFixed(4)}° N`:`${Math.abs(lat).toFixed(4)}° S`;
+            const lonS=lon>=0?`${lon.toFixed(4)}° E`:`${Math.abs(lon).toFixed(4)}° W`;
+            ctx.fillText(`${latS}  ${lonS}`, W/2, H-18);
+            ctx.globalAlpha=1;
         }
 
     }, [config]);
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-600 mb-3 text-center uppercase tracking-wider">Попередній перегляд</h3>
-            <canvas
-                ref={canvasRef}
-                className="w-full h-auto rounded-lg"
-                style={{ maxHeight: '75vh', display: 'block' }}
-            />
-            <p className="text-xs text-center text-gray-400 mt-2">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <canvas ref={canvasRef} className="w-full h-auto block" style={{maxHeight:'80vh'}}/>
+            <div className="text-center py-2 text-xs text-gray-400">
                 {config.size} · {config.productType} · {config.price} ₴
-            </p>
+            </div>
         </div>
     );
 }
