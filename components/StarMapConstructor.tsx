@@ -24,7 +24,10 @@ interface StarMapConfig {
     dedication: string;
 
     // Step 3: Design
-    style: 'classic-dark' | 'light-minimal' | 'circular' | 'full-bleed' | 'with-horizon';
+    style: 'classic-dark' | 'light-minimal' | 'circular' | 'full-bleed' | 'with-horizon' | 'heart-dark' | 'heart-light' | 'forest-peak';
+    showGrid?: boolean;
+    showConstellations?: boolean;
+    showMilkyWay?: boolean;
     backgroundColor: string;
     starColor: string;
     textColor: string;
@@ -410,11 +413,13 @@ function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setCon
 // Step 3: Design
 function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>> }) {
     const styles = [
-        { id: 'classic-dark', name: 'Класичний темний', bg: '#0a1128', star: '#ffffff', text: '#ffffff' },
-        { id: 'light-minimal', name: 'Світлий мінімалізм', bg: '#f5f5f0', star: '#1a1a1a', text: '#1a1a1a' },
-        { id: 'circular', name: 'Кругова карта', bg: '#0a1128', star: '#ffffff', text: '#ffffff' },
-        { id: 'full-bleed', name: 'На весь постер', bg: '#0a1128', star: '#ffffff', text: '#ffffff' },
-        { id: 'with-horizon', name: 'З горизонтом', bg: '#0a1128', star: '#ffffff', text: '#ffffff' }
+        { id: 'classic-dark',  name: 'Чорний класик',   bg: '#0a0e1a', star: '#ffffff', text: '#ffffff', preview: '#0a0e1a' },
+        { id: 'light-minimal', name: 'Білий мінімалізм', bg: '#f7f7f5', star: '#1a1a1a', text: '#1a1a1a', preview: '#f7f7f5' },
+        { id: 'circular',      name: 'Синій нічний',    bg: '#0e1a3a', star: '#c8d8ff', text: '#ffffff', preview: '#0e1a3a' },
+        { id: 'full-bleed',    name: 'На весь постер',  bg: '#060d1f', star: '#ffffff', text: '#ffffff', preview: '#060d1f' },
+        { id: 'heart-dark',    name: 'Серце темне',     bg: '#0a0e1a', star: '#ffffff', text: '#ffffff', preview: '#0a0e1a' },
+        { id: 'heart-light',   name: 'Серце світле',    bg: '#f7f7f5', star: '#1a1a1a', text: '#1a1a1a', preview: '#f7f7f5' },
+        { id: 'forest-peak',   name: 'Ліс і гори',      bg: '#1a3a5c', star: '#ffffff', text: '#ffffff', preview: '#1a3a5c' },
     ];
 
     const fonts = [
@@ -456,9 +461,12 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                             }`}
                         >
                             <div
-                                className="w-full h-16 rounded mb-2"
-                                style={{ backgroundColor: style.bg }}
-                            />
+                                className="w-full h-16 rounded mb-2 flex items-center justify-center relative overflow-hidden"
+                                style={{ backgroundColor: style.bg }}>
+                                <div style={{ width:28,height:28,borderRadius:'50%',background:style.id.includes('heart')?'transparent':'rgba(255,255,255,0.08)',border:'1.5px solid rgba(255,255,255,0.25)',display:'flex',alignItems:'center',justifyContent:'center' }}>
+                                  {style.id.includes('heart') && <span style={{fontSize:22,opacity:0.7}}>{style.bg.includes('f7')?'🤍':'🖤'}</span>}
+                                </div>
+                            </div>
                             <div className="text-sm font-medium text-gray-900">{style.name}</div>
                         </button>
                     ))}
