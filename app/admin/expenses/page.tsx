@@ -580,8 +580,8 @@ export default function ExpensesPage() {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSave} style={{ padding: '32px' }}>
-                                <div style={{ display: 'grid', gap: '20px' }}>
+                            <form onSubmit={handleSave}>
+                                <div style={{ padding: '28px 32px', display: 'grid', gap: '20px', overflowY: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                         <div>
                                             <label style={labelStyle}>Дата *</label>
@@ -662,7 +662,7 @@ export default function ExpensesPage() {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '20px 32px', borderTop: '1px solid #f1f5f9' }}>
                                     <button type="button" onClick={() => setIsFormOpen(false)} style={cancelBtn}>
                                         Скасувати
                                     </button>
@@ -895,7 +895,7 @@ const modal = {
     borderRadius: '3px',
     width: '90%',
     maxWidth: '600px',
-    maxHeight: '90vh',
+    maxHeight: 'calc(100vh - 40px)',
     overflowY: 'auto' as any,
     boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
     zIndex: 999
