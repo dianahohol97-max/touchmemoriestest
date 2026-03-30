@@ -2029,6 +2029,112 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 ))}
               </div>
             )}
+
+            {/* MOBILE COVER PANEL */}
+            {leftTab === 'cover' && (() => {
+              const isPrintedMobile = (config?.selectedCoverType||'').toLowerCase().includes('друков')||
+                (config?.selectedCoverType||'').toLowerCase().includes('print');
+              const ps = coverState.printedPhotoSlot ?? { x:0, y:0, w:100, h:100, shape:'rect' };
+              const pt = coverState.printedTextBlocks ?? [];
+              const ov = coverState.printedOverlay ?? { type:'none', color:'#000000', opacity:40, gradient:'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };
+              return (
+                <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                  {isPrintedMobile ? (
+                    <>
+                      {/* Photo slot shape */}
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Форма фотослота</div>
+                        <div style={{ display:'flex', gap:8 }}>
+                          {(['rounded','circle'] as const).map(sh => (
+                            <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
+                              style={{ flex:1, padding:'10px 4px', border: ps.shape===sh?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: ps.shape===sh?'#f0f3ff':'#fff', cursor:'pointer', fontSize:20 }}>
+                              {sh==='rounded'?'▢':'◯'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Overlay */}
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Накладення</div>
+                        <div style={{ display:'flex', gap:6 }}>
+                          {(['none','color','gradient'] as const).map(t => (
+                            <button key={t} onClick={()=>setCoverState(p=>({...p,printedOverlay:{...ov,type:t}}))}
+                              style={{ flex:1, padding:'8px 4px', border: ov.type===t?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: ov.type===t?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:600, color: ov.type===t?'#1e2d7d':'#374151' }}>
+                              {t==='none'?'Немає':t==='color'?'Колір':'Градієнт'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* BG color */}
+                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b' }}>Фон обкладинки</div>
+                        <input type="color" value={coverState.printedBgColor||'#ffffff'}
+                          onChange={e=>setCoverState(p=>({...p,printedBgColor:e.target.value}))}
+                          style={{ width:36, height:36, border:'none', borderRadius:6, cursor:'pointer' }}/>
+                      </div>
+                      {/* Text blocks */}
+                      <div>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                          <div style={{ fontSize:12, fontWeight:700, color:'#64748b' }}>Текст на обкладинці</div>
+                          <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:[...(p.printedTextBlocks||[]),{id:'ptxt-'+Date.now(),text:'Ваш текст',x:50,y:50,fontSize:24,fontFamily:'Playfair Display',color:'#ffffff',bold:true}]}))}
+                            style={{ padding:'6px 12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                            + Додати текст
+                          </button>
+                        </div>
+                        {pt.map(tb => (
+                          <div key={tb.id} style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:'10px', marginBottom:8, display:'flex', flexDirection:'column', gap:8 }}>
+                            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                              <input value={tb.text} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,text:e.target.value}:t)}))}
+                                style={{ flex:1, padding:'8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:13 }}/>
+                              <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:pt.filter(t=>t.id!==tb.id)}))}
+                                style={{ width:28, height:28, borderRadius:'50%', background:'#ef4444', color:'#fff', border:'none', cursor:'pointer', fontSize:14, flexShrink:0 }}>×</button>
+                            </div>
+                            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                              <input type="color" value={tb.color}
+                                onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,color:e.target.value}:t)}))}
+                                style={{ width:32, height:32, border:'none', borderRadius:4, cursor:'pointer' }}/>
+                              <input type="range" min={10} max={72} value={tb.fontSize}
+                                onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontSize:+e.target.value}:t)}))}
+                                style={{ flex:1 }}/>
+                              <span style={{ fontSize:11, color:'#94a3b8', minWidth:28 }}>{tb.fontSize}</span>
+                              <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,bold:!t.bold}:t)}))}
+                                style={{ padding:'4px 8px', border: tb.bold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: tb.bold?'#f0f3ff':'#fff', cursor:'pointer', fontSize:12, fontWeight:700 }}>B</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Non-printed: color picker + deco */}
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Колір обкладинки</div>
+                        <div style={{ fontSize:11, color:'#94a3b8' }}>{effectiveCoverColor || 'Не вибрано'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Текст на обкладинці</div>
+                        <input value={coverState.decoText||''} onChange={e=>setCoverState(p=>({...p,decoText:e.target.value}))}
+                          placeholder="Ваш напис"
+                          style={{ width:'100%', padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, boxSizing:'border-box' }}/>
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b' }}>Колір тексту</div>
+                        <input type="color" value={coverState.decoColor||'#D4AF37'}
+                          onChange={e=>setCoverState(p=>({...p,decoColor:e.target.value}))}
+                          style={{ width:36, height:36, border:'none', borderRadius:6, cursor:'pointer' }}/>
+                      </div>
+                    </>
+                  )}
+                  {/* Back cover */}
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Задня обкладинка — колір фону</div>
+                    <input type="color" value={coverState.backCoverBgColor||'#f1f5f9'}
+                      onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
+                      style={{ width:36, height:36, border:'none', borderRadius:6, cursor:'pointer' }}/>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
