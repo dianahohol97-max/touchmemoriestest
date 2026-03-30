@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { STAR_CATALOG, CONSTELLATION_LINES } from '@/lib/astronomy/starCatalog';
 
 interface StarMapConfig {
     date: string;
@@ -25,202 +26,227 @@ interface StarMapPreviewProps {
     config: StarMapConfig;
 }
 
+function toRad(deg: number) { return deg * Math.PI / 180; }
+function toDeg(rad: number) { return rad * 180 / Math.PI; }
+
+function getJulianDate(dateStr: string, timeStr: string): number {
+    const [y, mo, d] = dateStr.split('-').map(Number);
+    const [h, m] = timeStr.split(':').map(Number);
+    const ut = h + m / 60;
+    const A = Math.floor((14 - mo) / 12);
+    const Y = y + 4800 - A;
+    const M = mo + 12 * A - 3;
+    const JDN = d + Math.floor((153 * M + 2) / 5) + 365 * Y +
+        Math.floor(Y / 4) - Math.floor(Y / 100) + Math.floor(Y / 400) - 32045;
+    return JDN + (ut - 12) / 24;
+}
+
+function getGMST(jd: number): number {
+    const T = (jd - 2451545.0) / 36525.0;
+    let gmst = 280.46061837 + 360.98564736629 * (jd - 2451545.0) +
+        T * T * 0.000387933 - T * T * T / 38710000.0;
+    gmst = ((gmst % 360) + 360) % 360;
+    return gmst / 15;
+}
+
+function raDecToAltAz(ra: number, dec: number, lat: number, lon: number, jd: number): { alt: number; az: number } {
+    const gmst = getGMST(jd);
+    const lst = ((gmst + lon / 15) % 24 + 24) % 24;
+    const ha = ((lst - ra) % 24 + 24) % 24;
+    const haRad = toRad(ha * 15);
+    const decRad = toRad(dec);
+    const latRad = toRad(lat);
+    const sinAlt = Math.sin(decRad) * Math.sin(latRad) + Math.cos(decRad) * Math.cos(latRad) * Math.cos(haRad);
+    const alt = toDeg(Math.asin(Math.max(-1, Math.min(1, sinAlt))));
+    const cosAz = (Math.sin(decRad) - Math.sin(toRad(alt)) * Math.sin(latRad)) /
+        (Math.cos(toRad(alt)) * Math.cos(latRad));
+    let az = toDeg(Math.acos(Math.max(-1, Math.min(1, cosAz))));
+    if (Math.sin(haRad) > 0) az = 360 - az;
+    return { alt, az };
+}
+
+function altAzToXY(alt: number, az: number, cx: number, cy: number, radius: number, fov: number): { x: number; y: number } | null {
+    if (alt < -8) return null;
+    const zenithDist = 90 - alt;
+    if (zenithDist > fov) return null;
+    const r = radius * Math.tan(toRad(zenithDist) / 2) / Math.tan(toRad(fov) / 2);
+    const azRad = toRad(az);
+    return { x: cx + r * Math.sin(azRad), y: cy - r * Math.cos(azRad) };
+}
+
 export default function StarMapPreview({ config }: StarMapPreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (!canvasRef.current) return;
-
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Set canvas size (preview resolution)
-        const width = 600;
-        const height = 800;
-        canvas.width = width;
-        canvas.height = height;
+        const W = 600, H = 800;
+        canvas.width = W;
+        canvas.height = H;
 
-        // Clear canvas
         ctx.fillStyle = config.backgroundColor;
-        ctx.fillRect(0, 0, width, height);
+        ctx.fillRect(0, 0, W, H);
 
-        // Draw star map (placeholder for now - will integrate d3-celestial)
-        drawStarMapPlaceholder(ctx, width, height, config);
+        const isFullBleed = config.style === 'full-bleed';
+        const isCircular = config.style === 'circular';
+        const mapAreaH = isFullBleed ? H : Math.round(H * 0.62);
+        const mapCX = W / 2;
+        const mapCY = isFullBleed ? H / 2 : mapAreaH / 2;
+        const mapRadius = isCircular
+            ? Math.min(W, mapAreaH) * 0.44
+            : Math.min(W / 2, mapAreaH / 2) * 0.95;
+        const FOV = 90;
 
-        // Draw text overlays
-        drawTextOverlays(ctx, width, height, config);
+        const jd = getJulianDate(config.date, config.time);
 
-    }, [config]);
-
-    const drawStarMapPlaceholder = (ctx: CanvasRenderingContext2D, width: number, height: number, config: StarMapConfig) => {
-        // Calculate star map area based on style
-        let mapX = 0;
-        let mapY = 0;
-        let mapWidth = width;
-        let mapHeight = height * 0.6;
-
-        if (config.style === 'circular') {
-            const diameter = Math.min(width, height) * 0.6;
-            mapX = (width - diameter) / 2;
-            mapY = 50;
-            mapWidth = diameter;
-            mapHeight = diameter;
-
-            // Draw circular boundary
-            ctx.strokeStyle = config.textColor;
-            ctx.lineWidth = 2;
+        ctx.save();
+        if (isCircular) {
             ctx.beginPath();
-            ctx.arc(width / 2, mapY + diameter / 2, diameter / 2, 0, Math.PI * 2);
+            ctx.arc(mapCX, mapCY, mapRadius, 0, Math.PI * 2);
+            ctx.clip();
+        } else if (!isFullBleed) {
+            ctx.rect(0, 0, W, mapAreaH);
+            ctx.clip();
+        }
+
+        // Constellation lines
+        ctx.strokeStyle = config.starColor;
+        ctx.globalAlpha = 0.18;
+        ctx.lineWidth = 0.8;
+        for (const [ra1, dec1, ra2, dec2] of CONSTELLATION_LINES) {
+            const p1 = altAzToXY(...Object.values(raDecToAltAz(ra1, dec1, config.latitude, config.longitude, jd)) as [number, number], mapCX, mapCY, mapRadius, FOV);
+            const p2 = altAzToXY(...Object.values(raDecToAltAz(ra2, dec2, config.latitude, config.longitude, jd)) as [number, number], mapCX, mapCY, mapRadius, FOV);
+            if (!p1 || !p2) continue;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
             ctx.stroke();
-        } else if (config.style === 'full-bleed') {
-            mapHeight = height;
         }
 
-        // Draw placeholder stars (will be replaced with d3-celestial)
-        drawPlaceholderStars(ctx, mapX, mapY, mapWidth, mapHeight, config);
+        // Stars
+        ctx.globalAlpha = 1;
+        for (const [ra, dec, mag, name] of STAR_CATALOG) {
+            const { alt, az } = raDecToAltAz(ra, dec, config.latitude, config.longitude, jd);
+            const pos = altAzToXY(alt, az, mapCX, mapCY, mapRadius, FOV);
+            if (!pos) continue;
+            const size = Math.max(0.5, 4.0 - (mag + 1.5) * 0.6);
+            const alpha = Math.max(0.3, Math.min(1.0, 1.0 - (mag - 0.0) * 0.18));
 
-        // Draw constellations placeholder
-        if (config.style !== 'full-bleed') {
-            drawPlaceholderConstellations(ctx, mapX, mapY, mapWidth, mapHeight, config);
+            if (mag < 1.5) {
+                const glow = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, size * 4);
+                glow.addColorStop(0, config.starColor);
+                glow.addColorStop(0.4, config.starColor + '88');
+                glow.addColorStop(1, config.starColor + '00');
+                ctx.globalAlpha = alpha * 0.6;
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, size * 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = config.starColor;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (mag < 1.2 && name) {
+                ctx.globalAlpha = 0.6;
+                ctx.fillStyle = config.textColor;
+                ctx.font = `10px ${config.fontFamily}`;
+                ctx.textAlign = 'left';
+                ctx.fillText(name, pos.x + size + 3, pos.y + 4);
+            }
         }
 
-        // Draw horizon line for 'with-horizon' style
+        ctx.globalAlpha = 1;
+        ctx.restore();
+
+        if (isCircular) {
+            ctx.strokeStyle = config.textColor;
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.arc(mapCX, mapCY, mapRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+
         if (config.style === 'with-horizon') {
             ctx.strokeStyle = config.textColor;
             ctx.lineWidth = 1;
-            ctx.setLineDash([5, 5]);
+            ctx.globalAlpha = 0.35;
+            ctx.setLineDash([4, 4]);
+            const horizY = mapCY + mapRadius;
             ctx.beginPath();
-            ctx.moveTo(0, mapY + mapHeight * 0.7);
-            ctx.lineTo(width, mapY + mapHeight * 0.7);
+            ctx.moveTo(mapCX - mapRadius, Math.min(horizY, mapAreaH - 2));
+            ctx.lineTo(mapCX + mapRadius, Math.min(horizY, mapAreaH - 2));
             ctx.stroke();
             ctx.setLineDash([]);
-
-            // Draw location pin
-            ctx.fillStyle = config.textColor;
-            ctx.beginPath();
-            ctx.arc(width / 2, mapY + mapHeight * 0.7, 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    };
-
-    const drawPlaceholderStars = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, config: StarMapConfig) => {
-        // Generate random stars based on date/location (deterministic)
-        const seed = config.latitude + config.longitude + new Date(config.date).getTime();
-        const random = (i: number) => {
-            const x = Math.sin(seed + i) * 10000;
-            return x - Math.floor(x);
-        };
-
-        ctx.fillStyle = config.starColor;
-
-        // Draw ~200 stars with varying sizes
-        for (let i = 0; i < 200; i++) {
-            const starX = x + random(i * 2) * width;
-            const starY = y + random(i * 2 + 1) * height;
-            const size = random(i * 3) * 2 + 0.5;
-
-            if (config.style === 'circular') {
-                // Check if star is within circle
-                const centerX = x + width / 2;
-                const centerY = y + height / 2;
-                const radius = width / 2;
-                const dist = Math.sqrt(Math.pow(starX - centerX, 2) + Math.pow(starY - centerY, 2));
-                if (dist > radius) continue;
-            }
-
-            ctx.globalAlpha = random(i * 4) * 0.5 + 0.5;
-            ctx.beginPath();
-            ctx.arc(starX, starY, size, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.globalAlpha = 1;
         }
 
-        ctx.globalAlpha = 1;
-    };
+        if (!isFullBleed && !isCircular) {
+            ctx.strokeStyle = config.textColor;
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.15;
+            ctx.beginPath();
+            ctx.moveTo(W * 0.1, mapAreaH + 1);
+            ctx.lineTo(W * 0.9, mapAreaH + 1);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
 
-    const drawPlaceholderConstellations = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, config: StarMapConfig) => {
-        // Draw a few constellation lines (placeholder)
-        ctx.strokeStyle = config.starColor;
-        ctx.globalAlpha = 0.3;
-        ctx.lineWidth = 1;
-
-        // Big Dipper example
-        const points = [
-            [0.2, 0.3], [0.25, 0.25], [0.3, 0.2], [0.35, 0.25],
-            [0.35, 0.35], [0.4, 0.4], [0.45, 0.45]
-        ];
-
-        ctx.beginPath();
-        points.forEach((point, i) => {
-            const px = x + point[0] * width;
-            const py = y + point[1] * height;
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-        });
-        ctx.stroke();
-
-        ctx.globalAlpha = 1;
-    };
-
-    const drawTextOverlays = (ctx: CanvasRenderingContext2D, width: number, height: number, config: StarMapConfig) => {
+        // Text
         ctx.fillStyle = config.textColor;
         ctx.textAlign = 'center';
+        const textStartY = isFullBleed ? 52 : mapAreaH + 32;
 
-        // Draw headline
         if (config.headline) {
-            ctx.font = `bold 32px ${config.fontFamily}`;
-            const headlineY = config.style === 'full-bleed' ? 50 : height * 0.65;
-            ctx.fillText(config.headline, width / 2, headlineY);
+            ctx.font = `bold 30px ${config.fontFamily}`;
+            ctx.globalAlpha = isFullBleed ? 0.9 : 1;
+            ctx.fillText(config.headline, W / 2, textStartY);
+            ctx.globalAlpha = 1;
         }
-
-        // Draw subtitle
         if (config.subtitle) {
-            ctx.font = `18px ${config.fontFamily}`;
-            const subtitleY = config.style === 'full-bleed' ? 85 : height * 0.7;
-            ctx.fillText(config.subtitle, width / 2, subtitleY);
+            ctx.font = `15px ${config.fontFamily}`;
+            ctx.globalAlpha = 0.72;
+            ctx.fillText(config.subtitle, W / 2, textStartY + 30);
+            ctx.globalAlpha = 1;
         }
-
-        // Draw dedication
         if (config.dedication) {
-            ctx.font = `14px ${config.fontFamily}`;
-            const dedicationY = config.style === 'full-bleed' ? height - 40 : height * 0.85;
-
-            // Word wrap dedication text
-            const maxWidth = width * 0.8;
+            ctx.font = `italic 13px ${config.fontFamily}`;
+            ctx.globalAlpha = 0.62;
+            const maxW = W * 0.78;
             const words = config.dedication.split(' ');
-            let line = '';
-            let lineY = dedicationY;
-
-            words.forEach((word, i) => {
-                const testLine = line + word + ' ';
-                const metrics = ctx.measureText(testLine);
-
-                if (metrics.width > maxWidth && i > 0) {
-                    ctx.fillText(line, width / 2, lineY);
-                    line = word + ' ';
-                    lineY += 20;
-                } else {
-                    line = testLine;
-                }
-            });
-            ctx.fillText(line, width / 2, lineY);
+            let line = '', lineY = textStartY + (config.subtitle ? 64 : 42);
+            for (let i = 0; i < words.length; i++) {
+                const testLine = line + words[i] + ' ';
+                if (ctx.measureText(testLine).width > maxW && i > 0) {
+                    ctx.fillText(line.trim(), W / 2, lineY);
+                    line = words[i] + ' '; lineY += 20;
+                } else { line = testLine; }
+            }
+            ctx.fillText(line.trim(), W / 2, lineY);
+            ctx.globalAlpha = 1;
         }
 
-        // Draw coordinates (bottom right)
+        // Coordinates
         ctx.font = `10px ${config.fontFamily}`;
         ctx.textAlign = 'right';
-        ctx.globalAlpha = 0.7;
-        ctx.fillText(
-            `${config.latitude.toFixed(4)}° N, ${config.longitude.toFixed(4)}° E`,
-            width - 10,
-            height - 10
-        );
+        ctx.globalAlpha = 0.4;
+        const latStr = config.latitude >= 0 ? `${config.latitude.toFixed(2)}° N` : `${Math.abs(config.latitude).toFixed(2)}° S`;
+        const lonStr = config.longitude >= 0 ? `${config.longitude.toFixed(2)}° E` : `${Math.abs(config.longitude).toFixed(2)}° W`;
+        ctx.fillText(`${latStr}, ${lonStr}`, W - 12, H - 12);
         ctx.globalAlpha = 1;
-    };
+
+    }, [config]);
 
     return (
-        <div ref={containerRef} className="bg-white rounded-lg shadow-lg p-6">
+        <div className="bg-white rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Попередній перегляд</h3>
             <div className="relative">
                 <canvas
