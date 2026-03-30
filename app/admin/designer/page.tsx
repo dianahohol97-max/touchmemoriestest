@@ -70,6 +70,19 @@ export default function DesignerCabinetPage() {
     setLoading(false);
   };
 
+  const getConstructorUrl = (order: any, orderId: string) => {
+    const items = (order?.items || []) as any[];
+    const slug = (items[0]?.slug || items[0]?.product_slug || '').toLowerCase();
+    let base = '/order/book';
+    if (slug.includes('photoprint') || slug.includes('polaroid')) base = '/order/photoprint';
+    else if (slug.includes('canvas') || slug.includes('polotni')) base = '/order/canvas';
+    else if (slug.includes('puzzle')) base = `/order/puzzles?product=${slug}`;
+    else if (slug.includes('starmap') || slug.includes('star-map')) base = '/order/starmap';
+    const sep = base.includes('?') ? '&' : '?';
+    if (base === '/order/book') return `${base}?product=${slug || 'photobook-velour'}&designer_order_id=${orderId}&designer_mode=1`;
+    return `${base}${sep}designer_order_id=${orderId}&designer_mode=1`;
+  };
+
   const takeOrder = async (orderId: string) => {
     if (!currentUser) return;
     await supabase.from('orders').update({ designer_id: currentUser.id, assigned_at: new Date().toISOString() }).eq('id', orderId);
@@ -346,10 +359,10 @@ export default function DesignerCabinetPage() {
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Link href={`/admin/orders/${p.order_id}`}
+                      <a href={getConstructorUrl(order, p.order_id)}
                         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: '#1e2d7d', color: '#fff', borderRadius: 8, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
                         <Palette size={14} /> Відкрити конструктор
-                      </Link>
+                      </a>
                       <Link href={`/review/${p.share_token}`} target="_blank"
                         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#f8fafc', color: '#374151', border: '1px solid #e2e8f0', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
                         <Eye size={14} /> Сторінка клієнта
