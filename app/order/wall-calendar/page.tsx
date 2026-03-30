@@ -1,16 +1,18 @@
 'use client';
-
 import { Suspense } from 'react';
-import CalendarConstructor from '@/components/CalendarConstructor';
+import { useSearchParams } from 'next/navigation';
+import WallCalendarConstructor from '@/components/WallCalendarConstructor';
 
-function WallCalendarContent() {
-    return <CalendarConstructor productType="wall" />;
+function Content() {
+    const params = useSearchParams();
+    const size = params.get('size') || 'A4';
+    return <WallCalendarConstructor initialSize={size} />;
 }
 
-export default function WallCalendarOrderPage() {
+export default function WallCalendarPage() {
     return (
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Завантаження...</div>}>
-            <WallCalendarContent />
+            <Content />
         </Suspense>
     );
 }

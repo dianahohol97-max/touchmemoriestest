@@ -80,6 +80,13 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
   if (slug.includes('polotni') || slug.includes('canvas') || slug.includes('полотн')) {
     return `/order/canvas`;
   }
+  if (slug.includes('calendar') || slug.includes('kalendar')) {
+    // Pass size if selected
+    const sizeOpt = product?.options?.find((o: any) => o.name === 'Розмір');
+    const selectedIdx = selectedOptions['Розмір'];
+    const sizeVal = sizeOpt?.options?.[selectedIdx]?.value || sizeOpt?.values?.[selectedIdx]?.name || '';
+    return sizeVal ? `/order/wall-calendar?size=${sizeVal}` : '/order/wall-calendar';
+  }
   if (slug.includes('puzzle') || slug.includes('pazl')) {
     return `/order/puzzles?product=${slug}`;
   }
