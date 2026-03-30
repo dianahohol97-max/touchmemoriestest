@@ -140,7 +140,7 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
             }).filter(Boolean) as {x:number;y:number}[];
             if(pts.length>4) {
                 ctx.save();
-                ctx.globalAlpha=0.08;
+                ctx.globalAlpha=0.06;
                 ctx.strokeStyle=config.starColor;
                 ctx.lineWidth=28; ctx.lineCap='round'; ctx.lineJoin='round';
                 ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
@@ -183,7 +183,7 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
             ctx.save();
             ctx.strokeStyle=config.starColor;
             ctx.lineWidth = isLight ? 0.8 : 1.0;
-            ctx.globalAlpha = isLight ? 0.3 : 0.5;
+            ctx.globalAlpha = isLight ? 0.35 : 0.65;
             for(const [ra1,dec1,ra2,dec2] of CONSTELLATION_LINES) {
                 const p1=proj(...Object.values(altaz(ra1,dec1,lat,lon,jd)) as [number,number],cx,cy,R);
                 const p2=proj(...Object.values(altaz(ra2,dec2,lat,lon,jd)) as [number,number],cx,cy,R);
@@ -197,8 +197,8 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         for(const [ra,dec,mag] of STAR_CATALOG) {
             const {alt,az}=altaz(ra,dec,lat,lon,jd);
             const pos=proj(alt,az,cx,cy,R); if(!pos) continue;
-            const size=Math.max(0.4, 3.6-(mag+1.5)*0.50);
-            const alpha=Math.max(0.3, Math.min(1.0, 1.1-mag*0.16));
+            const size=Math.max(0.5, 4.2-(mag+1.5)*0.55);
+            const alpha=Math.max(0.55, Math.min(1.0, 1.15-mag*0.12));
             // Glow on bright stars
             if(mag<1.5) {
                 const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,size*4.5);
@@ -219,7 +219,7 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
             ctx.font=`${isLight?'10':'9'}px ${config.fontFamily}`;
             ctx.fillStyle=config.textColor;
             ctx.textAlign='center'; ctx.textBaseline='middle';
-            ctx.globalAlpha=isLight?0.35:0.45;
+            ctx.globalAlpha=isLight?0.4:0.55;
             for(const [ra,dec,name] of CONSTELLATION_LABELS) {
                 const {alt,az}=altaz(ra,dec,lat,lon,jd);
                 const pos=proj(alt,az,cx,cy,R); if(!pos) continue;

@@ -63,7 +63,7 @@ export default function StarMapConstructor() {
 
         // Step 3 defaults
         style: 'classic-dark',
-        backgroundColor: '#0a1128',
+        backgroundColor: '#050a18',
         starColor: '#ffffff',
         textColor: '#ffffff',
         fontFamily: 'Georgia',
@@ -413,13 +413,13 @@ function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setCon
 // Step 3: Design
 function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>> }) {
     const styles = [
-        { id: 'classic-dark',  name: 'Чорний класик',   bg: '#0a0e1a', star: '#ffffff', text: '#ffffff', preview: '#0a0e1a' },
-        { id: 'light-minimal', name: 'Білий мінімалізм', bg: '#f7f7f5', star: '#1a1a1a', text: '#1a1a1a', preview: '#f7f7f5' },
-        { id: 'circular',      name: 'Синій нічний',    bg: '#0e1a3a', star: '#c8d8ff', text: '#ffffff', preview: '#0e1a3a' },
-        { id: 'full-bleed',    name: 'На весь постер',  bg: '#060d1f', star: '#ffffff', text: '#ffffff', preview: '#060d1f' },
-        { id: 'heart-dark',    name: 'Серце темне',     bg: '#0a0e1a', star: '#ffffff', text: '#ffffff', preview: '#0a0e1a' },
-        { id: 'heart-light',   name: 'Серце світле',    bg: '#f7f7f5', star: '#1a1a1a', text: '#1a1a1a', preview: '#f7f7f5' },
-        { id: 'forest-peak',   name: 'Ліс і гори',      bg: '#1a3a5c', star: '#ffffff', text: '#ffffff', preview: '#1a3a5c' },
+        { id: 'classic-dark',  name: 'Чорний класик',   bg: '#050a18', star: '#ffffff', text: '#ffffff', preview: '#050a18' },
+        { id: 'light-minimal', name: 'Білий мінімалізм', bg: '#f5f5f0', star: '#0a0e1a', text: '#0a0e1a', preview: '#f5f5f0' },
+        { id: 'circular',      name: 'Синій нічний',    bg: '#08122e', star: '#dce8ff', text: '#ffffff', preview: '#08122e' },
+        { id: 'full-bleed',    name: 'На весь постер',  bg: '#030810', star: '#ffffff', text: '#ffffff', preview: '#030810' },
+        { id: 'heart-dark',    name: 'Серце темне',     bg: '#050a18', star: '#ffffff', text: '#ffffff', preview: '#050a18' },
+        { id: 'heart-light',   name: 'Серце світле',    bg: '#f5f5f0', star: '#0a0e1a', text: '#0a0e1a', preview: '#f5f5f0' },
+        { id: 'forest-peak',   name: 'Ліс і гори',      bg: '#060d1f', star: '#ffffff', text: '#ffffff', preview: '#060d1f' },
     ];
 
     const fonts = [
