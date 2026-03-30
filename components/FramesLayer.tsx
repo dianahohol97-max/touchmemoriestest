@@ -13,46 +13,68 @@ export const FRAMES = [
   // ── Simple frames ──
   {
     id: 'simple-thin',
-    label: 'Тонка',
+    label: 'Тонка (1мм)',
     group: 'Прості',
-    render: (w:number, h:number, color:string, op:number) =>
-      `<rect x="6" y="6" width="${w-12}" height="${h-12}" fill="none" stroke="${color}" stroke-width="2" opacity="${op/100}"/>`,
+    render: (w:number, h:number, color:string, op:number) => {
+      const sw = Math.max(1, Math.round(w * 0.005)); // 1mm = 0.5% of width
+      const g = sw * 2;
+      return `<rect x="${g}" y="${g}" width="${w-g*2}" height="${h-g*2}" fill="none" stroke="${color}" stroke-width="${sw}" opacity="${op/100}"/>`;
+    },
   },
   {
     id: 'simple-medium',
-    label: 'Середня',
+    label: 'Середня (3мм)',
     group: 'Прості',
-    render: (w:number, h:number, color:string, op:number) =>
-      `<rect x="10" y="10" width="${w-20}" height="${h-20}" fill="none" stroke="${color}" stroke-width="5" opacity="${op/100}"/>`,
+    render: (w:number, h:number, color:string, op:number) => {
+      const sw = Math.max(2, Math.round(w * 0.015)); // 3mm = 1.5% of width
+      const g = sw * 1.5;
+      return `<rect x="${g}" y="${g}" width="${w-g*2}" height="${h-g*2}" fill="none" stroke="${color}" stroke-width="${sw}" opacity="${op/100}"/>`;
+    },
   },
   {
     id: 'simple-thick',
-    label: 'Товста',
+    label: 'Товста (6мм)',
     group: 'Прості',
-    render: (w:number, h:number, color:string, op:number) =>
-      `<rect x="12" y="12" width="${w-24}" height="${h-24}" fill="none" stroke="${color}" stroke-width="12" opacity="${op/100}"/>`,
+    render: (w:number, h:number, color:string, op:number) => {
+      const sw = Math.max(4, Math.round(w * 0.03)); // 6mm = 3% of width
+      const g = sw * 1.2;
+      return `<rect x="${g}" y="${g}" width="${w-g*2}" height="${h-g*2}" fill="none" stroke="${color}" stroke-width="${sw}" opacity="${op/100}"/>`;
+    },
   },
   {
     id: 'double',
     label: 'Подвійна',
     group: 'Прості',
-    render: (w:number, h:number, color:string, op:number) =>
-      `<rect x="5" y="5" width="${w-10}" height="${h-10}" fill="none" stroke="${color}" stroke-width="2" opacity="${op/100}"/>
-       <rect x="12" y="12" width="${w-24}" height="${h-24}" fill="none" stroke="${color}" stroke-width="1" opacity="${op/100}"/>`,
+    render: (w:number, h:number, color:string, op:number) => {
+      const sw1 = Math.max(1, Math.round(w * 0.005));
+      const sw2 = Math.max(1, Math.round(w * 0.008));
+      const g1 = sw1 * 2, g2 = g1 + sw1 * 4;
+      return `<rect x="${g1}" y="${g1}" width="${w-g1*2}" height="${h-g1*2}" fill="none" stroke="${color}" stroke-width="${sw1}" opacity="${op/100}"/>
+       <rect x="${g2}" y="${g2}" width="${w-g2*2}" height="${h-g2*2}" fill="none" stroke="${color}" stroke-width="${sw2}" opacity="${op/100}"/>`;
+    },
   },
   {
     id: 'rounded',
     label: 'Округла',
     group: 'Прості',
-    render: (w:number, h:number, color:string, op:number) =>
-      `<rect x="8" y="8" width="${w-16}" height="${h-16}" rx="18" fill="none" stroke="${color}" stroke-width="4" opacity="${op/100}"/>`,
+    render: (w:number, h:number, color:string, op:number) => {
+      const sw = Math.max(2, Math.round(w * 0.012));
+      const g = sw * 1.5;
+      const rx = Math.round(w * 0.04);
+      return `<rect x="${g}" y="${g}" width="${w-g*2}" height="${h-g*2}" rx="${rx}" fill="none" stroke="${color}" stroke-width="${sw}" opacity="${op/100}"/>`;
+    },
   },
   {
     id: 'dashed',
     label: 'Пунктирна',
     group: 'Прості',
-    render: (w:number, h:number, color:string, op:number) =>
-      `<rect x="8" y="8" width="${w-16}" height="${h-16}" fill="none" stroke="${color}" stroke-width="3" stroke-dasharray="12,6" opacity="${op/100}"/>`,
+    render: (w:number, h:number, color:string, op:number) => {
+      const sw = Math.max(1, Math.round(w * 0.008));
+      const g = sw * 2;
+      const dash = Math.round(w * 0.03);
+      const gap = Math.round(w * 0.015);
+      return `<rect x="${g}" y="${g}" width="${w-g*2}" height="${h-g*2}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-dasharray="${dash},${gap}" opacity="${op/100}"/>`;
+    },
   },
 
   // REMOVED: Decorative and Floral frames — use SVG only simple
