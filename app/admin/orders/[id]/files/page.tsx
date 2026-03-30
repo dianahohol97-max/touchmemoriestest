@@ -319,10 +319,17 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
                                     <div style={{ fontSize: '13px', fontWeight: 700, color: '#263A99', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         {file.file_name}
                                     </div>
-                                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>
+                                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: file.product_type ? '4px' : '8px' }}>
                                         {formatFileSize(file.file_size)}
                                         {file.page_number && ` • Сторінка ${file.page_number}`}
                                     </div>
+                                    {file.product_type && (
+                                        <div style={{ marginBottom: '8px' }}>
+                                            <span style={{ fontSize: '10px', fontWeight: 700, background: '#eff6ff', color: '#263A99', padding: '2px 7px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                                                {{ photobook:'Фотокнига', photoprint:'Фотодрук', journal:'Журнал', poster:'Постер', calendar:'Календар', travelbook:'Travel Book', photomagnets:'Магніти', puzzle:'Пазл' }[file.product_type] || file.product_type}
+                                            </span>
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', gap: '6px' }}>
                                         <button
                                             onClick={() => downloadFile(file)}
