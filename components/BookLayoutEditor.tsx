@@ -368,7 +368,12 @@ export default function BookLayoutEditor() {
 
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
   const usedIds = new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean)));
-  const isPrinted = (config?.selectedCoverType || '').toLowerCase().includes('друков') || (config?.selectedCoverType || '').toLowerCase().includes('print');
+  const isPrinted = (config?.selectedCoverType || '').toLowerCase().includes('друков') || 
+    (config?.selectedCoverType || '').toLowerCase().includes('print') ||
+    (config?.selectedCoverType || '').toLowerCase().includes('м\'яка') ||
+    (config?.selectedCoverType || '').toLowerCase().includes('soft') ||
+    (config?.productSlug || '').toLowerCase().includes('magazine') ||
+    (config?.productName || '').toLowerCase().includes('журнал');
   const cur = pages[currentIdx];
 
   const sizeKey = config?.selectedSize ?? 'A4';
