@@ -145,7 +145,20 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
 
         return (
           <div key={slot.id}
-            onMouseDown={e => { setSelectedId(slot.id); onSelect?.(slot.id); startDrag(e, slot.id, 'move'); }}
+            onMouseDown={e => {
+              // Move slot only when clicking on the border area (not directly on photo)
+              const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+              const border = 12; // px from edge = drag to move
+              const onEdge = x < border || y < border || x > rect.width - border || y > rect.height - border;
+              if (onEdge || !photo) {
+                setSelectedId(slot.id); onSelect?.(slot.id);
+                startDrag(e, slot.id, 'move');
+              } else {
+                setSelectedId(slot.id); onSelect?.(slot.id);
+              }
+            }}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) { update(slot.id, { photoId: id }); setSelectedId(slot.id); onSelect?.(slot.id); } }}
             style={{
@@ -156,7 +169,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
               overflow: 'visible',
               border: sel ? '2px solid #3b82f6' : (photo ? '1px solid rgba(99,102,241,0.3)' : '2px dashed #818cf8'),
               background: 'transparent',
-              cursor: 'move',
+              cursor: photo ? 'default' : 'move',
               zIndex: sel ? 50 : 30,
               boxShadow: sel ? '0 0 0 2px rgba(59,130,246,0.4)' : 'none',
             }}
@@ -183,13 +196,11 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
                 <img
                   src={photo.preview}
                   onMouseDown={e => {
+                    e.stopPropagation(); // prevent outer div from also handling
                     if (!sel) {
-                      // First click — just select, don't start crop drag
-                      e.stopPropagation();
                       setSelectedId(slot.id);
                       onSelect?.(slot.id);
                     } else {
-                      // Already selected — allow crop drag
                       setSelectedId(slot.id);
                       startCropDrag(e, slot.id, slot.cropX, slot.cropY);
                     }
@@ -231,6 +242,15 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
               </div>
             )}
             </div>{/* end clip div */}
+
+            {/* Move handle — drag to move the slot */}
+            {sel && (
+              <div
+                onMouseDown={e => { e.stopPropagation(); setSelectedId(slot.id); startDrag(e, slot.id, 'move'); }}
+                style={{ position:'absolute', top:-10, left:'50%', transform:'translateX(-50%)', width:28, height:18, borderRadius:6, background:'#1e2d7d', color:'#fff', border:'2px solid #fff', cursor:'move', fontSize:10, display:'flex', alignItems:'center', justifyContent:'center', zIndex:60, userSelect:'none' }}
+                title="Перемістити слот"
+              >✥</div>
+            )}
 
             {/* Delete button */}
             {sel && (
