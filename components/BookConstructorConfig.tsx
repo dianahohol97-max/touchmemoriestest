@@ -510,6 +510,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         sessionStorage.setItem('bookConstructorConfig', JSON.stringify(config));
 
+        const pt = getProductType();
         // Wishbook — no editor needed, go directly to order summary
         if (pt === 'wishbook') {
             const params = new URLSearchParams();

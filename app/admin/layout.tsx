@@ -41,6 +41,7 @@ const menuItems = [
     { name: 'Категорії', href: '/admin/categories', icon: <List size={20} />, section: 'catalog' },
     { name: 'Подарункові колекції', href: '/admin/gift-collections', icon: <Gift size={20} />, section: 'catalog' },
     { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog' },
+    { name: 'Кабінет дизайнера', href: '/admin/designer', icon: <Palette size={20} />, section: 'designer' },
     { name: 'Замовлення', href: '/admin/orders', icon: <ShoppingCart size={20} />, section: 'orders' },
     { name: 'Макети клієнтів', href: '/admin/projects', icon: <Folder size={20} />, section: 'orders' },
     { name: 'Сертифікати', href: '/admin/certificates', icon: <Gift size={20} />, section: 'orders' },
@@ -120,6 +121,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                         const SECTION_LABELS: Record<string, string> = {
                             analytics: 'Аналітика',
                             catalog: 'Каталог',
+                            designer: 'Дизайнер',
                             orders: 'Замовлення',
                             production: 'Виробництво',
                             customers: 'Клієнти',
