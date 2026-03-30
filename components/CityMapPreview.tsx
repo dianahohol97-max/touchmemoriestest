@@ -14,7 +14,7 @@ interface CityMapConfig {
     subtitle: string;
     textNote: string;
     coordinates: string;
-    mapStyle: 'classic-bw' | 'smooth-light' | 'dark-mode' | 'color-outdoors' | 'vintage-sepia' | 'blueprint';
+    mapStyle: string;
     textColor: 'light' | 'dark';
     layout: 'original' | 'modern' | 'no-text' | 'circle' | 'heart' | 'square-border';
     border: 'simple-frame' | 'white-mat' | 'no-border';
@@ -52,18 +52,14 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
     // Get tile URL based on map style
     const getTileUrl = () => {
         switch (config.mapStyle) {
-            case 'classic-bw':
-                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-            case 'smooth-light':
-                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
             case 'dark-mode':
-                return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-            case 'color-outdoors':
-                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-            case 'vintage-sepia':
-                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+            case 'plum':
             case 'blueprint':
                 return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            case 'smooth-light':
+            case 'bayside':
+            case 'paste':
+                return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
             default:
                 return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         }
@@ -75,15 +71,23 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             case 'classic-bw':
                 return 'grayscale(100%) contrast(150%)';
             case 'smooth-light':
-                return 'grayscale(100%) brightness(1.1) contrast(0.9)';
+                return 'grayscale(80%) brightness(1.05)';
             case 'dark-mode':
+            case 'plum':
                 return 'none';
             case 'color-outdoors':
-                return 'none';
+            case 'bayside':
+                return 'saturate(1.2) brightness(1.05)';
             case 'vintage-sepia':
+            case 'harvest':
                 return 'sepia(70%) saturate(0.7) brightness(1.1)';
+            case 'vintage-red':
+                return 'sepia(30%) hue-rotate(320deg) saturate(1.5)';
             case 'blueprint':
-                return 'hue-rotate(180deg) invert(100%)';
+                return 'hue-rotate(200deg) saturate(3) brightness(0.7)';
+            case 'forest-green':
+            case 'paste':
+                return 'hue-rotate(90deg) saturate(0.6) brightness(1.1)';
             default:
                 return 'none';
         }

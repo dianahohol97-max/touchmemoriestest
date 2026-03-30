@@ -410,12 +410,18 @@ function Step2Personalize({ config, setConfig }: { config: CityMapConfig; setCon
 // Step 3: Design
 function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: React.Dispatch<React.SetStateAction<CityMapConfig>> }) {
     const mapStyles = [
-        { id: 'classic-bw', name: 'Класичний Ч/Б', desc: 'Чорно-білий контрастний' },
-        { id: 'smooth-light', name: 'М\'який світлий', desc: 'Мінімалістичні відтінки сірого' },
-        { id: 'dark-mode', name: 'Темний режим', desc: 'Світлі дороги на темному фоні' },
-        { id: 'color-outdoors', name: 'Кольоровий', desc: 'Повнокольорова карта' },
-        { id: 'vintage-sepia', name: 'Вінтаж/Сепія', desc: 'Теплі відтінки' },
-        { id: 'blueprint', name: 'Креслення', desc: 'Синій фон, білі лінії' }
+        { id: 'classic-bw',    name: 'Simple',   bg: '#ffffff', roads: '#333333', water: '#c8d8e8', park: '#e0e8d8' },
+        { id: 'smooth-light',  name: 'Modern',   bg: '#f5f5f5', roads: '#888888', water: '#b8cfe0', park: '#d4e4cc' },
+        { id: 'dark-mode',     name: 'Black',    bg: '#1a1a2e', roads: '#e0e0e0', water: '#16213e', park: '#0f3460' },
+        { id: 'color-outdoors',name: 'Blue',     bg: '#ddeeff', roads: '#3366cc', water: '#aaccff', park: '#99cc88' },
+        { id: 'vintage-sepia', name: 'Tender',   bg: '#f9f0e0', roads: '#c8a87a', water: '#d4c4a0', park: '#e0d4b0' },
+        { id: 'blueprint',     name: 'Blueprint',bg: '#1a3a5c', roads: '#ffffff', water: '#0d2540', park: '#1a4a3c' },
+        { id: 'vintage-red',   name: 'Red',      bg: '#fff5f5', roads: '#cc3333', water: '#ffcccc', park: '#ffeeee' },
+        { id: 'forest-green',  name: 'Leaf',     bg: '#f0f5ec', roads: '#4a7c59', water: '#b8d4c8', park: '#c8e0b8' },
+        { id: 'harvest',       name: 'Harvest',  bg: '#fdf0e0', roads: '#c8742a', water: '#e8c898', park: '#d4b870' },
+        { id: 'bayside',       name: 'Bayside',  bg: '#e0f5f5', roads: '#008888', water: '#80d4d4', park: '#b0e8d8' },
+        { id: 'plum',          name: 'Plum',     bg: '#f5e8f5', roads: '#6a1a7a', water: '#d0a8e0', park: '#e0c8e8' },
+        { id: 'paste',         name: 'Paste',    bg: '#fafaf0', roads: '#a0b890', water: '#c8e0d0', park: '#d0e8c0' },
     ];
 
     const layouts = [
@@ -442,22 +448,45 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
                 <p className="text-gray-600 text-sm">Оберіть стиль та макет</p>
             </div>
 
-            {/* Map Style */}
+            {/* Map Style — circular swatches */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">Стиль карти</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-4 gap-4">
                     {mapStyles.map((style) => (
                         <button
                             key={style.id}
                             onClick={() => setConfig({ ...config, mapStyle: style.id as any })}
-                            className={`p-3 border-2 rounded-lg text-left transition-all ${
-                                config.mapStyle === style.id
-                                    ? 'border-[#1e2d7d] bg-blue-50'
-                                    : 'border-gray-200 hover:border-gray-300'
-                            }`}
+                            className="flex flex-col items-center gap-1.5 group"
                         >
-                            <div className="text-sm font-semibold text-gray-900">{style.name}</div>
-                            <div className="text-xs text-gray-500 mt-1">{style.desc}</div>
+                            <div className={`w-14 h-14 rounded-full overflow-hidden transition-all relative ${
+                                config.mapStyle === style.id
+                                    ? 'ring-3 ring-[#1e2d7d] ring-offset-2 scale-110'
+                                    : 'ring-2 ring-gray-200 hover:ring-gray-400 hover:scale-105'
+                            }`} style={{ background: style.bg }}>
+                                {/* Mini map preview */}
+                                <svg viewBox="0 0 56 56" style={{ position:'absolute', inset:0, width:'100%', height:'100%' }}>
+                                    {/* Water */}
+                                    <ellipse cx="38" cy="12" rx="14" ry="8" fill={style.water} opacity="0.8"/>
+                                    {/* Park */}
+                                    <rect x="4" y="28" width="18" height="14" rx="2" fill={style.park} opacity="0.7"/>
+                                    {/* Roads */}
+                                    <line x1="0" y1="28" x2="56" y2="28" stroke={style.roads} strokeWidth="1.5"/>
+                                    <line x1="28" y1="0" x2="28" y2="56" stroke={style.roads} strokeWidth="1.5"/>
+                                    <line x1="0" y1="38" x2="56" y2="18" stroke={style.roads} strokeWidth="0.8" opacity="0.6"/>
+                                    <line x1="10" y1="0" x2="10" y2="56" stroke={style.roads} strokeWidth="0.8" opacity="0.5"/>
+                                    <line x1="44" y1="0" x2="44" y2="56" stroke={style.roads} strokeWidth="0.8" opacity="0.5"/>
+                                </svg>
+                                {config.mapStyle === style.id && (
+                                    <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                        <div style={{ width:16, height:16, borderRadius:'50%', background:'#1e2d7d', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <span className={`text-xs font-medium ${config.mapStyle === style.id ? 'text-[#1e2d7d]' : 'text-gray-600'}`}>
+                                {style.name}
+                            </span>
                         </button>
                     ))}
                 </div>
