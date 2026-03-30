@@ -46,15 +46,15 @@ export function ProductCard({ product }: ProductCardProps) {
                     </div>
                 </div>
 
-                <div className="p-6 flex flex-col flex-1 text-center justify-between">
+                <div className="p-3 sm:p-6 flex flex-col flex-1 text-center justify-between">
                     <div>
-                        <h3 className="font-heading text-[20px] font-bold m-0 text-primary leading-tight tracking-tight mb-2">
+                        <h3 className="font-heading text-[14px] sm:text-[20px] font-bold m-0 text-primary leading-tight tracking-tight mb-1 sm:mb-2">
                             {product.name}
                         </h3>
                     </div>
 
-                    <div className="mt-6 flex justify-center w-full">
-                        <div className="w-full bg-[#1e2d7d] text-white font-bold text-sm py-3 px-6 rounded-lg hover:bg-[#152158] transition-colors duration-200 cursor-pointer text-center">
+                    <div className="mt-2 sm:mt-6 flex justify-center w-full">
+                        <div className="w-full bg-[#1e2d7d] text-white font-bold text-[11px] sm:text-sm py-2 sm:py-3 px-2 sm:px-6 rounded-lg hover:bg-[#152158] transition-colors duration-200 cursor-pointer text-center">
                             Детальніше
                         </div>
                     </div>

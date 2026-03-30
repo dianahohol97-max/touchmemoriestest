@@ -132,6 +132,12 @@
 }
 
 @media (max-width: 768px) {
+    main {
+        padding-top: 100px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
     .catalogLayout {
         flex-direction: column;
         gap: 0;
@@ -159,5 +165,17 @@
 
     .resultsCount {
         font-size: 13px;
+    }
+
+    .categoryChipsBar {
+        padding-bottom: 8px;
+    }
+}
+
+/* Mobile product card text */
+@media (max-width: 480px) {
+    .productGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
     }
 }

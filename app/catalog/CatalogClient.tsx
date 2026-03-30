@@ -160,7 +160,7 @@ function CatalogContent() {
     });
 
     return (
-        <main style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+        <main style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
             {/* Pending Order Banner */}
             {hasPendingOrder && (
                 <div style={{
