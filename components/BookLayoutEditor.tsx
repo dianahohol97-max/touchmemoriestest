@@ -1666,7 +1666,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         canvasW={pageW} canvasH={cH}
                         onChange={newShapes => setPageShapes(prev=>({...prev,[pageIdx]:newShapes}))}
                         selectedId={selectedShapeId}
-                        onSelectId={id => { setSelectedShapeId(id); if (id) setLeftTab('shapes'); }}
+                        onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
                         onDragShapeStart={id => setCrossPageDragShapeId(id)}
                         onDragShapeEnd={() => setCrossPageDragShapeId(null)}
                         onMoveToOtherPage={shape => {
@@ -2133,6 +2133,26 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       style={{ width:36, height:36, border:'none', borderRadius:6, cursor:'pointer' }}/>
                   </div>
                 </div>
+            {leftTab === 'shapes' && (() => {
+              const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+              const allSpreadIdxs = currentIdx===0 ? [0] : [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
+              let selShape = null as any;
+              let selSpi = spi;
+              for (const pi of allSpreadIdxs) {
+                const found = getCurShapes(pi).find((s:any)=>s.id===selectedShapeId);
+                if (found) { selShape = found; selSpi = pi; break; }
+              }
+              return (
+                <ShapeControls
+                  selectedShape={selShape}
+                  onChange={patch => {
+                    if (!selShape) return;
+                    setPageShapes(prev=>({...prev,[selSpi]:(prev[selSpi]||[]).map((s:any)=>s.id===selShape!.id?{...s,...patch}:s)}));
+                  }}
+                  onAdd={type => { addShape(type, spi); /* keep panel open to style */ }}
+                />
+              );
+            })()}
               );
             })()}
           </div>
