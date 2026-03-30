@@ -69,7 +69,7 @@ export default function StarMapConstructor() {
         fontFamily: 'Georgia',
 
         // Step 4 defaults
-        size: '30×40 см',
+        size: 'A4 (21×29.7 см)',
         productType: 'Постер',
         price: 0
     });
@@ -227,15 +227,27 @@ export default function StarMapConstructor() {
                         </div>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="flex gap-2 mt-4">
-                        {[1, 2, 3, 4].map((step) => (
-                            <div
-                                key={step}
-                                className={`flex-1 h-2 rounded-full transition-colors ${
-                                    step <= currentStep ? 'bg-[#1e2d7d]' : 'bg-gray-200'
+                    {/* Step Tabs — clickable */}
+                    <div className="flex gap-1 mt-4">
+                        {[
+                            { n: 1, label: 'Момент' },
+                            { n: 2, label: 'Текст' },
+                            { n: 3, label: 'Дизайн' },
+                            { n: 4, label: 'Розмір' },
+                        ].map(({ n, label }) => (
+                            <button
+                                key={n}
+                                onClick={() => setCurrentStep(n)}
+                                className={`flex-1 py-1.5 text-xs font-semibold rounded transition-all ${
+                                    n === currentStep
+                                        ? 'bg-[#1e2d7d] text-white'
+                                        : n < currentStep
+                                        ? 'bg-[#1e2d7d]/20 text-[#1e2d7d] hover:bg-[#1e2d7d]/30'
+                                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                                 }`}
-                            />
+                            >
+                                {n}. {label}
+                            </button>
                         ))}
                     </div>
                 </div>
@@ -436,14 +448,14 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Дизайн</h2>
-                <p className="text-gray-600 text-sm">Оберіть стиль та кольорову схему</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Дизайн постера</h2>
+                <p className="text-gray-500 text-sm">Стиль та кольорова схема</p>
             </div>
 
             {/* Style Selector */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Стиль постера</label>
-                <div className="grid grid-cols-2 gap-3">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Стиль</label>
+                <div className="grid grid-cols-2 gap-2">
                     {styles.map((style) => (
                         <button
                             key={style.id}
@@ -454,20 +466,52 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                                 starColor: style.star,
                                 textColor: style.text
                             })}
-                            className={`p-4 border-2 rounded-lg text-left transition-all ${
+                            className={`border-2 rounded-xl text-left transition-all overflow-hidden ${
                                 config.style === style.id
-                                    ? 'border-[#1e2d7d] bg-blue-50'
+                                    ? 'border-[#1e2d7d] ring-2 ring-[#1e2d7d]/20'
                                     : 'border-gray-200 hover:border-gray-300'
                             }`}
                         >
-                            <div
-                                className="w-full h-16 rounded mb-2 flex items-center justify-center relative overflow-hidden"
-                                style={{ backgroundColor: style.bg }}>
-                                <div style={{ width:28,height:28,borderRadius:'50%',background:style.id.includes('heart')?'transparent':'rgba(255,255,255,0.08)',border:'1.5px solid rgba(255,255,255,0.25)',display:'flex',alignItems:'center',justifyContent:'center' }}>
-                                  {style.id.includes('heart') && <span style={{fontSize:22,opacity:0.7}}>{style.bg.includes('f7')?'🤍':'🖤'}</span>}
-                                </div>
+                            {/* Mini preview */}
+                            <div className="relative overflow-hidden" style={{ backgroundColor: style.bg, height: 80 }}>
+                                {/* Stars — more, varied sizes */}
+                                {[
+                                    [8,10,3],[18,25,1.5],[32,8,2],[47,18,3],[58,12,1.5],
+                                    [70,22,2],[82,8,2.5],[92,18,1],[15,45,1.5],[28,38,2],
+                                    [42,50,1],[55,35,2.5],[67,48,1.5],[78,40,2],[90,55,1],
+                                    [5,65,2],[20,72,1.5],[35,60,2],[50,68,1],[65,75,1.5],
+                                    [80,62,2],[95,70,1],[12,85,1.5],[45,82,2],[75,88,1],
+                                ].map(([x,y,r],i) => (
+                                    <div key={i} style={{
+                                        position:'absolute', left:`${x}%`, top:`${y}%`,
+                                        width: r*2, height: r*2, borderRadius:'50%',
+                                        background: style.star,
+                                        opacity: 0.5 + (i%4)*0.12,
+                                        transform:'translate(-50%,-50%)',
+                                        boxShadow: r > 2 ? `0 0 ${r*3}px ${style.star}88` : 'none',
+                                    }}/>
+                                ))}
+                                {/* Shape indicator */}
+                                {style.id.includes('heart') ? (
+                                    <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontSize:22,opacity:0.4}}>
+                                        {style.bg.includes('f5') ? '🤍' : '🖤'}
+                                    </div>
+                                ) : style.id === 'full-bleed' ? null : (
+                                    <div style={{
+                                        position:'absolute', left:'50%', top:'50%',
+                                        width:48, height:48, borderRadius:'50%',
+                                        border: `1.5px solid ${style.star}50`,
+                                        transform:'translate(-50%,-50%)',
+                                    }}/>
+                                )}
+                                {/* Checkmark */}
+                                {config.style === style.id && (
+                                    <div style={{ position:'absolute',top:6,right:6,width:18,height:18,borderRadius:'50%',background:'#1e2d7d',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'#fff' }}>✓</div>
+                                )}
                             </div>
-                            <div className="text-sm font-medium text-gray-900">{style.name}</div>
+                            <div className={`px-2 py-1.5 text-xs font-semibold ${config.style === style.id ? 'text-[#1e2d7d] bg-[#f0f3ff]' : 'text-gray-700 bg-white'}`}>
+                                {style.name}
+                            </div>
                         </button>
                     ))}
                 </div>
@@ -555,9 +599,11 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
 // Step 4: Size & Product
 function Step4SizeProduct({ config, setConfig, product }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>>; product: any }) {
     const sizes = [
+        { name: 'A4 (21×29.7 см)', price: 350 },
+        { name: 'A3 (29.7×42 см)', price: 550 },
         { name: '30×40 см', price: 450 },
         { name: '50×70 см', price: 750 },
-        { name: '60×90 см', price: 950 }
+        { name: '60×90 см', price: 950 },
     ];
 
     const productTypes = [
@@ -579,48 +625,81 @@ function Step4SizeProduct({ config, setConfig, product }: { config: StarMapConfi
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Розмір та продукт</h2>
-                <p className="text-gray-600 text-sm">Оберіть розмір та тип продукту</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Розмір та продукт</h2>
+                <p className="text-gray-500 text-sm">Оберіть формат постера</p>
             </div>
 
             {/* Size Selector */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Розмір</label>
-                <div className="grid grid-cols-3 gap-3">
-                    {sizes.map((size) => (
-                        <button
-                            key={size.name}
-                            onClick={() => setConfig({ ...config, size: size.name })}
-                            className={`p-4 border-2 rounded-lg text-center transition-all ${
-                                config.size === size.name
-                                    ? 'border-[#1e2d7d] bg-blue-50'
-                                    : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                        >
-                            <div className="text-sm font-semibold text-gray-900">{size.name}</div>
-                            <div className="text-xs text-gray-600 mt-1">{size.price} ₴</div>
-                        </button>
-                    ))}
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Розмір</label>
+                <div className="grid grid-cols-2 gap-2">
+                    {sizes.map((size) => {
+                        const isA4 = size.name.includes('A4');
+                        const isA3 = size.name.includes('A3');
+                        // aspect ratio for visual preview
+                        const dims: Record<string,[number,number]> = {
+                            'A4 (21×29.7 см)': [21,29.7],
+                            'A3 (29.7×42 см)': [29.7,42],
+                            '30×40 см': [30,40],
+                            '50×70 см': [50,70],
+                            '60×90 см': [60,90],
+                        };
+                        const [pw,ph] = dims[size.name] || [30,40];
+                        const maxH = 48; const maxW = 56;
+                        const scale = Math.min(maxH/ph, maxW/pw);
+                        const vw = Math.round(pw*scale); const vh = Math.round(ph*scale);
+                        const isSelected = config.size === size.name;
+                        return (
+                            <button
+                                key={size.name}
+                                onClick={() => setConfig({ ...config, size: size.name })}
+                                className={`p-3 border-2 rounded-xl text-left transition-all ${
+                                    isSelected
+                                        ? 'border-[#1e2d7d] bg-[#f0f3ff]'
+                                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    {/* Proportional size visual */}
+                                    <div className="flex items-end justify-center" style={{width:56,height:52,flexShrink:0}}>
+                                        <div style={{
+                                            width:vw, height:vh,
+                                            background: isSelected ? '#1e2d7d' : '#d1d5db',
+                                            borderRadius:2,
+                                            transition:'all 0.15s',
+                                        }}/>
+                                    </div>
+                                    <div>
+                                        <div className={`text-sm font-bold ${isSelected ? 'text-[#1e2d7d]' : 'text-gray-900'}`}>
+                                            {size.name}
+                                            {(isA4||isA3) && <span className="ml-1.5 text-xs font-normal px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Популярний</span>}
+                                        </div>
+                                        <div className={`text-sm font-semibold mt-0.5 ${isSelected ? 'text-[#1e2d7d]' : 'text-gray-500'}`}>{size.price} ₴</div>
+                                    </div>
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
             {/* Product Type Selector */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Тип продукту</label>
-                <div className="space-y-3">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Тип продукту</label>
+                <div className="space-y-2">
                     {productTypes.map((type) => (
                         <button
                             key={type.name}
                             onClick={() => setConfig({ ...config, productType: type.name })}
-                            className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
+                            className={`w-full p-4 border-2 rounded-xl text-left transition-all ${
                                 config.productType === type.name
-                                    ? 'border-[#1e2d7d] bg-blue-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-[#1e2d7d] bg-[#f0f3ff]'
+                                    : 'border-gray-200 hover:border-gray-300 bg-white'
                             }`}
                         >
                             <div className="flex items-center justify-between">
-                                <div className="text-sm font-semibold text-gray-900">{type.name}</div>
-                                <div className="text-sm text-gray-600">
+                                <div className={`text-sm font-semibold ${config.productType === type.name ? 'text-[#1e2d7d]' : 'text-gray-900'}`}>{type.name}</div>
+                                <div className={`text-sm font-semibold ${config.productType === type.name ? 'text-[#1e2d7d]' : 'text-gray-500'}`}>
                                     {type.priceModifier > 0 ? `+${type.priceModifier} ₴` : 'базова ціна'}
                                 </div>
                             </div>

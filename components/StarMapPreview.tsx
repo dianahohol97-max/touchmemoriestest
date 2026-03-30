@@ -115,7 +115,15 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
     useEffect(() => {
         const canvas = canvasRef.current; if(!canvas) return;
         const ctx = canvas.getContext('2d'); if(!ctx) return;
-        const W=600, H=800;
+        // Dynamic canvas size based on selected size
+        const dimMap: Record<string, [number,number]> = {
+            'A4 (21×29.7 см)': [595, 842],
+            'A3 (29.7×42 см)': [842, 1191],
+            '30×40 см': [600, 800],
+            '50×70 см': [600, 840],
+            '60×90 см': [600, 900],
+        };
+        const [W, H] = dimMap[config.size] || [600, 800];
         canvas.width=W; canvas.height=H;
 
         const isHeart  = config.style==='heart-dark'||config.style==='heart-light';
@@ -128,7 +136,7 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         else { ctx.fillStyle=config.backgroundColor; ctx.fillRect(0,0,W,H); }
 
         // Map geometry
-        const mapH = isFull ? H : Math.round(H*0.64);
+        const mapH = isFull ? H : Math.round(H*0.60);
         const cx=W/2, cy = isFull ? H/2 : mapH/2;
         const R = isHeart
             ? Math.min(W,mapH)*0.40
@@ -249,7 +257,7 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         // Constellation labels
         if(config.showConstellations!==false) {
             ctx.save();
-            ctx.font=`9px ${config.fontFamily}`;
+            ctx.font=`${Math.round(9*s)}px ${config.fontFamily}`;
             ctx.fillStyle=config.textColor; ctx.textAlign='center'; ctx.textBaseline='middle';
             ctx.globalAlpha=isLight?0.35:0.4;
             for(const [ra,dec,name] of CONSTELLATION_LABELS) {
@@ -285,78 +293,116 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
             ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
         }
         if(!isFull) {
-            ctx.strokeStyle=isLight?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.08)';
-            ctx.lineWidth=1; ctx.strokeRect(14,14,W-28,H-28);
+            ctx.strokeStyle=isLight?'rgba(0,0,0,0.1)':'rgba(255,255,255,0.15)';
+            ctx.lineWidth=1; ctx.strokeRect(16,16,W-32,H-32);
+            // inner double border
+            ctx.strokeStyle=isLight?'rgba(0,0,0,0.04)':'rgba(255,255,255,0.04)';
+            ctx.lineWidth=1; ctx.strokeRect(22,22,W-44,H-44);
         }
 
-        // Text
+        // Text zone — scale proportionally to W (base=600)
+        const s = W/600;
         ctx.fillStyle=config.textColor; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+
         if(isFull) {
             if(config.headline){
-                ctx.font=`bold 28px ${config.fontFamily}`; ctx.globalAlpha=0.92;
-                ctx.shadowColor='rgba(0,0,0,0.9)'; ctx.shadowBlur=10;
-                ctx.fillText(config.headline,W/2,56); ctx.shadowBlur=0; ctx.globalAlpha=1;
+                ctx.font=`bold ${Math.round(32*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.95;
+                ctx.shadowColor='rgba(0,0,0,0.9)'; ctx.shadowBlur=14;
+                ctx.fillText(config.headline,W/2,62*s); ctx.shadowBlur=0; ctx.globalAlpha=1;
             }
         } else {
-            const tY=mapH+30;
-            ctx.strokeStyle=isLight?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.08)';
-            ctx.lineWidth=1; ctx.beginPath();
-            ctx.moveTo(W*0.2,mapH+1); ctx.lineTo(W*0.8,mapH+1); ctx.stroke();
+            const textZoneTop = mapH;
+            const textZoneH = H - mapH;
+            const tCy = textZoneTop + textZoneH * 0.5; // center of text zone
 
+            // Decorative separator line with dots
+            ctx.save();
+            const sepY = textZoneTop + 12*s;
+            ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath(); ctx.moveTo(W*0.25, sepY); ctx.lineTo(W*0.75, sepY); ctx.stroke();
+            // dot in center of separator
+            ctx.fillStyle = isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)';
+            ctx.beginPath(); ctx.arc(W/2, sepY, 2*s, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = config.textColor;
+            ctx.restore();
+
+            // Headline — bigger, more prominent
+            let currentY = textZoneTop + textZoneH * 0.3;
             if(config.headline){
-                ctx.font=`bold 24px ${config.fontFamily}`;
-                const mw=W*0.8; const words=config.headline.split(' ');
-                let line='', y=tY;
+                ctx.font=`bold ${Math.round(28*s)}px ${config.fontFamily}`;
+                ctx.globalAlpha=0.95;
+                const mw=W*0.82;
+                const words=config.headline.split(' ');
+                let line='', lineY=currentY;
                 for(let i=0;i<words.length;i++){
                     const t=line+words[i]+' ';
-                    if(ctx.measureText(t).width>mw&&i>0){ctx.fillText(line.trim(),W/2,y);line=words[i]+' ';y+=30;}
-                    else line=t;
+                    if(ctx.measureText(t).width>mw&&i>0){
+                        ctx.fillText(line.trim(),W/2,lineY);
+                        line=words[i]+' '; lineY+=34*s;
+                    } else line=t;
                 }
-                ctx.fillText(line.trim(),W/2,y);
+                ctx.fillText(line.trim(),W/2,lineY);
+                currentY = lineY + 26*s;
             }
-            ctx.font='16px sans-serif'; ctx.globalAlpha=0.65;
-            ctx.fillText('♥',W/2,tY+56); ctx.globalAlpha=1;
 
-            const loc=config.location||'';
-            const ds=config.date ? new Date(config.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'long',year:'numeric'}) : '';
-            ctx.font=`14px ${config.fontFamily}`; ctx.globalAlpha=0.62;
-            if(loc) ctx.fillText(loc,W/2,tY+76);
-            if(ds)  ctx.fillText(ds,W/2,tY+76+(loc?22:0));
+            // Heart symbol
+            ctx.font=`${Math.round(15*s)}px sans-serif`; ctx.globalAlpha=0.55;
+            ctx.fillText('♥', W/2, currentY); ctx.globalAlpha=1;
+            currentY += 22*s;
 
-            if(config.dedication){
-                const dY=tY+76+(loc?22:0)+(ds?22:0)+10;
-                ctx.font=`italic 12px ${config.fontFamily}`; ctx.globalAlpha=0.5;
-                const mw=W*0.76; const words=config.dedication.split(' ');
-                let line='', y=dY;
-                for(let i=0;i<words.length;i++){
-                    const t=line+words[i]+' ';
-                    if(ctx.measureText(t).width>mw&&i>0){ctx.fillText(line.trim(),W/2,y);line=words[i]+' ';y+=18;}
-                    else line=t;
-                }
-                ctx.fillText(line.trim(),W/2,y);
-            }
+            // Location + date — bigger
+            const loc = config.location || '';
+            const ds = config.date ? new Date(config.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'long',year:'numeric'}) : '';
+            ctx.font=`${Math.round(15*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.75;
+            if(loc){ ctx.fillText(loc, W/2, currentY); currentY += 21*s; }
+            if(ds){  ctx.fillText(ds,  W/2, currentY); currentY += 21*s; }
             ctx.globalAlpha=1;
-            ctx.font=`10px ${config.fontFamily}`; ctx.globalAlpha=0.32;
-            const latS=lat>=0?`${lat.toFixed(4)}° N`:`${Math.abs(lat).toFixed(4)}° S`;
-            const lonS=config.longitude>=0?`${config.longitude.toFixed(4)}° E`:`${Math.abs(config.longitude).toFixed(4)}° W`;
-            ctx.fillText(`${latS}  ${lonS}`,W/2,H-18); ctx.globalAlpha=1;
+
+            // Dedication (italic)
+            if(config.dedication){
+                currentY += 6*s;
+                ctx.font=`italic ${Math.round(13*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.55;
+                const mw=W*0.78; const words=config.dedication.split(' ');
+                let line='', lineY=currentY;
+                for(let i=0;i<words.length;i++){
+                    const t=line+words[i]+' ';
+                    if(ctx.measureText(t).width>mw&&i>0){
+                        ctx.fillText(line.trim(),W/2,lineY); line=words[i]+' '; lineY+=19*s;
+                    } else line=t;
+                }
+                ctx.fillText(line.trim(),W/2,lineY);
+            }
+
+            // Coordinates — bottom, small
+            ctx.globalAlpha=1;
+            ctx.font=`${Math.round(9*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.28;
+            const latS=lat>=0?`${lat.toFixed(2)}°N`:`${Math.abs(lat).toFixed(2)}°S`;
+            const lonS=config.longitude>=0?`${config.longitude.toFixed(2)}°E`:`${Math.abs(config.longitude).toFixed(2)}°W`;
+            ctx.fillText(`${latS}  ${lonS}`, W/2, H-20*s); ctx.globalAlpha=1;
         }
     }, [config]);
 
+    const aspectMap: Record<string, string> = {
+        'A4 (21×29.7 см)': '210/297',
+        'A3 (29.7×42 см)': '297/420',
+        '30×40 см': '3/4',
+        '50×70 см': '5/7',
+        '60×90 см': '2/3',
+    };
+    const aspectRatio = aspectMap[config.size] || '3/4';
+
     return (
-        <div className="rounded-lg shadow-lg overflow-hidden" style={{backgroundColor: config.backgroundColor}}>
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '3/4', overflow: 'hidden' }}>
+        <div className="rounded-xl shadow-2xl overflow-hidden" style={{backgroundColor: config.backgroundColor}}>
+            <div style={{ position: 'relative', width: '100%', aspectRatio, overflow: 'hidden' }}>
                 <canvas
                     ref={canvasRef}
                     style={{
                         position: 'absolute', top:0, left:0,
                         width:'100%', height:'100%',
-                        display:'block', objectFit:'contain',
+                        display:'block',
                     }}
                 />
-            </div>
-            <div className="text-center py-2 text-xs text-gray-400">
-                {config.size} · {config.productType} · {config.price} ₴
             </div>
         </div>
     );
