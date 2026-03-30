@@ -327,8 +327,20 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
     }, [config]);
 
     return (
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <canvas ref={canvasRef} className="w-full h-auto block" style={{maxHeight:'80vh'}}/>
+        <div className="rounded-lg shadow-lg overflow-hidden" style={{backgroundColor: config.backgroundColor}}>
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '3/4', overflow: 'hidden' }}>
+                <canvas
+                    ref={canvasRef}
+                    style={{
+                        position: 'absolute',
+                        top: 0, left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'block',
+                        objectFit: 'contain',
+                    }}
+                />
+            </div>
             <div className="text-center py-2 text-xs text-gray-400">
                 {config.size} · {config.productType} · {config.price} ₴
             </div>
