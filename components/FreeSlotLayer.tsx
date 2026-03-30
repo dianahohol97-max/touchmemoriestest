@@ -63,6 +63,12 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
 
   const dragRef = useRef<{ type: 'move' | Handle | 'crop'; id: string; startX: number; startY: number; origSlot: FreeSlot } | null>(null);
 
+  // Touch state for pinch-zoom and double-tap
+  const touchRef = useRef<{ lastTap: number; lastTapId: string; pinchDist: number | null; slotId: string | null; startX: number; startY: number; origCropX: number; origCropY: number } >({ lastTap: 0, lastTapId: '', pinchDist: null, slotId: null, startX: 0, startY: 0, origCropX: 50, origCropY: 50 });
+
+  const getTouchDist = (t: React.TouchList) =>
+    Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
   const update = (id: string, patch: Partial<FreeSlot>) => onChange(slots.map(s => s.id === id ? { ...s, ...patch } : s));
   const deleteSlot = (id: string) => { onChange(slots.filter(s => s.id !== id)); setSelectedId(null); };
@@ -142,6 +148,28 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
             }}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) { update(slot.id, { photoId: id }); setSelectedId(slot.id); } }}
+            onTouchStart={e => {
+              if (inCrop) return; // img handles it
+              setSelectedId(slot.id);
+              const t = e.touches[0];
+              touchRef.current.slotId = slot.id;
+              touchRef.current.startX = t.clientX; touchRef.current.startY = t.clientY;
+              const s = slots.find(s => s.id === slot.id)!;
+              dragRef.current = { type:'move', id:slot.id, startX:t.clientX, startY:t.clientY, origSlot:{...s} };
+            }}
+            onTouchMove={e => {
+              if (inCrop || !dragRef.current || dragRef.current.id !== slot.id || dragRef.current.type !== 'move') return;
+              e.preventDefault();
+              const t = e.touches[0];
+              const dx = t.clientX - dragRef.current.startX;
+              const dy = t.clientY - dragRef.current.startY;
+              const { origSlot } = dragRef.current;
+              update(slot.id, {
+                x: Math.max(0, Math.min(canvasW - origSlot.w, origSlot.x + dx)),
+                y: Math.max(0, Math.min(canvasH - origSlot.h, origSlot.y + dy)),
+              });
+            }}
+            onTouchEnd={() => { if (!inCrop) dragRef.current = null; }}
             style={{
               position: 'absolute', left: slot.x, top: slot.y, width: slot.w, height: slot.h,
               borderRadius: br, overflow: 'visible',
@@ -164,6 +192,43 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
                       if (!sel) { e.stopPropagation(); setSelectedId(slot.id); }
                     }}
                     onDoubleClick={e => { e.stopPropagation(); if (sel) setCropModeId(slot.id); }}
+                    onTouchStart={e => {
+                      e.stopPropagation();
+                      const now = Date.now();
+                      const tr = touchRef.current;
+                      if (now - tr.lastTap < 350 && tr.lastTapId === slot.id) {
+                        e.preventDefault();
+                        setCropModeId(slot.id); setSelectedId(slot.id);
+                        tr.lastTap = 0; return;
+                      }
+                      tr.lastTap = now; tr.lastTapId = slot.id;
+                      if (!sel) setSelectedId(slot.id);
+                      if (e.touches.length === 2) {
+                        e.preventDefault();
+                        tr.pinchDist = getTouchDist(e.touches); tr.slotId = slot.id;
+                      } else if (e.touches.length === 1 && inCrop) {
+                        tr.slotId = slot.id;
+                        tr.startX = e.touches[0].clientX; tr.startY = e.touches[0].clientY;
+                        tr.origCropX = slot.cropX; tr.origCropY = slot.cropY;
+                      }
+                    }}
+                    onTouchMove={e => {
+                      e.stopPropagation();
+                      const tr = touchRef.current;
+                      if (e.touches.length === 2 && tr.pinchDist !== null && tr.slotId === slot.id) {
+                        e.preventDefault();
+                        const nd = getTouchDist(e.touches);
+                        update(slot.id, { zoom: Math.max(0.5, Math.min(4, (slot.zoom||1) * (nd / tr.pinchDist))) });
+                        tr.pinchDist = nd;
+                      } else if (e.touches.length === 1 && inCrop && tr.slotId === slot.id) {
+                        e.preventDefault();
+                        update(slot.id, {
+                          cropX: Math.max(0, Math.min(100, tr.origCropX - (e.touches[0].clientX - tr.startX) / 3)),
+                          cropY: Math.max(0, Math.min(100, tr.origCropY - (e.touches[0].clientY - tr.startY) / 3)),
+                        });
+                      }
+                    }}
+                    onTouchEnd={e => { e.stopPropagation(); touchRef.current.pinchDist = null; }}
                     style={{
                       width: `${(slot.zoom||1)*100}%`, height: `${(slot.zoom||1)*100}%`,
                       objectFit: 'cover', objectPosition: `${slot.cropX}% ${slot.cropY}%`,
