@@ -70,7 +70,9 @@ function PhotoPreview({
   polaroidFont?: string;
   polaroidColor?: string;
 }) {
-  const MAX_W = 320;
+  const MAX_W = typeof window !== 'undefined' && window.innerWidth < 500
+    ? Math.min(window.innerWidth - 48, 320)
+    : 320;
   const size = STANDARD_SIZES[sizeKey];
   
   // Calculate canvas dimensions
@@ -526,7 +528,7 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
       <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'flex-start' }}>
 
         {/* LEFT: Preview */}
-        <div style={{ flex: '0 0 auto', maxWidth: 340, overflow: 'hidden' }}>
+        <div style={{ flex: '0 0 auto', width: '100%', maxWidth: 340 }}>
           {activePhoto ? (
             <div style={{ overflow: 'hidden' }}>
               <PhotoPreview
@@ -596,7 +598,7 @@ export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstru
         </div>
 
         {/* RIGHT: Options */}
-        <div style={{ flex:1, minWidth:260 }}>
+        <div style={{ flex:1, minWidth: 0, width: '100%' }}>
           {/* ── Selection Panel ── */}
           {photos.length > 0 && (
             <div style={{ background:'#fff', borderRadius:12, border:'1px solid #e2e8f0', padding:16, marginBottom:12 }}>
