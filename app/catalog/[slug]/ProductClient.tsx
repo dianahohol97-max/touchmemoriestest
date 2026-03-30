@@ -32,7 +32,9 @@ const getConstructorUrl = (slug: string): string => {
   // Photo albums
   if (s.includes('photoalbum') || s.includes('photoalbom') || s.includes('fotoalbom'))
     return `/order/book?product=${slug}`;
-  // Calendar
+  // Calendar — desk first (before generic wall check)
+  if (s.includes('desk-calendar') || s.includes('desk_calendar') || s.startsWith('calendar-table'))
+    return '/order/desk-calendar';
   if (s.includes('calendar') || s.includes('kalendar'))
     return '/order/wall-calendar';
   // Posters → dedicated editor pages
