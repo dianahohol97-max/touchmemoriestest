@@ -227,15 +227,15 @@ export default function BookPhotoUpload() {
     const recommendedRange = config.photoRecommendation || '';
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-[#1e2d7d] mb-2">{config.productName}</h1>
+            <div className="mb-4 sm:mb-8">
+                <h1 className="text-xl sm:text-3xl font-bold text-[#1e2d7d] mb-1 sm:mb-2">{config.productName}</h1>
                 <p className="text-gray-600">Крок 2: Завантаження фотографій</p>
             </div>
 
             {/* Configuration Summary */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
                 <div className="flex items-start gap-3">
                     <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
@@ -284,15 +284,15 @@ export default function BookPhotoUpload() {
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
-                className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer mb-8 ${
+                className={`border-2 border-dashed rounded-xl p-6 sm:p-12 text-center transition-colors cursor-pointer mb-4 sm:mb-8 ${
                     dragging
                         ? 'border-[#1e2d7d] bg-[#dbeafe]'
                         : 'border-gray-300 bg-[#f8f9fc] hover:border-[#1e2d7d] hover:bg-[#f0f2f8]'
                 }`}
                 onClick={() => fileInputRef.current?.click()}
             >
-                <Upload className="w-12 h-12 text-[#1e2d7d] mx-auto mb-4" />
-                <p className="text-lg font-semibold text-[#1e2d7d] mb-2">
+                <Upload className="w-8 h-8 sm:w-12 sm:h-12 text-[#1e2d7d] mx-auto mb-3" />
+                <p className="text-base sm:text-lg font-semibold text-[#1e2d7d] mb-1 sm:mb-2">
                     Перетягніть фото сюди
                 </p>
                 <p className="text-sm text-gray-500 mb-4">
@@ -331,7 +331,7 @@ export default function BookPhotoUpload() {
                             Перетягніть фото для зміни порядку
                         </p>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 max-h-[600px] overflow-y-auto p-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4 max-h-[40vh] sm:max-h-[600px] overflow-y-auto p-1 sm:p-2">
                         {photos.map((photo, index) => {
                             const quality = checkPhotoQuality(photo);
                             return (
@@ -408,17 +408,17 @@ export default function BookPhotoUpload() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
                 <button
                     onClick={() => router.back()}
-                    className="flex-1 px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-lg"
+                    className="w-full sm:flex-1 px-6 py-3 sm:py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-base sm:text-lg"
                 >
                     Назад до конфігурації
                 </button>
                 <button
                     onClick={handleContinue}
                     disabled={photos.length === 0}
-                    className={`flex-1 flex items-center justify-center gap-2 px-8 py-4 rounded-lg font-semibold transition-colors text-lg ${
+                    className={`w-full sm:flex-1 flex items-center justify-center gap-2 px-6 py-3 sm:py-4 rounded-lg font-semibold transition-colors text-base sm:text-lg ${
                         photos.length > 0
                             ? 'bg-[#1e2d7d] text-white hover:bg-[#263a99]'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
