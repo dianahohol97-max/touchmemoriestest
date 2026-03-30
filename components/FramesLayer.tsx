@@ -16,8 +16,8 @@ export const FRAMES = [
     label: 'Тонка (1мм)',
     group: 'Прості',
     render: (w:number, h:number, color:string, op:number) => {
-      const sw = Math.max(1, Math.round(w * 0.005)); // 1mm = 0.5% of width
-      const g = sw * 2;
+      const sw = Math.max(1, Math.round(w * 0.003)); // 1mm
+      const g = sw * 3;
       return `<rect x="${g}" y="${g}" width="${w-g*2}" height="${h-g*2}" fill="none" stroke="${color}" stroke-width="${sw}" opacity="${op/100}"/>`;
     },
   },
@@ -26,8 +26,8 @@ export const FRAMES = [
     label: 'Середня (3мм)',
     group: 'Прості',
     render: (w:number, h:number, color:string, op:number) => {
-      const sw = Math.max(2, Math.round(w * 0.015)); // 3mm = 1.5% of width
-      const g = sw * 1.5;
+      const sw = Math.max(2, Math.round(w * 0.007)); // 3mm
+      const g = sw * 2;
       return `<rect x="${g}" y="${g}" width="${w-g*2}" height="${h-g*2}" fill="none" stroke="${color}" stroke-width="${sw}" opacity="${op/100}"/>`;
     },
   },
@@ -36,8 +36,8 @@ export const FRAMES = [
     label: 'Товста (6мм)',
     group: 'Прості',
     render: (w:number, h:number, color:string, op:number) => {
-      const sw = Math.max(4, Math.round(w * 0.03)); // 6mm = 3% of width
-      const g = sw * 1.2;
+      const sw = Math.max(3, Math.round(w * 0.015)); // 6mm
+      const g = sw * 1.5;
       return `<rect x="${g}" y="${g}" width="${w-g*2}" height="${h-g*2}" fill="none" stroke="${color}" stroke-width="${sw}" opacity="${op/100}"/>`;
     },
   },
