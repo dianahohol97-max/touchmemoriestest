@@ -281,6 +281,7 @@ export default function BookLayoutEditor() {
     setHistory(h => h.slice(0, -1));
   };
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
+  const [tapSelectedPhotoId, setTapSelectedPhotoId] = useState<string | null>(null); // mobile tap-to-place
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [textTool, setTextTool] = useState(false);
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
@@ -874,14 +875,23 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 })()}
 
                 {photos.length === 0 && <p style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', margin: 0 }}>Додайте фото щоб почати</p>}
+                {tapSelectedPhotoId && (
+                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 10px', marginBottom: 6, fontSize: 11, color: '#1d4ed8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    👆 Тапніть фотослот щоб розмістити фото
+                  </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                   {photos.map((ph, i) => {
                     const used = usedIds.has(ph.id);
                     return (
-                      <div key={ph.id} draggable={!used} onDragStart={e => { if(used) return; setDragPhotoId(ph.id); e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }} onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
-                        style={{ position: 'relative', aspectRatio: '1', borderRadius: 6, overflow: 'hidden', cursor: used ? 'default' : 'grab', opacity: used ? 0.45 : 1, border: '1px solid #e2e8f0' }}>
+                      <div key={ph.id} draggable={!used}
+                        onDragStart={e => { if(used) return; setDragPhotoId(ph.id); e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }}
+                        onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
+                        onClick={() => { if (!used) setTapSelectedPhotoId(tapSelectedPhotoId === ph.id ? null : ph.id); }}
+                        style={{ position: 'relative', aspectRatio: '1', borderRadius: 6, overflow: 'hidden', cursor: used ? 'default' : 'pointer', opacity: used ? 0.45 : 1, border: tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : '1px solid #e2e8f0', outline: tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none' }}>
                         <img src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
                         {used && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✓</div>}
+                        {tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👆</div>}
                         <span style={{ position: 'absolute', bottom: 2, left: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 3 }}>{i + 1}</span>
                       </div>
                     );
@@ -1573,6 +1583,12 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
                             onDrop={e => onDrop(e, pageIdx, i)}
+                            onClick={() => {
+                              if (tapSelectedPhotoId) {
+                                setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== i ? s2 : { ...s2, photoId: tapSelectedPhotoId }) }));
+                                setTapSelectedPhotoId(null);
+                              }
+                            }}
                             style={{ ...s, zIndex: 1, background: photo ? 'transparent' : (isOver ? '#dbeafe' : 'rgba(99,102,241,0.15)'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '2px dashed #818cf8'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default', boxSizing: 'border-box' }}
                           >
                             {photo ? (
@@ -1639,7 +1655,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         canvasW={pageW}
                         canvasH={cH}
                         dragPhotoId={dragPhotoId}
-                        onChange={(newSlots) => setFreeSlots(prev=>({...prev,[pageIdx]:newSlots}))}
+                        tapPhotoId={tapSelectedPhotoId}
+                        onChange={(newSlots) => { setFreeSlots(prev=>({...prev,[pageIdx]:newSlots})); setTapSelectedPhotoId(null); }}
                         selectedId={selectedFreeSlotId}
                         onSelect={setSelectedFreeSlotId}
                       />

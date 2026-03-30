@@ -24,6 +24,7 @@ interface FreeSlotLayerProps {
   canvasW: number;
   canvasH: number;
   dragPhotoId: string | null;
+  tapPhotoId?: string | null;
   onChange: (slots: FreeSlot[]) => void;
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
@@ -54,7 +55,7 @@ function getHandlePos(h: Handle, x: number, y: number, w: number, h2: number): {
   return map[h];
 }
 
-export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, onChange, selectedId: externalSelectedId, onSelect }: FreeSlotLayerProps) {
+export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, tapPhotoId, onChange, selectedId: externalSelectedId, onSelect }: FreeSlotLayerProps) {
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
   const selectedId = externalSelectedId !== undefined ? externalSelectedId : internalSelectedId;
   const setSelectedId = (id: string | null) => {
@@ -149,6 +150,14 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
               setSelectedId(slot.id); onSelect?.(slot.id);
               startDrag(e, slot.id, 'move');
             }}
+            onClick={e => {
+              // Mobile tap-to-place
+              if (tapPhotoId) {
+                e.stopPropagation();
+                update(slot.id, { photoId: tapPhotoId });
+                setSelectedId(slot.id); onSelect?.(slot.id);
+              }
+            }}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) { update(slot.id, { photoId: id }); setSelectedId(slot.id); onSelect?.(slot.id); } }}
             style={{
@@ -230,9 +239,9 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
               );
             })()}
             {!photo && (
-              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#818cf8', pointerEvents: 'none' }}>
+              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: tapPhotoId ? '#3b82f6' : '#818cf8', pointerEvents: 'none', background: tapPhotoId ? 'rgba(59,130,246,0.08)' : undefined }}>
                 <ImageIcon size={20} />
-                <span style={{ fontSize: 9, fontWeight: 700 }}>Перетягніть фото</span>
+                <span style={{ fontSize: 9, fontWeight: 700 }}>{tapPhotoId ? 'Тапніть для розміщення' : 'Перетягніть фото'}</span>
               </div>
             )}
             </div>{/* end clip div */}
