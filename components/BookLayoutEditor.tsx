@@ -2113,8 +2113,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
 
             {/* MOBILE COVER PANEL */}
             {leftTab === 'cover' && (() => {
-              const isPrintedMobile = (config?.selectedCoverType||'').toLowerCase().includes('друков')||
-                (config?.selectedCoverType||'').toLowerCase().includes('print');
+              const isPrintedMobile = isPrinted; // use same logic as desktop
               const ps = coverState.printedPhotoSlot ?? { x:0, y:0, w:100, h:100, shape:'rect' };
               const pt = coverState.printedTextBlocks ?? [];
               const ov = coverState.printedOverlay ?? { type:'none', color:'#000000', opacity:40, gradient:'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };
@@ -2147,11 +2146,18 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         </div>
                       </div>
                       {/* BG color */}
-                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b' }}>Фон обкладинки</div>
-                        <input type="color" value={coverState.printedBgColor||'#ffffff'}
-                          onChange={e=>setCoverState(p=>({...p,printedBgColor:e.target.value}))}
-                          style={{ width:36, height:36, border:'none', borderRadius:6, cursor:'pointer' }}/>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Фон обкладинки</div>
+                        <label style={{ display:'inline-flex', alignItems:'center', gap:10, cursor:'pointer', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, padding:'10px 14px', position:'relative', overflow:'hidden' }}>
+                          <div style={{ width:32, height:32, borderRadius:6, background: coverState.printedBgColor||'#ffffff', border:'1px solid rgba(0,0,0,0.15)', flexShrink:0 }}/>
+                          <div>
+                            <div style={{ fontSize:12, fontWeight:600, color:'#374151' }}>Обрати колір</div>
+                            <div style={{ fontSize:10, color:'#94a3b8' }}>{coverState.printedBgColor||'#ffffff'}</div>
+                          </div>
+                          <input type="color" value={coverState.printedBgColor||'#ffffff'}
+                            onChange={e=>setCoverState(p=>({...p,printedBgColor:e.target.value}))}
+                            style={{ position:'absolute', inset:0, opacity:0.01, width:'100%', height:'100%', cursor:'pointer', border:'none', padding:0 }}/>
+                        </label>
                       </div>
                       {/* Text blocks */}
                       <div>
@@ -2198,20 +2204,34 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                           placeholder="Ваш напис"
                           style={{ width:'100%', padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, boxSizing:'border-box' }}/>
                       </div>
-                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b' }}>Колір тексту</div>
-                        <input type="color" value={coverState.decoColor||'#D4AF37'}
-                          onChange={e=>setCoverState(p=>({...p,decoColor:e.target.value}))}
-                          style={{ width:36, height:36, border:'none', borderRadius:6, cursor:'pointer' }}/>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Колір тексту</div>
+                        <label style={{ display:'inline-flex', alignItems:'center', gap:10, cursor:'pointer', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, padding:'10px 14px', position:'relative', overflow:'hidden' }}>
+                          <div style={{ width:32, height:32, borderRadius:6, background: coverState.decoColor||'#D4AF37', border:'1px solid rgba(0,0,0,0.15)', flexShrink:0 }}/>
+                          <div>
+                            <div style={{ fontSize:12, fontWeight:600, color:'#374151' }}>Обрати колір</div>
+                            <div style={{ fontSize:10, color:'#94a3b8' }}>{coverState.decoColor||'#D4AF37'}</div>
+                          </div>
+                          <input type="color" value={coverState.decoColor||'#D4AF37'}
+                            onChange={e=>setCoverState(p=>({...p,decoColor:e.target.value}))}
+                            style={{ position:'absolute', inset:0, opacity:0.01, width:'100%', height:'100%', cursor:'pointer', border:'none', padding:0 }}/>
+                        </label>
                       </div>
                     </>
                   )}
                   {/* Back cover */}
                   <div>
                     <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Задня обкладинка — колір фону</div>
-                    <input type="color" value={coverState.backCoverBgColor||'#f1f5f9'}
-                      onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
-                      style={{ width:36, height:36, border:'none', borderRadius:6, cursor:'pointer' }}/>
+                    <label style={{ display:'inline-flex', alignItems:'center', gap:10, cursor:'pointer', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, padding:'10px 14px', position:'relative', overflow:'hidden' }}>
+                      <div style={{ width:32, height:32, borderRadius:6, background: coverState.backCoverBgColor||'#f1f5f9', border:'1px solid rgba(0,0,0,0.15)', flexShrink:0 }}/>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:600, color:'#374151' }}>Обрати колір</div>
+                        <div style={{ fontSize:10, color:'#94a3b8' }}>{coverState.backCoverBgColor||'#f1f5f9'}</div>
+                      </div>
+                      <input type="color" value={coverState.backCoverBgColor||'#f1f5f9'}
+                        onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
+                        style={{ position:'absolute', inset:0, opacity:0.01, width:'100%', height:'100%', cursor:'pointer', border:'none', padding:0 }}/>
+                    </label>
                   </div>
                 </div>
               );
