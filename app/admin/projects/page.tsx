@@ -22,10 +22,14 @@ const PRODUCT_TYPES = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  draft:         { label: 'Чернетка',      color: '#64748b', bg: '#f1f5f9' },
-  ordered:       { label: 'Замовлено',     color: '#2563eb', bg: '#eff6ff' },
-  in_production: { label: 'У виробництві', color: '#d97706', bg: '#fffbeb' },
-  done:          { label: 'Виконано',      color: '#16a34a', bg: '#f0fdf4' },
+  draft:              { label: 'Чернетка',        color: '#64748b', bg: '#f1f5f9' },
+  in_progress:        { label: 'В роботі',         color: '#7c3aed', bg: '#f5f3ff' },
+  sent_for_review:    { label: 'На узгодженні',    color: '#0891b2', bg: '#ecfeff' },
+  revision_requested: { label: 'Потрібні правки',  color: '#d97706', bg: '#fffbeb' },
+  approved:           { label: 'Затверджено',      color: '#059669', bg: '#f0fdf4' },
+  ordered:            { label: 'Замовлено',        color: '#2563eb', bg: '#eff6ff' },
+  in_production:      { label: 'У виробництві',    color: '#d97706', bg: '#fffbeb' },
+  done:               { label: 'Виконано',         color: '#16a34a', bg: '#f0fdf4' },
 };
 
 const PRODUCT_LABELS: Record<string, string> = {
@@ -83,8 +87,9 @@ export default function AdminProjectsPage() {
       .select(`
         id, product_type, title, status, thumbnail_url,
         file_count, config, created_at, updated_at,
-        order_id,
-        customer_id
+        order_id, designer_id, revision_notes,
+        format, cover_type, page_count,
+        customer_id, share_token
       `)
       .order('created_at', { ascending: false })
       .limit(200);

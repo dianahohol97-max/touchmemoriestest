@@ -1,271 +1,138 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import PageFlipViewer from '@/components/designer-service/PageFlipViewer';
-import CommentPanel from '@/components/designer-service/CommentPanel';
-import { CheckCircle, MessageSquare } from 'lucide-react';
+import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { CheckCircle, XCircle, Loader2, MessageSquare } from 'lucide-react';
+import { Navigation } from '@/components/ui/Navigation';
+import { Footer } from '@/components/ui/Footer';
 
-interface Comment {
-  page: number;
-  text: string;
-}
-
-interface ReviewPageClientProps {
-  revision: any;
-  orderNumber: string;
-  customerName: string;
-}
-
-export default function ReviewPageClient({
-  revision,
-  orderNumber,
-  customerName,
-}: ReviewPageClientProps) {
-  const router = useRouter();
-  const [pageComments, setPageComments] = useState<Comment[]>(
-    revision.client_comments || []
+export default function ReviewPageClient({ project: initialProject, token }: { project: any; token: string }) {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
-  const [generalFeedback, setGeneralFeedback] = useState(
-    revision.general_feedback || ''
-  );
-  const [selectedPage, setSelectedPage] = useState<number | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
-  // Mock pages - in real app, this would come from project canvas_data
-  const pages = Array.from({ length: 20 }, (_, i) => ({
-    pageNumber: i + 1,
-    imageUrl: `https://via.placeholder.com/400x400?text=Page+${i + 1}`,
-    hasComments: pageComments.some((c) => c.page === i + 1),
-  }));
+  const [project] = useState(initialProject);
+  const [action, setAction] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [revisionNote, setRevisionNote] = useState('');
+  const [showRevisionForm, setShowRevisionForm] = useState(false);
+  const [result, setResult] = useState<'approved' | 'revision' | null>(null);
 
-  const handlePageClick = (pageNumber: number) => {
-    setSelectedPage(pageNumber);
-  };
-
-  const handleSaveComment = (comment: Comment) => {
-    setPageComments((prev) => {
-      // Remove existing comment for this page
-      const filtered = prev.filter((c) => c.page !== comment.page);
-      // Add new comment if not empty
-      if (comment.text.trim()) {
-        return [...filtered, comment];
-      }
-      return filtered;
-    });
-  };
+  const order = (project as any).order;
+  const productName = (order?.items as any[])?.[0]?.name || 'Ваш продукт';
 
   const handleApprove = async () => {
-    setSubmitting(true);
-    try {
-      const response = await fetch('/api/designer-service/review/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: revision.client_token,
-          decision: 'approved',
-          pageComments,
-          generalFeedback,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to submit approval');
-      }
-
-      router.refresh();
-    } catch (error) {
-      console.error('Error approving design:', error);
-      alert('Помилка при затвердженні дизайну. Спробуйте ще раз.');
-    } finally {
-      setSubmitting(false);
+    setAction('loading');
+    await supabase.from('customer_projects').update({
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+    }).eq('share_token', token);
+    if (project.order_id) {
+      await supabase.from('design_briefs').update({ status: 'approved' }).eq('order_id', project.order_id);
     }
+    setResult('approved');
+    setAction('done');
   };
 
-  const handleRequestRevisions = async () => {
-    if (pageComments.length === 0 && !generalFeedback.trim()) {
-      alert('Будь ласка, залиште хоча б один коментар або загальний відгук');
-      return;
+  const handleRevision = async () => {
+    if (!revisionNote.trim()) return;
+    setAction('loading');
+    await supabase.from('customer_projects').update({
+      status: 'revision_requested',
+      revision_notes: revisionNote,
+    }).eq('share_token', token);
+    if (project.order_id) {
+      await supabase.from('design_briefs').update({ status: 'revision_requested' }).eq('order_id', project.order_id);
     }
-
-    setSubmitting(true);
-    try {
-      const response = await fetch('/api/designer-service/review/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: revision.client_token,
-          decision: 'revision_requested',
-          pageComments,
-          generalFeedback,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to submit revision request');
-      }
-
-      router.refresh();
-    } catch (error) {
-      console.error('Error requesting revisions:', error);
-      alert('Помилка при відправці запиту на правки. Спробуйте ще раз.');
-    } finally {
-      setSubmitting(false);
-    }
+    setResult('revision');
+    setAction('done');
   };
-
-  const maxRevisions = 2; // Should come from product settings
-  const remainingRevisions = maxRevisions - (revision.revision_count || 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Перегляд дизайну вашого фотоальбому
-          </h1>
-          <p className="text-lg text-gray-600">
-            Замовлення #{orderNumber} • {customerName}
-          </p>
-          {remainingRevisions > 0 && (
-            <p className="text-sm text-gray-500 mt-2">
-              Залишилось безкоштовних правок: {remainingRevisions}
-            </p>
-          )}
+    <div className="min-h-screen bg-[#f8fafc]">
+      <Navigation />
+      <main className="max-w-3xl mx-auto px-4 py-12">
+        <div className="text-center mb-10">
+          <div className="inline-block bg-[#1e2d7d] text-white text-xs font-bold px-3 py-1 rounded-full mb-4 tracking-wider uppercase">Макет для узгодження</div>
+          <h1 className="text-3xl font-black text-[#1e2d7d] mb-2">{project.title}</h1>
+          <p className="text-gray-500 text-sm">Замовлення #{order?.order_number} · {productName}</p>
         </div>
 
-        {/* Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-[3px] p-4 mb-6 max-w-4xl mx-auto">
-          <p className="text-sm text-blue-800">
-            💡 <strong>Як працювати з дизайном:</strong> Клацайте на сторінки,
-            щоб залишити коментарі. Після перегляду ви можете затвердити дизайн
-            або запросити правки. Ви маєте право на {maxRevisions} безкоштовні
-            правки.
-          </p>
-        </div>
-
-        {/* Page Viewer */}
-        <div className="mb-8">
-          <PageFlipViewer pages={pages} onPageClick={handlePageClick} />
-        </div>
-
-        {/* Comments Summary */}
-        {pageComments.length > 0 && (
-          <div className="max-w-4xl mx-auto mb-6">
-            <div className="bg-white rounded-[3px] shadow p-6">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Ваші коментарі ({pageComments.length})
-              </h3>
-              <div className="space-y-2">
-                {pageComments.map((comment) => (
-                  <div
-                    key={comment.page}
-                    className="flex items-start gap-3 p-3 bg-gray-50 rounded"
-                  >
-                    <div className="font-medium text-sm text-gray-700 min-w-[80px]">
-                      Стор. {comment.page}:
-                    </div>
-                    <div className="text-sm text-gray-600">{comment.text}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {(result === 'approved' || project.status === 'approved') && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center mb-6">
+            <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-3" />
+            <h2 className="text-xl font-black text-green-700 mb-1">Макет затверджено! 🎉</h2>
+            <p className="text-green-600 text-sm">Передаємо у виробництво. Дякуємо!</p>
+          </div>
+        )}
+        {(result === 'revision' || (project.status === 'revision_requested' && result === null)) && (
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-8 text-center mb-6">
+            <MessageSquare className="w-14 h-14 text-orange-500 mx-auto mb-3" />
+            <h2 className="text-xl font-black text-orange-700 mb-1">Правки надіслано</h2>
+            {project.revision_notes && <p className="text-orange-600 text-sm italic mt-2">"{project.revision_notes}"</p>}
           </div>
         )}
 
-        {/* General Feedback */}
-        <div className="max-w-4xl mx-auto mb-6">
-          <div className="bg-white rounded-[3px] shadow p-6">
-            <h3 className="font-semibold text-gray-900 mb-3">
-              Загальний відгук (опціонально)
-            </h3>
-            <textarea
-              value={generalFeedback}
-              onChange={(e) => setGeneralFeedback(e.target.value)}
-              placeholder="Ваші загальні враження від дизайну, додаткові побажання..."
-              rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-[3px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+        {project.thumbnail_url && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Попередній перегляд</p>
+            <img src={project.thumbnail_url} alt="Макет" className="w-full rounded-xl" />
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Деталі макету</p>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            {project.format && <div><span className="text-gray-400">Розмір:</span> <span className="font-semibold">{project.format}</span></div>}
+            {project.cover_type && <div><span className="text-gray-400">Обкладинка:</span> <span className="font-semibold">{project.cover_type}</span></div>}
+            {project.page_count > 0 && <div><span className="text-gray-400">Сторінок:</span> <span className="font-semibold">{project.page_count}</span></div>}
+            <div>
+              <span className="text-gray-400">Статус:</span>{' '}
+              <span className={`font-semibold ${project.status === 'approved' ? 'text-green-600' : project.status === 'revision_requested' ? 'text-orange-500' : 'text-blue-600'}`}>
+                {project.status === 'sent_for_review' ? 'На узгодженні' : project.status === 'approved' ? 'Затверджено' : project.status === 'revision_requested' ? 'Правки надіслано' : project.status}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-[3px] shadow p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <button
-                onClick={handleApprove}
-                disabled={submitting}
-                className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-[3px] font-semibold text-lg transition-colors ${
-                  submitting
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                <CheckCircle className="h-6 w-6" />
-                {submitting ? 'Обробка...' : 'Затвердити дизайн'}
-              </button>
-
-              <button
-                onClick={handleRequestRevisions}
-                disabled={submitting || remainingRevisions === 0}
-                className={`flex-1 px-6 py-4 rounded-[3px] font-semibold text-lg transition-colors ${
-                  submitting || remainingRevisions === 0
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                {submitting
-                  ? 'Обробка...'
-                  : remainingRevisions === 0
-                  ? 'Немає доступних правок'
-                  : 'Запросити правки'}
-              </button>
-            </div>
-
-            {remainingRevisions === 0 && (
-              <p className="text-sm text-orange-600 text-center mt-4">
-                ⚠️ Ви використали всі безкоштовні правки. Додаткові правки можуть
-                бути платними.
-              </p>
+        {project.status === 'sent_for_review' && result === null && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-base font-bold text-gray-800 mb-1">Ваше рішення</h3>
+            <p className="text-gray-500 text-sm mb-5">Перегляньте макет і підтвердіть або надішліть правки.</p>
+            {!showRevisionForm ? (
+              <div className="flex gap-3 flex-wrap">
+                <button onClick={handleApprove} disabled={action === 'loading'}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:opacity-50 transition-colors">
+                  {action === 'loading' ? <Loader2 className="animate-spin w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                  Затвердити макет
+                </button>
+                <button onClick={() => setShowRevisionForm(true)} disabled={action === 'loading'}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 border-2 border-orange-400 text-orange-600 rounded-xl font-bold hover:bg-orange-50 disabled:opacity-50 transition-colors">
+                  <XCircle className="w-5 h-5" /> Потрібні правки
+                </button>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Що потрібно змінити?</label>
+                <textarea value={revisionNote} onChange={e => setRevisionNote(e.target.value)}
+                  placeholder="Наприклад: змінити колір обкладинки, переставити фото..." rows={4}
+                  className="w-full border border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#1e2d7d] mb-4" />
+                <div className="flex gap-3">
+                  <button onClick={handleRevision} disabled={!revisionNote.trim() || action === 'loading'}
+                    className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 disabled:opacity-50 transition-colors">
+                    {action === 'loading' ? 'Надсилаємо...' : 'Надіслати правки'}
+                  </button>
+                  <button onClick={() => setShowRevisionForm(false)}
+                    className="px-5 py-3 border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50">
+                    Назад
+                  </button>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-
-        {/* Help */}
-        <div className="max-w-4xl mx-auto mt-6">
-          <div className="bg-gray-100 rounded-[3px] p-4 text-center">
-            <p className="text-sm text-gray-600">
-              Потрібна допомога?{' '}
-              <a
-                href="mailto:info@touchmemories.com.ua"
-                className="text-blue-600 hover:text-blue-800"
-              >
-                info@touchmemories.com.ua
-              </a>{' '}
-              або Telegram{' '}
-              <a
-                href="https://t.me/touchmemories"
-                className="text-blue-600 hover:text-blue-800"
-              >
-                @touchmemories
-              </a>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Comment Panel Modal */}
-      {selectedPage !== null && (
-        <CommentPanel
-          pageNumber={selectedPage}
-          existingComment={pageComments.find((c) => c.page === selectedPage)?.text}
-          onClose={() => setSelectedPage(null)}
-          onSave={handleSaveComment}
-        />
-      )}
+        )}
+      </main>
+      <Footer categories={[]} />
     </div>
   );
 }

@@ -253,6 +253,9 @@ export default function BookLayoutEditor() {
     return () => window.removeEventListener('resize', check);
   }, []);
   const { addItem } = useCartStore();
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const designerOrderId = searchParams?.get('designer_order_id') || null;
+  const [designerSaving, setDesignerSaving] = useState(false);
 
   const [config, setConfig] = useState<BookConfig | null>(null);
   const [photos, setPhotos] = useState<PhotoData[]>([]);
@@ -711,6 +714,34 @@ export default function BookLayoutEditor() {
     window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
   };
 
+  const saveDesignerProject = async (action: 'save' | 'send_for_review' = 'save') => {
+    if (!designerOrderId) return;
+    setDesignerSaving(true);
+    try {
+      const res = await fetch('/api/designer-projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: designerOrderId,
+          action,
+          title: config?.productName || 'Макет',
+          format: config?.selectedSize || '',
+          cover_type: config?.selectedCoverType || '',
+          page_count: pages.length - 1,
+          canvas_data: { pages, coverState, photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })) },
+        }),
+      });
+      if (res.ok) {
+        toast.success(action === 'send_for_review' ? 'Надіслано клієнту на узгодження!' : 'Макет збережено!');
+      } else {
+        toast.error('Помилка збереження');
+      }
+    } catch {
+      toast.error('Помилка збереження');
+    }
+    setDesignerSaving(false);
+  };
+
   const addToCart = () => {
     if (!config) return;
     addItem({ id: `pb-${Date.now()}`, name: config.productName || 'Фотокнига', price: dynamicPrice, qty: 1, image: getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '', options: { 'Розмір': config.selectedSize || '', 'Сторінок': config.selectedPageCount }, personalization_note: `${pages.length} сторінок` });
@@ -833,10 +864,17 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               <div style={{ fontSize:10, color:'#94a3b8' }}>{photos.length} фото • {pages.length} стор.</div>
             </div>
             <div style={{ fontSize:13, fontWeight:800, color:'#1e2d7d', flexShrink:0 }}>{dynamicPrice} ₴</div>
-            <button onClick={addToCart}
-              style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', flexShrink:0 }}>
-              <ShoppingCart size={13}/> Кошик
-            </button>
+            {designerOrderId ? (
+              <button onClick={()=>saveDesignerProject('save')} disabled={designerSaving}
+                style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background:'#7c3aed', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', flexShrink:0, opacity:designerSaving?0.6:1 }}>
+                💾 Зберегти
+              </button>
+            ) : (
+              <button onClick={addToCart}
+                style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', flexShrink:0 }}>
+                <ShoppingCart size={13}/> Кошик
+              </button>
+            )}
           </div>
           {/* Row 2: Авто + Undo + Zoom + Preview */}
           <div style={{ display:'flex', alignItems:'center', padding:'4px 10px 6px', gap:6, borderTop:'1px solid #f1f5f9' }}>
@@ -891,7 +929,20 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             </div>
             <button onClick={()=>setShowPreview(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}><Eye size={14}/> Превью</button>
             <button onClick={()=>{ setTooltipStep(0); setShowTooltips(true); }} title="Підказки" style={{ padding:'9px 10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', color:'#64748b', display:'flex', alignItems:'center' }}><HelpCircle size={14}/></button>
-            <button onClick={addToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(38,58,153,0.3)' }}><ShoppingCart size={15}/> До кошика</button>
+            {designerOrderId ? (
+              <div style={{ display:'flex', gap:8 }}>
+                <button onClick={()=>saveDesignerProject('save')} disabled={designerSaving}
+                  style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', background:'#7c3aed', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', opacity:designerSaving?0.6:1 }}>
+                  💾 Зберегти макет
+                </button>
+                <button onClick={()=>saveDesignerProject('send_for_review')} disabled={designerSaving}
+                  style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', background:'#0891b2', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', opacity:designerSaving?0.6:1 }}>
+                  ✉️ Надіслати на узгодження
+                </button>
+              </div>
+            ) : (
+              <button onClick={addToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(38,58,153,0.3)' }}><ShoppingCart size={15}/> До кошика</button>
+            )}
           </div>
         </div>
       )}

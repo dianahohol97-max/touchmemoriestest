@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, use } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import DesignerProjectBlock from './DesignerProjectBlock';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
@@ -1031,6 +1032,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             </div>
                         </div>
                     </div>
+
+                    {/* ── Designer Project Block ── */}
+                    {order.with_designer && (
+                        <DesignerProjectBlock order={order} />
+                    )}
 
                     <div style={cardStyle}>
                         <div style={cardHeaderStyle}>
