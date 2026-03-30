@@ -476,7 +476,49 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 />
                             ) : (
                                 <>
-                                    {/* Custom Product Options Selector */}
+                                    {/* Photoprint: render options from DB only (skip hardcoded ProductOptionsSelector) */}
+                                    {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('поляроїд') || product.slug?.includes('полароїд')) ? (
+                                        <>
+                                        {product.options && Array.isArray(product.options) && product.options
+                                            .filter((opt: any) => opt.options?.length > 0 || opt.values?.length > 0)
+                                            .map((opt: any) => {
+                                                const items = opt.options || opt.values || [];
+                                                return (
+                                                    <div key={opt.name}>
+                                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e2d7d' }}>
+                                                            {opt.name} {opt.required !== false ? <span style={{color:'#e53e3e'}}>*</span> : null}
+                                                        </label>
+                                                        <select
+                                                            value={customProductOptions[opt.name] || ''}
+                                                            onChange={(e) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: e.target.value }))}
+                                                            style={{
+                                                                width: '100%', padding: '10px 14px',
+                                                                border: customProductOptions[opt.name] ? '2px solid #1e2d7d' : '1px solid #d1d5db',
+                                                                borderRadius: '8px', fontSize: '14px', cursor: 'pointer',
+                                                                backgroundColor: customProductOptions[opt.name] ? '#f0f3ff' : 'white',
+                                                                color: customProductOptions[opt.name] ? '#1e2d7d' : '#64748b',
+                                                                fontWeight: customProductOptions[opt.name] ? 700 : 400,
+                                                            }}
+                                                        >
+                                                            <option value="">Оберіть {opt.name.toLowerCase()}</option>
+                                                            {items.map((item: any, idx: number) => {
+                                                                const label = item.label || item.name || String(item);
+                                                                const value = item.value || item.name || String(item);
+                                                                const price = Number(item.price || 0);
+                                                                return (
+                                                                    <option key={idx} value={value}>
+                                                                        {label}{price > 0 ? ` (+${price} ₴)` : ''}
+                                                                    </option>
+                                                                );
+                                                            })}
+                                                        </select>
+                                                    </div>
+                                                );
+                                            })}
+                                        </>
+                                    ) : (
+                                    <>
+                                    {/* Custom Product Options Selector (non-photoprint products) */}
                                     <ProductOptionsSelector
                                         slug={product.slug || ''}
                                         selectedOptions={customProductOptions}
@@ -492,7 +534,6 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             'Калька перед першою сторінкою', 'Тип ламінації', 'Текст', 'Оздоблення',
                                             'Варіант акрилу', 'Варіант фотовставки', 'Варіант металевої вставки',
                                             'Варіант тиснення', 'Варіант гравірування', 'Корінець',
-                                            // Photoprint options (handled by ProductOptionsSelector)
                                             'Рамка', 'Вид', 'Покриття', 'Біла рамочка 3мм', 'Матеріал']);
                                         return product.options
                                             .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0))
@@ -588,6 +629,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             });
                                     })()}
 
+                                    {/* Quantity: hidden for photoprint (determined by uploaded photo count) */}
+                                    {!(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('поляроїд') || product.slug?.includes('полароїд')) && (
                                     <div>
                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>Кількість</label>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -604,6 +647,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             >+</button>
                                         </div>
                                     </div>
+                                    )}
+                                    </>
+                                    )}
                                 </>
                             )}
                         </div>
