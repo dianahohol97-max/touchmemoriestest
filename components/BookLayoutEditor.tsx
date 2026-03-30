@@ -139,8 +139,8 @@ const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
 function getSizeKeyForProduct(config: BookConfig | null): string {
   if (!config) return 'A4';
   const slug = (config.productSlug || '').toLowerCase();
-  // TravelBook — 20×30 landscape
-  if (slug.includes('travel')) return 'travelbook';
+  // TravelBook — 20×30 vertical (portrait)
+  if (slug.includes('travel')) return '20x30';
   // Magazines — A4
   if (slug.includes('magazine') || slug.includes('journal') || slug.includes('zhurnal') || slug.includes('fotozhurnal'))
     return 'magazine-A4';
