@@ -52,6 +52,9 @@ const getConstructorUrl = (slug: string): string => {
   // Canvas print
   if (s.includes('polotni') || s.includes('canvas') || s.includes('полотн'))
     return '/order/canvas';
+  // Puzzles
+  if (s.includes('puzzle') || s.includes('pazl'))
+    return `/order/puzzles?product=${slug}`;
   // Photo prints
   if (s.includes('photoprint') || s.includes('polaroid') || s.includes('полароїд') || s.includes('поляроїд'))
     return '/order/photoprint';
@@ -74,6 +77,9 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
   // For photoprint and photomagnet products, build order URL with selected options
   if (slug.includes('polotni') || slug.includes('canvas') || slug.includes('полотн')) {
     return `/order/canvas`;
+  }
+  if (slug.includes('puzzle') || slug.includes('pazl')) {
+    return `/order/puzzles?product=${slug}`;
   }
   if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('полароїд') || slug.includes('поляроїд') || slug.includes('magnet')) {
     const params = new URLSearchParams();
@@ -661,7 +667,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         </div>
 
                         {/* Special CTA for photoprint, poster, and photomagnet products */}
-                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('полароїд') || product.slug?.includes('поляроїд') || product.slug?.includes('poster') || product.slug?.includes('magnet') || product.slug?.includes('polotni') || product.slug?.includes('canvas')) ? (
+                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('полароїд') || product.slug?.includes('поляроїд') || product.slug?.includes('poster') || product.slug?.includes('magnet') || product.slug?.includes('polotni') || product.slug?.includes('canvas') || product.slug?.includes('puzzle') || product.slug?.includes('pazl')) ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <Link
                                     href={getOrderUrl(product.slug, selectedOptions, product)}

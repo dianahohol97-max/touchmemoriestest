@@ -1,23 +1,29 @@
 'use client';
 
 import { Suspense } from 'react';
-import PhotoPuzzleConstructor from '@/components/PhotoPuzzleConstructor';
+import { useSearchParams } from 'next/navigation';
+import { Navigation } from '@/components/ui/Navigation';
+import { Footer } from '@/components/ui/Footer';
+import PuzzleConstructor from '@/components/PuzzleConstructor';
 
-function PuzzleContent() {
-    return <PhotoPuzzleConstructor />;
+function PuzzleOrderContent() {
+    const searchParams = useSearchParams();
+    const productSlug = searchParams.get('product') || 'puzzle-20x30';
+    return (
+        <div style={{ minHeight: '100vh', backgroundColor: '#fff' }}>
+            <Navigation />
+            <main className="py-24">
+                <PuzzleConstructor productSlug={productSlug} />
+            </main>
+            <Footer categories={[]} />
+        </div>
+    );
 }
 
-export default function PuzzlesOrderPage() {
+export default function PuzzleOrderPage() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e2d7d] mx-auto mb-4"></div>
-                    <p className="text-gray-600">Завантаження конструктора пазлів...</p>
-                </div>
-            </div>
-        }>
-            <PuzzleContent />
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Завантаження...</div>}>
+            <PuzzleOrderContent />
         </Suspense>
     );
 }
