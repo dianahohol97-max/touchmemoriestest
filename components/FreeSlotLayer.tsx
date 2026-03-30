@@ -204,10 +204,17 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
               )}
             </div>
 
-            {/* CANVA TOOLBAR — appears above slot when selected */}
-            {sel && !inCrop && (
+            {/* CANVA TOOLBAR — smart positioning: outside when room, inside when full-page */}
+            {sel && !inCrop && (() => {
+              const nearTop = slot.y < 48;
+              const nearBottom = slot.h > canvasH - 60;
+              const insideMode = nearTop && nearBottom; // full page slot
+              return (
               <div onMouseDown={e => e.stopPropagation()}
-                style={{ position:'absolute', top:-42, left:'50%', transform:'translateX(-50%)',
+                style={{ position:'absolute',
+                  ...(insideMode ? { top: 8, left:'50%', transform:'translateX(-50%)' }
+                    : nearTop ? { bottom:-42, top:'auto', left:'50%', transform:'translateX(-50%)' }
+                    : { top:-42, left:'50%', transform:'translateX(-50%)' }),
                   display:'flex', alignItems:'center', gap:2, background:'#fff',
                   border:'0.5px solid #e2e8f0', borderRadius:8, padding:'3px 5px',
                   boxShadow:'0 2px 10px rgba(0,0,0,0.12)', zIndex:70, whiteSpace:'nowrap' }}>
@@ -240,12 +247,13 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
                   ✕
                 </button>
               </div>
-            )}
+              );
+            })()}
 
             {/* Crop mode toolbar */}
             {inCrop && (
               <div onMouseDown={e => e.stopPropagation()}
-                style={{ position:'absolute', top:-38, left:'50%', transform:'translateX(-50%)',
+                style={{ position:'absolute', ...(slot.y < 48 ? { bottom:-38, top:'auto' } : { top:-38 }), left:'50%', transform:'translateX(-50%)',
                   display:'flex', alignItems:'center', gap:8, background:'#1e2d7d',
                   borderRadius:8, padding:'5px 14px', zIndex:70, whiteSpace:'nowrap' }}>
                 <span style={{ color:'rgba(255,255,255,0.7)', fontSize:10 }}>Drag = перемістити фото</span>
