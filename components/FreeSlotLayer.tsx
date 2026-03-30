@@ -145,9 +145,9 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
 
         return (
           <div key={slot.id}
-            onMouseDown={e => { setSelectedId(slot.id); startDrag(e, slot.id, 'move'); }}
+            onMouseDown={e => { setSelectedId(slot.id); onSelect?.(slot.id); startDrag(e, slot.id, 'move'); }}
             onDragOver={e => e.preventDefault()}
-            onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) update(slot.id, { photoId: id }); }}
+            onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) { update(slot.id, { photoId: id }); setSelectedId(slot.id); onSelect?.(slot.id); } }}
             style={{
               position: 'absolute',
               left: slot.x, top: slot.y,
@@ -182,7 +182,18 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, on
               >
                 <img
                   src={photo.preview}
-                  onMouseDown={e => { setSelectedId(slot.id); startCropDrag(e, slot.id, slot.cropX, slot.cropY); }}
+                  onMouseDown={e => {
+                    if (!sel) {
+                      // First click — just select, don't start crop drag
+                      e.stopPropagation();
+                      setSelectedId(slot.id);
+                      onSelect?.(slot.id);
+                    } else {
+                      // Already selected — allow crop drag
+                      setSelectedId(slot.id);
+                      startCropDrag(e, slot.id, slot.cropX, slot.cropY);
+                    }
+                  }}
                   style={{
                     width: `${(slot.zoom||1)*100}%`,
                     height: `${(slot.zoom||1)*100}%`,
