@@ -1,4 +1,4 @@
-// auto-deploy: fix-cert-ts-1775064207
+// auto-deploy: i18n-deploy-1775066624
 const nextConfig = {
   // Disable Partial Pre-Rendering globally — admin panel must never be statically cached
   experimental: {
