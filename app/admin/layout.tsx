@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 import {
     LayoutDashboard, ShoppingBag, List, ShoppingCart,
     User, Users, Settings, LogOut, Factory,

@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+
+export const dynamic = 'force-dynamic';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import {
     ShoppingBag,
