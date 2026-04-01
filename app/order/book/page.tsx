@@ -1,59 +1,50 @@
 'use client';
 
-import { Suspense, Component, ReactNode } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import BookConstructorConfig from '@/components/BookConstructorConfig';
+import dynamic from 'next/dynamic';
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-    state = { error: null as Error | null };
-    static getDerivedStateFromError(error: Error) { return { error }; }
-    render() {
-        if (// @ts-ignore
-        this.state.error) {
-            return (
-                <div style={{ padding: '2rem', textAlign: 'center' }}>
-                    <h2 style={{ color: 'red', marginBottom: '1rem' }}>Помилка завантаження конструктора</h2>
-                    <pre style={{ textAlign: 'left', maxWidth: 600, margin: '0 auto', background: '#f5f5f5', padding: '1rem', borderRadius: 8, overflow: 'auto', fontSize: 12 }}>
-                        {// @ts-ignore
-        this.state.error.message}
-                        {'\n\n'}
-                        {// @ts-ignore
-        this.state.error.stack}
-                    </pre>
-                    <button onClick={() => window.location.reload()} style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
-                        Перезавантажити
-                    </button>
-                </div>
-            );
-        }
-        return // @ts-ignore
-        this.props.children;
-    }
-}
+// Dynamic import — BookConstructorConfig uses process.env and browser APIs
+const BookConstructorConfig = dynamic(
+  () => import('@/components/BookConstructorConfig'),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+        <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid #e2e8f0', borderTopColor: '#263a99', animation: 'spin 0.8s linear infinite' }}/>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        <span style={{ fontSize: 15, color: '#64748b', fontWeight: 500 }}>Завантаження конструктора...</span>
+      </div>
+    ),
+  }
+);
 
 function BookOrderContent() {
-    const searchParams = useSearchParams();
-    const productSlug = searchParams.get('product') || 'photobook-velour';
+  const searchParams = useSearchParams();
+  const productSlug = searchParams.get('product') || 'photobook-velour';
 
-    return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#fff' }}>
-            <Navigation />
-            <main className="py-24">
-                <ErrorBoundary>
-                    <BookConstructorConfig productSlug={productSlug} />
-                </ErrorBoundary>
-            </main>
-            <Footer categories={[]} />
-        </div>
-    );
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#fff' }}>
+      <Navigation />
+      <main className="py-24">
+        <BookConstructorConfig productSlug={productSlug} />
+      </main>
+      <Footer categories={[]} />
+    </div>
+  );
 }
 
 export default function BookOrderPage() {
-    return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Завантаження...</div>}>
-            <BookOrderContent />
-        </Suspense>
-    );
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid #e2e8f0', borderTopColor: '#263a99', animation: 'spin 0.8s linear infinite' }}/>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    }>
+      <BookOrderContent />
+    </Suspense>
+  );
 }
