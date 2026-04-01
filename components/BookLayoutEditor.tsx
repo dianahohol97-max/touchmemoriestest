@@ -657,24 +657,44 @@ export default function BookLayoutEditor() {
   };
   const clearSlot = (pi: number, si: number) => setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, photoId: null }) }));
 
-  const startCrop = (e: React.MouseEvent, key: string, cx: number, cy: number) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Unified crop start — works with both mouse and touch events
+  const startCropFromPoint = (clientX: number, clientY: number, key: string, cx: number, cy: number) => {
     const [pi, si] = key.split('-').map(Number);
-    // Get current zoom for sensitivity scaling
     const currentZoom = pages[pi]?.slots[si]?.zoom || 1;
-    const sensitivity = 30 / Math.max(0.5, currentZoom); // less sensitive at higher zoom
-    cropRef.current = { key, sx: e.clientX, sy: e.clientY, cx, cy };
+    const sensitivity = 30 / Math.max(0.5, currentZoom);
+    cropRef.current = { key, sx: clientX, sy: clientY, cx, cy };
     const onMove = (me: MouseEvent) => {
       if (!cropRef.current) return;
       const dx = (me.clientX - cropRef.current.sx) / sensitivity;
       const dy = (me.clientY - cropRef.current.sy) / sensitivity;
-      const nx = Math.max(0, Math.min(100, cropRef.current.cx - dx));
-      const ny = Math.max(0, Math.min(100, cropRef.current.cy - dy));
-      setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, cropX: nx, cropY: ny }) }));
+      setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, cropX: Math.max(0,Math.min(100,cropRef.current!.cx-dx)), cropY: Math.max(0,Math.min(100,cropRef.current!.cy-dy)) }) }));
     };
-    const onUp = () => { cropRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+    const onTouchMove = (te: TouchEvent) => {
+      if (!cropRef.current || !te.touches[0]) return;
+      te.preventDefault();
+      const dx = (te.touches[0].clientX - cropRef.current.sx) / sensitivity;
+      const dy = (te.touches[0].clientY - cropRef.current.sy) / sensitivity;
+      setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, cropX: Math.max(0,Math.min(100,cropRef.current!.cx-dx)), cropY: Math.max(0,Math.min(100,cropRef.current!.cy-dy)) }) }));
+    };
+    const onUp = () => {
+      cropRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onUp);
+  };
+  const startCrop = (e: React.MouseEvent, key: string, cx: number, cy: number) => {
+    e.preventDefault(); e.stopPropagation();
+    startCropFromPoint(e.clientX, e.clientY, key, cx, cy);
+  };
+  const startCropTouch = (e: React.TouchEvent, key: string, cx: number, cy: number) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.touches[0]) startCropFromPoint(e.touches[0].clientX, e.touches[0].clientY, key, cx, cy);
   };
 
   const onCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -695,23 +715,31 @@ export default function BookLayoutEditor() {
   };
   const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
   const deleteTxtForPage = (id: string, pageIdx: number) => { setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) })); setSelectedTextId(null); setEditingTextId(null); };
-  const startTxtDragForPage = (e: React.MouseEvent, id: string, tx: number, ty: number, pageIdx: number) => {
+  const startTxtDragForPage = (e: React.MouseEvent | React.TouchEvent, id: string, tx: number, ty: number, pageIdx: number) => {
     e.stopPropagation(); e.preventDefault();
-    txtRef.current = { id, sx: e.clientX, sy: e.clientY, tx, ty };
+    const clientX = 'touches' in e ? e.touches[0]?.clientX ?? 0 : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY ?? 0 : e.clientY;
+    txtRef.current = { id, sx: clientX, sy: clientY, tx, ty };
     const onMove = (me: MouseEvent) => { if (!txtRef.current) return; updateTxtForPage(txtRef.current.id, { x: Math.max(0,Math.min(95,txtRef.current.tx+((me.clientX-txtRef.current.sx)/pageW)*100)), y: Math.max(0,Math.min(95,txtRef.current.ty+((me.clientY-txtRef.current.sy)/cH)*100)) }, pageIdx); };
-    const onUp = () => { txtRef.current=null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
+    const onTouchMove = (te: TouchEvent) => { if (!txtRef.current || !te.touches[0]) return; te.preventDefault(); updateTxtForPage(txtRef.current.id, { x: Math.max(0,Math.min(95,txtRef.current.tx+((te.touches[0].clientX-txtRef.current.sx)/pageW)*100)), y: Math.max(0,Math.min(95,txtRef.current.ty+((te.touches[0].clientY-txtRef.current.sy)/cH)*100)) }, pageIdx); };
+    const onUp = () => { txtRef.current=null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); window.removeEventListener('touchmove',onTouchMove); window.removeEventListener('touchend',onUp); };
     window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+    window.addEventListener('touchmove',onTouchMove,{passive:false}); window.addEventListener('touchend',onUp);
   };
 
   const updateTxt = (id: string, ch: Partial<TextBlock>) => setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
   const deleteTxt = (id: string) => { setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) })); setSelectedTextId(null); setEditingTextId(null); };
 
-  const startTxtDrag = (e: React.MouseEvent, id: string, tx: number, ty: number) => {
+  const startTxtDrag = (e: React.MouseEvent | React.TouchEvent, id: string, tx: number, ty: number) => {
     e.stopPropagation(); e.preventDefault();
-    txtRef.current = { id, sx: e.clientX, sy: e.clientY, tx, ty };
-    const onMove = (me: MouseEvent) => { if (!txtRef.current) return; updateTxt(txtRef.current.id, { x: Math.max(0, Math.min(95, txtRef.current.tx + ((me.clientX - txtRef.current.sx) / cW) * 100)), y: Math.max(0, Math.min(95, txtRef.current.ty + ((me.clientY - txtRef.current.sy) / cH) * 100)) }); };
-    const onUp = () => { txtRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+    const clientX = 'touches' in e ? e.touches[0]?.clientX ?? 0 : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY ?? 0 : e.clientY;
+    txtRef.current = { id, sx: clientX, sy: clientY, tx, ty };
+    const onMove = (me: MouseEvent) => { if (!txtRef.current) return; updateTxt(txtRef.current.id, { x: Math.max(0,Math.min(95,txtRef.current.tx+((me.clientX-txtRef.current.sx)/cW)*100)), y: Math.max(0,Math.min(95,txtRef.current.ty+((me.clientY-txtRef.current.sy)/cH)*100)) }); };
+    const onTouchMove = (te: TouchEvent) => { if (!txtRef.current||!te.touches[0]) return; te.preventDefault(); updateTxt(txtRef.current.id, { x: Math.max(0,Math.min(95,txtRef.current.tx+((te.touches[0].clientX-txtRef.current.sx)/cW)*100)), y: Math.max(0,Math.min(95,txtRef.current.ty+((te.touches[0].clientY-txtRef.current.sy)/cH)*100)) }); };
+    const onUp = () => { txtRef.current=null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); window.removeEventListener('touchmove',onTouchMove); window.removeEventListener('touchend',onUp); };
+    window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+    window.addEventListener('touchmove',onTouchMove,{passive:false}); window.addEventListener('touchend',onUp);
   };
 
   const saveDesignerProject = async (action: 'save' | 'send_for_review' = 'save') => {
@@ -1944,6 +1972,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img src={photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
                                     onMouseDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX, slot!.cropY); }}
+                                    onTouchStart={e => { if (photoEditSlot===key) startCropTouch(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
                                     style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}/>
                                   {photoEditSlot===key && (
                                     <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.7)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
@@ -1974,6 +2003,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         return (
                           <div key={tb.id}
                             onMouseDown={e=>{e.stopPropagation();setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
+                            onTouchStart={e=>{e.stopPropagation();setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);}}
                             style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex:20,cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30}}>
                             {isEd?(

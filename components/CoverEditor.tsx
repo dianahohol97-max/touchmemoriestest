@@ -121,42 +121,48 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
   const isSoft = config.coverMaterial !== 'printed';
 
   // Printed cover: photo slot drag/resize
-  const startSlotDrag = (e: React.MouseEvent, type: string) => {
-    e.stopPropagation(); e.preventDefault();
+  const startSlotDragFromPoint = (clientX: number, clientY: number, type: string) => {
     const slot = config.printedPhotoSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' as const };
     const orig = { ...slot };
-    const sx = e.clientX, sy = e.clientY;
-    const onMove = (me: MouseEvent) => {
-      const dx = (me.clientX - sx) / canvasW * 100;
-      const dy = (me.clientY - sy) / canvasH * 100;
-      if (type === 'move') {
-        onChange({ printedPhotoSlot: { ...orig, x: Math.max(0, Math.min(100-orig.w, orig.x+dx)), y: Math.max(0, Math.min(100-orig.h, orig.y+dy)) } });
-      } else if (type === 'se') {
-        onChange({ printedPhotoSlot: { ...orig, w: Math.max(10, orig.w+dx), h: Math.max(10, orig.h+dy) } });
-      } else if (type === 'sw') {
-        onChange({ printedPhotoSlot: { ...orig, x: orig.x+dx, w: Math.max(10, orig.w-dx), h: Math.max(10, orig.h+dy) } });
-      } else if (type === 'ne') {
-        onChange({ printedPhotoSlot: { ...orig, y: orig.y+dy, w: Math.max(10, orig.w+dx), h: Math.max(10, orig.h-dy) } });
-      } else if (type === 'nw') {
-        onChange({ printedPhotoSlot: { ...orig, x: orig.x+dx, y: orig.y+dy, w: Math.max(10, orig.w-dx), h: Math.max(10, orig.h-dy) } });
-      }
+    const sx = clientX, sy = clientY;
+    const applyDelta = (cx: number, cy: number) => {
+      const dx = (cx - sx) / canvasW * 100;
+      const dy = (cy - sy) / canvasH * 100;
+      if (type === 'move') onChange({ printedPhotoSlot: { ...orig, x: Math.max(0,Math.min(100-orig.w,orig.x+dx)), y: Math.max(0,Math.min(100-orig.h,orig.y+dy)) } });
+      else if (type === 'se') onChange({ printedPhotoSlot: { ...orig, w: Math.max(10,orig.w+dx), h: Math.max(10,orig.h+dy) } });
+      else if (type === 'sw') onChange({ printedPhotoSlot: { ...orig, x: orig.x+dx, w: Math.max(10,orig.w-dx), h: Math.max(10,orig.h+dy) } });
+      else if (type === 'ne') onChange({ printedPhotoSlot: { ...orig, y: orig.y+dy, w: Math.max(10,orig.w+dx), h: Math.max(10,orig.h-dy) } });
+      else if (type === 'nw') onChange({ printedPhotoSlot: { ...orig, x: orig.x+dx, y: orig.y+dy, w: Math.max(10,orig.w-dx), h: Math.max(10,orig.h-dy) } });
     };
-    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+    const onMove = (me: MouseEvent) => applyDelta(me.clientX, me.clientY);
+    const onTouchMove = (te: TouchEvent) => { if (te.touches[0]) { te.preventDefault(); applyDelta(te.touches[0].clientX, te.touches[0].clientY); } };
+    const onUp = () => { window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); window.removeEventListener('touchmove',onTouchMove); window.removeEventListener('touchend',onUp); };
+    window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+    window.addEventListener('touchmove',onTouchMove,{passive:false}); window.addEventListener('touchend',onUp);
+  };
+  const startSlotDrag = (e: React.MouseEvent | React.TouchEvent, type: string) => {
+    e.stopPropagation(); e.preventDefault();
+    const clientX = 'touches' in e ? e.touches[0]?.clientX ?? 0 : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY ?? 0 : e.clientY;
+    startSlotDragFromPoint(clientX, clientY, type);
   };
 
-  // Printed cover: text block drag
-  const startTextDrag = (e: React.MouseEvent, id: string, tx: number, ty: number) => {
+  // Printed cover: text block drag (mouse + touch)
+  const startTextDrag = (e: React.MouseEvent | React.TouchEvent, id: string, tx: number, ty: number) => {
     e.stopPropagation(); e.preventDefault();
     const texts = config.printedTextBlocks ?? [];
-    const sx = e.clientX, sy = e.clientY;
-    const onMove = (me: MouseEvent) => {
-      const dx = (me.clientX - sx) / canvasW * 100;
-      const dy = (me.clientY - sy) / canvasH * 100;
-      onChange({ printedTextBlocks: texts.map(t => t.id === id ? { ...t, x: Math.max(2, Math.min(98, tx+dx)), y: Math.max(2, Math.min(98, ty+dy)) } : t) });
+    const clientX = 'touches' in e ? e.touches[0]?.clientX ?? 0 : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY ?? 0 : e.clientY;
+    const sx = clientX, sy = clientY;
+    const applyDelta = (cx: number, cy: number) => {
+      const dx = (cx - sx) / canvasW * 100, dy = (cy - sy) / canvasH * 100;
+      onChange({ printedTextBlocks: texts.map(t => t.id === id ? { ...t, x: Math.max(2,Math.min(98,tx+dx)), y: Math.max(2,Math.min(98,ty+dy)) } : t) });
     };
-    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+    const onMove = (me: MouseEvent) => applyDelta(me.clientX, me.clientY);
+    const onTouchMove = (te: TouchEvent) => { if (te.touches[0]) { te.preventDefault(); applyDelta(te.touches[0].clientX, te.touches[0].clientY); } };
+    const onUp = () => { window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); window.removeEventListener('touchmove',onTouchMove); window.removeEventListener('touchend',onUp); };
+    window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+    window.addEventListener('touchmove',onTouchMove,{passive:false}); window.addEventListener('touchend',onUp);
   };
 
   const bgColor = (() => {
@@ -239,6 +245,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               onDragLeave={()=>setDragOver(false)}
               onDrop={e=>{e.preventDefault();setDragOver(false);const id=e.dataTransfer.getData('text/plain');if(id)onChange({photoId:id});}}
               onMouseDown={e => startSlotDrag(e, 'move')}
+              onTouchStart={e => startSlotDrag(e, 'move')}
               style={{ position:'absolute', left:slotPx.x, top:slotPx.y, width:slotPx.w, height:slotPx.h,
                 borderRadius:br, overflow:'hidden', cursor:'move', zIndex:2,
                 border: dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)'),
@@ -255,7 +262,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               const lp = (dir==='ne'||dir==='se') ? slotPx.x+slotPx.w : slotPx.x;
               const tp = (dir==='se'||dir==='sw') ? slotPx.y+slotPx.h : slotPx.y;
               return (
-                <div key={dir} onMouseDown={e=>startSlotDrag(e,dir)}
+                <div key={dir} onMouseDown={e=>startSlotDrag(e,dir)} onTouchStart={e=>startSlotDrag(e,dir)}
                   style={{ position:'absolute', left:lp-8, top:tp-8, width:16, height:16,
                     borderRadius:'50%', background:'#3b82f6', border:'2.5px solid #fff',
                     cursor:`${dir}-resize`, zIndex:10, boxShadow:'0 1px 4px rgba(0,0,0,0.4)' }}/>
@@ -266,7 +273,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
             {overlay.type === 'gradient' && <div style={{ position:'absolute', inset:0, zIndex:3, pointerEvents:'none', backgroundImage:overlay.gradient }}/>}
             {/* Text blocks */}
             {texts.map(tb => (
-              <div key={tb.id} onMouseDown={e => startTextDrag(e, tb.id, tb.x, tb.y)}
+              <div key={tb.id} onMouseDown={e => startTextDrag(e, tb.id, tb.x, tb.y)} onTouchStart={e => startTextDrag(e, tb.id, tb.x, tb.y)}
                 style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)',
                   cursor:'move', zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3 }}>
                 <span contentEditable suppressContentEditableWarning
