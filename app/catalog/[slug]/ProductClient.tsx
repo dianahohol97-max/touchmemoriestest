@@ -54,6 +54,9 @@ const getConstructorUrl = (slug: string): string => {
   };
   if (posterMap[slug]) return posterMap[slug];
   if (s.includes('poster')) return '/order/poster';
+  // Wedding newspaper — goes to designer order flow
+  if (s.includes('newspaper') || s.includes('газет'))
+    return '/brief';
   // Canvas print
   if (s.includes('polotni') || s.includes('canvas') || s.includes('полотн'))
     return '/order/canvas';
