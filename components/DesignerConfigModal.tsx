@@ -63,8 +63,19 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
     process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   ), []);
 
-  const slug = slugProp || TYPE_TO_SLUG[productType] || '';
-  const isPhotobook = slug.includes('photobook');
+  // Cover type selection step (for photobooks without a fixed slug)
+  const needsCoverSelection = productType === 'photobook' && !slugProp;
+  const COVER_OPTIONS = [
+    { slug: 'photobook-velour', label: 'Велюр', desc: 'М\'який оксамитовий матеріал', icon: '🟣' },
+    { slug: 'photobook-leatherette', label: 'Шкірзамінник', desc: 'Елегантна шкіра', icon: '🟤' },
+    { slug: 'photobook-fabric', label: 'Тканина', desc: 'Натуральна льняна тканина', icon: '🟡' },
+    { slug: 'photobook-printed', label: 'Друкована', desc: 'Фото на всю обкладинку', icon: '🖼️' },
+  ];
+  const [selectedCoverSlug, setSelectedCoverSlug] = useState('');
+  const [coverStepDone, setCoverStepDone] = useState(false);
+
+  const slug = slugProp || (needsCoverSelection ? selectedCoverSlug : TYPE_TO_SLUG[productType]) || '';
+  const isPhotobook = productType === 'photobook';
 
   const [dbProduct, setDbProduct] = useState<any>(null);
   const [config, setConfig] = useState<Record<string, any>>({});
@@ -107,7 +118,10 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
 
   // Reset on open
   useEffect(() => {
-    if (isOpen) { setSelectedColor(null); setSelectedDeco('none'); setSelectedDecoVariant(''); }
+    if (isOpen) {
+      setSelectedColor(null); setSelectedDeco('none'); setSelectedDecoVariant('');
+      if (needsCoverSelection) { setSelectedCoverSlug(''); setCoverStepDone(false); }
+    }
   }, [isOpen]);
 
   // Update photo rec when pages change
@@ -167,6 +181,61 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
 
   const options = (dbProduct?.options || []) as any[];
   const displayName = dbProduct?.name || productName || 'Продукт';
+
+  // Cover selection step for photobooks
+  if (needsCoverSelection && !coverStepDone) {
+    const coverStepContent = (
+      <div className="fixed inset-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" style={{ zIndex: 99999 }}>
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+            <div>
+              <h2 className="text-2xl font-bold text-[#1e2d7d]">Тип обкладинки</h2>
+              <p className="text-sm text-gray-500 mt-1">Фотокнига з дизайнером</p>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
+          </div>
+          <div className="px-6 py-6">
+            <p className="text-gray-600 mb-6">Оберіть матеріал обкладинки. Наш дизайнер створить макет після підтвердження.</p>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {COVER_OPTIONS.map(opt => (
+                <button key={opt.slug}
+                  onClick={() => setSelectedCoverSlug(opt.slug)}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    selectedCoverSlug === opt.slug
+                      ? 'border-[#1e2d7d] bg-[#f0f3ff]'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">{opt.icon}</div>
+                  <div className={`font-bold text-sm ${selectedCoverSlug === opt.slug ? 'text-[#1e2d7d]' : 'text-gray-900'}`}>
+                    {opt.label}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex gap-3 rounded-b-2xl">
+            <button onClick={onClose} className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+              Скасувати
+            </button>
+            <button
+              onClick={() => { if (selectedCoverSlug) setCoverStepDone(true); }}
+              disabled={!selectedCoverSlug}
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-colors ${
+                selectedCoverSlug
+                  ? 'bg-[#1e2d7d] text-white hover:bg-[#263a99]'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Далі →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+    return createPortal(coverStepContent, document.body);
+  }
 
   const modalContent = (
     <div className="fixed inset-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" style={{ zIndex: 99999 }}>
