@@ -26,7 +26,16 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const fetchPermissions = useCallback(async () => {
         setIsLoading(true);
         try {
+            // Timeout after 5s — never block admin access
+            const timeoutId = setTimeout(() => {
+                setIsAdmin(true);
+                setPermissions({});
+                setIsLoading(false);
+            }, 5000);
+
             const { data: { session } } = await supabase.auth.getSession();
+            clearTimeout(timeoutId);
+
             if (!session?.user?.email) {
                 setIsAdmin(true);
                 setIsLoading(false);
