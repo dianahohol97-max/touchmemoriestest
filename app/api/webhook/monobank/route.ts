@@ -91,28 +91,54 @@ export async function POST(req: Request) {
                 }
             }
 
-            // b. Trigger Checkbox Fiscalization
+            // b. Trigger Checkbox Fiscalization (reads rules & account from DB)
             try {
-                const checkbox = new CheckboxService({
-                    login: process.env.CHECKBOX_LOGIN!,
-                    password: process.env.CHECKBOX_PASSWORD!,
-                    licenseKey: process.env.CHECKBOX_LICENSE_KEY!
-                });
+                const { data: rule } = await supabase
+                    .from('fiscal_rules')
+                    .select('is_enabled, receipt_type, fiscal_account_id')
+                    .eq('payment_type', 'full')
+                    .single();
 
-                const receipt = await checkbox.createReceipt(order);
+                if (rule?.is_enabled && rule?.fiscal_account_id) {
+                    const { data: account } = await supabase
+                        .from('fiscal_accounts')
+                        .select('login, password, api_key, is_active')
+                        .eq('id', rule.fiscal_account_id)
+                        .single();
 
-                await supabase
-                    .from('orders')
-                    .update({
-                        fiscal_id: receipt.id,
-                        fiscal_url: receipt.tax_url,
-                        fiscal_status: 'created'
-                    })
-                    .eq('id', order.id);
+                    if (account?.is_active && account?.login) {
+                        const checkbox = new CheckboxService({
+                            login: account.login,
+                            password: account.password || undefined,
+                            licenseKey: account.api_key || process.env.CHECKBOX_LICENSE_KEY!
+                        });
 
+                        const receiptType = rule.receipt_type === 'return' ? 'return'
+                            : rule.receipt_type === 'prepayment' ? 'prepayment'
+                            : 'sell';
+
+                        const receipt = await checkbox.createReceipt(order, receiptType);
+
+                        await supabase
+                            .from('orders')
+                            .update({
+                                fiscal_id: receipt.id,
+                                fiscal_url: receipt.tax_url,
+                                fiscal_status: 'created'
+                            })
+                            .eq('id', order.id);
+
+                        console.log('[Fiscal] Receipt created:', receipt.id);
+                    } else {
+                        console.log('[Fiscal] Skipped — account inactive or missing');
+                    }
+                } else {
+                    console.log('[Fiscal] Skipped — rule disabled or no account assigned');
+                }
             } catch (fiscalError) {
-                console.error('Fiscalization failed:', fiscalError);
-                // Log to a dedicated audit table in production
+                console.error('[Fiscal] Fiscalization failed:', fiscalError);
+                // Mark as failed in DB so it can be retried manually
+                await supabase.from('orders').update({ fiscal_status: 'failed' }).eq('id', order.id);
             }
 
             // c. TODO: Send Confirmation Email/Telegram

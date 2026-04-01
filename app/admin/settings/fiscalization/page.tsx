@@ -28,6 +28,7 @@ export default function FiscalizationPage() {
         label: '',
         login: '',
         password: '',
+        license_key: '',
         cashier_name: '',
         is_active: true
     });
@@ -65,7 +66,7 @@ export default function FiscalizationPage() {
             toast.success('Аккаунт збережено');
             setIsModalOpen(false);
             setEditingAccount(null);
-            setFormData({ label: '', login: '', password: '', cashier_name: '', is_active: true });
+            setFormData({ label: '', login: '', password: '', license_key: '', cashier_name: '', is_active: true });
             fetchData();
         }
         setLoading(false);
@@ -203,8 +204,13 @@ export default function FiscalizationPage() {
                                 <input style={formInput} value={formData.login} onChange={e => setFormData({ ...formData, login: e.target.value })} required />
                             </div>
                             <div>
-                                <label style={formLabel}>Пароль / API Ключ</label>
+                                <label style={formLabel}>Пароль касира</label>
                                 <input type="password" style={formInput} value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
+                            </div>
+                            <div>
+                                <label style={formLabel}>License Key (X-License-Key) — ключ каси</label>
+                                <input style={formInput} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value={formData.license_key} onChange={e => setFormData({ ...formData, license_key: e.target.value })} required />
+                                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>Знайдіть у Checkbox кабінеті: Каси → обрати касу → License Key</div>
                             </div>
                             <div>
                                 <label style={formLabel}>Ім'я касира (для чеку)</label>
