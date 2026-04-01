@@ -1,4 +1,4 @@
-// auto-deploy: i18n-cart-fix-1775067153
+// auto-deploy: params-fix-1775069667
 const nextConfig = {
   // Disable Partial Pre-Rendering globally — admin panel must never be statically cached
   experimental: {
