@@ -1,13 +1,15 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic';
 
 // Dynamic import — BookConstructorConfig uses process.env and browser APIs
-const BookConstructorConfig = dynamic(
+const BookConstructorConfig = dynamicImport(
   () => import('@/components/BookConstructorConfig'), { ssr: false });
 
 function BookOrderContent() {

@@ -1,8 +1,10 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from 'react';
-import dynamic from 'next/dynamic';
-const StarMapConstructor = dynamic(() => import('@/components/StarMapConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const StarMapConstructor = dynamicImport(() => import('@/components/StarMapConstructor'), { ssr: false });
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 

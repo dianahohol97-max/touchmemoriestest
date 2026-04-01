@@ -1,8 +1,10 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from 'react';
-import dynamic from 'next/dynamic';
-const GuestBookConstructor = dynamic(() => import('@/components/GuestBookConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const GuestBookConstructor = dynamicImport(() => import('@/components/GuestBookConstructor'), { ssr: false });
 
 function GuestBookContent() {
     return <GuestBookConstructor />;

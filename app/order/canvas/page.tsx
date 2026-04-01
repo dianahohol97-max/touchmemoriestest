@@ -1,10 +1,12 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import dynamic from 'next/dynamic';
-const CanvasPrintConstructor = dynamic(() => import('@/components/CanvasPrintConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const CanvasPrintConstructor = dynamicImport(() => import('@/components/CanvasPrintConstructor'), { ssr: false });
 
 export default function CanvasOrderPage() {
     return (

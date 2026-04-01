@@ -1,9 +1,11 @@
 'use client';
+
+export const dynamic = 'force-dynamic';
 import { Suspense } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import dynamic from 'next/dynamic';
-const ZodiacConstructor = dynamic(() => import('@/components/ZodiacConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const ZodiacConstructor = dynamicImport(() => import('@/components/ZodiacConstructor'), { ssr: false });
 
 export default function ZodiacPage() {
     return (

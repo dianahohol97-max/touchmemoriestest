@@ -1,9 +1,11 @@
 'use client';
-import dynamic from 'next/dynamic';
+
+export const dynamic = 'force-dynamic';
+import dynamicImport from 'next/dynamic';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 
-const BookPhotoUpload = dynamic(
+const BookPhotoUpload = dynamicImport(
   () => import('@/components/BookPhotoUpload'), { ssr: false });
 
 export default function BookUploadPage() {

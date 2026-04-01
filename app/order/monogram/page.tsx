@@ -1,9 +1,11 @@
 'use client';
+
+export const dynamic = 'force-dynamic';
 import { Suspense } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import dynamic from 'next/dynamic';
-const MonogramConstructor = dynamic(() => import('@/components/MonogramConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const MonogramConstructor = dynamicImport(() => import('@/components/MonogramConstructor'), { ssr: false });
 
 export default function MonogramPage() {
     return (

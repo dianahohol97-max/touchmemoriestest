@@ -1,11 +1,13 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import dynamic from 'next/dynamic';
-const PuzzleConstructor = dynamic(() => import('@/components/PuzzleConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const PuzzleConstructor = dynamicImport(() => import('@/components/PuzzleConstructor'), { ssr: false });
 
 function PuzzleOrderContent() {
     const searchParams = useSearchParams();

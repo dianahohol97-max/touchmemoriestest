@@ -1,8 +1,10 @@
 'use client';
+
+export const dynamic = 'force-dynamic';
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
-const WallCalendarConstructor = dynamic(() => import('@/components/WallCalendarConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const WallCalendarConstructor = dynamicImport(() => import('@/components/WallCalendarConstructor'), { ssr: false });
 
 function Content() {
     const params = useSearchParams();

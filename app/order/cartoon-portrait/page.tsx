@@ -1,9 +1,11 @@
 'use client';
+
+export const dynamic = 'force-dynamic';
 import { Suspense } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import dynamic from 'next/dynamic';
-const CartoonPortraitConstructor = dynamic(() => import('@/components/CartoonPortraitConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const CartoonPortraitConstructor = dynamicImport(() => import('@/components/CartoonPortraitConstructor'), { ssr: false });
 
 export default function CartoonPortraitPage() {
     return (

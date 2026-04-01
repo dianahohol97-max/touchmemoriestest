@@ -1,9 +1,11 @@
 'use client';
+
+export const dynamic = 'force-dynamic';
 import { Suspense } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import dynamic from 'next/dynamic';
-const BirthStatsConstructor = dynamic(() => import('@/components/BirthStatsConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const BirthStatsConstructor = dynamicImport(() => import('@/components/BirthStatsConstructor'), { ssr: false });
 
 export default function BirthStatsPage() {
     return (

@@ -1,8 +1,10 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from 'react';
-import dynamic from 'next/dynamic';
-const CalendarConstructor = dynamic(() => import('@/components/CalendarConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const CalendarConstructor = dynamicImport(() => import('@/components/CalendarConstructor'), { ssr: false });
 
 function DeskCalendarContent() {
     return <CalendarConstructor productType="desk" />;

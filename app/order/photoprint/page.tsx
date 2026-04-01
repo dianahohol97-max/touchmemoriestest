@@ -1,11 +1,13 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import dynamic from 'next/dynamic';
-const PhotoPrintConstructor = dynamic(() => import('@/components/PhotoPrintConstructor'), { ssr: false });
+import dynamicImport from 'next/dynamic';
+const PhotoPrintConstructor = dynamicImport(() => import('@/components/PhotoPrintConstructor'), { ssr: false });
 
 function PhotoprintOrderContent() {
     const searchParams = useSearchParams();
