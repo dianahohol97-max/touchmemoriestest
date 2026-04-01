@@ -258,7 +258,7 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         // Constellation labels
         if(config.showConstellations!==false) {
             ctx.save();
-            ctx.font=`${Math.round(9*s)}px ${config.fontFamily}`;
+            ctx.font=`9px ${config.fontFamily}`;
             ctx.fillStyle=config.textColor; ctx.textAlign='center'; ctx.textBaseline='middle';
             ctx.globalAlpha=isLight?0.35:0.4;
             for(const [ra,dec,name] of CONSTELLATION_LABELS) {
