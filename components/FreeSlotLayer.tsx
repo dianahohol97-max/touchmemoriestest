@@ -67,13 +67,14 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
   // Global touch handlers for move + resize (mirrors mouse global handlers)
   useEffect(() => {
     const onTouchMove = (e: TouchEvent) => {
-      if (!dragRef.current) return;
+      if (!dragRef.current) return; // no active drag — don't interfere
       const { type, id, startX, startY, origSlot } = dragRef.current;
       const t = e.touches[0];
+      if (!t) return;
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
       let { x, y, w, h } = origSlot;
-      e.preventDefault();
+      e.preventDefault(); // only prevent default when actively dragging a slot
 
       if (type === 'move') {
         x = Math.max(0, Math.min(canvasW - w, origSlot.x + dx));
@@ -84,7 +85,6 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
         const ny = Math.max(0, Math.min(100, origSlot.cropY - dy / 3));
         onChange(slots.map(s => s.id === id ? { ...s, cropX: nx, cropY: ny } : s));
       } else {
-        // resize handle
         const hStr = type as string;
         if (hStr.includes('e')) w = Math.max(MIN_SIZE, origSlot.w + dx);
         if (hStr.includes('s')) h = Math.max(MIN_SIZE, origSlot.h + dy);
@@ -95,11 +95,15 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
       }
     };
     const onTouchEnd = () => { dragRef.current = null; };
+    const onTouchCancel = () => { dragRef.current = null; }; // also clear on cancel
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchcancel', onTouchCancel);
     return () => {
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchCancel);
+      dragRef.current = null; // clear on unmount
     };
   }, [slots, canvasW, canvasH, onChange]);
 
