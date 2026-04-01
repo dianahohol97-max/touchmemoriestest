@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { motion } from 'framer-motion';
 import styles from './Categories.module.css';
 import { useInView } from 'react-intersection-observer';

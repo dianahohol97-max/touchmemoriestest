@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
     try {
         const payload = await request.json();
-        const { customer, items, delivery, totals, notes, source } = payload;
+        const { customer, items, delivery, totals, notes, source, payment } = payload;
 
         // Bypassing RLS for admin operations (system must use Service Role here)
         const supabase = getAdminClient();
@@ -72,7 +72,9 @@ export async function POST(request: Request) {
             customer_telegram: customer.telegram || null,
             customer_birthday: customer.birthday || null,
             order_status: 'pending',
-            payment_status: 'pending',
+            payment_status: payment?.status || 'pending',
+            bank_account_id: payment?.bank_account_id || null,
+            paid_at: (payment?.status === 'paid' || payment?.status === 'partial') ? new Date().toISOString() : null,
             fiscal_status: 'pending',
             notes: orderNotes.trim(),
             source: source || 'manual'
@@ -85,6 +87,23 @@ export async function POST(request: Request) {
             .single();
 
         if (orderErr) throw orderErr;
+
+        // 4b. Update bank account balance if payment received
+        if (payment?.bank_account_id && payment?.paid_amount > 0) {
+            try {
+                await supabase.rpc('increment_bank_balance', {
+                    account_id: payment.bank_account_id,
+                    amount: payment.paid_amount
+                });
+            } catch {}
+            // Fallback: manual update if RPC not available
+            try {
+                const { data: acc } = await supabase.from('bank_accounts').select('balance').eq('id', payment.bank_account_id).single();
+                if (acc) {
+                    await supabase.from('bank_accounts').update({ balance: (acc.balance || 0) + payment.paid_amount }).eq('id', payment.bank_account_id);
+                }
+            } catch {}
+        }
 
         // 5. Trigger Order Placed Email
         try {

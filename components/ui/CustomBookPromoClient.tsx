@@ -34,16 +34,17 @@ function MatIcon({ name, size = 40 }: { name: string; size?: number }) {
   );
 }
 
-const productCategories = [
-  { icon: 'menu_book',                  label: t('nav.photobooks'), href: '/catalog?category=photobooks' },
-  { icon: 'auto_stories',               label: t('nav.magazines'),   href: '/catalog?category=hlyantsevi-zhurnaly' },
-  { icon: 'explore',                    label: 'TravelBook', href: '/catalog/travelbook-20x30' },
-  { icon: 'photo_library',              label: 'Фотодрук',  href: '/catalog/photo-prints' },
-  { icon: 'featured_seasonal_and_gifts',label: 'Подарунки', href: '/catalog?category=gifts' },
-];
-
 export function CustomBookPromoClient({
-  const t = useT(); sectionContent }: CustomBookPromoClientProps) {
+  sectionContent }: CustomBookPromoClientProps) {
+    const t = useT();
+    const productCategories = [
+      { icon: 'menu_book',                  label: t('nav.photobooks'), href: '/catalog?category=photobooks' },
+      { icon: 'auto_stories',               label: t('nav.magazines'),   href: '/catalog?category=hlyantsevi-zhurnaly' },
+      { icon: 'explore',                    label: 'TravelBook', href: '/catalog/travelbook-20x30' },
+      { icon: 'photo_library',              label: 'Фотодрук',  href: '/catalog/photo-prints' },
+      { icon: 'featured_seasonal_and_gifts',label: 'Подарунки', href: '/catalog?category=gifts' },
+    ];
+    
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
 
   const heading   = sectionContent?.heading   || 'Фотокниги, журнали та фотовироби з душею';

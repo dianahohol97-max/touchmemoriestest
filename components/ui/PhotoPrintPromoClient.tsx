@@ -20,7 +20,8 @@ interface PhotoPrintPromoClientProps {
 }
 
 export function PhotoPrintPromoClient({
-  const t = useT(); sectionContent }: PhotoPrintPromoClientProps) {
+  sectionContent }: PhotoPrintPromoClientProps) {
+    const t = useT();
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,

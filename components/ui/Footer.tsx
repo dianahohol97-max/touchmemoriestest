@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { useState, useEffect } from 'react';
 import styles from './Footer.module.css';
 import { useInView } from 'react-intersection-observer';

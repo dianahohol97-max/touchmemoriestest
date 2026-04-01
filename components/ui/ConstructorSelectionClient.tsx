@@ -31,7 +31,8 @@ interface ConstructorSelectionClientProps {
 }
 
 export function ConstructorSelectionClient({
-  const t = useT(); sectionContent }: ConstructorSelectionClientProps) {
+  sectionContent }: ConstructorSelectionClientProps) {
+    const t = useT();
     const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
     const [photobookModalOpen, setPhotobookModalOpen] = useState(false);
     const [magazineModalOpen, setMagazineModalOpen] = useState(false);

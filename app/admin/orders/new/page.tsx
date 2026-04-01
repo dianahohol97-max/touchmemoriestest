@@ -39,11 +39,17 @@ export default function CreateOrderPage() {
 
     const [notes, setNotes] = useState('');
     const [source, setSource] = useState('instagram');
+    const [paymentStatus, setPaymentStatus] = useState('pending');
+    const [bankAccountId, setBankAccountId] = useState('');
+    const [paidAmount, setPaidAmount] = useState(0);
+    const [bankAccounts, setBankAccounts] = useState<any[]>([]);
 
     const supabase = createClient();
 
     useEffect(() => {
         const fetchData = async () => {
+            const { data: bankData } = await supabase.from('bank_accounts').select('id, bank_name, label, card_number, currency').eq('is_active', true).order('bank_name');
+            if (bankData) setBankAccounts(bankData);
             const { data: catData } = await supabase.from('categories').select('*').order('sort_order');
             const { data: prodData } = await supabase.from('products').select('*').eq('is_active', true);
             if (catData) setAllCategories(catData);
@@ -112,6 +118,12 @@ export default function CreateOrderPage() {
                     total
                 },
                 notes: notes ? `\n--- Внутрішні нотатки ---\n${notes}` : '',
+                payment: {
+                    status: paymentStatus,
+                    bank_account_id: bankAccountId || null,
+                    paid_amount: paymentStatus === 'paid' ? (paidAmount || total)
+                        : paymentStatus === 'partial' ? paidAmount : 0,
+                },
                 source
             };
 
@@ -445,6 +457,80 @@ export default function CreateOrderPage() {
                             </div>
                         </div>
                     </div>
+
+                {/* ── Payment Section ──────────────────────────────────────────── */}
+                <div style={cardStyle}>
+                    <h2 style={cardTitleStyle}>Оплата</h2>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        {/* Payment status */}
+                        <div>
+                            <label style={labelStyle}>Статус оплати *</label>
+                            <select
+                                value={paymentStatus}
+                                onChange={e => setPaymentStatus(e.target.value)}
+                                style={inputStyle}
+                            >
+                                <option value="pending">⏳ Очікує оплати</option>
+                                <option value="partial">🔶 Часткова оплата</option>
+                                <option value="paid">✅ Оплачено повністю</option>
+                                <option value="refunded">↩️ Повернення</option>
+                            </select>
+                        </div>
+
+                        {/* Paid amount — shown for partial */}
+                        {paymentStatus === 'partial' && (
+                            <div>
+                                <label style={labelStyle}>Сума оплаты (₴) *</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={paidAmount}
+                                    onChange={e => setPaidAmount(Number(e.target.value))}
+                                    placeholder="0"
+                                    style={inputStyle}
+                                />
+                            </div>
+                        )}
+
+                        {/* Payment account */}
+                        {paymentStatus !== 'pending' && (
+                            <div style={paymentStatus === 'partial' ? { gridColumn: '1 / -1' } : {}}>
+                                <label style={labelStyle}>Рахунок отримання</label>
+                                {bankAccounts.length > 0 ? (
+                                    <select
+                                        value={bankAccountId}
+                                        onChange={e => setBankAccountId(e.target.value)}
+                                        style={inputStyle}
+                                    >
+                                        <option value="">— Оберіть рахунок —</option>
+                                        {bankAccounts.map(acc => (
+                                            <option key={acc.id} value={acc.id}>
+                                                {acc.bank_name}{acc.label ? ` · ${acc.label}` : ''}{acc.card_number ? ` · ${acc.card_number.slice(-4)}` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div style={{ padding: '10px 14px', border: '1px dashed #cbd5e1', borderRadius: 4, fontSize: 13, color: '#94a3b8', backgroundColor: '#f8fafc' }}>
+                                        Рахунки не налаштовані.{' '}
+                                        <a href="/admin/settings/finance/banks" target="_blank" style={{ color: '#263A99', textDecoration: 'underline' }}>
+                                            Додати рахунок →
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Summary hint */}
+                    {paymentStatus !== 'pending' && (
+                        <div style={{ marginTop: 16, padding: '10px 16px', background: paymentStatus === 'paid' ? '#f0fdf4' : '#fffbeb', borderRadius: 4, border: `1px solid ${paymentStatus === 'paid' ? '#bbf7d0' : '#fde68a'}`, fontSize: 13, color: paymentStatus === 'paid' ? '#166534' : '#92400e', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {paymentStatus === 'paid' && `✅ Замовлення буде позначено як повністю оплачене на суму ${total} ₴`}
+                            {paymentStatus === 'partial' && `🔶 Часткова оплата: ${paidAmount} ₴ з ${total} ₴. Залишок: ${total - paidAmount} ₴`}
+                            {paymentStatus === 'refunded' && '↩️ Замовлення буде позначено як повернення'}
+                        </div>
+                    )}
+                </div>
+
 
                     <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column' }}>
                         <h2 style={cardTitleStyle}>Підсумок</h2>

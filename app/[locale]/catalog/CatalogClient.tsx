@@ -1,6 +1,6 @@
 'use client';
 import { useT } from '@/lib/i18n/context';
-mport { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import styles from './catalog.module.css';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useSearchParams, useRouter } from 'next/navigation';
