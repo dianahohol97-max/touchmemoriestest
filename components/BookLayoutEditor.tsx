@@ -8,6 +8,7 @@ import { useCartStore } from '@/store/cart-store';
 import { CoverEditor, FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS, LEATHERETTE_COLORS, FABRIC_COLORS } from './CoverEditor';
 import { BookPreviewModal } from './BookPreviewModal';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
+import { haptic, startPointerDrag, useLongPress } from '@/lib/hooks/useMobileInteractions';
 
 // Cyrillic decorative fonts
 const CYRILLIC_DECORATIVE_FONTS = [
@@ -299,7 +300,7 @@ export default function BookLayoutEditor() {
   const pushHistory = () => {
     setHistory(prev => [...prev.slice(-19), { pages: JSON.parse(JSON.stringify(pages)), freeSlots: JSON.parse(JSON.stringify(freeSlots)) }]);
   };
-  const undo = () => {
+  const undo = () => { haptic.light();
     if (history.length === 0) return;
     const prev = history[history.length - 1];
     setPages(prev.pages);
@@ -336,6 +337,14 @@ export default function BookLayoutEditor() {
     if (typeof window === 'undefined') return false;
     return !localStorage.getItem('editor_tooltips_seen');
   });
+  // Context menu (long-press on mobile)
+  const [ctxMenu, setCtxMenu] = useState<{
+    x: number; y: number;
+    type: 'text' | 'slot' | 'freeslot';
+    id: string; pageIdx?: number;
+  } | null>(null);
+  const closeCtxMenu = () => setCtxMenu(null);
+
   const [showMobileGuide, setShowMobileGuide] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth < 768 && !localStorage.getItem('mobile_editor_guide_seen');
@@ -657,45 +666,23 @@ export default function BookLayoutEditor() {
   };
   const clearSlot = (pi: number, si: number) => setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, photoId: null }) }));
 
-  // Unified crop start — works with both mouse and touch events
-  const startCropFromPoint = (clientX: number, clientY: number, key: string, cx: number, cy: number) => {
+  // Crop via Pointer Events — works on mouse, touch, stylus
+  const startCrop = (e: React.PointerEvent, key: string, cx: number, cy: number) => {
+    e.preventDefault(); e.stopPropagation();
+    haptic.light();
     const [pi, si] = key.split('-').map(Number);
-    const currentZoom = pages[pi]?.slots[si]?.zoom || 1;
-    const sensitivity = 30 / Math.max(0.5, currentZoom);
-    cropRef.current = { key, sx: clientX, sy: clientY, cx, cy };
-    const onMove = (me: MouseEvent) => {
-      if (!cropRef.current) return;
-      const dx = (me.clientX - cropRef.current.sx) / sensitivity;
-      const dy = (me.clientY - cropRef.current.sy) / sensitivity;
-      setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, cropX: Math.max(0,Math.min(100,cropRef.current!.cx-dx)), cropY: Math.max(0,Math.min(100,cropRef.current!.cy-dy)) }) }));
-    };
-    const onTouchMove = (te: TouchEvent) => {
-      if (!cropRef.current || !te.touches[0]) return;
-      te.preventDefault();
-      const dx = (te.touches[0].clientX - cropRef.current.sx) / sensitivity;
-      const dy = (te.touches[0].clientY - cropRef.current.sy) / sensitivity;
-      setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, cropX: Math.max(0,Math.min(100,cropRef.current!.cx-dx)), cropY: Math.max(0,Math.min(100,cropRef.current!.cy-dy)) }) }));
-    };
-    const onUp = () => {
-      cropRef.current = null;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onUp);
+    const sensitivity = 30 / Math.max(0.5, pages[pi]?.slots[si]?.zoom || 1);
+    startPointerDrag(e,
+      (dx, dy) => setPages(prev => prev.map((p, i) => i !== pi ? p : {
+        ...p, slots: p.slots.map((sl, j) => j !== si ? sl : {
+          ...sl, cropX: Math.max(0,Math.min(100, cx - dx/sensitivity)),
+                cropY: Math.max(0,Math.min(100, cy - dy/sensitivity))
+        })
+      }))
+    );
   };
-  const startCrop = (e: React.MouseEvent, key: string, cx: number, cy: number) => {
-    e.preventDefault(); e.stopPropagation();
-    startCropFromPoint(e.clientX, e.clientY, key, cx, cy);
-  };
-  const startCropTouch = (e: React.TouchEvent, key: string, cx: number, cy: number) => {
-    e.preventDefault(); e.stopPropagation();
-    if (e.touches[0]) startCropFromPoint(e.touches[0].clientX, e.touches[0].clientY, key, cx, cy);
-  };
+  // Keep legacy aliases so existing JSX doesn't break
+  const startCropTouch = startCrop;
 
   const onCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!textTool) { setSelectedTextId(null); return; }
@@ -715,31 +702,29 @@ export default function BookLayoutEditor() {
   };
   const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
   const deleteTxtForPage = (id: string, pageIdx: number) => { setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) })); setSelectedTextId(null); setEditingTextId(null); };
-  const startTxtDragForPage = (e: React.MouseEvent | React.TouchEvent, id: string, tx: number, ty: number, pageIdx: number) => {
+  const startTxtDragForPage = (e: React.PointerEvent, id: string, tx: number, ty: number, pageIdx: number) => {
     e.stopPropagation(); e.preventDefault();
-    const clientX = 'touches' in e ? e.touches[0]?.clientX ?? 0 : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0]?.clientY ?? 0 : e.clientY;
-    txtRef.current = { id, sx: clientX, sy: clientY, tx, ty };
-    const onMove = (me: MouseEvent) => { if (!txtRef.current) return; updateTxtForPage(txtRef.current.id, { x: Math.max(0,Math.min(95,txtRef.current.tx+((me.clientX-txtRef.current.sx)/pageW)*100)), y: Math.max(0,Math.min(95,txtRef.current.ty+((me.clientY-txtRef.current.sy)/cH)*100)) }, pageIdx); };
-    const onTouchMove = (te: TouchEvent) => { if (!txtRef.current || !te.touches[0]) return; te.preventDefault(); updateTxtForPage(txtRef.current.id, { x: Math.max(0,Math.min(95,txtRef.current.tx+((te.touches[0].clientX-txtRef.current.sx)/pageW)*100)), y: Math.max(0,Math.min(95,txtRef.current.ty+((te.touches[0].clientY-txtRef.current.sy)/cH)*100)) }, pageIdx); };
-    const onUp = () => { txtRef.current=null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); window.removeEventListener('touchmove',onTouchMove); window.removeEventListener('touchend',onUp); };
-    window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
-    window.addEventListener('touchmove',onTouchMove,{passive:false}); window.addEventListener('touchend',onUp);
+    haptic.light();
+    startPointerDrag(e,
+      (dx, dy) => updateTxtForPage(id, {
+        x: Math.max(0, Math.min(95, tx + (dx/pageW)*100)),
+        y: Math.max(0, Math.min(95, ty + (dy/cH)*100)),
+      }, pageIdx)
+    );
   };
 
   const updateTxt = (id: string, ch: Partial<TextBlock>) => setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
   const deleteTxt = (id: string) => { setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) })); setSelectedTextId(null); setEditingTextId(null); };
 
-  const startTxtDrag = (e: React.MouseEvent | React.TouchEvent, id: string, tx: number, ty: number) => {
+  const startTxtDrag = (e: React.PointerEvent, id: string, tx: number, ty: number) => {
     e.stopPropagation(); e.preventDefault();
-    const clientX = 'touches' in e ? e.touches[0]?.clientX ?? 0 : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0]?.clientY ?? 0 : e.clientY;
-    txtRef.current = { id, sx: clientX, sy: clientY, tx, ty };
-    const onMove = (me: MouseEvent) => { if (!txtRef.current) return; updateTxt(txtRef.current.id, { x: Math.max(0,Math.min(95,txtRef.current.tx+((me.clientX-txtRef.current.sx)/cW)*100)), y: Math.max(0,Math.min(95,txtRef.current.ty+((me.clientY-txtRef.current.sy)/cH)*100)) }); };
-    const onTouchMove = (te: TouchEvent) => { if (!txtRef.current||!te.touches[0]) return; te.preventDefault(); updateTxt(txtRef.current.id, { x: Math.max(0,Math.min(95,txtRef.current.tx+((te.touches[0].clientX-txtRef.current.sx)/cW)*100)), y: Math.max(0,Math.min(95,txtRef.current.ty+((te.touches[0].clientY-txtRef.current.sy)/cH)*100)) }); };
-    const onUp = () => { txtRef.current=null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); window.removeEventListener('touchmove',onTouchMove); window.removeEventListener('touchend',onUp); };
-    window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
-    window.addEventListener('touchmove',onTouchMove,{passive:false}); window.addEventListener('touchend',onUp);
+    haptic.light();
+    startPointerDrag(e,
+      (dx, dy) => updateTxt(id, {
+        x: Math.max(0, Math.min(95, tx + (dx/cW)*100)),
+        y: Math.max(0, Math.min(95, ty + (dy/cH)*100)),
+      })
+    );
   };
 
   const saveDesignerProject = async (action: 'save' | 'send_for_review' = 'save') => {
@@ -1941,7 +1926,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   const pageKey = (si: number) => `${pageIdx}-${si}`;
                   return (
                     <div key={pageRenderKey}
-                      onMouseDown={() => setActiveSide(side as 0|1)}
+                      onPointerDown={() => setActiveSide(side as 0|1)}
                       style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
                       onClick={(e) => { setActiveSide(side as 0|1); if (e.target === e.currentTarget) setSelectedFreeSlotId(null); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
                     >
@@ -1959,6 +1944,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             onDrop={e => onDrop(e, pageIdx, i)}
                             onClick={() => {
                               if (tapSelectedPhotoId) {
+                                haptic.success();
                                 setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== i ? s2 : { ...s2, photoId: tapSelectedPhotoId }) }));
                                 setTapSelectedPhotoId(null);
                               }
@@ -1971,8 +1957,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                                   onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img src={photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
-                                    onMouseDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX, slot!.cropY); }}
-                                    onTouchStart={e => { if (photoEditSlot===key) startCropTouch(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
+                                    onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
                                     style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }}/>
                                   {photoEditSlot===key && (
                                     <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.7)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
@@ -2002,8 +1987,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         const isEd = editingTextId === tb.id;
                         return (
                           <div key={tb.id}
-                            onMouseDown={e=>{e.stopPropagation();setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
-                            onTouchStart={e=>{e.stopPropagation();setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
+                            onPointerDown={e=>{e.stopPropagation();setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
+                            onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);}}
                             style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex:20,cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30}}>
                             {isEd?(
@@ -2336,6 +2321,41 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
       )}
 
       {/* MOBILE: First-time guide overlay */}
+      {/* Context menu (long-press) */}
+      {ctxMenu && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999 }} onClick={closeCtxMenu}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            position:'fixed', left: Math.min(ctxMenu.x, window.innerWidth-160), top: ctxMenu.y,
+            background:'#fff', borderRadius:12, boxShadow:'0 8px 32px rgba(0,0,0,0.18)',
+            padding:'6px 0', minWidth:150, border:'1px solid #e2e8f0', zIndex:9999,
+          }}>
+            {ctxMenu.type === 'text' && <>
+              <button onClick={()=>{ haptic.light(); setEditingTextId(ctxMenu.id); closeCtxMenu(); }}
+                style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#1e2d7d', fontWeight:600 }}>
+                ✏️ Редагувати текст
+              </button>
+              <button onClick={()=>{ haptic.error(); if (ctxMenu.pageIdx !== undefined) deleteTxtForPage(ctxMenu.id, ctxMenu.pageIdx); else deleteTxt(ctxMenu.id); closeCtxMenu(); }}
+                style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#ef4444', fontWeight:600 }}>
+                🗑️ Видалити
+              </button>
+            </>}
+            {ctxMenu.type === 'slot' && <>
+              <button onClick={()=>{ haptic.light();
+                const [pi,si] = ctxMenu.id.split('-').map(Number);
+                setPages(prev=>prev.map((p,i)=>i!==pi?p:{...p,slots:p.slots.map((s,j)=>j!==si?s:{...s,photoId:null,cropX:50,cropY:50})}));
+                closeCtxMenu();
+              }} style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#374151', fontWeight:500 }}>
+                🖼️ Очистити слот
+              </button>
+              <button onClick={()=>{ haptic.light(); setPhotoEditSlot(ctxMenu.id); closeCtxMenu(); }}
+                style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#1e2d7d', fontWeight:500 }}>
+                ✂️ Режим кадрування
+              </button>
+            </>}
+          </div>
+        </div>
+      )}
+
       {isMobile && showMobileGuide && (
         <div onClick={dismissMobileGuide} style={{ position:'fixed', inset:0, zIndex:500, background:'rgba(10,15,40,0.92)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', padding:'0 0 24px' }}>
           <div onClick={e=>e.stopPropagation()} style={{ width:'100%', maxWidth:400, background:'#fff', borderRadius:'24px 24px 0 0', padding:'24px 20px 8px', display:'flex', flexDirection:'column', gap:0 }}>
