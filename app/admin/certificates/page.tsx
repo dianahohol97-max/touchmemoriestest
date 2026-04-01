@@ -45,7 +45,7 @@ export default function CertificatesAdminPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newCert, setNewCert] = useState({
     code: '', amount: 0, recipient_name: '', recipient_email: '', recipient_phone: '',
-    sender_name: '', message: '', expires_at: '', source: 'manual', notes: ''
+    sender_name: '', message: '', expires_at: '', source: 'manual', notes: '', sendEmail: false
   });
   const [savingCert, setSavingCert] = useState(false);
 
@@ -690,7 +690,7 @@ export default function CertificatesAdminPage() {
             {newCert.recipient_email && (
               <div className="px-6 py-3 bg-blue-50 border-t border-blue-100 flex items-center gap-2">
                 <input type="checkbox" id="sendEmailCheck" checked={newCert.sendEmail}
-                  onChange={e => setNewCert((p: any) => ({...p, sendEmail: e.target.checked}))}
+                  onChange={e => setNewCert(p => ({...p, sendEmail: e.target.checked}))}
                   style={{ width: '16px', height: '16px', accentColor: '#1e2d7d' }} />
                 <label htmlFor="sendEmailCheck" style={{ fontSize: '14px', fontWeight: 600, color: '#1e40af', cursor: 'pointer' }}>
                   ✉ Відправити сертифікат на email після створення
