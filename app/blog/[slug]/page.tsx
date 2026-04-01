@@ -2,10 +2,11 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Clock, User, ArrowRight, Share2, Facebook, Link as LinkIcon } from 'lucide-react';
+import { Calendar, Clock, User, ArrowRight, Facebook } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import MarkdownViewer from '@/components/ui/MarkdownViewer';
+import BlogShareButton from '@/components/ui/BlogShareButton';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -214,9 +215,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                 <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`} target="_blank" rel="noreferrer" style={shareBtnStyle}>
                                     <Facebook size={18} />
                                 </a>
-                                <button onClick={() => { /* copy to clipboard not simple in Server Component without client wrapper, use target="_blank" pattern or just let it be dummy for now */ }} style={shareBtnStyle}>
-                                    <LinkIcon size={18} />
-                                </button>
+                                <BlogShareButton url={currentUrl} />
                             </div>
                         </div>
                     </header>
