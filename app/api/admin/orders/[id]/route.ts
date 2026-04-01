@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const supabase = getAdminClient();
-    const { id } = params;
+    const { id } = await params;
 
     const { data, error } = await supabase
         .from('orders')
@@ -25,9 +25,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ order: data });
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const supabase = getAdminClient();
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
     const { data, error } = await supabase
