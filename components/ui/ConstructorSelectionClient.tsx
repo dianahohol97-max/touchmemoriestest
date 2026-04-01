@@ -90,9 +90,73 @@ export function ConstructorSelectionClient({ sectionContent }: ConstructorSelect
                                 </p>
                             </div>
 
-                            {/* Constructor visualization */}
-                            <div className="bg-[#f0f3ff] rounded-md border border-[#263a99]/10 aspect-[4/3] flex items-center justify-center">
-                                <span className="text-[#1e2d7d]/60 text-lg font-semibold">Конструктор</span>
+                            {/* Constructor visualization — photobook editor mockup */}
+                            <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md" style={{background:'#f4f6fb'}}>
+                                <svg viewBox="0 0 480 320" xmlns="http://www.w3.org/2000/svg" style={{display:'block',width:'100%'}}>
+                                    {/* Top bar */}
+                                    <rect width="480" height="36" fill="#fff"/>
+                                    <rect x="12" y="10" width="60" height="16" rx="4" fill="#e2e8f0"/>
+                                    <rect x="82" y="10" width="90" height="16" rx="4" fill="#f0f3ff"/>
+                                    <rect x="390" y="8" width="80" height="20" rx="8" fill="#1e2d7d"/>
+                                    <rect width="480" height="1" y="36" fill="#e2e8f0"/>
+                                    {/* Left panel */}
+                                    <rect x="0" y="37" width="64" height="283" fill="#fff"/>
+                                    <rect x="8" y="50" width="48" height="38" rx="4" fill="#f0f3ff"/>
+                                    <rect x="16" y="58" width="32" height="4" rx="2" fill="#1e2d7d" opacity="0.5"/>
+                                    <rect x="16" y="66" width="24" height="3" rx="1.5" fill="#94a3b8"/>
+                                    <rect x="8" y="96" width="48" height="38" rx="4" fill="#f8fafc"/>
+                                    <rect x="16" y="104" width="32" height="4" rx="2" fill="#94a3b8"/>
+                                    <rect x="16" y="112" width="24" height="3" rx="1.5" fill="#cbd5e1"/>
+                                    <rect x="8" y="142" width="48" height="38" rx="4" fill="#f8fafc"/>
+                                    <rect x="16" y="150" width="32" height="4" rx="2" fill="#94a3b8"/>
+                                    <rect x="63" y="37" width="1" height="283" fill="#e2e8f0"/>
+                                    {/* Photo strip left */}
+                                    <rect x="64" y="37" width="90" height="283" fill="#fff"/>
+                                    <rect x="72" y="48" width="74" height="52" rx="4" fill="#e2e8f0"/>
+                                    <rect x="72" y="108" width="74" height="52" rx="4" fill="#dbeafe"/>
+                                    <rect x="78" y="114" width="62" height="40" rx="2" fill="#93c5fd" opacity="0.6"/>
+                                    <rect x="72" y="168" width="74" height="52" rx="4" fill="#e2e8f0"/>
+                                    <rect x="72" y="228" width="74" height="52" rx="4" fill="#fef9c3"/>
+                                    <rect x="78" y="234" width="62" height="40" rx="2" fill="#fde047" opacity="0.5"/>
+                                    <rect x="153" y="37" width="1" height="283" fill="#e2e8f0"/>
+                                    {/* Spread canvas */}
+                                    <rect x="154" y="44" width="230" height="265" rx="4" fill="#fff" filter="url(#shadow)"/>
+                                    {/* Left page */}
+                                    <rect x="154" y="44" width="114" height="265" rx="4" fill="#fff"/>
+                                    <rect x="160" y="52" width="100" height="140" rx="3" fill="#f0f9ff"/>
+                                    <rect x="164" y="56" width="92" height="132" rx="2" fill="#bae6fd" opacity="0.7"/>
+                                    <rect x="160" y="200" width="60" height="6" rx="3" fill="#1e2d7d" opacity="0.3"/>
+                                    <rect x="160" y="212" width="80" height="4" rx="2" fill="#e2e8f0"/>
+                                    <rect x="160" y="220" width="70" height="4" rx="2" fill="#e2e8f0"/>
+                                    {/* Spine */}
+                                    <rect x="267" y="44" width="4" height="265" fill="#e2e8f0"/>
+                                    {/* Right page */}
+                                    <rect x="271" y="44" width="113" height="265" rx="4" fill="#fff"/>
+                                    <rect x="277" y="52" width="50" height="70" rx="3" fill="#fef3c7"/>
+                                    <rect x="281" y="56" width="42" height="62" rx="2" fill="#fde047" opacity="0.6"/>
+                                    <rect x="331" y="52" width="47" height="70" rx="3" fill="#f0fdf4"/>
+                                    <rect x="335" y="56" width="39" height="62" rx="2" fill="#86efac" opacity="0.6"/>
+                                    <rect x="277" y="130" width="101" height="100" rx="3" fill="#f8fafc"/>
+                                    <rect x="281" y="134" width="93" height="92" rx="2" fill="#c7d2fe" opacity="0.5"/>
+                                    <rect x="277" y="238" width="60" height="5" rx="2.5" fill="#1e2d7d" opacity="0.25"/>
+                                    <rect x="277" y="248" width="80" height="4" rx="2" fill="#e2e8f0"/>
+                                    {/* Right panel */}
+                                    <rect x="384" y="37" width="96" height="283" fill="#fff"/>
+                                    <rect x="384" y="37" width="1" height="283" fill="#e2e8f0"/>
+                                    <rect x="392" y="50" width="78" height="16" rx="3" fill="#f1f5f9"/>
+                                    <rect x="392" y="72" width="36" height="36" rx="4" fill="#f0f3ff"/>
+                                    <rect x="432" y="72" width="36" height="36" rx="4" fill="#f8fafc"/>
+                                    <rect x="392" y="114" width="36" height="36" rx="4" fill="#f8fafc"/>
+                                    <rect x="432" y="114" width="36" height="36" rx="4" fill="#f8fafc"/>
+                                    <rect x="392" y="156" width="78" height="16" rx="3" fill="#f1f5f9"/>
+                                    <rect x="392" y="178" width="78" height="6" rx="3" fill="#e2e8f0"/>
+                                    <rect x="392" y="190" width="60" height="6" rx="3" fill="#e2e8f0"/>
+                                    <defs>
+                                        <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+                                            <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#1e2d7d" floodOpacity="0.08"/>
+                                        </filter>
+                                    </defs>
+                                </svg>
                             </div>
 
                             {/* Buttons */}
