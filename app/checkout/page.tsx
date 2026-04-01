@@ -77,12 +77,9 @@ export default function CheckoutPage() {
     const handleSubmitOrder = async () => {
         setIsSubmitting(true);
         try {
-            // 1. Create order number
             const orderNumber = `TM-${Math.floor(100000 + Math.random() * 900000)}`;
-
-            // 2. Prepare order data
-            // Check if any item requires designer
             const needsDesigner = items.some((item: any) => item.with_designer || item.options?.with_designer);
+            const isOnlinePayment = formData.paymentMethod === 'card';
 
             const orderData = {
                 order_number: orderNumber,
@@ -92,27 +89,53 @@ export default function CheckoutPage() {
                 items: items,
                 total: total,
                 delivery_method: 'Нова Пошта',
-                delivery_address: {
-                    city: formData.city,
-                    branch: formData.branch
-                },
-                payment_method: formData.paymentMethod === 'cash' ? 'Накладений платіж' : 'Онлайн оплата',
+                delivery_address: { city: formData.city, branch: formData.branch },
+                payment_method: isOnlinePayment ? 'Онлайн оплата' : 'Накладений платіж',
                 payment_status: 'pending',
                 order_status: 'new',
                 with_designer: needsDesigner,
                 created_at: new Date().toISOString()
             };
 
-            // 3. Save to Supabase
-            const { error } = await supabase
+            // 1. Save order to DB
+            const { data: savedOrder, error: orderError } = await supabase
                 .from('orders')
-                .insert([orderData]);
+                .insert([orderData])
+                .select('id')
+                .single();
 
-            if (error) throw error;
+            if (orderError) throw orderError;
 
-            toast.success('Замовлення успішно зміщено!');
-            setCurrentStep('complete');
+            // 2. If online payment → create Monobank invoice and redirect
+            if (isOnlinePayment) {
+                toast.loading('Створюємо посилання на оплату...');
+                const invoiceRes = await fetch('/api/monobank/create-invoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId: savedOrder.id }),
+                });
+                const invoiceData = await invoiceRes.json();
+
+                if (!invoiceRes.ok || !invoiceData.pageUrl) {
+                    // Monobank not configured — show success page anyway
+                    console.warn('Monobank invoice failed:', invoiceData.error);
+                    toast.dismiss();
+                    clearCart();
+                    setCurrentStep('complete');
+                    return;
+                }
+
+                clearCart();
+                toast.dismiss();
+                // Redirect to Monobank payment page
+                window.location.href = invoiceData.pageUrl;
+                return;
+            }
+
+            // 3. Cash on delivery — show success page
+            toast.success('Замовлення успішно оформлено!');
             clearCart();
+            setCurrentStep('complete');
 
         } catch (error: any) {
             console.error('Checkout error:', error);
@@ -300,15 +323,19 @@ export default function CheckoutPage() {
                                                 borderRadius: "3px",
                                                 fontSize: '16px',
                                                 fontWeight: 800,
-                                                cursor: 'pointer',
+                                                cursor: isSubmitting ? 'not-allowed' : 'pointer',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 gap: '10px',
+                                                opacity: isSubmitting ? 0.8 : 1,
                                                 boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
                                             }}
                                         >
                                             {isSubmitting ? (
-                                                <Loader2 className="animate-spin" size={20} />
+                                                <><Loader2 className="animate-spin" size={20} />
+                                                {formData.paymentMethod === 'card' ? 'Переходимо до оплати...' : 'Оформлення...'}</>
+                                            ) : formData.paymentMethod === 'card' ? (
+                                                <><CreditCard size={20} /> Перейти до оплати</>
                                             ) : (
                                                 <>Підтвердити замовлення <ArrowRight size={20} /></>
                                             )}

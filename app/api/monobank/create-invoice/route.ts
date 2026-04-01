@@ -73,7 +73,7 @@ export async function POST(req: Request) {
                         }
                     ]
                 },
-                redirectUrl: `${baseUrl}/dyakuiemo`,
+                redirectUrl: `${baseUrl}/dyakuiemo?order=${orderId}`,
                 webHookUrl: `${baseUrl}/api/monobank/webhook`,
                 validity: 86400, // 24 hours in seconds
                 paymentType: 'debit' // Debit card payment
