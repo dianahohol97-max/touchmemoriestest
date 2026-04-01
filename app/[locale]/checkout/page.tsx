@@ -26,7 +26,6 @@ type Step = 'info' | 'shipping' | 'payment' | 'complete';
 
 export default function CheckoutPage() {
     const { items, getTotal, clearCart } = useCartStore();
-    const t = useT();
     const router = useRouter();
     const { t, isInternational, locale } = useTranslation();
     const [currentStep, setCurrentStep] = useState<Step>('info');
