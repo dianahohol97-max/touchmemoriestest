@@ -63,9 +63,12 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
     process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   ), []);
 
-  // Cover type selection step (for photobooks without a fixed slug)
-  const needsCoverSelection = productType === 'photobook' && !slugProp;
-  const COVER_OPTIONS = [
+  // Cover type selection step (for photobooks and magazines without a fixed slug)
+  const needsCoverSelection = (productType === 'photobook' || productType === 'magazine') && !slugProp;
+  const COVER_OPTIONS = productType === 'magazine' ? [
+    { slug: 'personalized-glossy-magazine', label: 'М\'яка обкладинка', desc: 'Глянцева м\'яка обкладинка', icon: '📖' },
+    { slug: 'fotozhurnal-tverd-obkladynka', label: 'Тверда обкладинка', desc: 'Тверда обкладинка преміум', icon: '📚' },
+  ] : [
     { slug: 'photobook-velour', label: 'Велюр', desc: 'М\'який оксамитовий матеріал', icon: '🟣' },
     { slug: 'photobook-leatherette', label: 'Шкірзамінник', desc: 'Елегантна шкіра', icon: '🟤' },
     { slug: 'photobook-fabric', label: 'Тканина', desc: 'Натуральна льняна тканина', icon: '🟡' },
@@ -189,13 +192,17 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
         <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
             <div>
-              <h2 className="text-2xl font-bold text-[#1e2d7d]">Тип обкладинки</h2>
-              <p className="text-sm text-gray-500 mt-1">Фотокнига з дизайнером</p>
+              <h2 className="text-2xl font-bold text-[#1e2d7d]">
+                {productType === 'magazine' ? 'Тип обкладинки журналу' : 'Тип обкладинки'}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {productType === 'magazine' ? 'Глянцевий журнал з дизайнером' : 'Фотокнига з дизайнером'}
+              </p>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
           </div>
           <div className="px-6 py-6">
-            <p className="text-gray-600 mb-6">Оберіть матеріал обкладинки. Наш дизайнер створить макет після підтвердження.</p>
+            <p className="text-gray-600 mb-6">Оберіть тип обкладинки. Наш дизайнер створить макет після підтвердження.</p>
             <div className="grid grid-cols-2 gap-3 mb-6">
               {COVER_OPTIONS.map(opt => (
                 <button key={opt.slug}
