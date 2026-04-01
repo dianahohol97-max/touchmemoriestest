@@ -1,3 +1,4 @@
+// auto-deploy: fix createPortal
 const nextConfig = {
   // Disable Partial Pre-Rendering globally — admin panel must never be statically cached
   experimental: {
