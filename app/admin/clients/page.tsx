@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect , createPortal} from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -104,6 +104,8 @@ export default function ClientsPage() {
 
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
     const [filters, setFilters] = useState<FilterState>({
         search: '',
         tag: '',
@@ -698,7 +700,9 @@ export default function ClientsPage() {
             )}
 
             {/* Customer Detail Drawer */}
-            <AnimatePresence>
+                        {mounted && createPortal(
+              <>
+              <AnimatePresence>
                 {selectedCustomer && (
                     <>
                         <motion.div
@@ -824,6 +828,9 @@ export default function ClientsPage() {
                     </>
                 )}
             </AnimatePresence>
+              </>,
+              document.body
+            )}
         </div>
     );
 }

@@ -302,7 +302,7 @@ export default function EmailAdminPage() {
                                         <span style={{fontSize:12,color:'#374151'}}>{src}</span>
                                         <div style={{display:'flex',alignItems:'center',gap:8}}>
                                             <div style={{width:80,height:5,background:'#f3f4f6',borderRadius:3,overflow:'hidden'}}>
-                                                <div style={{width:`${(cnt/stats.total)*100}%`,height:'100%',background:'#1e2d7d',borderRadius:3}}/>
+                                                <div style={{width:`${((cnt as number)/stats.total)*100}%`,height:'100%',background:'#1e2d7d',borderRadius:3}}/>
                                             </div>
                                             <span style={{fontSize:12,fontWeight:700,color:'#1e2d7d',width:20,textAlign:'right'}}>{cnt}</span>
                                         </div>

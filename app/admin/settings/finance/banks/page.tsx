@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createPortal} from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
     Plus,
@@ -30,6 +30,8 @@ export default function BankAccountsPage() {
 
     const [accounts, setAccounts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [staff, setStaff] = useState<any[]>([]);
     const [editingAccount, setEditingAccount] = useState<any>(null);
@@ -228,8 +230,8 @@ export default function BankAccountsPage() {
             )}
 
             {/* Account Modal */}
-            {isModalOpen && (
-                <div style={modalOverlay} onClick={() => setIsModalOpen(false)}>
+            {isModalOpen && mounted && createPortal(
+              <div style={modalOverlay} onClick={() => setIsModalOpen(false)}>
                     <div style={modalContent} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <h2 style={{ fontSize: '20px', fontWeight: 900 }}>{editingAccount ? 'Редагувати рахунок' : 'Додати новий рахунок'}</h2>
@@ -337,7 +339,8 @@ export default function BankAccountsPage() {
                             </button>
                         </form>
                     </div>
-                </div>
+                </div>,
+              document.body
             )}
         </div>
     );

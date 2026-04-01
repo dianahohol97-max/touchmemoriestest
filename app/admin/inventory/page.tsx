@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createPortal} from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
     Box,
@@ -27,6 +27,8 @@ export default function InventoryAdminPage() {
 
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'low' | 'out'>('all');
 
@@ -310,8 +312,8 @@ export default function InventoryAdminPage() {
             </div>
 
             {/* Modals Implemented Here (Supply, Adjust, History) - using standard premium styling */}
-            {showSupplyModal && (
-                <div style={modalOverlayStyle}>
+            {showSupplyModal && mounted && createPortal(
+              <div style={modalOverlayStyle}>
                     <div style={modalContentStyle}>
                         <div style={modalHeaderStyle}>
                             <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Прийом поставки</h2>
@@ -347,12 +349,13 @@ export default function InventoryAdminPage() {
                             <button type="submit" style={modalSubmitBtnStyle}>Підтвердити поставку</button>
                         </form>
                     </div>
-                </div>
+                </div>,
+              document.body
             )}
 
             {/* Adjustment Modal */}
-            {showAdjustModal && (
-                <div style={modalOverlayStyle}>
+            {showAdjustModal && mounted && createPortal(
+              <div style={modalOverlayStyle}>
                     <div style={{ ...modalContentStyle, maxWidth: '450px' }}>
                         <div style={modalHeaderStyle}>
                             <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Коригування</h2>
@@ -381,12 +384,13 @@ export default function InventoryAdminPage() {
                             <button type="submit" style={{ ...modalSubmitBtnStyle, backgroundColor: '#263A99' }}>Оновити залишок</button>
                         </form>
                     </div>
-                </div>
+                </div>,
+              document.body
             )}
 
             {/* History Modal */}
-            {showHistoryModal && (
-                <div style={modalOverlayStyle}>
+            {showHistoryModal && mounted && createPortal(
+              <div style={modalOverlayStyle}>
                     <div style={{ ...modalContentStyle, maxWidth: '800px', padding: '0' }}>
                         <div style={{ padding: '32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
@@ -425,7 +429,8 @@ export default function InventoryAdminPage() {
                             {movements.length === 0 && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Записів не знайдено</div>}
                         </div>
                     </div>
-                </div>
+                </div>,
+              document.body
             )}
         </div>
     );

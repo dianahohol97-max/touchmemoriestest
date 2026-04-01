@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createPortal} from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
     Plus,
@@ -20,6 +20,8 @@ export default function NovaPoshtaSettingsPage() {
 
     const [accounts, setAccounts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState<any>(null);
 
@@ -128,8 +130,8 @@ export default function NovaPoshtaSettingsPage() {
             </div>
 
             {/* Modal */}
-            {isModalOpen && (
-                <div style={modalOverlay} onClick={() => setIsModalOpen(false)}>
+            {isModalOpen && mounted && createPortal(
+              <div style={modalOverlay} onClick={() => setIsModalOpen(false)}>
                     <div style={modalContent} onClick={e => e.stopPropagation()}>
                         <h2 style={{ marginBottom: '24px', fontWeight: 900 }}>{editingAccount ? 'Редагувати' : 'Додати'} аккаунт Нової Пошти</h2>
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -176,7 +178,8 @@ export default function NovaPoshtaSettingsPage() {
                             <button type="submit" style={submitBtn}>Зберегти налаштування</button>
                         </form>
                     </div>
-                </div>
+                </div>,
+              document.body
             )}
         </div>
     );

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createPortal} from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
     DndContext,
@@ -46,6 +46,8 @@ export default function PopularProductsPage() {
     const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
     const [popularProducts, setPopularProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
     const [saving, setSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -352,8 +354,8 @@ export default function PopularProductsPage() {
             </DndContext>
 
             {/* Unsaved Changes Warning */}
-            {hasChanges && (
-                <div style={{
+            {hasChanges && mounted && createPortal(
+              <div style={{
                     position: 'fixed',
                     bottom: '32px',
                     right: '32px',
@@ -367,7 +369,8 @@ export default function PopularProductsPage() {
                     zIndex: 100
                 }}>
                     ⚠️ Є незбережені зміни
-                </div>
+                </div>,
+              document.body
             )}
         </div>
     );

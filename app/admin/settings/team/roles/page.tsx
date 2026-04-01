@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createPortal} from 'react';
 import {
     Plus,
     Edit2,
@@ -50,6 +50,8 @@ const ACCESS_LEVELS: { id: PermissionLevel; label: string; color: string }[] = [
 export default function RolesManagementPage() {
     const [roles, setRoles] = useState<Role[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [currentRole, setCurrentRole] = useState<Partial<Role> | null>(null);
@@ -227,8 +229,8 @@ export default function RolesManagementPage() {
             </div>
 
             {/* Editor Modal */}
-            {isEditorOpen && currentRole && (
-                <div style={modalOverlayStyle} onClick={() => setIsEditorOpen(false)}>
+            {isEditorOpen && currentRole && mounted && createPortal(
+              <div style={modalOverlayStyle} onClick={() => setIsEditorOpen(false)}>
                     <div style={modalContentStyle} onClick={e => e.stopPropagation()}>
                         <div style={modalHeaderStyle}>
                             <div>
@@ -322,7 +324,8 @@ export default function RolesManagementPage() {
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+              document.body
             )}
         </div>
     );

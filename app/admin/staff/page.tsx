@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createPortal} from 'react';
 import { Plus, Edit2, UserX, UserCheck, Loader2, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -64,6 +64,8 @@ export default function StaffManagementPage() {
     const [staff, setStaff] = useState<Staff[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [hasIndividualOverride, setHasIndividualOverride] = useState(false);
@@ -271,8 +273,8 @@ export default function StaffManagementPage() {
             </div>
 
             {/* Form Modal */}
-            {isFormOpen && (
-                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(38, 58, 153, 0.4)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsFormOpen(false)}>
+            {isFormOpen && mounted && createPortal(
+              <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(38, 58, 153, 0.4)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsFormOpen(false)}>
                     <div style={{ backgroundColor: 'white', borderRadius: "3px", width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                         <div style={{ padding: '24px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#263A99' }}>
@@ -456,9 +458,9 @@ export default function StaffManagementPage() {
                             </div>
                         </form>
                     </div >
-                </div >
-            )
-            }
+                </div >,
+              document.body
+            )}
         </div >
     );
 }

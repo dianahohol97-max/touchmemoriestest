@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, createPortal} from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
     Package,
@@ -64,6 +64,8 @@ export default function StockPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
     // Low stock alerts
     const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
@@ -1029,8 +1031,8 @@ export default function StockPage() {
             )}
 
             {/* Edit Modal */}
-            {showEditModal && editModalProduct && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            {showEditModal && mounted && createPortal(
+              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                     <div style={{ backgroundColor: 'white', borderRadius: '3px', padding: '32px', width: '500px', maxWidth: '90vw' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
                             <Edit size={24} color="#263A99" />
@@ -1062,7 +1064,8 @@ export default function StockPage() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+              document.body
             )}
 
             {/* Delete Confirmation Modal */}

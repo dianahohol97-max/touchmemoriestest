@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createPortal} from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
     Zap,
@@ -63,6 +63,8 @@ export default function AutomationsPage() {
 
     const [rules, setRules] = useState<AutomationRule[]>([]);
     const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
     const [logs, setLogs] = useState<any[]>([]);
@@ -552,8 +554,8 @@ export default function AutomationsPage() {
             )}
 
             {/* Create/Edit Modal */}
-            {showCreateModal && (
-                <div style={{
+            {showCreateModal && mounted && createPortal(
+              <div style={{
                     position: 'fixed',
                     inset: 0,
                     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -689,7 +691,8 @@ export default function AutomationsPage() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+              document.body
             )}
         </div>
     );

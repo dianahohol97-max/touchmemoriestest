@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, createPortal} from 'react';
 import { createClient } from '@/lib/supabase/client';
 import DesignerProjectBlock from './DesignerProjectBlock';
 import { useRouter } from 'next/navigation';
@@ -61,6 +61,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
     const [saving, setSaving] = useState(false);
     const [notes, setNotes] = useState('');
     const [clientComment, setClientComment] = useState('');
@@ -1132,8 +1134,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             )}
 
             {/* Reply Modal */}
-            {showReplyModal && (
-                <div style={overlayStyle} onClick={() => setShowReplyModal(false)}>
+            {showReplyModal && mounted && createPortal(
+              <div style={overlayStyle} onClick={() => setShowReplyModal(false)}>
                     <div style={{ ...cardStyle, width: '600px' }} onClick={e => e.stopPropagation()}>
                         <div style={cardHeaderStyle}>
                             <h3 style={cardTitleStyle}>Відповідь клієнту</h3>
@@ -1152,12 +1154,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             {sendingReply ? <Loader2 className="animate-spin" /> : <Send size={18} />} Надіслати
                         </button>
                     </div>
-                </div>
+                </div>,
+              document.body
             )}
 
             {/* Nova Poshta TTN Creation Modal */}
-            {showTTNModal && (
-                <div style={overlayStyle} onClick={() => setShowTTNModal(false)}>
+            {showTTNModal && mounted && createPortal(
+              <div style={overlayStyle} onClick={() => setShowTTNModal(false)}>
                     <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: "3px", padding: '40px', width: '600px', maxWidth: '90vw', boxShadow: '0 25px 50px rgba(0,0,0,0.2)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 900, margin: 0 }}>Створити ТТН Нова Пошта</h2>
@@ -1308,7 +1311,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             <strong>Увага:</strong> Переконайтесь, що всі дані введено правильно перед створенням ТТН
                         </div>
                     </div>
-                </div>
+                </div>,
+              document.body
             )}
         </div>
     );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect , createPortal} from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -84,6 +84,8 @@ export default function ExpensesPage() {
         margin: 0
     });
     const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -553,6 +555,7 @@ export default function ExpensesPage() {
                 </table>
             </div>
 
+            {mounted && createPortal(<>
             {/* Add Expense Modal */}
             <AnimatePresence>
                 {isFormOpen && (
@@ -685,6 +688,7 @@ export default function ExpensesPage() {
                     </>
                 )}
             </AnimatePresence>
+            </>, document.body)}
         </div>
     );
 }
