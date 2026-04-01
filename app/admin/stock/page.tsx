@@ -91,6 +91,9 @@ export default function StockPage() {
     // Delete modal
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
+    const [showAddTrackingModal, setShowAddTrackingModal] = useState(false);
+    const [untrackedProducts, setUntrackedProducts] = useState<any[]>([]);
+    const [addTrackingSearch, setAddTrackingSearch] = useState('');
     const [deleteReason, setDeleteReason] = useState('');
 
     // History
@@ -123,7 +126,8 @@ export default function StockPage() {
     const fetchProducts = async () => {
         const { data } = await supabase
             .from('products')
-            .select('id, name, stock_quantity, stock_reserved, low_stock_threshold')
+            .select('id, name, stock_quantity, stock_reserved, low_stock_threshold, track_inventory')
+            .eq('track_inventory', true)
             .order('name');
 
         if (data) {
@@ -139,6 +143,23 @@ export default function StockPage() {
             );
             setLowStockProducts(lowStock);
         }
+    };
+
+    const fetchUntrackedProducts = async () => {
+        const { data } = await supabase
+            .from('products')
+            .select('id, name, stock_quantity')
+            .eq('track_inventory', false)
+            .order('name');
+        setUntrackedProducts(data || []);
+    };
+
+    const handleAddToTracking = async (productId: string) => {
+        await supabase.from('products')
+            .update({ track_inventory: true, stock_quantity: 0 })
+            .eq('id', productId);
+        toast.success('Продукт додано до обліку');
+        await Promise.all([fetchProducts(), fetchUntrackedProducts()]);
     };
 
     const fetchMaterials = async () => {
@@ -238,10 +259,10 @@ export default function StockPage() {
                     notes: movementData.reason
                 });
 
-                // Update product stock
+                // Update product stock (mark as tracked when adding)
                 await supabase
                     .from('products')
-                    .update({ stock_quantity: newQty })
+                    .update({ stock_quantity: newQty, ...(movementData.type === 'in' ? { track_inventory: true } : {}) })
                     .eq('id', selectedItem.id);
 
                 toast.success(`Запас ${movementData.type === 'in' ? 'збільшено' : 'зменшено'}`);
@@ -393,7 +414,7 @@ export default function StockPage() {
                 notes: deleteReason
             });
             await supabase.from('product_stock').delete().eq('product_id', deleteProduct.id);
-            await supabase.from('products').update({ stock_quantity: 0, stock_reserved: 0 }).eq('id', deleteProduct.id);
+            await supabase.from('products').update({ stock_quantity: 0, stock_reserved: 0, track_inventory: false }).eq('id', deleteProduct.id);
             toast.success('Запис видалено');
             setShowDeleteModal(false);
             await fetchProducts();
@@ -561,7 +582,6 @@ export default function StockPage() {
                         Запаси продуктів
                     </h2>
                     <span style={{
-                        marginLeft: 'auto',
                         padding: '4px 12px',
                         backgroundColor: '#eef0fb',
                         color: '#263A99',
@@ -571,6 +591,12 @@ export default function StockPage() {
                     }}>
                         {products.length} позицій
                     </span>
+                    <button
+                        onClick={() => { fetchUntrackedProducts(); setShowAddTrackingModal(true); }}
+                        style={{ padding: '6px 14px', background: '#263A99', color: 'white', border: 'none', borderRadius: 4, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                        + Додати продукт
+                    </button>
                 </div>
 
                 <div style={{ overflowX: 'auto' }}>
@@ -1070,7 +1096,45 @@ export default function StockPage() {
             )}
 
             {/* Delete Confirmation Modal */}
-            {showDeleteModal && deleteProduct && (
+            {/* Add-to-tracking modal */}
+            {showAddTrackingModal && mounted && createPortal(
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                     onClick={() => setShowAddTrackingModal(false)}>
+                    <div style={{ background: 'white', borderRadius: 8, padding: 28, width: '90%', maxWidth: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: 16 }}
+                         onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#263A99', margin: 0 }}>Додати продукт в облік</h3>
+                            <button onClick={() => setShowAddTrackingModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#94a3b8' }}>×</button>
+                        </div>
+                        <input
+                            value={addTrackingSearch}
+                            onChange={e => setAddTrackingSearch(e.target.value)}
+                            placeholder="Пошук продукту..."
+                            style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 4, fontSize: 14 }}
+                        />
+                        <div style={{ overflowY: 'auto', maxHeight: 360 }}>
+                            {untrackedProducts
+                                .filter(p => p.name.toLowerCase().includes(addTrackingSearch.toLowerCase()))
+                                .map(p => (
+                                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                        <span style={{ fontSize: 14, color: '#1e293b' }}>{p.name}</span>
+                                        <button onClick={() => handleAddToTracking(p.id)}
+                                            style={{ padding: '4px 14px', background: '#263A99', color: 'white', border: 'none', borderRadius: 4, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                            + В облік
+                                        </button>
+                                    </div>
+                                ))
+                            }
+                            {untrackedProducts.filter(p => p.name.toLowerCase().includes(addTrackingSearch.toLowerCase())).length === 0 && (
+                                <p style={{ color: '#94a3b8', textAlign: 'center', padding: '20px 0', fontSize: 14 }}>Всі продукти вже в обліку</p>
+                            )}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+                        {showDeleteModal && deleteProduct && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                     <div style={{ backgroundColor: 'white', borderRadius: '3px', padding: '32px', width: '500px', maxWidth: '90vw' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
