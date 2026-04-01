@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { Download, Mail, Search, RefreshCw, Send, X, ChevronDown, CheckCircle, Clock, AlertCircle, Users, FileText, History } from 'lucide-react';
+import { Download, Mail, Search, RefreshCw, Send, X, ChevronDown, CheckCircle, Clock, AlertCircle, Users, FileText, History, Heart } from 'lucide-react';
 
 interface Subscriber {
     id: string; email: string; is_active: boolean;
@@ -132,6 +132,14 @@ export default function SubscribersPage() {
                         </button>
                         <button onClick={exportCSV} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', border:'none', borderRadius:8, background:'#f0f3ff', color:'#1e2d7d', fontSize:13, cursor:'pointer', fontWeight:600 }}>
                             <Download size={14}/> CSV
+                        </button>
+                        <button onClick={async () => {
+                            const t = toast.loading('Надсилаємо нагадування...');
+                            const res = await fetch('/api/email/wishlist-reminder', { method: 'POST' });
+                            const d = await res.json();
+                            toast.success(`Надіслано ${d.sent} нагадувань зі списків бажань`, { id: String(t) });
+                        }} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', border:'none', borderRadius:8, background:'#ec4899', color:'#fff', fontSize:13, cursor:'pointer', fontWeight:700 }}>
+                            <Heart size={14}/> Wishlist нагадування
                         </button>
                         <button onClick={() => { setShowCompose(true); }}
                             style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', border:'none', borderRadius:8, background:'#1e2d7d', color:'#fff', fontSize:13, cursor:'pointer', fontWeight:700 }}>

@@ -25,6 +25,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const STATUS_LABEL_MAP: Record<string, string> = {
+    pending: 'Нові', new: 'Нові', confirmed: 'Підтверджені',
+    in_production: 'У виробництві', shipped: 'Відправлені',
+    delivered: 'Виконані', cancelled: 'Скасовані',
+};
+
 const STATUS_TABS = [
     { id: 'all', label: 'Всі', color: '#64748b' },
     { id: 'new', label: 'Нові', color: '#263A99' },
@@ -119,7 +125,7 @@ export default function OrdersPage() {
     };
 
     const filteredOrders = orders.filter(order => {
-        const matchesStatus = activeTab === 'all' || order.order_status === activeTab;
+        const matchesStatus = activeTab === 'all' || order.order_status === activeTab || (activeTab === 'new' && order.order_status === 'pending');
         const query = searchQuery.toLowerCase();
         const matchesSearch =
             order.order_number?.toLowerCase().includes(query) ||
@@ -214,7 +220,7 @@ export default function OrdersPage() {
                     >
                         {tab.label}
                         <span style={countBadgeStyle}>
-                            {orders.filter(o => tab.id === 'all' || o.order_status === tab.id).length}
+                            {orders.filter(o => tab.id === 'all' || o.order_status === tab.id || (tab.id === 'new' && o.order_status === 'pending')).length}
                         </span>
                     </button>
                 ))}

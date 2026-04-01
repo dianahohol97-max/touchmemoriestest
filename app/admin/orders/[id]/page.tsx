@@ -159,18 +159,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
     const fetchOrder = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('orders')
-            .select(`
-                *, 
-                customers(name, email, phone), 
-                manager:staff!orders_manager_id_fkey(id, name, initials, color),
-                designer:staff!orders_designer_id_fkey(id, name, initials, color),
-                order_tag_assignments(order_tags(*))
-            `)
-            .eq('id', id)
-            .single();
-
+        try {
+            // Use admin API to bypass RLS — works for both manual and site orders
+            const res = await fetch(`/api/admin/orders/${id}`);
+            const json = await res.json();
+            const data = json.order;
         if (data) {
             setOrder(data);
             setNotes(data.notes || '');
@@ -206,7 +199,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             .order('created_at', { ascending: false });
 
         if (historyData) setHistory(historyData);
-        setLoading(false);
+        } catch (err) {
+            console.error('fetchOrder error:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const updateStatus = async (newStatus: string) => {

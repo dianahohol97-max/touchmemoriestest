@@ -27,7 +27,7 @@ export default function CreateOrderPage() {
     const [isProductDropdownOpen, setIsProductDropdownOpen] = useState<number | null>(null);
 
     const [items, setItems] = useState<any[]>([
-        { id: Date.now(), product_id: '', variant_id: '', name: '', price: 0, cost_price: 0, qty: 1, comment: '', variants: [] }
+        { id: Date.now(), product_id: '', variant_id: '', name: '', price: 0, cost_price: 0, qty: 1, comment: '', variants: [], options: [], selected_options: {} }
     ]);
 
     const [delivery, setDelivery] = useState({
@@ -59,7 +59,7 @@ export default function CreateOrderPage() {
     }, [supabase]);
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), product_id: '', variant_id: '', name: '', price: 0, cost_price: 0, qty: 1, comment: '', variants: [] }]);
+        setItems([...items, { id: Date.now(), product_id: '', variant_id: '', name: '', price: 0, cost_price: 0, qty: 1, comment: '', variants: [], options: [], selected_options: {} }]);
     };
 
     const removeItem = (id: number) => {
@@ -105,7 +105,8 @@ export default function CreateOrderPage() {
                     cost_price: Number(i.cost_price || 0),
                     qty: Number(i.qty),
                     sum: Number(i.price) * Number(i.qty),
-                    format: 'Кастомний',
+                    format: Object.entries(i.selected_options || {}).map(([k,v]) => `${k}: ${v}`).join(', ') || 'Кастомний',
+                    selected_options: i.selected_options || {},
                     comment: i.comment || ''
                 })),
                 delivery: {
@@ -330,6 +331,8 @@ export default function CreateOrderPage() {
                                                                                 price: p.price,
                                                                                 cost_price: p.cost_price || 0,
                                                                                 variants: p.variants || [],
+                                                                                options: p.options || [],
+                                                                                selected_options: {},
                                                                             } : it));
                                                                             setIsProductDropdownOpen(null);
                                                                         }}
@@ -382,6 +385,38 @@ export default function CreateOrderPage() {
                                             />
                                         </div>
                                     </div>
+                                    {/* Product Options / Characteristics */}
+                                    {item.options && item.options.length > 0 && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+                                            {item.options.map((opt: any) => (
+                                                <div key={opt.name}>
+                                                    <label style={{ ...labelStyle, fontSize: 11, color: '#64748b', marginBottom: 4 }}>{opt.name}</label>
+                                                    <select
+                                                        value={(item.selected_options || {})[opt.name] || ''}
+                                                        onChange={e => {
+                                                            const val = e.target.value;
+                                                            const newOpts = { ...(item.selected_options || {}), [opt.name]: val };
+                                                            const basePrice = allProducts.find((p: any) => p.id === item.product_id)?.price || 0;
+                                                            const totalExtra = item.options.reduce((acc: number, o: any) => {
+                                                                const sel = o.options?.find((x: any) => x.value === newOpts[o.name]);
+                                                                return acc + (sel?.price || 0);
+                                                            }, 0);
+                                                            setItems(prev => prev.map(it => it.id === item.id ? { ...it, selected_options: newOpts, price: basePrice + totalExtra } : it));
+                                                        }}
+                                                        style={{ ...selectStyle, fontSize: 13 }}
+                                                    >
+                                                        <option value="">Оберіть...</option>
+                                                        {opt.options?.map((o: any) => (
+                                                            <option key={o.value} value={o.value}>
+                                                                {o.label}{o.price > 0 ? ` (+${o.price} ₴)` : ''}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
                                         <div>
                                             <label style={labelStyle}>Ціна (₴)</label>

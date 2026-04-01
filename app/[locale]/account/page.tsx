@@ -1,173 +1,291 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
-import styles from './account.module.css';
 import { createClient } from '@/lib/supabase/client';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import Link from 'next/link';
-import { ShoppingBag, Package, Calendar, Tag, User, Settings, LogOut, ChevronRight, ExternalLink, Save, Mail, Phone, Calendar as CalendarIcon } from 'lucide-react';
+import { ShoppingBag, Heart, BookOpen, User, Settings, LogOut, Save, Mail, Phone, Calendar, ChevronRight, Trash2, ExternalLink, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+
+type Tab = 'orders' | 'wishlist' | 'projects' | 'profile';
+
+const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
+    pending:      { label: 'Нове',         color: '#263A99', bg: '#eff6ff' },
+    new:          { label: 'Нове',         color: '#263A99', bg: '#eff6ff' },
+    confirmed:    { label: 'Підтверджено', color: '#14b8a6', bg: '#f0fdfa' },
+    in_production:{ label: 'У виробництві',color: '#f59e0b', bg: '#fffbeb' },
+    shipped:      { label: 'Відправлено',  color: '#8b5cf6', bg: '#f5f3ff' },
+    delivered:    { label: 'Доставлено',   color: '#10b981', bg: '#ecfdf5' },
+    cancelled:    { label: 'Скасовано',    color: '#ef4444', bg: '#fef2f2' },
+};
 
 export default function AccountPage() {
     const supabase = createClient();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'orders' | 'profile'>('orders');
+    const [tab, setTab] = useState<Tab>('orders');
     const [user, setUser] = useState<any>(null);
     const [customer, setCustomer] = useState<any>(null);
     const [orders, setOrders] = useState<any[]>([]);
+    const [wishlist, setWishlist] = useState<any[]>([]);
+    const [projects, setProjects] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-
-    // Profile form state
-    const [formData, setFormData] = useState({
-        first_name: '',
-        last_name: '',
-        phone: '',
-        birthday: '',
-        email_subscribed: false
-    });
+    const [formData, setFormData] = useState({ first_name: '', last_name: '', phone: '', birthday: '', email_subscribed: false });
 
     useEffect(() => {
-        const fetchData = async () => {
+        const init = async () => {
             setIsLoading(true);
             const { data: { session } } = await supabase.auth.getSession();
-
-            if (!session) {
-                router.push('/login');
-                return;
-            }
-
+            if (!session) { router.push('/login'); return; }
             setUser(session.user);
 
-            // Fetch customer and orders
-            const [customerRes, ordersRes] = await Promise.all([
+            const [custRes, ordersRes, wishRes, projRes] = await Promise.all([
                 supabase.from('customers').select('*').eq('email', session.user.email).single(),
-                supabase.from('orders').select('*').eq('customer_email', session.user.email).order('created_at', { ascending: false })
+                supabase.from('orders').select('id,order_number,order_status,payment_status,total,created_at,items').or(`customer_email.eq.${session.user.email},customer_id.in.(${(await supabase.from('customers').select('id').eq('email', session.user.email)).data?.map((c: any) => c.id).join(',') || 'null'})`).order('created_at', { ascending: false }),
+                supabase.from('wishlists').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }),
+                supabase.from('customer_projects').select('*').in('customer_id',
+                    (await supabase.from('customers').select('id').eq('email', session.user.email)).data?.map((c: any) => c.id) || []
+                ).order('updated_at', { ascending: false }),
             ]);
 
-            if (customerRes.data) {
-                setCustomer(customerRes.data);
-                setFormData({
-                    first_name: customerRes.data.first_name || '',
-                    last_name: customerRes.data.last_name || '',
-                    phone: customerRes.data.phone || '',
-                    birthday: customerRes.data.birthday || '',
-                    email_subscribed: customerRes.data.email_subscribed || false
-                });
+            if (custRes.data) {
+                setCustomer(custRes.data);
+                setFormData({ first_name: custRes.data.first_name || '', last_name: custRes.data.last_name || '', phone: custRes.data.phone || '', birthday: custRes.data.birthday || '', email_subscribed: custRes.data.email_subscribed || false });
             }
             if (ordersRes.data) setOrders(ordersRes.data);
-
+            if (wishRes.data) setWishlist(wishRes.data);
+            if (projRes.data) setProjects(projRes.data);
             setIsLoading(false);
         };
-        fetchData();
-    }, [supabase, router]);
+        init();
+    }, []);
 
-    const handleSaveProfile = async () => {
+    const removeWishlist = async (id: string) => {
+        await supabase.from('wishlists').delete().eq('id', id);
+        setWishlist(prev => prev.filter(w => w.id !== id));
+        toast.success('Видалено зі списку бажань');
+    };
+
+    const saveProfile = async () => {
         try {
-            const { error } = await supabase
-                .from('customers')
-                .update({
-                    first_name: formData.first_name,
-                    last_name: formData.last_name,
-                    phone: formData.phone,
-                    birthday: formData.birthday,
-                    email_subscribed: formData.email_subscribed
-                })
-                .eq('email', user.email);
-
-            if (error) throw error;
+            await supabase.from('customers').update(formData).eq('email', user.email);
             toast.success('Зміни збережено');
-        } catch (error: any) {
-            toast.error('Помилка: ' + error.message);
-        }
+        } catch { toast.error('Помилка збереження'); }
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push('/');
-        router.refresh();
-    };
+    const logout = async () => { await supabase.auth.signOut(); router.push('/'); };
 
-    if (isLoading) {
-        return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
-    }
+    if (isLoading) return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 48, height: 48, border: '4px solid #e2e8f0', borderTopColor: '#263a99', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+    );
+
+    const name = formData.first_name || user?.user_metadata?.first_name || 'Друже';
 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc' }}>
             <Navigation />
-
             <main style={{ flex: 1, paddingTop: '120px', paddingBottom: '80px' }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+                <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 20px' }}>
 
-                    {/* Header Section */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            {customer?.avatar_url || user?.user_metadata?.avatar_url ? (
-                                <img
-                                    src={customer?.avatar_url || user?.user_metadata?.avatar_url}
-                                    alt="Avatar"
-                                    style={{ width: '64px', height: '64px', borderRadius: "3px", objectFit: 'cover', border: '2px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                />
-                            ) : (
-                                <div style={{ width: '64px', height: '64px', borderRadius: "3px", backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                                    <User size={32} />
-                                </div>
-                            )}
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '36px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#263a99', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 22, fontWeight: 900 }}>
+                                {name[0]?.toUpperCase()}
+                            </div>
                             <div>
-                                <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#263A99' }}>
-                                    Привіт, {formData.first_name || user?.user_metadata?.first_name || 'Друже'}! 👋
-                                </h1>
-                                <p style={{ color: '#64748b', fontSize: '14px' }}>Ласкаво просимо до вашого кабінету</p>
+                                <h1 style={{ fontSize: 26, fontWeight: 900, color: '#263A99', margin: 0 }}>Привіт, {name}! 👋</h1>
+                                <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>{user?.email}</p>
                             </div>
                         </div>
-                        <button
-                            onClick={handleLogout}
-                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: "3px", border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#64748b', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
-                        >
-                            <LogOut size={18} /> Вийти
+                        <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', border: '1px solid #e2e8f0', borderRadius: 4, background: 'white', color: '#64748b', fontWeight: 700, cursor: 'pointer' }}>
+                            <LogOut size={16} /> Вийти
                         </button>
                     </div>
 
                     {/* Tabs */}
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '32px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: "3px", width: 'fit-content' }}>
-                        <button
-                            onClick={() => setActiveTab('orders')}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: "3px",
-                                border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '14px',
-                                backgroundColor: activeTab === 'orders' ? 'white' : 'transparent',
-                                color: activeTab === 'orders' ? 'var(--primary)' : '#64748b',
-                                boxShadow: activeTab === 'orders' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none'
-                            }}
-                        >
-                            <ShoppingBag size={18} /> Мої замовлення
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('profile')}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: "3px",
-                                border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '14px',
-                                backgroundColor: activeTab === 'profile' ? 'white' : 'transparent',
-                                color: activeTab === 'profile' ? 'var(--primary)' : '#64748b',
-                                boxShadow: activeTab === 'profile' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none'
-                            }}
-                        >
-                            <Settings size={18} /> Особисті дані
-                        </button>
+                    <div style={{ display: 'flex', gap: 4, marginBottom: 28, background: '#f1f5f9', padding: 5, borderRadius: 8, width: 'fit-content' }}>
+                        {([
+                            { id: 'orders',   icon: <ShoppingBag size={16}/>, label: `Замовлення (${orders.length})` },
+                            { id: 'wishlist', icon: <Heart size={16}/>,      label: `Вішлист (${wishlist.length})` },
+                            { id: 'projects', icon: <BookOpen size={16}/>,   label: `Макети (${projects.length})` },
+                            { id: 'profile',  icon: <Settings size={16}/>,   label: 'Профіль' },
+                        ] as const).map(t => (
+                            <button key={t.id} onClick={() => setTab(t.id as Tab)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, transition: 'all 0.15s',
+                                    background: tab === t.id ? 'white' : 'transparent',
+                                    color: tab === t.id ? '#263A99' : '#64748b',
+                                    boxShadow: tab === t.id ? '0 2px 8px rgba(0,0,0,0.08)' : 'none' }}>
+                                {t.icon} {t.label}
+                            </button>
+                        ))}
                     </div>
 
                     {/* Content */}
-                    <div style={{ backgroundColor: 'white', borderRadius: "3px", padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9' }}>
-                        {activeTab === 'orders' ? (
-                            <OrdersTab orders={orders} />
-                        ) : (
-                            <ProfileTab
-                                formData={formData}
-                                setFormData={setFormData}
-                                onSave={handleSaveProfile}
-                                isGoogle={user?.app_metadata?.provider === 'google'}
-                            />
+                    <div style={{ background: 'white', borderRadius: 8, padding: 32, boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9' }}>
+
+                        {/* ── ORDERS ── */}
+                        {tab === 'orders' && (
+                            orders.length === 0 ? (
+                                <Empty icon={<ShoppingBag size={36} color="#94a3b8"/>} title="У вас ще немає замовлень" sub="Ваші замовлення з'являться тут" cta="До каталогу" href="/catalog" />
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                    <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginBottom: 8 }}>Мої замовлення</h2>
+                                    {orders.map(o => {
+                                        const s = STATUS_MAP[o.order_status] || STATUS_MAP.new;
+                                        const itemCount = Array.isArray(o.items) ? o.items.reduce((a: number, i: any) => a + (i.qty || i.quantity || 1), 0) : 0;
+                                        return (
+                                            <div key={o.id} style={{ border: '1px solid #f1f5f9', borderRadius: 6, padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                                                        <span style={{ fontWeight: 800, color: '#263A99' }}>#{o.order_number}</span>
+                                                        <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 4, background: s.bg, color: s.color, textTransform: 'uppercase' }}>{s.label}</span>
+                                                    </div>
+                                                    <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                                                        {new Date(o.created_at).toLocaleDateString('uk-UA')} · {itemCount} {itemCount === 1 ? 'товар' : 'товари'}
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ fontWeight: 900, color: '#263A99', fontSize: 18 }}>{o.total} ₴</div>
+                                                        <div style={{ fontSize: 11, fontWeight: 700, color: o.payment_status === 'paid' ? '#10b981' : '#f59e0b', textTransform: 'uppercase' }}>
+                                                            {o.payment_status === 'paid' ? '✅ Оплачено' : '⏳ Очікує'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )
+                        )}
+
+                        {/* ── WISHLIST ── */}
+                        {tab === 'wishlist' && (
+                            wishlist.length === 0 ? (
+                                <Empty icon={<Heart size={36} color="#94a3b8"/>} title="Список бажань порожній" sub="Додавайте товари ♡ щоб зберегти їх тут" cta="До каталогу" href="/catalog" />
+                            ) : (
+                                <div>
+                                    <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginBottom: 20 }}>Список бажань</h2>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+                                        {wishlist.map(w => (
+                                            <div key={w.id} style={{ border: '1px solid #f1f5f9', borderRadius: 8, overflow: 'hidden', position: 'relative' }}>
+                                                <button onClick={() => removeWishlist(w.id)} style={{ position: 'absolute', top: 8, right: 8, background: 'white', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.12)', zIndex: 2 }}>
+                                                    <Trash2 size={12} color="#ef4444" />
+                                                </button>
+                                                {w.product_image ? (
+                                                    <img src={w.product_image} alt={w.product_name} style={{ width: '100%', height: 160, objectFit: 'cover' }} />
+                                                ) : (
+                                                    <div style={{ width: '100%', height: 160, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <Package size={40} color="#cbd5e1" />
+                                                    </div>
+                                                )}
+                                                <div style={{ padding: 14 }}>
+                                                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>{w.product_name}</div>
+                                                    <div style={{ fontWeight: 900, color: '#263A99', marginBottom: 10 }}>{w.product_price} ₴</div>
+                                                    {w.product_slug && (
+                                                        <Link href={`/catalog/${w.product_slug}`} style={{ display: 'block', textAlign: 'center', padding: '8px', background: '#263a99', color: 'white', borderRadius: 4, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+                                                            Переглянути
+                                                        </Link>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        )}
+
+                        {/* ── PROJECTS / МАКЕТИ ── */}
+                        {tab === 'projects' && (
+                            projects.length === 0 ? (
+                                <Empty icon={<BookOpen size={36} color="#94a3b8"/>} title="Макетів ще немає" sub="Після створення замовлення з дизайнером — ваші макети збережуться тут" cta="Замовити фотокнигу" href="/catalog/photobook" />
+                            ) : (
+                                <div>
+                                    <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginBottom: 20 }}>Мої макети</h2>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+                                        {projects.map(p => (
+                                            <div key={p.id} style={{ border: '1px solid #f1f5f9', borderRadius: 8, overflow: 'hidden' }}>
+                                                {p.thumbnail_url ? (
+                                                    <img src={p.thumbnail_url} alt={p.title} style={{ width: '100%', height: 160, objectFit: 'cover' }} />
+                                                ) : (
+                                                    <div style={{ width: '100%', height: 160, background: '#f0f4ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <BookOpen size={40} color="#263a99" />
+                                                    </div>
+                                                )}
+                                                <div style={{ padding: 14 }}>
+                                                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{p.title || 'Макет'}</div>
+                                                    <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
+                                                        {new Date(p.updated_at).toLocaleDateString('uk-UA')} · {p.product_type || ''}
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: 6 }}>
+                                                        {(() => {
+                                                            const sc: Record<string, any> = {
+                                                                draft: { l: 'Чернетка', c: '#64748b', bg: '#f1f5f9' },
+                                                                in_review: { l: 'На розгляді', c: '#f59e0b', bg: '#fffbeb' },
+                                                                approved: { l: 'Затверджено', c: '#10b981', bg: '#ecfdf5' },
+                                                                rejected: { l: 'На доопрацюванні', c: '#ef4444', bg: '#fef2f2' },
+                                                            };
+                                                            const st = sc[p.status] || sc.draft;
+                                                            return <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 4, background: st.bg, color: st.c, textTransform: 'uppercase' }}>{st.l}</span>;
+                                                        })()}
+                                                    </div>
+                                                    {p.status === 'in_review' && (
+                                                        <Link href={`/review/${p.id}`} style={{ display: 'block', textAlign: 'center', padding: '8px', background: '#263a99', color: 'white', borderRadius: 4, textDecoration: 'none', fontSize: 13, fontWeight: 700, marginTop: 10 }}>
+                                                            Переглянути макет
+                                                        </Link>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        )}
+
+                        {/* ── PROFILE ── */}
+                        {tab === 'profile' && (
+                            <div style={{ maxWidth: 560 }}>
+                                <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 24 }}>Особисті дані</h2>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                        {[['Ім\'я', 'first_name', 'text'], ['Прізвище', 'last_name', 'text']].map(([label, field, type]) => (
+                                            <div key={field}>
+                                                <label style={lbl}>{label}</label>
+                                                <input type={type} style={inp} value={(formData as any)[field]} onChange={e => setFormData({ ...formData, [field]: e.target.value })} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div>
+                                        <label style={lbl}>Телефон</label>
+                                        <input type="tel" style={inp} placeholder="+380..." value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={lbl}>Email</label>
+                                        <input type="email" style={{ ...inp, background: '#f8fafc', color: '#94a3b8' }} value={user?.email || ''} readOnly />
+                                    </div>
+                                    <div>
+                                        <label style={lbl}>Дата народження</label>
+                                        <input type="date" style={inp} value={formData.birthday} onChange={e => setFormData({ ...formData, birthday: e.target.value })} />
+                                    </div>
+                                    <div style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: 6 }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                                            <div>
+                                                <div style={{ fontSize: 14, fontWeight: 700, color: '#263A99' }}>Отримувати email розсилку</div>
+                                                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Дізнавайтесь першими про акції та новинки</div>
+                                            </div>
+                                            <input type="checkbox" style={{ width: 18, height: 18, accentColor: '#263a99' }} checked={formData.email_subscribed} onChange={e => setFormData({ ...formData, email_subscribed: e.target.checked })} />
+                                        </label>
+                                    </div>
+                                    <button onClick={saveProfile} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', background: '#263a99', color: 'white', borderRadius: 6, border: 'none', fontWeight: 800, cursor: 'pointer' }}>
+                                        <Save size={16} /> Зберегти зміни
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -177,165 +295,16 @@ export default function AccountPage() {
     );
 }
 
-function OrdersTab({ orders }: { orders: any[] }) {
-    if (orders.length === 0) {
-        return (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ width: '64px', height: '64px', backgroundColor: '#f8fafc', borderRadius: "3px", display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                    <ShoppingBag size={32} color="#94a3b8" />
-                </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>У вас ще немає замовлень</h3>
-                <p style={{ color: '#64748b', marginBottom: '24px' }}>Всі ваші замовлення будуть відображатися тут</p>
-                <Link href="/catalog" style={{ display: 'inline-block', padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: "3px", textDecoration: 'none', fontWeight: 700 }}>
-                    До каталогу
-                </Link>
-            </div>
-        );
-    }
-
+function Empty({ icon, title, sub, cta, href }: { icon: React.ReactNode; title: string; sub: string; cta: string; href: string }) {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {orders.map((order) => (
-                <div key={order.id} style={{ border: '1px solid #f1f5f9', borderRadius: "3px", padding: '20px', transition: 'border-color 0.2s' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                        <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                                <span style={{ fontWeight: 800, color: '#263A99' }}>Замовлення #{order.order_number}</span>
-                                <OrderStatusBadge status={order.order_status} />
-                            </div>
-                            <div style={{ fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Calendar size={14} /> {new Date(order.created_at).toLocaleDateString('uk-UA')}
-                            </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '18px' }}>{order.total} ₴</div>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: order.payment_status === 'paid' ? '#16a34a' : '#f59e0b', textTransform: 'uppercase', marginTop: '4px' }}>
-                                {order.payment_status === 'paid' ? 'Оплачено' : 'Очікує оплати'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ))}
+        <div style={{ textAlign: 'center', padding: '48px 0' }}>
+            <div style={{ width: 72, height: 72, background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>{icon}</div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#263A99', marginBottom: 8 }}>{title}</h3>
+            <p style={{ color: '#64748b', marginBottom: 24, fontSize: 14 }}>{sub}</p>
+            <Link href={href} style={{ display: 'inline-block', padding: '12px 24px', background: '#263a99', color: 'white', borderRadius: 6, textDecoration: 'none', fontWeight: 700 }}>{cta}</Link>
         </div>
     );
 }
 
-function ProfileTab({ formData, setFormData, onSave, isGoogle }: any) {
-    return (
-        <div style={{ maxWidth: '600px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '24px' }}>Особисті дані</h2>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    <div>
-                        <label style={pLabelStyle}>Ім'я</label>
-                        <input
-                            type="text"
-                            style={pInputStyle}
-                            value={formData.first_name}
-                            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label style={pLabelStyle}>Прізвище</label>
-                        <input
-                            type="text"
-                            style={pInputStyle}
-                            value={formData.last_name}
-                            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <label style={pLabelStyle}>Email {isGoogle && <span style={{ fontSize: '11px', color: '#94a3b8' }}>(читання)</span>}</label>
-                    <div style={{ position: 'relative' }}>
-                        <input
-                            type="email"
-                            style={{ ...pInputStyle, backgroundColor: isGoogle ? '#f8fafc' : 'white', color: isGoogle ? '#94a3b8' : 'inherit' }}
-                            value={formData.email || ''}
-                            readOnly={isGoogle}
-                            disabled={isGoogle}
-                        />
-                        <Mail size={16} style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#cbd5e1' }} />
-                    </div>
-                </div>
-
-                <div>
-                    <label style={pLabelStyle}>Телефон</label>
-                    <div style={{ position: 'relative' }}>
-                        <input
-                            type="tel"
-                            style={pInputStyle}
-                            placeholder="+380..."
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        />
-                        <Phone size={16} style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#cbd5e1' }} />
-                    </div>
-                </div>
-
-                <div>
-                    <label style={pLabelStyle}>Дата народження</label>
-                    <div style={{ position: 'relative' }}>
-                        <input
-                            type="date"
-                            style={pInputStyle}
-                            value={formData.birthday}
-                            onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-                        />
-                    </div>
-                </div>
-
-                <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: "3px" }}>
-                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                        <div>
-                            <div style={{ fontSize: '15px', fontWeight: 700, color: '#263A99' }}>Отримувати email розсилку</div>
-                            <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>Дізнавайтеся першими про акції та новинки</div>
-                        </div>
-                        <input
-                            type="checkbox"
-                            style={{ width: '20px', height: '20px', accentColor: 'var(--primary)' }}
-                            checked={formData.email_subscribed}
-                            onChange={(e) => setFormData({ ...formData, email_subscribed: e.target.checked })}
-                        />
-                    </label>
-                </div>
-
-                <div style={{ marginTop: '12px' }}>
-                    <button
-                        onClick={onSave}
-                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: "3px", border: 'none', fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}
-                    >
-                        <Save size={18} /> Зберегти зміни
-                    </button>
-                </div>
-
-                <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #f1f5f9' }}>
-                    <Link href="/privacy-policy" style={{ fontSize: '13px', color: '#64748b', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        Політика конфіденційності <ExternalLink size={12} />
-                    </Link>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-const pLabelStyle = { display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' };
-const pInputStyle = { width: '100%', padding: '12px 16px', borderRadius: "3px", border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', transition: 'border-color 0.2s' };
-
-function OrderStatusBadge({ status }: { status: string }) {
-    const configs: any = {
-        'new': { label: 'Нове', color: '#263A99', bg: '#eff6ff' },
-        'processing': { label: 'В роботі', color: '#8b5cf6', bg: '#f5f3ff' },
-        'shipped': { label: 'Відправлено', color: '#10b981', bg: '#ecfdf5' },
-        'delivered': { label: 'Доставлено', color: '#059669', bg: '#f0fdf4' },
-        'cancelled': { label: 'Скасовано', color: '#ef4444', bg: '#fef2f2' },
-    };
-    const c = configs[status] || configs['new'];
-    return (
-        <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: "3px", backgroundColor: c.bg, color: c.color, textTransform: 'uppercase' }}>
-            {c.label}
-        </span>
-    );
-}
+const lbl: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 };
+const inp: React.CSSProperties = { width: '100%', padding: '11px 14px', borderRadius: 6, border: '1px solid #e2e8f0', outline: 'none', fontSize: 14, boxSizing: 'border-box' };
