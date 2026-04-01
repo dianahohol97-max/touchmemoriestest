@@ -198,9 +198,94 @@ export function ConstructorSelectionClient({ sectionContent }: ConstructorSelect
                                 </p>
                             </div>
 
-                            {/* Constructor visualization */}
-                            <div className="bg-[#f0f3ff] rounded-md border border-[#263a99]/10 aspect-[4/3] flex items-center justify-center">
-                                <span className="text-[#1e2d7d]/60 text-lg font-semibold">Конструктор</span>
+                            {/* Constructor visualization — magazine editor mockup */}
+                            <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md" style={{background:'#f4f6fb'}}>
+                                <svg viewBox="0 0 480 320" xmlns="http://www.w3.org/2000/svg" style={{display:'block',width:'100%'}}>
+                                    {/* Top bar */}
+                                    <rect width="480" height="36" fill="#fff"/>
+                                    <rect x="12" y="10" width="60" height="16" rx="4" fill="#e2e8f0"/>
+                                    <rect x="82" y="10" width="90" height="16" rx="4" fill="#f0f3ff"/>
+                                    <rect x="390" y="8" width="80" height="20" rx="8" fill="#7c3aed"/>
+                                    <rect width="480" height="1" y="36" fill="#e2e8f0"/>
+                                    {/* Left panel — photos */}
+                                    <rect x="0" y="37" width="64" height="283" fill="#fff"/>
+                                    <rect x="8" y="50" width="48" height="52" rx="4" fill="#ede9fe"/>
+                                    <rect x="12" y="54" width="40" height="44" rx="2" fill="#c4b5fd" opacity="0.7"/>
+                                    <rect x="8" y="110" width="48" height="52" rx="4" fill="#f5f3ff"/>
+                                    <rect x="12" y="114" width="40" height="44" rx="2" fill="#ddd6fe" opacity="0.6"/>
+                                    <rect x="8" y="170" width="48" height="52" rx="4" fill="#fdf4ff"/>
+                                    <rect x="12" y="174" width="40" height="44" rx="2" fill="#f0abfc" opacity="0.5"/>
+                                    <rect x="63" y="37" width="1" height="283" fill="#e2e8f0"/>
+                                    {/* Photo strip */}
+                                    <rect x="64" y="37" width="90" height="283" fill="#fff"/>
+                                    <rect x="72" y="48" width="74" height="52" rx="4" fill="#ede9fe"/>
+                                    <rect x="76" y="52" width="66" height="44" rx="2" fill="#a78bfa" opacity="0.5"/>
+                                    <rect x="72" y="108" width="74" height="52" rx="4" fill="#fdf4ff"/>
+                                    <rect x="76" y="112" width="66" height="44" rx="2" fill="#e879f9" opacity="0.4"/>
+                                    <rect x="72" y="168" width="74" height="52" rx="4" fill="#f5f3ff"/>
+                                    <rect x="72" y="228" width="74" height="52" rx="4" fill="#ede9fe"/>
+                                    <rect x="153" y="37" width="1" height="283" fill="#e2e8f0"/>
+                                    {/* Magazine spread — A4 portrait pages */}
+                                    <rect x="163" y="44" width="104" height="264" rx="3" fill="#fff" stroke="#e2e8f0" strokeWidth="1"/>
+                                    {/* Left A4 page — magazine layout */}
+                                    {/* Full bleed top photo */}
+                                    <rect x="163" y="44" width="104" height="100" rx="3" fill="#ede9fe"/>
+                                    <rect x="167" y="48" width="96" height="92" rx="2" fill="#a78bfa" opacity="0.45"/>
+                                    {/* Magazine title overlay */}
+                                    <rect x="167" y="112" width="70" height="8" rx="2" fill="#1e2d7d" opacity="0.7"/>
+                                    <rect x="167" y="124" width="90" height="4" rx="2" fill="#e2e8f0"/>
+                                    <rect x="167" y="132" width="80" height="4" rx="2" fill="#e2e8f0"/>
+                                    <rect x="167" y="140" width="85" height="4" rx="2" fill="#e2e8f0"/>
+                                    {/* 2-col text */}
+                                    <rect x="167" y="152" width="44" height="3" rx="1.5" fill="#e2e8f0"/>
+                                    <rect x="167" y="158" width="44" height="3" rx="1.5" fill="#e2e8f0"/>
+                                    <rect x="167" y="164" width="40" height="3" rx="1.5" fill="#e2e8f0"/>
+                                    <rect x="215" y="152" width="44" height="3" rx="1.5" fill="#e2e8f0"/>
+                                    <rect x="215" y="158" width="44" height="3" rx="1.5" fill="#e2e8f0"/>
+                                    <rect x="215" y="164" width="38" height="3" rx="1.5" fill="#e2e8f0"/>
+                                    {/* Small photo bottom left */}
+                                    <rect x="167" y="174" width="40" height="40" rx="2" fill="#f5f3ff"/>
+                                    <rect x="169" y="176" width="36" height="36" rx="1" fill="#c4b5fd" opacity="0.5"/>
+                                    <rect x="211" y="174" width="56" height="5" rx="2" fill="#e2e8f0"/>
+                                    <rect x="211" y="183" width="50" height="4" rx="2" fill="#e2e8f0"/>
+                                    <rect x="211" y="191" width="54" height="4" rx="2" fill="#e2e8f0"/>
+                                    {/* Spine */}
+                                    <rect x="267" y="44" width="3" height="264" fill="#ede9fe" opacity="0.8"/>
+                                    {/* Right A4 page */}
+                                    <rect x="270" y="44" width="104" height="264" rx="3" fill="#fff" stroke="#e2e8f0" strokeWidth="1"/>
+                                    {/* Big right-page photo */}
+                                    <rect x="274" y="48" width="96" height="140" rx="2" fill="#fdf4ff"/>
+                                    <rect x="278" y="52" width="88" height="132" rx="2" fill="#f0abfc" opacity="0.4"/>
+                                    {/* Caption */}
+                                    <rect x="274" y="194" width="60" height="7" rx="2" fill="#7c3aed" opacity="0.6"/>
+                                    <rect x="274" y="206" width="90" height="4" rx="2" fill="#e2e8f0"/>
+                                    <rect x="274" y="214" width="80" height="4" rx="2" fill="#e2e8f0"/>
+                                    <rect x="274" y="222" width="85" height="4" rx="2" fill="#e2e8f0"/>
+                                    <rect x="274" y="234" width="60" height="4" rx="2" fill="#e2e8f0"/>
+                                    <rect x="274" y="250" width="40" height="3" rx="1.5" fill="#7c3aed" opacity="0.3"/>
+                                    {/* Right panel — layouts */}
+                                    <rect x="384" y="37" width="96" height="283" fill="#fff"/>
+                                    <rect x="384" y="37" width="1" height="283" fill="#e2e8f0"/>
+                                    <rect x="392" y="50" width="78" height="14" rx="3" fill="#f5f3ff"/>
+                                    {/* Layout thumbnails — magazine styles */}
+                                    <rect x="392" y="72" width="36" height="50" rx="3" fill="#ede9fe"/>
+                                    <rect x="394" y="74" width="32" height="24" rx="1" fill="#a78bfa" opacity="0.4"/>
+                                    <rect x="394" y="100" width="32" height="4" rx="1" fill="#c4b5fd" opacity="0.5"/>
+                                    <rect x="394" y="106" width="28" height="3" rx="1" fill="#ddd6fe"/>
+                                    <rect x="432" y="72" width="36" height="50" rx="3" fill="#f5f3ff"/>
+                                    <rect x="434" y="74" width="15" height="46" rx="1" fill="#c4b5fd" opacity="0.4"/>
+                                    <rect x="451" y="74" width="15" height="22" rx="1" fill="#e9d5ff" opacity="0.5"/>
+                                    <rect x="451" y="98" width="15" height="22" rx="1" fill="#ddd6fe" opacity="0.5"/>
+                                    <rect x="392" y="130" width="36" height="50" rx="3" fill="#fdf4ff"/>
+                                    <rect x="394" y="132" width="32" height="14" rx="1" fill="#f0abfc" opacity="0.4"/>
+                                    <rect x="394" y="148" width="14" height="30" rx="1" fill="#e879f9" opacity="0.3"/>
+                                    <rect x="410" y="148" width="16" height="14" rx="1" fill="#fae8ff" opacity="0.6"/>
+                                    <rect x="410" y="164" width="16" height="14" rx="1" fill="#f5d0fe" opacity="0.5"/>
+                                    <rect x="432" y="130" width="36" height="50" rx="3" fill="#f5f3ff"/>
+                                    <rect x="434" y="132" width="32" height="46" rx="1" fill="#ddd6fe" opacity="0.35"/>
+                                    <rect x="392" y="190" width="78" height="4" rx="2" fill="#ede9fe"/>
+                                    <rect x="392" y="200" width="60" height="4" rx="2" fill="#ede9fe"/>
+                                </svg>
                             </div>
 
                             {/* Buttons */}
