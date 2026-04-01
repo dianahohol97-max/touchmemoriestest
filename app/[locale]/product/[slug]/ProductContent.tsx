@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import styles from './ProductContent.module.css';
 import { trackViewItem, trackAddToCart } from '@/components/providers/AnalyticsProvider';
+import GiftHintButton from '@/components/ui/GiftHintButton';
+import WishlistButton from '@/components/ui/WishlistButton';
 
 export default function ProductContent({ product }: { product: any }) {
     const { addItem } = useCart();
@@ -112,6 +114,24 @@ export default function ProductContent({ product }: { product: any }) {
                                 : `Додати у кошик (${product.price} грн)`
                             }
                         </button>
+
+                        {/* Wishlist + Gift Hint */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                            <WishlistButton
+                                productId={product.id}
+                                productSlug={product.slug}
+                                productName={product.name}
+                                productImage={product.images?.[0]}
+                                productPrice={product.price}
+                            />
+                            <GiftHintButton
+                                productId={product.id}
+                                productSlug={product.slug}
+                                productName={product.name}
+                                productImage={product.images?.[0]}
+                                productPrice={product.price}
+                            />
+                        </div>
                     </div>
                 </div>
             </main>

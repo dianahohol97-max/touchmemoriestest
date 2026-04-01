@@ -59,6 +59,34 @@ export default function ReviewsAdminPage() {
         author: ''
     });
 
+    // Instagram import
+    const [showInstagramImport, setShowInstagramImport] = useState(false);
+    const [igPosts, setIgPosts] = useState<any[]>([]);
+    const [igLoading, setIgLoading] = useState(false);
+    const [igToken, setIgToken] = useState('');
+
+    const fetchInstagramPosts = async () => {
+        if (!igToken) { toast.error('Введіть Instagram Access Token'); return; }
+        setIgLoading(true);
+        try {
+            const res = await fetch(`https://graph.instagram.com/me/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&access_token=${igToken}&limit=20`);
+            const data = await res.json();
+            if (data.error) toast.error('Помилка: ' + data.error.message);
+            else setIgPosts((data.data || []).filter((p: any) => p.media_type === 'IMAGE' || p.media_type === 'VIDEO'));
+        } catch { toast.error('Помилка завантаження'); }
+        setIgLoading(false);
+    };
+
+    const importInstagramPost = async (post: any) => {
+        const imageUrl = post.thumbnail_url || post.media_url;
+        const { error } = await supabase.from('reviews').insert({
+            image_url: imageUrl, caption: post.caption?.slice(0, 200) || '',
+            author: 'Instagram', category: 'instagram', is_active: true, sort_order: 0
+        });
+        if (error) toast.error('Помилка імпорту');
+        else { toast.success('Пост імпортовано!'); fetchReviews(); }
+    };
+
     useEffect(() => {
         fetchReviews();
     }, []);
@@ -289,13 +317,56 @@ export default function ReviewsAdminPage() {
                         Керуйте відгуками клієнтів у форматі Instagram Stories (9:16)
                     </p>
                 </div>
-                <button
-                    onClick={openAddModal}
-                    className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all"
-                >
-                    <Plus size={20} /> Додати відгук
-                </button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button onClick={() => setShowInstagramImport(v => !v)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', border: '2px solid #fbcfe8', borderRadius: '12px', background: showInstagramImport ? '#fdf2f8' : 'white', color: '#db2777', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+                        Імпорт з Instagram
+                    </button>
+                    <button onClick={openAddModal}
+                        className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
+                        <Plus size={20} /> Додати відгук
+                    </button>
+                </div>
             </div>
+
+            {/* Instagram Import Panel */}
+            {showInstagramImport && (
+                <div style={{ marginBottom: '32px', padding: '24px', background: 'linear-gradient(135deg,#fdf2f8,#faf5ff)', borderRadius: '16px', border: '2px solid #fbcfe8' }}>
+                    <h3 style={{ fontWeight: 800, fontSize: '16px', color: '#374151', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#db2777" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="#db2777" stroke="none"/></svg>
+                        Імпорт постів з Instagram
+                    </h3>
+                    <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 16px' }}>
+                        Введіть Instagram Access Token з Meta Developer Portal.
+                        <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener" style={{ color: '#2563eb', marginLeft: '4px' }}>Отримати токен →</a>
+                    </p>
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                        <input type="password" value={igToken} onChange={e => setIgToken(e.target.value)}
+                            placeholder="Instagram Access Token..."
+                            style={{ flex: 1, padding: '10px 16px', border: '2px solid #fbcfe8', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+                        <button onClick={fetchInstagramPosts} disabled={igLoading}
+                            style={{ padding: '10px 24px', background: 'linear-gradient(135deg,#ec4899,#9333ea)', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', opacity: igLoading ? 0.6 : 1 }}>
+                            {igLoading ? 'Завантаження...' : 'Завантажити'}
+                        </button>
+                    </div>
+                    {igPosts.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                            {igPosts.map((post: any) => (
+                                <div key={post.id} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', border: '2px solid transparent' }}
+                                    onMouseEnter={e => (e.currentTarget.style.border = '2px solid #ec4899')}
+                                    onMouseLeave={e => (e.currentTarget.style.border = '2px solid transparent')}>
+                                    <img src={post.thumbnail_url || post.media_url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                                    <button onClick={() => importInstagramPost(post)}
+                                        style={{ position: 'absolute', bottom: '6px', left: '50%', transform: 'translateX(-50%)', background: 'white', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, color: '#374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                        + Імпортувати
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
