@@ -160,7 +160,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             .from('orders')
             .select(`
                 *, 
-                customers(name, email, phone, notes), 
+                customers(name, email, phone), 
                 manager:staff!orders_manager_id_fkey(id, name, initials, color),
                 designer:staff!orders_designer_id_fkey(id, name, initials, color),
                 order_tag_assignments(order_tags(*))

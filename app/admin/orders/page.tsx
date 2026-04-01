@@ -82,19 +82,17 @@ export default function OrdersPage() {
 
     const fetchOrders = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('orders')
-            .select(`
-                *,
-                customers(notes),
-                manager:staff!orders_manager_id_fkey(id, name, initials, color),
-                designer:staff!orders_designer_id_fkey(id, name, initials, color),
-                order_tag_assignments(order_tags(*))
-            `)
-            .order('created_at', { ascending: false });
-
-        if (data) setOrders(data);
-        setLoading(false);
+        try {
+            const res = await fetch('/api/admin/orders');
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            const json = await res.json();
+            if (json.orders) setOrders(json.orders);
+        } catch (err) {
+            console.error('Failed to fetch orders:', err);
+            setOrders([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const getDeliveryStatusColor = (status: string) => {
