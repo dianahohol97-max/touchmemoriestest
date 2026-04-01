@@ -10,7 +10,8 @@ export const metadata = {
   description: 'Поради, ідеї та натхнення для створення ідеальної фотокниги та незабутніх подарунків.',
 };
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const stripEmoji = (text?: string) => {
     if (!text) return '';

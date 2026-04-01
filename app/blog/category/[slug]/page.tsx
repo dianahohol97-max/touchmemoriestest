@@ -6,7 +6,8 @@ import { Clock, User, ArrowLeft } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const stripEmoji = (text?: string) => {
     if (!text) return '';
