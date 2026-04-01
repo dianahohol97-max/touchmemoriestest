@@ -1,63 +1,82 @@
 import { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
+const LOCALES = ['uk', 'en', 'ro', 'pl', 'de'];
+const DOMAIN = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
+
+// Static routes for each locale
+const STATIC_PATHS = [
+    { path: '', priority: 1.0, freq: 'daily' as const },
+    { path: '/catalog', priority: 0.9, freq: 'daily' as const },
+    { path: '/blog', priority: 0.8, freq: 'weekly' as const },
+    { path: '/checkout', priority: 0.7, freq: 'monthly' as const },
+    { path: '/kontakty', priority: 0.6, freq: 'monthly' as const },
+    { path: '/oplata-i-dostavka', priority: 0.6, freq: 'monthly' as const },
+    { path: '/pro-nas', priority: 0.5, freq: 'monthly' as const },
+    { path: '/faq', priority: 0.5, freq: 'monthly' as const },
+];
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const entries: MetadataRoute.Sitemap = [];
+    const now = new Date();
 
-    const domain = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
-
-    const staticRoutes: MetadataRoute.Sitemap = [
-        {
-            url: domain,
-            lastModified: new Date(),
-            changeFrequency: 'daily',
-            priority: 1,
-        },
-        {
-            url: `${domain}/products`,
-            lastModified: new Date(),
-            changeFrequency: 'daily',
-            priority: 0.9,
-        },
-        {
-            url: `${domain}/blog`,
-            lastModified: new Date(),
-            changeFrequency: 'daily',
-            priority: 0.8,
-        },
-    ];
-
-    if (!supabaseUrl || !supabaseKey) {
-        console.warn('Sitemap: Missing Supabase credentials. Returning static routes only.');
-        return staticRoutes;
+    // Static pages for all locales
+    for (const locale of LOCALES) {
+        for (const { path, priority, freq } of STATIC_PATHS) {
+            entries.push({
+                url: `${DOMAIN}/${locale}${path}`,
+                lastModified: now,
+                changeFrequency: freq,
+                priority,
+            });
+        }
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Dynamic product pages
+    try {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data: products } = await supabase
+            .from('products')
+            .select('slug, updated_at')
+            .eq('is_active', true);
 
-    const { data: products } = await supabase.from('products').select('slug, updated_at').eq('is_active', true);
-    const productRoutes: MetadataRoute.Sitemap = (products || []).map(p => ({
-        url: `${domain}/products/${p.slug}`,
-        lastModified: new Date(p.updated_at),
-        changeFrequency: 'weekly',
-        priority: 0.8
-    }));
+        if (products) {
+            for (const locale of LOCALES) {
+                for (const product of products) {
+                    entries.push({
+                        url: `${DOMAIN}/${locale}/catalog/${product.slug}`,
+                        lastModified: product.updated_at ? new Date(product.updated_at) : now,
+                        changeFrequency: 'weekly',
+                        priority: 0.8,
+                    });
+                }
+            }
+        }
 
-    const { data: blogCategories } = await supabase.from('blog_categories').select('slug, updated_at').eq('is_active', true);
-    const categoryRoutes: MetadataRoute.Sitemap = (blogCategories || []).map(c => ({
-        url: `${domain}/blog/category/${c.slug}`,
-        lastModified: new Date(c.updated_at),
-        changeFrequency: 'weekly',
-        priority: 0.5
-    }));
+        // Blog posts
+        const { data: posts } = await supabase
+            .from('blog_posts')
+            .select('slug, updated_at')
+            .eq('is_published', true);
 
-    const { data: blogPosts } = await supabase.from('blog_posts').select('slug, updated_at').eq('is_published', true);
-    const postRoutes: MetadataRoute.Sitemap = (blogPosts || []).map(p => ({
-        url: `${domain}/blog/${p.slug}`,
-        lastModified: new Date(p.updated_at),
-        changeFrequency: 'monthly',
-        priority: 0.7
-    }));
+        if (posts) {
+            for (const locale of LOCALES) {
+                for (const post of posts) {
+                    entries.push({
+                        url: `${DOMAIN}/${locale}/blog/${post.slug}`,
+                        lastModified: post.updated_at ? new Date(post.updated_at) : now,
+                        changeFrequency: 'monthly',
+                        priority: 0.6,
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        // Ignore DB errors in sitemap
+    }
 
-    return [...staticRoutes, ...productRoutes, ...categoryRoutes, ...postRoutes];
+    return entries;
 }

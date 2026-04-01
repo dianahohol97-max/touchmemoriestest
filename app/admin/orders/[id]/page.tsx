@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, use, createPortal} from 'react';
+import { useState, useEffect, use } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import DesignerProjectBlock from './DesignerProjectBlock';
 import { useRouter } from 'next/navigation';

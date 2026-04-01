@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, useCallback, createPortal} from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import {
     Package,
@@ -343,11 +344,11 @@ export default function StockPage() {
             const newQty = editModalData.quantity;
             await supabase.from('products')
                 .update({ stock_quantity: newQty, low_stock_threshold: editModalData.minLevel })
-                .eq('id', editModalProduct.id);
+                .eq('id', editModalProduct!.id);
             await supabase.from('product_stock')
-                .upsert({ product_id: editModalProduct.id, quantity_in_stock: newQty, min_level: editModalData.minLevel, updated_at: new Date().toISOString() }, { onConflict: 'product_id' });
+                .upsert({ product_id: editModalProduct!.id, quantity_in_stock: newQty, min_level: editModalData.minLevel, updated_at: new Date().toISOString() }, { onConflict: 'product_id' });
             await supabase.from('inventory_movements').insert({
-                product_id: editModalProduct.id,
+                product_id: editModalProduct!.id,
                 type: 'adjustment',
                 action_type: 'edit',
                 quantity: newQty,
@@ -1039,7 +1040,7 @@ export default function StockPage() {
                             <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>Редагувати запас</h3>
                             <button onClick={() => setShowEditModal(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
                         </div>
-                        <p style={{ fontSize: '15px', fontWeight: 600, color: '#0f172a', marginBottom: '20px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '3px' }}>{editModalProduct.name}</p>
+                        <p style={{ fontSize: '15px', fontWeight: 600, color: '#0f172a', marginBottom: '20px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '3px' }}>{editModalProduct!.name}</p>
                         <form onSubmit={handleEditSubmit}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                                 <div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, createPortal} from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, Edit2, UserX, UserCheck, Loader2, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 

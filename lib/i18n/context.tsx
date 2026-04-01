@@ -8,6 +8,7 @@ import pl from '@/locales/pl.json';
 import de from '@/locales/de.json';
 
 export type Locale = 'uk' | 'en' | 'ro' | 'pl' | 'de';
+
 export const LOCALES: { code: Locale; label: string; flag: string }[] = [
     { code: 'uk', label: 'UA', flag: '🇺🇦' },
     { code: 'en', label: 'EN', flag: '🇬🇧' },
@@ -16,12 +17,8 @@ export const LOCALES: { code: Locale; label: string; flag: string }[] = [
     { code: 'de', label: 'DE', flag: '🇩🇪' },
 ];
 
-// International locales — auto-select international payment
 export const INTERNATIONAL_LOCALES: Locale[] = ['en', 'ro', 'pl', 'de'];
-
 const TRANSLATIONS: Record<Locale, any> = { uk, en, ro, pl, de };
-
-const STORAGE_KEY = 'tm_locale';
 
 interface I18nContextType {
     locale: Locale;
@@ -47,46 +44,48 @@ function getNestedValue(obj: any, path: string): string {
     return typeof val === 'string' ? val : path;
 }
 
-function detectBrowserLocale(): Locale {
-    if (typeof window === 'undefined') return 'uk';
-    const lang = navigator.language?.toLowerCase().split('-')[0];
-    if (lang === 'uk' || lang === 'ru') return 'uk'; // Ukrainian and Russian → UA
-    if (lang === 'en') return 'en';
-    if (lang === 'ro') return 'ro';
-    if (lang === 'pl') return 'pl';
-    if (lang === 'de') return 'de';
-    return 'uk'; // fallback
-}
-
-export function I18nProvider({ children }: { children: ReactNode }) {
-    const [locale, setLocaleState] = useState<Locale>('uk');
-    const [mounted, setMounted] = useState(false);
+export function I18nProvider({
+    children,
+    initialLocale,
+}: {
+    children: ReactNode;
+    initialLocale?: Locale;
+}) {
+    const [locale, setLocaleState] = useState<Locale>(initialLocale || 'uk');
 
     useEffect(() => {
-        // 1. Check localStorage
-        const saved = localStorage.getItem(STORAGE_KEY) as Locale | null;
+        if (initialLocale) {
+            setLocaleState(initialLocale);
+            return;
+        }
+        // Fallback: detect from localStorage if no initialLocale
+        const saved = localStorage.getItem('tm_locale') as Locale | null;
         if (saved && LOCALES.find(l => l.code === saved)) {
             setLocaleState(saved);
-        } else {
-            // 2. Auto-detect from browser
-            const detected = detectBrowserLocale();
-            setLocaleState(detected);
         }
-        setMounted(true);
-    }, []);
+    }, [initialLocale]);
 
     const setLocale = useCallback((l: Locale) => {
         setLocaleState(l);
-        localStorage.setItem(STORAGE_KEY, l);
+        localStorage.setItem('tm_locale', l);
+        // Navigate to new locale URL
+        if (typeof window !== 'undefined') {
+            const path = window.location.pathname;
+            const localePattern = /^\/(uk|en|ro|pl|de)(\/|$)/;
+            const newPath = localePattern.test(path)
+                ? path.replace(localePattern, `/${l}$2`)
+                : `/${l}${path}`;
+            window.location.href = newPath;
+        }
     }, []);
 
     const t = useCallback((key: string): string => {
-        return getNestedValue(TRANSLATIONS[locale], key) || getNestedValue(TRANSLATIONS['uk'], key) || key;
+        return getNestedValue(TRANSLATIONS[locale], key)
+            || getNestedValue(TRANSLATIONS['uk'], key)
+            || key;
     }, [locale]);
 
     const isInternational = INTERNATIONAL_LOCALES.includes(locale);
-
-    if (!mounted) return <>{children}</>;
 
     return (
         <I18nContext.Provider value={{ locale, setLocale, t, isInternational }}>
@@ -99,8 +98,6 @@ export function useTranslation() {
     return useContext(I18nContext);
 }
 
-// Standalone hook for components that just need t()
 export function useT() {
-    const { t } = useContext(I18nContext);
-    return t;
+    return useContext(I18nContext).t;
 }

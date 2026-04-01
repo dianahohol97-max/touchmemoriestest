@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, createPortal} from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import {
     Box,

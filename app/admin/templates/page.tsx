@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, createPortal} from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -186,14 +187,14 @@ export default function MessageTemplatesPage() {
         if (!client) return;
 
         // Replace variables with actual data
-        let message = selectedTemplate.body;
+        let message = selectedTemplate!.body;
         message = message.replace(/{client_name}/g, `${client.first_name} ${client.last_name}`);
         message = message.replace(/{order_id}/g, 'N/A');
         message = message.replace(/{tracking_number}/g, 'N/A');
         message = message.replace(/{total_price}/g, 'N/A');
         message = message.replace(/{payment_link}/g, 'N/A');
 
-        if (selectedTemplate.type === 'sms') {
+        if (selectedTemplate!.type === 'sms') {
             // Send SMS via TurboSMS
             toast.info('Відправка SMS...');
             // TODO: Implement TurboSMS API call
@@ -211,10 +212,10 @@ export default function MessageTemplatesPage() {
         await supabase
             .from('message_templates')
             .update({
-                usage_count: (selectedTemplate.usage_count || 0) + 1,
+                usage_count: (selectedTemplate!.usage_count || 0) + 1,
                 last_used_at: new Date().toISOString()
             })
-            .eq('id', selectedTemplate.id);
+            .eq('id', selectedTemplate!.id);
 
         setShowSendModal(false);
         setSelectedClient('');
@@ -517,7 +518,7 @@ export default function MessageTemplatesPage() {
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#263A99' }}>
-                                Відправити {selectedTemplate.type === 'sms' ? 'SMS' : 'Email'}
+                                Відправити {selectedTemplate!.type === 'sms' ? 'SMS' : 'Email'}
                             </h2>
                             <button onClick={() => setShowSendModal(false)} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
                                 <X size={18} />
@@ -537,7 +538,7 @@ export default function MessageTemplatesPage() {
                                 <option value="">-- Оберіть клієнта --</option>
                                 {clients.map(client => (
                                     <option key={client.id} value={client.id}>
-                                        {client.first_name} {client.last_name} • {selectedTemplate.type === 'sms' ? client.phone : client.email}
+                                        {client.first_name} {client.last_name} • {selectedTemplate!.type === 'sms' ? client.phone : client.email}
                                     </option>
                                 ))}
                             </select>
@@ -545,7 +546,7 @@ export default function MessageTemplatesPage() {
 
                         <div style={{ background: '#f8f9ff', padding: '16px', borderRadius: '8px', marginBottom: '24px' }}>
                             <div style={{ fontSize: '13px', fontWeight: 600, color: '#263A99', marginBottom: '8px' }}>Шаблон:</div>
-                            <div style={{ fontSize: '14px', color: '#475569', whiteSpace: 'pre-wrap' }}>{selectedTemplate.body}</div>
+                            <div style={{ fontSize: '14px', color: '#475569', whiteSpace: 'pre-wrap' }}>{selectedTemplate!.body}</div>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
