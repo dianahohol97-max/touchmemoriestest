@@ -28,6 +28,7 @@ interface FreeSlotLayerProps {
   onChange: (slots: FreeSlot[]) => void;
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
+  isMobile?: boolean;
 }
 
 const MIN_SIZE = 40;
@@ -50,7 +51,7 @@ function borderRadius(shape: SlotShape, w: number, h: number) {
   return '3px';
 }
 
-export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, tapPhotoId, onChange, selectedId: externalSelectedId, onSelect }: FreeSlotLayerProps) {
+export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, tapPhotoId, onChange, selectedId: externalSelectedId, onSelect, isMobile }: FreeSlotLayerProps) {
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
   const [cropModeId, setCropModeId] = useState<string | null>(null);
   const selectedId = externalSelectedId !== undefined ? externalSelectedId : internalSelectedId;
@@ -378,17 +379,20 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
         );
       })}
 
-      {/* Resize handles — 8 handles, with touch support */}
-      {slots.filter(s => s.id === selectedId && s.id !== cropModeId).map(slot =>
-        HANDLES.map(h => {
+      {/* Resize handles */}
+      {slots.filter(s => s.id === selectedId && s.id !== cropModeId).map(slot => {
+        const handlesToShow = isMobile
+          ? (['se', 'sw', 'ne', 'nw'] as Handle[])  // only 4 corner handles on mobile, bigger
+          : HANDLES;
+
+        return handlesToShow.map(h => {
           const pos = getHandlePos(h, slot.x, slot.y, slot.w, slot.h);
-          const isCorner = h.length === 2;
+          const sz = isMobile ? 28 : (h.length === 2 ? 18 : 16);
 
           const startTouchResize = (e: React.TouchEvent) => {
             e.stopPropagation(); e.preventDefault();
             const t = e.touches[0];
-            const origSlot = { ...slot };
-            dragRef.current = { type: h, id: slot.id, startX: t.clientX, startY: t.clientY, origSlot };
+            dragRef.current = { type: h, id: slot.id, startX: t.clientX, startY: t.clientY, origSlot: { ...slot } };
           };
 
           return (
@@ -397,22 +401,103 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
               onTouchStart={startTouchResize}
               style={{
                 position: 'absolute',
-                left: pos.left - (isCorner ? 7 : 6),
-                top: pos.top - (isCorner ? 7 : 6),
-                width: isCorner ? 18 : 16,
-                height: isCorner ? 18 : 16,
-                borderRadius: isCorner ? 4 : '50%',
+                left: pos.left - sz / 2,
+                top: pos.top - sz / 2,
+                width: sz, height: sz,
+                borderRadius: isMobile ? 6 : (h.length === 2 ? 4 : '50%'),
                 background: '#fff',
-                border: '2px solid #3b82f6',
+                border: isMobile ? '2.5px solid #3b82f6' : '2px solid #3b82f6',
                 cursor: handleCursor(h),
                 zIndex: 65,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
                 touchAction: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
-            />
+            >
+              {isMobile && (
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: '#3b82f6', opacity: 0.6 }} />
+              )}
+            </div>
           );
-        })
-      )}
+        });
+      })}
+
+      {/* Mobile slot controls — floating panel above bottom nav */}
+      {isMobile && selectedId && !cropModeId && (() => {
+        const slot = slots.find(s => s.id === selectedId);
+        if (!slot) return null;
+        const STEP = Math.round(Math.min(canvasW, canvasH) * 0.05); // 5% step
+
+        const btn = (label: string, fn: () => void, accent?: boolean) => (
+          <button
+            key={label}
+            onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); fn(); }}
+            onClick={fn}
+            style={{
+              padding: '8px 12px', border: accent ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+              borderRadius: 8, background: accent ? '#eff6ff' : '#fff',
+              color: accent ? '#1e2d7d' : '#374151',
+              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              minHeight: 36, minWidth: 36,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              touchAction: 'manipulation',
+            }}
+          >{label}</button>
+        );
+
+        return (
+          <div
+            onTouchStart={e => e.stopPropagation()}
+            style={{
+              position: 'fixed', bottom: 64, left: 8, right: 8,
+              background: '#fff', borderRadius: 14,
+              boxShadow: '0 -2px 20px rgba(0,0,0,0.15)',
+              border: '1px solid #e2e8f0',
+              padding: '10px 12px',
+              zIndex: 200,
+              display: 'flex', flexDirection: 'column', gap: 8,
+            }}
+          >
+            {/* Size controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', width: 48, flexShrink: 0 }}>Ширина</span>
+              {btn('−', () => update(slot.id, { w: Math.max(MIN_SIZE, slot.w - STEP) }))}
+              <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{Math.round(slot.w)} px</span>
+              {btn('+', () => update(slot.id, { w: Math.min(canvasW - slot.x, slot.w + STEP) }))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', width: 48, flexShrink: 0 }}>Висота</span>
+              {btn('−', () => update(slot.id, { h: Math.max(MIN_SIZE, slot.h - STEP) }))}
+              <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{Math.round(slot.h)} px</span>
+              {btn('+', () => update(slot.id, { h: Math.min(canvasH - slot.y, slot.h + STEP) }))}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: '#f1f5f9', margin: '2px 0' }} />
+
+            {/* Shape + actions */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', marginRight: 2 }}>Форма:</span>
+              {(['rect', 'rounded', 'circle'] as SlotShape[]).map(s => (
+                <button key={s}
+                  onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); update(slot.id, { shape: s }); }}
+                  onClick={() => update(slot.id, { shape: s })}
+                  style={{
+                    padding: '8px 12px', borderRadius: 8, fontSize: 14,
+                    border: slot.shape === s ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                    background: slot.shape === s ? '#eff6ff' : '#fff',
+                    cursor: 'pointer', minHeight: 36, touchAction: 'manipulation',
+                  }}
+                >
+                  {s === 'rect' ? '▭' : s === 'rounded' ? '▢' : '●'}
+                </button>
+              ))}
+              <div style={{ flex: 1 }} />
+              {btn('✕ слот', () => { onChange(slots.filter(s => s.id !== slot.id)); setInternalSelectedId(null); onSelect?.(null); }, false)}
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

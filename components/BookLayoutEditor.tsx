@@ -2005,6 +2005,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         onChange={(newSlots) => { setFreeSlots(prev=>({...prev,[pageIdx]:newSlots})); setTapSelectedPhotoId(null); }}
                         selectedId={selectedFreeSlotId}
                         onSelect={setSelectedFreeSlotId}
+                        isMobile={isMobile}
                       />
                       {/* Shapes layer */}
                       <ShapesLayer
