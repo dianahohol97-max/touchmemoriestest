@@ -16,6 +16,46 @@ const PRINT_TYPES = [
   { key: 'polaroid', label: 'Polaroid', slug: 'polaroid-print' },
 ];
 
+const TYPE_SPECS: Record<string, { name: string; description: string; specs: string[] }> = {
+  standard: {
+    name: 'Fujicolor Crystal Archive · 100+ років · від 10×15 до 30×40 см',
+    description: 'Якісний фотодрук на папері Fujicolor Crystal Archive з гарантією кольору 100+ років. Хімічний процес обробки забезпечує найточніше відтворення кольорів. Доступні стандартні розміри від 10×15 до 30×40 см.',
+    specs: [
+      'Формат 10×15 см — від 8 ₴',
+      'Формат 13×18 см — від 12 ₴',
+      'Формат 15×21 см (A5) — від 15 ₴',
+      'Формат 20×25 см — від 25 ₴',
+      'Формат 20×30 см — від 30 ₴',
+      'Формат 30×40 см — від 60 ₴',
+      'Папір: глянцевий або матовий',
+      'Виготовлення: 1–2 робочі дні',
+    ],
+  },
+  nonstandard: {
+    name: 'Будь-який розмір · 7.5 грн/см² · Fujicolor Crystal Archive',
+    description: 'Фотодрук будь-якого нестандартного розміру на папері Fujicolor Crystal Archive. Введи свої розміри — і ми надрукуємо точно під твій формат. Ціна розраховується як 7.5 грн/см².',
+    specs: [
+      'Будь-який розмір на замовлення',
+      'Ціна: 7.5 грн/см²',
+      'Мінімальний розмір: 5×7 см',
+      'Максимальний розмір: 30×40 см',
+      'Папір: глянцевий або матовий',
+      'Виготовлення: 1–2 робочі дні',
+    ],
+  },
+  polaroid: {
+    name: 'Формат 8.9×10.7 см · місце для підпису · Fujicolor Crystal Archive',
+    description: 'Класичний формат поляроїду 8.9×10.7 см з місцем для підпису внизу. Надруковано на папері Fujicolor Crystal Archive. Ідеально для декору, подарунків та мотузок зі спогадами.',
+    specs: [
+      'Формат 8.9×10.7 см (класичний Polaroid)',
+      'Біла рамка з місцем для підпису внизу',
+      'Папір: Fujicolor Crystal Archive',
+      'Можна додати підпис або текст',
+      'Виготовлення: 1–2 робочі дні',
+    ],
+  },
+};
+
 const SIZES = {
   standard: [
     { size: '9×13', price: 8 },
@@ -82,13 +122,14 @@ export default function PhotoPrintsPage() {
 
   // Dynamic product info based on selected print type
   const dbProd = dbProducts[printType];
+  const typeInfo = TYPE_SPECS[printType];
   const productInfo = {
-    nameUk: dbProd?.name || fallbackInfo.nameUk,
-    tagline: dbProd?.short_description || fallbackInfo.tagline,
-    shortDescription: dbProd?.short_description || fallbackInfo.shortDescription,
-    fullDescription: dbProd?.description || fallbackInfo.fullDescription,
+    nameUk: dbProd?.name || typeInfo.name,
+    tagline: dbProd?.short_description || typeInfo.description,
+    shortDescription: dbProd?.short_description || typeInfo.description,
+    fullDescription: dbProd?.description || typeInfo.description,
     startingPrice: dbProd?.price ? `${dbProd.price} ₴` : fallbackInfo.startingPrice,
-    specs: fallbackInfo.specs,
+    specs: typeInfo.specs,
   };
   const [printSize, setPrintSize] = useState('10×15');
   const [pricePerPrint, setPricePerPrint] = useState(8);
