@@ -14,7 +14,7 @@ interface Subscriber {
 }
 interface Campaign {
     id: string; subject: string; segment: string; status: string;
-    sent_count: number; failed_count: number; total_recipients: number;
+    sent_count: number; failed_count: number; recipients_count: number;
     created_at: string; sent_at: string | null;
 }
 
@@ -312,7 +312,7 @@ export default function SubscribersPage() {
                                         <div style={{ display:'flex', gap:10, marginTop:7 }}>
                                             <span style={{ fontSize:11, color:'#16a34a', fontWeight:600 }}>✓ {c.sent_count}</span>
                                             {c.failed_count>0&&<span style={{ fontSize:11, color:'#dc2626', fontWeight:600 }}>✗ {c.failed_count}</span>}
-                                            <span style={{ fontSize:11, color:'#9ca3af' }}>з {c.total_recipients}</span>
+                                            <span style={{ fontSize:11, color:'#9ca3af' }}>з {c.recipients_count}</span>
                                         </div>
                                     )}
                                 </div>
