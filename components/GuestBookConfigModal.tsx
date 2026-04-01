@@ -368,7 +368,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }:
                   config.addOtherText ? ['Текст', config.otherText] : null,
                   ['Колір надписів', config.textColor],
                   ['Ламінація', config.coverFinish],
-                ].filter(Boolean).map(([label, val]) => (
+                ].filter((x): x is [string, string] => Array.isArray(x)).map(([label, val]) => (
                   <div key={label as string} className="flex justify-between py-1.5 border-b border-gray-200 last:border-0">
                     <span className="text-sm text-gray-600">{label}:</span>
                     <span className="text-sm font-semibold text-gray-800">{val as string}</span>
