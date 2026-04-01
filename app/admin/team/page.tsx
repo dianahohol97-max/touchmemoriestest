@@ -551,7 +551,7 @@ export default function TeamPage() {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSave} style={{ padding: '32px' }}>
+                            <form onSubmit={handleSave} style={{ padding: '24px 32px', overflowY: 'auto', flex: 1 }}>
                                 <div style={{ display: 'grid', gap: '20px' }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                         <div>
@@ -687,7 +687,7 @@ export default function TeamPage() {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f1f5f9', position: 'sticky', bottom: 0, background: '#fff', zIndex: 1 }}>
                                     <button type="button" onClick={() => setIsFormOpen(false)} style={cancelBtn}>
                                         Скасувати
                                     </button>
@@ -861,30 +861,31 @@ const overlay = {
     zIndex: 998,
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    padding: '16px'
 };
 
 const modal = {
-    position: 'fixed' as any,
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
+    position: 'relative' as any,
     backgroundColor: 'white',
-    borderRadius: '3px',
+    borderRadius: '12px',
     width: '90%',
     maxWidth: '700px',
     maxHeight: '90vh',
-    overflowY: 'auto' as any,
+    display: 'flex',
+    flexDirection: 'column' as any,
     boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-    zIndex: 999
+    zIndex: 999,
+    overflow: 'hidden'
 };
 
 const modalHeader = {
-    padding: '24px 32px',
+    padding: '20px 32px',
     borderBottom: '1.5px solid #f1f5f9',
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    flexShrink: 0
 };
 
 const closeBtn = {
