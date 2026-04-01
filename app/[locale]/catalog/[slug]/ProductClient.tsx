@@ -143,13 +143,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const [photobookPricesData, setPhotobookPricesData] = useState<any[]>([]);
 
     const getProductionTime = (categorySlug: string = '') => {
-        const s = categorySlug.toLowerCase();
-        if (s.includes('photobook')) return '14 робочих днів';
+        const s = (categorySlug || '').toLowerCase();
+        if (s.includes('photobook') || s.includes('фотокниг')) return '14 робочих днів';
         if (s.includes('travelbook') || s.includes('travel')) return '10–14 робочих днів';
-        if (s.includes('magazine')) return '4–8 робочих днів';
-        if (s.includes('guestbook') || s.includes('photoalbum')) return '10 робочих днів';
-        if (s.includes('print')) return '2–3 робочих дні';
+        if (s.includes('magazine') || s.includes('journal') || s.includes('журнал') || s.includes('hlyantsevi') || s.includes('glyantsevy')) return '4–8 робочих днів';
+        if (s.includes('guestbook') || s.includes('photoalbum') || s.includes('wishbook')) return '10 робочих днів';
+        if (s.includes('print') || s.includes('photo-print') || s.includes('magnet')) return '2–3 робочих дні';
+        if (s.includes('puzzle') || s.includes('canvas')) return '5–7 робочих днів';
         return '7–14 робочих днів';
+    };
+
+    const isJournalProduct = (slug: string = '', categorySlug: string = '') => {
+        const s = (slug + ' ' + categorySlug).toLowerCase();
+        return s.includes('magazine') || s.includes('journal') || s.includes('журнал') || s.includes('hlyantsevi') || s.includes('glyantsevy');
     };
 
     // Store selected options -> mapping from option Name to selected value (index or value)
@@ -1018,6 +1024,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
                                 Термін виготовлення: {getProductionTime(product.categories?.slug || product.category_id)}
+                                {isJournalProduct(product.slug, product.categories?.slug || '') && (
+                                    <span style={{ marginLeft: 8, fontSize: 12, color: '#f59e0b', fontWeight: 700, background: '#fffbeb', padding: '2px 8px', borderRadius: 4, border: '1px solid #fde68a' }}>
+                                        ⚡ Термінове 1–2 дні +30%
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
