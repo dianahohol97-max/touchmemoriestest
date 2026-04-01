@@ -170,7 +170,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
 
         return (
           <div key={slot.id}
-            onMouseDown={e => {
+            onPointerDown={e => {
               if (inCrop) return;
               setSelectedId(slot.id);
               startDrag(e, slot.id, 'move');
@@ -220,7 +220,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
                   style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative' }}>
                   <img
                     src={photo.preview}
-                    onMouseDown={e => {
+                    onPointerDown={e => {
                       if (inCrop) { e.stopPropagation(); startDrag(e, slot.id, 'crop'); return; }
                       if (!sel) { e.stopPropagation(); setSelectedId(slot.id); }
                     }}
@@ -390,7 +390,6 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
           return (
             <div key={h}
               onPointerDown={e => { e.stopPropagation(); startDrag(e, slot.id, h); }}
-              onTouchStart={startTouchResize}
               style={{
                 position: 'absolute',
                 left: pos.left - sz / 2,
