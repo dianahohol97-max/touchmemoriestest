@@ -4,10 +4,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import styles from './ProductContent.module.css';
 import { trackViewItem, trackAddToCart } from '@/components/providers/AnalyticsProvider';
+import { useT } from '@/lib/i18n/context';
 import GiftHintButton from '@/components/ui/GiftHintButton';
 import WishlistButton from '@/components/ui/WishlistButton';
 
 export default function ProductContent({ product }: { product: any }) {
+    const t = useT();
     const { addItem } = useCart();
     const router = useRouter();
     const [withDesigner, setWithDesigner] = useState(false);
@@ -110,8 +112,8 @@ export default function ProductContent({ product }: { product: any }) {
 
                         <button className="btn-shop" style={{ width: '100%', padding: '20px', fontSize: '1.2rem' }} onClick={handleAddToCart}>
                             {withDesigner
-                                ? `Додати з послугою дизайнера (${product.price + (product.designer_service_price || 500)} грн)`
-                                : `Додати у кошик (${product.price} грн)`
+                                ? `${t('product.order_with_designer')} (${product.price + (product.designer_service_price || 500)} грн)`
+                                : `${t('product.add_to_cart')} (${product.price} грн)`
                             }
                         </button>
 

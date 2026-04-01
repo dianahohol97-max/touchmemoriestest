@@ -88,6 +88,7 @@ export function Footer({ categories = [] }: FooterProps) {
     });
 
     const { content, blocks } = useTheme();
+  const t = useT();
     const [openSection, setOpenSection] = useState<string | null>(null);
     const [sections, setSections] = useState<any[]>([]);
     const footerBlock = blocks.find(b => b.block_name === 'footer');
@@ -145,14 +146,14 @@ export function Footer({ categories = [] }: FooterProps) {
                         id: 'help',
                         title: 'Допомога',
                         links: [
-                            { label: 'Доставка та оплата', href: '/shipping-returns' },
+                            { label: t('footer.delivery'), href: '/shipping-returns' },
                             { label: 'Питання та відповіді', href: '/faq' },
                             { label: 'Конструктор', href: '/constructor/photobook' }
                         ]
                     },
                     {
                         id: 'contacts',
-                        title: 'Контакти',
+                        title: t('footer.contacts'),
                         links: [
                             { label: 'touch.memories3@gmail.com', href: 'mailto:touch.memories3@gmail.com' },
                             { label: 'Тернопіль, вул. Київська 2', href: 'https://maps.google.com/?q=Тернопіль,+вул.+Київська+2' },
@@ -267,7 +268,7 @@ export function Footer({ categories = [] }: FooterProps) {
                 {/* Bottom Bar */}
                 <div className="mt-32 pt-16 border-t border-primary/5 flex flex-col md:flex-row justify-between items-center gap-10">
                     <p className="text-[13px] text-primary/20 font-medium tracking-tight m-0">
-                        © {new Date().getFullYear()} {content['footer_copyright'] || 'Touch.Memories'}. Всі права захищено.
+                        © {new Date().getFullYear()} {content['footer_copyright'] || 'Touch.Memories'}. {t('footer.rights')}
                     </p>
                     <div className="flex gap-12">
                         {[

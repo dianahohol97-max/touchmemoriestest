@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Play } from 'lucide-react';
@@ -29,7 +30,8 @@ interface ConstructorSelectionClientProps {
     sectionContent?: SectionContent;
 }
 
-export function ConstructorSelectionClient({ sectionContent }: ConstructorSelectionClientProps) {
+export function ConstructorSelectionClient({
+  const t = useT(); sectionContent }: ConstructorSelectionClientProps) {
     const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
     const [photobookModalOpen, setPhotobookModalOpen] = useState(false);
     const [magazineModalOpen, setMagazineModalOpen] = useState(false);

@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
@@ -34,14 +35,15 @@ function MatIcon({ name, size = 40 }: { name: string; size?: number }) {
 }
 
 const productCategories = [
-  { icon: 'menu_book',                  label: 'Фотокниги', href: '/catalog?category=photobooks' },
-  { icon: 'auto_stories',               label: 'Журнали',   href: '/catalog?category=hlyantsevi-zhurnaly' },
+  { icon: 'menu_book',                  label: t('nav.photobooks'), href: '/catalog?category=photobooks' },
+  { icon: 'auto_stories',               label: t('nav.magazines'),   href: '/catalog?category=hlyantsevi-zhurnaly' },
   { icon: 'explore',                    label: 'TravelBook', href: '/catalog/travelbook-20x30' },
   { icon: 'photo_library',              label: 'Фотодрук',  href: '/catalog/photo-prints' },
   { icon: 'featured_seasonal_and_gifts',label: 'Подарунки', href: '/catalog?category=gifts' },
 ];
 
-export function CustomBookPromoClient({ sectionContent }: CustomBookPromoClientProps) {
+export function CustomBookPromoClient({
+  const t = useT(); sectionContent }: CustomBookPromoClientProps) {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
 
   const heading   = sectionContent?.heading   || 'Фотокниги, журнали та фотовироби з душею';

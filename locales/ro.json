@@ -7,9 +7,17 @@
     "prints": "Fotografii Imprimate",
     "guestbooks": "Cărți de Oaspeți",
     "blog": "Blog",
-    "about": "Despre Noi",
+    "about": "Despre noi",
     "cart": "Coș",
-    "order": "Comandă"
+    "order": "Comandă",
+    "travelbook": "Travel Book",
+    "puzzles": "Puzzle",
+    "posters": "Postere",
+    "wishbooks": "Cartea dorințelor",
+    "other": "Alte produse",
+    "contacts": "Contacte",
+    "travel_book": "Travel Book",
+    "photo_print": "Imprimare foto"
   },
   "home": {
     "hero_title": "Păstrați Cele Mai Bune Momente",
@@ -17,7 +25,12 @@
     "hero_cta": "Vezi Catalogul",
     "hero_cta2": "Cum Funcționează",
     "popular": "Produse Populare",
-    "categories": "Categorii"
+    "categories": "Categorii",
+    "view_all": "Vezi toate",
+    "order": "Comandă",
+    "how_it_works": "Cum funcționează",
+    "constructor": "Constructor",
+    "our_works": "Lucrările noastre"
   },
   "catalog": {
     "title": "Catalog",
@@ -28,7 +41,10 @@
     "sort_price_asc": "Preț: Crescător",
     "sort_price_desc": "Preț: Descrescător",
     "no_results": "Niciun rezultat",
-    "from_price": "de la"
+    "from_price": "de la",
+    "search_placeholder": "Caută...",
+    "popular": "Populare",
+    "newest": "Noi"
   },
   "product": {
     "order": "Comandă",

@@ -6,6 +6,7 @@ import { useTheme } from '@/components/providers/ThemeProvider';
 
 export function Categories({ blockName = 'categories' }: { blockName?: string }) {
     const { content, blocks } = useTheme();
+  const t = useT();
     const block = blocks.find(b => b.block_name === blockName);
     const style = block?.style_metadata || {};
 

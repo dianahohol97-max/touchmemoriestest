@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
+import { useT } from '@/lib/i18n/context';
+mport { useState, useEffect, Suspense } from 'react';
 import styles from './catalog.module.css';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -45,6 +46,7 @@ interface Product {
 function CatalogContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const t = useT();
     const queryCategory = searchParams.get('category') || 'all';
     const queryCollection = searchParams.get('collection');
 
@@ -86,7 +88,7 @@ function CatalogContent() {
                 .eq('is_active', true)
                 .order('sort_order', { ascending: true });
 
-            if (catData) setCategories([{ id: 'all', name: 'Всі товари', slug: 'all' }, ...catData]);
+            if (catData) setCategories([{ id: 'all', name: t('catalog.all'), slug: 'all' }, ...catData]);
 
             // Fetch products
             const { data: prodData } = await supabase
@@ -284,7 +286,7 @@ function CatalogContent() {
                             </div>
 
                             <div className={styles.sortControls} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span className={styles.sortLabel} style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>Сортувати:</span>
+                                <span className={styles.sortLabel} style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>{t('catalog.sort')}:</span>
                                 <div className={styles.selectWrapper} style={{ position: 'relative' }}>
                                     <select
                                         value={sortBy}
@@ -303,8 +305,8 @@ function CatalogContent() {
                                         }}
                                     >
                                         <option value="popular">Популярністю</option>
-                                        <option value="price_asc">Ціною: від низької до високої</option>
-                                        <option value="price_desc">Ціною: від високої до низької</option>
+                                        <option value="price_asc">{t('catalog.sort_price_asc')}</option>
+                                        <option value="price_desc">{t('catalog.sort_price_desc')}</option>
                                         <option value="new">Новинками</option>
                                     </select>
                                     <ChevronDown className={styles.selectIcon} size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94a3b8' }} />

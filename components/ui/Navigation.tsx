@@ -8,9 +8,11 @@ import { useCartStore } from '@/store/cart-store';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n/context';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function Navigation() {
+    const t = useT();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -69,11 +71,11 @@ export function Navigation() {
             } else {
                 // Fallback to defaults
                 setNavLinks([
-                    { id: '1', name: 'Фотокниги', href: '/catalog?category=photobooks' },
-                    { id: '2', name: 'Глянцеві журнали', href: '/catalog?category=hlyantsevi-zhurnaly' },
+                    { id: '1', name: t('nav.photobooks'), href: '/catalog?category=photobooks' },
+                    { id: '2', name: t('nav.magazines'), href: '/catalog?category=hlyantsevi-zhurnaly' },
                     { id: '3', name: 'Travelbook', href: '/catalog?category=travelbooks' },
-                    { id: '4', name: 'Фотодрук', href: '/catalog?category=prints' },
-                    { id: '5', name: 'Сертифікати', href: '/catalog?category=certificates' },
+                    { id: '4', name: t('nav.prints'), href: '/catalog?category=prints' },
+                    { id: '5', name: t('checkout.title') || 'Сертифікати', href: '/catalog?category=certificates' },
                 ]);
             }
 
@@ -143,10 +145,10 @@ export function Navigation() {
     const mainNavLinks = navLinks;
 
     const aboutDropdownItems = [
-        { name: 'Про нас', href: '/pro-nas' },
-        { name: 'Наші контакти', href: '/kontakty' },
-        { name: 'Оплата і доставка', href: '/oplata-i-dostavka' },
-        { name: 'Блог', href: '/blog' },
+        { name: t('footer.about'), href: '/pro-nas' },
+        { name: t('nav.contacts'), href: '/kontakty' },
+        { name: t('footer.delivery'), href: '/oplata-i-dostavka' },
+        { name: t('nav.blog'), href: '/blog' },
     ];
 
     return (

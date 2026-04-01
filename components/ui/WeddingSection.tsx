@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Image from 'next/image';
@@ -6,6 +7,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 export function WeddingSection() {
+  const t = useT();
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,

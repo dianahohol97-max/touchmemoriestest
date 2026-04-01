@@ -7,9 +7,17 @@
     "prints": "Fotodrucke",
     "guestbooks": "Gästebücher",
     "blog": "Blog",
-    "about": "Über Uns",
+    "about": "Über uns",
     "cart": "Warenkorb",
-    "order": "Bestellen"
+    "order": "Bestellen",
+    "travelbook": "Reisebuch",
+    "puzzles": "Puzzle",
+    "posters": "Poster",
+    "wishbooks": "Wunschbuch",
+    "other": "Andere Produkte",
+    "contacts": "Kontakt",
+    "travel_book": "Travel Book",
+    "photo_print": "Fotodruck"
   },
   "home": {
     "hero_title": "Bewahren Sie Ihre Schönsten Momente",
@@ -17,7 +25,12 @@
     "hero_cta": "Katalog Ansehen",
     "hero_cta2": "So Funktioniert Es",
     "popular": "Beliebte Produkte",
-    "categories": "Kategorien"
+    "categories": "Kategorien",
+    "view_all": "Alle anzeigen",
+    "order": "Bestellen",
+    "how_it_works": "Wie es funktioniert",
+    "constructor": "Gestalter",
+    "our_works": "Unsere Arbeiten"
   },
   "catalog": {
     "title": "Katalog",
@@ -28,7 +41,10 @@
     "sort_price_asc": "Preis: Aufsteigend",
     "sort_price_desc": "Preis: Absteigend",
     "no_results": "Keine Ergebnisse",
-    "from_price": "ab"
+    "from_price": "ab",
+    "search_placeholder": "Suchen...",
+    "popular": "Beliebt",
+    "newest": "Neuheiten"
   },
   "product": {
     "order": "Bestellen",

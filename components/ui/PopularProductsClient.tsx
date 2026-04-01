@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 
 import Link from 'next/link';
 import { useState } from 'react';
@@ -27,7 +28,7 @@ interface PopularProductsClientProps {
 }
 
 export function PopularProductsClient({ products, sectionContent }: PopularProductsClientProps) {
-  const heading = sectionContent?.heading || 'Популярні продукти';
+  const heading = sectionContent?.heading || t('home.popular');
   const ctaText = sectionContent?.cta_text || 'Переглянути всі продукти →';
   const ctaUrl  = sectionContent?.cta_url  || '/catalog';
 
@@ -35,6 +36,7 @@ export function PopularProductsClient({ products, sectionContent }: PopularProdu
   const GAP = 20;
   const STEP = CARD_WIDTH + GAP;
 
+  const t = useT();
   const [offset, setOffset] = useState(0);
   const maxOffset = Math.max(0, products.length * STEP - GAP - 4 * STEP);
 

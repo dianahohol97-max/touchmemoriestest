@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import { useT } from '@/lib/i18n/context';
 import { PRODUCT_IMAGES } from '@/lib/productImages';
 
 const easing = [0.25, 0.46, 0.45, 0.94] as any;
@@ -47,6 +48,7 @@ const REFERENCE_PILLS = [
 
 export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroClientProps) {
   const { content } = useTheme();
+  const t = useT();
 
   const overlineText =
     heroContent?.overline_text ||
@@ -95,7 +97,7 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
           transition={{ duration: 0.7, ease: easing, delay: 0.1 }}
           style={{ color: '#ffffff', fontSize: 'clamp(3rem, 8vw, 6rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em', marginBottom: '3rem', maxWidth: '56rem' }}
         >
-          Доторкнись до спогадів
+          {t('home.hero_title')}
         </motion.h1>
 
         {/* Exact 6 pills from reference */}

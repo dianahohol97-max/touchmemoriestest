@@ -7,9 +7,17 @@
     "prints": "Odbitki",
     "guestbooks": "Księgi Gości",
     "blog": "Blog",
-    "about": "O Nas",
+    "about": "O nas",
     "cart": "Koszyk",
-    "order": "Zamów"
+    "order": "Zamów",
+    "travelbook": "Travel Book",
+    "puzzles": "Puzzle",
+    "posters": "Plakaty",
+    "wishbooks": "Księga życzeń",
+    "other": "Inne produkty",
+    "contacts": "Kontakty",
+    "travel_book": "Travel Book",
+    "photo_print": "Druk zdjęć"
   },
   "home": {
     "hero_title": "Zachowaj Najlepsze Chwile",
@@ -17,7 +25,12 @@
     "hero_cta": "Przeglądaj Katalog",
     "hero_cta2": "Jak To Działa",
     "popular": "Popularne Produkty",
-    "categories": "Kategorie"
+    "categories": "Kategorie",
+    "view_all": "Zobacz wszystkie",
+    "order": "Zamów",
+    "how_it_works": "Jak to działa",
+    "constructor": "Konstruktor",
+    "our_works": "Nasze prace"
   },
   "catalog": {
     "title": "Katalog",
@@ -28,7 +41,10 @@
     "sort_price_asc": "Cena: Rosnąco",
     "sort_price_desc": "Cena: Malejąco",
     "no_results": "Brak wyników",
-    "from_price": "od"
+    "from_price": "od",
+    "search_placeholder": "Szukaj...",
+    "popular": "Popularne",
+    "newest": "Nowości"
   },
   "product": {
     "order": "Zamów",

@@ -9,7 +9,15 @@
     "blog": "Блог",
     "about": "Про нас",
     "cart": "Кошик",
-    "order": "Замовити"
+    "order": "Замовити",
+    "travelbook": "Travelbook",
+    "puzzles": "Пазли",
+    "posters": "Постери",
+    "wishbooks": "Книга побажань",
+    "other": "Інші товари",
+    "contacts": "Контакти",
+    "travel_book": "Travel Book",
+    "photo_print": "Фотодрук"
   },
   "home": {
     "hero_title": "Збережіть найкращі моменти",
@@ -17,7 +25,12 @@
     "hero_cta": "Переглянути каталог",
     "hero_cta2": "Як це працює",
     "popular": "Популярні товари",
-    "categories": "Категорії"
+    "categories": "Категорії",
+    "view_all": "Переглянути всі",
+    "order": "Замовити",
+    "how_it_works": "Як це працює",
+    "constructor": "Конструктор",
+    "our_works": "Наші роботи"
   },
   "catalog": {
     "title": "Каталог",
@@ -28,7 +41,10 @@
     "sort_price_asc": "Ціна: від низької",
     "sort_price_desc": "Ціна: від високої",
     "no_results": "Нічого не знайдено",
-    "from_price": "від"
+    "from_price": "від",
+    "search_placeholder": "Пошук...",
+    "popular": "Популярні",
+    "newest": "Новинки"
   },
   "product": {
     "order": "Замовити",

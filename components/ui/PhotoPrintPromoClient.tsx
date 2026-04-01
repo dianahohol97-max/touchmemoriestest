@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
@@ -18,7 +19,8 @@ interface PhotoPrintPromoClientProps {
     sectionContent?: SectionContent;
 }
 
-export function PhotoPrintPromoClient({ sectionContent }: PhotoPrintPromoClientProps) {
+export function PhotoPrintPromoClient({
+  const t = useT(); sectionContent }: PhotoPrintPromoClientProps) {
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,

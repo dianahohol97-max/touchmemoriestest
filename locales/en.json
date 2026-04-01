@@ -7,9 +7,17 @@
     "prints": "Photo Prints",
     "guestbooks": "Guest Books",
     "blog": "Blog",
-    "about": "About",
+    "about": "About Us",
     "cart": "Cart",
-    "order": "Order"
+    "order": "Order",
+    "travelbook": "Travel Book",
+    "puzzles": "Puzzles",
+    "posters": "Posters",
+    "wishbooks": "Wish Book",
+    "other": "Other Products",
+    "contacts": "Contacts",
+    "travel_book": "Travel Book",
+    "photo_print": "Photo Prints"
   },
   "home": {
     "hero_title": "Preserve Your Best Moments",
@@ -17,7 +25,12 @@
     "hero_cta": "Browse Catalog",
     "hero_cta2": "How It Works",
     "popular": "Popular Products",
-    "categories": "Categories"
+    "categories": "Categories",
+    "view_all": "View All",
+    "order": "Order Now",
+    "how_it_works": "How It Works",
+    "constructor": "Constructor",
+    "our_works": "Our Works"
   },
   "catalog": {
     "title": "Catalog",
@@ -28,7 +41,10 @@
     "sort_price_asc": "Price: Low to High",
     "sort_price_desc": "Price: High to Low",
     "no_results": "No results found",
-    "from_price": "from"
+    "from_price": "from",
+    "search_placeholder": "Search...",
+    "popular": "Popular",
+    "newest": "New"
   },
   "product": {
     "order": "Order",
