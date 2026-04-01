@@ -127,9 +127,10 @@
   },
   "cart": {
     "empty": "Your cart is empty",
-    "total": "Order Total",
-    "pay": "Pay Now",
+    "total": "Total",
+    "pay": "Proceed to Checkout",
     "clear": "Clear Cart",
-    "title": "Cart"
+    "title": "Cart",
+    "items": "Items"
   }
 }

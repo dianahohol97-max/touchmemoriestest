@@ -127,9 +127,10 @@
   },
   "cart": {
     "empty": "Coșul este gol",
-    "total": "Total comandă",
-    "pay": "Plătește acum",
+    "total": "Total",
+    "pay": "Finalizează comanda",
     "clear": "Golește coșul",
-    "title": "Coș"
+    "title": "Coș",
+    "items": "Produse"
   }
 }

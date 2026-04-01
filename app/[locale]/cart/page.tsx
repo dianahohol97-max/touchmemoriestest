@@ -13,6 +13,7 @@ import { createOrderFileRecords, type OrderFileRecord } from '@/lib/export-utils
 
 
 export default function CartPage() {
+    const t = useT();
     const { items, removeItem, updateQuantity, getTotal, clearCart } = useCartStore();
     const [loading, setLoading] = useState(false);
 

@@ -127,9 +127,10 @@
   },
   "cart": {
     "empty": "Warenkorb ist leer",
-    "total": "Bestellsumme",
-    "pay": "Jetzt bezahlen",
+    "total": "Gesamt",
+    "pay": "Zur Kasse",
     "clear": "Warenkorb leeren",
-    "title": "Warenkorb"
+    "title": "Warenkorb",
+    "items": "Artikel"
   }
 }

@@ -127,9 +127,10 @@
   },
   "cart": {
     "empty": "Koszyk jest pusty",
-    "total": "Razem do zapłaty",
-    "pay": "Zapłać teraz",
+    "total": "Do zapłaty",
+    "pay": "Złóż zamówienie",
     "clear": "Wyczyść koszyk",
-    "title": "Koszyk"
+    "title": "Koszyk",
+    "items": "Produkty"
   }
 }
