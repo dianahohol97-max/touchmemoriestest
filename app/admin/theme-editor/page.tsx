@@ -225,7 +225,7 @@ function ThemeEditorContent() {
     );
 
     return (
-        <div style={{ display: 'flex', height: 'calc(100vh - 64px)', margin: '-24px', backgroundColor: '#f1f5f9' }}>
+        <div style={{ display: 'flex', height: 'calc(100vh - 80px)', margin: '-40px -60px', backgroundColor: '#f1f5f9' }}>
             {/* Left Sidebar Controls */}
             <div style={{ width: '380px', flexShrink: 0, borderRight: '1px solid #e2e8f0', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff' }}>
