@@ -7,6 +7,7 @@ import { AnalyticsProvider } from '@/components/providers/AnalyticsProvider';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NewsletterPopup } from '@/components/ui/NewsletterPopup';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { I18nProvider } from '@/lib/i18n/context';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { OAuthCallbackHandler } from '@/components/providers/OAuthCallbackHandler';
 import { SITE_INFO } from '@/lib/seoContent';
@@ -81,7 +82,9 @@ export default function RootLayout({
       </head>
       <body className="font-body bg-background text-textPrimary antialiased">
         <ThemeProvider>
+          <I18nProvider>
           {children}
+          </I18nProvider>
           <CartDrawer />
           <Toaster position="top-right" richColors />
           <NewsletterPopup />

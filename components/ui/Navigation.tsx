@@ -8,6 +8,7 @@ import { useCartStore } from '@/store/cart-store';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function Navigation() {
     const [isScrolled, setIsScrolled] = useState(false);
@@ -319,6 +320,7 @@ export function Navigation() {
                             <Search size={20} />
                         </button>
                         <UserAuthIcon />
+                        <LanguageSwitcher />
                         <button
                             onClick={openDrawer}
                             className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-inherit hover:opacity-70 transition-opacity p-0"

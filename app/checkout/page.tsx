@@ -19,6 +19,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useTranslation } from '@/lib/i18n/context';
 import Image from 'next/image';
 
 type Step = 'info' | 'shipping' | 'payment' | 'complete';
@@ -26,6 +27,7 @@ type Step = 'info' | 'shipping' | 'payment' | 'complete';
 export default function CheckoutPage() {
     const { items, getTotal, clearCart } = useCartStore();
     const router = useRouter();
+    const { t, isInternational, locale } = useTranslation();
     const [currentStep, setCurrentStep] = useState<Step>('info');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showRegionModal, setShowRegionModal] = useState(false);
@@ -57,13 +59,13 @@ export default function CheckoutPage() {
     const nextStep = () => {
         if (currentStep === 'info') {
             if (!formData.name || !formData.phone || !formData.email) {
-                toast.error('Будь ласка, заповніть усі поля');
+                toast.error(t('checkout.fill_contacts'));
                 return;
             }
             setCurrentStep('shipping');
         } else if (currentStep === 'shipping') {
             if (!formData.city || !formData.branch) {
-                toast.error('Будь ласка, виберіть місто та відділення нп');
+                toast.error(t('checkout.fill_shipping'));
                 return;
             }
             setCurrentStep('payment');
@@ -75,7 +77,9 @@ export default function CheckoutPage() {
         if (currentStep === 'payment') setCurrentStep('shipping');
     };
 
-    const handleSubmitOrder = async (paymentRegion: 'ua' | 'international' = 'ua') => {
+    // Auto-determine region: non-Ukrainian locale → international
+    const getDefaultRegion = (): 'ua' | 'international' => isInternational ? 'international' : 'ua';
+    const handleSubmitOrder = async (paymentRegion: 'ua' | 'international' = getDefaultRegion()) => {
         setIsSubmitting(true);
         try {
             const orderNumber = `TM-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -134,7 +138,7 @@ export default function CheckoutPage() {
             }
 
             // 3. Cash on delivery — show success page
-            toast.success('Замовлення успішно оформлено!');
+            toast.success(t('checkout.success'));
             clearCart();
             setCurrentStep('complete');
 
