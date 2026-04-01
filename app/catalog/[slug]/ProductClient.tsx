@@ -26,8 +26,11 @@ const getConstructorUrl = (slug: string): string => {
   // Travel Book → new book constructor
   if (s.includes('travelbook') || s.includes('travel'))
     return `/order/book?product=${slug}`;
-  // Guest book
-  if (s.includes('guestbook') || s.includes('wishbook') || s.includes('vishbuk') || s.includes('pobazhan'))
+  // Wishbook (книга побажань) → wishbook constructor with cover selection
+  if (s.includes('wishbook') || s.includes('pobazhan') || s.includes('guestbook-wedding') || s.includes('guestbook-kids') || s.includes('knyha-pobazhan'))
+    return `/order/book?product=wishbook`;
+  // Guest book (гостьова книга — для фотосесій) → guest-book constructor
+  if (s.includes('guestbook') || s.includes('vishbuk'))
     return '/order/guest-book';
   // Photo albums
   if (s.includes('photoalbum') || s.includes('photoalbom') || s.includes('fotoalbom'))
