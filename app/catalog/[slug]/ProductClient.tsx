@@ -14,6 +14,7 @@ import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
 import { ProductOptionsSelector, areAllRequiredOptionsFilled } from '@/components/ui/ProductOptionsSelector';
+import GuestBookConfigModal from '@/components/GuestBookConfigModal';
 
 const getConstructorUrl = (slug: string): string => {
   const s = slug.toLowerCase();
@@ -157,7 +158,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const [dynamicPrice, setDynamicPrice] = useState<number | null>(null);
     const [personalizationNote, setPersonalizationNote] = useState('');
     const [showPersonalizationInput, setShowPersonalizationInput] = useState(false);
+    const [guestbookModalOpen, setGuestbookModalOpen] = useState(false);
     const { addItem } = useCartStore();
+
+    // Helper: is this product a wishbook/guestbook?
+    const isWishbookProduct = (slug: string) => {
+        const s = (slug || '').toLowerCase();
+        return s.includes('wishbook') || s.includes('pobazhan') || s.includes('guestbook') || s.includes('vishbuk') || s.includes('knyha-pobazhan');
+    };
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -773,6 +781,27 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         >
                                             Відкрити редактор
                                         </Link>
+                                        {isWishbookProduct(product.slug || resolvedParams.slug) ? (
+                                            <button
+                                                onClick={() => setGuestbookModalOpen(true)}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '18px',
+                                                    backgroundColor: 'white',
+                                                    color: '#263a99',
+                                                    border: '2px solid #263a99',
+                                                    fontSize: '16px',
+                                                    fontWeight: 700,
+                                                    textAlign: 'center',
+                                                    transition: 'background-color 0.2s',
+                                                    cursor: 'pointer',
+                                                    borderRadius: '6px',
+                                                }}
+                                                className="hover:bg-[#f0f3ff]"
+                                            >
+                                                Оформити з дизайнером
+                                            </button>
+                                        ) : (
                                         <Link
                                             href="/order"
                                             style={{
@@ -791,6 +820,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         >
                                             Оформити з дизайнером
                                         </Link>
+                                        )}
                                     </div>
                                     <p style={{ fontSize: '14px', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
                                         Не знаєте як оформити? Наш дизайнер допоможе вам створити ідеальний продукт                                    </p>
@@ -1110,6 +1140,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             </main>
 
             <Footer categories={[]} />
+
+            <GuestBookConfigModal
+                isOpen={guestbookModalOpen}
+                onClose={() => setGuestbookModalOpen(false)}
+            />
 
         </div>
     );
