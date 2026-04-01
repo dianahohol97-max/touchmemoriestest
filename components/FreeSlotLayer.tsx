@@ -63,6 +63,45 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
 
   const dragRef = useRef<{ type: 'move' | Handle | 'crop'; id: string; startX: number; startY: number; origSlot: FreeSlot } | null>(null);
 
+  // Global touch handlers for move + resize (mirrors mouse global handlers)
+  useEffect(() => {
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dragRef.current) return;
+      const { type, id, startX, startY, origSlot } = dragRef.current;
+      const t = e.touches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      let { x, y, w, h } = origSlot;
+      e.preventDefault();
+
+      if (type === 'move') {
+        x = Math.max(0, Math.min(canvasW - w, origSlot.x + dx));
+        y = Math.max(0, Math.min(canvasH - h, origSlot.y + dy));
+        onChange(slots.map(s => s.id === id ? { ...s, x, y } : s));
+      } else if (type === 'crop') {
+        const nx = Math.max(0, Math.min(100, origSlot.cropX - dx / 3));
+        const ny = Math.max(0, Math.min(100, origSlot.cropY - dy / 3));
+        onChange(slots.map(s => s.id === id ? { ...s, cropX: nx, cropY: ny } : s));
+      } else {
+        // resize handle
+        const hStr = type as string;
+        if (hStr.includes('e')) w = Math.max(MIN_SIZE, origSlot.w + dx);
+        if (hStr.includes('s')) h = Math.max(MIN_SIZE, origSlot.h + dy);
+        if (hStr.includes('w')) { w = Math.max(MIN_SIZE, origSlot.w - dx); x = origSlot.x + (origSlot.w - w); }
+        if (hStr.includes('n')) { h = Math.max(MIN_SIZE, origSlot.h - dy); y = origSlot.y + (origSlot.h - h); }
+        if (origSlot.shape === 'square' || origSlot.shape === 'circle') { const sz = Math.max(w, h); w = sz; h = sz; }
+        onChange(slots.map(s => s.id === id ? { ...s, x: Math.max(0,x), y: Math.max(0,y), w, h } : s));
+      }
+    };
+    const onTouchEnd = () => { dragRef.current = null; };
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+    return () => {
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [slots, canvasW, canvasH, onChange]);
+
   // Touch state for pinch-zoom and double-tap
   const touchRef = useRef<{ lastTap: number; lastTapId: string; pinchDist: number | null; slotId: string | null; startX: number; startY: number; origCropX: number; origCropY: number } >({ lastTap: 0, lastTapId: '', pinchDist: null, slotId: null, startX: 0, startY: 0, origCropX: 50, origCropY: 50 });
 
@@ -178,6 +217,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
               cursor: inCrop ? 'default' : (sel ? 'move' : 'pointer'),
               zIndex: inCrop ? 55 : (sel ? 50 : 30),
               boxShadow: inCrop ? '0 0 0 9999px rgba(0,0,0,0.45)' : (sel ? '0 0 0 2px rgba(59,130,246,0.25)' : 'none'),
+              touchAction: 'none',
             }}
           >
             {/* Clip container */}
@@ -269,46 +309,50 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
               )}
             </div>
 
-            {/* CANVA TOOLBAR — smart positioning: outside when room, inside when full-page */}
+            {/* TOOLBAR — works on both mouse and touch */}
             {sel && !inCrop && (() => {
               const nearTop = slot.y < 48;
               const nearBottom = slot.h > canvasH - 60;
-              const insideMode = nearTop && nearBottom; // full page slot
+              const insideMode = nearTop && nearBottom;
+              const tb = (fn: () => void) => ({
+                onMouseDown: (e: React.MouseEvent) => { e.stopPropagation(); fn(); },
+                onTouchEnd: (e: React.TouchEvent) => { e.stopPropagation(); e.preventDefault(); fn(); },
+              });
               return (
-              <div onMouseDown={e => e.stopPropagation()}
+              <div onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}
                 style={{ position:'absolute',
-                  ...(insideMode ? { top: 8, left:'50%', transform:'translateX(-50%)' }
-                    : nearTop ? { bottom:-42, top:'auto', left:'50%', transform:'translateX(-50%)' }
-                    : { top:-42, left:'50%', transform:'translateX(-50%)' }),
+                  ...(insideMode ? { top:8, left:'50%', transform:'translateX(-50%)' }
+                    : nearTop ? { bottom:-46, top:'auto', left:'50%', transform:'translateX(-50%)' }
+                    : { top:-46, left:'50%', transform:'translateX(-50%)' }),
                   display:'flex', alignItems:'center', gap:2, background:'#fff',
-                  border:'0.5px solid #e2e8f0', borderRadius:8, padding:'3px 5px',
-                  boxShadow:'0 2px 10px rgba(0,0,0,0.12)', zIndex:70, whiteSpace:'nowrap' }}>
+                  border:'0.5px solid #e2e8f0', borderRadius:8, padding:'4px 6px',
+                  boxShadow:'0 2px 10px rgba(0,0,0,0.15)', zIndex:70, whiteSpace:'nowrap', touchAction:'none' }}>
                 {photo && (
-                  <button onMouseDown={e => { e.stopPropagation(); setCropModeId(slot.id); }}
-                    title="Кадрувати / перемістити фото"
-                    style={{ display:'flex', alignItems:'center', gap:3, padding:'4px 8px', border:'none', borderRadius:5, background:'#f0f3ff', cursor:'pointer', fontSize:11, fontWeight:600, color:'#1e2d7d' }}>
+                  <button {...tb(() => setCropModeId(slot.id))}
+                    title="Кадрувати фото"
+                    style={{ display:'flex', alignItems:'center', gap:3, padding:'6px 10px', border:'none', borderRadius:5, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:600, color:'#1e2d7d', minHeight:32, touchAction:'manipulation' }}>
                     ⊡ Кадр
                   </button>
                 )}
                 <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
                 {(['rect','rounded','circle'] as SlotShape[]).map(s => (
-                  <button key={s} onMouseDown={e => { e.stopPropagation(); update(slot.id, { shape: s }); }}
-                    title={s === 'rect' ? 'Прямокутник' : s === 'rounded' ? 'Заокруглений' : 'Коло'}
-                    style={{ padding:'4px 7px', border: slot.shape===s ? '1.5px solid #3b82f6' : '1px solid #e2e8f0', borderRadius:5, background: slot.shape===s ? '#eff6ff' : 'transparent', cursor:'pointer', fontSize:13 }}>
+                  <button key={s} {...tb(() => update(slot.id, { shape: s }))}
+                    title={s==='rect' ? 'Прямокутник' : s==='rounded' ? 'Заокруглений' : 'Коло'}
+                    style={{ padding:'6px 8px', border:slot.shape===s?'1.5px solid #3b82f6':'1px solid #e2e8f0', borderRadius:5, background:slot.shape===s?'#eff6ff':'transparent', cursor:'pointer', fontSize:14, minHeight:32, touchAction:'manipulation' }}>
                     {s==='rect'?'▭':s==='rounded'?'▢':'●'}
                   </button>
                 ))}
                 <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
                 {photo && (
-                  <button onMouseDown={e => { e.stopPropagation(); update(slot.id, { photoId: null }); }}
+                  <button {...tb(() => update(slot.id, { photoId: null }))}
                     title="Прибрати фото"
-                    style={{ padding:'4px 7px', border:'1px solid #e2e8f0', borderRadius:5, background:'transparent', cursor:'pointer', fontSize:10, color:'#64748b', fontWeight:600 }}>
+                    style={{ padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:5, background:'transparent', cursor:'pointer', fontSize:11, color:'#64748b', fontWeight:600, minHeight:32, touchAction:'manipulation' }}>
                     ✕ фото
                   </button>
                 )}
-                <button onMouseDown={e => { e.stopPropagation(); deleteSlot(slot.id); }}
+                <button {...tb(() => deleteSlot(slot.id))}
                   title="Видалити слот"
-                  style={{ padding:'4px 7px', border:'1px solid #fee2e2', borderRadius:5, background:'transparent', cursor:'pointer', fontSize:11, color:'#ef4444' }}>
+                  style={{ padding:'6px 8px', border:'1px solid #fee2e2', borderRadius:5, background:'transparent', cursor:'pointer', fontSize:12, color:'#ef4444', minHeight:32, touchAction:'manipulation' }}>
                   ✕
                 </button>
               </div>
@@ -317,13 +361,15 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
 
             {/* Crop mode toolbar */}
             {inCrop && (
-              <div onMouseDown={e => e.stopPropagation()}
-                style={{ position:'absolute', ...(slot.y < 48 ? { bottom:-38, top:'auto' } : { top:-38 }), left:'50%', transform:'translateX(-50%)',
+              <div onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}
+                style={{ position:'absolute', ...(slot.y < 48 ? { bottom:-42, top:'auto' } : { top:-42 }), left:'50%', transform:'translateX(-50%)',
                   display:'flex', alignItems:'center', gap:8, background:'#1e2d7d',
-                  borderRadius:8, padding:'5px 14px', zIndex:70, whiteSpace:'nowrap' }}>
-                <span style={{ color:'rgba(255,255,255,0.7)', fontSize:10 }}>Drag = перемістити фото</span>
-                <button onMouseDown={e => { e.stopPropagation(); setCropModeId(null); }}
-                  style={{ padding:'2px 10px', background:'rgba(255,255,255,0.18)', border:'1px solid rgba(255,255,255,0.35)', borderRadius:5, color:'#fff', cursor:'pointer', fontSize:10, fontWeight:600 }}>
+                  borderRadius:8, padding:'6px 14px', zIndex:70, whiteSpace:'nowrap' }}>
+                <span style={{ color:'rgba(255,255,255,0.7)', fontSize:10 }}>Тягни фото щоб перемістити</span>
+                <button
+                  onMouseDown={e => { e.stopPropagation(); setCropModeId(null); }}
+                  onTouchEnd={e => { e.stopPropagation(); e.preventDefault(); setCropModeId(null); }}
+                  style={{ padding:'4px 12px', background:'rgba(255,255,255,0.18)', border:'1px solid rgba(255,255,255,0.35)', borderRadius:5, color:'#fff', cursor:'pointer', fontSize:11, fontWeight:600, minHeight:30, touchAction:'manipulation' }}>
                   Готово
                 </button>
               </div>
@@ -332,26 +378,36 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
         );
       })}
 
-      {/* Resize handles — 8 handles */}
+      {/* Resize handles — 8 handles, with touch support */}
       {slots.filter(s => s.id === selectedId && s.id !== cropModeId).map(slot =>
         HANDLES.map(h => {
           const pos = getHandlePos(h, slot.x, slot.y, slot.w, slot.h);
           const isCorner = h.length === 2;
+
+          const startTouchResize = (e: React.TouchEvent) => {
+            e.stopPropagation(); e.preventDefault();
+            const t = e.touches[0];
+            const origSlot = { ...slot };
+            dragRef.current = { type: h, id: slot.id, startX: t.clientX, startY: t.clientY, origSlot };
+          };
+
           return (
             <div key={h}
               onMouseDown={e => { e.stopPropagation(); startDrag(e, slot.id, h); }}
+              onTouchStart={startTouchResize}
               style={{
                 position: 'absolute',
-                left: pos.left - (isCorner ? 6 : 5),
-                top: pos.top - (isCorner ? 6 : 5),
-                width: isCorner ? 12 : 10,
-                height: isCorner ? 12 : 10,
-                borderRadius: isCorner ? 3 : '50%',
+                left: pos.left - (isCorner ? 7 : 6),
+                top: pos.top - (isCorner ? 7 : 6),
+                width: isCorner ? 18 : 16,
+                height: isCorner ? 18 : 16,
+                borderRadius: isCorner ? 4 : '50%',
                 background: '#fff',
                 border: '2px solid #3b82f6',
                 cursor: handleCursor(h),
                 zIndex: 65,
                 boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                touchAction: 'none',
               }}
             />
           );
