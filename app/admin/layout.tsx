@@ -87,7 +87,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
         }
     }, [pathname, isLoading, hasPermission, router]);
 
-    if (isLoading) {
+    if (isLoading && false) { // disabled — never block rendering
         return (
             <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fcfcfd' }}>
                 <Activity className="animate-spin" size={40} color="#263A99" />
