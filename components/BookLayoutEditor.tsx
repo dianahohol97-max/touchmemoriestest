@@ -2087,16 +2087,13 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       {/* Sticker layer */}
                       {(pageStickers[pageIdx]||[]).map(stk => (
                         <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40 }}
-                          onMouseDown={e => {
+                          onPointerDown={e => {
                             e.stopPropagation();
-                            const startX=e.clientX, startY=e.clientY, origX=stk.x, origY=stk.y;
-                            const onMove=(me:MouseEvent)=>{
-                              const dx=(me.clientX-startX)/pageW*100;
-                              const dy=(me.clientY-startY)/cH*100;
-                              setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx)),y:Math.max(0,Math.min(90,origY+dy))}:s)}));
-                            };
-                            const onUp=()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);};
-                            window.addEventListener('mousemove',onMove);window.addEventListener('mouseup',onUp);
+                            haptic.light();
+                            const origX=stk.x, origY=stk.y;
+                            startPointerDrag(e, (dx,dy) =>
+                              setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
+                            );
                           }}>
                           {stk.emoji ? <span style={{ fontSize:Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
                           <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(s=>s.id!==stk.id)}));}}

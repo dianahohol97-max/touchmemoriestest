@@ -1,4 +1,5 @@
 'use client';
+import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 
 import { useState, useRef, useEffect } from 'react';
 import { ImageIcon } from 'lucide-react';
@@ -123,40 +124,27 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const startDrag = (e: React.MouseEvent, id: string, type: 'move' | Handle | 'crop') => {
+  const startDrag = (e: React.PointerEvent, id: string, type: 'move' | Handle | 'crop') => {
     e.stopPropagation();
     e.preventDefault();
+    haptic.light();
     const slot = slots.find(s => s.id === id)!;
-    dragRef.current = { type, id, startX: e.clientX, startY: e.clientY, origSlot: { ...slot } };
-
-    const onMove = (me: MouseEvent) => {
-      if (!dragRef.current) return;
-      const { type, id, startX, startY, origSlot } = dragRef.current;
-      const dx = me.clientX - startX;
-      const dy = me.clientY - startY;
+    const origSlot = { ...slot };
+    startPointerDrag(e, (dx, dy) => {
       let { x, y, w, h } = origSlot;
-
       if (type === 'move') {
-        x = Math.max(0, Math.min(canvasW - w, origSlot.x + dx));
-        y = Math.max(0, Math.min(canvasH - h, origSlot.y + dy));
-        update(id, { x, y });
+        update(id, { x: Math.max(0,Math.min(canvasW-w, origSlot.x+dx)), y: Math.max(0,Math.min(canvasH-h, origSlot.y+dy)) });
       } else if (type === 'crop') {
-        const nx = Math.max(0, Math.min(100, origSlot.cropX - dx / 3));
-        const ny = Math.max(0, Math.min(100, origSlot.cropY - dy / 3));
-        update(id, { cropX: nx, cropY: ny });
+        update(id, { cropX: Math.max(0,Math.min(100, origSlot.cropX-dx/3)), cropY: Math.max(0,Math.min(100, origSlot.cropY-dy/3)) });
       } else {
-        if (type.includes('e')) w = Math.max(MIN_SIZE, origSlot.w + dx);
-        if (type.includes('s')) h = Math.max(MIN_SIZE, origSlot.h + dy);
-        if (type.includes('w')) { w = Math.max(MIN_SIZE, origSlot.w - dx); x = origSlot.x + (origSlot.w - w); }
-        if (type.includes('n')) { h = Math.max(MIN_SIZE, origSlot.h - dy); y = origSlot.y + (origSlot.h - h); }
-        if (origSlot.shape === 'square' || origSlot.shape === 'circle') { const sz = Math.max(w, h); w = sz; h = sz; }
-        update(id, { x: Math.max(0,x), y: Math.max(0,y), w, h });
+        if (type.includes('e')) w = Math.max(MIN_SIZE, origSlot.w+dx);
+        if (type.includes('s')) h = Math.max(MIN_SIZE, origSlot.h+dy);
+        if (type.includes('w')) { w = Math.max(MIN_SIZE, origSlot.w-dx); x = origSlot.x+(origSlot.w-w); }
+        if (type.includes('n')) { h = Math.max(MIN_SIZE, origSlot.h-dy); y = origSlot.y+(origSlot.h-h); }
+        if (origSlot.shape==='square'||origSlot.shape==='circle') { const sz=Math.max(w,h); w=sz; h=sz; }
+        update(id, { x:Math.max(0,x), y:Math.max(0,y), w, h });
       }
-    };
-
-    const onUp = () => { dragRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    }, () => { dragRef.current = null; });
   };
 
   // Non-passive wheel for zoom — attach once per slot
@@ -320,8 +308,8 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
               const nearBottom = slot.h > canvasH - 60;
               const insideMode = nearTop && nearBottom;
               const tb = (fn: () => void) => ({
-                onMouseDown: (e: React.MouseEvent) => { e.stopPropagation(); fn(); },
-                onTouchEnd: (e: React.TouchEvent) => { e.stopPropagation(); e.preventDefault(); fn(); },
+                onPointerDown: (e: React.PointerEvent) => { e.stopPropagation(); fn(); },
+                
               });
               return (
               <div onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}
@@ -401,7 +389,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
 
           return (
             <div key={h}
-              onMouseDown={e => { e.stopPropagation(); startDrag(e, slot.id, h); }}
+              onPointerDown={e => { e.stopPropagation(); startDrag(e, slot.id, h); }}
               onTouchStart={startTouchResize}
               style={{
                 position: 'absolute',
