@@ -30,7 +30,8 @@
     "order": "Zamów",
     "how_it_works": "Jak to działa",
     "constructor": "Konstruktor",
-    "our_works": "Nasze prace"
+    "our_works": "Nasze prace",
+    "home": "Strona główna"
   },
   "catalog": {
     "title": "Katalog",
@@ -123,5 +124,12 @@
     "delivery": "Dostawa i Płatność",
     "privacy": "Polityka Prywatności",
     "rights": "Wszelkie prawa zastrzeżone"
+  },
+  "cart": {
+    "empty": "Koszyk jest pusty",
+    "total": "Razem do zapłaty",
+    "pay": "Zapłać teraz",
+    "clear": "Wyczyść koszyk",
+    "title": "Koszyk"
   }
 }

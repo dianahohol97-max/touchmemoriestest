@@ -196,12 +196,12 @@ function CatalogContent() {
 
             {/* Breadcrumbs */}
             <div style={{ fontSize: '14px', color: '#888', marginBottom: '24px' }}>
-                Головна <span style={{ margin: '0 8px' }}>→</span> Каталог
+                {t('footer.about') ? t('nav.catalog') || 'Каталог' : 'Каталог'} <span style={{ margin: '0 8px' }}>→</span> {t('catalog.title')}
             </div>
 
             <header style={{ marginBottom: '40px' }}>
                 <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 900, marginBottom: '16px' }}>
-                    Каталог товарів
+                    {t('catalog.title')}
                 </h1>
             </header>
 
@@ -304,7 +304,7 @@ function CatalogContent() {
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="popular">Популярністю</option>
+                                        <option value="popular">{t('catalog.sort_popular')}</option>
                                         <option value="price_asc">{t('catalog.sort_price_asc')}</option>
                                         <option value="price_desc">{t('catalog.sort_price_desc')}</option>
                                         <option value="new">Новинками</option>

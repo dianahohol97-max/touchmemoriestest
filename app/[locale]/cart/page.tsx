@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { useState, useEffect, useMemo } from 'react';
 import styles from './cart.module.css';
 import { useCartStore } from '@/store/cart-store';
@@ -120,7 +121,7 @@ export default function CartPage() {
 
     const handleCheckout = async () => {
         if (!customer.name || !customer.email || !customer.phone) { toast.error('Заповніть контактні дані'); return; }
-        if (items.length === 0) { toast.error('Кошик порожній'); return; }
+        if (items.length === 0) { toast.error(t('cart.empty')); return; }
 
         setLoading(true);
         try {
@@ -165,7 +166,7 @@ export default function CartPage() {
 
                 {items.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                        <p style={{ fontSize: '20px', color: '#888', marginBottom: '32px' }}>Кошик порожній</p>
+                        <p style={{ fontSize: '20px', color: '#888', marginBottom: '32px' }}>{t('cart.empty')}</p>
                         <div style={{ display: 'flex', justifyContent: 'center' }}>
                             <a href="/catalog" style={{ ...actionBtnStyle, borderRadius: '6px', width: 'fit-content' }} className="hover-lift">До каталогу</a>
                         </div>
@@ -291,7 +292,7 @@ export default function CartPage() {
                         {/* Right Column: Order Summary */}
                         <aside style={{ position: 'sticky', top: '120px', height: 'fit-content' }}>
                             <div style={{ ...cardStyle, backgroundColor: 'var(--primary)', color: 'white' }}>
-                                <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '32px' }}>Разом до сплати</h2>
+                                <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '32px' }}>{t('cart.total')}</h2>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', opacity: 0.8 }}>
                                         <span>Проміжна сума</span>
@@ -313,7 +314,7 @@ export default function CartPage() {
                                     style={{ ...actionBtnStyle, backgroundColor: 'white', color: 'var(--primary)', width: '100%' }}
                                     className="hover-lift"
                                 >
-                                    {loading ? <Loader2 size={24} className={styles.spin} /> : <><CreditCard size={20} /> Оплатити замовлення</>}
+                                    {loading ? <Loader2 size={24} className={styles.spin} /> : <><CreditCard size={20} /> {t('cart.pay')}</>}
                                 </button>
                             </div>
                         </aside>

@@ -44,7 +44,7 @@ export default function ProductContent({ product }: { product: any }) {
                     <a href="/" style={{ fontSize: '1.5rem', fontWeight: 900, textDecoration: 'none', color: 'var(--primary)' }}>TOUCH MEMORIES</a>
                     <nav style={{ display: 'flex', gap: '30px' }}>
                         <a href="/catalog">Каталог</a>
-                        <a href="/cart">Кошик</a>
+                        <a href="/cart">{t('nav.cart')}</a>
                     </nav>
                 </div>
             </header>

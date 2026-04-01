@@ -285,7 +285,7 @@ export function Navigation() {
                                     activeDropdown === 'about' ? "opacity-100" : "opacity-80"
                                 )}
                             >
-                                Про нас
+                                {t('footer.about')}
                                 <ChevronDown size={14} className={cn("transition-transform duration-200", activeDropdown === 'about' && "rotate-180")} />
                             </button>
 

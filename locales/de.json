@@ -30,7 +30,8 @@
     "order": "Bestellen",
     "how_it_works": "Wie es funktioniert",
     "constructor": "Gestalter",
-    "our_works": "Unsere Arbeiten"
+    "our_works": "Unsere Arbeiten",
+    "home": "Startseite"
   },
   "catalog": {
     "title": "Katalog",
@@ -123,5 +124,12 @@
     "delivery": "Versand & Zahlung",
     "privacy": "Datenschutzrichtlinie",
     "rights": "Alle Rechte vorbehalten"
+  },
+  "cart": {
+    "empty": "Warenkorb ist leer",
+    "total": "Bestellsumme",
+    "pay": "Jetzt bezahlen",
+    "clear": "Warenkorb leeren",
+    "title": "Warenkorb"
   }
 }

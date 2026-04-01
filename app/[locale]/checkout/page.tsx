@@ -210,11 +210,11 @@ export default function CheckoutPage() {
                     <div style={{ backgroundColor: 'white', borderRadius: "3px", padding: '40px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                         {/* Stepper Header */}
                         <div style={{ display: 'flex', gap: '12px', marginBottom: '40px' }}>
-                            <StepIndicator label="Контакти" active={currentStep === 'info'} completed={currentStep !== 'info'} />
+                            <StepIndicator label={t('checkout.contacts')} active={currentStep === 'info'} completed={currentStep !== 'info'} />
                             <div style={{ flex: 1, height: '1px', backgroundColor: '#eee', alignSelf: 'center' }} />
-                            <StepIndicator label="Доставка" active={currentStep === 'shipping'} completed={currentStep === 'payment'} />
+                            <StepIndicator label={t('checkout.shipping')} active={currentStep === 'shipping'} completed={currentStep === 'payment'} />
                             <div style={{ flex: 1, height: '1px', backgroundColor: '#eee', alignSelf: 'center' }} />
-                            <StepIndicator label="Оплата" active={currentStep === 'payment'} completed={false} />
+                            <StepIndicator label={t('checkout.payment')} active={currentStep === 'payment'} completed={false} />
                         </div>
 
                         <AnimatePresence mode="wait">
@@ -266,7 +266,7 @@ export default function CheckoutPage() {
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -20 }}
                                 >
-                                    <h2 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '24px' }}>Доставка (Нова Пошта)</h2>
+                                    <h2 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '24px' }}>{t('checkout.delivery_np')}</h2>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                         <InputField
                                             label="Місто"
@@ -302,14 +302,14 @@ export default function CheckoutPage() {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         <PaymentOption
                                             id="card"
-                                            label="Оплата карткою (MonoPay)"
+                                            label={t('checkout.payment_card')}
                                             active={formData.paymentMethod === 'card'}
                                             onClick={() => setFormData(p => ({ ...p, paymentMethod: 'card' }))}
                                             icon={<CreditCard size={24} />}
                                         />
                                         <PaymentOption
                                             id="cash"
-                                            label="Оплата при отриманні (Накладений платіж)"
+                                            label={t('checkout.payment_cash')}
                                             active={formData.paymentMethod === 'cash'}
                                             onClick={() => setFormData(p => ({ ...p, paymentMethod: 'cash' }))}
                                             icon={<Truck size={24} />}
@@ -382,7 +382,7 @@ export default function CheckoutPage() {
                                     <span>{total} ₴</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '14px', color: '#666' }}>
-                                    <span>Доставка:</span>
+                                    <span>{t('checkout.delivery_cost')}:</span>
                                     <span>за тарифами перевізника</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 900, color: 'var(--primary)' }}>

@@ -153,7 +153,7 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
               boxShadow: '0 4px 20px rgba(38,58,153,0.35)',
             }}
           >
-            Переглянути каталог
+            {t('home.hero_cta')}
           </Link>
         </motion.div>
 

@@ -30,7 +30,8 @@
     "order": "Comandă",
     "how_it_works": "Cum funcționează",
     "constructor": "Constructor",
-    "our_works": "Lucrările noastre"
+    "our_works": "Lucrările noastre",
+    "home": "Acasă"
   },
   "catalog": {
     "title": "Catalog",
@@ -123,5 +124,12 @@
     "delivery": "Livrare și Plată",
     "privacy": "Politica de Confidențialitate",
     "rights": "Toate drepturile rezervate"
+  },
+  "cart": {
+    "empty": "Coșul este gol",
+    "total": "Total comandă",
+    "pay": "Plătește acum",
+    "clear": "Golește coșul",
+    "title": "Coș"
   }
 }

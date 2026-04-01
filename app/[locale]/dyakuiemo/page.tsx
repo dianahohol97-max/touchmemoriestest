@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ import { motion } from 'framer-motion';
 
 function DyakuiemoContent() {
     const searchParams = useSearchParams();
+    const t = useT();
     const router = useRouter();
     const orderId = searchParams.get('order');
     const [order, setOrder] = useState<any>(null);
@@ -64,7 +66,7 @@ function DyakuiemoContent() {
 
                 {/* Title */}
                 <h1 style={{ fontSize: 36, fontWeight: 950, color: '#1e2d7d', marginBottom: 12 }}>
-                    {isPaid ? 'Оплату підтверджено!' : 'Замовлення оформлено!'}
+                    {isPaid ? t('thankyou.paid_title') : t('thankyou.pending_title')}
                 </h1>
 
                 {/* Order number */}
@@ -128,7 +130,7 @@ function DyakuiemoContent() {
                             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8
                         }}
                     >
-                        <ShoppingBag size={18} /> Продовжити покупки
+                        <ShoppingBag size={18} /> {t('thankyou.continue_shopping')}
                     </button>
                     <a
                         href="tel:+380970000000"
@@ -139,7 +141,7 @@ function DyakuiemoContent() {
                             textDecoration: 'none'
                         }}
                     >
-                        <Phone size={18} /> Зателефонувати
+                        <Phone size={18} /> {t('thankyou.call_us')}
                     </a>
                 </div>
             </motion.div>

@@ -30,7 +30,8 @@
     "order": "Order Now",
     "how_it_works": "How It Works",
     "constructor": "Constructor",
-    "our_works": "Our Works"
+    "our_works": "Our Works",
+    "home": "Home"
   },
   "catalog": {
     "title": "Catalog",
@@ -123,5 +124,12 @@
     "delivery": "Shipping & Payment",
     "privacy": "Privacy Policy",
     "rights": "All rights reserved"
+  },
+  "cart": {
+    "empty": "Your cart is empty",
+    "total": "Order Total",
+    "pay": "Pay Now",
+    "clear": "Clear Cart",
+    "title": "Cart"
   }
 }
