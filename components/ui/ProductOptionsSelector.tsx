@@ -93,6 +93,36 @@ const VELOUR_COLORS = [
   { code: 'B-14', name: 'Гірчичний',       hex: '#E8C050' },
 ];
 
+// Leatherette colors for wishbook
+const LEATHERETTE_COLORS_WB = [
+  { code: 'L-01', name: 'Білий',              hex: '#F5F5F0' },
+  { code: 'L-02', name: 'Бежевий',            hex: '#D9C8B0' },
+  { code: 'L-03', name: 'Пісочний',           hex: '#D4A76A' },
+  { code: 'L-04', name: 'Рудий',              hex: '#C8844E' },
+  { code: 'L-05', name: 'Бордо темний',       hex: '#7A2838' },
+  { code: 'L-06', name: 'Золотистий',         hex: '#C4A83A' },
+  { code: 'L-07', name: 'Теракотовий',        hex: '#C25A3C' },
+  { code: 'L-08', name: 'Рожевий ніжний',     hex: '#E8B4B8' },
+  { code: 'L-09', name: 'Червоний насичений', hex: '#A01030' },
+  { code: 'L-10', name: 'Коричневий',         hex: '#8E5038' },
+  { code: 'L-11', name: 'Вишневий',           hex: '#7A2020' },
+  { code: 'L-12', name: 'Графітовий темний',  hex: '#3A3038' },
+  { code: 'L-13', name: 'Темно-синій',        hex: '#1A2040' },
+  { code: 'L-14', name: 'Чорний',             hex: '#1A1A1A' },
+];
+
+// Fabric colors for wishbook
+const FABRIC_COLORS_WB = [
+  { code: 'F-01', name: 'Бежевий/пісочний',  hex: '#C4AA88' },
+  { code: 'F-02', name: 'Теракотовий',        hex: '#A04838' },
+  { code: 'F-03', name: 'Фуксія',             hex: '#B838A0' },
+  { code: 'F-04', name: 'Марсала/бордо',      hex: '#602838' },
+  { code: 'F-05', name: 'Коричневий',         hex: '#6E4830' },
+  { code: 'F-06', name: 'Сірий/графітовий',   hex: '#586058' },
+  { code: 'F-07', name: 'Червоний яскравий',  hex: '#C02030' },
+  { code: 'F-08', name: 'Оливковий/зелений',  hex: '#A0A020' },
+];
+
 // Velour cover decoration options
 const VELOUR_OZDOBLENNYA = [
   { value: 'none',           label: 'Без оздоблення' },
@@ -449,6 +479,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
   const hasColorAndDecoration = isPhotobookProduct && !isPrintedProduct;
 
   const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
+  const [selectedWishbookColor, setSelectedWishbookColor] = useState<{code:string;name:string;hex:string}|null>(null);
   const [selectedOzdoblennya, setSelectedOzdoblennya] = useState('none');
   const [selectedDecorationVariant, setSelectedDecorationVariant] = useState('');
   const [decorationVariants, setDecorationVariants] = useState<any[]>([]);
@@ -681,6 +712,52 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
           </div>
         );
       })}
+
+      {/* Wishbook cover color swatches — shown after material selected */}
+      {productType === 'wishbook' && (() => {
+        const material = selectedOptions['Матеріал обкладинки'];
+        if (!material || material === 'Друкована тверда') return null;
+        const isVelour = String(material).toLowerCase().includes('велюр');
+        const isLeather = String(material).toLowerCase().includes('ткан') || String(material).toLowerCase().includes('fabric');
+        const colors = isVelour ? VELOUR_COLORS : isLeather ? FABRIC_COLORS_WB : LEATHERETTE_COLORS_WB;
+        const colorLabel = isVelour ? 'Колір велюру' : isLeather ? 'Колір тканини' : 'Колір шкірзамінника';
+        const current = selectedWishbookColor;
+        return (
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
+              {colorLabel}:{' '}
+              <span style={{ fontWeight: 400, color: '#64748b' }}>
+                {current?.name ?? 'оберіть колір'}
+              </span>
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {colors.map((color: any) => (
+                <button
+                  key={color.code}
+                  type="button"
+                  title={color.name}
+                  onClick={() => {
+                    setSelectedWishbookColor(color);
+                    const newOptions = { ...selectedOptions, [colorLabel]: `${color.name} (${color.code})` };
+                    const price = calculatePrice(newOptions);
+                    onChange(newOptions, price || undefined);
+                  }}
+                  style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    backgroundColor: color.hex,
+                    border: current?.code === color.code ? '3px solid #1e2d7d' : '2px solid #e2e8f0',
+                    cursor: 'pointer',
+                    boxShadow: current?.code === color.code ? '0 0 0 2px #fff, 0 0 0 4px #1e2d7d' : 'none',
+                    transition: 'all 0.15s',
+                    flexShrink: 0,
+                  }}
+                  aria-label={color.name}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Cover Color Picker (velour uses hardcoded, others use DB) */}
       {hasColorAndDecoration && (() => {
