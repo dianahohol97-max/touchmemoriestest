@@ -131,7 +131,7 @@ export default function TravelBookConstructor() {
             Менеджер зв'яжеться з вами протягом 1 години для підтвердження.
           </p>
           <p className="text-sm text-gray-500 mb-6">
-            ⏱ Час виготовлення: 5–7 робочих днів після підтвердження оплати.
+            ⏱ Час виготовлення: 10–14 робочих днів після підтвердження оплати.
           </p>
           <button
             onClick={() => router.push('/')}
@@ -490,7 +490,7 @@ export default function TravelBookConstructor() {
                   </div>
                 </div>
                 <div className="text-xs text-gray-500 text-center">
-                  ⏱ Час виготовлення: 5–7 робочих днів
+                  ⏱ Час виготовлення: 10–14 робочих днів
                 </div>
               </div>
             </div>

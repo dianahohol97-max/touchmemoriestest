@@ -144,6 +144,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const getProductionTime = (categorySlug: string = '') => {
         const s = categorySlug.toLowerCase();
         if (s.includes('photobook')) return '14 робочих днів';
+        if (s.includes('travelbook') || s.includes('travel')) return '10–14 робочих днів';
         if (s.includes('magazine')) return '4–8 робочих днів';
         if (s.includes('guestbook') || s.includes('photoalbum')) return '10 робочих днів';
         if (s.includes('print')) return '2–3 робочих дні';
