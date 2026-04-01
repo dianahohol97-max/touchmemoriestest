@@ -285,7 +285,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         // Names already handled by ProductOptionsSelector (hardcoded PRODUCT_OPTIONS)
         const hardcodedNames = new Set(['Розмір', 'Кількість сторінок', 'Тип обкладинки',
             'Калька перед першою сторінкою', 'Тип ламінації',
-            'Рамка', 'Вид', 'Покриття', 'Біла рамочка 3мм', 'Матеріал']);
+            'Рамка', 'Вид', 'Покриття', 'Біла рамочка 3мм', 'Матеріал',
+            'Матеріал обкладинки', 'Колір сторінок']);
 
         let extraModifiers = 0;
         product.options.forEach((opt: any) => {
@@ -562,7 +563,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             'Калька перед першою сторінкою', 'Тип ламінації', 'Текст', 'Оздоблення',
                                             'Варіант акрилу', 'Варіант фотовставки', 'Варіант металевої вставки',
                                             'Варіант тиснення', 'Варіант гравірування', 'Корінець',
-                                            'Рамка', 'Вид', 'Покриття', 'Біла рамочка 3мм', 'Матеріал']);
+                                            'Рамка', 'Вид', 'Покриття', 'Біла рамочка 3мм', 'Матеріал',
+                                            'Матеріал обкладинки', 'Колір сторінок']);
                                         return product.options
                                             .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0))
                                             .map((opt: any) => {
