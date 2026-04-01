@@ -537,6 +537,37 @@ export default function PhotoPrintsPage() {
           </div>
         )}
 
+        {/* CTA — Open Editor */}
+        <div style={{ marginBottom: '32px', padding: '24px', background: '#f0f3ff', borderRadius: 16, border: '1px solid #c7d2fe' }}>
+          <p style={{ fontSize: 15, fontWeight: 600, color: '#1e2d7d', marginBottom: 6 }}>
+            Готові до редактора?
+          </p>
+          <p style={{ fontSize: 13, color: '#475569', marginBottom: 16 }}>
+            Завантажте фото та відредагуйте кадрування в редакторі
+          </p>
+          <button
+            onClick={() => {
+              const slug = printType === 'standard' ? 'photoprint-standard'
+                : printType === 'nonstandard' ? 'photoprint-nonstandard'
+                : 'polaroid-print';
+              const params = new URLSearchParams({ product: slug });
+              if (printSize) params.set('size', printSize);
+              if (paperFinish) params.set('finish', paperFinish);
+              if (printType === 'standard') params.set('border', whiteBorder ? '1' : '0');
+              router.push(`/order/photoprint?${params.toString()}`);
+            }}
+            style={{
+              width: '100%', padding: '14px 24px',
+              background: '#1e2d7d', color: '#fff',
+              border: 'none', borderRadius: 12,
+              fontSize: 16, fontWeight: 700, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            📸 Відкрити редактор фото →
+          </button>
+        </div>
+
         {/* STEP 5: Upload Photos */}
         <div style={{ marginBottom: '32px' }}>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>

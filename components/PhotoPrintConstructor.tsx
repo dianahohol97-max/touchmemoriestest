@@ -53,7 +53,12 @@ interface ProductOption {
   values?: Array<{ name: string; price?: number; priceModifier?: number }>;
   options?: Array<{ label: string; value: string; price?: number }>;
 }
-interface PhotoPrintConstructorProps { productSlug: string; }
+interface PhotoPrintConstructorProps {
+  productSlug: string;
+  initialSize?: string;
+  initialFinish?: string;
+  initialBorder?: string; // 'with' | 'none'
+}
 
 // ─── Photo Preview Component ──────────────────────────────────────────────────
 function PhotoPreview({
@@ -316,15 +321,15 @@ function PhotoPreview({
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function PhotoPrintConstructor({ productSlug }: PhotoPrintConstructorProps) {
+export default function PhotoPrintConstructor({ productSlug, initialSize, initialFinish, initialBorder }: PhotoPrintConstructorProps) {
   const { addItem } = useCartStore();
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState(false);
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedFinish, setSelectedFinish] = useState('');
-  const [selectedBorder, setSelectedBorder] = useState('none');
+  const [selectedSize, setSelectedSize] = useState(initialSize || '');
+  const [selectedFinish, setSelectedFinish] = useState(initialFinish || '');
+  const [selectedBorder, setSelectedBorder] = useState(initialBorder || 'none');
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
   const [polaroidFont, setPolaroidFont] = useState(POLAROID_FONTS[0].value);

@@ -10,11 +10,22 @@ function PhotoprintOrderContent() {
     const searchParams = useSearchParams();
     const productSlug = searchParams.get('product') || 'photoprint-standard';
 
+    // Pre-select params passed from catalog page
+    const initialSize = searchParams.get('size') || undefined;
+    const initialFinish = searchParams.get('finish') || undefined;
+    const borderParam = searchParams.get('border');
+    const initialBorder = borderParam === '1' ? 'with' : borderParam === '0' ? 'none' : undefined;
+
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#fff' }}>
             <Navigation />
             <main className="py-24">
-                <PhotoPrintConstructor productSlug={productSlug} />
+                <PhotoPrintConstructor
+                    productSlug={productSlug}
+                    initialSize={initialSize}
+                    initialFinish={initialFinish}
+                    initialBorder={initialBorder}
+                />
             </main>
             <Footer categories={[]} />
         </div>
