@@ -18,15 +18,20 @@ export function startPointerDrag(
 ) {
   const startX = e.clientX;
   const startY = e.clientY;
+  // Capture pointer so drag continues even if finger leaves element
   try { (e.target as Element).setPointerCapture(e.pointerId); } catch {}
-  const move = (pe: PointerEvent) => onMove(pe.clientX - startX, pe.clientY - startY);
+  const move = (pe: PointerEvent) => {
+    pe.preventDefault(); // prevent iOS scroll during drag
+    onMove(pe.clientX - startX, pe.clientY - startY);
+  };
   const end = () => {
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', end);
     window.removeEventListener('pointercancel', end);
     onEnd?.();
   };
-  window.addEventListener('pointermove', move);
+  // passive:false required so preventDefault() works on iOS Safari
+  window.addEventListener('pointermove', move, { passive: false });
   window.addEventListener('pointerup', end);
   window.addEventListener('pointercancel', end);
 }

@@ -227,8 +227,9 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               onDragLeave={()=>setDragOver(false)}
               onDrop={e=>{e.preventDefault();setDragOver(false);const id=e.dataTransfer.getData('text/plain');if(id)onChange({photoId:id});}}
               onPointerDown={e => startSlotDrag(e, 'move')}
+              onClick={() => { if (!photo && photos.length > 0) { haptic.success(); onChange({ photoId: photos[0].id }); } }}
               style={{ position:'absolute', left:slotPx.x, top:slotPx.y, width:slotPx.w, height:slotPx.h,
-                borderRadius:br, overflow:'hidden', cursor:'move', zIndex:2,
+                borderRadius:br, overflow:'hidden', cursor:'move', zIndex:2, touchAction:'none',
                 border: dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)'),
                 background: photo ? 'transparent' : (dragOver ? 'rgba(59,130,246,0.08)' : '#f1f5f9') }}>
               {photo
@@ -244,9 +245,10 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               const tp = (dir==='se'||dir==='sw') ? slotPx.y+slotPx.h : slotPx.y;
               return (
                 <div key={dir} onPointerDown={e=>startSlotDrag(e,dir)}
-                  style={{ position:'absolute', left:lp-8, top:tp-8, width:16, height:16,
+                  style={{ position:'absolute', left:lp-8, top:tp-8, width:20, height:20,
                     borderRadius:'50%', background:'#3b82f6', border:'2.5px solid #fff',
-                    cursor:`${dir}-resize`, zIndex:10, boxShadow:'0 1px 4px rgba(0,0,0,0.4)' }}/>
+                    cursor:`${dir}-resize`, zIndex:10, boxShadow:'0 1px 4px rgba(0,0,0,0.4)',
+                    touchAction:'none' }}/>
               );
             })}
             {/* Overlay */}
@@ -256,7 +258,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
             {texts.map(tb => (
               <div key={tb.id} onPointerDown={e => startTextDrag(e, tb.id, tb.x, tb.y)}
                 style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)',
-                  cursor:'move', zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3 }}>
+                  cursor:'move', zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'none' }}>
                 <span contentEditable suppressContentEditableWarning
                   onBlur={e=>onChange({printedTextBlocks:texts.map(t=>t.id===tb.id?{...t,text:e.currentTarget.textContent||''}:t)})}
                   onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
@@ -336,7 +338,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
             <div onPointerDown={handleTextMouseDown}
               style={{ position:'absolute', left:`${textX}%`, top:`${textY}%`, transform:'translate(-50%,-50%)',
                 cursor:'move', userSelect:'none', zIndex:10, padding:'4px 8px',
-                border:'1px dashed rgba(255,255,255,0.3)', borderRadius:4 }}>
+                border:'1px dashed rgba(255,255,255,0.3)', borderRadius:4, touchAction:'none' }}>
               <span contentEditable suppressContentEditableWarning
                 onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
                 onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
@@ -357,7 +359,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
             <div onPointerDown={handleTextMouseDown}
               style={{ position:'absolute', left:`${textX}%`, top:`${textY}%`, transform:'translate(-50%,-50%)',
                 cursor:'move', userSelect:'none', zIndex:10, padding:'4px 8px',
-                border:'1px dashed rgba(255,255,255,0.2)', borderRadius:4 }}>
+                border:'1px dashed rgba(255,255,255,0.2)', borderRadius:4, touchAction:'none' }}>
               <span contentEditable suppressContentEditableWarning
                 onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
                 onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
