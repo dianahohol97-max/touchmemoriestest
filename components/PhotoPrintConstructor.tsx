@@ -172,32 +172,28 @@ function PhotoPreview({
       </div>
     );
   } else if (isNonstandard) {
-    // Default ratio 4:3 for nonstandard preview (total print 15x10, border inside)
-    borderMm = 3; // always 3mm white border — forced
-    photoW = 15 - borderMm * 2; photoH = 10 - borderMm * 2;
+    photoW = 15; photoH = 10; // nonstandard preview ratio
   } else if (size) {
-    // size.w/h = total print dimensions (e.g. 10x15 cm is the ordered print)
-    // border is cut from inside the print area
-    borderMm = showBorder ? 3 : 0;
-    photoW = size.w - borderMm * 2; // photo zone inside print
-    photoH = size.h - borderMm * 2;
+    photoW = size.w; photoH = size.h; // FULL print size — border overlaid on top
   } else {
-    borderMm = showBorder ? 3 : 0;
-    photoW = 10 - borderMm * 2; photoH = 15 - borderMm * 2;
+    photoW = 10; photoH = 15;
   }
 
-  // Total print dimensions = size.w/h (border is inside, photoW/H is the inner photo zone)
-  const totalW = isPolaroid ? photoW + polaroidSideMm * 2 : size ? size.w : isNonstandard ? 15 : 10;
-  const totalH = isPolaroid ? photoH + polaroidSideMm + polaroidBottomMm : size ? size.h : isNonstandard ? 10 : 15;
+  // Canvas = full print size. Border is overlaid ON TOP of photo (3mm white strips)
+  const totalW = size ? size.w : isNonstandard ? 15 : 10;
+  const totalH = size ? size.h : isNonstandard ? 10 : 15;
 
   // Scale to fit MAX_W
   const scale = MAX_W / totalW;
   const canvasW = MAX_W;
   const canvasH = Math.round(totalH * scale);
-  const borderPx = (isPolaroid ? polaroidSideMm : borderMm) * scale;
-  const borderBottomPx = isPolaroid ? polaroidBottomMm * scale : borderMm * scale;
-  const photoAreaW = photoW * scale;
-  const photoAreaH = photoH * scale;
+  // Border in pixels — overlaid on top of photo
+  const borderMmActual = (showBorder || isNonstandard) ? 3 : 0;
+  const borderPx = borderMmActual * scale;
+  // Keep old variable names for compat
+  const borderBottomPx = borderPx;
+  const photoAreaW = canvasW;
+  const photoAreaH = canvasH;
 
 
 
@@ -207,16 +203,14 @@ function PhotoPreview({
   return (
     <div style={{ display: 'inline-block', position: 'relative' }}>
       <div
-        style={{ width: canvasW, height: canvasH, position: 'relative', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', userSelect: 'none', overflow: 'hidden' }}
+        style={{ width: canvasW, height: canvasH, position: 'relative', background: '#f0f0f0', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', userSelect: 'none', overflow: 'hidden' }}
         onWheel={handleWheel}
       >
-        {/* Photo area */}
+        {/* Photo fills entire canvas */}
         <div style={{
-          position: 'absolute',
-          left: borderPx, top: borderPx,
-          width: photoAreaW, height: photoAreaH,
+          position: 'absolute', left: 0, top: 0,
+          width: canvasW, height: canvasH,
           overflow: 'hidden', cursor: 'grab',
-          background: '#ffffff',
         }}
           onMouseDown={handleMouseDown}
         >
@@ -225,8 +219,6 @@ function PhotoPreview({
             draggable={false}
             style={{
               position: 'absolute',
-              // At zoom=1: fill entire photo slot (cover behavior)
-              // At zoom>1: scale up from that base
               width: `${(photo.zoom||1)*100}%`,
               height: `${(photo.zoom||1)*100}%`,
               minWidth: '100%',
@@ -236,17 +228,18 @@ function PhotoPreview({
               top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)',
               userSelect: 'none', pointerEvents: 'none',
+              maxWidth: 'none',
             }}
           />
         </div>
 
-        {/* White border areas — 3mm on all sides */}
-        {(showBorder || isNonstandard || isPolaroid) && borderPx >= 1 && (
+        {/* White border — 3mm strips ON TOP of photo */}
+        {borderPx >= 1 && (
           <>
-            <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:borderPx, background:'#fff', pointerEvents:'none', zIndex:2 }}/>
-            <div style={{ position:'absolute', left:0, bottom:0, width:canvasW, height:borderBottomPx, background:'#fff', pointerEvents:'none', zIndex:2 }}/>
-            <div style={{ position:'absolute', left:0, top:0, width:borderPx, height:canvasH, background:'#fff', pointerEvents:'none', zIndex:2 }}/>
-            <div style={{ position:'absolute', right:0, top:0, width:borderPx, height:canvasH, background:'#fff', pointerEvents:'none', zIndex:2 }}/>
+            <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:borderPx, background:'#fff', pointerEvents:'none', zIndex:5 }}/>
+            <div style={{ position:'absolute', left:0, bottom:0, width:canvasW, height:borderPx, background:'#fff', pointerEvents:'none', zIndex:5 }}/>
+            <div style={{ position:'absolute', left:0, top:0, width:borderPx, height:canvasH, background:'#fff', pointerEvents:'none', zIndex:5 }}/>
+            <div style={{ position:'absolute', right:0, top:0, width:borderPx, height:canvasH, background:'#fff', pointerEvents:'none', zIndex:5 }}/>
           </>
         )}
 
@@ -257,22 +250,22 @@ function PhotoPreview({
           </div>
         )}
 
-        {/* Crop marks (corner + edge lines in grey) */}
-        {[
+        {/* Crop marks — shown only when border is active, at border edge */}
+        {borderPx >= 1 && [
           // Top-left
           { x: borderPx - cropMarkGap - cropMarkLen, y: borderPx, w: cropMarkLen, h: 1 },
           { x: borderPx, y: borderPx - cropMarkGap - cropMarkLen, w: 1, h: cropMarkLen },
           // Top-right
-          { x: borderPx + photoAreaW + cropMarkGap, y: borderPx, w: cropMarkLen, h: 1 },
-          { x: borderPx + photoAreaW, y: borderPx - cropMarkGap - cropMarkLen, w: 1, h: cropMarkLen },
+          { x: borderPx + canvasW - 2*borderPx + cropMarkGap, y: borderPx, w: cropMarkLen, h: 1 },
+          { x: borderPx + canvasW - 2*borderPx, y: borderPx - cropMarkGap - cropMarkLen, w: 1, h: cropMarkLen },
           // Bottom-left
-          { x: borderPx - cropMarkGap - cropMarkLen, y: borderPx + photoAreaH, w: cropMarkLen, h: 1 },
-          { x: borderPx, y: borderPx + photoAreaH + cropMarkGap, w: 1, h: cropMarkLen },
+          { x: borderPx - cropMarkGap - cropMarkLen, y: canvasH - borderPx, w: cropMarkLen, h: 1 },
+          { x: borderPx, y: canvasH - borderPx + cropMarkGap, w: 1, h: cropMarkLen },
           // Bottom-right
-          { x: borderPx + photoAreaW + cropMarkGap, y: borderPx + photoAreaH, w: cropMarkLen, h: 1 },
-          { x: borderPx + photoAreaW, y: borderPx + photoAreaH + cropMarkGap, w: 1, h: cropMarkLen },
+          { x: borderPx + canvasW - 2*borderPx + cropMarkGap, y: canvasH - borderPx, w: cropMarkLen, h: 1 },
+          { x: borderPx + canvasW - 2*borderPx, y: canvasH - borderPx + cropMarkGap, w: 1, h: cropMarkLen },
         ].map((line, i) => (
-          <div key={i} style={{ position:'absolute', left:line.x, top:line.y, width:line.w, height:line.h, background:'#aaa', pointerEvents:'none' }}/>
+          <div key={i} style={{ position:'absolute', left:line.x, top:line.y, width:line.w, height:line.h, background:'#999', pointerEvents:'none', zIndex:6 }}/>
         ))}
 
         {/* Polaroid text input */}
@@ -292,7 +285,7 @@ function PhotoPreview({
 
         {/* Zoom indicator */}
         {(photo.zoom||1) !== 1 && (
-          <div style={{ position:'absolute', bottom:borderBottomPx+4, right:borderPx+4, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:8, pointerEvents:'none' }}>
+          <div style={{ position:'absolute', bottom: borderPx+4, right: borderPx+4, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:8, pointerEvents:'none', zIndex:10 }}>
             {Math.round((photo.zoom||1)*100)}%
           </div>
         )}
