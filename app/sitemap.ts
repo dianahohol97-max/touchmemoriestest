@@ -80,3 +80,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     return entries;
 }
+// i18n deploy trigger Wed Apr  1 15:42:51 UTC 2026
