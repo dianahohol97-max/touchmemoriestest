@@ -255,11 +255,11 @@ export default function TeamPage() {
         totalMembers: staff.length,
         activeMembers: staff.filter((s) => s.is_active).length,
         totalOrdersThisMonth: Object.values(staffStats).reduce(
-            (sum, s) => sum + s.ordersThisMonth,
+            (sum, s: any) => sum + s.ordersThisMonth,
             0
         ),
         totalRevenueThisMonth: Object.values(staffStats).reduce(
-            (sum, s) => sum + s.revenueThisMonth,
+            (sum, s: any) => sum + s.revenueThisMonth,
             0
         )
     };
@@ -300,10 +300,10 @@ export default function TeamPage() {
                     </div>
                     <div>
                         <div style={statLabel}>Замовлень цього місяця</div>
-                        <div style={statValue}>{teamStats.totalOrdersThisMonth}</div>
+                        <div style={statValue}>{(teamStats as any).totalOrdersThisMonth}</div>
                         <div style={statSubtext}>
                             {teamStats.activeMembers > 0
-                                ? Math.round(teamStats.totalOrdersThisMonth / teamStats.activeMembers)
+                                ? Math.round((teamStats as any).totalOrdersThisMonth / teamStats.activeMembers)
                                 : 0}{' '}
                             на особу
                         </div>
@@ -315,10 +315,10 @@ export default function TeamPage() {
                     </div>
                     <div>
                         <div style={statLabel}>Виручка цього місяця</div>
-                        <div style={statValue}>{teamStats.totalRevenueThisMonth.toLocaleString()} ₴</div>
+                        <div style={statValue}>{(teamStats as any).totalRevenueThisMonth.toLocaleString()} ₴</div>
                         <div style={statSubtext}>
                             {teamStats.activeMembers > 0
-                                ? Math.round(teamStats.totalRevenueThisMonth / teamStats.activeMembers).toLocaleString()
+                                ? Math.round((teamStats as any).totalRevenueThisMonth / teamStats.activeMembers).toLocaleString()
                                 : 0}{' '}
                             ₴ на особу
                         </div>

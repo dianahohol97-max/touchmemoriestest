@@ -44,7 +44,7 @@ export async function POST(req: Request) {
         const { data: staffList } = await staffQuery;
         if (!staffList) return NextResponse.json({ error: 'No staff found' }, { status: 404 });
 
-        const results = [];
+        const results: any[] = [];
 
         for (const staff of staffList) {
             const { total, breakdown } = await calculateSalary(staff.id, from, to);

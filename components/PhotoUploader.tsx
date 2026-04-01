@@ -49,7 +49,7 @@ export default function PhotoUploader({
     }
 
     const validNewPhotos: PhotoPreview[] = [];
-    let validationError = null;
+    let validationError: string | null = null;
 
     for (const file of newFiles) {
       const err = validateFile(file);

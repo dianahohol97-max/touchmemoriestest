@@ -564,6 +564,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                                     <div style={imageGridStyle}>
                                         {images.map((url, index) => (
                                             <SortableImage
+            // @ts-ignore
                                                 key={url}
                                                 url={url}
                                                 index={index}

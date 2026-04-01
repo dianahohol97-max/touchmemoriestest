@@ -31,8 +31,8 @@ export default function PLReportPage() {
 
   function getPeriodDates() {
     const now = new Date();
-    let start: string;
-    let end: string;
+    let start: string = '';
+    let end: string = '';
 
     switch (period) {
       case 'month':

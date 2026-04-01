@@ -101,8 +101,8 @@ function ThemeEditorContent() {
             }
 
             // 3. Content - handle new items
-            const toUpdate = [];
-            const toInsert = [];
+            const toUpdate: any[] = [];
+            const toInsert: {key: any; value: string}[] = [];
             for (const item of content) {
                 if (item.id) toUpdate.push(item);
                 else toInsert.push({ key: item.key, value: String(item.value) });

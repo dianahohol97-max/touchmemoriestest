@@ -112,7 +112,7 @@ export default function AdminProjectsPage() {
 
   const getConfigSummary = (config: any) => {
     if (!config) return null;
-    const parts = [];
+    const parts: any[] = [];
     if (config.selectedSize) parts.push(config.selectedSize);
     if (config.selectedPageCount) parts.push(`${config.selectedPageCount} стор.`);
     if (config.selectedCoverType) parts.push(config.selectedCoverType);

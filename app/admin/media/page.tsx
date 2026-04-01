@@ -79,7 +79,7 @@ export default function MediaLibraryPage() {
 
             if (error) throw error;
             setMedia(data || []);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching media:', error);
             toast.error('Помилка завантаження медіафайлів');
         } finally {
@@ -94,7 +94,7 @@ export default function MediaLibraryPage() {
         setUploading(true);
 
         try {
-            for (const file of Array.from(files)) {
+            for (const file of Array.from(files) as File[]) {
                 // Upload to Supabase Storage
                 const fileName = `${Date.now()}_${file.name}`;
                 const { data: uploadData, error: uploadError } = await supabase.storage
@@ -113,7 +113,7 @@ export default function MediaLibraryPage() {
 
                 // Get image dimensions
                 const img = new window.Image();
-                img.src = URL.createObjectURL(file);
+                img.src = URL.createObjectURL(file as Blob);
                 await new Promise((resolve) => {
                     img.onload = resolve;
                 });

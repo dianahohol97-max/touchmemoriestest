@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     if (fetchError) throw fetchError;
 
-    const expensesToCreate = [];
+    const expensesToCreate: any[] = [];
 
     for (const expense of recurringExpenses || []) {
       const lastDate = new Date(expense.date);

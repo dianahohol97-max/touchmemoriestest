@@ -144,11 +144,11 @@ export default function PhotoPrintsPage() {
 
   // File handling
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []) as File[];
     const newPhotos = files.map(file => ({
       file,
       name: file.name,
-      preview: URL.createObjectURL(file),
+      preview: URL.createObjectURL(file as Blob),
       quantity: 1
     }));
     setPhotos(prev => [...prev, ...newPhotos]);
@@ -179,11 +179,11 @@ export default function PhotoPrintsPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    const files = (Array.from(e.dataTransfer.files) as File[]).filter((f: File) => f.type.startsWith('image/'));
     const newPhotos = files.map(file => ({
       file,
       name: file.name,
-      preview: URL.createObjectURL(file),
+      preview: URL.createObjectURL(file as Blob),
       quantity: 1
     }));
     setPhotos(prev => [...prev, ...newPhotos]);
@@ -266,7 +266,7 @@ export default function PhotoPrintsPage() {
       } else {
         alert('Помилка при оформленні замовлення: ' + (result.error || 'Невідома помилка'));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Order submission failed:', error);
       alert('Помилка при оформленні замовлення. Спробуйте ще раз.');
     } finally {

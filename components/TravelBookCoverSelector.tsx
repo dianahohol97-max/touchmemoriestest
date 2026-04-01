@@ -192,6 +192,7 @@ export default function TravelBookCoverSelector({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-h-[600px] overflow-y-auto pr-2">
                     {filteredCovers.map((cover) => (
                         <CoverCard
+            // @ts-ignore
                             key={cover.id}
                             cover={cover}
                             isSelected={cover.id === selectedCoverId}

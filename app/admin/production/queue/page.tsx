@@ -197,6 +197,7 @@ export default function ProductionQueuePage() {
                 <div className="space-y-2">
                   {queueItems.map((item, index) => (
                     <SortableQueueItem
+            // @ts-ignore
                       key={item.order_id}
                       item={item}
                       index={index}

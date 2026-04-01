@@ -408,7 +408,7 @@ export async function getPLReport(startDate: string, endDate: string): Promise<P
   const margin = revenue > 0 ? (operationalProfit / revenue) * 100 : 0;
 
   // Monthly trend (last 12 months)
-  const monthlyTrend = [];
+  const monthlyTrend: any[] = [];
   const now = new Date(endDate);
 
   for (let i = 11; i >= 0; i--) {

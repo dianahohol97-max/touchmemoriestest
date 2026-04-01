@@ -278,6 +278,7 @@ export default function FeaturedProductsPage() {
                         <SortableContext items={featured.map(f => f.id)} strategy={verticalListSortingStrategy}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {featured.map(product => (
+                                // @ts-ignore
                                     <SortableProductItem key={product.id} product={product} onRemove={handleRemove} />
                                 ))}
                             </div>

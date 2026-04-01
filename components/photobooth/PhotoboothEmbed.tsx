@@ -58,7 +58,7 @@ interface PhotoboothEmbedProps {
  * ```
  */
 export const PhotoboothEmbed: React.FC<PhotoboothEmbedProps> = ({
-  initialConfig = {},
+  initialConfig = {} as Partial<PhotoboothConfig>,
   showConfig: initialShowConfig = false,
   onComplete,
   onError,

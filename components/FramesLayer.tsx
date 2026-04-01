@@ -142,7 +142,7 @@ export const FRAMES = [
     label: 'Вінок',
     group: 'Квіткові',
     render: (w:number, h:number, color:string, op:number) => {
-      const leaves = [];
+      const leaves: string[] = [];
       const count = 24;
       for (let i=0; i<count; i++) {
         const t = i/count;

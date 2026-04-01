@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       .eq('id', order_id);
 
     // Auto-assign designer if enabled
-    let assignedDesigner = null;
+    let assignedDesigner: any = null;
     if (settings.auto_assign_designer) {
       const assignResult = await autoAssignDesigner(order_id);
 

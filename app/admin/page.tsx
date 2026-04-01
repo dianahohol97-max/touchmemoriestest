@@ -166,7 +166,7 @@ function AdminDashboardContent() {
 
             if (reviewsError) console.error('Old reviews error:', reviewsError);
 
-            const newAlerts = [];
+            const newAlerts: {title:string;message:string;type:string}[] = [];
             if (stockAlerts?.length) newAlerts.push({ title: 'Критичний залишок', message: `${stockAlerts.length} товарів мають запас < 5 шт.`, type: 'error' });
             if (staleOrders?.length) newAlerts.push({ title: 'Завислі замовлення', message: `${staleOrders.length} нових замовлень без реакції > 24 год.`, type: 'warning' });
             if (oldReviews?.length) newAlerts.push({ title: 'Черга відгуків', message: `${oldReviews.length} відгуків чекають модерації > 3 днів.`, type: 'info' });

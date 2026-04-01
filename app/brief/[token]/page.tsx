@@ -18,8 +18,10 @@ export default async function BriefPage({ params }: PageProps) {
     notFound();
   }
 
-  // Check if brief is already submitted
-  if (brief.status !== 'waiting_brief') {
+  const briefData = brief!;
+
+  // Check if briefData is already submitted
+  if (briefData.status !== 'waiting_brief') {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
@@ -31,7 +33,7 @@ export default async function BriefPage({ params }: PageProps) {
             <p className="text-gray-600 mb-6">
               Дякуємо! Ми вже отримали ваш бриф і працюємо над вашим дизайном.
             </p>
-            {brief.status === 'brief_received' && (
+            {briefData.status === 'brief_received' && (
               <div className="bg-blue-50 border border-blue-200 rounded-[3px] p-4">
                 <p className="text-sm text-blue-800">
                   Наш AI-дизайнер зараз аналізує ваші фото. Незабаром дизайнер
@@ -39,14 +41,14 @@ export default async function BriefPage({ params }: PageProps) {
                 </p>
               </div>
             )}
-            {brief.status === 'ai_processing' && (
+            {briefData.status === 'ai_processing' && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-[3px] p-4">
                 <p className="text-sm text-yellow-800">
                   AI обробляє ваші фото... Це може зайняти кілька хвилин.
                 </p>
               </div>
             )}
-            {(brief.status === 'ai_done' || brief.status === 'in_design') && (
+            {(briefData.status === 'ai_done' || briefData.status === 'in_design') && (
               <div className="bg-purple-50 border border-purple-200 rounded-[3px] p-4">
                 <p className="text-sm text-purple-800">
                   Дизайнер працює над вашим альбомом. Ми повідомимо вас, коли
@@ -54,7 +56,7 @@ export default async function BriefPage({ params }: PageProps) {
                 </p>
               </div>
             )}
-            {brief.status === 'sent_for_review' && (
+            {briefData.status === 'sent_for_review' && (
               <div className="bg-green-50 border border-green-200 rounded-[3px] p-4">
                 <p className="text-sm text-green-800">
                   Дизайн готовий! Перевірте вашу електронну пошту для посилання
@@ -69,7 +71,7 @@ export default async function BriefPage({ params }: PageProps) {
   }
 
   // Check if order is paid and has designer service
-  const order = (brief as any).order;
+  const order = (briefData as any).order;
   if (!order || !order.paid_at || !order.with_designer) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -92,7 +94,7 @@ export default async function BriefPage({ params }: PageProps) {
   return (
     <BriefPageClient
       token={token}
-      brief={brief}
+      brief={briefData}
       orderNumber={order.order_number}
       customerName={order.customer?.name || ''}
     />

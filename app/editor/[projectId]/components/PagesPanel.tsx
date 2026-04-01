@@ -212,6 +212,7 @@ export default function PagesPanel() {
           >
             {project.pages.map((page, index) => (
               <SortablePageItem
+            // @ts-ignore
                 key={page.id}
                 page={page}
                 index={index}

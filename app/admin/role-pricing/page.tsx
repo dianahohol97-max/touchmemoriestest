@@ -48,7 +48,7 @@ export default function RolePricingPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const upserts = [];
+            const upserts: any[] = [];
             for (const key in pricingMap) {
                 const parts = key.split('_');
                 const role = parts.pop();

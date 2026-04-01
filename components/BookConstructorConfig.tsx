@@ -998,7 +998,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 {[...new Set(photobookPrices
                                     .filter((p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize)
                                     .map((p: any) => p.page_count)
-                                )].sort((a, b) => a - b).map((pageCount) => {
+                                )].sort((a: number, b: number) => a - b).map((pageCount) => {
                                     const priceEntry = photobookPrices.find(
                                         (p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize && p.page_count === pageCount
                                     );

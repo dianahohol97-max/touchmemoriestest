@@ -169,7 +169,7 @@ function DesignerUploadContent() {
 
         setShowRestoredBanner(true);
         sessionStorage.removeItem('pendingOrder');
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to restore pending order', e);
       }
     } else {
@@ -193,7 +193,7 @@ function DesignerUploadContent() {
             setTextTypesetting(photoBookOrder.extras.textTypesetting);
             setTextSource(photoBookOrder.extras.textSource);
             setOwnText(photoBookOrder.extras.ownText);
-          } catch (e) {
+          } catch (e: any) {
             console.error('Failed to load photobook order', e);
           }
         }
@@ -217,7 +217,7 @@ function DesignerUploadContent() {
             setQrCode(magazineOrder.extras.qrCode);
             setQrLink(magazineOrder.extras.qrLink);
             setUrgentProduction(magazineOrder.extras.urgentProduction);
-          } catch (e) {
+          } catch (e: any) {
             console.error('Failed to load magazine order', e);
           }
         }
@@ -247,7 +247,7 @@ function DesignerUploadContent() {
 
     const newPhotos = files.map(file => ({
       file,
-      preview: URL.createObjectURL(file)
+      preview: URL.createObjectURL(file as Blob)
     }));
 
     setPhotos(prev => [...prev, ...newPhotos]);
@@ -271,7 +271,7 @@ function DesignerUploadContent() {
     e.preventDefault();
     e.stopPropagation();
 
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    const files = (Array.from(e.dataTransfer.files) as File[]).filter((f: File) => f.type.startsWith('image/'));
     if (files.length + photos.length > 50) {
       alert('Максимум 50 фото');
       return;
@@ -279,7 +279,7 @@ function DesignerUploadContent() {
 
     const newPhotos = files.map(file => ({
       file,
-      preview: URL.createObjectURL(file)
+      preview: URL.createObjectURL(file as Blob)
     }));
 
     setPhotos(prev => [...prev, ...newPhotos]);
@@ -420,7 +420,7 @@ function DesignerUploadContent() {
       } else {
         alert('Помилка при оформленні замовлення: ' + (result.error || 'Невідома помилка'));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Order submission failed:', error);
       alert('Помилка при оформленні замовлення. Спробуйте ще раз.');
     } finally {

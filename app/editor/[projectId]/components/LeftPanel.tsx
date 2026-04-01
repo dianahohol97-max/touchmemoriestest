@@ -116,8 +116,8 @@ export default function LeftPanel() {
                 accept="image/*"
                 className="hidden"
                 onChange={(e) => {
-                  Array.from(e.target.files ?? []).forEach(file => {
-                    const url = URL.createObjectURL(file)
+                  Array.from(e.target.files ?? []).forEach((file: File) => {
+                    const url = URL.createObjectURL(file as Blob)
                     addElement(currentPageIndex, {
                       id: `photo_${Date.now()}_${Math.random().toString(36).slice(2)}`,
                       type: 'photo',

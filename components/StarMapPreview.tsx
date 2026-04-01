@@ -254,6 +254,7 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         }
         ctx.globalAlpha=1;
 
+        const s = W/600;
         // Constellation labels
         if(config.showConstellations!==false) {
             ctx.save();
@@ -301,7 +302,6 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         }
 
         // Text zone — scale proportionally to W (base=600)
-        const s = W/600;
         ctx.fillStyle=config.textColor; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
 
         if(isFull) {

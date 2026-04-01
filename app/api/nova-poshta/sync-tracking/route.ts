@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
         console.log(`[Nova Poshta Sync] Processing ${orders.length} orders...`);
 
         let updatedCount = 0;
-        const results = [];
+        const results: any[] = [];
 
         for (const order of orders) {
             try {

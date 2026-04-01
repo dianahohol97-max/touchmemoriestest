@@ -31,7 +31,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         if (orderError) throw orderError;
 
         // Fetch staff details to put inside history context
-        let actionMsg = [];
+        let actionMsg: string[] = [];
         if (manager_id !== undefined) actionMsg.push(`Призначено Менеджера`);
         if (designer_id !== undefined) actionMsg.push(`Призначено Дизайнера`);
 
@@ -49,7 +49,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         }
 
         // 3. Log into staff_work_log for salary aggregations
-        const workLogs = [];
+        const workLogs: any[] = [];
         if (manager_id) {
             workLogs.push({ staff_id: manager_id, order_id: params.id, action: 'assigned_manager', notes: 'Assigned as manager' });
         }

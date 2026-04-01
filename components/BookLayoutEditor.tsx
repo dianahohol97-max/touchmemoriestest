@@ -632,7 +632,7 @@ export default function BookLayoutEditor() {
     if (!files.length) return;
     let done = 0;
     const newPhotos: PhotoData[] = [];
-    files.forEach(file => {
+    files.forEach((file: File) => {
       const reader = new FileReader();
       reader.onload = ev => {
         const img = new window.Image();
@@ -1462,7 +1462,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Ілюстрація</div>
                   <input ref={kalkaImageInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => {
                     const f = e.target.files?.[0]; if (!f) return;
-                    setKalkaState(p => ({ ...p, imageUrl: URL.createObjectURL(f) }));
+                    setKalkaState(p => ({ ...p, imageUrl: URL.createObjectURL(f as Blob) }));
                   }}/>
                   <div style={{ display:'flex', gap:6 }}>
                     <button onClick={() => kalkaImageInputRef.current?.click()}
@@ -1536,7 +1536,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             ref={el => { endpaperImageRef.current[key] = el; }}
                             onChange={e => {
                               const f = e.target.files?.[0]; if (!f) return;
-                              setEndpaperState(p=>({...p,[key]:{...p[key],imageUrl:URL.createObjectURL(f)}}));
+                              setEndpaperState(p=>({...p,[key]:{...p[key],imageUrl:URL.createObjectURL(f as Blob)}}));
                             }}/>
                           <div style={{ display:'flex', gap:6 }}>
                             <button onClick={()=>endpaperImageRef.current[key]?.click()}
@@ -2745,7 +2745,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Ілюстрація</div>
                   <input ref={kalkaImageInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => {
                     const f = e.target.files?.[0]; if (!f) return;
-                    setKalkaState(p => ({ ...p, imageUrl: URL.createObjectURL(f) }));
+                    setKalkaState(p => ({ ...p, imageUrl: URL.createObjectURL(f as Blob) }));
                   }}/>
                   <div style={{ display:'flex', gap:8 }}>
                     <button onClick={() => kalkaImageInputRef.current?.click()}
