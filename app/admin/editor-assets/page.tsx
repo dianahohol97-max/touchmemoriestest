@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Search, Upload } from 'lucide-react';
 
 type ResourceType = 'stickers' | 'frames' | 'covers';
@@ -20,7 +20,7 @@ export default function EditorAssetsPage() {
   const [form, setForm] = useState<any>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+  const sb = createClient();
 
   useEffect(() => { loadAll(); }, []);
 

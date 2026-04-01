@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { ChevronUp, ChevronDown, X, Plus, Search, Gift } from 'lucide-react';
 import Image from 'next/image';
@@ -31,10 +31,7 @@ type CollectionItem = {
 };
 
 export default function GiftCollectionsAdminPage() {
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createClient();
 
     const [collections, setCollections] = useState<GiftCollection[]>([]);
     const [selectedCollection, setSelectedCollection] = useState<GiftCollection | null>(null);

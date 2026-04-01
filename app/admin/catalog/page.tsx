@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { Plus, Search, Filter, Edit2, Trash2, Star, Loader2, Image as ImageIcon } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface Product {
     id: string;
@@ -13,10 +13,10 @@ interface Product {
     is_active: boolean;
     is_popular: boolean;
     images: string[];
-    categories: {
+    category: {
         id: string;
         name: string;
-    }[];
+    } | null;
 }
 
 interface Category {
@@ -54,11 +54,11 @@ export default function AdminCatalogPage() {
             // Fetch products
             const { data: prodData, error } = await supabase
                 .from('products')
-                .select('id, name, slug, price, is_active, is_popular, images, categories(id, name)')
+                .select('id, name, slug, price, is_active, is_popular, images, category:categories!products_category_id_fkey(id, name)')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setProducts(prodData || []);
+            setProducts((prodData || []) as any);
         } catch (error: any) {
             toast.error(error.message || 'Помилка завантаження даних');
         } finally {
@@ -126,7 +126,7 @@ export default function AdminCatalogPage() {
     // Apply filters
     let filteredProducts = products.filter(p => {
         const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchCategory = categoryFilter === 'all' || p.categories?.some(c => c.id === categoryFilter);
+        const matchCategory = categoryFilter === 'all' || p.category?.id === categoryFilter;
 
         let matchStatus = true;
         if (statusFilter === 'published') matchStatus = p.is_active === true;
@@ -257,9 +257,9 @@ export default function AdminCatalogPage() {
                                             </div>
                                         </td>
                                         <td style={{ padding: '16px 24px', color: '#475569' }}>
-                                            {product.categories && product.categories[0] ? (
+                                            {product.category ? (
                                                 <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: "3px", fontSize: '13px', fontWeight: 600 }}>
-                                                    {product.categories[0].name}
+                                                    {product.category.name}
                                                 </span>
                                             ) : (
                                                 <span style={{ color: '#94a3b8' }}>Немає</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { Palette, Send, ExternalLink, Copy, CheckCircle, Clock, RefreshCw, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -18,10 +18,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> =
 };
 
 export default function DesignerProjectBlock({ order }: Props) {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createClient();
 
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);

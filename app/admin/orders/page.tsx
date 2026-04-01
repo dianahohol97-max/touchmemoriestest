@@ -321,9 +321,7 @@ export default function OrdersPage() {
                                         <div>
                                             <div style={{ fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                 {order.customer_name}
-                                                {order.customers?.notes && (
-                                                    <span title={order.customers.notes} style={{ cursor: 'help', fontSize: '14px' }}>📌</span>
-                                                )}
+
                                             </div>
                                             <div style={{ fontSize: '12px', color: '#64748b' }}>{order.customer_phone}</div>
                                         </div>

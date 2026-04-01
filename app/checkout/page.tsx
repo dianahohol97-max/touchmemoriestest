@@ -81,6 +81,9 @@ export default function CheckoutPage() {
             const orderNumber = `TM-${Math.floor(100000 + Math.random() * 900000)}`;
 
             // 2. Prepare order data
+            // Check if any item requires designer
+            const needsDesigner = items.some((item: any) => item.with_designer || item.options?.with_designer);
+
             const orderData = {
                 order_number: orderNumber,
                 customer_name: formData.name,
@@ -93,8 +96,10 @@ export default function CheckoutPage() {
                     city: formData.city,
                     branch: formData.branch
                 },
+                payment_method: formData.paymentMethod === 'cash' ? 'Накладений платіж' : 'Онлайн оплата',
                 payment_status: 'pending',
                 order_status: 'new',
+                with_designer: needsDesigner,
                 created_at: new Date().toISOString()
             };
 

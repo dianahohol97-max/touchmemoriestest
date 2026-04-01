@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Mail, Users, Ticket, Zap, Plus, Search, Calendar, RefreshCw, X } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export default function MarketingAdminPage() {
     const supabase = createClient();
