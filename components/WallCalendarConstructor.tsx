@@ -1,4 +1,5 @@
 'use client';
+import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -106,17 +107,18 @@ function PhotoSlot({ slot, photo, W, H, onDrop, onCropChange }:
     { slot: Slot; photo: Photo|null; W: number; H: number;
       onDrop:(id:string)=>void; onCropChange:(x:number,y:number,z:number)=>void }) {
     const drag = useRef<{sx:number;sy:number;cx:number;cy:number}|null>(null);
-    const handleMD = (e: React.MouseEvent) => {
+    const handleMD = (e: React.PointerEvent) => {
         if (!photo) return; e.preventDefault();
-        drag.current = { sx: e.clientX, sy: e.clientY, cx: slot.cropX, cy: slot.cropY };
-        const up  = () => { drag.current = null; window.removeEventListener('mouseup',up); window.removeEventListener('mousemove',mv); };
-        const mv  = (ev: MouseEvent) => {
-            if (!drag.current) return;
-            const dx = (ev.clientX-drag.current.sx)/W*100/(slot.zoom||1);
-            const dy = (ev.clientY-drag.current.sy)/H*100/(slot.zoom||1);
-            onCropChange(Math.max(0,Math.min(100,drag.current.cx-dx)), Math.max(0,Math.min(100,drag.current.cy-dy)), slot.zoom);
-        };
-        window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up);
+        haptic.light();
+        const startCX = slot.cropX, startCY = slot.cropY;
+        const zoom = slot.zoom || 1;
+        startPointerDrag(e, (dx, dy) => {
+            onCropChange(
+                Math.max(0, Math.min(100, startCX - dx/W*100/zoom)),
+                Math.max(0, Math.min(100, startCY - dy/H*100/zoom)),
+                slot.zoom
+            );
+        });
     };
     const handleWheel = (e: React.WheelEvent) => {
         e.preventDefault();
@@ -124,7 +126,7 @@ function PhotoSlot({ slot, photo, W, H, onDrop, onCropChange }:
     };
     return (
         <div style={{ width:W, height:H, overflow:'hidden', position:'relative', background:'#f1f5f9', cursor: photo?'grab':'default' }}
-            onMouseDown={handleMD} onWheel={handleWheel}
+            onPointerDown={handleMD} onWheel={handleWheel}
             onDragOver={e=>e.preventDefault()}
             onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('photo-id');if(id)onDrop(id);}}>
             {photo ? (

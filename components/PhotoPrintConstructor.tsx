@@ -1,4 +1,5 @@
 'use client';
+import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Upload, X, AlertTriangle, ShoppingCart, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -90,28 +91,21 @@ function PhotoPreview({
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, cropX: 50, cropY: 50 });
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.PointerEvent) => {
     e.preventDefault();
-    isDragging.current = true;
-    dragStart.current = { x: e.clientX, y: e.clientY, cropX: photo.cropX, cropY: photo.cropY };
-    const onMove = (me: MouseEvent) => {
-      if (!isDragging.current) return;
-      const zoomFactor = photo.zoom || 1;
-      // objectPosition works in % of the overflow area
-      // more zoom = more overflow = less % per px
-      const sensitivity = 0.3 / zoomFactor;
-      const dx = (me.clientX - dragStart.current.x) * sensitivity;
-      const dy = (me.clientY - dragStart.current.y) * sensitivity;
+    haptic.light();
+    const zoomFactor = photo.zoom || 1;
+    const sensitivity = 0.3 / zoomFactor;
+    const startCropX = photo.cropX;
+    const startCropY = photo.cropY;
+    startPointerDrag(e, (dx, dy) => {
       onCropChange(
         photo.id,
-        Math.max(0, Math.min(100, dragStart.current.cropX - dx)),
-        Math.max(0, Math.min(100, dragStart.current.cropY - dy)),
+        Math.max(0, Math.min(100, startCropX - dx * sensitivity)),
+        Math.max(0, Math.min(100, startCropY - dy * sensitivity)),
         photo.zoom
       );
-    };
-    const onUp = () => { isDragging.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    });
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -143,7 +137,7 @@ function PhotoPreview({
     return (
       <div style={{ display:'inline-block', position:'relative' }}>
         <div style={{ width:canvasWPolaroid, height:canvasHPolaroid, position:'relative', background:'#fff', boxShadow:'0 4px 20px rgba(0,0,0,0.15)', userSelect:'none' }} onWheel={(e)=>{e.preventDefault();const delta=e.deltaY>0?-0.05:0.05;onCropChange(photo.id,photo.cropX,photo.cropY,Math.max(0.5,Math.min(3,(photo.zoom||1)+delta)));}}>
-          <div style={{ position:'absolute', left:borderPxPolaroid, top:borderTopPx, width:photoAreaWP, height:photoAreaHP, overflow:'hidden', cursor:'grab', background:'#fff' }} onMouseDown={handleMouseDown}>
+          <div style={{ position:'absolute', left:borderPxPolaroid, top:borderTopPx, width:photoAreaWP, height:photoAreaHP, overflow:'hidden', cursor:'grab', background:'#fff' }} onPointerDown={handleMouseDown}>
             <img src={photo.preview} draggable={false} style={{ width:`${(photo.zoom||1)*100}%`, height:`${(photo.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${photo.cropX}% ${photo.cropY}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none' }}/>
           </div>
           {/* White borders */}
@@ -217,7 +211,7 @@ function PhotoPreview({
           width: canvasW, height: canvasH,
           overflow: 'hidden', cursor: 'grab',
         }}
-          onMouseDown={handleMouseDown}
+          onPointerDown={handleMouseDown}
         >
           <img
             src={photo.preview}

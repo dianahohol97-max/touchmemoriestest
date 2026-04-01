@@ -81,7 +81,7 @@ export default function GooglePlacesAutocomplete({ value, onChange, placeholder 
             {open && suggestions.length > 0 && (
                 <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
                     {suggestions.map((item, i) => (
-                        <li key={i} onMouseDown={() => handleSelect(item)}
+                        <li key={i} onPointerDown={() => handleSelect(item)}
                             className="px-4 py-2 text-sm text-gray-700 cursor-pointer hover:bg-blue-50 hover:text-[#1e2d7d] flex items-start gap-2">
                             <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                             <span className="line-clamp-2">{item.display_name}</span>

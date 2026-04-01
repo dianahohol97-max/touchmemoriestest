@@ -1,4 +1,5 @@
 'use client';
+import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 
 import { useState, useRef } from 'react';
 
@@ -87,24 +88,19 @@ export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: ex
   const update = (id:string, patch:Partial<Shape>) => onChange(shapes.map(s=>s.id===id?{...s,...patch}:s));
   const del = (id:string) => { onChange(shapes.filter(s=>s.id!==id)); setSelectedId(null); };
 
-  const startDrag = (e:React.MouseEvent, id:string, type:'move'|'se'|'rotate') => {
+  const startDrag = (e:React.PointerEvent, id:string, type:'move'|'se'|'rotate') => {
     e.stopPropagation(); e.preventDefault();
+    haptic.light();
     const orig = shapes.find(s=>s.id===id)!;
-    dragRef.current = { type, id, sx:e.clientX, sy:e.clientY, orig:{...orig} };
-    const onMove = (me:MouseEvent) => {
-      if (!dragRef.current) return;
-      const { type, id, sx, sy, orig } = dragRef.current;
-      const dx = me.clientX-sx, dy = me.clientY-sy;
+    startPointerDrag(e, (dx, dy) => {
       if (type==='move') update(id, { x:Math.max(0,Math.min(canvasW-orig.w,orig.x+dx)), y:Math.max(0,Math.min(canvasH-orig.h,orig.y+dy)) });
       else if (type==='se') update(id, { w:Math.max(20,orig.w+dx), h:Math.max(20,orig.h+dy) });
       else if (type==='rotate') {
         const cx=orig.x+orig.w/2, cy=orig.y+orig.h/2;
-        const angle = Math.atan2(me.clientY-cy, me.clientX-cx) * 180/Math.PI + 90;
-        update(id, { rotation: Math.round(angle) });
+        const clientX = e.clientX+dx, clientY = e.clientY+dy;
+        update(id, { rotation: Math.round(Math.atan2(clientY-cy, clientX-cx)*180/Math.PI+90) });
       }
-    };
-    const onUp = () => { dragRef.current=null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
-    window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+    });
   };
 
   return (
@@ -116,7 +112,7 @@ export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: ex
             draggable
             onDragStart={e => { e.dataTransfer.setData('shape-id', shape.id); e.dataTransfer.effectAllowed = 'move'; onDragShapeStart?.(shape.id); }}
             onDragEnd={() => onDragShapeEnd?.()}
-            onMouseDown={e=>{setSelectedId(shape.id);onSelectId?.(shape.id);startDrag(e,shape.id,'move');}}
+            onPointerDown={e=>{setSelectedId(shape.id);onSelectId?.(shape.id);startDrag(e,shape.id,'move');}}
             style={{ position:'absolute', left:shape.x, top:shape.y, width:shape.w, height:shape.h, cursor:'move', zIndex:sel?45:25, outline:sel?'2px solid #3b82f6':'none', transform:`rotate(${shape.rotation}deg)`, transformOrigin:'center' }}>
             <svg width={shape.w} height={shape.h} style={{ display:'block', overflow:'visible' }}>
               {renderShapeSVG(shape)}
