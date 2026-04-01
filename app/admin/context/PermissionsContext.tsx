@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 type PermissionLevel = 'none' | 'view' | 'edit' | 'full';
@@ -13,105 +13,79 @@ type PermissionsContextType = {
 };
 
 const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
-
 const ACCESS_ORDER: PermissionLevel[] = ['none', 'view', 'edit', 'full'];
 
 export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [permissions, setPermissions] = useState<Record<string, PermissionLevel>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
-
-    const supabase = createClient();
-
-    const fetchPermissions = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            // Timeout after 5s — never block admin access
-            const timeoutId = setTimeout(() => {
-                setIsAdmin(true);
-                setPermissions({});
-                setIsLoading(false);
-            }, 5000);
-
-            const { data: { session } } = await supabase.auth.getSession();
-            clearTimeout(timeoutId);
-
-            if (!session?.user?.email) {
-                setIsAdmin(true);
-                setIsLoading(false);
-                return;
-            }
-
-            // 1. Fetch staff record
-            const { data: staff, error: staffError } = await supabase
-                .from('staff')
-                .select('role, role_id, individual_permissions')
-                .eq('email', session.user.email)
-                .maybeSingle();
-
-            let mergedPermissions: Record<string, PermissionLevel> = {};
-            let isSuperAdmin = false;
-
-            if (staff) {
-                // If the staff role is 'admin' or 'owner', treat as superadmin
-                if (staff.role === 'admin' || staff.role === 'owner') {
-                    isSuperAdmin = true;
-                }
-
-                // 2. Fetch role permissions if role_id exists
-                if (staff.role_id) {
-                    const { data: role, error: roleError } = await supabase
-                        .from('admin_roles')
-                        .select('permissions, slug')
-                        .eq('id', staff.role_id)
-                        .single();
-
-                    if (!roleError && role) {
-                        mergedPermissions = { ...(role.permissions || {}) };
-                        if (role.slug === 'owner' || role.slug === 'admin') {
-                            isSuperAdmin = true;
-                        }
-                    }
-                }
-
-                // 3. Apply individual overrides
-                if (staff.individual_permissions) {
-                    Object.entries(staff.individual_permissions).forEach(([section, level]) => {
-                        if (level && level !== 'none') {
-                            mergedPermissions[section] = level as PermissionLevel;
-                        }
-                    });
-                }
-            } else {
-                // No staff record found — give full access
-                isSuperAdmin = true;
-            }
-
-            setIsAdmin(isSuperAdmin);
-            setPermissions(mergedPermissions);
-
-        } catch (error) {
-            console.error('Error fetching permissions:', error);
-            // On any error — give full access so admin is never locked out
-            setIsAdmin(true);
-            setPermissions({});
-        } finally {
-            setIsLoading(false);
-        }
-    }, [supabase]);
+    const supabaseRef = useRef(createClient());
 
     useEffect(() => {
-        fetchPermissions();
-    }, [fetchPermissions]);
+        let cancelled = false;
+
+        const run = async () => {
+            const timer = setTimeout(() => {
+                if (!cancelled) { setIsAdmin(true); setPermissions({}); setIsLoading(false); }
+            }, 4000);
+
+            try {
+                const { data: { session } } = await supabaseRef.current.auth.getSession();
+                clearTimeout(timer);
+                if (cancelled) return;
+
+                if (!session?.user?.email) {
+                    setIsAdmin(true);
+                    setIsLoading(false);
+                    return;
+                }
+
+                const { data: staff } = await supabaseRef.current
+                    .from('staff')
+                    .select('role, role_id, individual_permissions')
+                    .eq('email', session.user.email)
+                    .maybeSingle();
+
+                if (cancelled) return;
+
+                let merged: Record<string, PermissionLevel> = {};
+                let superAdmin = false;
+
+                if (staff) {
+                    if (staff.role === 'admin' || staff.role === 'owner') superAdmin = true;
+                    if (staff.role_id) {
+                        const { data: role } = await supabaseRef.current
+                            .from('admin_roles').select('permissions, slug').eq('id', staff.role_id).single();
+                        if (!cancelled && role) {
+                            merged = { ...(role.permissions || {}) };
+                            if (role.slug === 'owner' || role.slug === 'admin') superAdmin = true;
+                        }
+                    }
+                    if (staff.individual_permissions) {
+                        Object.entries(staff.individual_permissions).forEach(([s, l]) => {
+                            if (l && l !== 'none') merged[s] = l as PermissionLevel;
+                        });
+                    }
+                } else {
+                    superAdmin = true;
+                }
+
+                if (!cancelled) { setIsAdmin(superAdmin); setPermissions(merged); }
+            } catch {
+                clearTimeout(timer);
+                if (!cancelled) { setIsAdmin(true); setPermissions({}); }
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        };
+
+        run();
+        return () => { cancelled = true; };
+    }, []);
 
     const hasPermission = useCallback((section: string, requiredLevel: PermissionLevel): boolean => {
         if (isAdmin) return true;
-
-        const userLevel = permissions[section] || 'none';
-        const userLevelIndex = ACCESS_ORDER.indexOf(userLevel);
-        const requiredLevelIndex = ACCESS_ORDER.indexOf(requiredLevel);
-
-        return userLevelIndex >= requiredLevelIndex;
+        return ACCESS_ORDER.indexOf(permissions[section] || 'none') >= ACCESS_ORDER.indexOf(requiredLevel);
     }, [permissions, isAdmin]);
 
     return (
@@ -122,9 +96,7 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
 };
 
 export const usePermissions = () => {
-    const context = useContext(PermissionsContext);
-    if (context === undefined) {
-        throw new Error('usePermissions must be used within a PermissionsProvider');
-    }
-    return context;
+    const ctx = useContext(PermissionsContext);
+    if (!ctx) throw new Error('usePermissions must be used within a PermissionsProvider');
+    return ctx;
 };
