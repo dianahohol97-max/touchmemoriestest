@@ -126,9 +126,9 @@ export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: ex
                   <button onMouseDown={e=>{e.stopPropagation();onMoveToOtherPage(shape);}} style={{ position:'absolute',top:-10,left:-10,width:20,height:20,borderRadius:'50%',background:'#3b82f6',color:'#fff',border:'2px solid #fff',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',zIndex:60 }} title="Перенести на іншу сторінку">⇄</button>
                 )}
                 {/* Resize SE */}
-                <div onMouseDown={e=>{e.stopPropagation();startDrag(e,shape.id,'se');}} style={{ position:'absolute',bottom:-5,right:-5,width:HANDLE_SIZE+2,height:HANDLE_SIZE+2,borderRadius:2,background:'#fff',border:'2px solid #3b82f6',cursor:'se-resize',zIndex:60 }}/>
+                <div onPointerDown={e=>{e.stopPropagation();startDrag(e,shape.id,'se');}} style={{ position:'absolute',bottom:-5,right:-5,width:HANDLE_SIZE+2,height:HANDLE_SIZE+2,borderRadius:2,background:'#fff',border:'2px solid #3b82f6',cursor:'se-resize',zIndex:60 }}/>
                 {/* Rotate */}
-                <div onMouseDown={e=>{e.stopPropagation();startDrag(e,shape.id,'rotate');}} style={{ position:'absolute',top:-24,left:'50%',transform:'translateX(-50%)',width:14,height:14,borderRadius:'50%',background:'#8b5cf6',border:'2px solid #fff',cursor:'grab',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'#fff' }}>↻</div>
+                <div onPointerDown={e=>{e.stopPropagation();startDrag(e,shape.id,'rotate');}} style={{ position:'absolute',top:-24,left:'50%',transform:'translateX(-50%)',width:14,height:14,borderRadius:'50%',background:'#8b5cf6',border:'2px solid #fff',cursor:'grab',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'#fff' }}>↻</div>
               </>
             )}
           </div>
