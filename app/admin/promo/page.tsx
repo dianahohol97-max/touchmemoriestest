@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -51,6 +52,8 @@ export default function PromoPage() {
     const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
     const [loading, setLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
     const [isSaving, setIsSaving] = useState(false);
 
     const [stats, setStats] = useState({
@@ -491,7 +494,8 @@ export default function PromoPage() {
                 </table>
             </div>
 
-            {/* Create Promo Modal */}
+            {/* Create Promo Modal — rendered in portal to escape overflow:auto main */}
+            {mounted && createPortal(
             <AnimatePresence>
                 {isFormOpen && (
                     <>
@@ -666,6 +670,7 @@ export default function PromoPage() {
                     </>
                 )}
             </AnimatePresence>
+            , document.body)}
         </div>
     );
 }
