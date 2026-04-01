@@ -1144,6 +1144,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             <GuestBookConfigModal
                 isOpen={guestbookModalOpen}
                 onClose={() => setGuestbookModalOpen(false)}
+                initialConfig={{
+                    size: String(customProductOptions['Розмір'] || ''),
+                    pageColor: String(customProductOptions['Колір сторінок'] || ''),
+                    coverType: String(customProductOptions['Вид обкладинки'] || customProductOptions['Тип обкладинки'] || ''),
+                    coverColor: String(customProductOptions['Колір обкладинки'] || ''),
+                }}
             />
 
         </div>
