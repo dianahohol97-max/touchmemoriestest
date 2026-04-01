@@ -136,14 +136,20 @@ export default function BankAccountsPage() {
             toast.error('Синхронізація доступна тільки для Monobank з API ключем');
             return;
         }
-        toast.info('Початок синхронізації...');
-        // Mock sync for now, in a real app this would call an API route
-        setTimeout(async () => {
-            const mockBalance = account.balance + Math.floor(Math.random() * 1000);
-            await supabase.from('bank_accounts').update({ balance: mockBalance }).eq('id', account.id);
+        toast.info('Синхронізація балансу...');
+        try {
+            const res = await fetch('/api/monobank/sync-balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accountId: account.id, apiKey: account.api_key })
+            });
+            const data = await res.json();
+            if (!res.ok) { toast.error(data.error || 'Помилка синхронізації'); return; }
+            toast.success(`Баланс оновлено: ${data.balance?.toLocaleString('uk-UA')} ₴`);
             fetchAccounts();
-            toast.success('Баланс оновлено');
-        }, 1500);
+        } catch (e: any) {
+            toast.error(e.message || 'Помилка');
+        }
     };
 
     return (
