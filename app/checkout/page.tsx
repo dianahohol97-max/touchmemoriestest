@@ -28,6 +28,7 @@ export default function CheckoutPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState<Step>('info');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showRegionModal, setShowRegionModal] = useState(false);
     const total = getTotal();
 
     const supabase = createClient();
@@ -74,7 +75,7 @@ export default function CheckoutPage() {
         if (currentStep === 'payment') setCurrentStep('shipping');
     };
 
-    const handleSubmitOrder = async () => {
+    const handleSubmitOrder = async (paymentRegion: 'ua' | 'international' = 'ua') => {
         setIsSubmitting(true);
         try {
             const orderNumber = `TM-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -112,7 +113,7 @@ export default function CheckoutPage() {
                 const invoiceRes = await fetch('/api/monobank/create-invoice', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId: savedOrder.id }),
+                    body: JSON.stringify({ orderId: savedOrder.id, paymentRegion }),
                 });
                 const invoiceData = await invoiceRes.json();
 
@@ -313,7 +314,7 @@ export default function CheckoutPage() {
                                     <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between' }}>
                                         <BackButton onClick={prevStep} />
                                         <button
-                                            onClick={handleSubmitOrder}
+                                            onClick={() => formData.paymentMethod === 'card' ? setShowRegionModal(true) : handleSubmitOrder()}
                                             disabled={isSubmitting}
                                             style={{
                                                 padding: '16px 32px',
@@ -398,6 +399,67 @@ export default function CheckoutPage() {
             </main>
 
             <Footer categories={[]} />
+
+            {/* Payment region modal — shown before online payment */}
+            {showRegionModal && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 1000,
+                    background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+                }}>
+                    <div style={{
+                        background: '#fff', borderRadius: 16, padding: '36px 32px',
+                        maxWidth: 440, width: '100%', boxShadow: '0 24px 48px rgba(0,0,0,0.18)'
+                    }}>
+                        <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>
+                            Оберіть спосіб розрахунку
+                        </h3>
+                        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24, lineHeight: 1.5 }}>
+                            Вкажіть, з якого рахунку відбуватиметься оплата — для коректного відображення реквізитів.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <button
+                                onClick={() => { setShowRegionModal(false); handleSubmitOrder('ua'); }}
+                                style={{
+                                    padding: '16px 20px', borderRadius: 10, border: '1.5px solid #c7d2fe',
+                                    background: '#f0f3ff', cursor: 'pointer', textAlign: 'left',
+                                    display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.15s'
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.borderColor = '#1e2d7d')}
+                                onMouseLeave={e => (e.currentTarget.style.borderColor = '#c7d2fe')}
+                            >
+                                <span style={{ fontSize: 28 }}>🇺🇦</span>
+                                <div>
+                                    <div style={{ fontSize: 15, fontWeight: 700, color: '#1e2d7d' }}>Картка українського банку</div>
+                                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Monobank, PrivatBank, Oschadbank та інші</div>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => { setShowRegionModal(false); handleSubmitOrder('international'); }}
+                                style={{
+                                    padding: '16px 20px', borderRadius: 10, border: '1.5px solid #d1d5db',
+                                    background: '#f9fafb', cursor: 'pointer', textAlign: 'left',
+                                    display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.15s'
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.borderColor = '#374151')}
+                                onMouseLeave={e => (e.currentTarget.style.borderColor = '#d1d5db')}
+                            >
+                                <span style={{ fontSize: 28 }}>🌍</span>
+                                <div>
+                                    <div style={{ fontSize: 15, fontWeight: 700, color: '#374151' }}>Картка іноземного банку</div>
+                                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Visa/Mastercard, випущена за кордоном</div>
+                                </div>
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setShowRegionModal(false)}
+                            style={{ marginTop: 20, width: '100%', padding: '10px', background: 'none', border: 'none', color: '#94a3b8', fontSize: 13, cursor: 'pointer' }}
+                        >
+                            Скасувати
+                        </button>
+                    </div>
+                </div>
+            )}
 
         </div>
     );

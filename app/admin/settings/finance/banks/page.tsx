@@ -41,6 +41,7 @@ export default function BankAccountsPage() {
         card_number: '',
         api_key: '',
         currency: 'UAH',
+        region: 'ua',
         assigned_staff_id: '',
         is_active: true
     });
@@ -70,6 +71,7 @@ export default function BankAccountsPage() {
             card_number: '',
             api_key: '',
             currency: 'UAH',
+            region: 'ua',
             assigned_staff_id: '',
             is_active: true
         });
@@ -84,6 +86,7 @@ export default function BankAccountsPage() {
             iban: account.iban || '',
             card_number: account.card_number || '',
             api_key: account.api_key || '',
+            region: account.region || 'ua',
             currency: account.currency,
             assigned_staff_id: account.assigned_staff_id || '',
             is_active: account.is_active
@@ -260,6 +263,17 @@ export default function BankAccountsPage() {
                                         <option>UAH</option>
                                         <option>USD</option>
                                         <option>EUR</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={formLabel}>Регіон платежів</label>
+                                    <select
+                                        style={formInput}
+                                        value={formData.region}
+                                        onChange={e => setFormData({ ...formData, region: e.target.value })}
+                                    >
+                                        <option value="ua">🇺🇦 Україна</option>
+                                        <option value="international">🌍 Міжнародний</option>
                                     </select>
                                 </div>
                             </div>
