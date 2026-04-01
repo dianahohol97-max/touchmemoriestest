@@ -114,6 +114,16 @@ export default function ProductsAdminPage() {
         setProducts(prev => prev.map(p => p.id === sel.id ? { ...sel } : p));
     }
 
+    async function deleteProduct() {
+        if (!sel) return;
+        if (!confirm(`Видалити товар "${sel.name}"? Цю дію не можна скасувати.`)) return;
+        const { error } = await supabase.from('products').delete().eq('id', sel.id);
+        if (error) { toast.error('Помилка видалення: ' + error.message); return; }
+        toast.success('Товар видалено');
+        setProducts(prev => prev.filter(p => p.id !== sel.id));
+        setSel(null);
+    }
+
     function upd<K extends keyof Product>(k: K, v: Product[K]) {
         setSel(p => p ? { ...p, [k]: v } : p);
     }
@@ -139,7 +149,27 @@ export default function ProductsAdminPage() {
     }
     function addImgUrl() {
         const u = prompt('URL зображення:');
-        if (u && sel) upd('images', [...sel.images, u]);
+        if (u && sel) {
+            if (sel.images.length >= 10) { toast.error('Максимум 10 фото'); return; }
+            upd('images', [...sel.images, u]);
+        }
+    }
+
+    async function handleImageFiles(files: FileList | null) {
+        if (!files || !sel) return;
+        const remaining = 10 - sel.images.length;
+        if (remaining <= 0) { toast.error('Максимум 10 фото'); return; }
+        const toAdd = Array.from(files).slice(0, remaining);
+        const newUrls: string[] = [];
+        for (const file of toAdd) {
+            if (!file.type.startsWith('image/')) continue;
+            const url = URL.createObjectURL(file);
+            newUrls.push(url);
+        }
+        if (newUrls.length) {
+            upd('images', [...sel.images, ...newUrls]);
+            toast.success(`Додано ${newUrls.length} фото (попередній перегляд)`);
+        }
     }
 
     const filtered = products.filter(p =>
@@ -205,6 +235,10 @@ export default function ProductsAdminPage() {
                                 style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:8, border:`1px solid ${S.is_active?'#10b981':'#ef4444'}`, background:S.is_active?'#f0fdf4':'#fef2f2', color:S.is_active?'#10b981':'#ef4444', cursor:'pointer', fontSize:12, fontWeight:600 }}>
                                 {S.is_active ? <Eye size={13}/> : <EyeOff size={13}/>}
                                 {S.is_active ? 'Активний' : 'Неактивний'}
+                            </button>
+                            <button onClick={deleteProduct}
+                                style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', borderRadius:8, background:'#fff', color:'#ef4444', border:'1px solid #fca5a5', cursor:'pointer', fontWeight:600, fontSize:13 }}>
+                                <Trash2 size={14}/> Видалити
                             </button>
                             <button onClick={save} disabled={saving}
                                 style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 18px', borderRadius:8, background:'#1e2d7d', color:'#fff', border:'none', cursor:'pointer', fontWeight:700, fontSize:13, opacity:saving?.7:1 }}>
@@ -313,12 +347,27 @@ export default function ProductsAdminPage() {
                     {/* ── MEDIA ── */}
                     {tab==='media' && <>
                         <div style={{ background:'#fff', borderRadius:12, padding:20, border:'1px solid #e5e7eb' }}>
-                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-                                <div style={{ fontWeight:700, color:'#1e2d7d' }}>Фотографії</div>
-                                <button onClick={addImgUrl} style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600 }}>
-                                    <Plus size={13}/> Додати URL
-                                </button>
-                            </div>
+                            {(() => {
+                                const fileRef2 = { current: null as HTMLInputElement | null };
+                                return (
+                                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+                                        <div>
+                                            <div style={{ fontWeight:700, color:'#1e2d7d' }}>Фотографії</div>
+                                            <div style={{ fontSize:11, color: S.images.length >= 10 ? '#ef4444' : '#9ca3af', marginTop:2 }}>{S.images.length}/10 фото</div>
+                                        </div>
+                                        <div style={{ display:'flex', gap:8 }}>
+                                            <label style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background: S.images.length >= 10 ? '#f3f4f6' : '#f0f3ff', color: S.images.length >= 10 ? '#9ca3af' : '#1e2d7d', border:'1px dashed #c7d2fe', borderRadius:8, cursor: S.images.length >= 10 ? 'not-allowed' : 'pointer', fontSize:13, fontWeight:600 }}>
+                                                <ImageIcon size={13}/> Завантажити файл
+                                                <input type="file" multiple accept="image/*" style={{ display:'none' }} disabled={S.images.length >= 10}
+                                                    onChange={e=>handleImageFiles(e.target.files)}/>
+                                            </label>
+                                            <button onClick={addImgUrl} disabled={S.images.length >= 10} style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background: S.images.length >= 10 ? '#f3f4f6' : '#1e2d7d', color: S.images.length >= 10 ? '#9ca3af' : '#fff', border:'none', borderRadius:8, cursor: S.images.length >= 10 ? 'not-allowed' : 'pointer', fontSize:13, fontWeight:600 }}>
+                                                <Plus size={13}/> URL
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                             {S.images.length===0 ? (
                                 <div style={{ border:'2px dashed #e5e7eb', borderRadius:10, padding:36, textAlign:'center', color:'#9ca3af' }}>
                                     <ImageIcon size={32} style={{ margin:'0 auto 8px', opacity:.4 }}/>
@@ -354,7 +403,7 @@ export default function ProductsAdminPage() {
                             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
                                 <div>
                                     <div style={{ fontWeight:700, color:'#1e2d7d' }}>Опції товару</div>
-                                    <div style={{ fontSize:11, color:'#6b7280', marginTop:2 }}>Синхронізовано з полем options у БД</div>
+                                    <div style={{ fontSize:11, color:'#6b7280', marginTop:2 }}>Ціна варіанту — <b>абсолютна</b> вартість (не доплата). Синхронізовано з БД.</div>
                                 </div>
                                 <button onClick={addOpt} style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600 }}>
                                     <Plus size={13}/> Додати опцію
@@ -392,7 +441,7 @@ export default function ProductsAdminPage() {
                                             {/* opt items */}
                                             <div style={{ padding:12 }}>
                                                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 80px 28px', gap:6, marginBottom:6 }}>
-                                                    {['Назва','Value','+₴',''].map((h,i)=><div key={i} style={{ fontSize:10, fontWeight:700, color:'#9ca3af', textTransform:'uppercase' }}>{h}</div>)}
+                                                    {['Назва','Value','Ціна ₴',''].map((h,i)=><div key={i} style={{ fontSize:10, fontWeight:700, color:i===2?'#1e2d7d':'#9ca3af', textTransform:'uppercase' }}>{h}</div>)}
                                                 </div>
                                                 {opt.options.map((it,ii)=>(
                                                     <div key={ii} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 80px 28px', gap:6, marginBottom:6 }}>
