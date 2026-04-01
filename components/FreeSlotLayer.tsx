@@ -180,15 +180,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
             }}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) { update(slot.id, { photoId: id }); setSelectedId(slot.id); } }}
-            onTouchStart={e => {
-              if (inCrop) return; // img handles it
-              setSelectedId(slot.id);
-              const t = e.touches[0];
-              touchRef.current.slotId = slot.id;
-              touchRef.current.startX = t.clientX; touchRef.current.startY = t.clientY;
-              const s = slots.find(s => s.id === slot.id)!;
-              dragRef.current = { type:'move', id:slot.id, startX:t.clientX, startY:t.clientY, origSlot:{...s} };
-            }}
+
             onTouchMove={e => {
               if (inCrop || !dragRef.current || dragRef.current.id !== slot.id || dragRef.current.type !== 'move') return;
               e.preventDefault();

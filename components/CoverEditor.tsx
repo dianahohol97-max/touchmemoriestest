@@ -184,17 +184,15 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
   const metalHex = metalGrad;
 
   // Text drag
-  const handleTextMouseDown = (e: React.MouseEvent) => {
+  const handleTextMouseDown = (e: React.PointerEvent) => {
     e.stopPropagation(); e.preventDefault();
-    dragRef.current = { startX: e.clientX, startY: e.clientY, startTX: config.textX, startTY: config.textY };
-    const onMove = (me: MouseEvent) => {
-      if (!dragRef.current) return;
-      const dx = (me.clientX - dragRef.current.startX) / canvasW * 100;
-      const dy = (me.clientY - dragRef.current.startY) / canvasH * 100;
-      onChange({ textX: Math.max(5, Math.min(95, dragRef.current.startTX + dx)), textY: Math.max(5, Math.min(95, dragRef.current.startTY + dy)) });
-    };
-    const onUp = () => { dragRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+    haptic.light();
+    const startTX = config.textX ?? 50;
+    const startTY = config.textY ?? 50;
+    startPointerDrag(e, (dx, dy) => onChange({
+      textX: Math.max(5, Math.min(95, startTX + dx/canvasW*100)),
+      textY: Math.max(5, Math.min(95, startTY + dy/canvasH*100)),
+    }));
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -335,7 +333,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
 
           {/* FLEX — draggable text */}
           {config.decoType === 'flex' && (
-            <div onMouseDown={handleTextMouseDown}
+            <div onPointerDown={handleTextMouseDown}
               style={{ position:'absolute', left:`${textX}%`, top:`${textY}%`, transform:'translate(-50%,-50%)',
                 cursor:'move', userSelect:'none', zIndex:10, padding:'4px 8px',
                 border:'1px dashed rgba(255,255,255,0.3)', borderRadius:4 }}>
@@ -356,7 +354,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
 
           {/* ENGRAVING — draggable text */}
           {config.decoType === 'graviruvannya' && (
-            <div onMouseDown={handleTextMouseDown}
+            <div onPointerDown={handleTextMouseDown}
               style={{ position:'absolute', left:`${textX}%`, top:`${textY}%`, transform:'translate(-50%,-50%)',
                 cursor:'move', userSelect:'none', zIndex:10, padding:'4px 8px',
                 border:'1px dashed rgba(255,255,255,0.2)', borderRadius:4 }}>
@@ -386,18 +384,16 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
         const etDragRef = { current: null as {sx:number;sy:number;stx:number;sty:number}|null };
         return (
           <div key={et.id}
-            onMouseDown={e => {
-              e.stopPropagation();
-              etDragRef.current = { sx:e.clientX, sy:e.clientY, stx:et.x, sty:et.y };
-              const onMove = (me:MouseEvent) => {
-                if (!etDragRef.current) return;
-                const dx=(me.clientX-etDragRef.current.sx)/canvasW*100;
-                const dy=(me.clientY-etDragRef.current.sy)/canvasH*100;
-                const updated = (config.extraTexts||[]).map(t=>t.id===et.id?{...t,x:Math.max(2,Math.min(95,etDragRef.current!.stx+dx)),y:Math.max(2,Math.min(95,etDragRef.current!.sty+dy))}:t);
-                onChange({extraTexts:updated});
-              };
-              const onUp = () => { etDragRef.current=null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
-              window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+            onPointerDown={e => {
+              e.stopPropagation(); e.preventDefault();
+              haptic.light();
+              const stx = et.x, sty = et.y;
+              startPointerDrag(e, (dx, dy) => {
+                const updated = (config.extraTexts||[]).map(t => t.id===et.id
+                  ? {...t, x:Math.max(2,Math.min(95,stx+dx/canvasW*100)), y:Math.max(2,Math.min(95,sty+dy/canvasH*100))}
+                  : t);
+                onChange({extraTexts: updated});
+              });
             }}
             style={{ position:'absolute', left:`${et.x}%`, top:`${et.y}%`, transform:'translate(-50%,-50%)', cursor:'move', zIndex:20, padding:'3px 6px', border:'1px dashed rgba(255,255,255,0.25)', borderRadius:3 }}>
             <span
