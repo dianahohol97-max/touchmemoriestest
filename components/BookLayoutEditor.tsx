@@ -317,6 +317,8 @@ export default function BookLayoutEditor() {
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle'|'saving'|'saved'>('idle');
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Калька state: text, uploaded illustration
   const [kalkaState, setKalkaState] = useState<{ text: string; textColor: string; fontSize: number; fontFamily: string; imageUrl: string | null; }>({ text: '', textColor: '#333333', fontSize: 24, fontFamily: 'Playfair Display', imageUrl: null });
   const kalkaImageInputRef = useRef<HTMLInputElement>(null);
@@ -399,20 +401,23 @@ export default function BookLayoutEditor() {
     }
   }, [router]);
 
-  // Auto-save editor state to sessionStorage so it survives "back" navigation
+  // Auto-save editor state to sessionStorage (debounced, with status indicator)
   useEffect(() => {
     if (!pages.length) return;
-    const draft = {
-      pages,
-      freeSlots,
-      pageStickers,
-      pageShapes,
-      pageBgs,
-      coverState,
-    };
-    try {
-      sessionStorage.setItem('bookEditorDraft', JSON.stringify(draft));
-    } catch {}
+    setSaveStatus('saving');
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        const draft = { pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState };
+        sessionStorage.setItem('bookEditorDraft', JSON.stringify(draft));
+        setSaveStatus('saved');
+        // Reset to idle after 3 seconds
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      } catch {
+        setSaveStatus('idle');
+      }
+    }, 800); // debounce 800ms — wait for user to stop editing
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState]);
 
   // Auto-switch to cover tab on page 0
@@ -800,7 +805,7 @@ export default function BookLayoutEditor() {
             </button>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontWeight:800, fontSize:13, color:'#1e2d7d', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{config.productName || 'Фотокнига'}</div>
-              <div style={{ fontSize:10, color:'#94a3b8' }}>{photos.length} фото • {pages.length} стор.</div>
+              <div style={{ fontSize:10, color:'#94a3b8' }}>{photos.length} фото • {pages.length} стор.{saveStatus === 'saving' ? <span style={{ color:'#f59e0b', marginLeft:4 }}>● Зберігаю...</span> : saveStatus === 'saved' ? <span style={{ color:'#10b981', marginLeft:4 }}>✓ Збережено</span> : ''}</div>
             </div>
             <div style={{ fontSize:13, fontWeight:800, color:'#1e2d7d', flexShrink:0 }}>{dynamicPrice} ₴</div>
             {designerOrderId ? (
@@ -851,6 +856,8 @@ export default function BookLayoutEditor() {
               <div style={{ fontSize:11, color:'#64748b' }}>
                 Редактор • {photos.length} фото • {pages.length} сторінок
                 {_slug.includes('travel') ? ' • 20×30 см' : (_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')) ? ' • A4' : config?.selectedSize ? ` • ${config.selectedSize} см` : ''}
+                {saveStatus === 'saving' && <span style={{ color:'#f59e0b', marginLeft:6, fontSize:10 }}>● Зберігаю...</span>}
+                {saveStatus === 'saved' && <span style={{ color:'#10b981', marginLeft:6, fontSize:10 }}>✓ Збережено</span>}
               </div>
             </div>
           </div>
