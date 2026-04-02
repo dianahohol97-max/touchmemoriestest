@@ -397,7 +397,36 @@ export default function BookLayoutEditor() {
     else { toast.error('Конфігурація не знайдена'); router.push('/order/book'); }
     const ph = sessionStorage.getItem('bookConstructorPhotos');
     if (ph) setPhotos(JSON.parse(ph));
+    // Restore editor draft if user navigated back
+    const draft = sessionStorage.getItem('bookEditorDraft');
+    if (draft) {
+      try {
+        const d = JSON.parse(draft);
+        if (d.pages?.length) setPages(d.pages);
+        if (d.freeSlots) setFreeSlots(d.freeSlots);
+        if (d.pageStickers) setPageStickers(d.pageStickers);
+        if (d.pageShapes) setPageShapes(d.pageShapes);
+        if (d.pageBgs) setPageBgs(d.pageBgs);
+        if (d.coverState) setCoverState(d.coverState);
+      } catch {}
+    }
   }, [router]);
+
+  // Auto-save editor state to sessionStorage so it survives "back" navigation
+  useEffect(() => {
+    if (!pages.length) return;
+    const draft = {
+      pages,
+      freeSlots,
+      pageStickers,
+      pageShapes,
+      pageBgs,
+      coverState,
+    };
+    try {
+      sessionStorage.setItem('bookEditorDraft', JSON.stringify(draft));
+    } catch {}
+  }, [pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState]);
 
   // Auto-switch to cover tab on page 0
   useEffect(() => {
@@ -407,6 +436,11 @@ export default function BookLayoutEditor() {
 
   useEffect(() => {
     if (!config) return;
+    // Skip re-initialization if we restored a draft (pages already set)
+    const draft = sessionStorage.getItem('bookEditorDraft');
+    if (draft) {
+      try { const d = JSON.parse(draft); if (d.pages?.length) return; } catch {}
+    }
     const m = config.selectedPageCount.match(/(\d+)/);
     const total = m ? parseInt(m[0]) : 20;
     const hasKalka = !!(config.enableKalka) && (config.productSlug || '').toLowerCase().includes('photobook');
@@ -781,6 +815,9 @@ export default function BookLayoutEditor() {
   const addToCart = () => {
     if (!config) return;
     addItem({ id: `pb-${Date.now()}`, name: config.productName || 'Фотокнига', price: dynamicPrice, qty: 1, image: getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '', options: { 'Розмір': config.selectedSize || '', 'Сторінок': config.selectedPageCount }, personalization_note: `${pages.length} сторінок` });
+    // Clear editor draft — user successfully added to cart
+    sessionStorage.removeItem('bookEditorDraft');
+    sessionStorage.removeItem('bookConstructorConfig');
     toast.success('Додано до кошика!');
     router.push('/cart');
   };
