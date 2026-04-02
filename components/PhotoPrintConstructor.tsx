@@ -326,14 +326,28 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState(false);
-  const [selectedSize, setSelectedSize] = useState(initialSize || '');
-  const [selectedFinish, setSelectedFinish] = useState(initialFinish || '');
-  const [selectedBorder, setSelectedBorder] = useState(initialBorder || 'none');
+  const _savedPrintSettings = typeof window !== 'undefined' ? (() => {
+    try { return JSON.parse(sessionStorage.getItem('photoPrintSettings') || 'null'); } catch { return null; }
+  })() : null;
+  const [selectedSize, setSelectedSize] = useState(initialSize || _savedPrintSettings?.size || '');
+  const [selectedFinish, setSelectedFinish] = useState(initialFinish || _savedPrintSettings?.finish || '');
+  const [selectedBorder, setSelectedBorder] = useState(initialBorder || _savedPrintSettings?.border || 'none');
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
   const [polaroidFont, setPolaroidFont] = useState(POLAROID_FONTS[0].value);
   const [polaroidColor, setPolaroidColor] = useState(POLAROID_COLORS[0].value);
   const POLAROID_TEXT_PRICE = 5;
+
+  // Auto-save print settings to sessionStorage
+  useEffect(() => {
+    if (selectedSize || selectedFinish) {
+      try {
+        sessionStorage.setItem('photoPrintSettings', JSON.stringify({
+          size: selectedSize, finish: selectedFinish, border: selectedBorder
+        }));
+      } catch {}
+    }
+  }, [selectedSize, selectedFinish, selectedBorder]);
 
   const selectedPhotos = photos.filter(p => selectedPhotoIds.has(p.id));
   const allSelected = photos.length > 0 && selectedPhotoIds.size === photos.length;

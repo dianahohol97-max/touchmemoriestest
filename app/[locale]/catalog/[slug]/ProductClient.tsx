@@ -552,9 +552,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 const label = item.label || item.name || String(item);
                                                                 const value = item.value || item.name || String(item);
                                                                 const price = Number(item.price || 0);
+                                                                // Don't show (+X ₴) if label already contains price (грн/₴)
+                                                                const labelHasPrice = /\d+\s*(грн|₴)/.test(label);
                                                                 return (
                                                                     <option key={idx} value={value}>
-                                                                        {label}{price > 0 ? ` (+${price} ₴)` : ''}
+                                                                        {label}{price > 0 && !labelHasPrice ? ` (+${price} ₴)` : ''}
                                                                     </option>
                                                                 );
                                                             })}
@@ -608,9 +610,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 const label = item.label || item.name || item;
                                                                 const value = item.value || item.name || item;
                                                                 const price = Number(item.price || 0);
+                                                                const labelHasPrice = /\d+\s*(грн|₴)/.test(String(label));
                                                                 return (
                                                                     <option key={idx} value={value}>
-                                                                        {label}{price > 0 ? ` (+${price} ₴)` : ''}
+                                                                        {label}{price > 0 && !labelHasPrice ? ` (+${price} ₴)` : ''}
                                                                     </option>
                                                                 );
                                                             })}
@@ -657,6 +660,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 const value = item.value || item.name || item;
                                                                 const price = item.price || 0;
                                                                 const isSelected = customProductOptions[opt.name] === value;
+                                                                const labelHasPrice2 = /\d+\s*(грн|₴)/.test(String(label));
                                                                 return (
                                                                     <button key={i} type="button"
                                                                         onClick={() => {
@@ -667,7 +671,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                                 ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
                                                                                 : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
                                                                         }`}>
-                                                                        {label}{price > 0 ? ` (+${price} ₴)` : ''}
+                                                                        {label}{price > 0 && !labelHasPrice2 ? ` (+${price} ₴)` : ''}
                                                                     </button>
                                                                 );
                                                             })}
