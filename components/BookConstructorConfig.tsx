@@ -815,7 +815,15 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     <button
                                         key={size.id}
                                         type="button"
-                                        onClick={() => setSelectedSize(size.name)}
+                                        onClick={() => {
+                            setSelectedSize(size.name);
+                            // Reset page count if not available for new size
+                            if (selectedPageCount) {
+                                const pageNum = parseInt(selectedPageCount.match(/\d+/)?.[0] || '0');
+                                const available = photobookPrices.some((p: any) => p.size?.name === size.name && p.page_count === pageNum);
+                                if (!available) setSelectedPageCount('');
+                            }
+                        }}
                                         className={`p-4 rounded-lg border-2 text-center transition-all ${
                                             selectedSize === size.name
                                                 ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
@@ -1032,7 +1040,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             </label>
                             <select
                                 value={selectedSize}
-                                onChange={(e) => setSelectedSize(e.target.value)}
+                                onChange={(e) => { setSelectedSize(e.target.value); setSelectedPageCount(''); }}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
                             >
                                 {product.variants.map((variant) => (
