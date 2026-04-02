@@ -544,6 +544,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             } : null,
             totalPrice: calculatePrice(),
             photoRecommendation: getPhotoRecommendation(),
+            minPageCount: (() => {
+                // Minimum pages for this size/cover from available price entries
+                const available = photobookPrices
+                    .filter((p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize)
+                    .map((p: any) => p.page_count);
+                return available.length > 0 ? Math.min(...available) : 6;
+            })(),
             timestamp: Date.now()
         };
 

@@ -29,7 +29,7 @@ import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
-interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; }
+interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
 interface CoverState {
@@ -594,7 +594,7 @@ export default function BookLayoutEditor() {
 
   const removeCurrentSpread = () => {
     pushHistory();
-    if (pages.length <= 3) { toast.error('Мінімум 1 розворот'); return; }
+    if (pages.length <= minPagesLen) { toast.error(`Мінімальна кількість розворотів: ${minSpreads}`); return; }
     if (currentIdx === 0) { toast.error('Не можна видалити обкладинку'); return; }
     // pages[0] = cover, spread N = pages[(N-1)*2+1] and pages[(N-1)*2+2]
     const p1 = (currentIdx - 1) * 2 + 1;
@@ -631,6 +631,11 @@ export default function BookLayoutEditor() {
   // In spread view, changeLayout applies to the hovered/selected page side
   const [activeSide, setActiveSide] = useState<0|1>(0);
   const getActivePageIdx = () => currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + activeSide;
+  // Minimum spreads = minPageCount / 2 (from product config, e.g. 20×20 = 6/2 = 3)
+  const minPageCount = config?.minPageCount ?? 6;
+  const minSpreads = Math.max(1, Math.floor(minPageCount / 2));
+  // pages array: 1 cover + N content pages; minimum = minPageCount + 1
+  const minPagesLen = minPageCount + 1;
   const curFreeSlots = freeSlots[getActivePageIdx()] || [];
   const setCurFreeSlots = (slots: FreeSlot[] | ((prev: FreeSlot[]) => FreeSlot[])) => {
     const idx = getActivePageIdx();
@@ -1708,8 +1713,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       style={{ flex:1, padding:'9px 8px', border:'1px solid #d1fae5', borderRadius:8, background:'#f0fdf4', cursor:'pointer', fontWeight:700, fontSize:12, color:'#059669', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
                       <span style={{fontSize:16}}>+</span> Додати розворот
                     </button>
-                    <button onClick={removeCurrentSpread} disabled={currentIdx === 0 || pages.length <= 3}
-                      style={{ flex:1, padding:'9px 8px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor: currentIdx === 0 || pages.length <= 3 ? 'not-allowed' : 'pointer', fontWeight:700, fontSize:12, color: currentIdx === 0 || pages.length <= 3 ? '#fca5a5' : '#ef4444', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
+                    <button onClick={removeCurrentSpread} disabled={currentIdx === 0 || pages.length <= minPagesLen}
+                      style={{ flex:1, padding:'9px 8px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor: currentIdx === 0 || pages.length <= minPagesLen ? 'not-allowed' : 'pointer', fontWeight:700, fontSize:12, color: currentIdx === 0 || pages.length <= minPagesLen ? '#fca5a5' : '#ef4444', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
                       <span style={{fontSize:16}}>−</span> Видалити цей
                     </button>
                   </div>
@@ -1802,7 +1807,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   + розворот
                 </button>
                 {currentIdx !== 0 && (
-                  <button onClick={removeCurrentSpread} title="Видалити поточний розворот" disabled={pages.length <= 3}
+                  <button onClick={removeCurrentSpread} title="Видалити поточний розворот" disabled={pages.length <= minPagesLen}
                     style={{ display:'flex', alignItems:'center', gap:3, padding:'5px 10px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:pages.length<=3?'not-allowed':'pointer', color:pages.length<=3?'#fca5a5':'#ef4444', fontWeight:700, fontSize:12, opacity:pages.length<=3?0.5:1 }}>
                     − розворот
                   </button>
