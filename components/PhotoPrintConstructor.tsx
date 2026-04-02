@@ -176,7 +176,14 @@ function PhotoPreview({
       </div>
     );
   } else if (isNonstandard) {
-    photoW = 15; photoH = 10; // nonstandard preview ratio
+    // Use actual selected size for correct aspect ratio
+    const nsMatch = sizeKey.match(/([\d.]+)x([\d.]+)/);
+    if (nsMatch) {
+      photoW = parseFloat(nsMatch[1]);
+      photoH = parseFloat(nsMatch[2]);
+    } else {
+      photoW = 10; photoH = 7.5; // default fallback
+    }
   } else if (size) {
     photoW = size.w; photoH = size.h; // FULL print size — border overlaid on top
   } else {
@@ -184,8 +191,8 @@ function PhotoPreview({
   }
 
   // Canvas = full print size. Border is overlaid ON TOP of photo (3mm white strips)
-  const totalW = size ? size.w : isNonstandard ? 15 : 10;
-  const totalH = size ? size.h : isNonstandard ? 10 : 15;
+  const totalW = size ? size.w : photoW;
+  const totalH = size ? size.h : photoH;
 
   // Scale to fit MAX_W
   const scale = MAX_W / totalW;
@@ -510,10 +517,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     addItem({
       id: `${product.id}_${Date.now()}`,
       product_id: product.id, name: product.name,
-      price: calculatePrice(),
+      price: calculatePrice(), // total price for all photos
       image: product.images?.[0] || '', slug: product.slug,
       options: { 'Кількість фото': photos.length.toString(), ...(selectedSize && {'Розмір': selectedSize}), ...(selectedFinish && {'Покриття': selectedFinish}), ...(!isNonstandard && !isPolaroid && {'Біла рамочка': selectedBorder === 'with' ? 'Так' : 'Ні'}) },
-      qty: photos.reduce((s,p)=>s+(p.qty||1),0), // total qty
+      qty: 1, // price already includes all photo quantities
       personalization_note: isPolaroid
         ? `${photos.length} фото. Написи: ${photos.filter(p=>p.polaroidText?.trim()).map((p,i)=>`фото ${photos.indexOf(p)+1}: "${p.polaroidText}"`).join(', ') || 'немає'}`
         : `${photos.length} фото для друку`
