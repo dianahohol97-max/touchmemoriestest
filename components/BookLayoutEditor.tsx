@@ -1433,22 +1433,21 @@ export default function BookLayoutEditor() {
 
             {/* SHAPES */}
             {leftTab === 'shapes' && (() => {
-              // Shapes not supported on cover page
-              if (currentIdx === 0) {
+              // Shapes only on printed covers or inner pages
+              if (currentIdx === 0 && !isPrinted) {
                 return (
                   <div style={{ padding:'16px 12px', textAlign:'center' }}>
                     <div style={{ fontSize:24, marginBottom:8 }}>◻</div>
-                    <div style={{ fontSize:12, fontWeight:700, color:'#374151', marginBottom:6 }}>Фігури недоступні на обкладинці</div>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#374151', marginBottom:6 }}>Фігури недоступні на цій обкладинці</div>
                     <div style={{ fontSize:11, color:'#94a3b8', lineHeight:1.5 }}>
-                      Перейдіть на внутрішню сторінку щоб додати фігури.
-                      {isPrinted && ' Для обкладинки використовуйте вкладку «Обкладинка».'}
+                      Фігури доступні для друкованих обкладинок та внутрішніх сторінок.
                     </div>
                   </div>
                 );
               }
-              const spi = (currentIdx-1)*2+1+activeSide;
+              const spi = currentIdx === 0 ? 0 : (currentIdx-1)*2+1+activeSide;
               const shapes = getCurShapes(spi);
-              const allSpreadIdxs = [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
+              const allSpreadIdxs = currentIdx === 0 ? [0] : [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
               let selShape = null as typeof shapes[0] | null;
               let selSpi = spi;
               for (const pi of allSpreadIdxs) {
@@ -1823,16 +1822,32 @@ export default function BookLayoutEditor() {
                     </div>
                   );
                 })()}
-                {/* Front cover with decoration — uses buildCoverEditorProps for identical props */}
-                <CoverEditor
-                  canvasW={pageW}
-                  canvasH={cH}
-                  sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
-                  config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
-                  photos={photos}
-                  hidePhotoSlot={isHardCoverJournal}
-                  onChange={(cfg: any) => setCoverState(prev => handleCoverChange(cfg, prev))}
-                />
+                {/* Front cover with decoration + shapes overlay */}
+                <div style={{ position:'relative', width: pageW, height: cH, flexShrink:0 }}>
+                  <CoverEditor
+                    canvasW={pageW}
+                    canvasH={cH}
+                    sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
+                    config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
+                    photos={photos}
+                    hidePhotoSlot={isHardCoverJournal}
+                    onChange={(cfg: any) => setCoverState(prev => handleCoverChange(cfg, prev))}
+                  />
+                  {/* Shapes layer on top of cover — for printed/magazine/travelbook covers */}
+                  {isPrinted && (
+                    <div style={{ position:'absolute', inset:0, zIndex:15, pointerEvents:'none' }}>
+                      <div style={{ position:'relative', width:'100%', height:'100%', pointerEvents:'auto' }}>
+                        <ShapesLayer
+                          shapes={getCurShapes(0)}
+                          canvasW={pageW} canvasH={cH}
+                          onChange={newShapes => setPageShapes(prev=>({...prev,[0]:newShapes}))}
+                          selectedId={selectedShapeId}
+                          onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
           ) : (
           <div
@@ -1849,16 +1864,31 @@ export default function BookLayoutEditor() {
                   {/* Spine line */}
                   <div style={{ position:'absolute', right:0, top:0, width:2, height:'100%', background:'rgba(0,0,0,0.15)' }}/>
                 </div>
-                {/* Front cover — with deco */}
-                <CoverEditor
-                  canvasW={pageW}
-                  canvasH={cH}
-                  sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
-                  config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
-                  photos={photos}
-                  hidePhotoSlot={isHardCoverJournal}
-                  onChange={(cfg: any) => setCoverState(prev => handleCoverChange(cfg, prev))}
-                />              </div>
+                {/* Front cover — with deco + shapes overlay */}
+                <div style={{ position:'relative', width: pageW, height: cH, flexShrink:0 }}>
+                  <CoverEditor
+                    canvasW={pageW}
+                    canvasH={cH}
+                    sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
+                    config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
+                    photos={photos}
+                    hidePhotoSlot={isHardCoverJournal}
+                    onChange={(cfg: any) => setCoverState(prev => handleCoverChange(cfg, prev))}
+                  />
+                  {isPrinted && (
+                    <div style={{ position:'absolute', inset:0, zIndex:15, pointerEvents:'none' }}>
+                      <div style={{ position:'relative', width:'100%', height:'100%', pointerEvents:'auto' }}>
+                        <ShapesLayer
+                          shapes={getCurShapes(0)}
+                          canvasW={pageW} canvasH={cH}
+                          onChange={newShapes => setPageShapes(prev=>({...prev,[0]:newShapes}))}
+                          selectedId={selectedShapeId}
+                          onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>              </div>
             ) : (
               /* Spread: left page + right page */
               <>
@@ -2834,17 +2864,17 @@ export default function BookLayoutEditor() {
 
             {/* SHAPES */}
             {leftTab === 'shapes' && (() => {
-              if (currentIdx === 0) {
+              if (currentIdx === 0 && !isPrinted) {
                 return (
                   <div style={{ padding:'16px 12px', textAlign:'center' }}>
                     <div style={{ fontSize:20, marginBottom:6 }}>◻</div>
-                    <div style={{ fontSize:12, fontWeight:700, color:'#374151', marginBottom:4 }}>Фігури недоступні на обкладинці</div>
-                    <div style={{ fontSize:11, color:'#94a3b8' }}>Перейдіть на внутрішню сторінку</div>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#374151', marginBottom:4 }}>Фігури недоступні на цій обкладинці</div>
+                    <div style={{ fontSize:11, color:'#94a3b8' }}>Доступні для друкованих обкладинок</div>
                   </div>
                 );
               }
-              const spi = (currentIdx-1)*2+1+activeSide;
-              const allSpreadIdxs = [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
+              const spi = currentIdx === 0 ? 0 : (currentIdx-1)*2+1+activeSide;
+              const allSpreadIdxs = currentIdx === 0 ? [0] : [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
               let selShape = null as any;
               let selSpi = spi;
               for (const pi of allSpreadIdxs) {
