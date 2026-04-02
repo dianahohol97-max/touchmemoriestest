@@ -243,6 +243,7 @@ export default function BookPhotoUpload() {
                         <div className="text-sm text-blue-700 space-y-1">
                             {config.selectedSize && <p>• Розмір: {config.selectedSize}</p>}
                             <p>• {config.selectedPageCount}</p>
+                            {recommendedRange && <p>• Рекомендована кількість фото: <b>{recommendedRange}</b></p>}
                             {(() => {
                                 const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
                                 const textLayout = params.get('text_layout');
@@ -263,13 +264,7 @@ export default function BookPhotoUpload() {
             {/* Photo Counter */}
             <div className={`mb-6 p-4 rounded-lg ${photos.length === 0 ? 'bg-orange-50 border border-orange-200' : 'bg-green-50 border border-green-200'}`}>
                 <div className="flex items-center justify-between">
-                    <div>
-                        {recommendedRange && (
-                            <p className="text-sm text-gray-600 mt-1">
-                                Рекомендовано: {recommendedRange} фото
-                            </p>
-                        )}
-                    </div>
+                    <div></div>
                     {lowQualityCount > 0 && (
                         <div className="flex items-center gap-2 text-yellow-700">
                             <AlertTriangle className="w-5 h-5" />
@@ -316,7 +311,7 @@ export default function BookPhotoUpload() {
                     className="hidden"
                 />
                 <p className="text-xs text-gray-400 mt-4">
-                    JPG, PNG, HEIC — максимум 500 фото
+                    JPG, PNG, HEIC
                 </p>
             </div>
 
@@ -402,7 +397,7 @@ export default function BookPhotoUpload() {
                         <li>• Перетягніть фото для зміни порядку</li>
                         <li>• Жовта рамка означає низьку роздільність фото</li>
                         <li>• Рекомендована роздільність: мінімум 300 DPI для якісного друку</li>
-                        <li>• Ви можете додати до 500 фото</li>
+
                     </ul>
                 </div>
             )}

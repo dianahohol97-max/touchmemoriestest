@@ -481,9 +481,23 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         const productType = getProductType();
         const recommendations = PHOTO_RECOMMENDATIONS[productType] || [];
-        const rec = recommendations.find(r => r.pages === pageNum);
 
-        return rec ? rec.photoCount : '';
+        // Try exact match first
+        const exact = recommendations.find(r => r.pages === pageNum);
+        if (exact) return exact.photoCount;
+
+        // Fallback: closest lower match
+        const lower = [...recommendations].reverse().find(r => r.pages <= pageNum);
+        if (lower) {
+            const diff = pageNum - lower.pages;
+            const [lo, hi] = lower.photoCount.split('-').map(Number);
+            return `${lo + diff}-${hi + diff}`;
+        }
+
+        // Ultimate fallback: formula — 1 photo per page + 20% extra
+        const min = pageNum + 1;
+        const max = Math.round(pageNum * 1.3);
+        return `${min}-${max}`;
     };
 
     const shouldShowEndpaperOption = (): boolean => {

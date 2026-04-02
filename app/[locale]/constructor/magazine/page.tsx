@@ -604,6 +604,9 @@ export default function GlossyMagazineConstructor() {
             </div>
 
             {/* Photo Upload */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-800">
+              📷 Рекомендована кількість фото для журналу на <b>{pages}</b> сторінок: <b>{pages + 1}–{Math.round(pages * 1.3)}</b>
+            </div>
             <PhotoUploader
               canvasSize={{ width: 2480, height: 3508 }}
               minFiles={1}
@@ -612,7 +615,7 @@ export default function GlossyMagazineConstructor() {
               label="Завантажте фотографії для журналу"
             />
             <p className="text-sm text-gray-600 -mt-6">
-              Можна завантажити від 1 до 200 фото. Якщо матеріалів багато — скористайтеся ZIP-архівом нижче.
+              Якщо матеріалів багато — скористайтеся ZIP-архівом нижче.
             </p>
 
             {/* Text File Upload (conditional) */}

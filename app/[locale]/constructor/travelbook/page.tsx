@@ -550,7 +550,7 @@ export default function TravelBookConstructor() {
             {/* Photo Upload */}
             <div className="bg-white rounded-xl p-6">
               <h3 className="font-bold text-lg mb-3">
-                📷 Завантажте від {minFiles} до {maxFiles} фотографій
+                📷 Рекомендована кількість фото: {minFiles}–{maxFiles}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
                 Менше фото — більше простору на кожній сторінці. Більше — насиченіша книга.
@@ -578,7 +578,7 @@ export default function TravelBookConstructor() {
                       Завантажено: {uploadedPhotos.length} із {minFiles} необхідних
                     </span>
                     <span className="text-sm text-gray-500">
-                      Макс: {maxFiles} фото
+                      Рекомендовано: {minFiles}–{maxFiles} фото
                     </span>
                   </div>
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
