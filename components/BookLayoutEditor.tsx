@@ -266,7 +266,8 @@ export default function BookLayoutEditor() {
   const [pages, setPages] = useState<Page[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 40 : 70);
-  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'>('photos');
+  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'>('layouts');
+  const [flyoutOpen, setFlyoutOpen] = useState(false);
   const [coverState, setCoverState] = useState<CoverState>(() => {
     // Synchronously read config to initialize cover state immediately
     try {
@@ -964,32 +965,34 @@ export default function BookLayoutEditor() {
       )}
 
       {/* BODY */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isMobile ? 'column' : 'row' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isMobile ? 'column' : 'row', position:'relative' }}>
 
         {/* ICON SIDEBAR — desktop only */}
-        {!isMobile && <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
+        {!isMobile && <div style={{ width: 48, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 6, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
           {([
-            ['photos', <ImageIcon key="p" size={20}/>, 'Зображення'],
-            ['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'],
-            ['text', <Type key="t" size={20}/>, 'Текст'],
-            ['bg', <span key="bg" style={{fontSize:16,fontWeight:700}}>Фн</span>, 'Фон'],
-            ['shapes', <span key="sh" style={{fontSize:16,fontWeight:700}}>◻</span>, 'Фігури'],
-            ['stickers', <span key="stk" style={{fontSize:16}}>★</span>, 'Стікери'],
-            ['frames', <span key="fr" style={{fontSize:16,fontWeight:700}}>⬜</span>, 'Рамки'],
-            ...(hasKalka?[['kalka', <span key="kl" style={{fontSize:13,fontWeight:700}}>КЛ</span>, 'Калька']]:[] as any),
-            ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац']]:[] as any),
-            ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:18}}>▣</span>, 'Обкладинка']]:[] as any),
+            ['layouts', <LayoutGrid key="l" size={18}/>, 'Шаблон'],
+            ['text', <Type key="t" size={18}/>, 'Текст'],
+            ['bg', <span key="bg" style={{fontSize:14,fontWeight:700}}>Фн</span>, 'Фон'],
+            ['shapes', <span key="sh" style={{fontSize:14,fontWeight:700}}>◻</span>, 'Фігури'],
+            ['stickers', <span key="stk" style={{fontSize:14}}>★</span>, 'Стікери'],
+            ['frames', <span key="fr" style={{fontSize:14,fontWeight:700}}>⬜</span>, 'Рамки'],
+            ...(hasKalka?[['kalka', <span key="kl" style={{fontSize:11,fontWeight:700}}>КЛ</span>, 'Калька']]:[] as any),
+            ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:10,fontWeight:700}}>ФЗ</span>, 'Форзац']]:[] as any),
+            ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:16}}>▣</span>, 'Обкл.']]:[] as any),
           ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
-            <button key={id} onClick={() => { setLeftTab(id as any); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); }}
-              style={{ width: '100%', padding: '12px 4px', border: 'none', cursor: 'pointer', background: leftTab === id ? '#1e2d7d' : 'transparent', color: leftTab === id ? '#fff' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, marginBottom: 2, transition: 'background 0.15s' }}>
+            <button key={id} onClick={() => { const shouldToggle = leftTab === id && flyoutOpen; setLeftTab(id as any); setFlyoutOpen(!shouldToggle); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); }}
+              style={{ width: '100%', padding: '8px 2px', border: 'none', cursor: 'pointer', background: leftTab === id && flyoutOpen ? '#1e2d7d' : 'transparent', color: leftTab === id && flyoutOpen ? '#fff' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, marginBottom: 1, transition: 'background 0.15s' }}>
               {icon}
-              <span style={{ fontSize: 10, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
+              <span style={{ fontSize: 8, fontWeight: 700, textAlign: 'center', lineHeight: 1.1 }}>{label}</span>
             </button>
           ))}
         </div>}
 
-        {/* CONTENT PANEL — desktop only, mobile uses bottom sheet */}
-        {!isMobile && <div style={{ width: 200, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        {/* CONTENT PANEL — flyout overlay on desktop, bottom sheet on mobile */}
+        {!isMobile && flyoutOpen && <>
+          {/* Backdrop to close */}
+          <div onClick={()=>setFlyoutOpen(false)} style={{ position:'fixed', inset:0, zIndex:98 }}/>
+          <div style={{ width: 240, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0, position:'absolute', left:48, top:0, bottom:0, zIndex:99, boxShadow:'4px 0 16px rgba(0,0,0,0.08)' }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: 800, fontSize: 12, color: '#1e2d7d' }}>
             {({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','frames':'Рамки','stickers':'Стікери','options':'Опції','cover':'Обкладинка'} as Record<string,string>)[leftTab] || leftTab}
           </div>
@@ -1856,10 +1859,11 @@ export default function BookLayoutEditor() {
             )}
 
           </div>
-        </div>}
+        </div>
+        </>}
 
         {/* CANVAS */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? '12px 8px 72px 8px' : 32, background: '#f4f6fb' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? '12px 8px 72px 8px' : '24px 32px 140px 32px', background: '#f4f6fb', position:'relative' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} style={{ background: 'none', border: 'none', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', opacity: currentIdx === 0 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronLeft size={20} /></button>
             <span>{currentIdx === 0 ? 'Обкладинка' : `${(currentIdx-1)*2+1}–${(currentIdx-1)*2+2}`}</span>
