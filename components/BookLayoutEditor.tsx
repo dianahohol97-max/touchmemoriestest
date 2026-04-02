@@ -1494,14 +1494,43 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {/* BACKGROUND */}
             {leftTab === 'bg' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {/* On cover page + printed: show color picker for front cover bg */}
+                {currentIdx === 0 && isPrinted ? (
+                  <div>
+                    <div style={{ fontSize:11, fontWeight:800, color:'#64748b', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Передня обкладинка</div>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:6 }}>Колір фону</div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
+                      {['#ffffff','#f1f5f9','#0a0e1a','#050a18','#1e2d7d','#263a99','#fef3c7','#fce7f3','#f0fdf4','#fff7ed','#1a1a2e','#16213e'].map(c=>(
+                        <button key={c} onClick={()=>setCoverState(p=>({...p,printedBgColor:c}))}
+                          style={{ width:28, height:28, borderRadius:6, background:c, border: coverState.printedBgColor===c ? '2px solid #1e2d7d' : '1.5px solid #e2e8f0', cursor:'pointer', flexShrink:0 }}/>
+                      ))}
+                    </div>
+                    <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                      <input type="color" value={coverState.printedBgColor || '#ffffff'}
+                        onChange={e=>setCoverState(p=>({...p,printedBgColor:e.target.value}))}
+                        style={{ width:40, height:32, border:'1px solid #e2e8f0', borderRadius:6, cursor:'pointer', padding:2 }}/>
+                      <span style={{ fontSize:11, color:'#94a3b8', flex:1 }}>{coverState.printedBgColor || '#ffffff'}</span>
+                      <button onClick={()=>setCoverState(p=>({...p,printedBgColor:'#ffffff'}))}
+                        style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺ Скинути</button>
+                    </div>
+                    <div style={{ marginTop:8, padding:'8px 10px', background:'#f0f3ff', borderRadius:8, fontSize:11, color:'#1e2d7d' }}>
+                      💡 Фото обкладинки перекриє фон
+                    </div>
+                  </div>
+                ) : currentIdx === 0 && !isPrinted ? (
+                  <div style={{ padding:'12px', background:'#f8fafc', borderRadius:8, fontSize:12, color:'#64748b', textAlign:'center' }}>
+                    Колір обкладинки задається у вкладці «Обкладинка»
+                  </div>
+                ) : (
                 <BackgroundControls
-                  bg={getCurBg(currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide)}
+                  bg={getCurBg((currentIdx-1)*2+1+activeSide)}
                   onChange={bg => {
-                    const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                    const idx = (currentIdx-1)*2+1+activeSide;
                     setPageBgs(prev=>({...prev,[idx]:bg}));
                   }}
                 />
-                {/* Back cover bg — shown in Фон panel when on cover page */}
+                )}
+                {/* Back cover bg */}
                 {currentIdx === 0 && isPrinted && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12 }}>
                     <div style={{ fontSize:11, fontWeight:800, color:'#64748b', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Задня обкладинка</div>
@@ -2923,14 +2952,43 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {/* BG */}
             {leftTab === 'bg' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {/* On cover page + printed: show color picker for front cover bg */}
+                {currentIdx === 0 && isPrinted ? (
+                  <div>
+                    <div style={{ fontSize:11, fontWeight:800, color:'#64748b', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Передня обкладинка</div>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:6 }}>Колір фону</div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
+                      {['#ffffff','#f1f5f9','#0a0e1a','#050a18','#1e2d7d','#263a99','#fef3c7','#fce7f3','#f0fdf4','#fff7ed','#1a1a2e','#16213e'].map(c=>(
+                        <button key={c} onClick={()=>setCoverState(p=>({...p,printedBgColor:c}))}
+                          style={{ width:28, height:28, borderRadius:6, background:c, border: coverState.printedBgColor===c ? '2px solid #1e2d7d' : '1.5px solid #e2e8f0', cursor:'pointer', flexShrink:0 }}/>
+                      ))}
+                    </div>
+                    <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                      <input type="color" value={coverState.printedBgColor || '#ffffff'}
+                        onChange={e=>setCoverState(p=>({...p,printedBgColor:e.target.value}))}
+                        style={{ width:40, height:32, border:'1px solid #e2e8f0', borderRadius:6, cursor:'pointer', padding:2 }}/>
+                      <span style={{ fontSize:11, color:'#94a3b8', flex:1 }}>{coverState.printedBgColor || '#ffffff'}</span>
+                      <button onClick={()=>setCoverState(p=>({...p,printedBgColor:'#ffffff'}))}
+                        style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺ Скинути</button>
+                    </div>
+                    <div style={{ marginTop:8, padding:'8px 10px', background:'#f0f3ff', borderRadius:8, fontSize:11, color:'#1e2d7d' }}>
+                      💡 Фото обкладинки перекриє фон
+                    </div>
+                  </div>
+                ) : currentIdx === 0 && !isPrinted ? (
+                  <div style={{ padding:'12px', background:'#f8fafc', borderRadius:8, fontSize:12, color:'#64748b', textAlign:'center' }}>
+                    Колір обкладинки задається у вкладці «Обкладинка»
+                  </div>
+                ) : (
                 <BackgroundControls
-                  bg={getCurBg(currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide)}
+                  bg={getCurBg((currentIdx-1)*2+1+activeSide)}
                   onChange={bg => {
-                    const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                    const idx = (currentIdx-1)*2+1+activeSide;
                     setPageBgs(prev=>({...prev,[idx]:bg}));
                   }}
                 />
-                {/* Back cover bg — shown in Фон panel when on cover page */}
+                )}
+                {/* Back cover bg */}
                 {currentIdx === 0 && isPrinted && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12 }}>
                     <div style={{ fontSize:11, fontWeight:800, color:'#64748b', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Задня обкладинка</div>
