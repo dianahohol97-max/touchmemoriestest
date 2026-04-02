@@ -528,10 +528,18 @@ export default function BookLayoutEditor() {
     const targetIdx = getActivePageIdx();
     const page = pages[targetIdx];
     if (!page) return;
-    const slotCount = page.slots.length;
-    const compatible = LAYOUTS.filter(l => l.slots === slotCount);
+    // Use freeSlots count if page uses freeSlot layout (slots=[])
+    const curFreeCount = (freeSlots[targetIdx] || []).length;
+    const slotCount = page.slots.length > 0 ? page.slots.length : curFreeCount;
+    // Find compatible layouts by slot count
+    const compatible = slotCount > 0
+      ? LAYOUTS.filter(l => l.slots === slotCount)
+      : LAYOUTS.filter(l => l.slots > 0); // fallback: all layouts with slots
     const pool = compatible.length > 0 ? compatible : LAYOUTS;
-    const cur = pool.findIndex(l => l.id === page.layout);
+    // Find current layout — page.layout may be 'p-text' for freeSlot pages,
+    // so track by last applied layout stored in page or just cycle forward
+    const curRealLayout = page.layout === 'p-text' ? null : page.layout;
+    const cur = curRealLayout ? pool.findIndex(l => l.id === curRealLayout) : -1;
     const next = (cur + 1) % pool.length;
     changeLayout(pool[next].id as LayoutType, targetIdx);
   };
@@ -620,8 +628,9 @@ export default function BookLayoutEditor() {
         photoId: oldPhotos[di] ?? null,
         cropX: 50, cropY: 50, zoom: 1,
       }));
+      // Save real layout ID so shuffleLayout can cycle correctly
       setPages(prev => prev.map((p, i) =>
-        i !== targetIdx ? p : { ...p, layout: 'p-text', slots: [] }
+        i !== targetIdx ? p : { ...p, layout, slots: [] }
       ));
       setFreeSlots(prev => ({ ...prev, [targetIdx]: newFreeSlots }));
       setSelectedFreeSlotId(newFreeSlots[0]?.id ?? null);
