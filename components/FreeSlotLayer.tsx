@@ -24,10 +24,11 @@ interface FreeSlotLayerProps {
   photos: { id: string; preview: string; width?: number; height?: number }[];
   canvasW: number;
   canvasH: number;
-  pageSizeMm?: { w: number; h: number }; // physical page size in mm for DPI calculation
+  pageSizeMm?: { w: number; h: number };
   dragPhotoId: string | null;
   tapPhotoId?: string | null;
   onChange: (slots: FreeSlot[]) => void;
+  onSwapToPageSlot?: (photoId: string, targetFreeSlotId: string, sourcePageIdx: number, sourceSlotIdx: number) => void;
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
   isMobile?: boolean;
@@ -76,7 +77,7 @@ function borderRadius(shape: SlotShape, w: number, h: number) {
   return '3px';
 }
 
-export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dragPhotoId, tapPhotoId, onChange, selectedId: externalSelectedId, onSelect, isMobile }: FreeSlotLayerProps) {
+export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dragPhotoId, tapPhotoId, onChange, onSwapToPageSlot, selectedId: externalSelectedId, onSelect, isMobile }: FreeSlotLayerProps) {
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
   const [cropModeId, setCropModeId] = useState<string | null>(null);
   const selectedId = externalSelectedId !== undefined ? externalSelectedId : internalSelectedId;
@@ -211,7 +212,31 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
               }
             }}
             onDragOver={e => e.preventDefault()}
-            onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) { update(slot.id, { photoId: id }); setSelectedId(slot.id); } }}
+            onDrop={e => {
+              e.preventDefault();
+              const id = e.dataTransfer.getData('photoId') || e.dataTransfer.getData('text/plain');
+              if (!id) return;
+              const sourceType = e.dataTransfer.getData('sourceType');
+              const srcFreeSlotId = e.dataTransfer.getData('sourceFreeSlotId');
+              const targetPhotoId = slot.photoId;
+
+              if (sourceType === 'freeSlot' && srcFreeSlotId && targetPhotoId && srcFreeSlotId !== slot.id) {
+                // Swap between two FreeSlots
+                onChange(slots.map(s =>
+                  s.id === slot.id ? { ...s, photoId: id } :
+                  s.id === srcFreeSlotId ? { ...s, photoId: targetPhotoId } : s
+                ));
+              } else if (sourceType === 'pageSlot' && targetPhotoId && onSwapToPageSlot) {
+                // Swap: pageSlot photo → this FreeSlot, FreeSlot photo → pageSlot
+                const srcPI = Number(e.dataTransfer.getData('sourcePageIdx'));
+                const srcSI = Number(e.dataTransfer.getData('sourceSlotIdx'));
+                update(slot.id, { photoId: id });
+                onSwapToPageSlot(targetPhotoId, slot.id, srcPI, srcSI);
+              } else {
+                update(slot.id, { photoId: id });
+              }
+              setSelectedId(slot.id);
+            }}
 
             onTouchMove={e => {
               if (inCrop || !dragRef.current || dragRef.current.id !== slot.id || dragRef.current.type !== 'move') return;
@@ -294,7 +319,14 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                       position: 'absolute', top: '50%', left: '50%',
                       transform: 'translate(-50%,-50%)',
                     }}
-                    draggable={false}
+                    draggable={!inCrop && !sel}
+                    onDragStart={e => {
+                      if (inCrop || sel) { e.preventDefault(); return; }
+                      e.dataTransfer.setData('photoId', photo.id);
+                      e.dataTransfer.setData('text/plain', photo.id);
+                      e.dataTransfer.setData('sourceType', 'freeSlot');
+                      e.dataTransfer.setData('sourceFreeSlotId', slot.id);
+                    }}
                   />
                   {/* Rule-of-thirds grid in crop mode */}
                   {inCrop && (

@@ -679,9 +679,39 @@ export default function BookLayoutEditor() {
     e.preventDefault();
     const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
     if (!photoId) return;
-    setPages(prev => prev.map((p, pi2) => pi2 !== pi ? p : {
-      ...p, slots: p.slots.map((s2, si2) => si2 !== si ? s2 : { ...s2, photoId }),
-    }));
+    const sourceType = e.dataTransfer?.getData('sourceType');
+    const srcPI = Number(e.dataTransfer?.getData('sourcePageIdx'));
+    const srcSI = Number(e.dataTransfer?.getData('sourceSlotIdx'));
+    const targetPhotoId = pages[pi]?.slots[si]?.photoId || null;
+
+    // Swap: source is a page slot AND target already has a photo
+    if (sourceType === 'pageSlot' && targetPhotoId && !isNaN(srcPI) && !isNaN(srcSI)) {
+      setPages(prev => prev.map((p, pi2) => {
+        if (pi2 === pi && pi2 === srcPI) {
+          // Same page — swap two slots
+          return { ...p, slots: p.slots.map((s2, si2) => si2 === si ? { ...s2, photoId } : si2 === srcSI ? { ...s2, photoId: targetPhotoId } : s2) };
+        }
+        if (pi2 === pi) return { ...p, slots: p.slots.map((s2, si2) => si2 === si ? { ...s2, photoId } : s2) };
+        if (pi2 === srcPI) return { ...p, slots: p.slots.map((s2, si2) => si2 === srcSI ? { ...s2, photoId: targetPhotoId } : s2) };
+        return p;
+      }));
+    } else if (sourceType === 'freeSlot') {
+      // Source is a FreeSlot — place photo, put target photo back in source freeSlot
+      const srcFreeSlotId = e.dataTransfer?.getData('sourceFreeSlotId');
+      setPages(prev => prev.map((p, pi2) => pi2 !== pi ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== si ? s2 : { ...s2, photoId }) }));
+      if (srcFreeSlotId && targetPhotoId) {
+        setFreeSlots(prev => {
+          const updated = { ...prev };
+          for (const k of Object.keys(updated)) {
+            updated[Number(k)] = updated[Number(k)].map(fs => fs.id === srcFreeSlotId ? { ...fs, photoId: targetPhotoId } : fs);
+          }
+          return updated;
+        });
+      }
+    } else {
+      // Normal drop — just place photo
+      setPages(prev => prev.map((p, pi2) => pi2 !== pi ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== si ? s2 : { ...s2, photoId }) }));
+    }
   };
   const clearSlot = (pi: number, si: number) => {
     pushHistory();
@@ -2131,7 +2161,7 @@ export default function BookLayoutEditor() {
                                 <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                  <img src={photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);}} alt=""
+                                  <img src={photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
                                     style={{ width:`${(slot!.zoom||1)*100}%`, height:`${(slot!.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${slot!.cropX}% ${slot!.cropY}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', touchAction:'none' }}/>
                                   {photoEditSlot===key && (
@@ -2213,6 +2243,9 @@ export default function BookLayoutEditor() {
                         dragPhotoId={dragPhotoId}
                         tapPhotoId={tapSelectedPhotoId}
                         onChange={(newSlots) => { setFreeSlots(prev=>({...prev,[pageIdx]:newSlots})); setTapSelectedPhotoId(null); }}
+                        onSwapToPageSlot={(photoId, _freeSlotId, srcPI, srcSI) => {
+                          setPages(prev => prev.map((p, pi2) => pi2 !== srcPI ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== srcSI ? s2 : { ...s2, photoId }) }));
+                        }}
                         selectedId={selectedFreeSlotId}
                         onSelect={setSelectedFreeSlotId}
                         isMobile={isMobile}
