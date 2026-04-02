@@ -288,16 +288,34 @@ export default function BookLayoutEditor() {
   const [pageFrames, setPageFrames] = useState<Record<number, FrameConfig>>({});
 
   // Undo history
-  type HistoryEntry = { pages: Page[]; freeSlots: Record<number, FreeSlot[]> };
+  type HistoryEntry = {
+    pages: Page[];
+    freeSlots: Record<number, FreeSlot[]>;
+    pageShapes: Record<number, Shape[]>;
+    pageStickers: Record<number, any[]>;
+    pageBgs: Record<number, PageBackground>;
+    coverState: CoverState;
+  };
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const pushHistory = () => {
-    setHistory(prev => [...prev.slice(-19), { pages: JSON.parse(JSON.stringify(pages)), freeSlots: JSON.parse(JSON.stringify(freeSlots)) }]);
+    setHistory(prev => [...prev.slice(-19), {
+      pages: JSON.parse(JSON.stringify(pages)),
+      freeSlots: JSON.parse(JSON.stringify(freeSlots)),
+      pageShapes: JSON.parse(JSON.stringify(pageShapes)),
+      pageStickers: JSON.parse(JSON.stringify(pageStickers)),
+      pageBgs: JSON.parse(JSON.stringify(pageBgs)),
+      coverState: JSON.parse(JSON.stringify(coverState)),
+    }]);
   };
   const undo = () => { haptic.light();
     if (history.length === 0) return;
     const prev = history[history.length - 1];
     setPages(prev.pages);
     setFreeSlots(prev.freeSlots);
+    setPageShapes(prev.pageShapes);
+    setPageStickers(prev.pageStickers);
+    setPageBgs(prev.pageBgs);
+    setCoverState(prev.coverState);
     setHistory(h => h.slice(0, -1));
   };
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
