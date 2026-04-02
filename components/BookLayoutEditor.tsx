@@ -2144,7 +2144,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
         <div style={{ width: 180, borderLeft: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Розвороти</span>
-            <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{Math.ceil((pages.length - 1) / 2)}</span>
+            <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{Math.ceil((pages.length - 1) / 2)}{hasEndpaper ? ' +2ФЗ' : ''}</span>
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {/* Cover spread */}
@@ -2166,6 +2166,33 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 </button>
               );
             })()}
+            {/* Endpaper thumbnails — shown after cover when hasEndpaper */}
+            {hasEndpaper && (() => {
+              const epPages = [
+                { label: 'Форзац (перший)', pageIdx: endpaperFirstIdx, surcharge: _slug.includes('travelbook') ? 100 : 200 },
+                { label: 'Форзац (останній)', pageIdx: endpaperLastIdx, surcharge: _slug.includes('travelbook') ? 100 : 200 },
+              ];
+              return epPages.map(({ label, pageIdx, surcharge }) => {
+                const ep = pageIdx === endpaperFirstIdx ? endpaperState.first : endpaperState.last;
+                const active = false; // endpaper pages aren't navigable as own spread
+                return (
+                  <button key={label}
+                    onClick={() => setLeftTab('endpaper' as any)}
+                    title={`${label} — клікніть для редагування`}
+                    style={{ width:'100%', padding:'4px', border:'1px solid #d1fae5', borderRadius:6, background:'#f0fdf4', cursor:'pointer', textAlign:'center' }}>
+                    <div style={{ width:'100%', aspectRatio:`${prop.w}/${prop.h}`, background: ep.enabled ? '#e0f2fe' : '#f1f5f9', borderRadius:3, marginBottom:3, position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      {ep.imageUrl
+                        ? <img src={ep.imageUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                        : <span style={{ fontSize:8, color:'#94a3b8', fontWeight:600, letterSpacing:1, textTransform:'uppercase', writingMode:'vertical-rl' }}>ФОРЗАЦ</span>
+                      }
+                      {ep.enabled && <div style={{ position:'absolute', bottom:2, left:0, right:0, textAlign:'center', fontSize:7, fontWeight:700, color:'#0369a1', background:'rgba(255,255,255,0.8)' }}>+{surcharge}₴</div>}
+                    </div>
+                    <span style={{ fontSize:9, fontWeight:700, color:'#059669' }}>{label.replace(' (перший)', ' 1').replace(' (останній)', ' 2')}</span>
+                  </button>
+                );
+              });
+            })()}
+
             {/* Content spreads */}
             {Array.from({ length: Math.ceil((pages.length - 1) / 2) }, (_, si) => {
               const spreadIdx = si + 1;
