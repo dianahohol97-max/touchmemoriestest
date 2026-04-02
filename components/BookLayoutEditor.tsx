@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
 import { BookPreviewModal } from './BookPreviewModal';
-import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
+import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape, checkPhotoDpi } from './FreeSlotLayer';
 import { haptic, startPointerDrag, useLongPress } from '@/lib/hooks/useMobileInteractions';
 import {
   ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS,
@@ -984,6 +984,12 @@ export default function BookLayoutEditor() {
                           {used && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✓</div>}
                           {tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👆</div>}
                           <span style={{ position: 'absolute', top: 2, left: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3 }}>{i + 1}</span>
+                          {/* Low DPI warning — check against full page size */}
+                          {(() => {
+                            const dpi = checkPhotoDpi(ph.width, ph.height, pageW, cH, pageW, cH, prop.w, prop.h);
+                            if (!dpi || dpi.level === 'ok') return null;
+                            return <span title={`${dpi.dpi} DPI для повної сторінки`} style={{ position:'absolute', top:2, right:2, background: dpi.level==='bad' ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.85)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 4px', borderRadius:3, cursor:'help' }}>⚠ {dpi.dpi}</span>;
+                          })()}
                         </div>
                         <div style={{ padding: '3px 4px', fontSize: 9, color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }} title={ph.name}>{displayName}</div>
                       </div>
@@ -2079,6 +2085,23 @@ export default function BookLayoutEditor() {
                                 </div>
                                 <button onClick={()=>clearSlot(pageIdx,i)} style={{position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity 0.15s'}} className="del-btn"><Trash2 size={10}/></button>
                                 <style>{`.del-btn{opacity:0!important}div:hover>.del-btn{opacity:1!important}`}</style>
+                                {/* DPI warning */}
+                                {(() => {
+                                  const slotW = Number(s.width) || pageW;
+                                  const slotH = Number(s.height) || cH;
+                                  const dpiCheck = checkPhotoDpi(photo.width, photo.height, slotW, slotH, pageW, cH, prop.w, prop.h);
+                                  if (!dpiCheck || dpiCheck.level === 'ok') return null;
+                                  const isBad = dpiCheck.level === 'bad';
+                                  return (
+                                    <div title={`${dpiCheck.dpi} DPI — ${isBad ? 'якість буде погана' : 'якість може бути недостатня'}`}
+                                      style={{ position:'absolute', top:4, left:4, display:'flex', alignItems:'center', gap:3, padding:'2px 6px',
+                                        background: isBad ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.9)',
+                                        borderRadius:10, zIndex:35, pointerEvents:'auto', cursor:'help',
+                                        fontSize:9, fontWeight:700, color:'#fff', lineHeight:1 }}>
+                                      <span style={{fontSize:11}}>⚠</span>{dpiCheck.dpi} DPI
+                                    </div>
+                                  );
+                                })()}
                               </>
                             ) : (
                               <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:'#818cf8',gap:6,pointerEvents:'none'}}>
@@ -2123,6 +2146,7 @@ export default function BookLayoutEditor() {
                         photos={photos}
                         canvasW={pageW}
                         canvasH={cH}
+                        pageSizeMm={prop}
                         dragPhotoId={dragPhotoId}
                         tapPhotoId={tapSelectedPhotoId}
                         onChange={(newSlots) => { setFreeSlots(prev=>({...prev,[pageIdx]:newSlots})); setTapSelectedPhotoId(null); }}

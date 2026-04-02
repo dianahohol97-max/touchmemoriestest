@@ -21,9 +21,10 @@ export interface FreeSlot {
 
 interface FreeSlotLayerProps {
   slots: FreeSlot[];
-  photos: { id: string; preview: string }[];
+  photos: { id: string; preview: string; width?: number; height?: number }[];
   canvasW: number;
   canvasH: number;
+  pageSizeMm?: { w: number; h: number }; // physical page size in mm for DPI calculation
   dragPhotoId: string | null;
   tapPhotoId?: string | null;
   onChange: (slots: FreeSlot[]) => void;
@@ -33,6 +34,29 @@ interface FreeSlotLayerProps {
 }
 
 const MIN_SIZE = 40;
+
+// DPI check: calculates print DPI for a photo in a slot
+// Returns: 'ok' (>=200), 'warn' (100-199), 'bad' (<100), or null if can't calculate
+function checkPhotoDpi(
+  photoW: number | undefined, photoH: number | undefined,
+  slotW: number, slotH: number, canvasW: number, canvasH: number,
+  pageMmW?: number, pageMmH?: number
+): { level: 'ok' | 'warn' | 'bad'; dpi: number } | null {
+  if (!photoW || !photoH || !pageMmW || !pageMmH) return null;
+  if (slotW <= 0 || slotH <= 0 || canvasW <= 0) return null;
+  // Slot physical size in mm
+  const slotMmW = (slotW / canvasW) * pageMmW;
+  const slotMmH = (slotH / canvasH) * pageMmH;
+  // DPI = pixels / inches, where inches = mm / 25.4
+  const dpiW = photoW / (slotMmW / 25.4);
+  const dpiH = photoH / (slotMmH / 25.4);
+  const dpi = Math.min(dpiW, dpiH); // worst axis
+  if (dpi >= 200) return { level: 'ok', dpi: Math.round(dpi) };
+  if (dpi >= 100) return { level: 'warn', dpi: Math.round(dpi) };
+  return { level: 'bad', dpi: Math.round(dpi) };
+}
+
+export { checkPhotoDpi };
 const HANDLES = ['nw','n','ne','e','se','s','sw','w'] as const;
 type Handle = typeof HANDLES[number];
 
@@ -52,7 +76,7 @@ function borderRadius(shape: SlotShape, w: number, h: number) {
   return '3px';
 }
 
-export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, tapPhotoId, onChange, selectedId: externalSelectedId, onSelect, isMobile }: FreeSlotLayerProps) {
+export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dragPhotoId, tapPhotoId, onChange, selectedId: externalSelectedId, onSelect, isMobile }: FreeSlotLayerProps) {
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
   const [cropModeId, setCropModeId] = useState<string | null>(null);
   const selectedId = externalSelectedId !== undefined ? externalSelectedId : internalSelectedId;
@@ -285,6 +309,21 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
                       <button onClick={e=>{e.stopPropagation();update(slot.id,{zoom:1,cropX:50,cropY:50});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:9, fontWeight:700, padding:'0 2px' }}>↺</button>
                     </div>
                   )}
+                  {/* DPI warning badge */}
+                  {(() => {
+                    const dpiCheck = checkPhotoDpi(photo?.width, photo?.height, slot.w, slot.h, canvasW, canvasH, pageSizeMm?.w, pageSizeMm?.h);
+                    if (!dpiCheck || dpiCheck.level === 'ok') return null;
+                    const isBad = dpiCheck.level === 'bad';
+                    return (
+                      <div title={`${dpiCheck.dpi} DPI — ${isBad ? 'якість буде погана' : 'якість може бути недостатня'} для друку`}
+                        style={{ position:'absolute', top:4, left:4, display:'flex', alignItems:'center', gap:3, padding:'2px 6px',
+                          background: isBad ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.9)',
+                          borderRadius:10, zIndex:35, pointerEvents:'auto', cursor:'help',
+                          fontSize:9, fontWeight:700, color:'#fff', lineHeight:1 }}>
+                        <span style={{fontSize:11}}>⚠</span>{dpiCheck.dpi} DPI
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4,
