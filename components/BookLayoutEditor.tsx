@@ -10,14 +10,13 @@ import { BookPreviewModal } from './BookPreviewModal';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
 import { haptic, startPointerDrag, useLongPress } from '@/lib/hooks/useMobileInteractions';
 import {
-  FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS,
+  ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS,
   METAL_VARIANTS, LEATHERETTE_COLORS, FABRIC_COLORS, VELOUR_COLORS,
   FONT_GROUPS, GOOGLE_FONTS_URL,
 } from '@/lib/editor/constants';
 import {
   buildCoverEditorProps, handleCoverChange, resolveCoverColor,
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
-  getProductFlags,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
 
