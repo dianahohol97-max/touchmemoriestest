@@ -882,6 +882,15 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     >
                                         <span className="block text-lg font-bold">{size.name}</span>
                                         <span className="block text-xs text-gray-500 mt-1">{size.width_cm}×{size.height_cm} см</span>
+                                        {(() => {
+                                            const minPrice = Math.min(...photobookPrices
+                                                .filter((p: any) => p.size?.name === size.name && p.cover_type?.name === selectedCoverType)
+                                                .map((p: any) => p.base_price || 0)
+                                                .filter((v: number) => v > 0));
+                                            return isFinite(minPrice) ? (
+                                                <span className="block text-xs font-semibold text-[#1e2d7d] mt-1">від {minPrice} ₴</span>
+                                            ) : null;
+                                        })()}
                                     </button>
                                 ))}
                             </div>
@@ -1095,7 +1104,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             >
                                 {product.variants.map((variant) => (
                                     <option key={variant.name} value={variant.name}>
-                                        {variant.name} — {variant.price} ₴
+                                        {variant.name} — від {variant.price} ₴
                                     </option>
                                 ))}
                             </select>
