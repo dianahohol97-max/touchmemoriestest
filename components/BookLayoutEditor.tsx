@@ -1932,6 +1932,27 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     >
                       {/* Background layer — MUST be first so it's below slots */}
                       <BackgroundLayer bg={getCurBg(pageIdx)} canvasW={pageW} canvasH={cH}/>
+
+                      {/* Empty page hint — shown when no slots (template was deleted) */}
+                      {pageDefs.length === 0 && !textTool && currentIdx !== 0 && (
+                        <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, zIndex:2 }}>
+                          <div style={{ padding:'16px 20px', background:'rgba(238,240,251,0.95)', borderRadius:12, border:'2px dashed #c7d2fe', textAlign:'center', maxWidth:'85%', pointerEvents:'none' }}>
+                            <div style={{ fontSize:26, marginBottom:6 }}>📋</div>
+                            <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:4 }}>Сторінка без шаблону</div>
+                            <div style={{ fontSize:11, color:'#6b7280', lineHeight:1.5 }}>
+                              Оберіть шаблон у панелі<br/>
+                              <b>«Шаблони»</b> ліворуч
+                            </div>
+                          </div>
+                          <button
+                            onPointerDown={e => e.stopPropagation()}
+                            onClick={e => { e.stopPropagation(); addFreeSlot(); }}
+                            style={{ padding:'8px 16px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6, boxShadow:'0 2px 8px rgba(30,45,125,0.3)' }}>
+                            + Додати фото-слот
+                          </button>
+                        </div>
+                      )}
+
                       {pageDefs.map(({ i, s }) => {
                         const slot = page?.slots[i];
                         const photo = slot ? getPhoto(slot.photoId) : null;
