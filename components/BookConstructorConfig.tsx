@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { getMagazinePrice } from '@/lib/products';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
@@ -374,7 +375,18 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         }
 
         // ==============================
-        // NON-PHOTOBOOK PRICING (magazines, travel book)
+        // MAGAZINE / JOURNAL PRICING (uses getMagazinePrice)
+        // ==============================
+        if (productType === 'magazine' || productType === 'photo-journal-soft' || productType === 'photo-journal-hard') {
+            const pageNum = parseInt(selectedPageCount?.match(/\d+/)?.[0] || '0');
+            if (pageNum > 0) {
+                return getMagazinePrice(pageNum, false);
+            }
+            return product.price || 475;
+        }
+
+        // ==============================
+        // NON-PHOTOBOOK PRICING (travel book, etc)
         // ==============================
         let total = product.price || 0;
 
