@@ -394,7 +394,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     }
                 }
 
-                return total;
+                // Multiply by copies count
+                const copiesNum = parseInt(selectedCopies) || 1;
+                return total * copiesNum;
             }
 
             // Fallback if no exact match found
@@ -407,9 +409,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (productType === 'magazine' || productType === 'photo-journal-soft' || productType === 'photo-journal-hard') {
             const pageNum = parseInt(selectedPageCount?.match(/\d+/)?.[0] || '0');
             if (pageNum > 0) {
-                return getMagazinePrice(pageNum, false);
+                const copiesNum = parseInt(selectedCopies) || 1;
+                return getMagazinePrice(pageNum, false) * copiesNum;
             }
-            return product.price || 475;
+            const copiesNum = parseInt(selectedCopies) || 1;
+            return (product.price || 475) * copiesNum;
         }
 
         // ==============================
