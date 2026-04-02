@@ -88,6 +88,9 @@ export interface CoverConfig {
   decoVariant: string;
   decoColor: string;
   photoId: string | null;
+  photoCropX?: number; // 0-100, default 50
+  photoCropY?: number; // 0-100, default 50
+  photoZoom?: number;  // 0.5-4, default 1
   decoText: string;
   textX: number; textY: number;
   textFontFamily: string;
@@ -241,7 +244,52 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 border: dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)'),
                 background: photo ? 'transparent' : (dragOver ? 'rgba(59,130,246,0.08)' : '#f1f5f9') }}>
               {photo
-                ? <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }} draggable={false}/>
+                ? <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}
+                    onPointerDown={e => {
+                      e.stopPropagation(); e.preventDefault();
+                      haptic.light();
+                      const cx = config.photoCropX ?? 50;
+                      const cy = config.photoCropY ?? 50;
+                      const zm = config.photoZoom ?? 1;
+                      const sensitivity = 30 / Math.max(0.5, zm);
+                      startPointerDrag(e, (dx, dy) => {
+                        onChange({
+                          photoCropX: Math.max(0, Math.min(100, cx - dx / sensitivity)),
+                          photoCropY: Math.max(0, Math.min(100, cy - dy / sensitivity)),
+                        } as any);
+                      });
+                    }}
+                    onWheel={e => {
+                      e.preventDefault();
+                      const delta = e.deltaY > 0 ? -0.05 : 0.05;
+                      const nz = Math.max(0.5, Math.min(4, (config.photoZoom ?? 1) + delta));
+                      onChange({ photoZoom: nz } as any);
+                    }}>
+                    <img src={photo.preview}
+                      style={{
+                        width: `${(config.photoZoom ?? 1) * 100}%`,
+                        height: `${(config.photoZoom ?? 1) * 100}%`,
+                        objectFit: 'cover',
+                        objectPosition: `${config.photoCropX ?? 50}% ${config.photoCropY ?? 50}%`,
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        userSelect: 'none', pointerEvents: 'none', touchAction: 'none',
+                      }}
+                      draggable={false}/>
+                    {/* Zoom controls */}
+                    <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
+                      style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3,
+                        background:'rgba(0,0,0,0.7)', borderRadius:16, padding:'2px 6px', zIndex:30 }}>
+                      <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.max(0.5, (config.photoZoom??1)-0.1) } as any);}}
+                        style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
+                      <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round((config.photoZoom??1)*100)}%</span>
+                      <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.min(4, (config.photoZoom??1)+0.1) } as any);}}
+                        style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
+                      <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                      <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom:1, photoCropX:50, photoCropY:50 } as any);}}
+                        style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
+                    </div>
+                  </div>
                 : <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, color:'#94a3b8' }}>
                     <ImageIcon size={28}/><span style={{ fontSize:11, fontWeight:600, textAlign:'center' }}>Перетягніть фото</span>
                   </div>}
@@ -305,7 +353,19 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               style={{ position:'absolute', left:boxL, top:boxT, width:boxW, height:boxH, borderRadius:dims.round?'50%':5,
               overflow:'hidden', border:dragOver?'3px dashed #60a5fa':'2px solid rgba(255,255,255,0.5)', boxShadow:'0 2px 16px rgba(0,0,0,0.25)',
               background:photo?'transparent':dragOver?'rgba(96,165,250,0.25)':'rgba(255,255,255,0.12)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'copy', zIndex:5 }}>
-              {photo ? <><img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+              {photo ? <><div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}
+                    onPointerDown={e => {
+                      e.stopPropagation(); e.preventDefault();
+                      haptic.light();
+                      const cx = config.photoCropX ?? 50, cy = config.photoCropY ?? 50;
+                      const sensitivity = 30 / Math.max(0.5, config.photoZoom ?? 1);
+                      startPointerDrag(e, (dx, dy) => {
+                        onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
+                      });
+                    }}
+                    onWheel={e => { e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
+                    <img src={photo.preview} style={{ width:`${(config.photoZoom??1)*100}%`, height:`${(config.photoZoom??1)*100}%`, objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none', touchAction:'none' }} draggable={false}/>
+                  </div>
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
               : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Перетягніть фото<br/>на акрил</span></div>}
@@ -321,7 +381,19 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               style={{ position:'absolute', left:boxL, top:boxT, width:boxW, height:boxH, borderRadius:3,
               overflow:'hidden', border:dragOver?'3px dashed #60a5fa':'2px dashed rgba(255,255,255,0.5)', background:photo?'transparent':dragOver?'rgba(96,165,250,0.2)':'rgba(255,255,255,0.1)',
               display:'flex', alignItems:'center', justifyContent:'center', cursor:'copy', zIndex:5 }}>
-              {photo ? <><img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+              {photo ? <><div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}
+                    onPointerDown={e => {
+                      e.stopPropagation(); e.preventDefault();
+                      haptic.light();
+                      const cx = config.photoCropX ?? 50, cy = config.photoCropY ?? 50;
+                      const sensitivity = 30 / Math.max(0.5, config.photoZoom ?? 1);
+                      startPointerDrag(e, (dx, dy) => {
+                        onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
+                      });
+                    }}
+                    onWheel={e => { e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
+                    <img src={photo.preview} style={{ width:`${(config.photoZoom??1)*100}%`, height:`${(config.photoZoom??1)*100}%`, objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none', touchAction:'none' }} draggable={false}/>
+                  </div>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
               : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Перетягніть фото<br/>у вставку</span></div>}
             </div>
