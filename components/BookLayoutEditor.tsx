@@ -2594,11 +2594,50 @@ export default function BookLayoutEditor() {
 
       {/* MOBILE: Bottom Sheet Panel */}
       {isMobile && mobilePanel && (
-        <div style={{ position:'fixed', bottom:0, left:0, right:0, width:'100vw', maxWidth:'100vw', zIndex:300, background:'#fff', borderRadius:'16px 16px 0 0', boxShadow:'0 -8px 32px rgba(0,0,0,0.15)', maxHeight:'70vh', display:'flex', flexDirection:'column', paddingBottom:'calc(56px + env(safe-area-inset-bottom))', overflow:'hidden', boxSizing:'border-box' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid #f1f5f9' }}>
-            <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','stickers':'Стікери','cover':'Обкладинка','frames':'Рамки','kalka':'Калька','endpaper':'Форзац'} as Record<string,string>)[leftTab]}</span>
-            <button onClick={()=>setMobilePanel(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:20, lineHeight:1, padding:'0 4px' }}>×</button>
-          </div>
+        <>
+          {/* Backdrop — tap to close */}
+          <div onClick={()=>setMobilePanel(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.2)', zIndex:290 }}/>
+          <div
+            onTouchStart={e => {
+              const t = e.touches[0];
+              const el = e.currentTarget;
+              (el as any)._swipeStartY = t.clientY;
+              (el as any)._swipeStartTime = Date.now();
+            }}
+            onTouchMove={e => {
+              const el = e.currentTarget;
+              const startY = (el as any)._swipeStartY;
+              if (startY === undefined) return;
+              const dy = e.touches[0].clientY - startY;
+              if (dy > 0) {
+                el.style.transform = `translateY(${dy}px)`;
+                el.style.transition = 'none';
+              }
+            }}
+            onTouchEnd={e => {
+              const el = e.currentTarget;
+              const startY = (el as any)._swipeStartY;
+              const elapsed = Date.now() - ((el as any)._swipeStartTime || 0);
+              const dy = (e.changedTouches[0]?.clientY || 0) - (startY || 0);
+              el.style.transition = 'transform 0.25s ease-out';
+              // Close if swiped down >60px or fast swipe >30px
+              if (dy > 60 || (dy > 30 && elapsed < 250)) {
+                el.style.transform = 'translateY(100%)';
+                setTimeout(() => setMobilePanel(false), 250);
+              } else {
+                el.style.transform = 'translateY(0)';
+              }
+              (el as any)._swipeStartY = undefined;
+            }}
+            style={{ position:'fixed', bottom:0, left:0, right:0, width:'100vw', maxWidth:'100vw', zIndex:300, background:'#fff', borderRadius:'16px 16px 0 0', boxShadow:'0 -8px 32px rgba(0,0,0,0.15)', maxHeight:'40vh', display:'flex', flexDirection:'column', paddingBottom:'calc(56px + env(safe-area-inset-bottom))', overflow:'hidden', boxSizing:'border-box', transition:'transform 0.25s ease-out' }}>
+            {/* Swipe handle */}
+            <div style={{ display:'flex', justifyContent:'center', padding:'8px 0 4px' }}>
+              <div style={{ width:36, height:4, borderRadius:2, background:'#d1d5db' }}/>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 16px 8px', borderBottom:'1px solid #f1f5f9' }}>
+              <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','stickers':'Стікери','cover':'Обкладинка','frames':'Рамки','kalka':'Калька','endpaper':'Форзац'} as Record<string,string>)[leftTab]}</span>
+              <button onClick={()=>setMobilePanel(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:20, lineHeight:1, padding:'0 4px' }}>×</button>
+            </div>
           <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'12px 14px', boxSizing:'border-box', width:'100%', minWidth:0 }}>
             {/* Render the same content as desktop left panel */}
             {leftTab === 'layouts' && (
@@ -3132,6 +3171,7 @@ export default function BookLayoutEditor() {
             )}
           </div>
         </div>
+        </>
       )}
 
       {/* Preview Modal */}
