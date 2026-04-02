@@ -670,7 +670,7 @@ export default function BookLayoutEditor() {
     e.preventDefault(); e.stopPropagation();
     haptic.light();
     const [pi, si] = key.split('-').map(Number);
-    const sensitivity = 30 / Math.max(0.5, pages[pi]?.slots[si]?.zoom || 1);
+    const sensitivity = 8 / Math.max(0.5, pages[pi]?.slots[si]?.zoom || 1);
     startPointerDrag(e,
       (dx, dy) => setPages(prev => prev.map((p, i) => i !== pi ? p : {
         ...p, slots: p.slots.map((sl, j) => j !== si ? sl : {

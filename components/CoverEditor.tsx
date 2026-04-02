@@ -251,7 +251,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       const cx = config.photoCropX ?? 50;
                       const cy = config.photoCropY ?? 50;
                       const zm = config.photoZoom ?? 1;
-                      const sensitivity = 30 / Math.max(0.5, zm);
+                      const sensitivity = 8 / Math.max(0.5, zm);
                       startPointerDrag(e, (dx, dy) => {
                         onChange({
                           photoCropX: Math.max(0, Math.min(100, cx - dx / sensitivity)),
@@ -358,7 +358,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       e.stopPropagation(); e.preventDefault();
                       haptic.light();
                       const cx = config.photoCropX ?? 50, cy = config.photoCropY ?? 50;
-                      const sensitivity = 30 / Math.max(0.5, config.photoZoom ?? 1);
+                      const sensitivity = 8 / Math.max(0.5, config.photoZoom ?? 1);
                       startPointerDrag(e, (dx, dy) => {
                         onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
                       });
@@ -386,7 +386,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       e.stopPropagation(); e.preventDefault();
                       haptic.light();
                       const cx = config.photoCropX ?? 50, cy = config.photoCropY ?? 50;
-                      const sensitivity = 30 / Math.max(0.5, config.photoZoom ?? 1);
+                      const sensitivity = 8 / Math.max(0.5, config.photoZoom ?? 1);
                       startPointerDrag(e, (dx, dy) => {
                         onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
                       });
