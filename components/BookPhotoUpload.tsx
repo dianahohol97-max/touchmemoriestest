@@ -414,10 +414,37 @@ export default function BookPhotoUpload() {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
                 <button
-                    onClick={() => router.back()}
+                    onClick={() => {
+                        // Restore bookConfig draft so configurator shows previous selections
+                        const cfg = sessionStorage.getItem('bookConstructorConfig');
+                        if (cfg) {
+                            try {
+                                const c = JSON.parse(cfg);
+                                const slug = c.productSlug;
+                                if (slug) {
+                                    // Restore the config draft so selections are preserved
+                                    sessionStorage.setItem(`bookConfig_${slug}`, JSON.stringify({
+                                        selectedSize: c.selectedSize,
+                                        selectedCoverType: c.selectedCoverType,
+                                        selectedPageCount: c.selectedPageCount,
+                                        selectedCopies: c.selectedCopies,
+                                        enableEndpaper: c.enableEndpaper,
+                                        enableKalka: c.enableKalka,
+                                        selectedDecorationType: c.selectedDecorationType,
+                                        selectedDecorationVariant: c.selectedDecorationVariant,
+                                        selectedLamination: c.selectedLamination,
+                                        selectedCoverColor: c.selectedCoverColor,
+                                    }));
+                                    router.push(`/catalog/${slug}`);
+                                    return;
+                                }
+                            } catch {}
+                        }
+                        router.back();
+                    }}
                     className="w-full sm:flex-1 px-6 py-3 sm:py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-base sm:text-lg"
                 >
-                    Назад до конфігурації
+                    ← Назад до конфігурації
                 </button>
                 <button
                     onClick={handleContinue}
