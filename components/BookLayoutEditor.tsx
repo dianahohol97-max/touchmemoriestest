@@ -321,6 +321,7 @@ export default function BookLayoutEditor() {
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
   const [tapSelectedPhotoId, setTapSelectedPhotoId] = useState<string | null>(null); // mobile tap-to-place
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [textGuides, setTextGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] });
   const [textTool, setTextTool] = useState(false);
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
@@ -764,10 +765,21 @@ export default function BookLayoutEditor() {
     e.stopPropagation(); e.preventDefault();
     haptic.light();
     startPointerDrag(e,
-      (dx, dy) => updateTxtForPage(id, {
-        x: Math.max(0, Math.min(95, tx + (dx/pageW)*100)),
-        y: Math.max(0, Math.min(95, ty + (dy/cH)*100)),
-      }, pageIdx)
+      (dx, dy) => {
+        const SNAP = 2; // snap threshold in %
+        let nx = Math.max(0, Math.min(95, tx + (dx / pageW) * 100));
+        let ny = Math.max(0, Math.min(95, ty + (dy / cH) * 100));
+        const gx: number[] = [];
+        const gy: number[] = [];
+        // Snap targets: 0%, 50%, 100% (edges + center)
+        for (const target of [0, 50, 100]) {
+          if (Math.abs(nx - target) < SNAP) { nx = target; gx.push(target / 100 * pageW); }
+          if (Math.abs(ny - target) < SNAP) { ny = target; gy.push(target / 100 * cH); }
+        }
+        setTextGuides({ x: gx, y: gy });
+        updateTxtForPage(id, { x: nx, y: ny }, pageIdx);
+      },
+      () => setTextGuides({ x: [], y: [] })
     );
   };
 
@@ -778,10 +790,20 @@ export default function BookLayoutEditor() {
     e.stopPropagation(); e.preventDefault();
     haptic.light();
     startPointerDrag(e,
-      (dx, dy) => updateTxt(id, {
-        x: Math.max(0, Math.min(95, tx + (dx/cW)*100)),
-        y: Math.max(0, Math.min(95, ty + (dy/cH)*100)),
-      })
+      (dx, dy) => {
+        const SNAP = 2;
+        let nx = Math.max(0, Math.min(95, tx + (dx / cW) * 100));
+        let ny = Math.max(0, Math.min(95, ty + (dy / cH) * 100));
+        const gx: number[] = [];
+        const gy: number[] = [];
+        for (const target of [0, 50, 100]) {
+          if (Math.abs(nx - target) < SNAP) { nx = target; gx.push(target / 100 * cW); }
+          if (Math.abs(ny - target) < SNAP) { ny = target; gy.push(target / 100 * cH); }
+        }
+        setTextGuides({ x: gx, y: gy });
+        updateTxt(id, { x: nx, y: ny });
+      },
+      () => setTextGuides({ x: [], y: [] })
     );
   };
 
@@ -2349,6 +2371,17 @@ export default function BookLayoutEditor() {
                           );
                         })()}
                       </svg>
+                      {/* Text alignment guides */}
+                      {(textGuides.x.length > 0 || textGuides.y.length > 0) && (
+                        <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:55}} viewBox={`0 0 ${pageW} ${cH}`}>
+                          {textGuides.x.map((gx, i) => (
+                            <line key={`tgx-${i}`} x1={gx} y1={0} x2={gx} y2={cH} stroke="#8b5cf6" strokeWidth="0.7" strokeDasharray="3 2"/>
+                          ))}
+                          {textGuides.y.map((gy, i) => (
+                            <line key={`tgy-${i}`} x1={0} y1={gy} x2={pageW} y2={gy} stroke="#8b5cf6" strokeWidth="0.7" strokeDasharray="3 2"/>
+                          ))}
+                        </svg>
+                      )}
                       {/* Spine shadow */}
                       {side===0 && <div style={{position:'absolute',right:0,top:0,width:4,height:'100%',background:'linear-gradient(to right,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
                       {side===1 && <div style={{position:'absolute',left:0,top:0,width:4,height:'100%',background:'linear-gradient(to left,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
