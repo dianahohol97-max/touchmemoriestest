@@ -8,6 +8,7 @@ type ProductOption = {
   prices?: Record<string, number>;
   type?: 'select' | 'text';
   required?: boolean;
+  note?: string;
 };
 
 type ProductOptionsConfig = {
@@ -302,6 +303,12 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
   ],
   'photojournal-hard': [
     { name: 'Розмір', values: ['A4 (210×297 мм)'], type: 'text', required: false },
+    {
+      name: 'Тип обкладинки',
+      values: ['Глянцева', 'Матова'],
+      required: true,
+      note: 'Темні кольори не рекомендуємо для матових обкладинок'
+    },
     {
       name: 'Кількість сторінок',
       values: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
@@ -655,7 +662,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       {options.map((option, idx) => {
         // Skip "Тип обкладинки" for products already split by cover type
         if (option.name === 'Тип обкладинки' && (
-          slug === 'personalized-glossy-magazine' || slug === 'fotozhurnal-tverd-obkladynka'
+          slug === 'personalized-glossy-magazine'
         )) return null;
 
         // Skip "Тип ламінації" for non-printed photobooks (only printed covers have lamination)
@@ -724,6 +731,11 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                   );
                 })}
               </select>
+            )}
+            {option.note && (
+              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 5, fontStyle: 'italic' }}>
+                ℹ️ {option.note}
+              </p>
             )}
           </div>
         );
