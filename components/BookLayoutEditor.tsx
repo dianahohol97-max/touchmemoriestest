@@ -464,10 +464,12 @@ export default function BookLayoutEditor() {
     (config?.productName || '').toLowerCase().includes('тревел') ||
     (config?.productName || '').toLowerCase().includes('побажань');
 
-  // Калька: first left page (page index 1) is blank/kalka, last spread is blank
+  // Калька: right page of first spread (page index 2) is kalka, left (page index 1) is blank forзац
   const hasKalka = !!(config?.enableKalka) && _slug.includes('photobook');
-  const kalkaPageIdx = hasKalka ? 1 : -1;
+  const kalkaForzatsIdx = hasKalka ? 1 : -1; // left page = blank forзац
+  const kalkaPageIdx = hasKalka ? 2 : -1;    // right page = kalka
   const kalkaEndPageIdxStart = hasKalka ? pages.length - 2 : -1;
+  const isKalkaForzats = (pageIdx: number) => hasKalka && pageIdx === kalkaForzatsIdx;
   const isKalkaPage = (pageIdx: number) => hasKalka && pageIdx === kalkaPageIdx;
   const isKalkaEndPage = (pageIdx: number) => hasKalka && pageIdx >= kalkaEndPageIdxStart && kalkaEndPageIdxStart > 0;
   // Форзац: travelbook or magazine with enableEndpaper=true
@@ -1929,10 +1931,18 @@ export default function BookLayoutEditor() {
                   const page = pages[pageIdx];
                   const pageRenderKey = `${side}-${page?.layout || 'empty'}-${page?.slots?.length || 0}`;
 
-                  // КАЛЬКА: first left page (pageIdx===1, side===0 on spread 1)
+                  // ФОРЗАЦ (білий) — ліва сторінка першого розвороту при кальці
+                  if (isKalkaForzats(pageIdx)) return (
+                    <div key={pageRenderKey}
+                      style={{ width: pageW, height: cH, background: '#fff', borderRadius: '4px 0 0 4px', boxShadow: 'inset -1px 0 3px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: '#e2e8f0', fontSize: 9, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', writingMode: 'vertical-rl' }}>ФОРЗАЦ</span>
+                    </div>
+                  );
+
+                  // КАЛЬКА: right page of first spread (pageIdx===2, side===1)
                   if (isKalkaPage(pageIdx)) return (
                     <div key={pageRenderKey} onClick={() => setLeftTab('kalka' as any)}
-                      style={{ width: pageW, height: cH, position: 'relative', background: '#fff', borderRadius: '4px 0 0 4px', boxShadow: 'inset -1px 0 3px rgba(0,0,0,0.08)', overflow: 'hidden', cursor: 'pointer',
+                      style={{ width: pageW, height: cH, position: 'relative', background: '#fff', borderRadius: '0 4px 4px 0', boxShadow: 'inset 1px 0 3px rgba(0,0,0,0.08)', overflow: 'hidden', cursor: 'pointer',
                         border: leftTab === ('kalka' as any) ? '2px solid #3b82f6' : 'none' }}>
                       {/* Калька texture */}
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(240,245,255,0.85)', backdropFilter: 'blur(0.5px)', pointerEvents: 'none' }}/>
