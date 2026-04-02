@@ -2238,6 +2238,31 @@ export default function BookLayoutEditor() {
                   return (
                     <div key={pageRenderKey}
                       onPointerDown={() => setActiveSide(side as 0|1)}
+                      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+                      onDrop={e => {
+                        e.preventDefault();
+                        const photoId = e.dataTransfer.getData('photoId') || e.dataTransfer.getData('text/plain');
+                        if (!photoId || !photoId.startsWith('photo-')) return;
+                        // Check if photo already used in a slot on this page — if so, skip
+                        const alreadyInSlot = (page?.slots||[]).some(s => s.photoId === photoId) || (freeSlots[pageIdx]||[]).some(fs => fs.photoId === photoId);
+                        if (alreadyInSlot) return;
+                        pushHistory();
+                        // Get drop position relative to page
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const dropX = Math.max(10, Math.min(pageW - 120, e.clientX - rect.left - 55));
+                        const dropY = Math.max(10, Math.min(cH - 120, e.clientY - rect.top - 55));
+                        const photo = photos.find(p => p.id === photoId);
+                        const ratio = photo ? photo.width / photo.height : 1;
+                        const slotH = Math.min(cH * 0.45, 160);
+                        const slotW = Math.round(slotH * ratio);
+                        const newSlot: FreeSlot = {
+                          id: 'free-' + Date.now() + '-' + Math.random().toString(36).slice(2,6),
+                          x: dropX, y: dropY, w: slotW, h: slotH,
+                          shape: 'rect', photoId, cropX: 50, cropY: 50, zoom: 1,
+                        };
+                        setFreeSlots(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx]||[]), newSlot] }));
+                        toast.success('Фото додано на сторінку');
+                      }}
                       style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
                       onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); setSelectedTextId(null); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
                     >
