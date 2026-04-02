@@ -1691,8 +1691,12 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                       </optgroup>
                     ))}
                   </select>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Розмір: {tFontSize}px</div>
-                  <input type="range" min={8} max={120} value={tFontSize} onChange={e => { const v = +e.target.value; setTFontSize(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontSize: v }, selectedTextPageIdx); }} style={{ width: '100%' }} />
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Розмір: {tFontSize}px</div>
+                    {!selectedTextId && <span style={{ fontSize:9, color:'#f59e0b', fontWeight:600 }}>↑ клікніть на текст</span>}
+                    {selectedTextId && <span style={{ fontSize:9, color:'#10b981', fontWeight:600 }}>✓ активний</span>}
+                  </div>
+                  <input type="range" min={8} max={120} value={tFontSize} onChange={e => { const v = +e.target.value; setTFontSize(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontSize: v }, selectedTextPageIdx); }} style={{ width: '100%', accentColor: selectedTextId ? '#1e2d7d' : '#94a3b8' }} />
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Колір</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {COLORS.map(c => <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxtForPage(selectedTextId, { color: c }, selectedTextPageIdx); }} style={{ width: 22, height: 22, borderRadius: '50%', background: c, border: tColor === c ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor: 'pointer' }} />)}
@@ -2013,13 +2017,13 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                           <div key={tb.id}
                             onPointerDown={e=>{e.stopPropagation();setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
-                            onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);}}
+                            onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}
                             style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex:20,cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30,touchAction:'none'}}>
                             {isEd?(
                               <textarea
                 autoFocus
-                defaultValue={tb.text}
-                onBlur={e=>{updateTxtForPage(tb.id,{text:e.target.value},pageIdx);setEditingTextId(null);}}
+                value={tb.text}
+                onBlur={e=>{setEditingTextId(null);}}
                 onChange={e=>{updateTxtForPage(tb.id,{text:e.target.value},pageIdx);}}
                 onClick={e=>e.stopPropagation()}
                 onMouseDown={e=>e.stopPropagation()}
