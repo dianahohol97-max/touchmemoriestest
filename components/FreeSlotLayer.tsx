@@ -312,6 +312,13 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
                   display:'flex', alignItems:'center', gap:2, background:'#fff',
                   border:'0.5px solid #e2e8f0', borderRadius:8, padding:'4px 6px',
                   boxShadow:'0 2px 10px rgba(0,0,0,0.15)', zIndex:70, whiteSpace:'nowrap', touchAction:'none' }}>
+                {/* Close toolbar button */}
+                <button {...tb(() => setSelectedId(null))}
+                  title="Закрити панель"
+                  style={{ padding:'4px 7px', border:'none', borderRadius:5, background:'#f1f5f9', cursor:'pointer', fontSize:14, color:'#64748b', fontWeight:700, minHeight:32, touchAction:'manipulation', lineHeight:1 }}>
+                  ×
+                </button>
+                <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
                 {photo && (
                   <button {...tb(() => setCropModeId(slot.id))}
                     title="Кадрувати фото"
