@@ -308,6 +308,16 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       prices: PHOTOJOURNAL_HARD_PAGE_PRICES,
       required: true
     },
+    {
+      name: 'Верстка тексту',
+      values: ['Без верстки', 'З версткою тексту (+175 ₴)'],
+      required: true
+    },
+    {
+      name: 'Ламінування сторінок',
+      values: ['Без ламінування', 'З ламінуванням (+5 ₴/стор)'],
+      required: true
+    },
   ],
   travelbook: [
     { name: 'Розмір', values: ['A4'], type: 'text', required: false },
@@ -582,7 +592,13 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
     if (productType === 'photojournal-hard') {
       const pages = opts['Кількість сторінок'];
       if (pages && typeof pages === 'number') {
-        return PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || null;
+        let total = PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || 0;
+        if (!total) return null;
+        // Add typesetting price
+        if (opts['Верстка тексту'] === 'З версткою тексту (+175 ₴)') total += 175;
+        // Add lamination: 5 UAH per page
+        if (opts['Ламінування сторінок'] === 'З ламінуванням (+5 ₴/стор)') total += pages * 5;
+        return total;
       }
     }
 
