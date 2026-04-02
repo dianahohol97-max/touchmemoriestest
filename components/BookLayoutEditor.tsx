@@ -1281,9 +1281,10 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   {config?.selectedCoverType && config.selectedCoverType !== 'Друкована' && (() => {
                     const mat = config.selectedCoverType?.toLowerCase() || '';
                     const colors = mat.includes('шкір') ? LEATHERETTE_COLORS : mat.includes('тканин') ? FABRIC_COLORS : {
-                      'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8',
-                      'Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038',
-                      'Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840',
+                      'Молочний':'#F0EAD6','Бежевий':'#D9C8B0','Таупе':'#A89880','Рожевий':'#E8B4B8',
+                      'Бордо':'#7A2838','Сірий перловий':'#9A9898','Лаванда':'#B8A8C8','Синій':'#1A2040',
+                      'Графітовий':'#3A3038','Бірюзовий':'#1A9090','Марсала':'#6E2840','Блакитно-сірий':'#607080',
+                      'Темно-зелений':'#1E3028','Жовтий':'#D4A020',
                     };
                     return (
                       <div style={{ marginBottom:10 }}>
@@ -1781,7 +1782,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     : mat.includes('шкір')||mat.includes('leather')
                     ? ({'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C','Рожевий ніжний':'#E8B4B8','Червоний насичений':'#A01030','Коричневий':'#8E5038','Вишневий':'#7A2020','Графітовий темний':'#3A3038','Темно-синій':'#1A2040','Чорний':'#1A1A1A'} as Record<string,string>)[n]||'#D9C8B0'
                     : mat.includes('велюр')||mat.includes('velour')
-                    ? ({'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8','Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038','Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840'} as Record<string,string>)[n]||'#D9C8B0'
+                    ? ({'Молочний':'#F0EAD6','Бежевий':'#D9C8B0','Таупе':'#A89880','Рожевий':'#E8B4B8','Бордо':'#7A2838','Сірий перловий':'#9A9898','Лаванда':'#B8A8C8','Синій':'#1A2040','Графітовий':'#3A3038','Бірюзовий':'#1A9090','Марсала':'#6E2840','Блакитно-сірий':'#607080','Темно-зелений':'#1E3028','Жовтий':'#D4A020'} as Record<string,string>)[n]||'#D9C8B0'
                     : '#f1f5f9';
                   const backBg = isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : softBg;
                   const backPhoto = isPrinted ? getPhoto(coverState.backCoverPhotoId ?? null) : null;
@@ -1843,7 +1844,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               /* Cover: left=back spine(grey), right=front cover with deco */
               <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — plain */}
-                <div style={{ width: pageW, height: cH, background: (() => { const n=effectiveCoverColor; const mat=config.selectedCoverType?.toLowerCase()||''; const vc={'Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Молочний':'#F0EAD6','Лаванда':'#B8A8C8','Рожевий':'#E8B4B8','Бордо':'#7A2838','Чорний':'#1A1A1A','Графітовий':'#3A3038','Синій':'#1A2040','Темно-зелений':'#1E3028','Коричневий':'#8E5038','Марсала':'#6E2840'} as Record<string,string>; const lc={'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C','Рожевий ніжний':'#E8B4B8','Червоний насичений':'#A01030','Коричневий':'#8E5038','Вишневий':'#7A2020','Графітовий темний':'#3A3038','Темно-синій':'#1A2040','Чорний':'#1A1A1A'} as Record<string,string>; const fc={'Бежевий/пісочний':'#C4AA88','Теракотовий':'#A04838','Фуксія':'#B838A0','Марсала/бордо':'#602838','Коричневий':'#6E4830','Сірий/графітовий':'#586058','Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020'} as Record<string,string>; if(mat.includes('тканин')||mat.includes('fabric')) return fc[n]||'#C4AA88'; if(mat.includes('шкір')||mat.includes('leather')) return lc[n]||'#D9C8B0'; if(mat.includes('велюр')||mat.includes('velour')) return vc[n]||'#D9C8B0'; return '#e8ecf4'; })(), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
+                <div style={{ width: pageW, height: cH, background: (() => { const n=effectiveCoverColor; const mat=config.selectedCoverType?.toLowerCase()||''; const vc={'Молочний':'#F0EAD6','Бежевий':'#D9C8B0','Таупе':'#A89880','Рожевий':'#E8B4B8','Бордо':'#7A2838','Сірий перловий':'#9A9898','Лаванда':'#B8A8C8','Синій':'#1A2040','Графітовий':'#3A3038','Бірюзовий':'#1A9090','Марсала':'#6E2840','Блакитно-сірий':'#607080','Темно-зелений':'#1E3028','Жовтий':'#D4A020'} as Record<string,string>; const lc={'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C','Рожевий ніжний':'#E8B4B8','Червоний насичений':'#A01030','Коричневий':'#8E5038','Вишневий':'#7A2020','Графітовий темний':'#3A3038','Темно-синій':'#1A2040','Чорний':'#1A1A1A'} as Record<string,string>; const fc={'Бежевий/пісочний':'#C4AA88','Теракотовий':'#A04838','Фуксія':'#B838A0','Марсала/бордо':'#602838','Коричневий':'#6E4830','Сірий/графітовий':'#586058','Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020'} as Record<string,string>; if(mat.includes('тканин')||mat.includes('fabric')) return fc[n]||'#C4AA88'; if(mat.includes('шкір')||mat.includes('leather')) return lc[n]||'#D9C8B0'; if(mat.includes('велюр')||mat.includes('velour')) return vc[n]||'#D9C8B0'; return '#e8ecf4'; })(), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <span style={{ color:'rgba(255,255,255,0.15)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ ОБКЛАДИНКА</span>
                   </div>
