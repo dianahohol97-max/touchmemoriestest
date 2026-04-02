@@ -342,7 +342,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Індивідуальна обкладинка',
-      values: ['Стандартна', 'Індивідуальна (+500 ₴)'],
+      values: ['Стандартна', 'Індивідуальна (+50 ₴)'],
       required: false,
     },
   ],
@@ -624,7 +624,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         // Lamination: 5 UAH per page
         if (opts['Ламінація'] === 'З ламінацією сторінок') total += (pages as number) * 5;
         // Individual cover: +500 UAH
-        if (opts['Індивідуальна обкладинка'] === 'Індивідуальна (+500 ₴)') total += 500;
+        if (opts['Індивідуальна обкладинка'] === 'Індивідуальна (+50 ₴)') total += 50;
         return total;
       }
     }
@@ -1000,7 +1000,7 @@ export function getCalculatedPrice(slug: string, selectedOptions: Record<string,
       let total = TRAVELBOOK_PAGE_PRICES[pages] || 0;
       if (!total) return null;
       if (selectedOptions['Ламінація'] === 'З ламінацією сторінок') total += (pages as number) * 5;
-      if (selectedOptions['Індивідуальна обкладинка'] === 'Індивідуальна (+500 ₴)') total += 500;
+      if (selectedOptions['Індивідуальна обкладинка'] === 'Індивідуальна (+50 ₴)') total += 50;
       return total;
     }
   }
