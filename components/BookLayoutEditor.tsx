@@ -1487,13 +1487,39 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             )}
             {/* BACKGROUND */}
             {leftTab === 'bg' && (
-              <BackgroundControls
-                bg={getCurBg(currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide)}
-                onChange={bg => {
-                  const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
-                  setPageBgs(prev=>({...prev,[idx]:bg}));
-                }}
-              />
+              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                <BackgroundControls
+                  bg={getCurBg(currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide)}
+                  onChange={bg => {
+                    const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                    setPageBgs(prev=>({...prev,[idx]:bg}));
+                  }}
+                />
+                {/* Back cover bg — shown in Фон panel when on cover page */}
+                {currentIdx === 0 && isPrinted && (
+                  <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12 }}>
+                    <div style={{ fontSize:11, fontWeight:800, color:'#64748b', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Задня обкладинка</div>
+                    <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6 }}>
+                      <span style={{ fontSize:11, color:'#475569', flexShrink:0 }}>Колір фону</span>
+                      <input type="color" value={coverState.backCoverBgColor || '#f1f5f9'}
+                        onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
+                        style={{ width:32, height:28, border:'1px solid #e2e8f0', borderRadius:5, cursor:'pointer', padding:2 }}/>
+                      <span style={{ fontSize:10, color:'#94a3b8', flex:1 }}>{coverState.backCoverBgColor || '#f1f5f9'}</span>
+                      <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
+                        style={{ padding:'3px 7px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
+                    </div>
+                    {coverState.backCoverPhotoId && (
+                      <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
+                        style={{ width:'100%', padding:'6px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
+                        × Видалити фото з задньої
+                      </button>
+                    )}
+                    {!coverState.backCoverPhotoId && (
+                      <div style={{ fontSize:10, color:'#94a3b8' }}>Фото: перетягніть прямо на задню обкладинку</div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* SHAPES */}
@@ -2888,13 +2914,39 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
 
             {/* BG */}
             {leftTab === 'bg' && (
-              <BackgroundControls
-                bg={getCurBg(currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide)}
-                onChange={bg => {
-                  const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
-                  setPageBgs(prev=>({...prev,[idx]:bg}));
-                }}
-              />
+              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                <BackgroundControls
+                  bg={getCurBg(currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide)}
+                  onChange={bg => {
+                    const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+                    setPageBgs(prev=>({...prev,[idx]:bg}));
+                  }}
+                />
+                {/* Back cover bg — shown in Фон panel when on cover page */}
+                {currentIdx === 0 && isPrinted && (
+                  <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12 }}>
+                    <div style={{ fontSize:11, fontWeight:800, color:'#64748b', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Задня обкладинка</div>
+                    <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6 }}>
+                      <span style={{ fontSize:11, color:'#475569', flexShrink:0 }}>Колір фону</span>
+                      <input type="color" value={coverState.backCoverBgColor || '#f1f5f9'}
+                        onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
+                        style={{ width:32, height:28, border:'1px solid #e2e8f0', borderRadius:5, cursor:'pointer', padding:2 }}/>
+                      <span style={{ fontSize:10, color:'#94a3b8', flex:1 }}>{coverState.backCoverBgColor || '#f1f5f9'}</span>
+                      <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
+                        style={{ padding:'3px 7px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
+                    </div>
+                    {coverState.backCoverPhotoId && (
+                      <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
+                        style={{ width:'100%', padding:'6px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
+                        × Видалити фото з задньої
+                      </button>
+                    )}
+                    {!coverState.backCoverPhotoId && (
+                      <div style={{ fontSize:10, color:'#94a3b8' }}>Фото: перетягніть прямо на задню обкладинку</div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* FRAMES */}
