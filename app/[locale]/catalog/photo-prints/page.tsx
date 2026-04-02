@@ -32,15 +32,17 @@ const TYPE_SPECS: Record<string, { name: string; description: string; specs: str
     ],
   },
   nonstandard: {
-    name: 'Будь-який розмір · 7.5 грн/см² · Fujicolor Crystal Archive',
-    description: 'Фотодрук будь-якого нестандартного розміру на папері Fujicolor Crystal Archive. Введи свої розміри — і ми надрукуємо точно під твій формат. Ціна розраховується як 7.5 грн/см².',
+    name: '5 форматів · 7.5–8 ₴/шт · матові або глянцеві',
+    description: 'Нестандартні формати фотодруку на папері Fuji. Мінімальна кількість залежить від формату.',
     specs: [
-      'Будь-який розмір на замовлення',
-      'Ціна: 7.5 грн/см²',
-      'Мінімальний розмір: 5×7 см',
-      'Максимальний розмір: 30×40 см',
-      'Папір: глянцевий або матовий',
-      'Виготовлення: 1–2 робочі дні',
+      '5×7.5 см — 7.5 ₴/шт (кількість кратна 12)',
+      '6×9 см — 7.5 ₴/шт (кількість кратна 10)',
+      '7.5×10 см — 7.5 ₴/шт (кількість кратна 8)',
+      '9×9 см — 8 ₴/шт (кількість кратна 6)',
+      '10×10 см — 8 ₴/шт (кількість кратна 6)',
+      'Матовий або глянцевий папір',
+      'Виготовлення: 1–3 робочі дні',
+      'Від 200 фото — знижка 7%',
     ],
   },
   polaroid: {
@@ -66,11 +68,11 @@ const SIZES = {
     { size: '20×30', price: 8 },
   ],
   nonstandard: [
-    { size: '5×7.5', price: 7.5 },
-    { size: '6×9', price: 7.5 },
-    { size: '7.5×10', price: 7.5 },
-    { size: '9×9', price: 7.5 },
-    { size: '10×10', price: 7.5 },
+    { size: '5×7.5', price: 7.5, multiple: 12 },
+    { size: '6×9', price: 7.5, multiple: 10 },
+    { size: '7.5×10', price: 7.5, multiple: 8 },
+    { size: '9×9', price: 8, multiple: 6 },
+    { size: '10×10', price: 8, multiple: 6 },
   ],
   polaroid: [
     { size: '7.6×10.1', price: 7.5, label: 'Класичний Polaroid' },
@@ -470,6 +472,9 @@ export default function PhotoPrintsPage() {
                 >
                   <span>{'label' in option ? option.label : `${option.size} см`}</span>
                   <span style={{ fontSize: '12px', color: '#64748b' }}>{option.price} ₴/шт</span>
+                  {'multiple' in option && option.multiple && (
+                    <span style={{ fontSize: '10px', color: '#94a3b8' }}>кратно {option.multiple}</span>
+                  )}
                 </button>
               );
             })}
