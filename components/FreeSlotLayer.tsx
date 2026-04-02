@@ -176,7 +176,8 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
               startDrag(e, slot.id, 'move');
             }}
             onClick={e => {
-              if (tapPhotoId) { e.stopPropagation(); update(slot.id, { photoId: tapPhotoId }); setSelectedId(slot.id); }
+              e.stopPropagation(); // prevent canvas from deselecting this slot
+              if (tapPhotoId) { update(slot.id, { photoId: tapPhotoId }); setSelectedId(slot.id); }
             }}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) { update(slot.id, { photoId: id }); setSelectedId(slot.id); } }}

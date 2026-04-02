@@ -1948,7 +1948,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     <div key={pageRenderKey}
                       onPointerDown={() => setActiveSide(side as 0|1)}
                       style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
-                      onClick={(e) => { setActiveSide(side as 0|1); if (e.target === e.currentTarget) setSelectedFreeSlotId(null); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
+                      onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); setSelectedTextId(null); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
                     >
                       {/* Background layer — MUST be first so it's below slots */}
                       <BackgroundLayer bg={getCurBg(pageIdx)} canvasW={pageW} canvasH={cH}/>
@@ -1983,7 +1983,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
                             onDrop={e => onDrop(e, pageIdx, i)}
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation(); // prevent canvas deselect
                               if (tapSelectedPhotoId) {
                                 haptic.success();
                                 setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== i ? s2 : { ...s2, photoId: tapSelectedPhotoId }) }));
