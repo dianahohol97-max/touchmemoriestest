@@ -20,6 +20,12 @@ interface BookConfig {
     selectedPageCount: string;
     photoRecommendation: string;
     totalPrice: number;
+    selectedCoverType?: string;
+    selectedCoverColor?: string;
+    selectedDecorationType?: string | null;
+    selectedDecorationVariant?: string | null;
+    decorationSurcharge?: number;
+    selectedLamination?: string | null;
 }
 
 // Print dimensions in mm for quality checking (at 300 DPI)
@@ -243,14 +249,17 @@ export default function BookPhotoUpload() {
                         <div className="text-sm text-blue-700 space-y-1">
                             {config.selectedSize && <p>• Розмір: {config.selectedSize}</p>}
                             <p>• {config.selectedPageCount}</p>
+                            {config.selectedCoverType && <p>• Обкладинка: {config.selectedCoverType}{config.selectedCoverColor ? ` · ${config.selectedCoverColor}` : ''}</p>}
+                            {config.selectedDecorationType && config.selectedDecorationType !== 'none' && (
+                                <p>• Оздоблення: {config.selectedDecorationType}{config.selectedDecorationVariant ? ` · ${config.selectedDecorationVariant}` : ''}{config.decorationSurcharge ? ` (+${config.decorationSurcharge} ₴)` : ''}</p>
+                            )}
+                            {config.selectedLamination && <p>• Ламінування: {config.selectedLamination}</p>}
                             {recommendedRange && <p>• Рекомендована кількість фото: <b>{recommendedRange}</b></p>}
                             {(() => {
                                 const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
                                 const textLayout = params.get('text_layout');
-                                const cover = params.get('cover');
                                 return (
                                     <>
-                                        {cover && <p>• Обкладинка: {cover}</p>}
                                         {textLayout && <p>• {textLayout === 'with' ? 'З версткою тексту (+175 ₴)' : 'Без тексту'}</p>}
                                     </>
                                 );
