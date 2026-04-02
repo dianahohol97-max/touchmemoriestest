@@ -330,15 +330,16 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, dragPhotoId, ta
                 <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
                 {photo && (
                   <button {...tb(() => update(slot.id, { photoId: null }))}
-                    title="Прибрати фото"
-                    style={{ padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:5, background:'transparent', cursor:'pointer', fontSize:11, color:'#64748b', fontWeight:600, minHeight:32, touchAction:'manipulation' }}>
-                    ✕ фото
+                    title="Прибрати фото зі слоту (слот залишається)"
+                    style={{ padding:'6px 10px', border:'1px solid #fbbf24', borderRadius:5, background:'#fffbeb', cursor:'pointer', fontSize:11, color:'#92400e', fontWeight:700, minHeight:32, touchAction:'manipulation' }}>
+                    🗑 фото
                   </button>
                 )}
+                <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
                 <button {...tb(() => deleteSlot(slot.id))}
-                  title="Видалити слот"
-                  style={{ padding:'6px 8px', border:'1px solid #fee2e2', borderRadius:5, background:'transparent', cursor:'pointer', fontSize:12, color:'#ef4444', minHeight:32, touchAction:'manipulation' }}>
-                  ✕
+                  title="Видалити слот повністю"
+                  style={{ padding:'6px 8px', border:'1px solid #fee2e2', borderRadius:5, background:'#fef2f2', cursor:'pointer', fontSize:11, color:'#ef4444', fontWeight:700, minHeight:32, touchAction:'manipulation' }}>
+                  🗑 слот
                 </button>
               </div>
               );
