@@ -26,6 +26,7 @@ interface BookConfig {
     selectedDecorationVariant?: string | null;
     decorationSurcharge?: number;
     selectedLamination?: string | null;
+    selectedPageLamination?: string | null;
 }
 
 // Print dimensions in mm for quality checking (at 300 DPI)
@@ -254,6 +255,11 @@ export default function BookPhotoUpload() {
                                 <p>• Оздоблення: {config.selectedDecorationType}{config.selectedDecorationVariant ? ` · ${config.selectedDecorationVariant}` : ''}{config.decorationSurcharge ? ` (+${config.decorationSurcharge} ₴)` : ''}</p>
                             )}
                             {config.selectedLamination && <p>• Ламінація обкладинки: {config.selectedLamination}</p>}
+                            {config.selectedPageLamination && config.selectedPageLamination !== 'Без ламінації' && (() => {
+                                const pages = parseInt(config.selectedPageCount?.match(/\d+/)?.[0] || '0');
+                                const lamCost = pages > 0 ? pages * 5 : 0;
+                                return <p>• Ламінування сторінок: {config.selectedPageLamination}{lamCost > 0 ? ` (+${lamCost} ₴)` : ''}</p>;
+                            })()}
                             {recommendedRange && <p>• Рекомендована кількість фото: <b>{recommendedRange}</b></p>}
                             {(() => {
                                 const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');

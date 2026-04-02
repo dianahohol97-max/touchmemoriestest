@@ -120,6 +120,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [selectedCoverType, setSelectedCoverType] = useState<string>(_saved?.selectedCoverType || '');
     const [selectedPageCount, setSelectedPageCount] = useState<string>(_saved?.selectedPageCount || '');
     const [selectedCopies, setSelectedCopies] = useState<string>(_saved?.selectedCopies || '');
+    const [selectedPageLamination, setSelectedPageLamination] = useState<string>(_saved?.selectedPageLamination || '');
     const [enableEndpaper, setEnableEndpaper] = useState(_saved?.enableEndpaper || false);
     const [enableKalka, setEnableKalka] = useState(_saved?.enableKalka || false);
 
@@ -269,12 +270,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const state = {
             selectedSize, selectedCoverType, selectedPageCount, selectedCopies,
             enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant,
-            selectedLamination, selectedCoverColor,
+            selectedLamination, selectedCoverColor, selectedPageLamination,
         };
         sessionStorage.setItem(`bookConfig_${productSlug}`, JSON.stringify(state));
     }, [selectedSize, selectedCoverType, selectedPageCount, selectedCopies,
         enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant,
-        selectedLamination, selectedCoverColor, productSlug]);
+        selectedLamination, selectedCoverColor, selectedPageLamination, productSlug]);
 
     // Pre-fill from URL query params (when coming from catalog product page)
     useEffect(() => {
@@ -467,6 +468,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             });
         }
 
+        // Add lamination surcharge for travelbook: 5 UAH per page
+        if (productType === 'travelbook' && selectedPageLamination && selectedPageLamination !== 'Без ламінації') {
+            const pageNum = parseInt(selectedPageCount?.match(/\d+/)?.[0] || '0');
+            if (pageNum > 0) total += pageNum * 5;
+        }
+
         // Add surcharges for endpaper (travel book and hard cover magazines)
         if (productType === 'travelbook' && enableEndpaper) {
             total += 100; // Друк на форзаці для Travel Book
@@ -548,6 +555,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             enableEndpaper,
             enableKalka,
             selectedLamination: selectedLamination || null,
+            selectedPageLamination: selectedPageLamination || null,
             selectedCoverColor: selectedCoverColor || null,
             selectedDecorationType: selectedDecorationType !== 'none' ? selectedDecorationType : null,
             selectedDecorationVariant: selectedDecorationVariant || null,
@@ -1136,6 +1144,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     option.name === 'Тип обкладинки' ? selectedCoverType :
                                     option.name === 'Кількість сторінок' ? selectedPageCount :
                                     option.name === 'Кількість примірників' ? selectedCopies :
+                                    option.name === 'Ламінація сторінок' ? selectedPageLamination :
                                     ''
                                 }
                                 onChange={(e) => {
@@ -1146,6 +1155,8 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                         setSelectedPageCount(e.target.value);
                                     } else if (option.name === 'Кількість примірників') {
                                         setSelectedCopies(e.target.value);
+                                    } else if (option.name === 'Ламінація сторінок') {
+                                        setSelectedPageLamination(e.target.value);
                                     }
                                 }}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
