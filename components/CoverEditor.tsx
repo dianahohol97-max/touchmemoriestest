@@ -363,7 +363,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
                       });
                     }}
-                    onWheel={e => { e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
+                    onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
                     <img src={photo.preview} style={{ width:`${(config.photoZoom??1)*100}%`, height:`${(config.photoZoom??1)*100}%`, objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none', touchAction:'none' }} draggable={false}/>
                   </div>
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
@@ -391,7 +391,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
                       });
                     }}
-                    onWheel={e => { e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
+                    onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
                     <img src={photo.preview} style={{ width:`${(config.photoZoom??1)*100}%`, height:`${(config.photoZoom??1)*100}%`, objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none', touchAction:'none' }} draggable={false}/>
                   </div>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
