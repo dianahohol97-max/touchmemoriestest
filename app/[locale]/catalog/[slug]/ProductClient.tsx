@@ -142,10 +142,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const [photobookOptions, setPhotobookOptions] = useState<any>(null);
     const [photobookPricesData, setPhotobookPricesData] = useState<any[]>([]);
 
-    const getProductionTime = (categorySlug: string = '') => {
+    const getProductionTime = (categorySlug: string = '', productSlug: string = '') => {
         const s = (categorySlug || '').toLowerCase();
+        const ps = (productSlug || '').toLowerCase();
         if (s.includes('photobook') || s.includes('фотокниг')) return '14 робочих днів';
         if (s.includes('travelbook') || s.includes('travel')) return '10–14 робочих днів';
+        // Hard cover journal: 7–10 days (heavier binding process)
+        if (ps.includes('tverd') || ps.includes('hard') || s.includes('tverd') || s.includes('hard-cover')) return '7–10 робочих днів';
         if (s.includes('magazine') || s.includes('journal') || s.includes('журнал') || s.includes('hlyantsevi') || s.includes('glyantsevy')) return '4–8 робочих днів';
         if (s.includes('guestbook') || s.includes('photoalbum') || s.includes('wishbook')) return '10 робочих днів';
         if (s.includes('print') || s.includes('photo-print') || s.includes('magnet')) return '2–3 робочих дні';
@@ -1023,7 +1026,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 <div style={{ background: '#dcfce7', padding: '6px', borderRadius: "3px" }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
-                                Термін виготовлення: {getProductionTime(product.categories?.slug || product.category_id)}
+                                Термін виготовлення: {getProductionTime(product.categories?.slug || product.category_id, product.slug || '')}
                                 {isJournalProduct(product.slug, product.categories?.slug || '') && (
                                     <span style={{ marginLeft: 8, fontSize: 12, color: '#f59e0b', fontWeight: 700, background: '#fffbeb', padding: '2px 8px', borderRadius: 4, border: '1px solid #fde68a' }}>
                                         ⚡ Термінове 1–2 дні +30%
