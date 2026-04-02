@@ -399,7 +399,17 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 return total * copiesNum;
             }
 
-            // Fallback if no exact match found
+            // Fallback: find closest available page count for this size/cover
+            const available = photobookPrices.filter((p: any) =>
+                p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize
+            ).sort((a: any, b: any) => a.page_count - b.page_count);
+            if (available.length > 0) {
+                const closest = available.reduce((prev: any, curr: any) =>
+                    Math.abs(curr.page_count - pageNum) < Math.abs(prev.page_count - pageNum) ? curr : prev
+                );
+                const copiesNum = parseInt(selectedCopies) || 1;
+                return (closest.base_price || 0) * copiesNum;
+            }
             return 0;
         }
 
@@ -1131,6 +1141,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 onChange={(e) => {
                                     if (option.name === 'Тип обкладинки') {
                                         setSelectedCoverType(e.target.value);
+                                        setSelectedPageCount(''); // reset — different cover types have different min pages
                                     } else if (option.name === 'Кількість сторінок') {
                                         setSelectedPageCount(e.target.value);
                                     } else if (option.name === 'Кількість примірників') {
