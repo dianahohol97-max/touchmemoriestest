@@ -281,14 +281,23 @@ export default function StarMapConstructor() {
                                 <ChevronLeft className="w-5 h-5" />
                                 Назад
                             </button>
-                            <button
-                                onClick={nextStep}
-                                disabled={currentStep === 4}
-                                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#1e2d7d] text-white rounded-lg hover:bg-[#263a99] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                Далі
-                                <ChevronRight className="w-5 h-5" />
-                            </button>
+                            {currentStep < 4 ? (
+                                <button
+                                    onClick={nextStep}
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#1e2d7d] text-white rounded-lg hover:bg-[#263a99] transition-colors"
+                                >
+                                    Далі
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleAddToCart}
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] transition-colors"
+                                >
+                                    <ShoppingCart className="w-5 h-5" />
+                                    Додати до кошика
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -600,7 +609,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
 function Step4SizeProduct({ config, setConfig, product }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>>; product: any }) {
     const sizes = [
         { name: 'A4 (21×29.7 см)', price: 350 },
-        { name: 'A3 (29.7×42 см)', price: 550 },
+        { name: 'A3 (29.7×42 см)', price: 450 },
     ];
 
     const productTypes = [

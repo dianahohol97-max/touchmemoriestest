@@ -78,10 +78,15 @@ function projectSky(
 
 // ─── Heart clip path ──────────────────────────────────────────────────────────
 function drawHeart(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number) {
+    // Proper heart shape using 4 bezier curves
     ctx.beginPath();
-    ctx.moveTo(cx, cy+s*0.35);
-    ctx.bezierCurveTo(cx-s*1.25,cy-s*0.35, cx-s*1.25,cy-s, cx,cy-s*0.5);
-    ctx.bezierCurveTo(cx+s*1.25,cy-s, cx+s*1.25,cy-s*0.35, cx,cy+s*0.35);
+    ctx.moveTo(cx, cy + s * 0.65);
+    // bottom-left curve
+    ctx.bezierCurveTo(cx - s * 1.2, cy + s * 0.1, cx - s * 1.25, cy - s * 0.6, cx - s * 0.5, cy - s * 0.55);
+    // left lobe arc to top center
+    ctx.bezierCurveTo(cx - s * 0.1, cy - s * 0.95, cx + s * 0.1, cy - s * 0.95, cx + s * 0.5, cy - s * 0.55);
+    // right lobe arc
+    ctx.bezierCurveTo(cx + s * 1.25, cy - s * 0.6, cx + s * 1.2, cy + s * 0.1, cx, cy + s * 0.65);
     ctx.closePath();
 }
 
