@@ -101,13 +101,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [loading, setLoading] = useState(true);
     const [autoAdvance, setAutoAdvance] = useState(false);
 
-    // Configuration state
-    const [selectedSize, setSelectedSize] = useState<string>('');
-    const [selectedCoverType, setSelectedCoverType] = useState<string>('');
-    const [selectedPageCount, setSelectedPageCount] = useState<string>('');
-    const [selectedCopies, setSelectedCopies] = useState<string>('');
-    const [enableEndpaper, setEnableEndpaper] = useState(false);
-    const [enableKalka, setEnableKalka] = useState(false);
+    // Configuration state — restored from sessionStorage if user navigates back
+    const _savedKey = `bookConfig_${productSlug}`;
+    const _saved = typeof window !== 'undefined' ? (() => { try { return JSON.parse(sessionStorage.getItem(_savedKey) || 'null'); } catch { return null; } })() : null;
+
+    const [selectedSize, setSelectedSize] = useState<string>(_saved?.selectedSize || '');
+    const [selectedCoverType, setSelectedCoverType] = useState<string>(_saved?.selectedCoverType || '');
+    const [selectedPageCount, setSelectedPageCount] = useState<string>(_saved?.selectedPageCount || '');
+    const [selectedCopies, setSelectedCopies] = useState<string>(_saved?.selectedCopies || '');
+    const [enableEndpaper, setEnableEndpaper] = useState(_saved?.enableEndpaper || false);
+    const [enableKalka, setEnableKalka] = useState(_saved?.enableKalka || false);
 
     // Travel Book cover selector state
     const [showCoverSelector, setShowCoverSelector] = useState(false);
@@ -121,12 +124,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     // Decoration state
     const [decorationTypes, setDecorationTypes] = useState<any[]>([]);
     const [decorationVariants, setDecorationVariants] = useState<any[]>([]);
-    const [selectedDecorationType, setSelectedDecorationType] = useState<string>('none');
-    const [selectedDecorationVariant, setSelectedDecorationVariant] = useState<string>('');
+    const [selectedDecorationType, setSelectedDecorationType] = useState<string>(_saved?.selectedDecorationType || 'none');
+    const [selectedDecorationVariant, setSelectedDecorationVariant] = useState<string>(_saved?.selectedDecorationVariant || '');
 
     // Lamination state (for Друкована cover only)
-    const [selectedLamination, setSelectedLamination] = useState<string>('');
-    const [selectedCoverColor, setSelectedCoverColor] = useState<string>('');
+    const [selectedLamination, setSelectedLamination] = useState<string>(_saved?.selectedLamination || '');
+    const [selectedCoverColor, setSelectedCoverColor] = useState<string>(_saved?.selectedCoverColor || '');
 
     const supabase = useMemo(() => createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -248,6 +251,19 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         fetchPhotobookPricing();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [productSlug]);
+
+    // Auto-save configuration state to sessionStorage so it survives "back" navigation
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const state = {
+            selectedSize, selectedCoverType, selectedPageCount, selectedCopies,
+            enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant,
+            selectedLamination, selectedCoverColor,
+        };
+        sessionStorage.setItem(`bookConfig_${productSlug}`, JSON.stringify(state));
+    }, [selectedSize, selectedCoverType, selectedPageCount, selectedCopies,
+        enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant,
+        selectedLamination, selectedCoverColor, productSlug]);
 
     // Pre-fill from URL query params (when coming from catalog product page)
     useEffect(() => {
@@ -521,6 +537,8 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         };
 
         sessionStorage.setItem('bookConstructorConfig', JSON.stringify(config));
+        // Clear draft — user successfully proceeded, no need to restore on back
+        sessionStorage.removeItem(`bookConfig_${productSlug}`);
 
         const pt = getProductType();
         // Wishbook — no editor needed, go directly to order summary
