@@ -106,9 +106,10 @@ interface CoverEditorProps {
   config: CoverConfig;
   photos: { id: string; preview: string }[];
   onChange: (patch: Partial<CoverConfig>) => void;
+  hidePhotoSlot?: boolean;
 }
 
-export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange }: CoverEditorProps) {
+export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange, hidePhotoSlot = false }: CoverEditorProps) {
   const [dragOver, setDragOver] = useState(false);
   // Load Cyrillic calligraphic fonts
   useEffect(() => {
@@ -220,7 +221,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
       {isSoft && <div style={{ position:'absolute', inset:0, backgroundImage:texture, pointerEvents:'none', zIndex:1 }}/>}
 
       {/* Printed cover — draggable photo slot + text blocks + overlay */}
-      {!isSoft && (() => {
+      {!isSoft && !hidePhotoSlot && (() => {
         const slot = config.printedPhotoSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' as const };
         const texts = config.printedTextBlocks ?? [];
         const overlay = config.printedOverlay ?? { type: 'none' as const, color: '#000000', opacity: 40, gradient: 'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };

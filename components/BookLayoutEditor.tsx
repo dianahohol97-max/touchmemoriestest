@@ -462,6 +462,9 @@ export default function BookLayoutEditor() {
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
   const usedIds = new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean)));
   const _slug = (config?.productSlug || '').toLowerCase();
+  // Hard cover journal: isPrinted=true (uses color bg) but no photo slot
+  const isHardCoverJournal = _slug.includes('tverd') || _slug.includes('hard-cover') ||
+    (config?.productName || '').toLowerCase().includes('твердою');
   const isPrinted = (config?.selectedCoverType || '').toLowerCase().includes('друков') ||
     (config?.selectedCoverType || '').toLowerCase().includes('print') ||
     (config?.selectedCoverType || '').toLowerCase().includes('м\'яка') ||
@@ -1170,7 +1173,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   const ps = coverState.printedPhotoSlot ?? { x:0, y:0, w:100, h:100, shape:'rect' };
                   return (
                     <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                      {/* Photo slot shape */}
+                      {/* Photo slot shape — hidden for hard cover journal (color-only cover) */}
+                      {!isHardCoverJournal && (
                       <div>
                         <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Форма фотослота</div>
                         <div style={{ display:'flex', gap:4 }}>
@@ -1182,11 +1186,13 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                           ))}
                         </div>
                       </div>
-                      {/* Reset slot */}
+                      )}
+                      {!isHardCoverJournal && (
                       <button onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{x:0,y:0,w:100,h:100,shape:'rect'}}))}
                         style={{ padding:'6px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:11, fontWeight:600, color:'#64748b' }}>
                         ↺ На весь розмір
                       </button>
+                      )}
                       {/* Overlay */}
                       <div>
                         <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Накладення</div>
@@ -1901,6 +1907,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     printedBgColor: coverState.printedBgColor,
                   }}
                   photos={photos}
+                  hidePhotoSlot={isHardCoverJournal}
                   onChange={(cfg) => setCoverState(prev => ({ ...prev,
                     ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }),
                     ...(cfg.decoText !== undefined && { decoText: cfg.decoText }),
@@ -1947,6 +1954,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     textFontSize: coverState.textFontSize,
                   }}
                   photos={photos}
+                  hidePhotoSlot={isHardCoverJournal}
                   onChange={(cfg: any) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }), ...(cfg.decoColor !== undefined && { decoColor: cfg.decoColor }), ...(cfg.textX !== undefined && { textX: cfg.textX }), ...(cfg.textY !== undefined && { textY: cfg.textY }), ...(cfg.textFontFamily !== undefined && { textFontFamily: cfg.textFontFamily }), ...(cfg.textFontSize !== undefined && { textFontSize: cfg.textFontSize }) }))}
                 />
               </div>
