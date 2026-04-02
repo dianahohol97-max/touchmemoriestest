@@ -907,8 +907,8 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               </button>
             ) : (
               <button onClick={addToCart}
-                style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', flexShrink:0 }}>
-                <ShoppingCart size={13}/> Кошик
+                style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background:'#16a34a', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', flexShrink:0 }}>
+                ✓ Готово
               </button>
             )}
           </div>
@@ -977,7 +977,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 </button>
               </div>
             ) : (
-              <button onClick={addToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(38,58,153,0.3)' }}><ShoppingCart size={15}/> До кошика</button>
+              <button onClick={addToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#16a34a', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(22,163,74,0.35)' }}>✓ Зберегти та замовити</button>
             )}
           </div>
         </div>
@@ -2376,9 +2376,12 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
                   Натисніть <b>Попередній перегляд</b> щоб переглянути виріб з перегортанням сторінок.
                 </p>
-                <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
+                <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:8 }}>
                   Хочете більше сторінок? Натисніть <b>+ Розворот</b> в правій панелі. Ціна оновлюється автоматично.
                 </p>
+                <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#15803d' }}>
+                  ✓ Коли завершите — натисніть зелену кнопку <b>«Зберегти та замовити»</b> у верхньому правому куті.
+                </div>
                 <button onClick={() => {
                   setShowTooltips(false);
                   localStorage.setItem('editor_tooltips_seen', '1');
