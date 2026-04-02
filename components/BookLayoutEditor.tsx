@@ -537,6 +537,7 @@ export default function BookLayoutEditor() {
   };
 
   const addSpread = () => {
+    pushHistory();
     const newId1 = pages.length;
     const newId2 = pages.length + 1;
     setPages(prev => [
@@ -550,6 +551,7 @@ export default function BookLayoutEditor() {
   };
 
   const removeCurrentSpread = () => {
+    pushHistory();
     if (pages.length <= 3) { toast.error('Мінімум 1 розворот'); return; }
     if (currentIdx === 0) { toast.error('Не можна видалити обкладинку'); return; }
     // pages[0] = cover, spread N = pages[(N-1)*2+1] and pages[(N-1)*2+2]
@@ -572,6 +574,7 @@ export default function BookLayoutEditor() {
   };
 
   const addFreeSlot = () => {
+    pushHistory();
     const targetPageIdx = getActivePageIdx();
     const id = 'free-' + Date.now();
     const newSlot: FreeSlot = {
@@ -631,6 +634,7 @@ export default function BookLayoutEditor() {
   };
 
   const autoFill = () => {
+    pushHistory();
     let pi = 0;
     setPages(prev => prev.map(p => ({ ...p, slots: p.slots.map(sl => { if (sl.photoId) return sl; const ph = photos[pi]; if (!ph) return sl; pi++; return { ...sl, photoId: ph.id }; }) })));
     toast.success('Фото розставлено');
@@ -657,6 +661,7 @@ export default function BookLayoutEditor() {
   };
 
   const onDrop = (e: React.DragEvent, pi: number, si: number) => {
+    pushHistory();
     e.preventDefault();
     const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
     if (!photoId) return;
@@ -664,7 +669,10 @@ export default function BookLayoutEditor() {
       ...p, slots: p.slots.map((s2, si2) => si2 !== si ? s2 : { ...s2, photoId }),
     }));
   };
-  const clearSlot = (pi: number, si: number) => setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, photoId: null }) }));
+  const clearSlot = (pi: number, si: number) => {
+    pushHistory();
+    setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, photoId: null }) }));
+  };
 
   // Crop via Pointer Events — works on mouse, touch, stylus
   const startCrop = (e: React.PointerEvent, key: string, cx: number, cy: number) => {
@@ -688,6 +696,7 @@ export default function BookLayoutEditor() {
     if (!textTool) { setSelectedTextId(null); return; }
     const rect = e.currentTarget.getBoundingClientRect();
     const id = 'txt-' + Date.now();
+    pushHistory();
     setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
   };
@@ -697,11 +706,16 @@ export default function BookLayoutEditor() {
     if (!textTool) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const id = 'txt-' + Date.now();
+    pushHistory();
     setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / pageW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
   };
   const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
-  const deleteTxtForPage = (id: string, pageIdx: number) => { setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) })); setSelectedTextId(null); setEditingTextId(null); };
+  const deleteTxtForPage = (id: string, pageIdx: number) => {
+    pushHistory();
+    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) }));
+    setSelectedTextId(null); setEditingTextId(null);
+  };
   const startTxtDragForPage = (e: React.PointerEvent, id: string, tx: number, ty: number, pageIdx: number) => {
     e.stopPropagation(); e.preventDefault();
     haptic.light();
