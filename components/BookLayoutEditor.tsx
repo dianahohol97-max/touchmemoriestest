@@ -1905,7 +1905,7 @@ export default function BookLayoutEditor() {
                   {/* Shapes, stickers, frames on top of cover — for printed/magazine/travelbook covers */}
                   {isPrinted && (
                     <div style={{ position:'absolute', inset:0, zIndex:15, pointerEvents:'none' }}>
-                      <div style={{ position:'relative', width:'100%', height:'100%', pointerEvents:'auto' }}>
+                      <div style={{ position:'relative', width:'100%', height:'100%', pointerEvents:'none' }}>
                         <ShapesLayer
                           shapes={getCurShapes(0)}
                           canvasW={pageW} canvasH={cH}
@@ -1915,7 +1915,7 @@ export default function BookLayoutEditor() {
                         />
                         <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH}/>
                         {(pageStickers[0]||[]).map(stk => (
-                          <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none' }}
+                          <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
                             onPointerDown={e => {
                               e.stopPropagation();
                               haptic.light();
@@ -1981,7 +1981,7 @@ export default function BookLayoutEditor() {
                   />
                   {isPrinted && (
                     <div style={{ position:'absolute', inset:0, zIndex:15, pointerEvents:'none' }}>
-                      <div style={{ position:'relative', width:'100%', height:'100%', pointerEvents:'auto' }}>
+                      <div style={{ position:'relative', width:'100%', height:'100%', pointerEvents:'none' }}>
                         <ShapesLayer
                           shapes={getCurShapes(0)}
                           canvasW={pageW} canvasH={cH}
@@ -1991,7 +1991,7 @@ export default function BookLayoutEditor() {
                         />
                         <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH}/>
                         {(pageStickers[0]||[]).map(stk => (
-                          <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none' }}
+                          <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
                             onPointerDown={e => {
                               e.stopPropagation();
                               haptic.light();
@@ -2314,7 +2314,7 @@ export default function BookLayoutEditor() {
                       <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
                       {/* Sticker layer */}
                       {(pageStickers[pageIdx]||[]).map(stk => (
-                        <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none' }}
+                        <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
                           onPointerDown={e => {
                             e.stopPropagation();
                             haptic.light();

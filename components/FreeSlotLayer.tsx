@@ -80,6 +80,7 @@ function borderRadius(shape: SlotShape, w: number, h: number) {
 export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dragPhotoId, tapPhotoId, onChange, onSwapToPageSlot, selectedId: externalSelectedId, onSelect, isMobile }: FreeSlotLayerProps) {
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
   const [cropModeId, setCropModeId] = useState<string | null>(null);
+  const [guides, setGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] });
   const selectedId = externalSelectedId !== undefined ? externalSelectedId : internalSelectedId;
 
   const setSelectedId = (id: string | null) => {
@@ -158,7 +159,41 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
     startPointerDrag(e, (dx, dy) => {
       let { x, y, w, h } = origSlot;
       if (type === 'move') {
-        update(id, { x: Math.max(0,Math.min(canvasW-w, origSlot.x+dx)), y: Math.max(0,Math.min(canvasH-h, origSlot.y+dy)) });
+        let nx = Math.max(0, Math.min(canvasW - w, origSlot.x + dx));
+        let ny = Math.max(0, Math.min(canvasH - h, origSlot.y + dy));
+        const SNAP = 5; // snap threshold px
+        const gx: number[] = [];
+        const gy: number[] = [];
+        // Snap targets: page center, page edges, and other slots
+        const snapX = [0, canvasW / 2, canvasW]; // left, center, right
+        const snapY = [0, canvasH / 2, canvasH]; // top, center, bottom
+        for (const s of slots) {
+          if (s.id === id) continue;
+          snapX.push(s.x, s.x + s.w / 2, s.x + s.w);
+          snapY.push(s.y, s.y + s.h / 2, s.y + s.h);
+        }
+        // Check slot left, center, right against snap targets
+        for (const edge of [nx, nx + w / 2, nx + w]) {
+          for (const target of snapX) {
+            if (Math.abs(edge - target) < SNAP) {
+              nx += target - edge;
+              gx.push(target);
+              break;
+            }
+          }
+        }
+        // Check slot top, center, bottom against snap targets
+        for (const edge of [ny, ny + h / 2, ny + h]) {
+          for (const target of snapY) {
+            if (Math.abs(edge - target) < SNAP) {
+              ny += target - edge;
+              gy.push(target);
+              break;
+            }
+          }
+        }
+        setGuides({ x: gx, y: gy });
+        update(id, { x: nx, y: ny });
       } else if (type === 'crop') {
         update(id, { cropX: Math.max(0,Math.min(100, origSlot.cropX-dx/3)), cropY: Math.max(0,Math.min(100, origSlot.cropY-dy/3)) });
       } else {
@@ -169,7 +204,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
         if (origSlot.shape==='square'||origSlot.shape==='circle') { const sz=Math.max(w,h); w=sz; h=sz; }
         update(id, { x:Math.max(0,x), y:Math.max(0,y), w, h });
       }
-    }, () => { dragRef.current = null; });
+    }, () => { dragRef.current = null; setGuides({ x: [], y: [] }); });
   };
 
   // Non-passive wheel for zoom — attach once per slot
@@ -568,6 +603,17 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
           </div>
         );
       })()}
+      {/* Alignment guides */}
+      {(guides.x.length > 0 || guides.y.length > 0) && (
+        <svg style={{ position:'absolute', inset:0, width:canvasW, height:canvasH, pointerEvents:'none', zIndex:60 }}>
+          {guides.x.map((gx, i) => (
+            <line key={`gx-${i}`} x1={gx} y1={0} x2={gx} y2={canvasH} stroke="#3b82f6" strokeWidth="0.7" strokeDasharray="3 2"/>
+          ))}
+          {guides.y.map((gy, i) => (
+            <line key={`gy-${i}`} x1={0} y1={gy} x2={canvasW} y2={gy} stroke="#3b82f6" strokeWidth="0.7" strokeDasharray="3 2"/>
+          ))}
+        </svg>
+      )}
     </>
   );
 }

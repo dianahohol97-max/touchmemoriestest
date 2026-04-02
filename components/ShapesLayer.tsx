@@ -113,7 +113,7 @@ export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: ex
             onDragStart={e => { e.dataTransfer.setData('shape-id', shape.id); e.dataTransfer.effectAllowed = 'move'; onDragShapeStart?.(shape.id); }}
             onDragEnd={() => onDragShapeEnd?.()}
             onPointerDown={e=>{setSelectedId(shape.id);onSelectId?.(shape.id);startDrag(e,shape.id,'move');}}
-            style={{ position:'absolute', left:shape.x, top:shape.y, width:shape.w, height:shape.h, cursor:'move', zIndex:sel?45:25, outline:sel?'2px solid #3b82f6':'none', transform:`rotate(${shape.rotation}deg)`, transformOrigin:'center' }}>
+            style={{ position:'absolute', left:shape.x, top:shape.y, width:shape.w, height:shape.h, cursor:'move', zIndex:sel?45:25, outline:sel?'2px solid #3b82f6':'none', transform:`rotate(${shape.rotation}deg)`, transformOrigin:'center', pointerEvents:'auto' }}>
             <svg width={shape.w} height={shape.h} style={{ display:'block', overflow:'visible' }}>
               {renderShapeSVG(shape)}
             </svg>
