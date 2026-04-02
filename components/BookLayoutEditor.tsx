@@ -1433,10 +1433,22 @@ export default function BookLayoutEditor() {
 
             {/* SHAPES */}
             {leftTab === 'shapes' && (() => {
-              const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
+              // Shapes not supported on cover page
+              if (currentIdx === 0) {
+                return (
+                  <div style={{ padding:'16px 12px', textAlign:'center' }}>
+                    <div style={{ fontSize:24, marginBottom:8 }}>◻</div>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#374151', marginBottom:6 }}>Фігури недоступні на обкладинці</div>
+                    <div style={{ fontSize:11, color:'#94a3b8', lineHeight:1.5 }}>
+                      Перейдіть на внутрішню сторінку щоб додати фігури.
+                      {isPrinted && ' Для обкладинки використовуйте вкладку «Обкладинка».'}
+                    </div>
+                  </div>
+                );
+              }
+              const spi = (currentIdx-1)*2+1+activeSide;
               const shapes = getCurShapes(spi);
-              // Search both pages of spread for the selected shape
-              const allSpreadIdxs = currentIdx===0 ? [0] : [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
+              const allSpreadIdxs = [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
               let selShape = null as typeof shapes[0] | null;
               let selSpi = spi;
               for (const pi of allSpreadIdxs) {
@@ -2822,8 +2834,17 @@ export default function BookLayoutEditor() {
 
             {/* SHAPES */}
             {leftTab === 'shapes' && (() => {
-              const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
-              const allSpreadIdxs = currentIdx===0 ? [0] : [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
+              if (currentIdx === 0) {
+                return (
+                  <div style={{ padding:'16px 12px', textAlign:'center' }}>
+                    <div style={{ fontSize:20, marginBottom:6 }}>◻</div>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#374151', marginBottom:4 }}>Фігури недоступні на обкладинці</div>
+                    <div style={{ fontSize:11, color:'#94a3b8' }}>Перейдіть на внутрішню сторінку</div>
+                  </div>
+                );
+              }
+              const spi = (currentIdx-1)*2+1+activeSide;
+              const allSpreadIdxs = [(currentIdx-1)*2+1, (currentIdx-1)*2+2];
               let selShape = null as any;
               let selSpi = spi;
               for (const pi of allSpreadIdxs) {
