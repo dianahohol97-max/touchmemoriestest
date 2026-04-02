@@ -153,6 +153,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         if (s.includes('guestbook') || s.includes('photoalbum') || s.includes('wishbook')) return '10 робочих днів';
         if (s.includes('print') || s.includes('photo-print') || s.includes('magnet')) return '2–3 робочих дні';
         if (s.includes('puzzle') || s.includes('canvas')) return '5–7 робочих днів';
+        // Posters: 2–4 working days
+        if (ps.includes('poster') || s.includes('poster') || ps.includes('зодіак') || ps.includes('монограм') || ps.includes('диплом') || ps.includes('portrait') || ps.includes('birth')) return '2–4 робочих дні';
         return '7–14 робочих днів';
     };
 
