@@ -5,10 +5,21 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
-import { CoverEditor, FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS, LEATHERETTE_COLORS, FABRIC_COLORS } from './CoverEditor';
+import { CoverEditor } from './CoverEditor';
 import { BookPreviewModal } from './BookPreviewModal';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape } from './FreeSlotLayer';
 import { haptic, startPointerDrag, useLongPress } from '@/lib/hooks/useMobileInteractions';
+import {
+  FLEX_COLORS, METAL_COLORS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS,
+  METAL_VARIANTS, LEATHERETTE_COLORS, FABRIC_COLORS, VELOUR_COLORS,
+  FONT_GROUPS, GOOGLE_FONTS_URL,
+} from '@/lib/editor/constants';
+import {
+  buildCoverEditorProps, handleCoverChange, resolveCoverColor,
+  detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
+  getProductFlags,
+} from '@/lib/editor/utils';
+import { calculateDynamicPrice } from '@/lib/editor/pricing';
 
 // Cyrillic decorative fonts
 const CYRILLIC_DECORATIVE_FONTS = [
@@ -159,13 +170,6 @@ function makeSlots(n: number): SlotData[] {
   return Array.from({ length: n }, () => ({ photoId: null, cropX: 50, cropY: 50, zoom: 1 }));
 }
 
-const FONT_GROUPS = [
-  { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans'] },
-  { group: 'Класичні', fonts: ['Playfair Display','Georgia','Cormorant Garamond','EB Garamond','Libre Baskerville'] },
-  { group: 'Каліграфічні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Alex Brush','Pinyon Script','Italianno'] },
-  { group: 'Кириличні', fonts: ['Marck Script','Philosopher','Russo One','Comfortaa','Lobster','Caveat','Poiret One','Open Sans'] },
-  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous'] },
-];
 const FONTS = FONT_GROUPS.flatMap(g => g.fonts);
 const COLORS = ['#1e2d7d', '#ffffff', '#000000', '#e63946', '#2a9d8f', '#f4a261', '#264653', '#e9c46a'];
 
@@ -270,19 +274,9 @@ export default function BookLayoutEditor() {
       const cfg = typeof window !== 'undefined' ? sessionStorage.getItem('bookConstructorConfig') : null;
       if (cfg) {
         const c = JSON.parse(cfg);
-        const deco = (c.selectedDecorationType || c.selectedDecoration || '').toLowerCase();
-        let decoType: CoverDecoType = 'none';
-        if (deco.includes('акрил') || deco.includes('acrylic') || deco.includes('acryl')) decoType = 'acryl';
-        else if (deco.includes('фотовставка') || deco.includes('photo_insert') || deco.includes('photo insert')) decoType = 'photovstavka';
-        else if (deco.includes('флекс') || deco.includes('flex')) decoType = 'flex';
-        else if (deco.includes('метал') || deco.includes('metal')) decoType = 'metal';
-        else if (deco.includes('гравір') || deco.includes('engraving') || deco.includes('graviruvannya')) decoType = 'graviruvannya';
+        const decoType = detectDecoType(c.selectedDecorationType || c.selectedDecoration || '');
         const variant = c.selectedDecorationVariant || '';
-        const dc = (c.selectedDecorationColor || '').toLowerCase();
-        let decoColor = '#D4AF37';
-        if (dc.includes('срібн') || dc.includes('silver')) decoColor = '#C0C0C0';
-        else if (dc.includes('білий') || dc.includes('white')) decoColor = '#FFFFFF';
-        else if (dc.includes('чорн') || dc.includes('black')) decoColor = '#1A1A1A';
+        const decoColor = detectDecoColor(c.selectedDecorationColor || '');
         return { decoType, decoVariant: variant, photoId: null, decoText: '', decoColor, textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] };
       }
     } catch {}
@@ -378,15 +372,9 @@ export default function BookLayoutEditor() {
   }, [history]);
 
   useEffect(() => {
-    const fams = ['Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin+Sans',
-      'Playfair+Display','Cormorant+Garamond','EB+Garamond','Libre+Baskerville',
-      'Dancing+Script','Great+Vibes','Pacifico','Sacramento','Satisfy',
-      'Alex+Brush','Pinyon+Script','Italianno','Marck+Script','Philosopher',
-      'Russo+One','Comfortaa','Lobster','Caveat','Poiret+One','Open+Sans',
-      'Abril+Fatface','Cinzel','Bebas+Neue','Righteous'];
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=' + fams.join('&family=') + '&display=swap';
+    link.href = GOOGLE_FONTS_URL;
     document.head.appendChild(link);
     return () => { try { document.head.removeChild(link); } catch{} };
   }, []);
@@ -499,62 +487,13 @@ export default function BookLayoutEditor() {
   const cH = baseH * zoom / 100;
   const pageW = cW / 2; // single page width
 
-  // Load Google Fonts
-  useEffect(() => {
-    const fonts = [
-      'Marck+Script','Caveat','Comfortaa','Philosopher','Cormorant+Garamond',
-      'Montserrat','Lobster','Pacifico','Rubik','Nunito','Ubuntu',
-      'Dancing+Script','Great+Vibes','Pinyon+Script','Sacramento','Playfair+Display','Cinzel'
-    ].map(f => `family=${f}:ital,wght@0,400;0,700;1,400`).join('&');
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = `https://fonts.googleapis.com/css2?${fonts}&display=swap`;
-    document.head.appendChild(link);
-  }, []);
-
   // Init cover state from config
   useEffect(() => {
     if (!config) return;
-    const deco = (config.selectedDecorationType || config.selectedDecoration || '').toLowerCase();
-    let decoType: CoverDecoType = 'none';
-    if (deco.includes('акрил') || deco.includes('acrylic') || deco.includes('acryl')) decoType = 'acryl';
-    else if (deco.includes('фотовставка') || deco.includes('photo_insert') || deco.includes('photo insert')) decoType = 'photovstavka';
-    else if (deco.includes('флекс') || deco.includes('flex')) decoType = 'flex';
-    else if (deco.includes('метал') || deco.includes('metal')) decoType = 'metal';
-    else if (deco.includes('гравір') || deco.includes('engraving') || deco.includes('graviruvannya')) decoType = 'graviruvannya';
-    // Map decoVariant from config
-    // config.selectedDecorationVariant = e.g. "60×60 золотий" or raw variant name
-    const variant = config.selectedDecorationVariant || '';
-
-    // Map decoColor from config
-    const dc = config.selectedDecorationColor?.toLowerCase() || '';
-    let decoColor = '#D4AF37'; // default gold
-    if (dc.includes('срібн') || dc.includes('silver')) decoColor = '#C0C0C0';
-    else if (dc.includes('білий') || dc.includes('white')) decoColor = '#FFFFFF';
-    else if (dc.includes('чорн') || dc.includes('black')) decoColor = '#1A1A1A';
-
-    // Auto-select first variant for size if none provided
-    const sizeKey = (config.selectedSize || '20x20').replace(/[×х]/g, 'x').replace(/\s*см/g, '').trim();
-    let autoVariant = variant;
-    if (!autoVariant && decoType !== 'none' && decoType !== 'flex' && decoType !== 'graviruvannya') {
-      const variantMap: Record<string, Record<string, string[]>> = {
-        acryl: ACRYLIC_VARIANTS,
-        photovstavka: PHOTO_INSERT_VARIANTS,
-        metal: METAL_VARIANTS,
-      };
-      const variants = variantMap[decoType]?.[sizeKey] || variantMap[decoType]?.['20x20'] || [];
-      // Pick variant matching color if possible
-      if (decoType === 'metal' && variants.length > 0) {
-        if (dc.includes('срібн') || dc.includes('silver')) {
-          autoVariant = variants.find(v => v.includes('срібний')) || variants[0];
-        } else {
-          autoVariant = variants.find(v => v.includes('золотий')) || variants[0];
-        }
-      } else {
-        autoVariant = variants[0] || '';
-      }
-    }
-
+    const decoType = detectDecoType(config.selectedDecorationType || config.selectedDecoration || '');
+    const decoColor = detectDecoColor(config.selectedDecorationColor || '');
+    const sizeKey = normalizeSizeKey(config.selectedSize || '20x20');
+    const autoVariant = autoSelectVariant(decoType, sizeKey, config.selectedDecorationColor || '', config.selectedDecorationVariant || '');
     setCoverState(prev => ({ ...prev, decoType, decoVariant: autoVariant, decoColor }));
   }, [config]);
 
@@ -833,97 +772,15 @@ export default function BookLayoutEditor() {
   if (!config || pages.length === 0) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
 
 
-// ── Real prices from photobook_prices table ──────────────────────────────────
-// Key format: "coverType_WxH_pages"  e.g. "velour_20x20_20"
-const PHOTOBOOK_PRICES: Record<string, number> = {
-  // Велюр / Тканина / Шкірзамінник (same prices) — 20×20
-  velour_20x20_6:1050, velour_20x20_8:1100, velour_20x20_10:1150, velour_20x20_12:1200,
-  velour_20x20_14:1250, velour_20x20_16:1300, velour_20x20_18:1350, velour_20x20_20:1400,
-  velour_20x20_22:1450, velour_20x20_24:1500, velour_20x20_26:1550, velour_20x20_28:1600,
-  velour_20x20_30:1650, velour_20x20_32:1700, velour_20x20_34:1750, velour_20x20_36:1800,
-  velour_20x20_38:1850, velour_20x20_40:1900, velour_20x20_42:1950, velour_20x20_44:2000,
-  velour_20x20_46:2050, velour_20x20_48:2100, velour_20x20_50:2150,
-  // Велюр — 25×25
-  velour_25x25_8:1290, velour_25x25_10:1365, velour_25x25_12:1445, velour_25x25_14:1525,
-  velour_25x25_16:1605, velour_25x25_18:1685, velour_25x25_20:1765, velour_25x25_22:1840,
-  velour_25x25_24:1925, velour_25x25_26:2010, velour_25x25_28:2095, velour_25x25_30:2175,
-  velour_25x25_32:2255, velour_25x25_34:2335, velour_25x25_36:2415, velour_25x25_38:2495,
-  velour_25x25_40:2575, velour_25x25_42:2655, velour_25x25_44:2735, velour_25x25_46:2820,
-  velour_25x25_48:2905, velour_25x25_50:2990,
-  // Велюр — 30×30
-  velour_30x30_16:1700, velour_30x30_18:1790, velour_30x30_20:1880, velour_30x30_22:1970,
-  velour_30x30_24:2060, velour_30x30_26:2150, velour_30x30_28:2240, velour_30x30_30:2330,
-  velour_30x30_32:2420, velour_30x30_34:2510, velour_30x30_36:2600, velour_30x30_38:2690,
-  velour_30x30_40:2780, velour_30x30_42:2875, velour_30x30_44:2970, velour_30x30_46:3065,
-  velour_30x30_48:3160, velour_30x30_50:3255,
-  // Друкована — 20×20
-  printed_20x20_6:450, printed_20x20_8:500, printed_20x20_10:550, printed_20x20_12:600,
-  printed_20x20_14:650, printed_20x20_16:700, printed_20x20_18:750, printed_20x20_20:800,
-  printed_20x20_22:850, printed_20x20_24:900, printed_20x20_26:950, printed_20x20_28:1000,
-  printed_20x20_30:1050, printed_20x20_32:1110, printed_20x20_34:1170, printed_20x20_36:1230,
-  printed_20x20_38:1290, printed_20x20_40:1350, printed_20x20_42:1410, printed_20x20_44:1470,
-  printed_20x20_46:1530, printed_20x20_48:1590, printed_20x20_50:1650,
-  // Друкована — 20×30
-  printed_20x30_10:740, printed_20x30_12:815, printed_20x30_14:890, printed_20x30_16:965,
-  printed_20x30_18:1040, printed_20x30_20:1115, printed_20x30_22:1190, printed_20x30_24:1265,
-  printed_20x30_26:1340, printed_20x30_28:1415, printed_20x30_30:1490, printed_20x30_32:1565,
-  printed_20x30_34:1640, printed_20x30_36:1715, printed_20x30_38:1790, printed_20x30_40:1865,
-  printed_20x30_42:1940, printed_20x30_44:2015, printed_20x30_46:2090, printed_20x30_48:2165,
-  printed_20x30_50:2240,
-  // Друкована — 30×20
-  printed_30x20_10:740, printed_30x20_12:815, printed_30x20_14:890, printed_30x20_16:965,
-  printed_30x20_18:1040, printed_30x20_20:1115, printed_30x20_22:1190, printed_30x20_24:1265,
-  printed_30x20_26:1340, printed_30x20_28:1415, printed_30x20_30:1490, printed_30x20_32:1565,
-  printed_30x20_34:1640, printed_30x20_36:1715, printed_30x20_38:1790, printed_30x20_40:1865,
-  printed_30x20_42:1940, printed_30x20_44:2015, printed_30x20_46:2090, printed_30x20_48:2165,
-  printed_30x20_50:2240,
-  // Друкована — 25×25
-  printed_25x25_8:700, printed_25x25_10:770, printed_25x25_12:845, printed_25x25_14:995,
-  printed_25x25_16:1070, printed_25x25_18:1145, printed_25x25_20:1220, printed_25x25_22:1295,
-  printed_25x25_24:1370, printed_25x25_26:1445, printed_25x25_28:1520, printed_25x25_30:1595,
-  printed_25x25_32:1670, printed_25x25_34:1745, printed_25x25_36:1820, printed_25x25_38:1895,
-  printed_25x25_40:1970, printed_25x25_42:2045, printed_25x25_44:2120, printed_25x25_46:2195,
-  printed_25x25_48:2270, printed_25x25_50:2345,
-  // Друкована — 30×30
-  printed_30x30_16:1105, printed_30x30_18:1190, printed_30x30_20:1275, printed_30x30_22:1360,
-  printed_30x30_24:1445, printed_30x30_26:1530, printed_30x30_28:1615, printed_30x30_30:1700,
-  printed_30x30_32:1785, printed_30x30_34:1840, printed_30x30_36:1960, printed_30x30_38:2050,
-  printed_30x30_40:2140, printed_30x30_42:2230, printed_30x30_44:2320, printed_30x30_46:2410,
-  printed_30x30_48:2500, printed_30x30_50:2590,
-};
-
-function getCoverTypeKey(coverType: string): string {
-  const ct = (coverType || '').toLowerCase();
-  if (ct.includes('велюр') || ct.includes('velour')) return 'velour';
-  if (ct.includes('тканин') || ct.includes('fabric')) return 'velour'; // same prices as velour
-  if (ct.includes('шкір') || ct.includes('leather')) return 'velour'; // same prices as velour
-  if (ct.includes('друков') || ct.includes('print')) return 'printed';
-  return 'velour';
-}
-
-function lookupPrice(coverType: string, sizeValue: string, pageCount: number): number {
-  const ctKey = getCoverTypeKey(coverType);
-  // Normalize size: "20x20", "20×20", "20x30" etc → "20x20"
-  const sizeKey = (sizeValue || '20x20').replace(/[×х]/g, 'x').replace(/\s*см/g, '').trim();
-  // Find exact match first
-  const key = `${ctKey}_${sizeKey}_${pageCount}`;
-  if (PHOTOBOOK_PRICES[key] !== undefined) return PHOTOBOOK_PRICES[key];
-  // Find nearest page count (round up to nearest even)
-  const nearestPages = [6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50];
-  const closest = nearestPages.reduce((prev, curr) =>
-    Math.abs(curr - pageCount) < Math.abs(prev - pageCount) ? curr : prev
+// ── Pricing (imported from @/lib/editor/pricing) ─────────────────────────
+  const currentPageCount = Math.max(0, pages.length - 1);
+  const { dynamicPrice, priceDiff } = calculateDynamicPrice(
+    config.selectedCoverType || 'Велюр',
+    config.selectedSize || '20x20',
+    currentPageCount,
+    config.selectedPageCount || '20',
+    config.totalPrice,
   );
-  const fallbackKey = `${ctKey}_${sizeKey}_${closest}`;
-  return PHOTOBOOK_PRICES[fallbackKey] ?? config?.totalPrice ?? 0;
-}
-
-  // Dynamic price calculation using real DB prices
-  const currentPageCount = Math.max(0, pages.length - 1); // exclude cover
-  const sizeVal = (config.selectedSize || '20x20').replace(/[×х]/g, 'x').replace(/\s*см/g, '').trim();
-  const dynamicPrice = lookupPrice(config.selectedCoverType || 'Велюр', sizeVal, currentPageCount);
-  const basePageCount = parseInt(config.selectedPageCount?.match(/\d+/)?.[0] || '20');
-  const basePrice = lookupPrice(config.selectedCoverType || 'Велюр', sizeVal, basePageCount);
-  const priceDiff = dynamicPrice - basePrice;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
@@ -1337,12 +1194,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   {/* Cover color picker */}
                   {config?.selectedCoverType && config.selectedCoverType !== 'Друкована' && (() => {
                     const mat = config.selectedCoverType?.toLowerCase() || '';
-                    const colors = mat.includes('шкір') ? LEATHERETTE_COLORS : mat.includes('тканин') ? FABRIC_COLORS : {
-                      'Молочний':'#F0EAD6','Бежевий':'#D9C8B0','Таупе':'#A89880','Рожевий':'#E8B4B8',
-                      'Бордо':'#7A2838','Сірий перловий':'#9A9898','Лаванда':'#B8A8C8','Синій':'#1A2040',
-                      'Графітовий':'#3A3038','Бірюзовий':'#1A9090','Марсала':'#6E2840','Блакитно-сірий':'#607080',
-                      'Темно-зелений':'#1E3028','Жовтий':'#D4A020',
-                    };
+                    const colors = mat.includes('шкір') ? LEATHERETTE_COLORS : mat.includes('тканин') ? FABRIC_COLORS : VELOUR_COLORS;
                     return (
                       <div style={{ marginBottom:10 }}>
                         <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір обкладинки</div>
@@ -1887,16 +1739,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — editable */}
                 {(() => {
-                  const mat = (config.selectedCoverType||'').toLowerCase();
-                  const n = effectiveCoverColor;
-                  const softBg = mat.includes('тканин')||mat.includes('fabric')
-                    ? ({'Бежевий/пісочний':'#C4AA88','Теракотовий':'#A04838','Фуксія':'#B838A0','Марсала/бордо':'#602838','Коричневий':'#6E4830','Сірий/графітовий':'#586058','Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020'} as Record<string,string>)[n]||'#C4AA88'
-                    : mat.includes('шкір')||mat.includes('leather')
-                    ? ({'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C','Рожевий ніжний':'#E8B4B8','Червоний насичений':'#A01030','Коричневий':'#8E5038','Вишневий':'#7A2020','Графітовий темний':'#3A3038','Темно-синій':'#1A2040','Чорний':'#1A1A1A'} as Record<string,string>)[n]||'#D9C8B0'
-                    : mat.includes('велюр')||mat.includes('velour')
-                    ? ({'Молочний':'#F0EAD6','Бежевий':'#D9C8B0','Таупе':'#A89880','Рожевий':'#E8B4B8','Бордо':'#7A2838','Сірий перловий':'#9A9898','Лаванда':'#B8A8C8','Синій':'#1A2040','Графітовий':'#3A3038','Бірюзовий':'#1A9090','Марсала':'#6E2840','Блакитно-сірий':'#607080','Темно-зелений':'#1E3028','Жовтий':'#D4A020'} as Record<string,string>)[n]||'#D9C8B0'
-                    : '#f1f5f9';
-                  const backBg = isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : softBg;
+                  const backBg = isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor);
                   const backPhoto = isPrinted ? getPhoto(coverState.backCoverPhotoId ?? null) : null;
                   const [backDragOver, setBackDragOver] = [false, (_:any)=>{}]; // simple state
                   return (
@@ -1912,41 +1755,15 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
                   );
                 })()}
-                {/* Front cover with decoration */}
+                {/* Front cover with decoration — uses buildCoverEditorProps for identical props */}
                 <CoverEditor
                   canvasW={pageW}
                   canvasH={cH}
                   sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
-                  config={{
-                    coverMaterial: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
-                    coverColorName: effectiveCoverColor,
-                    decoType: coverState.decoType as any,
-                    decoVariant: coverState.decoVariant,
-                    decoColor: coverState.decoColor,
-                    photoId: coverState.photoId,
-                    decoText: coverState.decoText,
-                    textX: coverState.textX,
-                    textY: coverState.textY,
-                    textFontFamily: coverState.textFontFamily,
-                    textFontSize: coverState.textFontSize,
-                    extraTexts: coverState.extraTexts || [],
-                    printedPhotoSlot: coverState.printedPhotoSlot,
-                    printedTextBlocks: coverState.printedTextBlocks,
-                    printedOverlay: coverState.printedOverlay,
-                    printedBgColor: coverState.printedBgColor,
-                  }}
+                  config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
                   photos={photos}
                   hidePhotoSlot={isHardCoverJournal}
-                  onChange={(cfg) => setCoverState(prev => ({ ...prev,
-                    ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }),
-                    ...(cfg.decoText !== undefined && { decoText: cfg.decoText }),
-                    ...(cfg.textX !== undefined && { textX: cfg.textX }),
-                    ...(cfg.textY !== undefined && { textY: cfg.textY }),
-                    ...(cfg.extraTexts !== undefined && { extraTexts: cfg.extraTexts }),
-                    ...(cfg.printedPhotoSlot !== undefined && { printedPhotoSlot: cfg.printedPhotoSlot }),
-                    ...(cfg.printedTextBlocks !== undefined && { printedTextBlocks: cfg.printedTextBlocks }),
-                    ...(cfg.printedOverlay !== undefined && { printedOverlay: cfg.printedOverlay }),
-                  }))}
+                  onChange={(cfg: any) => setCoverState(prev => handleCoverChange(cfg, prev))}
                 />
               </div>
           ) : (
@@ -1957,7 +1774,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               /* Cover: left=back spine(grey), right=front cover with deco */
               <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — plain */}
-                <div style={{ width: pageW, height: cH, background: (() => { const n=effectiveCoverColor; const mat=config.selectedCoverType?.toLowerCase()||''; const vc={'Молочний':'#F0EAD6','Бежевий':'#D9C8B0','Таупе':'#A89880','Рожевий':'#E8B4B8','Бордо':'#7A2838','Сірий перловий':'#9A9898','Лаванда':'#B8A8C8','Синій':'#1A2040','Графітовий':'#3A3038','Бірюзовий':'#1A9090','Марсала':'#6E2840','Блакитно-сірий':'#607080','Темно-зелений':'#1E3028','Жовтий':'#D4A020'} as Record<string,string>; const lc={'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E','Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C','Рожевий ніжний':'#E8B4B8','Червоний насичений':'#A01030','Коричневий':'#8E5038','Вишневий':'#7A2020','Графітовий темний':'#3A3038','Темно-синій':'#1A2040','Чорний':'#1A1A1A'} as Record<string,string>; const fc={'Бежевий/пісочний':'#C4AA88','Теракотовий':'#A04838','Фуксія':'#B838A0','Марсала/бордо':'#602838','Коричневий':'#6E4830','Сірий/графітовий':'#586058','Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020'} as Record<string,string>; if(mat.includes('тканин')||mat.includes('fabric')) return fc[n]||'#C4AA88'; if(mat.includes('шкір')||mat.includes('leather')) return lc[n]||'#D9C8B0'; if(mat.includes('велюр')||mat.includes('velour')) return vc[n]||'#D9C8B0'; return '#e8ecf4'; })(), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
+                <div style={{ width: pageW, height: cH, background: resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <span style={{ color:'rgba(255,255,255,0.15)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ ОБКЛАДИНКА</span>
                   </div>
@@ -1969,42 +1786,11 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                   canvasW={pageW}
                   canvasH={cH}
                   sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
-                  config={{
-                    coverMaterial: (config.selectedCoverType?.toLowerCase().includes('велюр') ? 'velour' : config.selectedCoverType?.toLowerCase().includes('шкір') ? 'leatherette' : config.selectedCoverType?.toLowerCase().includes('тканин') ? 'fabric' : 'printed') as any,
-                    coverColorName: effectiveCoverColor,
-                    decoType: coverState.decoType as any,
-                    decoVariant: coverState.decoVariant,
-                    photoId: coverState.photoId,
-                    decoText: coverState.decoText,
-                    decoColor: coverState.decoColor,
-                    textX: coverState.textX,
-                    textY: coverState.textY,
-                    textFontFamily: coverState.textFontFamily,
-                    textFontSize: coverState.textFontSize,
-                    printedBgColor: coverState.printedBgColor,
-                    printedPhotoSlot: coverState.printedPhotoSlot,
-                    printedTextBlocks: coverState.printedTextBlocks,
-                    printedOverlay: coverState.printedOverlay,
-                    extraTexts: coverState.extraTexts || [],
-                  }}
+                  config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
                   photos={photos}
                   hidePhotoSlot={isHardCoverJournal}
-                  onChange={(cfg: any) => setCoverState(prev => ({ ...prev,
-                    ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }),
-                    ...(cfg.decoText !== undefined && { decoText: cfg.decoText }),
-                    ...(cfg.decoColor !== undefined && { decoColor: cfg.decoColor }),
-                    ...(cfg.textX !== undefined && { textX: cfg.textX }),
-                    ...(cfg.textY !== undefined && { textY: cfg.textY }),
-                    ...(cfg.textFontFamily !== undefined && { textFontFamily: cfg.textFontFamily }),
-                    ...(cfg.textFontSize !== undefined && { textFontSize: cfg.textFontSize }),
-                    ...(cfg.printedBgColor !== undefined && { printedBgColor: cfg.printedBgColor }),
-                    ...(cfg.printedPhotoSlot !== undefined && { printedPhotoSlot: cfg.printedPhotoSlot }),
-                    ...(cfg.printedTextBlocks !== undefined && { printedTextBlocks: cfg.printedTextBlocks }),
-                    ...(cfg.printedOverlay !== undefined && { printedOverlay: cfg.printedOverlay }),
-                    ...(cfg.extraTexts !== undefined && { extraTexts: cfg.extraTexts }),
-                  }))}
-                />
-              </div>
+                  onChange={(cfg: any) => setCoverState(prev => handleCoverChange(cfg, prev))}
+                />              </div>
             ) : (
               /* Spread: left page + right page */
               <>

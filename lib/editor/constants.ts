@@ -151,10 +151,11 @@ export const CYRILLIC_DECORATIVE_FONTS = [
 ];
 
 export const FONT_GROUPS = [
-  { group: 'Рукописні', fonts: ['Marck Script','Caveat','Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Alex Brush','Pinyon Script','Italianno','Lobster'] },
-  { group: 'Елегантні', fonts: ['Cormorant Garamond','Playfair Display','EB Garamond','Libre Baskerville','Philosopher','Cinzel','Abril Fatface'] },
-  { group: 'Сучасні', fonts: ['Montserrat','Comfortaa','Rubik','Nunito','Ubuntu','Poppins','Raleway','Josefin Sans'] },
-  { group: 'Класичні', fonts: ['Inter','Lato','Open Sans','Oswald','Bebas Neue','Righteous','Russo One','Poiret One'] },
+  { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans'] },
+  { group: 'Класичні', fonts: ['Playfair Display','Georgia','Cormorant Garamond','EB Garamond','Libre Baskerville'] },
+  { group: 'Каліграфічні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Alex Brush','Pinyon Script','Italianno'] },
+  { group: 'Кириличні', fonts: ['Marck Script','Philosopher','Russo One','Comfortaa','Lobster','Caveat','Poiret One','Open Sans'] },
+  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous'] },
 ];
 
 // Google Fonts URL (single source — loaded once)
