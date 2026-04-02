@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { Suspense, useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, Instagram, Mail, Phone, User } from 'lucide-react'
+import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, Mail, Phone, User } from 'lucide-react'
 
 interface UploadedFile {
   id: string
@@ -22,7 +22,7 @@ interface OrderFormData {
   address: string
   name: string
   phone: string
-  contactChannel: 'telegram' | 'instagram' | 'email' | ''
+  contactChannel: 'telegram' | 'email' | ''
   contactHandle: string
 }
 
@@ -170,7 +170,6 @@ function DeliveryStep({ delivery, city, address, onChange }: { delivery: string,
 function ContactsStep({ name, phone, channel, handle, onChange }: { name: string, phone: string, channel: string, handle: string, onChange: (f: string, v: string) => void }) {
   const channels = [
     { val: 'telegram', label: 'Telegram', desc: "Рекомендовано — найшвидший зв'язок", icon: MessageCircle, badge: true },
-    { val: 'instagram', label: 'Instagram', desc: 'Direct повідомлення @touch.memories', icon: Instagram, badge: false },
     { val: 'email', label: 'Email', desc: 'touch.memories3@gmail.com', icon: Mail, badge: false },
   ]
   return (
@@ -219,13 +218,13 @@ function ContactsStep({ name, phone, channel, handle, onChange }: { name: string
       {channel && (
         <div className="mt-5">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {channel === 'telegram' ? 'Ваш Telegram @нікнейм або номер' : channel === 'instagram' ? 'Ваш Instagram @нікнейм' : 'Ваша Email адреса'}
+            {channel === 'telegram' ? 'Ваш Telegram @нікнейм або номер' : 'Ваша Email адреса'}
           </label>
           <input
             value={handle}
             onChange={e => onChange('contactHandle', e.target.value)}
             type={channel === 'email' ? 'email' : 'text'}
-            placeholder={channel === 'telegram' ? '@username або +380...' : channel === 'instagram' ? '@username' : 'your@email.com'}
+            placeholder={channel === 'telegram' ? '@username або +380...' : 'your@email.com'}
             className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]"
           />
         </div>
@@ -235,7 +234,7 @@ function ContactsStep({ name, phone, channel, handle, onChange }: { name: string
 }
 
 function ConfirmationStep({ data }: { data: OrderFormData }) {
-  const ch = { telegram: 'Telegram', instagram: 'Instagram', email: 'Email' }[data.contactChannel as 'telegram' | 'instagram' | 'email'] || ''
+  const ch = { telegram: 'Telegram', email: 'Email' }[data.contactChannel as 'telegram' | 'email'] || ''
   return (
     <div>
       <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 5: Підтвердження</h2>

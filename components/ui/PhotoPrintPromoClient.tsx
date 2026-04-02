@@ -43,7 +43,7 @@ export function PhotoPrintPromoClient({
         {
             number: '2',
             title: 'Завантажте фото',
-            description: 'Надішли нам фотографії у зручний спосіб — через Telegram, Instagram або на email.',
+            description: 'Надішли нам фотографії у зручний спосіб — через Telegram або на email.',
             icon: <Upload size={24} className="text-primary" />
         },
         {
