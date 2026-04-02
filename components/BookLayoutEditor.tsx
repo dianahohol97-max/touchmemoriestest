@@ -1692,15 +1692,15 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     ))}
                   </select>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Розмір: {tFontSize}px</div>
-                  <input type="range" min={8} max={120} value={tFontSize} onChange={e => { const v = +e.target.value; setTFontSize(v); if (selectedTextId) updateTxt(selectedTextId, { fontSize: v }); }} style={{ width: '100%' }} />
+                  <input type="range" min={8} max={120} value={tFontSize} onChange={e => { const v = +e.target.value; setTFontSize(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontSize: v }, selectedTextPageIdx); }} style={{ width: '100%' }} />
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Колір</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {COLORS.map(c => <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxtForPage(selectedTextId, { color: c }, selectedTextPageIdx); }} style={{ width: 22, height: 22, borderRadius: '50%', background: c, border: tColor === c ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor: 'pointer' }} />)}
                     <input type="color" value={tColor} onChange={e => { setTColor(e.target.value); if (selectedTextId) updateTxtForPage(selectedTextId, { color: e.target.value }, selectedTextPageIdx); }} style={{ width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0 }} />
                   </div>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={() => { const v = !tBold; setTBold(v); if (selectedTextId) updateTxt(selectedTextId, { bold: v }); }} style={{ flex: 1, padding: '6px', border: tBold ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: tBold ? '#f0f3ff' : '#fff', cursor: 'pointer', fontWeight: 900, fontSize: 14, color: tBold ? '#1e2d7d' : '#374151' }}>B</button>
-                    <button onClick={() => { const v = !tItalic; setTItalic(v); if (selectedTextId) updateTxt(selectedTextId, { italic: v }); }} style={{ flex: 1, padding: '6px', border: tItalic ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: tItalic ? '#f0f3ff' : '#fff', cursor: 'pointer', fontStyle: 'italic', fontSize: 14, color: tItalic ? '#1e2d7d' : '#374151' }}>I</button>
+                    <button onClick={() => { const v = !tBold; setTBold(v); if (selectedTextId) updateTxtForPage(selectedTextId, { bold: v }, selectedTextPageIdx); }} style={{ flex: 1, padding: '6px', border: tBold ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: tBold ? '#f0f3ff' : '#fff', cursor: 'pointer', fontWeight: 900, fontSize: 14, color: tBold ? '#1e2d7d' : '#374151' }}>B</button>
+                    <button onClick={() => { const v = !tItalic; setTItalic(v); if (selectedTextId) updateTxtForPage(selectedTextId, { italic: v }, selectedTextPageIdx); }} style={{ flex: 1, padding: '6px', border: tItalic ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: tItalic ? '#f0f3ff' : '#fff', cursor: 'pointer', fontStyle: 'italic', fontSize: 14, color: tItalic ? '#1e2d7d' : '#374151' }}>I</button>
                   </div>
                 </div>
                 {selectedTextId && (
@@ -2011,7 +2011,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                         const isEd = editingTextId === tb.id;
                         return (
                           <div key={tb.id}
-                            onPointerDown={e=>{e.stopPropagation();setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
+                            onPointerDown={e=>{e.stopPropagation();setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);}}
                             style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex:20,cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30,touchAction:'none'}}>
@@ -2747,9 +2747,9 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     </div>
 
                     <div style={{ display:'flex', gap:6 }}>
-                      <button onClick={() => { const v=!tBold; setTBold(v); if (selectedTextId) updateTxt(selectedTextId, { bold: v }); }}
+                      <button onClick={() => { const v=!tBold; setTBold(v); if (selectedTextId) updateTxtForPage(selectedTextId, { bold: v }, selectedTextPageIdx); }}
                         style={{ flex:1, padding:'8px', border:tBold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:tBold?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:900, fontSize:16, color:tBold?'#1e2d7d':'#374151' }}>B</button>
-                      <button onClick={() => { const v=!tItalic; setTItalic(v); if (selectedTextId) updateTxt(selectedTextId, { italic: v }); }}
+                      <button onClick={() => { const v=!tItalic; setTItalic(v); if (selectedTextId) updateTxtForPage(selectedTextId, { italic: v }, selectedTextPageIdx); }}
                         style={{ flex:1, padding:'8px', border:tItalic?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:tItalic?'#f0f3ff':'#fff', cursor:'pointer', fontStyle:'italic', fontSize:16, color:tItalic?'#1e2d7d':'#374151' }}>I</button>
                     </div>
                   </div>
