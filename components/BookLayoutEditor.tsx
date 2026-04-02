@@ -1833,7 +1833,7 @@ export default function BookLayoutEditor() {
                     hidePhotoSlot={isHardCoverJournal}
                     onChange={(cfg: any) => setCoverState(prev => handleCoverChange(cfg, prev))}
                   />
-                  {/* Shapes layer on top of cover — for printed/magazine/travelbook covers */}
+                  {/* Shapes, stickers, frames on top of cover — for printed/magazine/travelbook covers */}
                   {isPrinted && (
                     <div style={{ position:'absolute', inset:0, zIndex:15, pointerEvents:'none' }}>
                       <div style={{ position:'relative', width:'100%', height:'100%', pointerEvents:'auto' }}>
@@ -1844,6 +1844,22 @@ export default function BookLayoutEditor() {
                           selectedId={selectedShapeId}
                           onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
                         />
+                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH}/>
+                        {(pageStickers[0]||[]).map(stk => (
+                          <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none' }}
+                            onPointerDown={e => {
+                              e.stopPropagation();
+                              haptic.light();
+                              const origX=stk.x, origY=stk.y;
+                              startPointerDrag(e, (dx,dy) =>
+                                setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
+                              );
+                            }}>
+                            {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
+                            <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).filter(s=>s.id!==stk.id)}));}}
+                              style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -1885,6 +1901,22 @@ export default function BookLayoutEditor() {
                           selectedId={selectedShapeId}
                           onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
                         />
+                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH}/>
+                        {(pageStickers[0]||[]).map(stk => (
+                          <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none' }}
+                            onPointerDown={e => {
+                              e.stopPropagation();
+                              haptic.light();
+                              const origX=stk.x, origY=stk.y;
+                              startPointerDrag(e, (dx,dy) =>
+                                setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
+                              );
+                            }}>
+                            {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
+                            <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).filter(s=>s.id!==stk.id)}));}}
+                              style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
