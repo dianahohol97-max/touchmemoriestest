@@ -2567,6 +2567,71 @@ export default function BookLayoutEditor() {
         </div>
         }{/* end right panel */}
 
+        {/* PHOTO TIMELINE — desktop only, horizontal strip at bottom (SmartAlbums style) */}
+        {!isMobile && photos.length > 0 && (
+          <div style={{
+            position:'absolute', bottom:0, left:48, right:0,
+            height: 110, background:'#fff', borderTop:'1px solid #e2e8f0',
+            display:'flex', flexDirection:'column', zIndex:50,
+          }}>
+            {/* Header */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 12px', borderBottom:'1px solid #f1f5f9', flexShrink:0 }}>
+              <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>
+                Фото ({photos.length}) · використано {photos.filter(p => {
+                  const inSlots = pages.some(pg => pg.slots.some(s => s.photoId === p.id));
+                  const inFree = Object.values(freeSlots).some(arr => arr.some(fs => fs.photoId === p.id));
+                  return inSlots || inFree;
+                }).length}
+              </span>
+              <label style={{ display:'flex', alignItems:'center', gap:4, cursor:'pointer' }}>
+                <input id="photo-upload-timeline" type="file" multiple accept="image/*" style={{ display:'none' }} onChange={handleUpload}/>
+                <button onClick={()=>(document.getElementById('photo-upload-timeline') as HTMLInputElement)?.click()}
+                  style={{ fontSize:11, fontWeight:700, color:'#1e2d7d', background:'#f0f3ff', border:'1px solid #c7d2fe', borderRadius:6, padding:'3px 10px', cursor:'pointer' }}>
+                  + Додати фото
+                </button>
+              </label>
+            </div>
+            {/* Scrollable photo strip */}
+            <div style={{ flex:1, overflowX:'auto', overflowY:'hidden', display:'flex', alignItems:'center', gap:6, padding:'6px 10px' }}>
+              {photos.map((ph, i) => {
+                const used = pages.some(pg => pg.slots.some(s => s.photoId === ph.id)) ||
+                  Object.values(freeSlots).some(arr => arr.some(fs => fs.photoId === ph.id));
+                const ratio = ph.width / ph.height;
+                const thumbH = 68;
+                const thumbW = Math.round(thumbH * ratio);
+                const shortName = ph.name.replace(/\.[^.]+$/, '');
+                const displayName = shortName.length > 10 ? shortName.slice(0, 8) + '..' : shortName;
+                return (
+                  <div key={ph.id}
+                    draggable={!used}
+                    onDragStart={e => {
+                      if (used) return;
+                      setDragPhotoId(ph.id);
+                      e.dataTransfer.setData('photoId', ph.id);
+                      e.dataTransfer.setData('text/plain', ph.id);
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
+                    onClick={() => { if (!used) setTapSelectedPhotoId(tapSelectedPhotoId === ph.id ? null : ph.id); }}
+                    style={{
+                      flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+                      cursor: used ? 'default' : 'grab', opacity: used ? 0.4 : 1,
+                      border: tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : '2px solid transparent',
+                      borderRadius:6, padding:2, transition:'border-color 0.15s',
+                    }}>
+                    <div style={{ position:'relative', width:thumbW, height:thumbH, borderRadius:4, overflow:'hidden', flexShrink:0 }}>
+                      <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                      {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✓</div>}
+                      <span style={{ position:'absolute', top:2, left:2, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 3px', borderRadius:2 }}>{i+1}</span>
+                    </div>
+                    <span style={{ fontSize:8, color:'#64748b', fontWeight:500, maxWidth:thumbW+10, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center' }}>{displayName}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Tooltips onboarding */}
