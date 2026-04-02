@@ -1291,7 +1291,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-3xl font-bold text-[#1e2d7d]">{totalPrice} ₴</p>
+                            {totalPrice === 0 ? (
+                                <p className="text-base font-semibold text-amber-600">⚠️ Оберіть кількість сторінок</p>
+                            ) : (
+                                <p className="text-3xl font-bold text-[#1e2d7d]">{totalPrice} ₴</p>
+                            )}
                         </div>
                     </div>
                 </div>
