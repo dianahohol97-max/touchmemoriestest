@@ -1,4 +1,4 @@
-// auto-deploy: params-fix-1775069667
+// auto-deploy: deploy-1775103223
 const nextConfig = {
   // Disable Partial Pre-Rendering globally — admin panel must never be statically cached
   experimental: {
