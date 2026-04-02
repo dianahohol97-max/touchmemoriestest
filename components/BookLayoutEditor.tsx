@@ -2232,7 +2232,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 <div style={{ fontSize:24, marginBottom:12 }}>👋</div>
                 <h3 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:8 }}>Ласкаво просимо до редактора!</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:20 }}>
-                  Тут ви можете створити свою унікальну фотокнигу. Давайте розберемось як це працює.
+                  Тут ви можете створити свій унікальний {config?.productName ? `«${config.productName}»` : 'виріб'}. Давайте розберемось як це працює.
                 </p>
                 <button onClick={() => setTooltipStep(1)} style={{ width:'100%', padding:'12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
                   Почати →
