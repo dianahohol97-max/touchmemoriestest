@@ -1618,8 +1618,9 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     <button key={sticker.name}
                       onClick={() => {
                         const spi = getActivePageIdx();
-                        const newS = { id:'stk-'+Date.now(), url:sticker.url, emoji:(sticker as any).emoji||'', x:30, y:30, w:'60px', h:'60px' };
+                        const newS = { id:'stk-'+Date.now(), url:sticker.url, emoji:(sticker as any).emoji||'', x:42, y:42, w:'12%', h:'12%' };
                         setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
+                        toast.success('Стікер додано на активну сторінку', { duration: 1500 });
                       }}
                       style={{ padding:6, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}
                       title={sticker.name}>
@@ -2118,7 +2119,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                               setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
                             );
                           }}>
-                          {stk.emoji ? <span style={{ fontSize:Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
+                          {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
                           <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(s=>s.id!==stk.id)}));}}
                             style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
                         </div>
@@ -2523,7 +2524,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {leftTab === 'stickers' && (
               <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:8 }}>
                 {['❤️','⭐','☀️','🌸','👑','🦋','🌙','☁️','💎','🌈','🔥','⚡','✨','🎀','🎈','❄️'].map((em,i) => (
-                  <button key={i} onClick={()=>{ const spi=getActivePageIdx(); setPageStickers(prev=>({...prev,[spi]:[...(prev[spi]||[]),{id:'stk-'+Date.now(),url:'',emoji:em,x:30,y:30,w:'60px',h:'60px'}]})); setMobilePanel(false); }}
+                  <button key={i} onClick={()=>{ const spi=getActivePageIdx(); setPageStickers(prev=>({...prev,[spi]:[...(prev[spi]||[]),{id:'stk-'+Date.now(),url:'',emoji:em,x:42,y:42,w:'12%',h:'12%'}]})); toast.success('Стікер додано'); setMobilePanel(false); }}
                     style={{ padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:24, display:'flex', alignItems:'center', justifyContent:'center' }}>
                     {em}
                   </button>
