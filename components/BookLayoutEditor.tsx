@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
@@ -380,17 +380,38 @@ export default function BookLayoutEditor() {
   const txtRef = useRef<{ id: string; sx: number; sy: number; tx: number; ty: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Ctrl+Z undo
+  // Ctrl+Z undo, Arrow keys for layout cycling / spread navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         undo();
       }
+      // Don't capture arrow keys when editing text
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.contentEditable === 'true') return;
+      // ↑↓ cycle layout on active page (SmartAlbums style)
+      if (e.key === 'ArrowUp' && currentIdx !== 0) {
+        e.preventDefault();
+        cycleLayout(-1);
+      }
+      if (e.key === 'ArrowDown' && currentIdx !== 0) {
+        e.preventDefault();
+        cycleLayout(1);
+      }
+      // ←→ navigate between spreads
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setCurrentIdx(i => Math.max(0, i - 1));
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setCurrentIdx(i => Math.min(Math.ceil((pages.length - 1) / 2), i + 1));
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [history]);
+  }, [history, currentIdx, pages]);
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -526,25 +547,24 @@ export default function BookLayoutEditor() {
   // curFreeSlots defined below after getActivePageIdx
 
   // Add spread (2 pages)
-  const shuffleLayout = () => {
+  const cycleLayout = (direction: 1 | -1 = 1) => {
     const targetIdx = getActivePageIdx();
     const page = pages[targetIdx];
     if (!page) return;
-    // Use freeSlots count if page uses freeSlot layout (slots=[])
+    pushHistory();
     const curFreeCount = (freeSlots[targetIdx] || []).length;
     const slotCount = page.slots.length > 0 ? page.slots.length : curFreeCount;
-    // Find compatible layouts by slot count
     const compatible = slotCount > 0
       ? LAYOUTS.filter(l => l.slots === slotCount)
-      : LAYOUTS.filter(l => l.slots > 0); // fallback: all layouts with slots
+      : LAYOUTS.filter(l => l.slots > 0);
     const pool = compatible.length > 0 ? compatible : LAYOUTS;
-    // Find current layout — page.layout may be 'p-text' for freeSlot pages,
-    // so track by last applied layout stored in page or just cycle forward
     const curRealLayout = page.layout === 'p-text' ? null : page.layout;
     const cur = curRealLayout ? pool.findIndex(l => l.id === curRealLayout) : -1;
-    const next = (cur + 1) % pool.length;
+    const next = ((cur + direction) % pool.length + pool.length) % pool.length;
     changeLayout(pool[next].id as LayoutType, targetIdx);
+    return pool[next];
   };
+  const shuffleLayout = () => cycleLayout(1);
 
   const addSpread = () => {
     pushHistory();
@@ -1868,12 +1888,25 @@ export default function BookLayoutEditor() {
             <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} style={{ background: 'none', border: 'none', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', opacity: currentIdx === 0 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronLeft size={20} /></button>
             <span>{currentIdx === 0 ? 'Обкладинка' : `${(currentIdx-1)*2+1}–${(currentIdx-1)*2+2}`}</span>
             <button onClick={() => setCurrentIdx(i => Math.min(Math.ceil((pages.length - 1) / 2), i + 1))} disabled={currentIdx === Math.ceil((pages.length - 1) / 2)} style={{ background: 'none', border: 'none', cursor: currentIdx === Math.ceil((pages.length - 1) / 2) ? 'not-allowed' : 'pointer', opacity: currentIdx === Math.ceil((pages.length - 1) / 2) ? 0.3 : 1, color: '#1e2d7d' }}><ChevronRight size={20} /></button>
-            {currentIdx !== 0 && (
-              <button onClick={shuffleLayout} title="Змінити розкладку"
-                style={{ display:'flex', alignItems:'center', gap:5, marginLeft:8, padding:'5px 12px', border:'1px solid #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', color:'#1e2d7d', fontWeight:700, fontSize:12 }}>
-                <Shuffle size={13}/> Інший шаблон
-              </button>
-            )}
+            {currentIdx !== 0 && (() => {
+              const activeIdx = getActivePageIdx();
+              const activePage = pages[activeIdx];
+              const layoutObj = LAYOUTS.find(l => l.id === activePage?.layout);
+              const layoutName = layoutObj?.label || activePage?.layout || '—';
+              return (
+                <div style={{ display:'flex', alignItems:'center', gap:0, marginLeft:8, border:'1px solid #c7d2fe', borderRadius:8, overflow:'hidden', background:'#f0f3ff' }}>
+                  <button onClick={()=>cycleLayout(-1)} title="Попередній шаблон (↑)"
+                    style={{ padding:'5px 6px', border:'none', borderRight:'1px solid #c7d2fe', background:'transparent', cursor:'pointer', color:'#1e2d7d', display:'flex', alignItems:'center' }}>
+                    <ChevronUp size={14}/>
+                  </button>
+                  <span style={{ padding:'4px 10px', fontSize:11, fontWeight:700, color:'#1e2d7d', minWidth:80, textAlign:'center', whiteSpace:'nowrap' }}>{layoutName}</span>
+                  <button onClick={()=>cycleLayout(1)} title="Наступний шаблон (↓)"
+                    style={{ padding:'5px 6px', border:'none', borderLeft:'1px solid #c7d2fe', background:'transparent', cursor:'pointer', color:'#1e2d7d', display:'flex', alignItems:'center' }}>
+                    <ChevronDown size={14}/>
+                  </button>
+                </div>
+              );
+            })()}
             {/* Add / Remove spread — desktop only, mobile has it in Layouts panel */}
             {!isMobile && (
               <>
