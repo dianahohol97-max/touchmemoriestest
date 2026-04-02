@@ -124,7 +124,11 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
             '60×90 см': [600, 900],
         };
         const [W, H] = dimMap[config.size] || [600, 800];
-        canvas.width=W; canvas.height=H;
+        // Use devicePixelRatio for crisp rendering on retina/HiDPI screens
+        const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 2;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        ctx.scale(dpr, dpr);
 
         const isHeart  = config.style==='heart-dark'||config.style==='heart-light';
         const isForest = config.style==='forest-peak';

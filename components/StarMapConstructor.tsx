@@ -601,15 +601,10 @@ function Step4SizeProduct({ config, setConfig, product }: { config: StarMapConfi
     const sizes = [
         { name: 'A4 (21×29.7 см)', price: 350 },
         { name: 'A3 (29.7×42 см)', price: 550 },
-        { name: '30×40 см', price: 450 },
-        { name: '50×70 см', price: 750 },
-        { name: '60×90 см', price: 950 },
     ];
 
     const productTypes = [
-        { name: 'Постер', priceModifier: 0 },
-        { name: 'В рамці', priceModifier: 300 },
-        { name: 'Метал', priceModifier: 500 }
+        { name: 'Постер', priceModifier: 0 }
     ];
 
     useEffect(() => {
@@ -683,30 +678,7 @@ function Step4SizeProduct({ config, setConfig, product }: { config: StarMapConfi
                 </div>
             </div>
 
-            {/* Product Type Selector */}
-            <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Тип продукту</label>
-                <div className="space-y-2">
-                    {productTypes.map((type) => (
-                        <button
-                            key={type.name}
-                            onClick={() => setConfig({ ...config, productType: type.name })}
-                            className={`w-full p-4 border-2 rounded-xl text-left transition-all ${
-                                config.productType === type.name
-                                    ? 'border-[#1e2d7d] bg-[#f0f3ff]'
-                                    : 'border-gray-200 hover:border-gray-300 bg-white'
-                            }`}
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className={`text-sm font-semibold ${config.productType === type.name ? 'text-[#1e2d7d]' : 'text-gray-900'}`}>{type.name}</div>
-                                <div className={`text-sm font-semibold ${config.productType === type.name ? 'text-[#1e2d7d]' : 'text-gray-500'}`}>
-                                    {type.priceModifier > 0 ? `+${type.priceModifier} ₴` : 'базова ціна'}
-                                </div>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            </div>
+            {/* Product Type Selector — hidden (only Poster available) */}
         </div>
     );
 }
