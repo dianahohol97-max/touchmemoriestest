@@ -146,7 +146,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         const s = (categorySlug || '').toLowerCase();
         const ps = (productSlug || '').toLowerCase();
         if (s.includes('photobook') || s.includes('фотокниг')) return '14 робочих днів';
-        if (s.includes('travelbook') || s.includes('travel')) return '10–14 робочих днів';
+        if (s.includes('travelbook') || s.includes('travel')) return 'до 10 робочих днів';
         // Hard cover journal: 7–10 days (heavier binding process)
         if (ps.includes('tverd') || ps.includes('hard') || s.includes('tverd') || s.includes('hard-cover')) return '7–10 робочих днів';
         if (s.includes('magazine') || s.includes('journal') || s.includes('журнал') || s.includes('hlyantsevi') || s.includes('glyantsevy')) return '4–8 робочих днів';

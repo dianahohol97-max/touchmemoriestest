@@ -337,7 +337,8 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     {
       name: 'Ламінація',
       values: ['Без ламінації', 'З ламінацією сторінок'],
-      required: true
+      required: true,
+      note: 'З ламінацією: +5 ₴ за кожну сторінку'
     },
   ],
   wishbook: [
@@ -613,7 +614,11 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
     if (productType === 'travelbook') {
       const pages = opts['Кількість сторінок'];
       if (pages && typeof pages === 'number') {
-        return TRAVELBOOK_PAGE_PRICES[pages] || null;
+        let total = TRAVELBOOK_PAGE_PRICES[pages] || 0;
+        if (!total) return null;
+        // Lamination: 5 UAH per page
+        if (opts['Ламінація'] === 'З ламінацією сторінок') total += (pages as number) * 5;
+        return total;
       }
     }
 
