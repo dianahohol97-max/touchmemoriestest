@@ -967,32 +967,25 @@ export default function BookLayoutEditor() {
                     👆 Тапніть фотослот щоб розмістити фото
                   </div>
                 )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                   {photos.map((ph, i) => {
                     const used = usedIds.has(ph.id);
-                    const isVertical = ph.height > ph.width;
-                    const isSquare = Math.abs(ph.width - ph.height) < ph.width * 0.1;
-                    const orientLabel = isSquare ? '■' : isVertical ? '▯' : '▬';
-                    const shortName = ph.name.length > 18 ? ph.name.slice(0, 15) + '...' : ph.name;
+                    const ratio = ph.width / ph.height;
+                    const shortName = ph.name.replace(/\.[^.]+$/, '');
+                    const displayName = shortName.length > 12 ? shortName.slice(0, 10) + '..' : shortName;
                     return (
                       <div key={ph.id} draggable={!used}
                         onDragStart={e => { if(used) return; setDragPhotoId(ph.id); e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }}
                         onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
                         onClick={() => { if (!used) setTapSelectedPhotoId(tapSelectedPhotoId === ph.id ? null : ph.id); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 4, borderRadius: 6, cursor: used ? 'default' : 'pointer', opacity: used ? 0.5 : 1, border: tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : '1px solid #e2e8f0', background: tapSelectedPhotoId === ph.id ? '#eff6ff' : '#fff' }}>
-                        <div style={{ position: 'relative', width: 48, height: 48, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+                        style={{ display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', cursor: used ? 'default' : 'pointer', opacity: used ? 0.45 : 1, border: tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : '1px solid #e2e8f0', outline: tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none', background: '#fff' }}>
+                        <div style={{ position: 'relative', width: '100%', aspectRatio: String(ratio), maxHeight: 120, overflow: 'hidden' }}>
                           <img src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-                          {used && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>✓</div>}
+                          {used && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✓</div>}
+                          {tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👆</div>}
+                          <span style={{ position: 'absolute', top: 2, left: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3 }}>{i + 1}</span>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortName}</div>
-                          <div style={{ fontSize: 9, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span>{orientLabel} {ph.width}×{ph.height}</span>
-                            <span style={{ color: '#cbd5e1' }}>•</span>
-                            <span>#{i + 1}</span>
-                          </div>
-                        </div>
-                        {tapSelectedPhotoId === ph.id && <span style={{ fontSize: 14, flexShrink: 0 }}>👆</span>}
+                        <div style={{ padding: '3px 4px', fontSize: 9, color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }} title={ph.name}>{displayName}</div>
                       </div>
                     );
                   })}
