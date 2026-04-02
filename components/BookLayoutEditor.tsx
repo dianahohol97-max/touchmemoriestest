@@ -1981,10 +1981,28 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                     textY: coverState.textY,
                     textFontFamily: coverState.textFontFamily,
                     textFontSize: coverState.textFontSize,
+                    printedBgColor: coverState.printedBgColor,
+                    printedPhotoSlot: coverState.printedPhotoSlot,
+                    printedTextBlocks: coverState.printedTextBlocks,
+                    printedOverlay: coverState.printedOverlay,
+                    extraTexts: coverState.extraTexts || [],
                   }}
                   photos={photos}
                   hidePhotoSlot={isHardCoverJournal}
-                  onChange={(cfg: any) => setCoverState(prev => ({ ...prev, ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }), ...(cfg.decoText !== undefined && { decoText: cfg.decoText }), ...(cfg.decoColor !== undefined && { decoColor: cfg.decoColor }), ...(cfg.textX !== undefined && { textX: cfg.textX }), ...(cfg.textY !== undefined && { textY: cfg.textY }), ...(cfg.textFontFamily !== undefined && { textFontFamily: cfg.textFontFamily }), ...(cfg.textFontSize !== undefined && { textFontSize: cfg.textFontSize }) }))}
+                  onChange={(cfg: any) => setCoverState(prev => ({ ...prev,
+                    ...(cfg.photoId !== undefined && { photoId: cfg.photoId ?? null }),
+                    ...(cfg.decoText !== undefined && { decoText: cfg.decoText }),
+                    ...(cfg.decoColor !== undefined && { decoColor: cfg.decoColor }),
+                    ...(cfg.textX !== undefined && { textX: cfg.textX }),
+                    ...(cfg.textY !== undefined && { textY: cfg.textY }),
+                    ...(cfg.textFontFamily !== undefined && { textFontFamily: cfg.textFontFamily }),
+                    ...(cfg.textFontSize !== undefined && { textFontSize: cfg.textFontSize }),
+                    ...(cfg.printedBgColor !== undefined && { printedBgColor: cfg.printedBgColor }),
+                    ...(cfg.printedPhotoSlot !== undefined && { printedPhotoSlot: cfg.printedPhotoSlot }),
+                    ...(cfg.printedTextBlocks !== undefined && { printedTextBlocks: cfg.printedTextBlocks }),
+                    ...(cfg.printedOverlay !== undefined && { printedOverlay: cfg.printedOverlay }),
+                    ...(cfg.extraTexts !== undefined && { extraTexts: cfg.extraTexts }),
+                  }))}
                 />
               </div>
             ) : (
