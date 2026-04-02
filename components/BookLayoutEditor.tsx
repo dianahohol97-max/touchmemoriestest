@@ -1731,7 +1731,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
                 </div>
                 {config?.selectedLamination && (
                   <div>
-                    <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Ламінація</div>
+                    <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>Ламінація обкладинки</div>
                     <div style={{ padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc', fontSize:13, color:'#374151' }}>
                       {config.selectedLamination}
                     </div>

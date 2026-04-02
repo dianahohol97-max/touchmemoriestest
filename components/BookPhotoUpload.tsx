@@ -253,7 +253,7 @@ export default function BookPhotoUpload() {
                             {config.selectedDecorationType && config.selectedDecorationType !== 'none' && (
                                 <p>• Оздоблення: {config.selectedDecorationType}{config.selectedDecorationVariant ? ` · ${config.selectedDecorationVariant}` : ''}{config.decorationSurcharge ? ` (+${config.decorationSurcharge} ₴)` : ''}</p>
                             )}
-                            {config.selectedLamination && <p>• Ламінування: {config.selectedLamination}</p>}
+                            {config.selectedLamination && <p>• Ламінація обкладинки: {config.selectedLamination}</p>}
                             {recommendedRange && <p>• Рекомендована кількість фото: <b>{recommendedRange}</b></p>}
                             {(() => {
                                 const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
