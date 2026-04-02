@@ -906,7 +906,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             </div>
             <button onClick={()=>setShowPreview(true)}
               style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:7, fontWeight:700, fontSize:12, cursor:'pointer' }}>
-              <Eye size={12}/> Превью
+              <Eye size={12}/> Перегляд
             </button>
           </div>
         </div>
@@ -940,7 +940,7 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
               <div style={{ fontSize:11, color:'#94a3b8' }}>{pages.length-1} стор. ({Math.ceil((pages.length-1)/2)} розворот{Math.ceil((pages.length-1)/2)===1?'':'и'})</div>
               <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d' }}>{dynamicPrice} ₴{priceDiff!==0&&<span style={{ fontSize:11, color:priceDiff>0?'#10b981':'#ef4444', marginLeft:4 }}>{priceDiff>0?'+':''}{priceDiff}₴</span>}</div>
             </div>
-            <button onClick={()=>setShowPreview(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}><Eye size={14}/> Превью</button>
+            <button onClick={()=>setShowPreview(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}><Eye size={14}/> Попередній перегляд</button>
             <button onClick={()=>{ setTooltipStep(0); setShowTooltips(true); }} title="Підказки" style={{ padding:'9px 10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', color:'#64748b', display:'flex', alignItems:'center' }}><HelpCircle size={14}/></button>
             {designerOrderId ? (
               <div style={{ display:'flex', gap:8 }}>
@@ -2292,9 +2292,9 @@ function lookupPrice(coverType: string, sizeValue: string, pageCount: number): n
             {tooltipStep === 4 && (
               <>
                 <div style={{ fontSize:24, marginBottom:12 }}>👁️</div>
-                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Превью та замовлення</h3>
+                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Попередній перегляд та замовлення</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
-                  Натисніть <b>Превью</b> щоб переглянути фотокнигу з перегортанням сторінок.
+                  Натисніть <b>Попередній перегляд</b> щоб переглянути виріб з перегортанням сторінок.
                 </p>
                 <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
                   Хочете більше сторінок? Натисніть <b>+ Розворот</b> в правій панелі. Ціна оновлюється автоматично.
