@@ -481,9 +481,8 @@ export default function PhotoPrintsPage() {
           </div>
         </div>
 
-        {/* STEP 3: Paper Finish (not for polaroid) */}
-        {printType !== 'polaroid' && (
-          <div style={{ marginBottom: '32px' }}>
+        {/* STEP 3: Paper Finish (all types) */}
+        <div style={{ marginBottom: '32px' }}>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>
               Поверхня
             </label>
@@ -510,7 +509,6 @@ export default function PhotoPrintsPage() {
               </label>
             </div>
           </div>
-        )}
 
         {/* STEP 4: White Border (only for standard) */}
         {printType === 'standard' && (

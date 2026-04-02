@@ -79,7 +79,11 @@ function PhotoPreview({
   const MAX_W = typeof window !== 'undefined' && window.innerWidth < 500
     ? Math.min(window.innerWidth - 48, 320)
     : 320;
-  const size = STANDARD_SIZES[sizeKey];
+  // Normalize sizeKey — strip labels like "5×7.5 (кратно 12)" → "5×7.5"
+  const normSizeKey = sizeKey.replace(/\s*\(.*\)/g, '').trim()
+    .replace(/([0-9])х([0-9])/g, '$1×$2')  // Cyrillic х → ×
+    .replace(/([0-9])x([0-9])/g, '$1×$2'); // Latin x → ×
+  const size = STANDARD_SIZES[normSizeKey] || STANDARD_SIZES[sizeKey];
   
   // Calculate canvas dimensions
   let photoW: number, photoH: number;
@@ -115,8 +119,9 @@ function PhotoPreview({
   };
 
   if (isPolaroid) {
-    // sizeKey for polaroid is like "7.6x10.1" or "8.6x10.7"
-    const pSize = POLAROID_SIZES[sizeKey] || POLAROID_SIZES['7.6x10.1'];
+    // Normalize sizeKey — extract dimensions from any format like "7.6 × 10.1 см (кратно 8)" → "7.6x10.1"
+    const normPolaroidKey = sizeKey.replace(/[^\d.x×]/g, '').replace('×', 'x').replace(/x+/, 'x');
+    const pSize = POLAROID_SIZES[normPolaroidKey] || POLAROID_SIZES[sizeKey] || POLAROID_SIZES['7.6x10.1'];
     polaroidSideMm = pSize.borderSide;
     const polaroidTopMm = pSize.borderTop;
     polaroidBottomMm = pSize.borderBottom;
