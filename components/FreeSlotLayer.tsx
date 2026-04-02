@@ -17,6 +17,7 @@ export interface FreeSlot {
   cropX: number;
   cropY: number;
   zoom: number;
+  filter?: string; // CSS filter string e.g. 'grayscale(1)', 'sepia(0.8)'
 }
 
 interface FreeSlotLayerProps {
@@ -353,6 +354,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                       cursor: inCrop ? 'move' : (sel ? 'move' : 'pointer'),
                       position: 'absolute', top: '50%', left: '50%',
                       transform: 'translate(-50%,-50%)',
+                      filter: slot.filter || 'none',
                     }}
                     draggable={!inCrop && !sel}
                     onDragStart={e => {
@@ -439,6 +441,26 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                     style={{ display:'flex', alignItems:'center', gap:3, padding:'6px 10px', border:'none', borderRadius:5, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:600, color:'#1e2d7d', minHeight:32, touchAction:'manipulation' }}>
                     ⊡ Кадр
                   </button>
+                )}
+                {photo && (
+                  <>
+                    <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
+                    {([
+                      ['', 'Без'],
+                      ['grayscale(1)', 'Ч/Б'],
+                      ['sepia(0.85)', 'Сепія'],
+                      ['brightness(1.15) contrast(1.1)', 'Ярк'],
+                      ['contrast(1.3) saturate(1.2)', 'Конт'],
+                      ['saturate(0.3)', 'Тьм'],
+                      ['brightness(1.05) saturate(1.4) hue-rotate(-10deg)', 'Тепл'],
+                    ] as [string, string][]).map(([f, label]) => (
+                      <button key={label} {...tb(() => update(slot.id, { filter: f || undefined }))}
+                        title={label}
+                        style={{ padding:'4px 6px', border:(slot.filter||'')=== f ?'1.5px solid #8b5cf6':'1px solid #e2e8f0', borderRadius:4, background:(slot.filter||'')===f?'#f5f3ff':'transparent', cursor:'pointer', fontSize:9, fontWeight:700, color:(slot.filter||'')===f?'#7c3aed':'#64748b', minHeight:28, touchAction:'manipulation', lineHeight:1 }}>
+                        {label}
+                      </button>
+                    ))}
+                  </>
                 )}
                 <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
                 {(['rect','rounded','circle'] as SlotShape[]).map(s => (

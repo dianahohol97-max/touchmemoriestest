@@ -113,7 +113,7 @@ export function BookPreviewModal({ pages, photos, propW, propH, onClose, freeSlo
           const br = fs.shape==='circle'?'50%':fs.shape==='rounded'?'12px':fs.shape==='square'?'4px':'0';
           return (
             <div key={fs.id} style={{ position:'absolute', left:fs.x, top:fs.y, width:fs.w, height:fs.h, borderRadius:br, overflow:'hidden', background:ph?'transparent':'rgba(99,102,241,0.08)', border:ph?'none':'1px dashed #818cf8' }}>
-              {ph && <img src={ph.preview} style={{ width:`${(fs.zoom||1)*100}%`, height:`${(fs.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${fs.cropX}% ${fs.cropY}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)' }} draggable={false}/>}
+              {ph && <img src={ph.preview} style={{ width:`${(fs.zoom||1)*100}%`, height:`${(fs.zoom||1)*100}%`, objectFit:'cover', objectPosition:`${fs.cropX}% ${fs.cropY}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', filter:(fs as any).filter||'none' }} draggable={false}/>}
             </div>
           );
         })}
