@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
+import { autoBuild } from '@/lib/editor/auto-build';
+import { AutoBuildModal } from './editor/AutoBuildModal';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
@@ -336,6 +338,7 @@ export default function BookLayoutEditor() {
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showAutoBuild, setShowAutoBuild] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle'|'saving'|'saved'>('idle');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Калька state: text, uploaded illustration
@@ -675,6 +678,76 @@ export default function BookLayoutEditor() {
     toast.success('Фото розставлено');
   };
 
+  const runAutoBuild = (opts: { density: 'sparse'|'balanced'|'dense'; variety: 'min'|'medium'|'max'; coverPhoto: boolean }) => {
+    if (photos.length === 0) return;
+    pushHistory();
+    const result = autoBuild({
+      photos,
+      layouts: LAYOUTS,
+      currentPageCount: pages.length,
+      minPages: minPagesLen,
+      density: opts.density,
+      variety: opts.variety,
+      coverPhotoEnabled: opts.coverPhoto,
+      hasKalka: hasKalka,
+      hasEndpaper: hasEndpaper,
+    });
+
+    // Apply cover photo
+    if (result.coverPhotoId && isPrinted) {
+      setCoverState((prev: any) => ({ ...prev, photoId: result.coverPhotoId }));
+    }
+
+    // Build new pages array: keep page 0 (cover), rebuild content pages
+    const newPages: Page[] = [pages[0]]; // keep cover
+    
+    // Add kalka/endpaper placeholder pages if needed
+    const startOffset = hasKalka ? 2 : hasEndpaper ? 1 : 0;
+    for (let i = 0; i < startOffset; i++) {
+      newPages.push(pages[i + 1] || { id: i + 1, label: `${i + 1}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+    }
+
+    // Build content pages from autoBuild result
+    const newFreeSlots: Record<number, FreeSlot[]> = {};
+    for (let i = 0; i < result.pages.length; i++) {
+      const rp = result.pages[i];
+      const pageIdx = newPages.length;
+      const layout = rp.layout as LayoutType;
+      const layoutDef = LAYOUTS.find(l => l.id === layout);
+      const slotCount = layoutDef?.slots || 1;
+      
+      // Create page with slots
+      const slots = Array.from({ length: slotCount }, (_, si) => ({
+        photoId: rp.photoIds[si] || null,
+        cropX: 50, cropY: 50, zoom: 1,
+      }));
+      
+      newPages.push({
+        id: pageIdx,
+        label: `${pageIdx}`,
+        layout,
+        slots,
+        textBlocks: [],
+      });
+    }
+
+    // Add kalka end pages if needed  
+    if (hasKalka) {
+      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+    }
+
+    // Ensure even number of content pages (spreads need pairs)
+    while ((newPages.length - 1) % 2 !== 0) {
+      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+    }
+
+    setPages(newPages);
+    setFreeSlots(newFreeSlots);
+    setCurrentIdx(1); // go to first content spread
+    toast.success(`Книгу зібрано! ${result.pages.length} сторінок, ${photos.length} фото`, { duration: 3000 });
+  };
+
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -952,7 +1025,7 @@ export default function BookLayoutEditor() {
             </div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-            <button onClick={autoFill} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, fontWeight:600, color:'#1e2d7d' }}><Wand2 size={14}/> Авто</button>
+            <button onClick={()=>setShowAutoBuild(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', border:'1px solid #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:13, fontWeight:600, color:'#1e2d7d' }}><Wand2 size={14}/> Магічна збірка</button>
             <button onClick={undo} disabled={history.length===0} title="Скасувати (Ctrl+Z)" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', fontSize:13, fontWeight:600, color:history.length===0?'#cbd5e1':'#1e2d7d', opacity:history.length===0?0.5:1 }}><RotateCcw size={14}/> Undo</button>
             <button onClick={()=>setZoom(z=>Math.max(30,z-10))} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer' }}><ZoomOut size={14}/></button>
             <span style={{ fontSize:12, fontWeight:700, color:'#475569', minWidth:36, textAlign:'center' }}>{zoom}%</span>
@@ -3420,6 +3493,14 @@ export default function BookLayoutEditor() {
         </div>
         </>
       )}
+
+      {/* Auto Build Modal */}
+      <AutoBuildModal
+        open={showAutoBuild}
+        onClose={() => setShowAutoBuild(false)}
+        photoCount={photos.length}
+        onBuild={runAutoBuild}
+      />
 
       {/* Preview Modal */}
       {showPreview && (
