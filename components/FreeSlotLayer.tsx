@@ -196,12 +196,19 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
           <div key={slot.id}
             onPointerDown={e => {
               if (inCrop) return;
+              // Don't start drag if tap-to-place is active — let onClick handle it
+              if (tapPhotoId && !slot.photoId) return;
               setSelectedId(slot.id);
               startDrag(e, slot.id, 'move');
             }}
             onClick={e => {
-              e.stopPropagation(); // prevent canvas from deselecting this slot
-              if (tapPhotoId) { update(slot.id, { photoId: tapPhotoId }); setSelectedId(slot.id); }
+              e.stopPropagation();
+              if (tapPhotoId) {
+                update(slot.id, { photoId: tapPhotoId });
+                setSelectedId(slot.id);
+              } else if (!slot.photoId) {
+                setSelectedId(slot.id);
+              }
             }}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) { update(slot.id, { photoId: id }); setSelectedId(slot.id); } }}
