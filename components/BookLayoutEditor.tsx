@@ -1654,10 +1654,44 @@ export default function BookLayoutEditor() {
 
             {leftTab === 'text' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={() => setTextTool(t => !t)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: textTool ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: textTool ? '#f0f3ff' : '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: textTool ? '#1e2d7d' : '#374151' }}>
-                  <Type size={15} /> {textTool ? '↖ Клікніть на сторінку' : 'Додати текст'}
-                </button>
+                {/* On cover page: add text directly (click-to-place doesn't work on CoverEditor) */}
+                {currentIdx === 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {isPrinted ? (
+                      <button onClick={() => {
+                        pushHistory();
+                        setCoverState(p => ({...p, printedTextBlocks: [...(p.printedTextBlocks || []), {
+                          id: 'ptxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
+                          fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
+                        }]}));
+                        toast.success('Текст додано на обкладинку');
+                      }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#374151' }}>
+                        <Type size={15} /> Додати текст на обкладинку
+                      </button>
+                    ) : (
+                      <button onClick={() => {
+                        pushHistory();
+                        setCoverState(prev => ({...prev, extraTexts: [...(prev.extraTexts || []), {
+                          id: 'et-' + Date.now(), text: 'Ваш напис', x: 50, y: 75,
+                          fontFamily: tFontFamily, fontSize: tFontSize, color: '#ffffff',
+                        }]}));
+                        toast.success('Текст додано на обкладинку');
+                      }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#374151' }}>
+                        <Type size={15} /> Додати напис на обкладинку
+                      </button>
+                    )}
+                    <div style={{ padding: '8px 10px', background: '#f0f3ff', borderRadius: 8, fontSize: 11, color: '#64748b' }}>
+                      💡 Перейдіть на внутрішні сторінки для вільного розміщення тексту кліком
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setTextTool(t => !t)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: textTool ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: textTool ? '#f0f3ff' : '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: textTool ? '#1e2d7d' : '#374151' }}>
+                    <Type size={15} /> {textTool ? '↖ Клікніть на сторінку' : 'Додати текст'}
+                  </button>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Шрифт</div>
                   <select value={tFontFamily}
@@ -2632,7 +2666,39 @@ export default function BookLayoutEditor() {
               const textBlocks = currentIdx === 0 ? [] : (curPage?.textBlocks || []);
               return (
                 <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                  {/* Add text button */}
+                  {/* Add text button — cover vs inner pages */}
+                  {currentIdx === 0 ? (
+                    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                      {isPrinted ? (
+                        <button onClick={() => {
+                          pushHistory();
+                          setCoverState(p => ({...p, printedTextBlocks: [...(p.printedTextBlocks || []), {
+                            id: 'ptxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
+                            fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
+                          }]}));
+                          toast.success('Текст додано на обкладинку');
+                        }}
+                          style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
+                          <span style={{fontSize:18}}>T</span> + Додати текст на обкладинку
+                        </button>
+                      ) : (
+                        <button onClick={() => {
+                          pushHistory();
+                          setCoverState(prev => ({...prev, extraTexts: [...(prev.extraTexts || []), {
+                            id: 'et-' + Date.now(), text: 'Ваш напис', x: 50, y: 75,
+                            fontFamily: tFontFamily, fontSize: tFontSize, color: '#ffffff',
+                          }]}));
+                          toast.success('Текст додано на обкладинку');
+                        }}
+                          style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
+                          <span style={{fontSize:18}}>T</span> + Додати напис на обкладинку
+                        </button>
+                      )}
+                      <div style={{ padding:'8px 10px', background:'#f8fafc', borderRadius:8, fontSize:11, color:'#94a3b8' }}>
+                        Перейдіть на внутрішні сторінки для вільного тексту
+                      </div>
+                    </div>
+                  ) : (
                   <button
                     onClick={() => {
                       const id = 'txt-' + Date.now();
@@ -2650,6 +2716,7 @@ export default function BookLayoutEditor() {
                     style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
                     <span style={{fontSize:18}}>T</span> + Додати текст на сторінку
                   </button>
+                  )}
 
                   {/* Style controls */}
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
