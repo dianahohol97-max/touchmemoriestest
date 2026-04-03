@@ -212,19 +212,23 @@ interface FrameControlsProps {
 }
 
 export function FrameControls({ frame, onChange }: FrameControlsProps) {
-  const groups = ['Прості']; // Only simple frames
+  const allGroups = [...new Set(FRAMES.map(f => f.group))];
+  const thumbW = 72, thumbH = 52;
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-      {groups.map(group => (
+      {allGroups.map(group => (
         <div key={group}>
           <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4 }}>{group}</div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4 }}>
             {FRAMES.filter(f=>f.group===group).map(f => {
               const active = frame.frameId===f.id;
+              const previewColor = active ? '#1e2d7d' : '#64748b';
+              const svgContent = f.render(thumbW, thumbH, previewColor, active ? 100 : 60);
               return (
                 <button key={f.id} onClick={() => onChange({ ...frame, frameId: active ? null : f.id })}
-                  style={{ padding:'6px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:7, background: active?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:10, color: active?'#1e2d7d':'#374151' }}>
-                  {f.label}
+                  style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'6px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: active?'#f0f3ff':'#fff', cursor:'pointer' }}>
+                  <svg viewBox={`0 0 ${thumbW} ${thumbH}`} width={thumbW} height={thumbH} dangerouslySetInnerHTML={{ __html: svgContent }}/>
+                  <span style={{ fontSize:9, fontWeight:600, color: active?'#1e2d7d':'#64748b', lineHeight:1.2 }}>{f.label}</span>
                 </button>
               );
             })}
