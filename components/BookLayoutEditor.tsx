@@ -1270,13 +1270,15 @@ export default function BookLayoutEditor() {
                     <button
                       onClick={() => {
                         const ids = [...selectedPhotoIds];
-                        const pageIdx = currentIdx === 0 ? (pages.length > 1 ? 1 : 0) : (currentIdx - 1) * 2 + 1 + activeSide;
+                        const pageIdx = currentIdx === 0 ? (pages.length > 1 ? 1 : 0)
+                          : isSpreadMode ? (currentIdx - 1) * 2 + 1
+                          : (currentIdx - 1) * 2 + 1 + activeSide;
                         autoCollage(ids, pageIdx);
                         setSelectedPhotoIds(new Set());
-                        toast.success(`${ids.length} фото → авторозміщення на сторінку`);
+                        toast.success(`${ids.length} фото → авторозміщення на розворот`);
                       }}
                       style={{ padding:'8px', border:'none', borderRadius:6, background:'#7c3aed', color:'#fff', fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                      ✦ Розмістити на сторінку
+                      ✦ Розмістити на {isSpreadMode ? 'розворот' : 'сторінку'}
                     </button>
                     <button
                       onClick={() => setSelectedPhotoIds(new Set())}
