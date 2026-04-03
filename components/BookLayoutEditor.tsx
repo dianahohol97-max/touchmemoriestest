@@ -1197,6 +1197,30 @@ export default function BookLayoutEditor() {
                     👆 Тапніть фотослот щоб розмістити фото
                   </div>
                 )}
+                {/* Multi-select action bar */}
+                {selectedPhotoIds.size >= 2 && (
+                  <div style={{ background:'#f5f3ff', border:'1.5px solid #c4b5fd', borderRadius:8, padding:'8px 10px', marginBottom:6, display:'flex', flexDirection:'column', gap:6 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#7c3aed' }}>
+                      {selectedPhotoIds.size} фото вибрано
+                    </div>
+                    <button
+                      onClick={() => {
+                        const ids = [...selectedPhotoIds];
+                        const pageIdx = currentIdx === 0 ? (pages.length > 1 ? 1 : 0) : (currentIdx - 1) * 2 + 1 + activeSide;
+                        autoCollage(ids, pageIdx);
+                        setSelectedPhotoIds(new Set());
+                        toast.success(`${ids.length} фото → авторозміщення на сторінку`);
+                      }}
+                      style={{ padding:'8px', border:'none', borderRadius:6, background:'#7c3aed', color:'#fff', fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                      ✦ Розмістити на сторінку
+                    </button>
+                    <button
+                      onClick={() => setSelectedPhotoIds(new Set())}
+                      style={{ padding:'5px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', color:'#64748b', fontWeight:600, fontSize:10, cursor:'pointer' }}>
+                      Скасувати вибір
+                    </button>
+                  </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                   {photos.map((ph, i) => {
                     const used = usedIds.has(ph.id);
@@ -1228,10 +1252,14 @@ export default function BookLayoutEditor() {
                     );
                   })}
                 </div>
+                {selectedPhotoIds.size === 0 && photos.length > 1 && (
+                  <div style={{ fontSize:9, color:'#94a3b8', textAlign:'center', marginTop:4 }}>
+                    Ctrl+клік — вибрати кілька фото для авторозміщення
+                  </div>
+                )}
               </div>
             )}
 
-            {/* LAYOUTS */}
             {leftTab === 'layouts' && (() => {
               // Count unused photos for recommended layouts
               const unusedCount = photos.filter(p => !usedIds.has(p.id)).length;
