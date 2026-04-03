@@ -2513,11 +2513,23 @@ export default function BookLayoutEditor() {
                                   ) : null;
                                 })()}
                                 <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
-                                  onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                  onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img src={photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
                                     style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) translate(${((slot!.cropX??50)-50)*-0.6}%, ${((slot!.cropY??50)-50)*-0.6}%)`, transformOrigin:'center center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
+                                  {/* Zoom hint — always visible when zoomed, full controls in crop mode */}
+                                  {photoEditSlot !== key && (slot!.zoom||1) !== 1 && (
+                                    <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
+                                      <span style={{color:'#fff',fontSize:8,fontWeight:700}}>{Math.round((slot!.zoom||1)*100)}%</span>
+                                    </div>
+                                  )}
+                                  {photoEditSlot !== key && (
+                                    <div style={{position:'absolute',bottom:4,right:4,background:'rgba(0,0,0,0.4)',borderRadius:10,padding:'2px 6px',zIndex:30,opacity:0,transition:'opacity 0.15s'}} className="zoom-hint">
+                                      <span style={{color:'#fff',fontSize:7,fontWeight:600}}>клік — кадрувати</span>
+                                    </div>
+                                  )}
+                                  <style>{`.zoom-hint{opacity:0!important}div:hover>.zoom-hint{opacity:1!important}`}</style>
                                   {photoEditSlot===key && (
                                     <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.75)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
                                       <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
