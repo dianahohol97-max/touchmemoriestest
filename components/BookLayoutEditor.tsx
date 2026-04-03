@@ -2433,7 +2433,7 @@ export default function BookLayoutEditor() {
                                 setTapSelectedPhotoId(null);
                               }
                             }}
-                            style={{ ...s, zIndex: 1,
+                            style={{ ...s,
                               background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : '#f0f2ff'),
                               border: isOver ? '2.5px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none') : '2px dashed #a5b4fc'),
                               transition: 'all 0.2s ease',
@@ -2441,10 +2441,22 @@ export default function BookLayoutEditor() {
                               boxSizing: 'border-box',
                               padding: photo && pageGap > 0 ? pageGap : 0,
                               borderRadius: photo ? 0 : 4,
+                              transform: isOver && photo ? 'scale(1.02)' : 'scale(1)',
+                              zIndex: isOver && photo ? 5 : 1,
                             }}
                           >
                             {photo ? (
                               <>
+                                {/* DRAG-OVER REPLACE PREVIEW — shows incoming photo at 50% opacity */}
+                                {isOver && dragPhotoId && (() => {
+                                  const incoming = photos.find(p => p.id === dragPhotoId);
+                                  return incoming ? (
+                                    <div style={{ position:'absolute', inset:0, zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.35)', pointerEvents:'none', transition:'opacity 0.15s' }}>
+                                      <img src={incoming.preview} style={{ width:'80%', height:'80%', objectFit:'cover', borderRadius:4, opacity:0.85, boxShadow:'0 4px 20px rgba(0,0,0,0.4)' }} draggable={false}/>
+                                      <div style={{ position:'absolute', bottom:6, left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.75)', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:10, whiteSpace:'nowrap' }}>Замінити фото</div>
+                                    </div>
+                                  ) : null;
+                                })()}
                                 <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
@@ -2484,9 +2496,16 @@ export default function BookLayoutEditor() {
                                 })()}
                               </>
                             ) : (
-                              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4,pointerEvents:'none',position:'relative'}}>
+                              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4,pointerEvents:'none',position:'relative',overflow:'hidden'}}>
+                                {/* DRAG-OVER PREVIEW — show incoming photo in empty slot */}
+                                {isOver && dragPhotoId && (() => {
+                                  const incoming = photos.find(p => p.id === dragPhotoId);
+                                  return incoming ? (
+                                    <img src={incoming.preview} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.5, borderRadius:4, transition:'opacity 0.15s' }} draggable={false}/>
+                                  ) : null;
+                                })()}
                                 {/* Slot number badge */}
-                                <div style={{position:'absolute',top:6,left:6,width:18,height:18,borderRadius:'50%',background:'#c7d2fe',color:'#4338ca',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{i+1}</div>
+                                <div style={{position:'absolute',top:6,left:6,width:18,height:18,borderRadius:'50%',background:'#c7d2fe',color:'#4338ca',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>{i+1}</div>
                                 {/* Big icon + text */}
                                 <div style={{width:36,height:36,borderRadius:'50%',background:isOver?'rgba(59,130,246,0.15)':'rgba(99,102,241,0.1)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s'}}>
                                   <ImageIcon size={18} color={isOver?'#3b82f6':'#6366f1'}/>
