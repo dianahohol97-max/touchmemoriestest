@@ -114,7 +114,6 @@ interface CoverEditorProps {
 
 export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange, hidePhotoSlot = false }: CoverEditorProps) {
   const [dragOver, setDragOver] = useState(false);
-  const [coverCropMode, setCoverCropMode] = useState(false);
   // Load Cyrillic calligraphic fonts
   useEffect(() => {
     const link = document.createElement('link');

@@ -2499,7 +2499,6 @@ export default function BookLayoutEditor() {
                           onDrop={e => {
                             e.preventDefault(); e.stopPropagation(); setDropTarget(null);
                             const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
-                            console.log('[SPREAD-SLOT-DROP]', { photoId, sourceType: e.dataTransfer?.getData('sourceType'), slotIdx: i, hasPhoto: !!photo, existingCount: (spreadPage?.slots||[]).filter(s=>s.photoId).length });
                             if (!photoId || !photoId.startsWith('photo-')) return;
                             const sourceType = e.dataTransfer?.getData('sourceType');
                             if (sourceType === 'pageSlot' || sourceType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
@@ -2508,7 +2507,6 @@ export default function BookLayoutEditor() {
                               pushHistory();
                               setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId }) }));
                             } else {
-                              console.log('[SPREAD-SLOT-DROP] autoCollage', { existing, newPhotoId: photoId, total: existing.length + 1 });
                               autoCollage([...existing, photoId], spreadPageIdx);
                             }
                           }}
