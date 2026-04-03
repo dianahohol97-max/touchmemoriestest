@@ -2475,9 +2475,16 @@ export default function BookLayoutEditor() {
                         let multiIds: string[] = [];
                         try { multiIds = JSON.parse(e.dataTransfer.getData('photoIds') || '[]'); } catch {}
                         if (multiIds.length > 1) { autoCollage(multiIds, pageIdx); return; }
-                        // Single photo → FreeSlot
+                        // Single photo — check if already placed
                         const alreadyInSlot = (page?.slots||[]).some(s => s.photoId === photoId) || (freeSlots[pageIdx]||[]).some(fs => fs.photoId === photoId);
                         if (alreadyInSlot) return;
+                        // If page has a layout with filled slots → adapt layout to include this photo
+                        const currentPhotos = (page?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
+                        if (currentPhotos.length > 0 && page?.layout) {
+                          autoCollage([...currentPhotos, photoId], pageIdx);
+                          return;
+                        }
+                        // Empty page → create FreeSlot
                         pushHistory();
                         const rect = e.currentTarget.getBoundingClientRect();
                         const dropX = Math.max(10, Math.min(pageW - 120, e.clientX - rect.left - 55));
