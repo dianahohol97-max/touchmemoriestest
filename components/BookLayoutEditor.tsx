@@ -729,6 +729,7 @@ export default function BookLayoutEditor() {
     }
     if (hasKalka) { newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] }); newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] }); }
     while ((newPages.length - 1) % 2 !== 0) newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+    while (newPages.length - 1 < minPageCount) newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
     setPages(newPages); setFreeSlots({}); setCurrentIdx(1);
     toast.success(`${groups.length} груп → ${Math.ceil((newPages.length - 1) / 2)} розворотів`, { duration: 2500 });
   };
@@ -794,6 +795,10 @@ export default function BookLayoutEditor() {
 
     // Ensure even number of content pages (spreads need pairs)
     while ((newPages.length - 1) % 2 !== 0) {
+      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+    }
+    // Ensure minimum pages for this product
+    while (newPages.length - 1 < minPageCount) {
       newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
     }
 
@@ -3791,6 +3796,7 @@ export default function BookLayoutEditor() {
         onClose={() => setShowAutoBuild(false)}
         photoCount={photos.length}
         existingPages={pages.length}
+        minSpreads={minSpreads}
         onBuild={runAutoBuild}
       />
 

@@ -6,7 +6,8 @@ interface AutoBuildModalProps {
   open: boolean;
   onClose: () => void;
   photoCount: number;
-  existingPages: number; // total pages including cover
+  existingPages: number;
+  minSpreads: number;
   onBuild: (options: {
     density: 'sparse' | 'balanced' | 'dense';
     variety: 'min' | 'medium' | 'max';
@@ -14,22 +15,21 @@ interface AutoBuildModalProps {
   }) => void;
 }
 
-export function AutoBuildModal({ open, onClose, photoCount, existingPages, onBuild }: AutoBuildModalProps) {
+export function AutoBuildModal({ open, onClose, photoCount, existingPages, minSpreads, onBuild }: AutoBuildModalProps) {
   const [density, setDensity] = useState<'sparse' | 'balanced' | 'dense'>('balanced');
   const [variety, setVariety] = useState<'min' | 'medium' | 'max'>('medium');
   const [coverPhoto, setCoverPhoto] = useState(true);
 
   if (!open) return null;
 
-  // Estimate: how many pages needed for these photos at this density
   const photosForPages = coverPhoto ? Math.max(0, photoCount - 1) : photoCount;
   const avgPerPage = density === 'sparse' ? 1.5 : density === 'balanced' ? 2.5 : 4;
-  const estContentPages = Math.max(2, Math.ceil(photosForPages / avgPerPage));
-  // Ensure even (spreads need pairs)
-  const estPages = estContentPages % 2 === 0 ? estContentPages : estContentPages + 1;
-  const estSpreads = estPages / 2;
-  // Compare with existing
-  const existingSpreads = Math.floor((existingPages - 1) / 2); // minus cover
+  const rawPages = Math.max(2, Math.ceil(photosForPages / avgPerPage));
+  const evenPages = rawPages % 2 === 0 ? rawPages : rawPages + 1;
+  // Never go below minimum spreads for this product
+  const estSpreads = Math.max(minSpreads, evenPages / 2);
+  const estPages = estSpreads * 2;
+  const existingSpreads = Math.floor((existingPages - 1) / 2);
 
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
@@ -51,8 +51,9 @@ export function AutoBuildModal({ open, onClose, photoCount, existingPages, onBui
           </div>
           <div style={{ fontSize:11, color:'#94a3b8', marginTop:4 }}>
             {estSpreads !== existingSpreads
-              ? `Зараз ${existingSpreads} розворотів — буде змінено на ${estSpreads}`
+              ? `Зараз ${existingSpreads} розвор. — буде ${estSpreads}`
               : 'Фото будуть розставлені по існуючих розворотах'}
+            {estSpreads === minSpreads && ` (мін. ${minSpreads} розвор.)`}
           </div>
         </div>
 
