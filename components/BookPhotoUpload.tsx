@@ -461,7 +461,7 @@ export default function BookPhotoUpload() {
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                 >
-                    Продовжити до редактора
+                    Продовжити в редакторі
                     <ChevronRight className="w-5 h-5" />
                 </button>
             </div>

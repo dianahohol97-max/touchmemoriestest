@@ -310,7 +310,7 @@ export default function SmartModeProcessor({
                 onClick={handleProceed}
                 className="flex-2 flex-grow-[2] py-4 bg-[#0D0D0D] text-white font-bold rounded-xl hover:bg-[#333] transition-colors text-sm"
               >
-                Продовжити до редактора →
+                Продовжити в редакторі →
               </button>
             </div>
           </div>
