@@ -2489,7 +2489,7 @@ export default function BookLayoutEditor() {
                           style={{ ...s,
                             overflow: 'hidden',
                             background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
-                            border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none') : '1.5px dashed #c7d2fe'),
+                            border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : '1px solid rgba(255,255,255,0.4)') : '1.5px dashed #c7d2fe'),
                             transition: 'all 0.2s ease',
                             cursor: dragPhotoId ? 'copy' : 'default',
                             boxSizing: 'border-box',
