@@ -3790,6 +3790,7 @@ export default function BookLayoutEditor() {
         open={showAutoBuild}
         onClose={() => setShowAutoBuild(false)}
         photoCount={photos.length}
+        existingPages={pages.length}
         onBuild={runAutoBuild}
       />
 
