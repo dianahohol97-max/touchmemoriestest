@@ -252,6 +252,21 @@ function getSlotDefs(layout: LayoutType, W: number, H: number): { i: number; s: 
   if (layout === 'p-text-top')    return [S(0, 0, 0, W, H*0.65)];
   if (layout === 'p-text-bottom') return [S(0, 0, H*0.35, W, H*0.65)];
 
+  // SPREAD layouts (W = full spread width = 2 pages)
+  if (layout === 'sp-full')        return [S(0, 0, 0, W, H)];
+  if (layout === 'sp-1-left')      return [S(0, 0, 0, W*0.5, H)];
+  if (layout === 'sp-1-right')     return [S(0, W*0.5, 0, W*0.5, H)];
+  if (layout === 'sp-1-center')    return [S(0, W*0.15, H*0.1, W*0.7, H*0.8)];
+  if (layout === 'sp-2-v')         return [S(0, 0, 0, w2, H), S(1, w2+g, 0, w2, H)];
+  if (layout === 'sp-2-h')         return [S(0, 0, 0, W, h2), S(1, 0, h2+g, W, h2)];
+  if (layout === 'sp-2-big-left')  return [S(0, 0, 0, W*0.65, H), S(1, W*0.65+g, 0, W*0.35-g, H)];
+  if (layout === 'sp-2-big-right') return [S(0, 0, 0, W*0.35, H), S(1, W*0.35+g, 0, W*0.65-g, H)];
+  if (layout === 'sp-3-row')       return [S(0, 0, 0, w3, H), S(1, w3+g, 0, w3, H), S(2, 2*(w3+g), 0, w3, H)];
+  if (layout === 'sp-3-hero-left') return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h2), S(2, W*0.55+g, h2+g, W*0.45-g, h2)];
+  if (layout === 'sp-3-hero-right')return [S(0, 0, 0, W*0.45, h2), S(1, 0, h2+g, W*0.45, h2), S(2, W*0.45+g, 0, W*0.55-g, H)];
+  if (layout === 'sp-4-grid')      return [S(0, 0, 0, w2, h2), S(1, w2+g, 0, w2, h2), S(2, 0, h2+g, w2, h2), S(3, w2+g, h2+g, w2, h2)];
+  if (layout === 'sp-4-hero')      return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h3), S(2, W*0.55+g, h3+g, W*0.45-g, h3), S(3, W*0.55+g, 2*(h3+g), W*0.45-g, h3)];
+
   return [S(0, 0, 0, W, H)];
 }
 
@@ -745,10 +760,8 @@ export default function BookLayoutEditor() {
     const layout = best.id as LayoutType;
     // Fill layout slots with photos (up to slot count)
     const layoutSlots = Array.from({ length: best.slots }, (_, si) => ({ photoId: photoIds[si] || null, cropX: 50, cropY: 50, zoom: 1 }));
-    console.log('[AUTOCOLLAGE]', { n, layoutId: layout, bestLabel: best.label, bestSlots: best.slots, photoIds, pageIdx, layoutSlots: layoutSlots.map(s=>s.photoId) });
     setPages(prev => {
       const next = prev.map((p, i) => i !== pageIdx ? p : { ...p, layout, slots: layoutSlots, textBlocks: p.textBlocks || [] });
-      console.log('[AUTOCOLLAGE setPages]', { pageIdx, newLayout: next[pageIdx]?.layout, newSlotsCount: next[pageIdx]?.slots?.length });
       return next;
     });
     // Extra photos beyond layout slots → create FreeSlots
@@ -2470,9 +2483,7 @@ export default function BookLayoutEditor() {
                     style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
                   >
                     <BackgroundLayer bg={getCurBg(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
-                    {/* DEBUG: layout info overlay */}
                     <div style={{position:'absolute',top:2,left:2,background:'red',color:'#fff',fontSize:10,fontWeight:900,padding:'2px 6px',borderRadius:4,zIndex:99}}>
-                      L={layout} defs={spreadDefs.length} slots={spreadPage?.slots?.length}
                     </div>
                     {/* Center spine line */}
                     <div style={{ position:'absolute', left:'50%', top:0, width:1, height:'100%', background:'rgba(0,0,0,0.06)', zIndex:5, pointerEvents:'none' }}/>
@@ -2482,8 +2493,7 @@ export default function BookLayoutEditor() {
                       const photo = slot ? getPhoto(slot.photoId) : null;
                       const key = `spread-${spreadPageIdx}-${i}`;
                       const isOver = dropTarget === key;
-                      const debugColors = ['#ff0000','#00ff00','#0000ff','#ff00ff'];
-                      console.log(`[SLOT ${i}] layout='${layout}' defs=${spreadDefs.length}`, {photoId: slot?.photoId, left: s.left, top: s.top, width: s.width, height: s.height, hasPhoto: !!photo});
+                      
                       return (
                         <div key={i}
                           onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
@@ -2499,7 +2509,7 @@ export default function BookLayoutEditor() {
                           }}
                           style={{ ...s,
                             overflow: 'hidden',
-                            outline: `3px solid ${debugColors[i % 4]}`,
+                            
                             background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
                             border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : '1px solid rgba(255,255,255,0.4)') : '1.5px dashed #c7d2fe'),
                             transition: 'all 0.2s ease',
