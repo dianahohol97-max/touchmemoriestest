@@ -3002,6 +3002,11 @@ export default function BookLayoutEditor() {
                 const displayName = shortName.length > 10 ? shortName.slice(0, 8) + '..' : shortName;
                 const isSel = selectedPhotoIds.has(ph.id);
                 const hasCutAfter = timelineCuts.has(i);
+                // Compute group number (which spread this photo belongs to)
+                let groupNum = 1;
+                if (timelineCuts.size > 0) {
+                  for (let ci = 0; ci < i; ci++) { if (timelineCuts.has(ci)) groupNum++; }
+                }
                 return (
                   <React.Fragment key={ph.id}>
                   <div
@@ -3041,28 +3046,40 @@ export default function BookLayoutEditor() {
                       {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✓</div>}
                       {isSel && <div style={{ position:'absolute', top:2, right:2, width:18, height:18, borderRadius:'50%', background:'#7c3aed', color:'#fff', fontSize:10, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
                       <span style={{ position:'absolute', top:2, left:2, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 3px', borderRadius:2 }}>{i+1}</span>
+                      {timelineCuts.size > 0 && (
+                        <span style={{ position:'absolute', bottom:2, left:2, background:'#7c3aed', color:'#fff', fontSize:7, fontWeight:800, padding:'1px 4px', borderRadius:2 }}>Р{groupNum}</span>
+                      )}
                     </div>
                     <span style={{ fontSize:8, color:'#64748b', fontWeight:500, maxWidth:thumbW+10, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center' }}>{displayName}</span>
                   </div>
-                  {/* CUT DIVIDER — click between photos to split into groups */}
+                  {/* CUT DIVIDER — SmartAlbums style: click between photos to split into groups */}
                   {i < photos.length - 1 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setTimelineCuts(prev => { const next = new Set(prev); if (next.has(i)) next.delete(i); else next.add(i); return next; }); }}
-                      title={hasCutAfter ? 'Прибрати розріз' : 'Розрізати — фото зліва стануть одним розворотом'}
+                      title={hasCutAfter ? 'Прибрати розріз' : 'Розрізати тут'}
                       style={{
-                        width: hasCutAfter ? 6 : 14,
-                        minWidth: hasCutAfter ? 6 : 14,
-                        height: 62, flexShrink:0, alignSelf:'center',
+                        width: hasCutAfter ? 20 : 16,
+                        minWidth: hasCutAfter ? 20 : 16,
+                        height: 78, flexShrink:0, alignSelf:'center',
                         border: 'none', padding:0, cursor:'pointer',
                         background: hasCutAfter ? '#7c3aed' : 'transparent',
-                        borderRadius: 3, display:'flex', alignItems:'center', justifyContent:'center',
+                        borderRadius: hasCutAfter ? 4 : 2,
+                        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2,
                         transition: 'all 0.15s',
                         position:'relative',
                       }}
-                      onMouseEnter={e => { if (!hasCutAfter) { (e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.12)'; (e.currentTarget as HTMLElement).style.width = '6px'; (e.currentTarget as HTMLElement).style.minWidth = '6px'; }}}
-                      onMouseLeave={e => { if (!hasCutAfter) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.width = '14px'; (e.currentTarget as HTMLElement).style.minWidth = '14px'; }}}
+                      onMouseEnter={e => { if (!hasCutAfter) { (e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.08)'; }}}
+                      onMouseLeave={e => { if (!hasCutAfter) { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}}
                     >
-                      {hasCutAfter ? <div style={{ width:2, height:40, background:'#fff', borderRadius:1 }}/> : <div style={{ width:1, height:30, background:'#d1d5db', borderRadius:1 }}/>}
+                      {hasCutAfter ? (
+                        <>
+                          <div style={{ width:2, height:20, background:'rgba(255,255,255,0.6)', borderRadius:1 }}/>
+                          <div style={{ fontSize:8, color:'#fff', fontWeight:800, lineHeight:1 }}>✂</div>
+                          <div style={{ width:2, height:20, background:'rgba(255,255,255,0.6)', borderRadius:1 }}/>
+                        </>
+                      ) : (
+                        <div style={{ width:1, height:40, background:'#e2e8f0', borderRadius:1, transition:'all 0.15s' }}/>
+                      )}
                     </button>
                   )}
                   </React.Fragment>
