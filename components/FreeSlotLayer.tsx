@@ -412,7 +412,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
               )}
             </div>
 
-            {/* TOOLBAR — works on both mouse and touch */}
+            {/* TOOLBAR — compact 2-row design */}
             {sel && !inCrop && (() => {
               const nearTop = slot.y < 48;
               const nearBottom = slot.h > canvasH - 60;
@@ -425,30 +425,46 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
               <div onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}
                 style={{ position:'absolute',
                   ...(insideMode ? { top:8, left:'50%', transform:'translateX(-50%)' }
-                    : nearTop ? { bottom:-46, top:'auto', left:'50%', transform:'translateX(-50%)' }
-                    : { top:-46, left:'50%', transform:'translateX(-50%)' }),
-                  display:'flex', alignItems:'center', gap:2, background:'#fff',
-                  border:'0.5px solid #e2e8f0', borderRadius:8, padding:'4px 6px',
-                  boxShadow:'0 2px 10px rgba(0,0,0,0.15)', zIndex:70, whiteSpace:'nowrap', touchAction:'none' }}>
-                {/* Done button — deselect slot */}
-                <button {...tb(() => setSelectedId(null))}
-                  title="Готово"
-                  style={{ display:'flex', alignItems:'center', gap:3, padding:'6px 10px', border:'none', borderRadius:5, background:'#16a34a', cursor:'pointer', fontSize:12, fontWeight:700, color:'#fff', minHeight:32, touchAction:'manipulation' }}>
-                  ✓ Готово
-                </button>
-                <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
-                {photo && (
-                  <button {...tb(() => setCropModeId(slot.id))}
-                    title="Кадрувати фото"
-                    style={{ display:'flex', alignItems:'center', gap:3, padding:'6px 10px', border:'none', borderRadius:5, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:600, color:'#1e2d7d', minHeight:32, touchAction:'manipulation' }}>
-                    ⊡ Кадр
+                    : nearTop ? { bottom:-52, top:'auto', left:'50%', transform:'translateX(-50%)' }
+                    : { top:-52, left:'50%', transform:'translateX(-50%)' }),
+                  display:'flex', flexDirection:'column', gap:3, background:'#fff',
+                  border:'0.5px solid #e2e8f0', borderRadius:10, padding:'5px 6px',
+                  boxShadow:'0 4px 16px rgba(0,0,0,0.12)', zIndex:70, touchAction:'none', minWidth:0 }}>
+                {/* Row 1: main actions */}
+                <div style={{ display:'flex', alignItems:'center', gap:3 }}>
+                  <button {...tb(() => setSelectedId(null))}
+                    style={{ padding:'5px 10px', border:'none', borderRadius:6, background:'#16a34a', cursor:'pointer', fontSize:11, fontWeight:700, color:'#fff', minHeight:28, touchAction:'manipulation' }}>
+                    ✓ Готово
                   </button>
-                )}
+                  {photo && (
+                    <button {...tb(() => setCropModeId(slot.id))}
+                      style={{ padding:'5px 8px', border:'1px solid #c7d2fe', borderRadius:6, background:'#f0f3ff', cursor:'pointer', fontSize:11, fontWeight:600, color:'#1e2d7d', minHeight:28, touchAction:'manipulation' }}>
+                      ⊡ Кадр
+                    </button>
+                  )}
+                  {(['rect','rounded','circle'] as SlotShape[]).map(s => (
+                    <button key={s} {...tb(() => update(slot.id, { shape: s }))}
+                      title={s==='rect' ? 'Прямокутник' : s==='rounded' ? 'Заокруглений' : 'Коло'}
+                      style={{ padding:'4px 6px', border:slot.shape===s?'1.5px solid #3b82f6':'1px solid #e2e8f0', borderRadius:5, background:slot.shape===s?'#eff6ff':'#fff', cursor:'pointer', fontSize:12, minHeight:28, touchAction:'manipulation' }}>
+                      {s==='rect'?'▭':s==='rounded'?'▢':'●'}
+                    </button>
+                  ))}
+                  {photo && (
+                    <button {...tb(() => update(slot.id, { photoId: null }))}
+                      style={{ padding:'4px 7px', border:'1px solid #fbbf24', borderRadius:5, background:'#fffbeb', cursor:'pointer', fontSize:10, color:'#92400e', fontWeight:700, minHeight:28, touchAction:'manipulation' }}>
+                      ✕
+                    </button>
+                  )}
+                  <button {...tb(() => deleteSlot(slot.id))}
+                    style={{ padding:'4px 7px', border:'1px solid #fca5a5', borderRadius:5, background:'#fef2f2', cursor:'pointer', fontSize:10, color:'#ef4444', fontWeight:700, minHeight:28, touchAction:'manipulation' }}>
+                    🗑
+                  </button>
+                </div>
+                {/* Row 2: filters (only when photo exists) */}
                 {photo && (
-                  <>
-                    <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
+                  <div style={{ display:'flex', alignItems:'center', gap:2 }}>
                     {([
-                      ['', 'Без'],
+                      ['', 'Ориг'],
                       ['grayscale(1)', 'Ч/Б'],
                       ['sepia(0.85)', 'Сепія'],
                       ['brightness(1.15) contrast(1.1)', 'Ярк'],
@@ -457,35 +473,12 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                       ['brightness(1.05) saturate(1.4) hue-rotate(-10deg)', 'Тепл'],
                     ] as [string, string][]).map(([f, label]) => (
                       <button key={label} {...tb(() => update(slot.id, { filter: f || undefined }))}
-                        title={label}
-                        style={{ padding:'4px 6px', border:(slot.filter||'')=== f ?'1.5px solid #8b5cf6':'1px solid #e2e8f0', borderRadius:4, background:(slot.filter||'')===f?'#f5f3ff':'transparent', cursor:'pointer', fontSize:9, fontWeight:700, color:(slot.filter||'')===f?'#7c3aed':'#64748b', minHeight:28, touchAction:'manipulation', lineHeight:1 }}>
+                        style={{ padding:'3px 5px', border:(slot.filter||'')===f?'1.5px solid #8b5cf6':'1px solid #f1f5f9', borderRadius:4, background:(slot.filter||'')===f?'#f5f3ff':'transparent', cursor:'pointer', fontSize:8, fontWeight:700, color:(slot.filter||'')===f?'#7c3aed':'#94a3b8', minHeight:22, touchAction:'manipulation', lineHeight:1 }}>
                         {label}
                       </button>
                     ))}
-                  </>
+                  </div>
                 )}
-                <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
-                {(['rect','rounded','circle'] as SlotShape[]).map(s => (
-                  <button key={s} {...tb(() => update(slot.id, { shape: s }))}
-                    title={s==='rect' ? 'Прямокутник' : s==='rounded' ? 'Заокруглений' : 'Коло'}
-                    style={{ padding:'6px 8px', border:slot.shape===s?'1.5px solid #3b82f6':'1px solid #e2e8f0', borderRadius:5, background:slot.shape===s?'#eff6ff':'transparent', cursor:'pointer', fontSize:14, minHeight:32, touchAction:'manipulation' }}>
-                    {s==='rect'?'▭':s==='rounded'?'▢':'●'}
-                  </button>
-                ))}
-                <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
-                {photo && (
-                  <button {...tb(() => update(slot.id, { photoId: null }))}
-                    title="Прибрати фото зі слоту (слот залишається)"
-                    style={{ padding:'6px 10px', border:'1px solid #fbbf24', borderRadius:5, background:'#fffbeb', cursor:'pointer', fontSize:11, color:'#92400e', fontWeight:700, minHeight:32, touchAction:'manipulation' }}>
-                    🗑 фото
-                  </button>
-                )}
-                <div style={{ width:1, height:20, background:'#e2e8f0', margin:'0 2px' }}/>
-                <button {...tb(() => deleteSlot(slot.id))}
-                  title="Видалити слот повністю"
-                  style={{ padding:'6px 8px', border:'1px solid #fee2e2', borderRadius:5, background:'#fef2f2', cursor:'pointer', fontSize:11, color:'#ef4444', fontWeight:700, minHeight:32, touchAction:'manipulation' }}>
-                  🗑 слот
-                </button>
               </div>
               );
             })()}
