@@ -2473,6 +2473,8 @@ export default function BookLayoutEditor() {
                       const photo = slot ? getPhoto(slot.photoId) : null;
                       const key = `spread-${spreadPageIdx}-${i}`;
                       const isOver = dropTarget === key;
+                      const debugColors = ['#ff0000','#00ff00','#0000ff','#ff00ff'];
+                      console.log(`[SLOT ${i}]`, {photoId: slot?.photoId, left: s.left, top: s.top, width: s.width, height: s.height, hasPhoto: !!photo});
                       return (
                         <div key={i}
                           onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
@@ -2488,6 +2490,7 @@ export default function BookLayoutEditor() {
                           }}
                           style={{ ...s,
                             overflow: 'hidden',
+                            outline: `3px solid ${debugColors[i % 4]}`,
                             background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
                             border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : '1px solid rgba(255,255,255,0.4)') : '1.5px dashed #c7d2fe'),
                             transition: 'all 0.2s ease',
@@ -2500,6 +2503,8 @@ export default function BookLayoutEditor() {
                           {photo ? (
                             <>
                               {/* DRAG-OVER REPLACE PREVIEW */}
+                              {/* DEBUG slot position */}
+                              <div style={{position:'absolute',top:2,left:2,background:'rgba(255,0,0,0.8)',color:'#fff',fontSize:9,fontWeight:900,padding:'1px 4px',borderRadius:4,zIndex:50,pointerEvents:'none'}}>S{i} L{Math.round(Number(s.left))} T{Math.round(Number(s.top))} {Math.round(Number(s.width))}x{Math.round(Number(s.height))}</div>
                               {isOver && dragPhotoId && (() => {
                                 const incoming = photos.find(p => p.id === dragPhotoId);
                                 return incoming ? (
