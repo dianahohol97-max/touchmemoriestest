@@ -2691,21 +2691,18 @@ export default function BookLayoutEditor() {
                             style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
                         </div>
                       ))}
-                      {/* Safe zone — 5mm from edge, shows where print will be cut */}
-                      <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:6}} viewBox={`0 0 ${pageW} ${cH}`}>
+                      {/* Safe zone — 5mm from edge, very subtle, mainly for reference */}
+                      <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:6,opacity:0.3}} viewBox={`0 0 ${pageW} ${cH}`}>
                         {(() => {
-                          const mx = 5 / prop.w * pageW; // 5mm horizontal margin
-                          const my = 5 / prop.h * cH;    // 5mm vertical margin
-                          const d = 8; // corner mark length
+                          const mx = 5 / prop.w * pageW;
+                          const my = 5 / prop.h * cH;
                           return (
                             <>
-                              {/* Dashed rectangle */}
-                              <rect x={mx} y={my} width={pageW-2*mx} height={cH-2*my} fill="none" stroke="rgba(239,68,68,0.25)" strokeWidth="0.5" strokeDasharray="4 3"/>
-                              {/* Corner marks — more visible */}
-                              {[[mx,my],[pageW-mx,my],[pageW-mx,cH-my],[mx,cH-my]].map(([cx,cy],ci) => (
+                              {/* Corner marks only — no full rectangle to avoid visual clutter */}
+                              {[[mx,my,1,1],[pageW-mx,my,-1,1],[pageW-mx,cH-my,-1,-1],[mx,cH-my,1,-1]].map(([cx,cy,dx,dy],ci) => (
                                 <g key={ci}>
-                                  <line x1={cx-(ci===0||ci===3?d:0)} y1={cy} x2={cx+(ci===1||ci===2?d:0)} y2={cy} stroke="rgba(239,68,68,0.4)" strokeWidth="0.8"/>
-                                  <line x1={cx} y1={cy-(ci===0||ci===1?d:0)} x2={cx} y2={cy+(ci===2||ci===3?d:0)} stroke="rgba(239,68,68,0.4)" strokeWidth="0.8"/>
+                                  <line x1={cx} y1={cy} x2={cx+6*(dx as number)} y2={cy} stroke="rgba(239,68,68,0.5)" strokeWidth="0.5"/>
+                                  <line x1={cx} y1={cy} x2={cx} y2={cy+6*(dy as number)} stroke="rgba(239,68,68,0.5)" strokeWidth="0.5"/>
                                 </g>
                               ))}
                             </>
