@@ -286,6 +286,8 @@ export default function BookLayoutEditor() {
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
   const [selectedFreeSlotId, setSelectedFreeSlotId] = useState<string | null>(null);
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
+  const [pageGap, setPageGap] = useState(0); // px gap/padding around photo slots on all pages
+  const [pageBorder, setPageBorder] = useState({ width: 0, color: '#e2e8f0' }); // border around slots
   const [pageShapes, setPageShapes] = useState<Record<number, Shape[]>>({});
   const [pageFrames, setPageFrames] = useState<Record<number, FrameConfig>>({});
 
@@ -1261,6 +1263,22 @@ export default function BookLayoutEditor() {
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #fee2e2', borderRadius: 8, background: '#fff7f7', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#ef4444', width: '100%' }}>
                     <RotateCcw size={13} /> Очистити сторінку
                   </button>
+                  <button onClick={() => {
+                    pushHistory();
+                    const activeIdx = getActivePageIdx();
+                    const activeLayout = pages[activeIdx]?.layout;
+                    if (!activeLayout) return;
+                    setPages(prev => prev.map((p, i) => {
+                      if (i === 0 || i === activeIdx) return p;
+                      const layoutDef = LAYOUTS.find(l => l.id === activeLayout);
+                      const slotCount = layoutDef?.slots || 1;
+                      return { ...p, layout: activeLayout, slots: makeSlots(slotCount) };
+                    }));
+                    toast.success(`Шаблон «${LAYOUTS.find(l=>l.id===activeLayout)?.label||activeLayout}» застосовано до всіх сторінок`);
+                  }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 10px', border: '1px solid #ddd6fe', borderRadius: 8, background: '#faf5ff', cursor: 'pointer', fontWeight: 600, fontSize: 11, color: '#7c3aed', width: '100%' }}>
+                    ✦ Шаблон до всіх сторінок
+                  </button>
                 </div>
               </div>
               );
@@ -1633,6 +1651,7 @@ export default function BookLayoutEditor() {
                     Колір обкладинки задається у вкладці «Обкладинка»
                   </div>
                 ) : (
+                <>
                 <BackgroundControls
                   bg={getCurBg((currentIdx-1)*2+1+activeSide)}
                   onChange={bg => {
@@ -1640,6 +1659,51 @@ export default function BookLayoutEditor() {
                     setPageBgs(prev=>({...prev,[idx]:bg}));
                   }}
                 />
+                {/* Bulk apply bg to all pages */}
+                <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8, marginTop:4 }}>
+                  <button onClick={() => {
+                    pushHistory();
+                    const srcBg = getCurBg((currentIdx-1)*2+1+activeSide);
+                    const newBgs: Record<number, typeof srcBg> = {};
+                    for (let i = 1; i < pages.length; i++) newBgs[i] = { ...srcBg };
+                    setPageBgs(prev => ({ ...prev, ...newBgs }));
+                    toast.success(`Фон застосовано до всіх ${pages.length - 1} сторінок`);
+                  }}
+                    style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 10px', border:'1px solid #ddd6fe', borderRadius:8, background:'#faf5ff', cursor:'pointer', fontWeight:600, fontSize:11, color:'#7c3aed', width:'100%' }}>
+                    ✦ Застосувати фон до всіх сторінок
+                  </button>
+                </div>
+                {/* Gap & Border controls */}
+                <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10, marginTop:6, display:'flex', flexDirection:'column', gap:8 }}>
+                  <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.05em', textTransform:'uppercase' }}>Відступ і рамка (всі сторінки)</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:11, color:'#475569', minWidth:56 }}>Відступ</span>
+                    <input type="range" min="0" max="20" step="1" value={pageGap}
+                      onChange={e => setPageGap(Number(e.target.value))}
+                      style={{ flex:1, accentColor:'#7c3aed' }}/>
+                    <span style={{ fontSize:11, color:'#64748b', minWidth:28, textAlign:'right' }}>{pageGap}px</span>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:11, color:'#475569', minWidth:56 }}>Рамка</span>
+                    <input type="range" min="0" max="5" step="0.5" value={pageBorder.width}
+                      onChange={e => setPageBorder(p => ({...p, width: Number(e.target.value)}))}
+                      style={{ flex:1, accentColor:'#7c3aed' }}/>
+                    <span style={{ fontSize:11, color:'#64748b', minWidth:28, textAlign:'right' }}>{pageBorder.width}px</span>
+                  </div>
+                  {pageBorder.width > 0 && (
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <span style={{ fontSize:11, color:'#475569', minWidth:56 }}>Колір</span>
+                      <input type="color" value={pageBorder.color}
+                        onChange={e => setPageBorder(p => ({...p, color: e.target.value}))}
+                        style={{ width:28, height:24, border:'1px solid #e2e8f0', borderRadius:4, cursor:'pointer', padding:1 }}/>
+                      {['#e2e8f0','#ffffff','#000000','#1e2d7d','#7c3aed'].map(c => (
+                        <button key={c} onClick={() => setPageBorder(p => ({...p, color: c}))}
+                          style={{ width:20, height:20, borderRadius:4, background:c, border: pageBorder.color===c ? '2px solid #3b82f6' : '1px solid #e2e8f0', cursor:'pointer', flexShrink:0 }}/>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                </>
                 )}
                 {/* Back cover bg */}
                 {currentIdx === 0 && isPrinted && (
@@ -2369,7 +2433,7 @@ export default function BookLayoutEditor() {
                                 setTapSelectedPhotoId(null);
                               }
                             }}
-                            style={{ ...s, zIndex: 1, background: photo ? 'transparent' : (isOver ? '#dbeafe' : 'rgba(99,102,241,0.15)'), border: isOver ? '2px dashed #1e2d7d' : (photo ? 'none' : '2px dashed #818cf8'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default', boxSizing: 'border-box' }}
+                            style={{ ...s, zIndex: 1, background: photo ? 'transparent' : (isOver ? '#dbeafe' : 'rgba(99,102,241,0.15)'), border: isOver ? '2px dashed #1e2d7d' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none') : '2px dashed #818cf8'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default', boxSizing: 'border-box', padding: photo && pageGap > 0 ? pageGap : 0 }}
                           >
                             {photo ? (
                               <>
