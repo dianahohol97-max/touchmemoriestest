@@ -690,17 +690,35 @@ export default function BookLayoutEditor() {
     if (photoIds.length === 0) return;
     pushHistory();
     const n = photoIds.length;
-    const compatible = LAYOUTS.filter(l => l.slots === n);
-    const fallback = LAYOUTS.filter(l => l.slots > 0 && Math.abs(l.slots - n) <= 1);
-    const pool = compatible.length > 0 ? compatible : fallback.length > 0 ? fallback : LAYOUTS.filter(l => l.slots > 0);
+    // Find best matching layout
+    const exact = LAYOUTS.filter(l => l.slots === n);
+    const close = LAYOUTS.filter(l => l.slots > 0 && l.slots <= n && Math.abs(l.slots - n) <= 2);
+    const bigger = LAYOUTS.filter(l => l.slots >= n);
+    const pool = exact.length > 0 ? exact : bigger.length > 0 ? bigger : close.length > 0 ? close : LAYOUTS.filter(l => l.slots > 0);
     const best = pool[Math.floor(Math.random() * pool.length)] || LAYOUTS.find(l => l.id === 'p-full')!;
     const layout = best.id as LayoutType;
-    const slots = Array.from({ length: best.slots }, (_, si) => ({ photoId: photoIds[si] || null, cropX: 50, cropY: 50, zoom: 1 }));
-    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, layout, slots, textBlocks: p.textBlocks || [] }));
-    setFreeSlots(prev => { const u = { ...prev }; delete u[pageIdx]; return u; });
+    // Fill layout slots with photos (up to slot count)
+    const layoutSlots = Array.from({ length: best.slots }, (_, si) => ({ photoId: photoIds[si] || null, cropX: 50, cropY: 50, zoom: 1 }));
+    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, layout, slots: layoutSlots, textBlocks: p.textBlocks || [] }));
+    // Extra photos beyond layout slots → create FreeSlots
+    const extras = photoIds.slice(best.slots);
+    if (extras.length > 0) {
+      const newFreeSlots: FreeSlot[] = extras.map((id, ei) => ({
+        id: 'free-' + Date.now() + '-' + ei,
+        x: 10 + (ei % 3) * 30, y: 10 + Math.floor(ei / 3) * 30,
+        w: 35, h: 35,
+        shape: 'rect' as const,
+        photoId: id, cropX: 50, cropY: 50, zoom: 1,
+      }));
+      setFreeSlots(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx] || []), ...newFreeSlots] }));
+    } else {
+      setFreeSlots(prev => { const u = { ...prev }; delete u[pageIdx]; return u; });
+    }
     setSelectedPhotoIds(new Set());
     setTapSelectedPhotoId(null);
-    toast.success(`${n} фото → ${best.label || layout}`, { duration: 2000 });
+    const placed = Math.min(n, best.slots);
+    const extra = extras.length;
+    toast.success(`${placed} фото → ${best.label || layout}${extra > 0 ? ` + ${extra} вільних слотів` : ''}`, { duration: 2500 });
   };
 
   // Apply timeline cuts → build spreads from photo groups
