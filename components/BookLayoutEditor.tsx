@@ -1927,7 +1927,7 @@ export default function BookLayoutEditor() {
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 <input type="text" placeholder="Пошук стікерів..." 
                   style={{ padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none', width:'100%', boxSizing:'border-box' }}/>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:6 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:4 }}>
                   {[
                     {name:'Серце', emoji:'❤️', url:''},
                     {name:'Зірка', emoji:'⭐', url:''},
@@ -1940,7 +1940,7 @@ export default function BookLayoutEditor() {
                     {name:'Діамант', emoji:'💎', url:''},
                     {name:'Веселка', emoji:'🌈', url:''},
                     {name:"Полум'я", emoji:'🔥', url:''},
-                    {name:'Блискавка', emoji:'⚡', url:''},
+                    {name:'Блиск.', emoji:'⚡', url:''},
                     {name:'Зірочки', emoji:'✨', url:''},
                     {name:'Бант', emoji:'🎀', url:''},
                     {name:'Кулька', emoji:'🎈', url:''},
@@ -1951,12 +1951,12 @@ export default function BookLayoutEditor() {
                         const spi = getActivePageIdx();
                         const newS = { id:'stk-'+Date.now(), url:sticker.url, emoji:(sticker as any).emoji||'', x:42, y:42, w:'12%', h:'12%' };
                         setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
-                        toast.success('Стікер додано на активну сторінку', { duration: 1500 });
+                        toast.success('Стікер додано', { duration: 1500 });
                       }}
-                      style={{ padding:6, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, overflow:'hidden', minWidth:0 }}
+                      style={{ padding:'6px 2px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, overflow:'hidden', minWidth:0 }}
                       title={sticker.name}>
-                      <span style={{ fontSize:26, lineHeight:1 }}>{(sticker as any).emoji || '★'}</span>
-                      <span style={{ fontSize:8, color:'#64748b', textAlign:'center', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{sticker.name}</span>
+                      <span style={{ fontSize:22, lineHeight:1 }}>{(sticker as any).emoji || '★'}</span>
+                      <span style={{ fontSize:7, color:'#64748b', textAlign:'center', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{sticker.name}</span>
                     </button>
                   ))}
                 </div>
