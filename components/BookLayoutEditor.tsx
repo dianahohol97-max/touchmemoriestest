@@ -2510,8 +2510,13 @@ export default function BookLayoutEditor() {
                                   <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>+</button>
                                   <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
                                   <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
+                                  <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
+                                  <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✕ фото</button>
                                 </div>
                               )}
+                              {/* Delete button — visible on hover */}
+                              <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);}} style={{position:'absolute',top:4,right:4,width:24,height:24,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity 0.15s',zIndex:20,fontSize:12}} className="spread-del-btn">×</button>
+                              <style>{`.spread-del-btn{opacity:0!important}div:hover>.spread-del-btn{opacity:1!important}`}</style>
                             </div>
                           ) : (
                             <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4,pointerEvents:'none'}}>
