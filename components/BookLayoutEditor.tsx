@@ -745,7 +745,12 @@ export default function BookLayoutEditor() {
     const layout = best.id as LayoutType;
     // Fill layout slots with photos (up to slot count)
     const layoutSlots = Array.from({ length: best.slots }, (_, si) => ({ photoId: photoIds[si] || null, cropX: 50, cropY: 50, zoom: 1 }));
-    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, layout, slots: layoutSlots, textBlocks: p.textBlocks || [] }));
+    console.log('[AUTOCOLLAGE]', { n, layoutId: layout, bestLabel: best.label, bestSlots: best.slots, photoIds, pageIdx, layoutSlots: layoutSlots.map(s=>s.photoId) });
+    setPages(prev => {
+      const next = prev.map((p, i) => i !== pageIdx ? p : { ...p, layout, slots: layoutSlots, textBlocks: p.textBlocks || [] });
+      console.log('[AUTOCOLLAGE setPages]', { pageIdx, newLayout: next[pageIdx]?.layout, newSlotsCount: next[pageIdx]?.slots?.length });
+      return next;
+    });
     // Extra photos beyond layout slots → create FreeSlots
     const extras = photoIds.slice(best.slots);
     if (extras.length > 0) {
