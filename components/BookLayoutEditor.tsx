@@ -2433,7 +2433,15 @@ export default function BookLayoutEditor() {
                                 setTapSelectedPhotoId(null);
                               }
                             }}
-                            style={{ ...s, zIndex: 1, background: photo ? 'transparent' : (isOver ? '#dbeafe' : 'rgba(99,102,241,0.15)'), border: isOver ? '2px dashed #1e2d7d' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none') : '2px dashed #818cf8'), transition: 'border-color 0.15s', cursor: dragPhotoId ? 'copy' : 'default', boxSizing: 'border-box', padding: photo && pageGap > 0 ? pageGap : 0 }}
+                            style={{ ...s, zIndex: 1,
+                              background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : '#f0f2ff'),
+                              border: isOver ? '2.5px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none') : '2px dashed #a5b4fc'),
+                              transition: 'all 0.2s ease',
+                              cursor: dragPhotoId ? 'copy' : (tapSelectedPhotoId ? 'pointer' : 'default'),
+                              boxSizing: 'border-box',
+                              padding: photo && pageGap > 0 ? pageGap : 0,
+                              borderRadius: photo ? 0 : 4,
+                            }}
                           >
                             {photo ? (
                               <>
@@ -2476,9 +2484,19 @@ export default function BookLayoutEditor() {
                                 })()}
                               </>
                             ) : (
-                              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:'#818cf8',gap:6,pointerEvents:'none'}}>
-                                <ImageIcon size={Math.min(24, Math.max(12, (s.width as number||100)*0.15))} color="#818cf8"/>
-                                <span style={{fontSize:8,fontWeight:700,color:'#818cf8',textAlign:'center',letterSpacing:'0.05em'}}>ФОТО</span>
+                              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4,pointerEvents:'none',position:'relative'}}>
+                                {/* Slot number badge */}
+                                <div style={{position:'absolute',top:6,left:6,width:18,height:18,borderRadius:'50%',background:'#c7d2fe',color:'#4338ca',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{i+1}</div>
+                                {/* Big icon + text */}
+                                <div style={{width:36,height:36,borderRadius:'50%',background:isOver?'rgba(59,130,246,0.15)':'rgba(99,102,241,0.1)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s'}}>
+                                  <ImageIcon size={18} color={isOver?'#3b82f6':'#6366f1'}/>
+                                </div>
+                                <span style={{fontSize:10,fontWeight:700,color:isOver?'#3b82f6':'#6366f1',textAlign:'center',lineHeight:1.3}}>
+                                  {isOver ? 'Відпустіть' : dragPhotoId ? 'Сюди' : 'Перетягніть фото'}
+                                </span>
+                                {tapSelectedPhotoId && !dragPhotoId && (
+                                  <span style={{fontSize:9,fontWeight:600,color:'#3b82f6',background:'rgba(59,130,246,0.08)',padding:'2px 8px',borderRadius:10}}>Клікніть щоб вставити</span>
+                                )}
                               </div>
                             )}
                           </div>
@@ -2734,8 +2752,8 @@ export default function BookLayoutEditor() {
                         width: `${((s.width as number)||cW/2) / (cW/2) * 100}%`,
                         height: `${((s.height as number)||cH) / cH * 100}%`,
                         overflow: 'hidden',
-                        background: ph ? 'transparent' : 'rgba(99,102,241,0.12)',
-                        border: ph ? 'none' : '1px dashed #818cf8',
+                        background: ph ? 'transparent' : '#f0f2ff',
+                        border: ph ? 'none' : '1px dashed #a5b4fc',
                         borderRadius: 2,
                       };
                       return (

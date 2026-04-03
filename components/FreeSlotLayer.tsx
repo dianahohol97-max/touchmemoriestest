@@ -290,7 +290,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
             style={{
               position: 'absolute', left: slot.x, top: slot.y, width: slot.w, height: slot.h,
               borderRadius: br, overflow: 'visible',
-              border: inCrop ? '2px solid rgba(255,255,255,0.8)' : (sel ? '2px solid #3b82f6' : (photo ? '1px solid rgba(99,102,241,0.25)' : '2px dashed #818cf8')),
+              border: inCrop ? '2px solid rgba(255,255,255,0.8)' : (sel ? '2px solid #3b82f6' : (photo ? '1px solid rgba(99,102,241,0.25)' : '2px dashed #a5b4fc')),
               background: 'transparent',
               cursor: inCrop ? 'default' : (sel ? 'move' : 'pointer'),
               zIndex: inCrop ? 55 : (sel ? 50 : 30),
@@ -403,8 +403,10 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                 </div>
               ) : (
                 <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4,
-                  color: tapPhotoId ? '#3b82f6' : '#818cf8', background: tapPhotoId ? 'rgba(59,130,246,0.06)' : undefined, pointerEvents:'none' }}>
-                  <ImageIcon size={20} />
+                  color: tapPhotoId ? '#3b82f6' : '#6366f1', background: tapPhotoId ? 'rgba(59,130,246,0.06)' : 'rgba(99,102,241,0.04)', pointerEvents:'none' }}>
+                  <div style={{ width:32, height:32, borderRadius:'50%', background: tapPhotoId ? 'rgba(59,130,246,0.1)' : 'rgba(99,102,241,0.1)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <ImageIcon size={16} />
+                  </div>
                   <span style={{ fontSize:9, fontWeight:700 }}>{tapPhotoId ? 'Тапніть для розміщення' : 'Перетягніть фото'}</span>
                 </div>
               )}
