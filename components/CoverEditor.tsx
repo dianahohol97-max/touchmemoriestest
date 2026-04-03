@@ -279,7 +279,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         objectFit: 'cover',
                         position: 'absolute',
                         top: '50%', left: '50%',
-                        transform: `translate(-50%, -50%) translate(${((config.photoCropX ?? 50) - 50) * -0.5}%, ${((config.photoCropY ?? 50) - 50) * -0.5}%)`,
+                        transform: `translate(-50%, -50%) translate(${Math.max(-(((config.photoZoom??1)-1)/(config.photoZoom??1))*50, Math.min(((config.photoZoom??1)-1)/(config.photoZoom??1)*50, ((config.photoCropX??50)-50)*-0.5))}%, ${Math.max(-(((config.photoZoom??1)-1)/(config.photoZoom??1))*50, Math.min(((config.photoZoom??1)-1)/(config.photoZoom??1)*50, ((config.photoCropY??50)-50)*-0.5))}%)`,
                         userSelect: 'none', pointerEvents: 'none', touchAction: 'none',
                       }}
                       draggable={false}/>
@@ -386,7 +386,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       });
                     }}
                     onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
-                    <img src={photo.preview} style={{ width:`${Math.max(100,(config.photoZoom??1)*100)}%`, height:`${Math.max(100,(config.photoZoom??1)*100)}%`, objectFit:'cover', position:'absolute', top:'50%', left:'50%', transform:`translate(-50%,-50%) translate(${((config.photoCropX??50)-50)*-0.5}%, ${((config.photoCropY??50)-50)*-0.5}%)`, userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
+                    <img src={photo.preview} style={{ width:`${Math.max(100,(config.photoZoom??1)*100)}%`, height:`${Math.max(100,(config.photoZoom??1)*100)}%`, objectFit:'cover', position:'absolute', top:'50%', left:'50%', transform:`translate(-50%,-50%) translate(${Math.max(-(((config.photoZoom??1)-1)/(config.photoZoom??1))*50,Math.min(((config.photoZoom??1)-1)/(config.photoZoom??1)*50,((config.photoCropX??50)-50)*-0.5))}%,${Math.max(-(((config.photoZoom??1)-1)/(config.photoZoom??1))*50,Math.min(((config.photoZoom??1)-1)/(config.photoZoom??1)*50,((config.photoCropY??50)-50)*-0.5))}%)`, userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
                   </div>
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
@@ -414,7 +414,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       });
                     }}
                     onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
-                    <img src={photo.preview} style={{ width:`${Math.max(100,(config.photoZoom??1)*100)}%`, height:`${Math.max(100,(config.photoZoom??1)*100)}%`, objectFit:'cover', position:'absolute', top:'50%', left:'50%', transform:`translate(-50%,-50%) translate(${((config.photoCropX??50)-50)*-0.5}%, ${((config.photoCropY??50)-50)*-0.5}%)`, userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
+                    <img src={photo.preview} style={{ width:`${Math.max(100,(config.photoZoom??1)*100)}%`, height:`${Math.max(100,(config.photoZoom??1)*100)}%`, objectFit:'cover', position:'absolute', top:'50%', left:'50%', transform:`translate(-50%,-50%) translate(${Math.max(-(((config.photoZoom??1)-1)/(config.photoZoom??1))*50,Math.min(((config.photoZoom??1)-1)/(config.photoZoom??1)*50,((config.photoCropX??50)-50)*-0.5))}%,${Math.max(-(((config.photoZoom??1)-1)/(config.photoZoom??1))*50,Math.min(((config.photoZoom??1)-1)/(config.photoZoom??1)*50,((config.photoCropY??50)-50)*-0.5))}%)`, userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
                   </div>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
               : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Перетягніть фото<br/>у вставку</span></div>}
