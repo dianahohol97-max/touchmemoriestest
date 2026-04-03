@@ -646,35 +646,46 @@ export default function BookLayoutEditor() {
     const def = LAYOUTS.find(l => l.id === layout);
     if (!def) return;
     const targetIdx = forceIdx !== undefined ? forceIdx : getActivePageIdx();
-    pushHistory(); // save state before change
+    pushHistory();
 
     const page = pages[targetIdx];
-    const oldPhotos = page ? page.slots.map(s2 => s2.photoId).filter(Boolean) as string[] : [];
+    // Collect ALL existing photos: from layout slots + FreeSlots
+    const layoutPhotos = page ? page.slots.map(s2 => s2.photoId).filter(Boolean) as string[] : [];
+    const freePhotos = (freeSlots[targetIdx] || []).map(fs => fs.photoId).filter(Boolean) as string[];
+    const allPhotos = [...layoutPhotos, ...freePhotos];
 
     if (def.slots > 0) {
-      // Auto-convert to FreeSlots so user can drag/resize/reshape immediately
-      const defs = getSlotDefs(layout, pageW, cH);
-      const newFreeSlots: FreeSlot[] = defs.map((d, di) => ({
-        id: 'free-' + Date.now() + '-' + di,
-        x: Number(d.s.left) || 0,
-        y: Number(d.s.top) || 0,
-        w: Number(d.s.width) || pageW,
-        h: Number(d.s.height) || cH,
-        shape: 'rect' as const,
-        photoId: oldPhotos[di] ?? null,
+      // Create new layout slots, carrying over existing photos
+      const newSlots = Array.from({ length: def.slots }, (_, si) => ({
+        photoId: allPhotos[si] ?? null,
         cropX: 50, cropY: 50, zoom: 1,
       }));
-      // Save real layout ID so shuffleLayout can cycle correctly
+      // Extra photos that don't fit in new layout → keep as FreeSlots
+      const extraPhotos = allPhotos.slice(def.slots);
+      const extraFreeSlots: FreeSlot[] = extraPhotos.map((id, ei) => ({
+        id: 'free-' + Date.now() + '-' + ei,
+        x: 10 + (ei % 3) * 30, y: 10 + Math.floor(ei / 3) * 30,
+        w: 35, h: 35, shape: 'rect' as const,
+        photoId: id, cropX: 50, cropY: 50, zoom: 1,
+      }));
       setPages(prev => prev.map((p, i) =>
-        i !== targetIdx ? p : { ...p, layout, slots: [] }
+        i !== targetIdx ? p : { ...p, layout, slots: newSlots, textBlocks: p.textBlocks || [] }
       ));
-      setFreeSlots(prev => ({ ...prev, [targetIdx]: newFreeSlots }));
-      setSelectedFreeSlotId(newFreeSlots[0]?.id ?? null);
+      setFreeSlots(prev => ({ ...prev, [targetIdx]: extraFreeSlots.length > 0 ? extraFreeSlots : [] }));
     } else {
-      // Text-only layout — no slots
+      // Text-only layout — move all photos to FreeSlots
+      const freeFromLayout: FreeSlot[] = allPhotos.map((id, ei) => ({
+        id: 'free-' + Date.now() + '-' + ei,
+        x: 10 + (ei % 3) * 30, y: 10 + Math.floor(ei / 3) * 30,
+        w: 35, h: 35, shape: 'rect' as const,
+        photoId: id, cropX: 50, cropY: 50, zoom: 1,
+      }));
       setPages(prev => prev.map((p, i) =>
-        i !== targetIdx ? p : { ...p, layout, slots: [] }
+        i !== targetIdx ? p : { ...p, layout, slots: [], textBlocks: p.textBlocks || [] }
       ));
+      if (freeFromLayout.length > 0) {
+        setFreeSlots(prev => ({ ...prev, [targetIdx]: freeFromLayout }));
+      }
     }
   };
 
