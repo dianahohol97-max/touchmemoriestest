@@ -114,6 +114,7 @@ interface CoverEditorProps {
 
 export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange, hidePhotoSlot = false }: CoverEditorProps) {
   const [dragOver, setDragOver] = useState(false);
+  const [coverCropMode, setCoverCropMode] = useState(false);
   // Load Cyrillic calligraphic fonts
   useEffect(() => {
     const link = document.createElement('link');
@@ -241,24 +242,29 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               onClick={() => { if (!photo && photos.length > 0) { haptic.success(); onChange({ photoId: photos[0].id }); } }}
               style={{ position:'absolute', left:slotPx.x, top:slotPx.y, width:slotPx.w, height:slotPx.h,
                 borderRadius:br, overflow:'hidden', cursor:'move', zIndex:2, touchAction:'manipulation',
-                border: dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)'),
+                border: dragOver ? '2px dashed #3b82f6' : (coverCropMode && photo ? '2px solid #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)')),
                 background: photo ? 'transparent' : (dragOver ? 'rgba(59,130,246,0.08)' : '#f1f5f9') }}>
               {photo
-                ? <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}
+                ? <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor: coverCropMode ? 'grab' : 'move' }}
                     onPointerDown={e => {
-                      e.stopPropagation(); e.preventDefault();
-                      haptic.light();
-                      const cx = config.photoCropX ?? 50;
-                      const cy = config.photoCropY ?? 50;
-                      const zm = config.photoZoom ?? 1;
-                      const sensitivity = 8 / Math.max(0.5, zm);
-                      startPointerDrag(e, (dx, dy) => {
-                        onChange({
-                          photoCropX: Math.max(0, Math.min(100, cx - dx / sensitivity)),
-                          photoCropY: Math.max(0, Math.min(100, cy - dy / sensitivity)),
-                        } as any);
-                      });
+                      if (coverCropMode) {
+                        // In crop mode: drag = reposition photo inside slot
+                        e.stopPropagation(); e.preventDefault();
+                        haptic.light();
+                        const cx = config.photoCropX ?? 50;
+                        const cy = config.photoCropY ?? 50;
+                        const zm = config.photoZoom ?? 1;
+                        const sensitivity = 8 / Math.max(0.5, zm);
+                        startPointerDrag(e, (dx, dy) => {
+                          onChange({
+                            photoCropX: Math.max(0, Math.min(100, cx - dx / sensitivity)),
+                            photoCropY: Math.max(0, Math.min(100, cy - dy / sensitivity)),
+                          } as any);
+                        });
+                      }
+                      // Not in crop mode: let event bubble to parent → startSlotDrag
                     }}
+                    onDoubleClick={e => { e.stopPropagation(); setCoverCropMode(!coverCropMode); }}
                     onWheel={e => {
                       if (!photo) return;
                       e.preventDefault();
@@ -277,19 +283,30 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         userSelect: 'none', pointerEvents: 'none', touchAction: 'none',
                       }}
                       draggable={false}/>
-                    {/* Zoom controls */}
-                    <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
-                      style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3,
-                        background:'rgba(0,0,0,0.7)', borderRadius:16, padding:'2px 6px', zIndex:30 }}>
-                      <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.max(0.5, (config.photoZoom??1)-0.1) } as any);}}
-                        style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
-                      <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round((config.photoZoom??1)*100)}%</span>
-                      <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.min(4, (config.photoZoom??1)+0.1) } as any);}}
-                        style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
-                      <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
-                      <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom:1, photoCropX:50, photoCropY:50 } as any);}}
-                        style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
-                    </div>
+                    {/* Crop mode indicator + controls */}
+                    {coverCropMode ? (
+                      <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
+                        style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3,
+                          background:'rgba(0,0,0,0.75)', borderRadius:16, padding:'2px 8px', zIndex:30 }}>
+                        <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.max(0.5, (config.photoZoom??1)-0.1) } as any);}}
+                          style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
+                        <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round((config.photoZoom??1)*100)}%</span>
+                        <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.min(4, (config.photoZoom??1)+0.1) } as any);}}
+                          style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
+                        <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                        <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom:1, photoCropX:50, photoCropY:50 } as any);}}
+                          style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
+                        <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                        <button onClick={e=>{e.stopPropagation(); setCoverCropMode(false);}}
+                          style={{background:'#16a34a',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:10}}>Готово</button>
+                      </div>
+                    ) : (
+                      <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
+                        style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3,
+                          background:'rgba(0,0,0,0.55)', borderRadius:16, padding:'2px 8px', zIndex:30, opacity:0.7 }}>
+                        <span style={{color:'#fff',fontSize:9,fontWeight:600}}>2× клік — кадрувати</span>
+                      </div>
+                    )}
                   </div>
                 : <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, color:'#94a3b8' }}>
                     <ImageIcon size={28}/><span style={{ fontSize:11, fontWeight:600, textAlign:'center' }}>Перетягніть фото</span>
