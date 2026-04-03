@@ -240,7 +240,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               onPointerDown={e => startSlotDrag(e, 'move')}
               onClick={() => { if (!photo && photos.length > 0) { haptic.success(); onChange({ photoId: photos[0].id }); } }}
               style={{ position:'absolute', left:slotPx.x, top:slotPx.y, width:slotPx.w, height:slotPx.h,
-                borderRadius:br, overflow:'hidden', cursor:'move', zIndex:2, touchAction:'none',
+                borderRadius:br, overflow:'hidden', cursor:'move', zIndex:2, touchAction:'manipulation',
                 border: dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)'),
                 background: photo ? 'transparent' : (dragOver ? 'rgba(59,130,246,0.08)' : '#f1f5f9') }}>
               {photo
@@ -260,6 +260,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       });
                     }}
                     onWheel={e => {
+                      if (!photo) return;
                       e.preventDefault();
                       const delta = e.deltaY > 0 ? -0.05 : 0.05;
                       const nz = Math.max(0.5, Math.min(4, (config.photoZoom ?? 1) + delta));
@@ -304,7 +305,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   style={{ position:'absolute', left:lp-8, top:tp-8, width:20, height:20,
                     borderRadius:'50%', background:'#3b82f6', border:'2.5px solid #fff',
                     cursor:`${dir}-resize`, zIndex:10, boxShadow:'0 1px 4px rgba(0,0,0,0.4)',
-                    touchAction:'none' }}/>
+                    touchAction:'manipulation' }}/>
               );
             })}
             {/* Overlay */}
@@ -314,7 +315,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
             {texts.map(tb => (
               <div key={tb.id} onPointerDown={e => startTextDrag(e, tb.id, tb.x, tb.y)}
                 style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)',
-                  cursor:'move', zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'none' }}>
+                  cursor:'move', zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'manipulation' }}>
                 <span contentEditable suppressContentEditableWarning
                   onBlur={e=>onChange({printedTextBlocks:texts.map(t=>t.id===tb.id?{...t,text:e.currentTarget.textContent||''}:t)})}
                   onPointerDown={e=>e.stopPropagation()}
@@ -364,7 +365,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       });
                     }}
                     onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
-                    <img src={photo.preview} style={{ width:`${(config.photoZoom??1)*100}%`, height:`${(config.photoZoom??1)*100}%`, objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none', touchAction:'none' }} draggable={false}/>
+                    <img src={photo.preview} style={{ width:`${(config.photoZoom??1)*100}%`, height:`${(config.photoZoom??1)*100}%`, objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
                   </div>
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
@@ -392,7 +393,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       });
                     }}
                     onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
-                    <img src={photo.preview} style={{ width:`${(config.photoZoom??1)*100}%`, height:`${(config.photoZoom??1)*100}%`, objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none', touchAction:'none' }} draggable={false}/>
+                    <img src={photo.preview} style={{ width:`${(config.photoZoom??1)*100}%`, height:`${(config.photoZoom??1)*100}%`, objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
                   </div>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
               : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Перетягніть фото<br/>у вставку</span></div>}
@@ -420,7 +421,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
             <div onPointerDown={handleTextMouseDown}
               style={{ position:'absolute', left:`${textX}%`, top:`${textY}%`, transform:'translate(-50%,-50%)',
                 cursor:'move', userSelect:'none', zIndex:10, padding:'4px 8px',
-                border:'1px dashed rgba(255,255,255,0.3)', borderRadius:4, touchAction:'none' }}>
+                border:'1px dashed rgba(255,255,255,0.3)', borderRadius:4, touchAction:'manipulation' }}>
               <span contentEditable suppressContentEditableWarning
                 onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
                 onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
@@ -441,7 +442,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
             <div onPointerDown={handleTextMouseDown}
               style={{ position:'absolute', left:`${textX}%`, top:`${textY}%`, transform:'translate(-50%,-50%)',
                 cursor:'move', userSelect:'none', zIndex:10, padding:'4px 8px',
-                border:'1px dashed rgba(255,255,255,0.2)', borderRadius:4, touchAction:'none' }}>
+                border:'1px dashed rgba(255,255,255,0.2)', borderRadius:4, touchAction:'manipulation' }}>
               <span contentEditable suppressContentEditableWarning
                 onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
                 onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
