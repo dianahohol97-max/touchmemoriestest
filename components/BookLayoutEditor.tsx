@@ -2491,7 +2491,7 @@ export default function BookLayoutEditor() {
                           style={{ ...s,
                             overflow: 'hidden',
                             background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
-                            border: isOver ? '2px dashed #3b82f6' : (photo ? 'none' : '1.5px dashed #c7d2fe'),
+                            border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none') : '1.5px dashed #c7d2fe'),
                             transition: 'all 0.2s ease',
                             cursor: dragPhotoId ? 'copy' : 'default',
                             boxSizing: 'border-box',
@@ -2536,6 +2536,13 @@ export default function BookLayoutEditor() {
                                   </div>
                                 )}
                               </div>
+                              {/* Zoom hint on hover */}
+                              {photoEditSlot !== key && (
+                                <div style={{position:'absolute',bottom:4,right:4,background:'rgba(0,0,0,0.4)',borderRadius:10,padding:'2px 6px',zIndex:30,opacity:0,transition:'opacity 0.15s'}} className="sp-zoom-hint">
+                                  <span style={{color:'#fff',fontSize:7,fontWeight:600}}>клік — кадрувати</span>
+                                </div>
+                              )}
+                              <style>{`.sp-zoom-hint{opacity:0!important}div:hover>.sp-zoom-hint{opacity:1!important}`}</style>
                               {/* Delete button — visible on hover */}
                               <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);}} style={{position:'absolute',top:4,right:4,width:24,height:24,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity 0.15s',zIndex:20,fontSize:12}} className="spread-del-btn">×</button>
                               <style>{`.spread-del-btn{opacity:0!important}div:hover>.spread-del-btn{opacity:1!important}`}</style>
@@ -2604,6 +2611,20 @@ export default function BookLayoutEditor() {
                     <ShapesLayer shapes={getCurShapes(spreadPageIdx)} canvasW={spreadW} canvasH={cH} onChange={newShapes => setPageShapes(prev=>({...prev,[spreadPageIdx]:newShapes}))}/>
                     {/* Frames on spread */}
                     <FrameLayer frame={getCurFrame(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
+                    {/* Stickers on spread */}
+                    {(pageStickers[spreadPageIdx] || []).map(st => (
+                      <div key={st.id} style={{ position:'absolute', left:st.x, top:st.y, width:st.w, height:st.h, cursor:'move', zIndex:12, touchAction:'none', fontSize:typeof st.w==='number'?st.w*0.8:32 }}
+                        onPointerDown={e => { e.stopPropagation(); const origX = typeof st.x === 'number' ? st.x : 0; const origY = typeof st.y === 'number' ? st.y : 0; startPointerDrag(e, (dx:number,dy:number) => { setPageStickers(prev => ({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(s=>s.id===st.id?{...s,x:origX+dx,y:origY+dy}:s)})); }); }}>
+                        {st.emoji || ''}
+                        <button onClick={()=>setPageStickers(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(s=>s.id!==st.id)}))} style={{position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                      </div>
+                    ))}
+                    {/* Safe zone corner marks */}
+                    <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:6,opacity:0.3}} viewBox={`0 0 ${spreadW} ${cH}`}>
+                      {(() => { const mx=5/prop.w*spreadW/2, my=5/prop.h*cH; return [[mx,my,1,1],[spreadW/2-mx,my,-1,1],[spreadW/2+mx,my,1,1],[spreadW-mx,my,-1,1],[mx,cH-my,1,-1],[spreadW/2-mx,cH-my,-1,-1],[spreadW/2+mx,cH-my,1,-1],[spreadW-mx,cH-my,-1,-1]].map(([cx,cy,dx,dy],ci) => (
+                        <g key={ci}><line x1={cx as number} y1={cy as number} x2={(cx as number)+6*(dx as number)} y2={cy as number} stroke="rgba(239,68,68,0.5)" strokeWidth="0.5"/><line x1={cx as number} y1={cy as number} x2={cx as number} y2={(cy as number)+6*(dy as number)} stroke="rgba(239,68,68,0.5)" strokeWidth="0.5"/></g>
+                      )); })()}
+                    </svg>
                   </div>
                 );
               })()
