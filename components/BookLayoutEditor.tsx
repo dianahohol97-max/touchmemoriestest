@@ -745,7 +745,6 @@ export default function BookLayoutEditor() {
     const layout = best.id as LayoutType;
     // Fill layout slots with photos (up to slot count)
     const layoutSlots = Array.from({ length: best.slots }, (_, si) => ({ photoId: photoIds[si] || null, cropX: 50, cropY: 50, zoom: 1 }));
-    console.log('[AUTOCOLLAGE]', { n, layout, bestSlots: best.slots, photoIds, layoutSlots: layoutSlots.map(s => s.photoId), pageIdx });
     setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, layout, slots: layoutSlots, textBlocks: p.textBlocks || [] }));
     // Extra photos beyond layout slots → create FreeSlots
     const extras = photoIds.slice(best.slots);
@@ -2446,7 +2445,6 @@ export default function BookLayoutEditor() {
                 const isSpreadLayout = (spreadPage?.layout || '').startsWith('sp-');
                 const layout = spreadPage?.layout || 'sp-full';
                 const spreadDefs = getSlotDefs(layout as LayoutType, spreadW, cH);
-                if (typeof window !== 'undefined') console.log('[SPREAD]', { spreadPageIdx, layout, slotsCount: spreadPage?.slots?.length, defsCount: spreadDefs.length, slots: spreadPage?.slots?.map(s => s.photoId) });
                 return (
                   <div
                     onPointerDown={() => setActiveSide(0)}
@@ -2705,7 +2703,6 @@ export default function BookLayoutEditor() {
                     );
                   }
                   const pageDefs = getSlotDefs(page.layout, pageW, cH);
-                  if (side === 0) console.log('[SLOTS]', { layout: page.layout, pageW: Math.round(pageW), cH: Math.round(cH), defsCount: pageDefs.length, firstDef: pageDefs[0]?.s });
                   const pageKey = (si: number) => `${pageIdx}-${si}`;
                   return (
                     <div key={pageRenderKey}
