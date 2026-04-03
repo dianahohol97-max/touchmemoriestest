@@ -1926,8 +1926,8 @@ export default function BookLayoutEditor() {
             {leftTab === 'stickers' && (
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 <input type="text" placeholder="Пошук стікерів..." 
-                  style={{ padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none' }}/>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
+                  style={{ padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none', width:'100%', boxSizing:'border-box' }}/>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:6 }}>
                   {[
                     {name:'Серце', emoji:'❤️', url:''},
                     {name:'Зірка', emoji:'⭐', url:''},
@@ -1953,10 +1953,10 @@ export default function BookLayoutEditor() {
                         setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
                         toast.success('Стікер додано на активну сторінку', { duration: 1500 });
                       }}
-                      style={{ padding:6, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}
+                      style={{ padding:6, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, overflow:'hidden', minWidth:0 }}
                       title={sticker.name}>
-                      <span style={{ fontSize:28, lineHeight:1 }}>{(sticker as any).emoji || '★'}</span>
-                      <span style={{ fontSize:9, color:'#64748b', textAlign:'center' }}>{sticker.name}</span>
+                      <span style={{ fontSize:26, lineHeight:1 }}>{(sticker as any).emoji || '★'}</span>
+                      <span style={{ fontSize:8, color:'#64748b', textAlign:'center', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{sticker.name}</span>
                     </button>
                   ))}
                 </div>
@@ -3281,7 +3281,7 @@ export default function BookLayoutEditor() {
               </div>
             )}
             {leftTab === 'stickers' && (
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:8 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(5, minmax(0, 1fr))', gap:8 }}>
                 {['❤️','⭐','☀️','🌸','👑','🦋','🌙','☁️','💎','🌈','🔥','⚡','✨','🎀','🎈','❄️'].map((em,i) => (
                   <button key={i} onClick={()=>{ const spi=getActivePageIdx(); setPageStickers(prev=>({...prev,[spi]:[...(prev[spi]||[]),{id:'stk-'+Date.now(),url:'',emoji:em,x:42,y:42,w:'12%',h:'12%'}]})); toast.success('Стікер додано'); setMobilePanel(false); }}
                     style={{ padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:24, display:'flex', alignItems:'center', justifyContent:'center' }}>
