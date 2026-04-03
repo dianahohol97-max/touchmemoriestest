@@ -61,6 +61,9 @@ interface CoverState {
   printedBgColor?: string;
   backCoverBgColor?: string;
   backCoverPhotoId?: string | null;
+  backCoverCropX?: number;
+  backCoverCropY?: number;
+  backCoverZoom?: number;
 }
 
 type LayoutType =
@@ -2140,13 +2143,49 @@ export default function BookLayoutEditor() {
                 {(() => {
                   const backBg = isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor);
                   const backPhoto = isPrinted ? getPhoto(coverState.backCoverPhotoId ?? null) : null;
-                  const [backDragOver, setBackDragOver] = [false, (_:any)=>{}]; // simple state
+                  const bCropX = coverState.backCoverCropX ?? 50;
+                  const bCropY = coverState.backCoverCropY ?? 50;
+                  const bZoom = coverState.backCoverZoom ?? 1;
                   return (
                     <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: backBg, borderRight: '2px solid rgba(0,0,0,0.12)' }}
                       onDragOver={e=>{e.preventDefault();}}
-                      onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverPhotoId:id}));}}>
-                      {backPhoto && <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} draggable={false}/>}
-                      {backPhoto && isPrinted && <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:4,right:8,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }}>×</button>}
+                      onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}>
+                      {backPhoto && (
+                        <div style={{ width:'100%', height:'100%', position:'absolute', inset:0, overflow:'hidden', cursor:'grab' }}
+                          onPointerDown={e => {
+                            e.preventDefault(); e.stopPropagation();
+                            const cx = bCropX, cy = bCropY;
+                            const sensitivity = 3 / Math.max(0.5, bZoom);
+                            startPointerDrag(e, (dx: number, dy: number) => {
+                              setCoverState((p: any) => ({
+                                ...p,
+                                backCoverCropX: Math.max(0, Math.min(100, cx - dx / sensitivity)),
+                                backCoverCropY: Math.max(0, Math.min(100, cy - dy / sensitivity)),
+                              }));
+                            });
+                          }}
+                          onWheel={e => {
+                            if (!backPhoto) return;
+                            e.preventDefault();
+                            const delta = e.deltaY > 0 ? -0.05 : 0.05;
+                            setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(0.5, Math.min(4, (p.backCoverZoom ?? 1) + delta)) }));
+                          }}>
+                          <img src={backPhoto.preview} style={{ width:`${bZoom*100}%`, height:`${bZoom*100}%`, objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', userSelect:'none', pointerEvents:'none' }} draggable={false}/>
+                        </div>
+                      )}
+                      {backPhoto && isPrinted && (
+                        <>
+                          <button onClick={()=>setCoverState((p: any)=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:4,right:8,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }}>×</button>
+                          <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
+                            style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3, background:'rgba(0,0,0,0.7)', borderRadius:16, padding:'2px 8px', zIndex:20 }}>
+                            <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.max(0.5,(p.backCoverZoom??1)-0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
+                            <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round(bZoom*100)}%</span>
+                            <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.min(4,(p.backCoverZoom??1)+0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
+                            <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                            <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:1,backCoverCropX:50,backCoverCropY:50}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
+                          </div>
+                        </>
+                      )}
                       <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
                         {isPrinted && !backPhoto && <span style={{ color:'rgba(0,0,0,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ — перетягніть фото</span>}
                         {!isPrinted && <span style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>}
