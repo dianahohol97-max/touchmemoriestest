@@ -71,5 +71,20 @@ export function getSlotDefs(layout: LayoutType, W: number, H: number): SlotDef[]
   if (layout === 'p-text-top')    return [S(0, 0, 0, W, H*0.65)];
   if (layout === 'p-text-bottom') return [S(0, 0, H*0.35, W, H*0.65)];
 
+  // SPREAD layouts (W = full spread width = 2 pages)
+  if (layout === 'sp-full')        return [S(0, 0, 0, W, H)];
+  if (layout === 'sp-1-left')      return [S(0, 0, 0, W*0.5, H)];
+  if (layout === 'sp-1-right')     return [S(0, W*0.5, 0, W*0.5, H)];
+  if (layout === 'sp-1-center')    return [S(0, W*0.15, H*0.1, W*0.7, H*0.8)];
+  if (layout === 'sp-2-v')         return [S(0, 0, 0, w2, H), S(1, w2+g, 0, w2, H)];
+  if (layout === 'sp-2-h')         return [S(0, 0, 0, W, h2), S(1, 0, h2+g, W, h2)];
+  if (layout === 'sp-2-big-left')  return [S(0, 0, 0, W*0.65, H), S(1, W*0.65+g, 0, W*0.35-g, H)];
+  if (layout === 'sp-2-big-right') return [S(0, 0, 0, W*0.35, H), S(1, W*0.35+g, 0, W*0.65-g, H)];
+  if (layout === 'sp-3-row')       return [S(0, 0, 0, w3, H), S(1, w3+g, 0, w3, H), S(2, 2*(w3+g), 0, w3, H)];
+  if (layout === 'sp-3-hero-left') return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h2), S(2, W*0.55+g, h2+g, W*0.45-g, h2)];
+  if (layout === 'sp-3-hero-right')return [S(0, 0, 0, W*0.45, h2), S(1, 0, h2+g, W*0.45, h2), S(2, W*0.45+g, 0, W*0.55-g, H)];
+  if (layout === 'sp-4-grid')      return [S(0, 0, 0, w2, h2), S(1, w2+g, 0, w2, h2), S(2, 0, h2+g, w2, h2), S(3, w2+g, h2+g, w2, h2)];
+  if (layout === 'sp-4-hero')      return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h3), S(2, W*0.55+g, h3+g, W*0.45-g, h3), S(3, W*0.55+g, 2*(h3+g), W*0.45-g, h3)];
+
   return [S(0, 0, 0, W, H)];
 }

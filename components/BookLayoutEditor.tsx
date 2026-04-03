@@ -82,7 +82,11 @@ type LayoutType =
   // 7-9
   'p-7-grid' | 'p-8-grid' | 'p-9-grid' |
   // text
-  'p-text' | 'p-text-top' | 'p-text-bottom';
+  'p-text' | 'p-text-top' | 'p-text-bottom' |
+  // SPREAD layouts (180° flat-lay photobooks — double width)
+  'sp-full' | 'sp-2-v' | 'sp-2-h' | 'sp-2-big-left' | 'sp-2-big-right' |
+  'sp-3-row' | 'sp-3-hero-left' | 'sp-3-hero-right' |
+  'sp-4-grid' | 'sp-4-hero' | 'sp-1-left' | 'sp-1-right' | 'sp-1-center';
 
 interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
@@ -136,6 +140,20 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'p-text',         label: 'Тільки текст',      slots: 0, group: 'Текст' },
   { id: 'p-text-top',     label: 'Фото + текст знизу', slots: 1, group: 'Текст' },
   { id: 'p-text-bottom',  label: 'Текст + фото знизу', slots: 1, group: 'Текст' },
+  // SPREAD layouts — for 180° flat-lay photobooks (double-page spread)
+  { id: 'sp-full',        label: 'На весь розворот',     slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-1-left',      label: 'Фото ліворуч',        slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-1-right',     label: 'Фото праворуч',       slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-1-center',    label: 'Фото по центру',      slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-2-v',         label: '2 вертикально',       slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-2-h',         label: '2 горизонтально',     slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-2-big-left',  label: 'Велике ліворуч',      slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-2-big-right', label: 'Велике праворуч',     slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-3-row',       label: '3 в ряд',             slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-3-hero-left', label: 'Велике + 2 праворуч', slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-3-hero-right',label: '2 ліворуч + велике',  slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-4-grid',      label: '4 рівно',             slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-4-hero',      label: 'Велике + 3',          slots: 4, group: 'Розворот 4 фото' },
 ];
 
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
@@ -519,6 +537,11 @@ export default function BookLayoutEditor() {
     (config?.productName || '').toLowerCase().includes('тревел') ||
     (config?.productName || '').toLowerCase().includes('побажань');
 
+  // Spread mode: photobooks open 180° flat — layouts span BOTH pages of a spread
+  // Page mode: magazines/journals/travelbooks — layouts are per-page
+  const isSpreadMode = _slug.includes('photobook') || _slug.includes('fotoknig') ||
+    (config?.productName || '').toLowerCase().includes('фотокниг');
+
   // Калька: right page of first spread (page index 2) is kalka, left (page index 1) is blank forзац
   const hasKalka = !!(config?.enableKalka) && _slug.includes('photobook');
   const kalkaForzatsIdx = hasKalka ? 1 : -1; // left page = blank forзац
@@ -627,7 +650,11 @@ export default function BookLayoutEditor() {
 
   // In spread view, changeLayout applies to the hovered/selected page side
   const [activeSide, setActiveSide] = useState<0|1>(0);
-  const getActivePageIdx = () => currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + activeSide;
+  const getActivePageIdx = () => {
+    if (currentIdx === 0) return 0;
+    if (isSpreadMode) return (currentIdx - 1) * 2 + 1; // always left page in spread mode
+    return (currentIdx - 1) * 2 + 1 + activeSide;
+  };
   // Minimum spreads = minPageCount / 2 (from product config, e.g. 20×20 = 6/2 = 3)
   const minPageCount = config?.minPageCount ?? 6;
   const minSpreads = Math.max(1, Math.floor(minPageCount / 2));
@@ -701,12 +728,15 @@ export default function BookLayoutEditor() {
     if (photoIds.length === 0) return;
     pushHistory();
     const n = photoIds.length;
+    // Filter layouts by mode: spread for photobooks, page for magazines
+    const modeLayouts = LAYOUTS.filter(l => isSpreadMode ? l.id.startsWith('sp-') : !l.id.startsWith('sp-'));
     // Find best matching layout
-    const exact = LAYOUTS.filter(l => l.slots === n);
-    const close = LAYOUTS.filter(l => l.slots > 0 && l.slots <= n && Math.abs(l.slots - n) <= 2);
-    const bigger = LAYOUTS.filter(l => l.slots >= n);
-    const pool = exact.length > 0 ? exact : bigger.length > 0 ? bigger : close.length > 0 ? close : LAYOUTS.filter(l => l.slots > 0);
-    const best = pool[Math.floor(Math.random() * pool.length)] || LAYOUTS.find(l => l.id === 'p-full')!;
+    const exact = modeLayouts.filter(l => l.slots === n);
+    const close = modeLayouts.filter(l => l.slots > 0 && l.slots <= n && Math.abs(l.slots - n) <= 2);
+    const bigger = modeLayouts.filter(l => l.slots >= n);
+    const pool = exact.length > 0 ? exact : bigger.length > 0 ? bigger : close.length > 0 ? close : modeLayouts.filter(l => l.slots > 0);
+    const fallback = isSpreadMode ? LAYOUTS.find(l => l.id === 'sp-full')! : LAYOUTS.find(l => l.id === 'p-full')!;
+    const best = pool[Math.floor(Math.random() * pool.length)] || fallback;
     const layout = best.id as LayoutType;
     // Fill layout slots with photos (up to slot count)
     const layoutSlots = Array.from({ length: best.slots }, (_, si) => ({ photoId: photoIds[si] || null, cropX: 50, cropY: 50, zoom: 1 }));
@@ -1299,7 +1329,11 @@ export default function BookLayoutEditor() {
                     <span style={{fontSize:14}}>&#9733;</span> Рекомендовано: шаблони на {unusedCount} фото
                   </div>
                 )}
-                {['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7–9 фото', 'Текст'].map(group => {
+                {/* Layout groups — spread layouts for photobooks, page layouts for magazines */}
+                {(isSpreadMode
+                  ? ['Розворот 1 фото', 'Розворот 2 фото', 'Розворот 3 фото', 'Розворот 4 фото']
+                  : ['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7–9 фото', 'Текст']
+                ).map(group => {
                   const gl = LAYOUTS.filter(l => l.group === group);
                   return (
                     <div key={group}>
@@ -2395,8 +2429,119 @@ export default function BookLayoutEditor() {
                     })()}
                   </svg>
                 </div>              </div>
+            ) : isSpreadMode && currentIdx !== 0 ? (
+              /* SPREAD MODE: single double-width canvas for 180° flat photobooks */
+              (() => {
+                const spreadPageIdx = (currentIdx - 1) * 2 + 1; // left page holds spread layout
+                const spreadPage = pages[spreadPageIdx];
+                const spreadW = pageW * 2;
+                const isSpreadLayout = (spreadPage?.layout || '').startsWith('sp-');
+                const layout = spreadPage?.layout || 'sp-full';
+                const spreadDefs = getSlotDefs(layout as LayoutType, spreadW, cH);
+                return (
+                  <div
+                    onPointerDown={() => setActiveSide(0)}
+                    onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+                    onDrop={e => {
+                      e.preventDefault();
+                      const photoId = e.dataTransfer.getData('photoId') || e.dataTransfer.getData('text/plain');
+                      if (!photoId || !photoId.startsWith('photo-')) return;
+                      let multiIds: string[] = [];
+                      try { multiIds = JSON.parse(e.dataTransfer.getData('photoIds') || '[]'); } catch {}
+                      if (multiIds.length > 1) { autoCollage(multiIds, spreadPageIdx); return; }
+                      const currentPhotos = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
+                      if (currentPhotos.length > 0) { autoCollage([...currentPhotos, photoId], spreadPageIdx); return; }
+                      pushHistory();
+                      setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, layout: 'sp-full' as LayoutType, slots: [{ photoId, cropX: 50, cropY: 50, zoom: 1 }], textBlocks: p.textBlocks || [] }));
+                    }}
+                    onClick={(e) => { setSelectedFreeSlotId(null); setSelectedTextId(null); if (textTool && spreadPage) onCanvasClickForPage(e, spreadPageIdx); }}
+                    style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
+                  >
+                    <BackgroundLayer bg={getCurBg(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
+                    {/* Center spine line */}
+                    <div style={{ position:'absolute', left:'50%', top:0, width:1, height:'100%', background:'rgba(0,0,0,0.06)', zIndex:5, pointerEvents:'none' }}/>
+                    {/* Spread layout slots */}
+                    {spreadDefs.map(({ i, s }) => {
+                      const slot = spreadPage?.slots[i];
+                      const photo = slot ? getPhoto(slot.photoId) : null;
+                      const key = `spread-${spreadPageIdx}-${i}`;
+                      const isOver = dropTarget === key;
+                      return (
+                        <div key={i}
+                          onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
+                          onDragLeave={() => setDropTarget(null)}
+                          onDrop={e => onDrop(e, spreadPageIdx, i)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (tapSelectedPhotoId) {
+                              haptic.success();
+                              setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== i ? s2 : { ...s2, photoId: tapSelectedPhotoId }) }));
+                              setTapSelectedPhotoId(null);
+                            }
+                          }}
+                          style={{ ...s,
+                            overflow: 'hidden',
+                            background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
+                            border: isOver ? '2px dashed #3b82f6' : (photo ? 'none' : '1.5px dashed #c7d2fe'),
+                            transition: 'all 0.2s ease',
+                            cursor: dragPhotoId ? 'copy' : 'default',
+                            boxSizing: 'border-box',
+                            borderRadius: photo ? 0 : 4,
+                            zIndex: 1,
+                          }}
+                        >
+                          {photo ? (
+                            <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
+                              onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                              onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
+                              <img src={photo.preview} draggable={photoEditSlot !== key}
+                                onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
+                                onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
+                                style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) translate(${((slot!.cropX??50)-50)*-0.6}%, ${((slot!.cropY??50)-50)*-0.6}%)`, transformOrigin:'center center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
+                              {photoEditSlot===key && (
+                                <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.75)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
+                                  <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
+                                  <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:28,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
+                                  <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>+</button>
+                                  <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
+                                  <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4,pointerEvents:'none'}}>
+                              <div style={{position:'absolute',top:4,left:4,width:16,height:16,borderRadius:'50%',background:'rgba(199,210,254,0.8)',color:'#4338ca',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>{i+1}</div>
+                              <div style={{width:28,height:28,borderRadius:'50%',background:'rgba(99,102,241,0.08)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                <ImageIcon size={14} color='#818cf8'/>
+                              </div>
+                              <span style={{fontSize:9,fontWeight:600,color:'#818cf8'}}>{isOver ? 'Відпустіть' : dragPhotoId ? 'Сюди' : ''}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {/* FreeSlots on spread */}
+                    <FreeSlotLayer
+                      slots={freeSlots[spreadPageIdx] || []}
+                      photos={photos}
+                      canvasW={spreadW}
+                      canvasH={cH}
+                      pageSizeMm={{ w: prop.w * 2, h: prop.h }}
+                      dragPhotoId={dragPhotoId}
+                      tapPhotoId={tapSelectedPhotoId}
+                      onChange={(newSlots) => { setFreeSlots(prev=>({...prev,[spreadPageIdx]:newSlots})); setTapSelectedPhotoId(null); }}
+                      onSwapToPageSlot={(photoId, _freeSlotId, srcPI, srcSI) => {
+                        setPages(prev => prev.map((p, pi2) => pi2 !== srcPI ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== srcSI ? s2 : { ...s2, photoId }) }));
+                      }}
+                      selectedId={selectedFreeSlotId}
+                      onSelect={setSelectedFreeSlotId}
+                      isMobile={isMobile}
+                    />
+                  </div>
+                );
+              })()
             ) : (
-              /* Spread: left page + right page */
+              /* Page mode: left page + right page (magazines, travelbooks) */
               <>
                 {[0, 1].map(side => {
                   const pageIdx = currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + side;

@@ -100,7 +100,11 @@ export type LayoutType =
   // 7-9
   | 'p-7-grid' | 'p-8-grid' | 'p-9-grid'
   // text
-  | 'p-text' | 'p-text-top' | 'p-text-bottom';
+  | 'p-text' | 'p-text-top' | 'p-text-bottom'
+  // SPREAD layouts (180° flat-lay photobooks — double width)
+  | 'sp-full' | 'sp-2-v' | 'sp-2-h' | 'sp-2-big-left' | 'sp-2-big-right'
+  | 'sp-3-row' | 'sp-3-hero-left' | 'sp-3-hero-right'
+  | 'sp-4-grid' | 'sp-4-hero' | 'sp-1-left' | 'sp-1-right' | 'sp-1-center';
 
 export interface SlotData {
   photoId: string | null;
