@@ -2465,6 +2465,10 @@ export default function BookLayoutEditor() {
                     style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
                   >
                     <BackgroundLayer bg={getCurBg(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
+                    {/* DEBUG: layout info overlay */}
+                    <div style={{position:'absolute',top:2,left:2,background:'red',color:'#fff',fontSize:10,fontWeight:900,padding:'2px 6px',borderRadius:4,zIndex:99}}>
+                      L={layout} defs={spreadDefs.length} slots={spreadPage?.slots?.length}
+                    </div>
                     {/* Center spine line */}
                     <div style={{ position:'absolute', left:'50%', top:0, width:1, height:'100%', background:'rgba(0,0,0,0.06)', zIndex:5, pointerEvents:'none' }}/>
                     {/* Spread layout slots */}
@@ -2474,7 +2478,7 @@ export default function BookLayoutEditor() {
                       const key = `spread-${spreadPageIdx}-${i}`;
                       const isOver = dropTarget === key;
                       const debugColors = ['#ff0000','#00ff00','#0000ff','#ff00ff'];
-                      console.log(`[SLOT ${i}]`, {photoId: slot?.photoId, left: s.left, top: s.top, width: s.width, height: s.height, hasPhoto: !!photo});
+                      console.log(`[SLOT ${i}] layout='${layout}' defs=${spreadDefs.length}`, {photoId: slot?.photoId, left: s.left, top: s.top, width: s.width, height: s.height, hasPhoto: !!photo});
                       return (
                         <div key={i}
                           onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
