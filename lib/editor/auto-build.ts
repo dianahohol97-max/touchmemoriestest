@@ -49,6 +49,20 @@ const LAYOUT_ORIENTATION_SCORE: Record<string, Orientation[]> = {
   'p-4-strip-h':   ['landscape'],
   'p-4-strip-v':   ['portrait'],
   'p-4-l-shape':   ['square'],
+  // Spread layouts (photobooks)
+  'sp-full':        ['landscape', 'square'],
+  'sp-1-left':      ['portrait'],
+  'sp-1-right':     ['portrait'],
+  'sp-1-center':    ['portrait', 'square'],
+  'sp-2-v':         ['portrait'],
+  'sp-2-h':         ['landscape'],
+  'sp-2-big-left':  ['landscape', 'square'],
+  'sp-2-big-right': ['landscape', 'square'],
+  'sp-3-row':       ['portrait'],
+  'sp-3-hero-left': ['landscape', 'square'],
+  'sp-3-hero-right':['landscape', 'square'],
+  'sp-4-grid':      ['square'],
+  'sp-4-hero':      ['landscape', 'square'],
 };
 
 function classifyPhoto(photo: { id: string; width: number; height: number }): PhotoClassified {
@@ -73,7 +87,7 @@ function pickBestLayout(
   variety: 'min' | 'medium' | 'max'
 ): string {
   const compatible = allLayouts.filter(l => l.slots === slotCount);
-  if (compatible.length === 0) return 'p-full';
+  if (compatible.length === 0) return allLayouts[0]?.id || 'p-full';
 
   // Score each layout
   const scored = compatible.map(l => {

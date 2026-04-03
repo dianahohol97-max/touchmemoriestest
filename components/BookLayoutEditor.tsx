@@ -504,17 +504,17 @@ export default function BookLayoutEditor() {
     const m = config.selectedPageCount.match(/(\d+)/);
     const total = m ? parseInt(m[0]) : 20;
     const hasKalka = !!(config.enableKalka) && (config.productSlug || '').toLowerCase().includes('photobook');
+    const isPhotobook = (config.productSlug || '').toLowerCase().includes('photobook') || (config.productSlug || '').toLowerCase().includes('fotoknig') || (config.productName || '').toLowerCase().includes('фотокниг');
+    const initLayout: LayoutType = isPhotobook ? 'sp-full' : 'p-full';
     const ps: Page[] = [];
     ps.push({ id: 0, label: 'Обкладинка', layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
-    // Content pages: 2 individual pages per spread
     for (let i = 1; i <= total; i++) {
-      ps.push({ id: i, label: `${i}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
+      ps.push({ id: i, label: `${i}`, layout: initLayout, slots: makeSlots(1), textBlocks: [] });
     }
-    // Kalka rule: add extra blank last spread
     if (hasKalka) {
       const n = ps.length;
-      ps.push({ id: n, label: `${n}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
-      ps.push({ id: n+1, label: `${n+1}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
+      ps.push({ id: n, label: `${n}`, layout: initLayout, slots: makeSlots(1), textBlocks: [] });
+      ps.push({ id: n+1, label: `${n+1}`, layout: initLayout, slots: makeSlots(1), textBlocks: [] });
     }
     setPages(ps);
   }, [config]);
@@ -780,20 +780,20 @@ export default function BookLayoutEditor() {
     if (cur.length > 0) groups.push(cur);
     const newPages: Page[] = [pages[0]];
     const startOff = hasKalka ? 2 : hasEndpaper ? 1 : 0;
-    for (let i = 0; i < startOff; i++) newPages.push(pages[i + 1] || { id: i + 1, label: `${i + 1}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+    for (let i = 0; i < startOff; i++) newPages.push(pages[i + 1] || { id: i + 1, label: `${i + 1}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     for (const group of groups) {
       const mid = Math.ceil(group.length / 2);
       for (const ids of [group.slice(0, mid), group.slice(mid)]) {
         const n = ids.length;
-        if (n === 0) { newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] }); continue; }
+        if (n === 0) { newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }); continue; }
         const pool = LAYOUTS.filter(l => l.slots === n);
         const layout = (pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : LAYOUTS.find(l => l.id === 'p-full')!);
         newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: layout.id as LayoutType, slots: ids.map(id => ({ photoId: id, cropX: 50, cropY: 50, zoom: 1 })), textBlocks: [] });
       }
     }
-    if (hasKalka) { newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] }); newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] }); }
-    while ((newPages.length - 1) % 2 !== 0) newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
-    while (newPages.length - 1 < minPageCount) newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+    if (hasKalka) { newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }); newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }); }
+    while ((newPages.length - 1) % 2 !== 0) newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
+    while (newPages.length - 1 < minPageCount) newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     setPages(newPages); setFreeSlots({}); setCurrentIdx(1);
     toast.success(`${groups.length} груп → ${Math.ceil((newPages.length - 1) / 2)} розворотів`, { duration: 2500 });
   };
@@ -803,7 +803,7 @@ export default function BookLayoutEditor() {
     pushHistory();
     const result = autoBuild({
       photos,
-      layouts: LAYOUTS,
+      layouts: LAYOUTS.filter(l => isSpreadMode ? l.id.startsWith('sp-') : !l.id.startsWith('sp-')),
       currentPageCount: pages.length,
       minPages: minPagesLen,
       density: opts.density,
@@ -824,7 +824,7 @@ export default function BookLayoutEditor() {
     // Add kalka/endpaper placeholder pages if needed
     const startOffset = hasKalka ? 2 : hasEndpaper ? 1 : 0;
     for (let i = 0; i < startOffset; i++) {
-      newPages.push(pages[i + 1] || { id: i + 1, label: `${i + 1}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+      newPages.push(pages[i + 1] || { id: i + 1, label: `${i + 1}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
 
     // Build content pages from autoBuild result
@@ -853,17 +853,17 @@ export default function BookLayoutEditor() {
 
     // Add kalka end pages if needed  
     if (hasKalka) {
-      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
-      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
+      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
 
     // Ensure even number of content pages (spreads need pairs)
     while ((newPages.length - 1) % 2 !== 0) {
-      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
     // Ensure minimum pages for this product
     while (newPages.length - 1 < minPageCount) {
-      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
 
     setPages(newPages);
