@@ -322,6 +322,8 @@ export default function BookLayoutEditor() {
   };
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
   const [tapSelectedPhotoId, setTapSelectedPhotoId] = useState<string | null>(null); // mobile tap-to-place
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set()); // desktop multi-select
+  const [timelineCuts, setTimelineCuts] = useState<Set<number>>(new Set()); // timeline cut positions
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [textGuides, setTextGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] });
   const [textTool, setTextTool] = useState(false);
@@ -676,6 +678,54 @@ export default function BookLayoutEditor() {
     let pi = 0;
     setPages(prev => prev.map(p => ({ ...p, slots: p.slots.map(sl => { if (sl.photoId) return sl; const ph = photos[pi]; if (!ph) return sl; pi++; return { ...sl, photoId: ph.id }; }) })));
     toast.success('Фото розставлено');
+  };
+
+  // Auto-collage: drop N photos onto a page → pick best layout + assign
+  const autoCollage = (photoIds: string[], pageIdx: number) => {
+    if (photoIds.length === 0) return;
+    pushHistory();
+    const n = photoIds.length;
+    const compatible = LAYOUTS.filter(l => l.slots === n);
+    const fallback = LAYOUTS.filter(l => l.slots > 0 && Math.abs(l.slots - n) <= 1);
+    const pool = compatible.length > 0 ? compatible : fallback.length > 0 ? fallback : LAYOUTS.filter(l => l.slots > 0);
+    const best = pool[Math.floor(Math.random() * pool.length)] || LAYOUTS.find(l => l.id === 'p-full')!;
+    const layout = best.id as LayoutType;
+    const slots = Array.from({ length: best.slots }, (_, si) => ({ photoId: photoIds[si] || null, cropX: 50, cropY: 50, zoom: 1 }));
+    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, layout, slots, textBlocks: p.textBlocks || [] }));
+    setFreeSlots(prev => { const u = { ...prev }; delete u[pageIdx]; return u; });
+    setSelectedPhotoIds(new Set());
+    setTapSelectedPhotoId(null);
+    toast.success(`${n} фото → ${best.label || layout}`, { duration: 2000 });
+  };
+
+  // Apply timeline cuts → build spreads from photo groups
+  const applyTimelineCuts = (cuts: Set<number>) => {
+    if (photos.length === 0) return;
+    pushHistory();
+    const groups: string[][] = [];
+    let cur: string[] = [];
+    photos.forEach((ph, i) => {
+      cur.push(ph.id);
+      if (cuts.has(i) || i === photos.length - 1) { groups.push([...cur]); cur = []; }
+    });
+    if (cur.length > 0) groups.push(cur);
+    const newPages: Page[] = [pages[0]];
+    const startOff = hasKalka ? 2 : hasEndpaper ? 1 : 0;
+    for (let i = 0; i < startOff; i++) newPages.push(pages[i + 1] || { id: i + 1, label: `${i + 1}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+    for (const group of groups) {
+      const mid = Math.ceil(group.length / 2);
+      for (const ids of [group.slice(0, mid), group.slice(mid)]) {
+        const n = ids.length;
+        if (n === 0) { newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] }); continue; }
+        const pool = LAYOUTS.filter(l => l.slots === n);
+        const layout = (pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : LAYOUTS.find(l => l.id === 'p-full')!);
+        newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: layout.id as LayoutType, slots: ids.map(id => ({ photoId: id, cropX: 50, cropY: 50, zoom: 1 })), textBlocks: [] });
+      }
+    }
+    if (hasKalka) { newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] }); newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] }); }
+    while ((newPages.length - 1) % 2 !== 0) newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] });
+    setPages(newPages); setFreeSlots({}); setCurrentIdx(1);
+    toast.success(`${groups.length} груп → ${Math.ceil((newPages.length - 1) / 2)} розворотів`, { duration: 2500 });
   };
 
   const runAutoBuild = (opts: { density: 'sparse'|'balanced'|'dense'; variety: 'min'|'medium'|'max'; coverPhoto: boolean }) => {
@@ -1143,16 +1193,18 @@ export default function BookLayoutEditor() {
                     const ratio = ph.width / ph.height;
                     const shortName = ph.name.replace(/\.[^.]+$/, '');
                     const displayName = shortName.length > 12 ? shortName.slice(0, 10) + '..' : shortName;
+                    const isSel = selectedPhotoIds.has(ph.id);
                     return (
                       <div key={ph.id} draggable={!used}
-                        onDragStart={e => { if(used) return; setDragPhotoId(ph.id); e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }}
+                        onDragStart={e => { if(used) return; const ids = isSel && selectedPhotoIds.size > 1 ? [...selectedPhotoIds] : [ph.id]; setDragPhotoId(ph.id); e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('photoIds', JSON.stringify(ids)); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }}
                         onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
-                        onClick={() => { if (!used) setTapSelectedPhotoId(tapSelectedPhotoId === ph.id ? null : ph.id); }}
-                        style={{ display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', cursor: used ? 'default' : 'pointer', opacity: used ? 0.45 : 1, border: tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : '1px solid #e2e8f0', outline: tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none', background: '#fff' }}>
+                        onClick={(e) => { if(used) return; if(e.ctrlKey||e.metaKey){ setSelectedPhotoIds(prev=>{const n=new Set(prev);if(n.has(ph.id))n.delete(ph.id);else n.add(ph.id);return n;}); } else { setSelectedPhotoIds(new Set()); setTapSelectedPhotoId(tapSelectedPhotoId===ph.id?null:ph.id); }}}
+                        style={{ display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', cursor: used ? 'default' : 'pointer', opacity: used ? 0.45 : 1, border: isSel ? '2px solid #7c3aed' : tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : '1px solid #e2e8f0', outline: isSel ? '2px solid rgba(124,58,237,0.3)' : tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none', background: isSel ? '#f5f3ff' : '#fff' }}>
                         <div style={{ position: 'relative', width: '100%', aspectRatio: String(ratio), maxHeight: 120, overflow: 'hidden' }}>
                           <img src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
                           {used && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✓</div>}
-                          {tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👆</div>}
+                          {isSel && <div style={{ position: 'absolute', inset: 0, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#7c3aed', fontWeight: 700 }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
+                          {!isSel && tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👆</div>}
                           <span style={{ position: 'absolute', top: 2, left: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3 }}>{i + 1}</span>
                           {/* Low DPI warning — check against full page size */}
                           {(() => {
@@ -1170,8 +1222,16 @@ export default function BookLayoutEditor() {
             )}
 
             {/* LAYOUTS */}
-            {leftTab === 'layouts' && (
+            {leftTab === 'layouts' && (() => {
+              // Count unused photos for recommended layouts
+              const unusedCount = photos.filter(p => !usedIds.has(p.id)).length;
+              return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {unusedCount > 0 && (
+                  <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '6px 10px', fontSize: 10, color: '#7c3aed', fontWeight: 600, display:'flex', alignItems:'center', gap:4 }}>
+                    <span style={{fontSize:14}}>&#9733;</span> Рекомендовано: шаблони на {unusedCount} фото
+                  </div>
+                )}
                 {['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7–9 фото', 'Текст'].map(group => {
                   const gl = LAYOUTS.filter(l => l.group === group);
                   return (
@@ -1181,11 +1241,13 @@ export default function BookLayoutEditor() {
                         {gl.map(l => {
                           const activeIdx = getActivePageIdx();
                           const active = pages[activeIdx]?.layout === l.id;
+                          const isRecommended = l.slots === unusedCount && unusedCount > 0;
                           return (
                             <button key={l.id} onClick={() => changeLayout(l.id, activeIdx)} title={l.label}
-                              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '7px 4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: active ? '#1e2d7d' : '#fff', cursor: 'pointer' }}>
+                              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '7px 4px', border: active ? '2px solid #1e2d7d' : isRecommended ? '2px solid #7c3aed' : '1px solid #e2e8f0', borderRadius: 8, background: active ? '#1e2d7d' : isRecommended ? '#faf5ff' : '#fff', cursor: 'pointer', position:'relative' }}>
+                              {isRecommended && !active && <div style={{ position:'absolute', top:-1, right:-1, width:8, height:8, borderRadius:'50%', background:'#7c3aed' }}/>}
                               <LayoutSVG layout={l.id} active={active} />
-                              <span style={{ fontSize: 9, fontWeight: 600, color: active ? '#fff' : '#374151', textAlign: 'center', lineHeight: 1.2 }}>{l.label}</span>
+                              <span style={{ fontSize: 9, fontWeight: 600, color: active ? '#fff' : isRecommended ? '#7c3aed' : '#374151', textAlign: 'center', lineHeight: 1.2 }}>{l.label}</span>
                             </button>
                           );
                         })}
@@ -1201,7 +1263,8 @@ export default function BookLayoutEditor() {
                   </button>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* COVER */}
             {leftTab === 'cover' && (
@@ -2243,11 +2306,14 @@ export default function BookLayoutEditor() {
                         e.preventDefault();
                         const photoId = e.dataTransfer.getData('photoId') || e.dataTransfer.getData('text/plain');
                         if (!photoId || !photoId.startsWith('photo-')) return;
-                        // Check if photo already used in a slot on this page — if so, skip
+                        // Multi-photo drop?
+                        let multiIds: string[] = [];
+                        try { multiIds = JSON.parse(e.dataTransfer.getData('photoIds') || '[]'); } catch {}
+                        if (multiIds.length > 1) { autoCollage(multiIds, pageIdx); return; }
+                        // Single photo → FreeSlot
                         const alreadyInSlot = (page?.slots||[]).some(s => s.photoId === photoId) || (freeSlots[pageIdx]||[]).some(fs => fs.photoId === photoId);
                         if (alreadyInSlot) return;
                         pushHistory();
-                        // Get drop position relative to page
                         const rect = e.currentTarget.getBoundingClientRect();
                         const dropX = Math.max(10, Math.min(pageW - 120, e.clientX - rect.left - 55));
                         const dropY = Math.max(10, Math.min(cH - 120, e.clientY - rect.top - 55));
@@ -2255,11 +2321,7 @@ export default function BookLayoutEditor() {
                         const ratio = photo ? photo.width / photo.height : 1;
                         const slotH = Math.min(cH * 0.45, 160);
                         const slotW = Math.round(slotH * ratio);
-                        const newSlot: FreeSlot = {
-                          id: 'free-' + Date.now() + '-' + Math.random().toString(36).slice(2,6),
-                          x: dropX, y: dropY, w: slotW, h: slotH,
-                          shape: 'rect', photoId, cropX: 50, cropY: 50, zoom: 1,
-                        };
+                        const newSlot: FreeSlot = { id: 'free-' + Date.now() + '-' + Math.random().toString(36).slice(2,6), x: dropX, y: dropY, w: slotW, h: slotH, shape: 'rect', photoId, cropX: 50, cropY: 50, zoom: 1 };
                         setFreeSlots(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx]||[]), newSlot] }));
                         toast.success('Фото додано на сторінку');
                       }}
