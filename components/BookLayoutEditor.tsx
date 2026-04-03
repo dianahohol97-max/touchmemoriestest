@@ -586,10 +586,13 @@ export default function BookLayoutEditor() {
     pushHistory();
     const curFreeCount = (freeSlots[targetIdx] || []).length;
     const slotCount = page.slots.length > 0 ? page.slots.length : curFreeCount;
+    // Filter by mode
+    const modeLayouts = LAYOUTS.filter(l => isSpreadMode ? l.id.startsWith('sp-') : !l.id.startsWith('sp-'));
     const compatible = slotCount > 0
-      ? LAYOUTS.filter(l => l.slots === slotCount)
-      : LAYOUTS.filter(l => l.slots > 0);
-    const pool = compatible.length > 0 ? compatible : LAYOUTS;
+      ? modeLayouts.filter(l => l.slots === slotCount)
+      : modeLayouts.filter(l => l.slots > 0);
+    const pool = compatible.length > 0 ? compatible : modeLayouts.filter(l => l.slots > 0);
+    if (pool.length === 0) return;
     const curRealLayout = page.layout === 'p-text' ? null : page.layout;
     const cur = curRealLayout ? pool.findIndex(l => l.id === curRealLayout) : -1;
     const next = ((cur + direction) % pool.length + pool.length) % pool.length;
@@ -598,16 +601,18 @@ export default function BookLayoutEditor() {
   };
   const shuffleLayout = () => cycleLayout(1);
 
+  // Default layout based on mode
+  const defaultLayout = (): LayoutType => isSpreadMode ? 'sp-full' : 'p-full';
+
   const addSpread = () => {
     pushHistory();
     const newId1 = pages.length;
     const newId2 = pages.length + 1;
     setPages(prev => [
       ...prev,
-      { id: newId1, label: `Стор. ${newId1}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] },
-      { id: newId2, label: `Стор. ${newId2}`, layout: 'p-full', slots: makeSlots(1), textBlocks: [] },
+      { id: newId1, label: `Стор. ${newId1}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
+      { id: newId2, label: `Стор. ${newId2}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
     ]);
-    // Navigate to new spread
     const newSpreadIdx = Math.ceil(pages.length / 2);
     setCurrentIdx(newSpreadIdx);
   };
@@ -2231,7 +2236,7 @@ export default function BookLayoutEditor() {
           </div>
 
           {/* Active page indicator */}
-          {currentIdx !== 0 && (
+          {currentIdx !== 0 && !isSpreadMode && (
             <div style={{ fontSize:11, color:'#94a3b8', marginBottom:8, textAlign:'center' }}>
               Активна сторінка: <b style={{color:'#1e2d7d'}}>{activeSide === 0 ? 'ліва' : 'права'}</b> — клікніть на сторінку для вибору
             </div>
@@ -3030,6 +3035,37 @@ export default function BookLayoutEditor() {
               const TW = 130;
               const renderThumbPage = (pg: typeof pages[0] | undefined, side: 'left'|'right') => {
                 if (!pg) return <div style={{ flex:1, height:'100%', background:'#f1f5f9' }}/>;
+                // In spread mode, left page has the spread layout — render full width
+                if (isSpreadMode && side === 'left') {
+                  const defs = getSlotDefs(pg.layout, TW, TW * prop.h / (prop.w * 2));
+                  return (
+                    <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden', background:'#fff' }}>
+                      {defs.map(({i, s}) => {
+                        const slot = pg.slots[i];
+                        const ph = slot ? getPhoto(slot.photoId) : null;
+                        const ss: React.CSSProperties = {
+                          position: 'absolute',
+                          left: `${((s.left as number)||0) / TW * 100}%`,
+                          top: `${((s.top as number)||0) / (TW * prop.h / (prop.w * 2)) * 100}%`,
+                          width: `${((s.width as number)||TW) / TW * 100}%`,
+                          height: `${((s.height as number)||TW) / (TW * prop.h / (prop.w * 2)) * 100}%`,
+                          overflow: 'hidden',
+                          background: ph ? 'transparent' : 'rgba(240,242,255,0.65)',
+                          border: ph ? 'none' : '1px dashed #c7d2fe',
+                          borderRadius: 2,
+                        };
+                        return (
+                          <div key={i} style={ss}>
+                            {ph && <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                          </div>
+                        );
+                      })}
+                      {/* Spine line */}
+                      <div style={{ position:'absolute', left:'50%', top:0, width:1, height:'100%', background:'rgba(0,0,0,0.08)' }}/>
+                    </div>
+                  );
+                }
+                if (isSpreadMode && side === 'right') return null; // right page hidden in spread mode
                 const defs = getSlotDefs(pg.layout, TW/2, TW * prop.h / prop.w / 1);
                 return (
                   <div style={{ flex:1, height:'100%', position:'relative', overflow:'hidden', background:'#fff',
