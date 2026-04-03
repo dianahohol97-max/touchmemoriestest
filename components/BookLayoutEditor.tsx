@@ -941,7 +941,7 @@ export default function BookLayoutEditor() {
     e.preventDefault(); e.stopPropagation();
     haptic.light();
     const [pi, si] = key.split('-').map(Number);
-    const sensitivity = 3 / Math.max(0.5, pages[pi]?.slots[si]?.zoom || 1);
+    const sensitivity = 3 / Math.max(1, pages[pi]?.slots[si]?.zoom || 1);
     startPointerDrag(e,
       (dx, dy) => setPages(prev => prev.map((p, i) => i !== pi ? p : {
         ...p, slots: p.slots.map((sl, j) => j !== si ? sl : {
@@ -2261,7 +2261,7 @@ export default function BookLayoutEditor() {
                           onPointerDown={e => {
                             e.preventDefault(); e.stopPropagation();
                             const cx = bCropX, cy = bCropY;
-                            const sensitivity = 3 / Math.max(0.5, bZoom);
+                            const sensitivity = 3 / Math.max(1, bZoom);
                             startPointerDrag(e, (dx: number, dy: number) => {
                               setCoverState((p: any) => ({
                                 ...p,
@@ -2274,7 +2274,7 @@ export default function BookLayoutEditor() {
                             if (!backPhoto) return;
                             e.preventDefault();
                             const delta = e.deltaY > 0 ? -0.05 : 0.05;
-                            setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(0.5, Math.min(4, (p.backCoverZoom ?? 1) + delta)) }));
+                            setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(1, Math.min(4, (p.backCoverZoom ?? 1) + delta)) }));
                           }}>
                           <img src={backPhoto.preview} style={{ width:`${Math.max(100,bZoom*100)}%`, height:`${Math.max(100,bZoom*100)}%`, objectFit:'cover', position:'absolute', top:'50%', left:'50%', transform:`translate(-50%,-50%) translate(${Math.max(-((bZoom-1)/bZoom)*50, Math.min(((bZoom-1)/bZoom)*50, (bCropX-50)*-0.5))}%, ${Math.max(-((bZoom-1)/bZoom)*50, Math.min(((bZoom-1)/bZoom)*50, (bCropY-50)*-0.5))}%)`, userSelect:'none', pointerEvents:'none' }} draggable={false}/>
                         </div>
@@ -2284,7 +2284,7 @@ export default function BookLayoutEditor() {
                           <button onClick={()=>setCoverState((p: any)=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:4,right:8,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }}>×</button>
                           <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
                             style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3, background:'rgba(0,0,0,0.7)', borderRadius:16, padding:'2px 8px', zIndex:20 }}>
-                            <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.max(0.5,(p.backCoverZoom??1)-0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
+                            <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.max(1,(p.backCoverZoom??1)-0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
                             <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round(bZoom*100)}%</span>
                             <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.min(4,(p.backCoverZoom??1)+0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
                             <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
@@ -2510,7 +2510,7 @@ export default function BookLayoutEditor() {
                                 ) : null;
                               })()}
                               <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default', padding: pageGap > 0 ? pageGap : 0, boxSizing:'border-box' }}
-                                onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(1, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                 onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                 <img src={photo.preview} draggable={photoEditSlot !== key}
                                   onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
@@ -2524,7 +2524,7 @@ export default function BookLayoutEditor() {
                                 )}
                                 {photoEditSlot===key && (
                                   <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.75)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
-                                    <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
+                                    <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(1,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
                                     <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:28,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
                                     <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>+</button>
                                     <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
@@ -2808,7 +2808,7 @@ export default function BookLayoutEditor() {
                                   ) : null;
                                 })()}
                                 <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
-                                  onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                  onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(1, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img src={photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
@@ -2827,7 +2827,7 @@ export default function BookLayoutEditor() {
                                   <style>{`.zoom-hint{opacity:0!important}div:hover>.zoom-hint{opacity:1!important}`}</style>
                                   {photoEditSlot===key && (
                                     <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.75)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
-                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
+                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(1,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
                                       <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:28,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
                                       <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>+</button>
                                       <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>

@@ -254,7 +254,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         const cx = config.photoCropX ?? 50;
                         const cy = config.photoCropY ?? 50;
                         const zm = config.photoZoom ?? 1;
-                        const sensitivity = 3 / Math.max(0.5, zm);
+                        const sensitivity = 3 / Math.max(1, zm);
                         startPointerDrag(e, (dx, dy) => {
                           onChange({
                             photoCropX: Math.max(0, Math.min(100, cx - dx / sensitivity)),
@@ -269,7 +269,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       if (!photo) return;
                       e.preventDefault();
                       const delta = e.deltaY > 0 ? -0.05 : 0.05;
-                      const nz = Math.max(0.5, Math.min(4, (config.photoZoom ?? 1) + delta));
+                      const nz = Math.max(1, Math.min(4, (config.photoZoom ?? 1) + delta));
                       onChange({ photoZoom: nz } as any);
                     }}>
                     <img src={photo.preview}
@@ -287,7 +287,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                     <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
                       style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3,
                         background:'rgba(0,0,0,0.75)', borderRadius:16, padding:'2px 8px', zIndex:30 }}>
-                      <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.max(0.5, (config.photoZoom??1)-0.1) } as any);}}
+                      <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.max(1, (config.photoZoom??1)-0.1) } as any);}}
                         style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
                       <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round((config.photoZoom??1)*100)}%</span>
                       <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.min(4, (config.photoZoom??1)+0.1) } as any);}}
@@ -380,12 +380,12 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       e.stopPropagation(); e.preventDefault();
                       haptic.light();
                       const cx = config.photoCropX ?? 50, cy = config.photoCropY ?? 50;
-                      const sensitivity = 3 / Math.max(0.5, config.photoZoom ?? 1);
+                      const sensitivity = 3 / Math.max(1, config.photoZoom ?? 1);
                       startPointerDrag(e, (dx, dy) => {
                         onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
                       });
                     }}
-                    onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
+                    onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(1, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
                     <img src={photo.preview} style={{ width:`${Math.max(100,(config.photoZoom??1)*100)}%`, height:`${Math.max(100,(config.photoZoom??1)*100)}%`, objectFit:'cover', position:'absolute', top:'50%', left:'50%', transform:`translate(-50%,-50%) translate(${Math.max(-(((config.photoZoom??1)-1)/(config.photoZoom??1))*50,Math.min(((config.photoZoom??1)-1)/(config.photoZoom??1)*50,((config.photoCropX??50)-50)*-0.5))}%,${Math.max(-(((config.photoZoom??1)-1)/(config.photoZoom??1))*50,Math.min(((config.photoZoom??1)-1)/(config.photoZoom??1)*50,((config.photoCropY??50)-50)*-0.5))}%)`, userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
                   </div>
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
@@ -408,12 +408,12 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       e.stopPropagation(); e.preventDefault();
                       haptic.light();
                       const cx = config.photoCropX ?? 50, cy = config.photoCropY ?? 50;
-                      const sensitivity = 3 / Math.max(0.5, config.photoZoom ?? 1);
+                      const sensitivity = 3 / Math.max(1, config.photoZoom ?? 1);
                       startPointerDrag(e, (dx, dy) => {
                         onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
                       });
                     }}
-                    onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.5, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
+                    onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(1, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
                     <img src={photo.preview} style={{ width:`${Math.max(100,(config.photoZoom??1)*100)}%`, height:`${Math.max(100,(config.photoZoom??1)*100)}%`, objectFit:'cover', position:'absolute', top:'50%', left:'50%', transform:`translate(-50%,-50%) translate(${Math.max(-(((config.photoZoom??1)-1)/(config.photoZoom??1))*50,Math.min(((config.photoZoom??1)-1)/(config.photoZoom??1)*50,((config.photoCropX??50)-50)*-0.5))}%,${Math.max(-(((config.photoZoom??1)-1)/(config.photoZoom??1))*50,Math.min(((config.photoZoom??1)-1)/(config.photoZoom??1)*50,((config.photoCropY??50)-50)*-0.5))}%)`, userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
                   </div>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
