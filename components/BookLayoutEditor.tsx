@@ -2489,8 +2489,8 @@ export default function BookLayoutEditor() {
                               }
                             }}
                             style={{ ...s,
-                              background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : '#f0f2ff'),
-                              border: isOver ? '2.5px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none') : '2px dashed #a5b4fc'),
+                              background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
+                              border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none') : '1.5px dashed #c7d2fe'),
                               transition: 'all 0.2s ease',
                               cursor: dragPhotoId ? 'copy' : (tapSelectedPhotoId ? 'pointer' : 'default'),
                               boxSizing: 'border-box',
@@ -2572,13 +2572,13 @@ export default function BookLayoutEditor() {
                                   ) : null;
                                 })()}
                                 {/* Slot number badge */}
-                                <div style={{position:'absolute',top:6,left:6,width:18,height:18,borderRadius:'50%',background:'#c7d2fe',color:'#4338ca',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>{i+1}</div>
-                                {/* Big icon + text */}
-                                <div style={{width:36,height:36,borderRadius:'50%',background:isOver?'rgba(59,130,246,0.15)':'rgba(99,102,241,0.1)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s'}}>
-                                  <ImageIcon size={18} color={isOver?'#3b82f6':'#6366f1'}/>
+                                <div style={{position:'absolute',top:4,left:4,width:16,height:16,borderRadius:'50%',background:'rgba(199,210,254,0.8)',color:'#4338ca',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>{i+1}</div>
+                                {/* Icon + text — smaller for compact slots */}
+                                <div style={{width:28,height:28,borderRadius:'50%',background:isOver?'rgba(59,130,246,0.15)':'rgba(99,102,241,0.08)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s'}}>
+                                  <ImageIcon size={14} color={isOver?'#3b82f6':'#818cf8'}/>
                                 </div>
-                                <span style={{fontSize:10,fontWeight:700,color:isOver?'#3b82f6':'#6366f1',textAlign:'center',lineHeight:1.3}}>
-                                  {isOver ? 'Відпустіть' : dragPhotoId ? 'Сюди' : 'Перетягніть фото'}
+                                <span style={{fontSize:9,fontWeight:600,color:isOver?'#3b82f6':'#818cf8',textAlign:'center',lineHeight:1.2}}>
+                                  {isOver ? 'Відпустіть' : dragPhotoId ? 'Сюди' : ''}
                                 </span>
                                 {tapSelectedPhotoId && !dragPhotoId && (
                                   <span style={{fontSize:9,fontWeight:600,color:'#3b82f6',background:'rgba(59,130,246,0.08)',padding:'2px 8px',borderRadius:10}}>Клікніть щоб вставити</span>
