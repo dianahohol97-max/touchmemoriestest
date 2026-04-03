@@ -2498,28 +2498,60 @@ export default function BookLayoutEditor() {
                           }}
                         >
                           {photo ? (
-                            <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
-                              onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
-                              onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                              <img src={photo.preview} draggable={photoEditSlot !== key}
-                                onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
-                                onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
-                                style={{ width:`${Math.max(100,(slot!.zoom||1)*100)}%`, height:`${Math.max(100,(slot!.zoom||1)*100)}%`, objectFit:'cover', position:'absolute', top:'50%', left:'50%', transform:`translate(-50%,-50%) translate(${((slot!.cropX??50)-50)*-0.5}%, ${((slot!.cropY??50)-50)*-0.5}%)`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
-                              {photoEditSlot===key && (
-                                <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.75)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
-                                  <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
-                                  <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:28,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
-                                  <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>+</button>
-                                  <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
-                                  <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
-                                  <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
-                                  <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✕ фото</button>
-                                </div>
-                              )}
+                            <>
+                              {/* DRAG-OVER REPLACE PREVIEW */}
+                              {isOver && dragPhotoId && (() => {
+                                const incoming = photos.find(p => p.id === dragPhotoId);
+                                return incoming ? (
+                                  <div style={{ position:'absolute', inset:0, zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.35)', pointerEvents:'none' }}>
+                                    <img src={incoming.preview} style={{ width:'80%', height:'80%', objectFit:'cover', borderRadius:4, opacity:0.85, boxShadow:'0 4px 20px rgba(0,0,0,0.4)' }} draggable={false}/>
+                                    <div style={{ position:'absolute', bottom:6, left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.75)', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:10 }}>Замінити фото</div>
+                                  </div>
+                                ) : null;
+                              })()}
+                              <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default', padding: pageGap > 0 ? pageGap : 0, boxSizing:'border-box' }}
+                                onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.5, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
+                                <img src={photo.preview} draggable={photoEditSlot !== key}
+                                  onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
+                                  onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
+                                  style={{ width:`${Math.max(100,(slot!.zoom||1)*100)}%`, height:`${Math.max(100,(slot!.zoom||1)*100)}%`, objectFit:'cover', position:'absolute', top:'50%', left:'50%', transform:`translate(-50%,-50%) translate(${((slot!.cropX??50)-50)*-0.5}%, ${((slot!.cropY??50)-50)*-0.5}%)`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
+                                {/* Zoom hint + badge */}
+                                {photoEditSlot !== key && (slot!.zoom||1) !== 1 && (
+                                  <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
+                                    <span style={{color:'#fff',fontSize:8,fontWeight:700}}>{Math.round((slot!.zoom||1)*100)}%</span>
+                                  </div>
+                                )}
+                                {photoEditSlot===key && (
+                                  <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.75)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
+                                    <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.5,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>−</button>
+                                    <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:28,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
+                                    <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>+</button>
+                                    <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
+                                    <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
+                                    <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
+                                    <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✕ фото</button>
+                                  </div>
+                                )}
+                              </div>
                               {/* Delete button — visible on hover */}
                               <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);}} style={{position:'absolute',top:4,right:4,width:24,height:24,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity 0.15s',zIndex:20,fontSize:12}} className="spread-del-btn">×</button>
                               <style>{`.spread-del-btn{opacity:0!important}div:hover>.spread-del-btn{opacity:1!important}`}</style>
-                            </div>
+                              {/* DPI warning */}
+                              {(() => {
+                                const slotW = Number(s.width) || spreadW;
+                                const slotH = Number(s.height) || cH;
+                                const dpiCheck = checkPhotoDpi(photo.width, photo.height, slotW, slotH, spreadW, cH, prop.w * 2, prop.h);
+                                if (!dpiCheck || dpiCheck.level === 'ok') return null;
+                                const isBad = dpiCheck.level === 'bad';
+                                return (
+                                  <div title={`${dpiCheck.dpi} DPI — ${isBad ? 'якість буде погана' : 'якість може бути недостатня'}`}
+                                    style={{ position:'absolute', top:4, left:4, display:'flex', alignItems:'center', gap:3, padding:'2px 6px', background: isBad ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.9)', borderRadius:10, zIndex:35, pointerEvents:'auto', cursor:'help', fontSize:9, fontWeight:700, color:'#fff' }}>
+                                    <span style={{fontSize:11}}>⚠</span>{dpiCheck.dpi} DPI
+                                  </div>
+                                );
+                              })()}
+                            </>
                           ) : (
                             <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4,pointerEvents:'none'}}>
                               <div style={{position:'absolute',top:4,left:4,width:16,height:16,borderRadius:'50%',background:'rgba(199,210,254,0.8)',color:'#4338ca',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>{i+1}</div>
@@ -2549,6 +2581,27 @@ export default function BookLayoutEditor() {
                       onSelect={setSelectedFreeSlotId}
                       isMobile={isMobile}
                     />
+                    {/* Text blocks on spread */}
+                    {spreadPage?.textBlocks?.map(tb => {
+                      const isSel = selectedTextId === tb.id;
+                      const isEd = editingTextId === tb.id;
+                      return (
+                        <div key={tb.id}
+                          onPointerDown={e => { e.stopPropagation(); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx); }}
+                          onDoubleClick={() => setEditingTextId(tb.id)}
+                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor:'move', zIndex:10, padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', minWidth:20, touchAction:'none' }}>
+                          <div contentEditable={isEd} suppressContentEditableWarning onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
+                            style={{ fontSize:tb.fontSize, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', outline:'none', whiteSpace:'nowrap', userSelect: isEd ? 'text' : 'none' }}>
+                            {tb.text}
+                          </div>
+                          {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,spreadPageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
+                        </div>
+                      );
+                    })}
+                    {/* Shapes on spread */}
+                    <ShapesLayer shapes={getCurShapes(spreadPageIdx)} canvasW={spreadW} canvasH={cH} onChange={newShapes => setPageShapes(prev=>({...prev,[spreadPageIdx]:newShapes}))}/>
+                    {/* Frames on spread */}
+                    <FrameLayer frame={getCurFrame(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
                   </div>
                 );
               })()
