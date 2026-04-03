@@ -242,29 +242,25 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               onClick={() => { if (!photo && photos.length > 0) { haptic.success(); onChange({ photoId: photos[0].id }); } }}
               style={{ position:'absolute', left:slotPx.x, top:slotPx.y, width:slotPx.w, height:slotPx.h,
                 borderRadius:br, overflow:'hidden', cursor:'move', zIndex:2, touchAction:'manipulation',
-                border: dragOver ? '2px dashed #3b82f6' : (coverCropMode && photo ? '2px solid #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)')),
+                border: dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)'),
                 background: photo ? 'transparent' : (dragOver ? 'rgba(59,130,246,0.08)' : '#f1f5f9') }}>
               {photo
-                ? <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor: coverCropMode ? 'grab' : 'move' }}
+                ? <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}
                     onPointerDown={e => {
-                      if (coverCropMode) {
-                        // In crop mode: drag = reposition photo inside slot
-                        e.stopPropagation(); e.preventDefault();
-                        haptic.light();
-                        const cx = config.photoCropX ?? 50;
-                        const cy = config.photoCropY ?? 50;
-                        const zm = config.photoZoom ?? 1;
-                        const sensitivity = 3 / Math.max(1, zm);
-                        startPointerDrag(e, (dx, dy) => {
-                          onChange({
-                            photoCropX: Math.max(0, Math.min(100, cx - dx / sensitivity)),
-                            photoCropY: Math.max(0, Math.min(100, cy - dy / sensitivity)),
-                          } as any);
-                        });
-                      }
-                      // Not in crop mode: let event bubble to parent → startSlotDrag
+                      // Drag always repositions photo inside slot
+                      e.stopPropagation(); e.preventDefault();
+                      haptic.light();
+                      const cx = config.photoCropX ?? 50;
+                      const cy = config.photoCropY ?? 50;
+                      const zm = config.photoZoom ?? 1;
+                      const sensitivity = 1.5 / Math.max(1, zm);
+                      startPointerDrag(e, (dx, dy) => {
+                        onChange({
+                          photoCropX: Math.max(0, Math.min(100, cx - dx / sensitivity)),
+                          photoCropY: Math.max(0, Math.min(100, cy - dy / sensitivity)),
+                        } as any);
+                      });
                     }}
-                    onDoubleClick={e => { e.stopPropagation(); setCoverCropMode(!coverCropMode); }}
                     onWheel={e => {
                       if (!photo) return;
                       e.preventDefault();
@@ -295,19 +291,6 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
                       <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom:1, photoCropX:50, photoCropY:50 } as any);}}
                         style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
-                      {coverCropMode && (
-                        <>
-                          <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
-                          <button onClick={e=>{e.stopPropagation(); setCoverCropMode(false);}}
-                            style={{background:'#16a34a',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:10}}>Готово</button>
-                        </>
-                      )}
-                      {!coverCropMode && (
-                        <>
-                          <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
-                          <span style={{color:'rgba(255,255,255,0.6)',fontSize:7,fontWeight:600}}>2×клік=рух</span>
-                        </>
-                      )}
                     </div>
                   </div>
                 : <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, color:'#94a3b8' }}>
@@ -380,7 +363,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       e.stopPropagation(); e.preventDefault();
                       haptic.light();
                       const cx = config.photoCropX ?? 50, cy = config.photoCropY ?? 50;
-                      const sensitivity = 3 / Math.max(1, config.photoZoom ?? 1);
+                      const sensitivity = 1.5 / Math.max(1, config.photoZoom ?? 1);
                       startPointerDrag(e, (dx, dy) => {
                         onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
                       });
@@ -408,7 +391,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       e.stopPropagation(); e.preventDefault();
                       haptic.light();
                       const cx = config.photoCropX ?? 50, cy = config.photoCropY ?? 50;
-                      const sensitivity = 3 / Math.max(1, config.photoZoom ?? 1);
+                      const sensitivity = 1.5 / Math.max(1, config.photoZoom ?? 1);
                       startPointerDrag(e, (dx, dy) => {
                         onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
                       });

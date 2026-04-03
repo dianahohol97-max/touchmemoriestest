@@ -941,7 +941,7 @@ export default function BookLayoutEditor() {
     e.preventDefault(); e.stopPropagation();
     haptic.light();
     const [pi, si] = key.split('-').map(Number);
-    const sensitivity = 3 / Math.max(1, pages[pi]?.slots[si]?.zoom || 1);
+    const sensitivity = 1.5 / Math.max(1, pages[pi]?.slots[si]?.zoom || 1);
     startPointerDrag(e,
       (dx, dy) => setPages(prev => prev.map((p, i) => i !== pi ? p : {
         ...p, slots: p.slots.map((sl, j) => j !== si ? sl : {
@@ -2261,7 +2261,7 @@ export default function BookLayoutEditor() {
                           onPointerDown={e => {
                             e.preventDefault(); e.stopPropagation();
                             const cx = bCropX, cy = bCropY;
-                            const sensitivity = 3 / Math.max(1, bZoom);
+                            const sensitivity = 1.5 / Math.max(1, bZoom);
                             startPointerDrag(e, (dx: number, dy: number) => {
                               setCoverState((p: any) => ({
                                 ...p,
