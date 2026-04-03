@@ -225,7 +225,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
       {isSoft && <div style={{ position:'absolute', inset:0, backgroundImage:texture, pointerEvents:'none', zIndex:1 }}/>}
 
       {/* Printed cover — draggable photo slot + text blocks + overlay */}
-      {!isSoft && !hidePhotoSlot && (() => {
+      {!isSoft && !hidePhotoSlot && config.printedPhotoSlot !== null && (() => {
         const slot = config.printedPhotoSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' as const };
         const texts = config.printedTextBlocks ?? [];
         const overlay = config.printedOverlay ?? { type: 'none' as const, color: '#000000', opacity: 40, gradient: 'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };
@@ -310,7 +310,9 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 : <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, color:'#94a3b8' }}>
                     <ImageIcon size={28}/><span style={{ fontSize:11, fontWeight:600, textAlign:'center' }}>Перетягніть фото</span>
                   </div>}
-              {photo && <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()}>×</button>}
+              {photo && <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()} title="Прибрати фото">×</button>}
+              {/* Delete slot entirely */}
+              <button onClick={()=>onChange({printedPhotoSlot:null, photoId:null} as any)} style={{ position:'absolute',top: photo ? 28 : 4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(239,68,68,0.75)',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()} title="Видалити фотослот">🗑</button>
             </div>
             {/* Resize handles */}
             {(['nw','ne','se','sw'] as const).map(dir => {
