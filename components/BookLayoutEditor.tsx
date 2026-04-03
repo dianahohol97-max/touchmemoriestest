@@ -2498,7 +2498,24 @@ export default function BookLayoutEditor() {
                         <div key={i}
                           onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                           onDragLeave={() => setDropTarget(null)}
-                          onDrop={e => onDrop(e, spreadPageIdx, i)}
+                          onDrop={e => {
+                            e.preventDefault(); e.stopPropagation(); setDropTarget(null);
+                            const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
+                            if (!photoId || !photoId.startsWith('photo-')) return;
+                            const sourceType = e.dataTransfer?.getData('sourceType');
+                            // If dragging from another slot or FreeSlot → swap/replace (existing behavior)
+                            if (sourceType === 'pageSlot' || sourceType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
+                            // New photo from sidebar → if slot empty, just place; if filled, auto-adapt layout
+                            const existing = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
+                            if (!photo) {
+                              // Empty slot — just place
+                              pushHistory();
+                              setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId }) }));
+                            } else {
+                              // Filled slot — collect all photos + new one → auto-adapt layout
+                              autoCollage([...existing, photoId], spreadPageIdx);
+                            }
+                          }}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (tapSelectedPhotoId) {
