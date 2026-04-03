@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, DragEvent } from 'react';
+import React, { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
 import { autoBuild } from '@/lib/editor/auto-build';
@@ -2841,6 +2841,24 @@ export default function BookLayoutEditor() {
                 }).length}
               </span>
               <label style={{ display:'flex', alignItems:'center', gap:4, cursor:'pointer' }}>
+                {timelineCuts.size > 0 && (
+                  <>
+                    <span style={{ fontSize:10, color:'#7c3aed', fontWeight:600 }}>{timelineCuts.size} розрізів → {timelineCuts.size + 1} груп</span>
+                    <button onClick={() => { applyTimelineCuts(timelineCuts); setTimelineCuts(new Set()); }}
+                      style={{ fontSize:11, fontWeight:700, color:'#fff', background:'#7c3aed', border:'none', borderRadius:6, padding:'3px 10px', cursor:'pointer' }}>
+                      Зібрати
+                    </button>
+                    <button onClick={() => setTimelineCuts(new Set())}
+                      style={{ fontSize:10, fontWeight:600, color:'#94a3b8', background:'none', border:'1px solid #e2e8f0', borderRadius:6, padding:'2px 8px', cursor:'pointer' }}>
+                      Скинути
+                    </button>
+                  </>
+                )}
+                {selectedPhotoIds.size > 1 && (
+                  <span style={{ fontSize:10, color:'#7c3aed', fontWeight:600, background:'#f5f3ff', padding:'2px 8px', borderRadius:6 }}>
+                    {selectedPhotoIds.size} вибрано — тягніть на сторінку
+                  </span>
+                )}
                 <input id="photo-upload-timeline" type="file" multiple accept="image/*" style={{ display:'none' }} onChange={handleUpload}/>
                 <button onClick={()=>(document.getElementById('photo-upload-timeline') as HTMLInputElement)?.click()}
                   style={{ fontSize:11, fontWeight:700, color:'#1e2d7d', background:'#f0f3ff', border:'1px solid #c7d2fe', borderRadius:6, padding:'3px 10px', cursor:'pointer' }}>
@@ -2864,31 +2882,72 @@ export default function BookLayoutEditor() {
                 const thumbW = Math.round(thumbH * ratio);
                 const shortName = ph.name.replace(/\.[^.]+$/, '');
                 const displayName = shortName.length > 10 ? shortName.slice(0, 8) + '..' : shortName;
+                const isSel = selectedPhotoIds.has(ph.id);
+                const hasCutAfter = timelineCuts.has(i);
                 return (
-                  <div key={ph.id}
+                  <React.Fragment key={ph.id}>
+                  <div
                     draggable={!used}
                     onDragStart={e => {
                       if (used) return;
+                      const ids = isSel && selectedPhotoIds.size > 1 ? [...selectedPhotoIds] : [ph.id];
                       setDragPhotoId(ph.id);
                       e.dataTransfer.setData('photoId', ph.id);
+                      e.dataTransfer.setData('photoIds', JSON.stringify(ids));
                       e.dataTransfer.setData('text/plain', ph.id);
                       e.dataTransfer.effectAllowed = 'copy';
                     }}
                     onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
-                    onClick={() => { if (!used) setTapSelectedPhotoId(tapSelectedPhotoId === ph.id ? null : ph.id); }}
+                    onClick={(e) => {
+                      if (used) return;
+                      if (e.ctrlKey || e.metaKey) {
+                        setSelectedPhotoIds(prev => {
+                          const next = new Set(prev);
+                          if (next.has(ph.id)) next.delete(ph.id); else next.add(ph.id);
+                          return next;
+                        });
+                      } else {
+                        setSelectedPhotoIds(new Set());
+                        setTapSelectedPhotoId(tapSelectedPhotoId === ph.id ? null : ph.id);
+                      }
+                    }}
                     style={{
                       flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', gap:2,
                       cursor: used ? 'default' : 'grab', opacity: used ? 0.4 : 1,
-                      border: tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : '2px solid transparent',
+                      border: isSel ? '2px solid #7c3aed' : tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : '2px solid transparent',
                       borderRadius:6, padding:2, transition:'border-color 0.15s',
+                      background: isSel ? 'rgba(124,58,237,0.06)' : 'transparent',
                     }}>
                     <div style={{ position:'relative', width:thumbW, height:thumbH, borderRadius:4, overflow:'hidden', flexShrink:0 }}>
                       <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                       {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✓</div>}
+                      {isSel && <div style={{ position:'absolute', top:2, right:2, width:18, height:18, borderRadius:'50%', background:'#7c3aed', color:'#fff', fontSize:10, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
                       <span style={{ position:'absolute', top:2, left:2, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 3px', borderRadius:2 }}>{i+1}</span>
                     </div>
                     <span style={{ fontSize:8, color:'#64748b', fontWeight:500, maxWidth:thumbW+10, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center' }}>{displayName}</span>
                   </div>
+                  {/* CUT DIVIDER — click between photos to split into groups */}
+                  {i < photos.length - 1 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setTimelineCuts(prev => { const next = new Set(prev); if (next.has(i)) next.delete(i); else next.add(i); return next; }); }}
+                      title={hasCutAfter ? 'Прибрати розріз' : 'Розрізати — фото зліва стануть одним розворотом'}
+                      style={{
+                        width: hasCutAfter ? 6 : 14,
+                        minWidth: hasCutAfter ? 6 : 14,
+                        height: 62, flexShrink:0, alignSelf:'center',
+                        border: 'none', padding:0, cursor:'pointer',
+                        background: hasCutAfter ? '#7c3aed' : 'transparent',
+                        borderRadius: 3, display:'flex', alignItems:'center', justifyContent:'center',
+                        transition: 'all 0.15s',
+                        position:'relative',
+                      }}
+                      onMouseEnter={e => { if (!hasCutAfter) { (e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.12)'; (e.currentTarget as HTMLElement).style.width = '6px'; (e.currentTarget as HTMLElement).style.minWidth = '6px'; }}}
+                      onMouseLeave={e => { if (!hasCutAfter) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.width = '14px'; (e.currentTarget as HTMLElement).style.minWidth = '14px'; }}}
+                    >
+                      {hasCutAfter ? <div style={{ width:2, height:40, background:'#fff', borderRadius:1 }}/> : <div style={{ width:1, height:30, background:'#d1d5db', borderRadius:1 }}/>}
+                    </button>
+                  )}
+                  </React.Fragment>
                 );
               })}
             </div>
