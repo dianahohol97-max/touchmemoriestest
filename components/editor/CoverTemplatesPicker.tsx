@@ -3,6 +3,7 @@ import { COVER_TEMPLATES, CoverTemplate } from '@/lib/editor/cover-templates';
 
 interface CoverTemplatesPickerProps {
   onApply: (template: CoverTemplate) => void;
+  productType?: string; // 'photobook' | 'magazine' | 'travelbook' | 'journal'
 }
 
 function MiniPreview({ t }: { t: CoverTemplate }) {
@@ -52,8 +53,14 @@ function MiniPreview({ t }: { t: CoverTemplate }) {
   );
 }
 
-export function CoverTemplatesPicker({ onApply }: CoverTemplatesPickerProps) {
-  const groups = [...new Set(COVER_TEMPLATES.map(t => t.group))];
+export function CoverTemplatesPicker({ onApply, productType }: CoverTemplatesPickerProps) {
+  // Filter templates: show only matching tags, or templates without tags (universal)
+  const filtered = COVER_TEMPLATES.filter(t => {
+    if (!t.tags || t.tags.length === 0) return !productType || !['magazine','journal'].includes(productType); // universal templates only for non-magazine
+    if (!productType) return true;
+    return t.tags.includes(productType);
+  });
+  const groups = [...new Set(filtered.map(t => t.group))];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -70,7 +77,7 @@ export function CoverTemplatesPicker({ onApply }: CoverTemplatesPickerProps) {
             {group}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-            {COVER_TEMPLATES.filter(t => t.group === group).map(t => (
+            {filtered.filter(t => t.group === group).map(t => (
               <button
                 key={t.id}
                 onClick={() => onApply(t)}

@@ -5,6 +5,7 @@ export interface CoverTemplate {
   id: string;
   label: string;
   group: string;
+  tags?: string[]; // product type filter: 'photobook', 'magazine', 'travelbook', 'journal' — empty = all
   bgColor: string;
   photoSlot: PhotoSlotDef;          // primary slot (legacy)
   photoSlots?: PhotoSlotDef[];       // multi-slot override — if set, used instead of photoSlot
@@ -336,6 +337,91 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     texts: [
       { text: 'CAMBODIA', x: 50, y: 80, fontSize: 28, fontFamily: 'Bebas Neue', color: '#2c2c2c', bold: false },
       { text: '2025', x: 50, y: 90, fontSize: 16, fontFamily: 'Montserrat', color: '#888888', bold: false },
+    ],
+  },
+
+  // ── Журнали (Magazine) ──
+  {
+    id: 'mag-editorial',
+    label: 'Editorial',
+    group: 'Журнали',
+    tags: ['magazine', 'journal'],
+    bgColor: '#ffffff',
+    photoSlot: { x: 0, y: 0, w: 100, h: 100, shape: 'rect' },
+    overlay: { type: 'gradient', color: '#000000', opacity: 50, gradient: 'linear-gradient(180deg,rgba(0,0,0,0.5) 0%,transparent 30%,transparent 60%,rgba(0,0,0,0.6) 100%)' },
+    texts: [
+      { text: 'MOMENTS', x: 50, y: 8, fontSize: 48, fontFamily: 'Playfair Display', color: '#ffffff', bold: true },
+      { text: 'Імʼя та Імʼя', x: 50, y: 88, fontSize: 22, fontFamily: 'Cormorant Garamond', color: '#ffffff', bold: false },
+      { text: '15.06.2025', x: 50, y: 95, fontSize: 12, fontFamily: 'Montserrat', color: '#dddddd', bold: false },
+    ],
+  },
+  {
+    id: 'mag-vogue',
+    label: 'Vogue Style',
+    group: 'Журнали',
+    tags: ['magazine', 'journal'],
+    bgColor: '#ffffff',
+    photoSlot: { x: 0, y: 0, w: 100, h: 100, shape: 'rect' },
+    overlay: { type: 'gradient', color: '#000000', opacity: 40, gradient: 'linear-gradient(180deg,rgba(0,0,0,0.6) 0%,transparent 25%,transparent 75%,rgba(0,0,0,0.4) 100%)' },
+    texts: [
+      { text: 'OUR', x: 50, y: 6, fontSize: 14, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
+      { text: 'WEDDING', x: 50, y: 14, fontSize: 52, fontFamily: 'Playfair Display', color: '#ffffff', bold: true },
+      { text: 'DAY', x: 50, y: 22, fontSize: 14, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
+      { text: '05 / 08 / 2025', x: 50, y: 92, fontSize: 14, fontFamily: 'Montserrat', color: '#e0e0e0', bold: false },
+    ],
+  },
+  {
+    id: 'mag-minimal-title',
+    label: 'Мінімалізм',
+    group: 'Журнали',
+    tags: ['magazine', 'journal'],
+    bgColor: '#f5f0eb',
+    photoSlot: { x: 0, y: 20, w: 100, h: 65, shape: 'rect' },
+    texts: [
+      { text: 'НАША ІСТОРІЯ', x: 50, y: 8, fontSize: 14, fontFamily: 'Montserrat', color: '#8a7968', bold: true },
+      { text: '2025', x: 50, y: 92, fontSize: 20, fontFamily: 'Playfair Display', color: '#8a7968', bold: false },
+    ],
+  },
+  {
+    id: 'mag-portrait',
+    label: 'Портрет',
+    group: 'Журнали',
+    tags: ['magazine', 'journal'],
+    bgColor: '#1a1a1a',
+    photoSlot: { x: 10, y: 5, w: 80, h: 70, shape: 'rect' },
+    overlay: { type: 'none' as const, color: '#000000', opacity: 0, gradient: '' },
+    texts: [
+      { text: 'FAMILY', x: 50, y: 82, fontSize: 36, fontFamily: 'Playfair Display', color: '#d4af37', bold: true },
+      { text: 'portrait', x: 50, y: 90, fontSize: 20, fontFamily: 'Dancing Script', color: '#c0a060', bold: false },
+      { text: '2025', x: 50, y: 97, fontSize: 11, fontFamily: 'Montserrat', color: '#888888', bold: false },
+    ],
+  },
+  {
+    id: 'mag-split',
+    label: '2 фото',
+    group: 'Журнали',
+    tags: ['magazine', 'journal'],
+    bgColor: '#ffffff',
+    photoSlot: { x: 0, y: 0, w: 50, h: 100, shape: 'rect' },
+    photoSlots: [
+      { x: 0, y: 0, w: 50, h: 100, shape: 'rect' },
+      { x: 52, y: 0, w: 48, h: 100, shape: 'rect' },
+    ],
+    texts: [
+      { text: 'OUR STORY', x: 50, y: 50, fontSize: 18, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
+    ],
+  },
+  {
+    id: 'mag-baby',
+    label: 'Перший рік',
+    group: 'Журнали',
+    tags: ['magazine', 'journal'],
+    bgColor: '#fef9f0',
+    photoSlot: { x: 15, y: 10, w: 70, h: 55, shape: 'rounded' },
+    texts: [
+      { text: 'Мій перший рік', x: 50, y: 72, fontSize: 28, fontFamily: 'Caveat', color: '#c09060', bold: false },
+      { text: 'Софійка', x: 50, y: 82, fontSize: 36, fontFamily: 'Lobster', color: '#d4956b', bold: false },
+      { text: '2024 – 2025', x: 50, y: 92, fontSize: 14, fontFamily: 'Caveat', color: '#c09060', bold: false },
     ],
   },
 ];

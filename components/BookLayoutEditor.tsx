@@ -1360,6 +1360,14 @@ export default function BookLayoutEditor() {
       {/* BODY */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isMobile ? 'column' : 'row', position:'relative' }}>
 
+        {/* Форзац pricing notice — for magazines and travelbooks */}
+        {hasEndpaper && (
+          <div style={{ position:'absolute', top:0, left:72, right:0, zIndex:50, background:'linear-gradient(90deg,#fef3c7,#fde68a)', padding:'6px 16px', display:'flex', alignItems:'center', justifyContent:'center', gap:8, borderBottom:'1px solid #fcd34d', fontSize:12, color:'#92400e', fontWeight:600 }}>
+            <span>📋</span>
+            <span>Друк на форзаці — <b>+200 ₴</b> за кожен форзац. Налаштуйте у вкладці <b>«ФЗ Форзац»</b></span>
+          </div>
+        )}
+
         {/* ICON SIDEBAR — desktop only */}
         {!isMobile && <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
           {([
@@ -1571,7 +1579,7 @@ export default function BookLayoutEditor() {
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
                 {/* COVER TEMPLATES PICKER */}
                 {isPrinted && (
-                  <CoverTemplatesPicker onApply={(tmpl: CoverTemplate) => {
+                  <CoverTemplatesPicker productType={_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')?'magazine':_slug.includes('travelbook')?'travelbook':'photobook'} onApply={(tmpl: CoverTemplate) => {
                     pushHistory();
                     setCoverState(p => ({
                       ...p,
