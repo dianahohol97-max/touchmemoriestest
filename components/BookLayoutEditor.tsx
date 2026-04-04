@@ -92,7 +92,9 @@ type LayoutType =
   'sp-2-left-pair' | 'sp-2-right-pair' | 'sp-2-diag' |
   'sp-3-l-shape' | 'sp-3-t-shape' | 'sp-3-center' |
   'sp-4-strip-v' | 'sp-4-mosaic' | 'sp-4-hero-top' | 'sp-4-hero-bottom' |
-  'sp-5-quilt' | 'sp-6-hero' | 'sp-7-grid' | 'sp-8-grid';
+  'sp-5-quilt' | 'sp-6-hero' | 'sp-7-grid' | 'sp-8-grid' |
+  'sp-5-strip' | 'sp-6-mosaic' | 'sp-7-hero' | 'sp-8-mosaic' |
+  'sp-9-grid' | 'sp-10-grid' | 'sp-10-hero' | 'sp-12-grid';
 
 interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; shape?: 'rect' | 'rounded' | 'circle'; customX?: number; customY?: number; customW?: number; customH?: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
@@ -183,10 +185,18 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'sp-5-grid',      label: '5 сітка',             slots: 5, group: 'Розворот 5+ фото' },
   { id: 'sp-5-hero',      label: 'Велике + 4',          slots: 5, group: 'Розворот 5+ фото' },
   { id: 'sp-5-quilt',     label: '5 клаптик',           slots: 5, group: 'Розворот 5+ фото' },
-  { id: 'sp-6-grid',      label: '6 рівно',             slots: 6, group: 'Розворот 5+ фото' },
+  { id: 'sp-5-strip',     label: '5 смуг',              slots: 5, group: 'Розворот 5+ фото' },
+  { id: 'sp-6-grid',      label: '6 рівно (3×2)',       slots: 6, group: 'Розворот 5+ фото' },
   { id: 'sp-6-hero',      label: 'Велике + 5',          slots: 6, group: 'Розворот 5+ фото' },
-  { id: 'sp-7-grid',      label: '7 сітка',             slots: 7, group: 'Розворот 5+ фото' },
-  { id: 'sp-8-grid',      label: '8 сітка',             slots: 8, group: 'Розворот 5+ фото' },
+  { id: 'sp-6-mosaic',    label: '6 мозаїка',           slots: 6, group: 'Розворот 5+ фото' },
+  { id: 'sp-7-grid',      label: '7 сітка (4+3)',       slots: 7, group: 'Розворот 5+ фото' },
+  { id: 'sp-7-hero',      label: 'Велике + 6',          slots: 7, group: 'Розворот 5+ фото' },
+  { id: 'sp-8-grid',      label: '8 сітка (4×2)',       slots: 8, group: 'Розворот 5+ фото' },
+  { id: 'sp-8-mosaic',    label: '8 мозаїка',           slots: 8, group: 'Розворот 5+ фото' },
+  { id: 'sp-9-grid',      label: '9 сітка (3×3)',       slots: 9, group: 'Розворот 5+ фото' },
+  { id: 'sp-10-grid',     label: '10 сітка (5×2)',      slots: 10, group: 'Розворот 5+ фото' },
+  { id: 'sp-10-hero',     label: 'Велике + 9',          slots: 10, group: 'Розворот 5+ фото' },
+  { id: 'sp-12-grid',     label: '12 сітка (4×3)',      slots: 12, group: 'Розворот 5+ фото' },
 ];
 
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
@@ -322,10 +332,18 @@ function getSlotDefs(layout: LayoutType, W: number, H: number, gap: number = 4):
   if (layout === 'sp-5-grid')      return [S(0, 0, 0, w3, h2), S(1, w3+g, 0, w3, h2), S(2, 2*(w3+g), 0, w3, h2), S(3, 0, h2+g, w2, h2), S(4, w2+g, h2+g, w2, h2)];
   if (layout === 'sp-5-hero')      { const bh=H*0.55; const sw=(W-3*g)/4; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3].map(ii=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
   if (layout === 'sp-5-quilt')     return [S(0, 0, 0, w2, h2), S(1, w2+g, 0, w2, h2), S(2, 0, h2+g, w3, h2), S(3, w3+g, h2+g, w3, h2), S(4, 2*(w3+g), h2+g, w3, h2)];
+  if (layout === 'sp-5-strip')     { const w5=(W-4*g)/5; return [S(0,0,0,w5,H),S(1,w5+g,0,w5,H),S(2,2*(w5+g),0,w5,H),S(3,3*(w5+g),0,w5,H),S(4,4*(w5+g),0,w5,H)]; }
   if (layout === 'sp-6-grid')      return [S(0, 0, 0, w3, h2), S(1, w3+g, 0, w3, h2), S(2, 2*(w3+g), 0, w3, h2), S(3, 0, h2+g, w3, h2), S(4, w3+g, h2+g, w3, h2), S(5, 2*(w3+g), h2+g, w3, h2)];
   if (layout === 'sp-6-hero')      { const bh=H*0.55; const sw=(W-4*g)/5; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3,4].map(ii=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
+  if (layout === 'sp-6-mosaic')    return [S(0,0,0,W*0.4,h3), S(1,0,h3+g,W*0.4,h3), S(2,0,2*(h3+g),W*0.4,h3), S(3,W*0.4+g,0,W*0.6-g,h3), S(4,W*0.4+g,h3+g,W*0.3-g,2*h3+g), S(5,W*0.7,h3+g,W*0.3,2*h3+g)];
   if (layout === 'sp-7-grid')      { const w47=(W-3*g)/4; return [S(0,0,0,w47,h2),S(1,w47+g,0,w47,h2),S(2,2*(w47+g),0,w47,h2),S(3,3*(w47+g),0,w47,h2),S(4,0,h2+g,w3,h2),S(5,w3+g,h2+g,w3,h2),S(6,2*(w3+g),h2+g,w3,h2)]; }
+  if (layout === 'sp-7-hero')      { const bh=H*0.45; const sw=(W-5*g)/6; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3,4,5].map(ii=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
   if (layout === 'sp-8-grid')      { const w48=(W-3*g)/4; return [S(0,0,0,w48,h2),S(1,w48+g,0,w48,h2),S(2,2*(w48+g),0,w48,h2),S(3,3*(w48+g),0,w48,h2),S(4,0,h2+g,w48,h2),S(5,w48+g,h2+g,w48,h2),S(6,2*(w48+g),h2+g,w48,h2),S(7,3*(w48+g),h2+g,w48,h2)]; }
+  if (layout === 'sp-8-mosaic')    { const w6=(W-2*g)/3; return [S(0,0,0,w6,h2),S(1,w6+g,0,w6,h2),S(2,2*(w6+g),0,w6,h2), S(3,0,h2+g,w2,h2),S(4,w2+g,h2+g,(W-4*g)/5,h2),S(5,w2+g+(W-4*g)/5+g,h2+g,(W-4*g)/5,h2),S(6,w2+g+2*((W-4*g)/5+g),h2+g,(W-4*g)/5,h2),S(7,w2+g+3*((W-4*g)/5+g),h2+g,(W-4*g)/5,h2)]; }
+  if (layout === 'sp-9-grid')      { const w39=(W-2*g)/3; const h39=(H-2*g)/3; return Array.from({length:9},(_, ii)=>S(ii, (ii%3)*(w39+g), Math.floor(ii/3)*(h39+g), w39, h39)); }
+  if (layout === 'sp-10-grid')     { const w510=(W-4*g)/5; return Array.from({length:10},(_, ii)=>S(ii, (ii%5)*(w510+g), Math.floor(ii/5)*(h2+g), w510, h2)); }
+  if (layout === 'sp-10-hero')     { const bh=H*0.45; const sw=(W-8*g)/9; const sh=H-bh-g; return [S(0,0,0,W,bh), ...Array.from({length:9},(_,ii)=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
+  if (layout === 'sp-12-grid')     { const w412=(W-3*g)/4; const h312=(H-2*g)/3; return Array.from({length:12},(_, ii)=>S(ii, (ii%4)*(w412+g), Math.floor(ii/4)*(h312+g), w412, h312)); }
 
   return [S(0, 0, 0, W, H)];
 }

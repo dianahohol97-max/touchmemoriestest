@@ -112,6 +112,14 @@ export function getSlotDefs(layout: LayoutType, W: number, H: number): SlotDef[]
   if (layout === 'sp-6-hero')      { const bh=H*0.55; const sw=(W-4*g)/5; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3,4].map(ii=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
   if (layout === 'sp-7-grid')      { const w47=(W-3*g)/4; return [S(0,0,0,w47,h2),S(1,w47+g,0,w47,h2),S(2,2*(w47+g),0,w47,h2),S(3,3*(w47+g),0,w47,h2),S(4,0,h2+g,w3,h2),S(5,w3+g,h2+g,w3,h2),S(6,2*(w3+g),h2+g,w3,h2)]; }
   if (layout === 'sp-8-grid')      { const w48=(W-3*g)/4; return [S(0,0,0,w48,h2),S(1,w48+g,0,w48,h2),S(2,2*(w48+g),0,w48,h2),S(3,3*(w48+g),0,w48,h2),S(4,0,h2+g,w48,h2),S(5,w48+g,h2+g,w48,h2),S(6,2*(w48+g),h2+g,w48,h2),S(7,3*(w48+g),h2+g,w48,h2)]; }
+  if (layout === 'sp-5-strip')     { const w5=(W-4*g)/5; return [S(0,0,0,w5,H),S(1,w5+g,0,w5,H),S(2,2*(w5+g),0,w5,H),S(3,3*(w5+g),0,w5,H),S(4,4*(w5+g),0,w5,H)]; }
+  if (layout === 'sp-6-mosaic')    return [S(0,0,0,W*0.4,h3), S(1,0,h3+g,W*0.4,h3), S(2,0,2*(h3+g),W*0.4,h3), S(3,W*0.4+g,0,W*0.6-g,h3), S(4,W*0.4+g,h3+g,W*0.3-g,2*h3+g), S(5,W*0.7,h3+g,W*0.3,2*h3+g)];
+  if (layout === 'sp-7-hero')      { const bh=H*0.45; const sw=(W-5*g)/6; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3,4,5].map(ii=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
+  if (layout === 'sp-8-mosaic')    { const w6=(W-2*g)/3; return [S(0,0,0,w6,h2),S(1,w6+g,0,w6,h2),S(2,2*(w6+g),0,w6,h2), S(3,0,h2+g,w2,h2),S(4,w2+g,h2+g,(W-4*g)/5,h2),S(5,w2+g+(W-4*g)/5+g,h2+g,(W-4*g)/5,h2),S(6,w2+g+2*((W-4*g)/5+g),h2+g,(W-4*g)/5,h2),S(7,w2+g+3*((W-4*g)/5+g),h2+g,(W-4*g)/5,h2)]; }
+  if (layout === 'sp-9-grid')      { const w39=(W-2*g)/3; const h39=(H-2*g)/3; return Array.from({length:9},(_, ii)=>S(ii, (ii%3)*(w39+g), Math.floor(ii/3)*(h39+g), w39, h39)); }
+  if (layout === 'sp-10-grid')     { const w510=(W-4*g)/5; return Array.from({length:10},(_, ii)=>S(ii, (ii%5)*(w510+g), Math.floor(ii/5)*(h2+g), w510, h2)); }
+  if (layout === 'sp-10-hero')     { const bh=H*0.45; const sw=(W-8*g)/9; const sh=H-bh-g; return [S(0,0,0,W,bh), ...Array.from({length:9},(_,ii)=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
+  if (layout === 'sp-12-grid')     { const w412=(W-3*g)/4; const h312=(H-2*g)/3; return Array.from({length:12},(_, ii)=>S(ii, (ii%4)*(w412+g), Math.floor(ii/4)*(h312+g), w412, h312)); }
 
   return [S(0, 0, 0, W, H)];
 }
