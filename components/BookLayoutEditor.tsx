@@ -2560,8 +2560,6 @@ export default function BookLayoutEditor() {
                           {photo ? (
                             <>
                               {/* DRAG-OVER REPLACE PREVIEW */}
-                              {/* DEBUG slot position */}
-                              <div style={{position:'absolute',top:2,left:2,background:'rgba(255,0,0,0.8)',color:'#fff',fontSize:9,fontWeight:900,padding:'1px 4px',borderRadius:4,zIndex:50,pointerEvents:'none'}}>S{i} L{Math.round(Number(s.left))} T{Math.round(Number(s.top))} {Math.round(Number(s.width))}x{Math.round(Number(s.height))}</div>
                               {isOver && dragPhotoId && (() => {
                                 const incoming = photos.find(p => p.id === dragPhotoId);
                                 return incoming ? (
