@@ -113,6 +113,7 @@ export interface SlotData {
   cropX: number;
   cropY: number;
   zoom: number;
+  rotation?: number; // degrees 0-360
 }
 
 export interface TextBlock {

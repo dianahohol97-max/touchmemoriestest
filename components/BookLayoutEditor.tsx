@@ -104,7 +104,7 @@ type LayoutType =
   'sp-3-uneven' | 'sp-3-steps' | 'sp-3-panorama' | 'sp-4-focus' | 'sp-4-corner' | 'sp-4-cinema' |
   'sp-5-focus' | 'sp-6-cols' | 'sp-9-hero' | 'sp-15-grid' | 'sp-16-grid';
 
-interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; }
+interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
@@ -1619,6 +1619,26 @@ export default function BookLayoutEditor() {
                         ↺ На весь розмір
                       </button>
                       )}
+                      {/* Bg color — moved up so it's always visible */}
+                      <div>
+                        <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір фону передньої</div>
+                        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                          <input type="color" value={coverState.printedBgColor || '#ffffff'}
+                            onChange={e=>setCoverState(p=>({...p,printedBgColor:e.target.value}))}
+                            style={{ width:36, height:28, border:'1px solid #e2e8f0', borderRadius:5, cursor:'pointer', padding:2 }}/>
+                          <input type="text" value={coverState.printedBgColor || '#ffffff'}
+                            onChange={e => setCoverState(p => ({...p, printedBgColor: e.target.value}))}
+                            onBlur={e => {
+                              let v = e.target.value.trim();
+                              if (v && !v.startsWith('#')) v = '#' + v;
+                              if (/^#[0-9a-fA-F]{3,8}$/.test(v)) setCoverState(p => ({...p, printedBgColor: v}));
+                            }}
+                            placeholder="#ffffff"
+                            style={{ flex:1, padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, fontFamily:'monospace', color:'#374151', background:'#fff', outline:'none', minWidth:0 }}/>
+                          <button onClick={()=>setCoverState(p=>({...p,printedBgColor:'#ffffff'}))}
+                            style={{ padding:'3px 7px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
+                        </div>
+                      </div>
                       {/* Overlay */}
                       <div>
                         <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Накладення</div>
@@ -1675,28 +1695,9 @@ export default function BookLayoutEditor() {
                   );
                 })()}
 
-                {/* Printed cover — bg color + back cover controls */}
+                {/* Printed cover — back cover controls */}
                 {isPrinted && (
                   <div style={{ display:'flex', flexDirection:'column', gap:10, borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
-                    <div>
-                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Колір фону передньої</div>
-                      <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                        <input type="color" value={coverState.printedBgColor || '#ffffff'}
-                          onChange={e=>setCoverState(p=>({...p,printedBgColor:e.target.value}))}
-                          style={{ width:36, height:28, border:'1px solid #e2e8f0', borderRadius:5, cursor:'pointer', padding:2 }}/>
-                        <input type="text" value={coverState.printedBgColor || '#ffffff'}
-                          onChange={e => setCoverState(p => ({...p, printedBgColor: e.target.value}))}
-                          onBlur={e => {
-                            let v = e.target.value.trim();
-                            if (v && !v.startsWith('#')) v = '#' + v;
-                            if (/^#[0-9a-fA-F]{3,8}$/.test(v)) setCoverState(p => ({...p, printedBgColor: v}));
-                          }}
-                          placeholder="#ffffff"
-                          style={{ flex:1, padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, fontFamily:'monospace', color:'#374151', background:'#fff', outline:'none', minWidth:0 }}/>
-                        <button onClick={()=>setCoverState(p=>({...p,printedBgColor:'#ffffff'}))}
-                          style={{ padding:'3px 7px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
-                      </div>
-                    </div>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Задня обкладинка</div>
                       <div style={{ display:'flex', gap:6, alignItems:'center', marginBottom:6 }}>
@@ -2719,6 +2720,40 @@ export default function BookLayoutEditor() {
                     })()}
                   </svg>
                 </div>              </div>
+            ) : isSpreadMode && currentIdx !== 0 && hasKalka && currentIdx === 1 ? (
+              /* SPREAD MODE — KALKA: first spread shows forзац (left) + kalka (right) */
+              <div style={{ display:'flex' }}>
+                {/* Left page — ФОРЗАЦ (blocked) */}
+                <div style={{ width: pageW, height: cH, background: '#fafbfc', borderRadius: '4px 0 0 4px', boxShadow: 'inset -1px 0 3px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', position:'relative' }}>
+                  <span style={{ color: '#d1d5db', fontSize: 9, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', writingMode: 'vertical-rl' as const }}>ФОРЗАЦ</span>
+                  <div style={{ position:'absolute', inset:0, cursor:'not-allowed' }}/>
+                </div>
+                {/* Right page — КАЛЬКА */}
+                <div onClick={() => { setLeftTab('kalka' as any); }}
+                  style={{ width: pageW, height: cH, position: 'relative', background: '#f8f9fc', borderRadius: '0 4px 4px 0', boxShadow: 'inset 1px 0 3px rgba(0,0,0,0.08)', overflow: 'hidden', cursor: 'pointer',
+                    border: leftTab === ('kalka' as any) ? '2px solid #3b82f6' : '1.5px dashed #c7d2fe' }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(220,230,255,0.3) 0%, rgba(200,215,245,0.2) 50%, rgba(220,230,255,0.3) 100%)', pointerEvents: 'none' }}/>
+                  <div style={{ position: 'absolute', inset: 0, opacity: 0.06, backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(100,130,200,0.3) 8px, transparent 10px)', pointerEvents: 'none' }}/>
+                  {kalkaState.imageUrl && (
+                    <img src={kalkaState.imageUrl} style={{ position: 'absolute', inset: '10%', width: '80%', height: '80%', objectFit: 'contain', opacity: 0.65 }} draggable={false}/>
+                  )}
+                  {kalkaState.text && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                      <span style={{ fontSize: kalkaState.fontSize * (pageW / 400), fontFamily: kalkaState.fontFamily, color: kalkaState.textColor, textAlign: 'center' as const, padding: '0 16px', opacity: 0.75, whiteSpace: 'pre-wrap' as const, lineHeight: 1.3 }}>{kalkaState.text}</span>
+                    </div>
+                  )}
+                  {!kalkaState.text && !kalkaState.imageUrl && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', gap: 8, pointerEvents: 'none' }}>
+                      <div style={{ fontSize: 28, opacity: 0.15 }}>📜</div>
+                      <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>Калька</span>
+                      <span style={{ fontSize: 9, color: '#cbd5e1' }}>Натисніть для редагування</span>
+                    </div>
+                  )}
+                  {(kalkaState.text || kalkaState.imageUrl) && (
+                    <div style={{ position: 'absolute', bottom: 4, left: 0, right: 0, textAlign: 'center' as const, fontSize: 8, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.5, pointerEvents: 'none' }}>КАЛЬКА</div>
+                  )}
+                </div>
+              </div>
             ) : isSpreadMode && currentIdx !== 0 ? (
               /* SPREAD MODE: single double-width canvas for 180° flat photobooks */
               (() => {
@@ -2842,7 +2877,7 @@ export default function BookLayoutEditor() {
                           }}
                           style={{ ...slotStyle,
                             overflow: 'hidden',
-                            
+                            transform: (slot?.rotation ? `rotate(${slot.rotation}deg)` : undefined),
                             background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
                             border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : '1px solid rgba(255,255,255,0.4)') : '1.5px dashed #c7d2fe'),
                             transition: 'all 0.2s ease',
@@ -2911,6 +2946,10 @@ export default function BookLayoutEditor() {
                                     <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>+</button>
                                     <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
                                     <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
+                                    <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
+                                    <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)-90+360)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}} title="Повернути -90°">↶</button>
+                                    <span style={{color:'#fff',fontSize:8,fontWeight:600,minWidth:22,textAlign:'center'}}>{slot!.rotation||0}°</span>
+                                    <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)+90)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}} title="Повернути +90°">↷</button>
                                     <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
                                     <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✕ фото</button>
                                     <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
@@ -3004,6 +3043,13 @@ export default function BookLayoutEditor() {
                               {/* Size info */}
                               <div style={{position:'absolute',left:lx+sw/2,top:ty+sh+8,transform:'translateX(-50%)',background:'rgba(0,0,0,0.7)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:10,zIndex:16,whiteSpace:'nowrap'}}>
                                 {Math.round(sw)}×{Math.round(sh)}px
+                              </div>
+                              {/* Rotation slider */}
+                              <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',left:lx+sw/2,top:ty+sh+26,transform:'translateX(-50%)',background:'rgba(0,0,0,0.8)',color:'#fff',fontSize:9,fontWeight:600,padding:'4px 10px',borderRadius:12,zIndex:16,display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}}>
+                                <span>↻</span>
+                                <input type="range" min={0} max={359} value={slot?.rotation||0} onChange={e=>{const r=+e.target.value;setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:r})}));}} style={{width:80,accentColor:'#3b82f6'}}/>
+                                <span style={{minWidth:28,textAlign:'center'}}>{slot?.rotation||0}°</span>
+                                {(slot?.rotation||0)!==0 && <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:0})}));}} style={{background:'none',border:'none',color:'#94a3b8',cursor:'pointer',fontSize:9,padding:'0 2px'}}>↺</button>}
                               </div>
                               {/* Done button */}
                               <button onClick={e=>{e.stopPropagation();setEditSlotKey(null);}}
@@ -3251,7 +3297,7 @@ export default function BookLayoutEditor() {
                               boxSizing: 'border-box',
                               padding: photo && pageGap > 0 ? pageGap : 0,
                               borderRadius: photo ? 0 : 4,
-                              transform: isOver && photo ? 'scale(1.02)' : 'scale(1)',
+                              transform: `${isOver && photo ? 'scale(1.02)' : 'scale(1)'}${slot?.rotation ? ` rotate(${slot.rotation}deg)` : ''}`,
                               zIndex: isOver && photo ? 5 : 1,
                             }}
                           >
@@ -3292,6 +3338,10 @@ export default function BookLayoutEditor() {
                                       <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'0 2px'}}>+</button>
                                       <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
                                       <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
+                                      <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
+                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)-90+360)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}} title="Повернути -90°">↶</button>
+                                      <span style={{color:'#fff',fontSize:8,fontWeight:600,minWidth:22,textAlign:'center'}}>{slot!.rotation||0}°</span>
+                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)+90)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}} title="Повернути +90°">↷</button>
                                       <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
                                       <button onClick={e=>{e.stopPropagation();clearSlot(pageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✕ фото</button>
                                     </div>
