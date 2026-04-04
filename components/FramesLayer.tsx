@@ -180,7 +180,8 @@ interface FrameLayerProps {
 export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
   if (!frame.frameId) return null;
 
-  const scale = frame.scale ?? 0.6;
+  // Auto-migrate: old default was scale:1 (fullscreen), new default is 0.6
+  const scale = (frame.scale === 1 && frame.x === 0 && frame.y === 0) ? 0.6 : (frame.scale ?? 0.6);
   const xOff = frame.x ?? 0;
   const yOff = frame.y ?? 0;
   // Use the smaller dimension as base so frame doesn't stretch on spreads
