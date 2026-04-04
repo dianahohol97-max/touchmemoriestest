@@ -31,6 +31,25 @@ export const PNG_FRAMES = [
   { id: 'png-gdj-leaves-circle',      label: 'Листя коло',         group: 'Векторні', src: '/frames/gdj-leaves-circle.png' },
   { id: 'png-gdj-botanical-square',   label: 'Ботаніка квадрат',   group: 'Векторні', src: '/frames/gdj-botanical-square.png' },
   { id: 'png-gdj-vintage',            label: 'Вінтаж',             group: 'Векторні', src: '/frames/gdj-vintage.png' },
+  { id: 'png-black-floral-border',    label: 'Чорна флора',        group: 'Векторні', src: '/frames/black-floral-border.png' },
+  { id: 'png-black-floral-2',         label: 'Чорна флора 2',      group: 'Векторні', src: '/frames/black-floral-2.png' },
+  { id: 'png-silver-ornament-bands',  label: 'Срібний орнамент',   group: 'Векторні', src: '/frames/silver-ornament-bands.png' },
+  { id: 'png-teal-monstera-square',   label: 'Монстера',           group: 'Векторні', src: '/frames/teal-monstera-square.png' },
+  { id: 'png-jungle-vines-square',    label: 'Джунглі ліани',      group: 'Векторні', src: '/frames/jungle-vines-square.png' },
+  // ── Акварельні 2 ──
+  { id: 'png-blue-leaves-corners',    label: 'Сині листя',         group: 'Акварельні', src: '/frames/blue-leaves-corners.png' },
+  { id: 'png-peach-roses-gold',       label: 'Персик троянди',     group: 'Акварельні', src: '/frames/peach-roses-gold.png' },
+  { id: 'png-green-berries-wreath',   label: 'Зелений вінок',      group: 'Акварельні', src: '/frames/green-berries-wreath.png' },
+  { id: 'png-eucalyptus-white-flowers', label: 'Евкаліпт+квіти',  group: 'Акварельні', src: '/frames/eucalyptus-white-flowers.png' },
+  { id: 'png-sage-botanical-corner',  label: 'Сейдж кутик',        group: 'Акварельні', src: '/frames/sage-botanical-corner.png' },
+  { id: 'png-white-roses-cascade',    label: 'Білі троянди',       group: 'Акварельні', src: '/frames/white-roses-cascade.png' },
+  // ── Весільні PNG 2 ──
+  { id: 'png-pink-hexagon-gold',      label: 'Рожевий шестикут',   group: 'Весільні PNG', src: '/frames/pink-hexagon-gold.png' },
+  { id: 'png-pink-roses-gold-circle', label: 'Рожеве коло',        group: 'Весільні PNG', src: '/frames/pink-roses-gold-circle.png' },
+  { id: 'png-gold-acanthus-corner',   label: 'Золотий аканф',      group: 'Весільні PNG', src: '/frames/gold-acanthus-corner.png' },
+  { id: 'png-pink-cherry-gold-poly',  label: 'Сакура золото',      group: 'Весільні PNG', src: '/frames/pink-cherry-gold-poly.png' },
+  // ── Спеціальні ──
+  { id: 'png-polaroid-paperclip',     label: 'Поляроїд',           group: 'Спеціальні', src: '/frames/polaroid-paperclip.png' },
 ];
 
 // All frames combined (SVG + PNG) — used in picker
