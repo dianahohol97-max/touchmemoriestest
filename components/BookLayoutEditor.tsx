@@ -1450,10 +1450,10 @@ export default function BookLayoutEditor() {
                       <div>
                         <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Форма фотослота</div>
                         <div style={{ display:'flex', gap:4 }}>
-                          {(['rounded','circle'] as const).map(sh => (
+                          {(['rect','rounded','circle'] as const).map(sh => (
                             <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
                               style={{ flex:1, padding:'6px 4px', border: ps.shape===sh ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: ps.shape===sh ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:16 }}>
-                              {sh==='rounded'?'▢':'◯'}
+                              {sh==='rect'?'▭':sh==='rounded'?'▢':'◯'}
                             </button>
                           ))}
                         </div>
@@ -3771,10 +3771,10 @@ export default function BookLayoutEditor() {
                       <div>
                         <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Форма фотослота</div>
                         <div style={{ display:'flex', gap:8 }}>
-                          {(['rounded','circle'] as const).map(sh => (
+                          {(['rect','rounded','circle'] as const).map(sh => (
                             <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
                               style={{ flex:1, padding:'10px 4px', border: ps.shape===sh?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: ps.shape===sh?'#f0f3ff':'#fff', cursor:'pointer', fontSize:20 }}>
-                              {sh==='rounded'?'▢':'◯'}
+                              {sh==='rect'?'▭':sh==='rounded'?'▢':'◯'}
                             </button>
                           ))}
                         </div>
