@@ -21,28 +21,14 @@ interface BookPreviewProps {
 
 export function BookPreviewModal({ pages, photos, propW, propH, onClose, freeSlots={}, coverState, isPrinted }: BookPreviewProps) {
   const [spread, setSpread] = useState(0);
-  const [flipState, setFlipState] = useState<'idle'|'flipping-next'|'flipping-prev'>('idle');
-  const [flipProgress, setFlipProgress] = useState(0);
 
   const spreadCount = Math.ceil((pages.length - 1) / 2) + 1;
 
   const navigate = useCallback((dir: 'next' | 'prev') => {
-    if (flipState !== 'idle') return;
     const next = dir === 'next' ? spread + 1 : spread - 1;
     if (next < 0 || next >= spreadCount) return;
-    setFlipState(dir === 'next' ? 'flipping-next' : 'flipping-prev');
-    let start: number | null = null;
-    const duration = 500;
-    const animate = (ts: number) => {
-      if (!start) start = ts;
-      const p = Math.min(1, (ts - start) / duration);
-      const eased = p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p+2, 3)/2;
-      setFlipProgress(eased);
-      if (p < 1) { requestAnimationFrame(animate); }
-      else { setSpread(next); setFlipState('idle'); setFlipProgress(0); }
-    };
-    requestAnimationFrame(animate);
-  }, [spread, flipState, spreadCount]);
+    setSpread(next);
+  }, [spread, spreadCount]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -129,8 +115,6 @@ export function BookPreviewModal({ pages, photos, propW, propH, onClose, freeSlo
 
   const leftPageIdx = spread === 0 ? 0 : (spread - 1) * 2 + 1;
   const rightPageIdx = spread === 0 ? 0 : (spread - 1) * 2 + 2;
-  const isFlipping = flipState !== 'idle';
-  const flipAngle = flipProgress * 180;
 
   const spreadLabel = spread === 0 ? 'Обкладинка' : `Розворот ${spread} / ${spreadCount - 1}`;
 
@@ -170,40 +154,6 @@ export function BookPreviewModal({ pages, photos, propW, propH, onClose, freeSlo
                 {renderPage(rightPageIdx, 'right')}
               </div>
 
-              {/* Flipping right page (next) */}
-              {flipState === 'flipping-next' && (
-                <div style={{
-                  position:'absolute', top:0, right:0, width: pageW, height: pageH,
-                  transformOrigin: 'left center', transform: `rotateY(${-flipAngle}deg)`,
-                  zIndex: 10, backfaceVisibility:'hidden', overflow:'hidden',
-                }}>
-                  <div style={{ width:pageW, height:pageH, background:'#fff', boxShadow:`-4px 0 16px rgba(0,0,0,${0.08 + flipProgress * 0.15})` }}>
-                    {flipProgress < 0.5 ? renderPage(rightPageIdx, 'right') : (
-                      <div style={{ width:'100%', height:'100%', background:'linear-gradient(to left, #f8f6f2, #eae7e0)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                        <span style={{ color:'rgba(0,0,0,0.06)', fontSize:11 }}>●</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Flipping left page (prev) */}
-              {flipState === 'flipping-prev' && (
-                <div style={{
-                  position:'absolute', top:0, left:0, width: pageW, height: pageH,
-                  transformOrigin: 'right center', transform: `rotateY(${flipAngle}deg)`,
-                  zIndex: 10, backfaceVisibility:'hidden', overflow:'hidden',
-                }}>
-                  <div style={{ width:pageW, height:pageH, background:'#fff', boxShadow:`4px 0 16px rgba(0,0,0,${0.08 + flipProgress * 0.15})` }}>
-                    {flipProgress < 0.5 ? renderPage(leftPageIdx, 'left') : (
-                      <div style={{ width:'100%', height:'100%', background:'linear-gradient(to right, #f8f6f2, #eae7e0)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                        <span style={{ color:'rgba(0,0,0,0.06)', fontSize:11 }}>●</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {/* Book shadow */}
               <div style={{ position:'absolute', bottom:-5, left:'8%', right:'8%', height:10, background:'radial-gradient(ellipse at center, rgba(0,0,0,0.2), transparent)', borderRadius:'50%', filter:'blur(3px)', pointerEvents:'none' }}/>
             </div>
@@ -215,19 +165,19 @@ export function BookPreviewModal({ pages, photos, propW, propH, onClose, freeSlo
 
         {/* Navigation */}
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <button onClick={()=>navigate('prev')} disabled={spread===0||isFlipping}
-            style={{ width:36, height:36, borderRadius:'50%', background:spread===0?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.15)', border:'none', cursor:spread===0?'not-allowed':'pointer', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-            <ChevronLeft size={18}/>
+          <button onClick={()=>navigate('prev')} disabled={spread===0}
+            style={{ width:40, height:40, borderRadius:'50%', background:spread===0?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.15)', border:'none', cursor:spread===0?'not-allowed':'pointer', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <ChevronLeft size={20}/>
           </button>
           <div style={{ display:'flex', gap:4, overflowX:'auto', maxWidth: isMobile ? 'calc(100vw - 120px)' : 500, paddingBlock:4 }}>
             {Array.from({length:spreadCount}).map((_,i) => (
-              <button key={i} onClick={()=>!isFlipping&&setSpread(i)}
+              <button key={i} onClick={()=>setSpread(i)}
                 style={{ width: i===spread ? 24 : 14, height: 10, borderRadius:3, border:'none', cursor:'pointer', background: i===spread ? '#fff' : 'rgba(255,255,255,0.25)', transition:'all 0.2s', padding:0, flexShrink:0, outline: i===spread ? '2px solid rgba(255,255,255,0.3)' : 'none', outlineOffset:2 }}/>
             ))}
           </div>
-          <button onClick={()=>navigate('next')} disabled={spread===spreadCount-1||isFlipping}
-            style={{ width:36, height:36, borderRadius:'50%', background:spread===spreadCount-1?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.15)', border:'none', cursor:spread===spreadCount-1?'not-allowed':'pointer', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-            <ChevronRight size={18}/>
+          <button onClick={()=>navigate('next')} disabled={spread===spreadCount-1}
+            style={{ width:40, height:40, borderRadius:'50%', background:spread===spreadCount-1?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.15)', border:'none', cursor:spread===spreadCount-1?'not-allowed':'pointer', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <ChevronRight size={20}/>
           </button>
         </div>
 
