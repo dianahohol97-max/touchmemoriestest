@@ -58,11 +58,22 @@ const LAYOUT_ORIENTATION_SCORE: Record<string, Orientation[]> = {
   'sp-2-h':         ['landscape'],
   'sp-2-big-left':  ['landscape', 'square'],
   'sp-2-big-right': ['landscape', 'square'],
+  'sp-2-big-top':   ['landscape'],
+  'sp-2-big-bottom':['landscape'],
   'sp-3-row':       ['portrait'],
   'sp-3-hero-left': ['landscape', 'square'],
   'sp-3-hero-right':['landscape', 'square'],
+  'sp-3-col':       ['landscape'],
+  'sp-3-hero-top':  ['landscape', 'square'],
+  'sp-3-hero-bottom':['landscape', 'square'],
   'sp-4-grid':      ['square'],
   'sp-4-hero':      ['landscape', 'square'],
+  'sp-4-hero-right':['landscape', 'square'],
+  'sp-4-top-bottom':['square'],
+  'sp-4-strip-h':   ['landscape'],
+  'sp-5-grid':      ['square'],
+  'sp-5-hero':      ['landscape', 'square'],
+  'sp-6-grid':      ['square'],
 };
 
 function classifyPhoto(photo: { id: string; width: number; height: number }): PhotoClassified {

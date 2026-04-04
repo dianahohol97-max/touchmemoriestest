@@ -80,11 +80,22 @@ export function getSlotDefs(layout: LayoutType, W: number, H: number): SlotDef[]
   if (layout === 'sp-2-h')         return [S(0, 0, 0, W, h2), S(1, 0, h2+g, W, h2)];
   if (layout === 'sp-2-big-left')  return [S(0, 0, 0, W*0.65, H), S(1, W*0.65+g, 0, W*0.35-g, H)];
   if (layout === 'sp-2-big-right') return [S(0, 0, 0, W*0.35, H), S(1, W*0.35+g, 0, W*0.65-g, H)];
+  if (layout === 'sp-2-big-top')   return [S(0, 0, 0, W, H*0.65), S(1, 0, H*0.65+g, W, H*0.35-g)];
+  if (layout === 'sp-2-big-bottom')return [S(0, 0, 0, W, H*0.35), S(1, 0, H*0.35+g, W, H*0.65-g)];
   if (layout === 'sp-3-row')       return [S(0, 0, 0, w3, H), S(1, w3+g, 0, w3, H), S(2, 2*(w3+g), 0, w3, H)];
+  if (layout === 'sp-3-col')       return [S(0, 0, 0, W, h3), S(1, 0, h3+g, W, h3), S(2, 0, 2*(h3+g), W, h3)];
   if (layout === 'sp-3-hero-left') return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h2), S(2, W*0.55+g, h2+g, W*0.45-g, h2)];
   if (layout === 'sp-3-hero-right')return [S(0, 0, 0, W*0.45, h2), S(1, 0, h2+g, W*0.45, h2), S(2, W*0.45+g, 0, W*0.55-g, H)];
+  if (layout === 'sp-3-hero-top')  return [S(0, 0, 0, W, H*0.55), S(1, 0, H*0.55+g, w2, H*0.45-g), S(2, w2+g, H*0.55+g, w2, H*0.45-g)];
+  if (layout === 'sp-3-hero-bottom')return [S(0, 0, 0, w2, H*0.45), S(1, w2+g, 0, w2, H*0.45), S(2, 0, H*0.45+g, W, H*0.55-g)];
   if (layout === 'sp-4-grid')      return [S(0, 0, 0, w2, h2), S(1, w2+g, 0, w2, h2), S(2, 0, h2+g, w2, h2), S(3, w2+g, h2+g, w2, h2)];
   if (layout === 'sp-4-hero')      return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h3), S(2, W*0.55+g, h3+g, W*0.45-g, h3), S(3, W*0.55+g, 2*(h3+g), W*0.45-g, h3)];
+  if (layout === 'sp-4-hero-right')return [S(0, 0, 0, W*0.45-g, h3), S(1, 0, h3+g, W*0.45-g, h3), S(2, 0, 2*(h3+g), W*0.45-g, h3), S(3, W*0.45, 0, W*0.55, H)];
+  if (layout === 'sp-4-top-bottom')return [S(0, 0, 0, w2, h2), S(1, w2+g, 0, w2, h2), S(2, 0, h2+g, w2, h2), S(3, w2+g, h2+g, w2, h2)];
+  if (layout === 'sp-4-strip-h')   return [S(0, 0, 0, W, h4), S(1, 0, h4+g, W, h4), S(2, 0, 2*(h4+g), W, h4), S(3, 0, 3*(h4+g), W, h4)];
+  if (layout === 'sp-5-grid')      return [S(0, 0, 0, w3, h2), S(1, w3+g, 0, w3, h2), S(2, 2*(w3+g), 0, w3, h2), S(3, 0, h2+g, w2, h2), S(4, w2+g, h2+g, w2, h2)];
+  if (layout === 'sp-5-hero')      { const bh=H*0.55; const sw=(W-3*g)/4; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3].map(ii=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
+  if (layout === 'sp-6-grid')      return [S(0, 0, 0, w3, h2), S(1, w3+g, 0, w3, h2), S(2, 2*(w3+g), 0, w3, h2), S(3, 0, h2+g, w3, h2), S(4, w3+g, h2+g, w3, h2), S(5, 2*(w3+g), h2+g, w3, h2)];
 
   return [S(0, 0, 0, W, H)];
 }

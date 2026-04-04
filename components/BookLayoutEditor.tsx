@@ -84,9 +84,11 @@ type LayoutType =
   // text
   'p-text' | 'p-text-top' | 'p-text-bottom' |
   // SPREAD layouts (180° flat-lay photobooks — double width)
-  'sp-full' | 'sp-2-v' | 'sp-2-h' | 'sp-2-big-left' | 'sp-2-big-right' |
-  'sp-3-row' | 'sp-3-hero-left' | 'sp-3-hero-right' |
-  'sp-4-grid' | 'sp-4-hero' | 'sp-1-left' | 'sp-1-right' | 'sp-1-center';
+  'sp-full' | 'sp-2-v' | 'sp-2-h' | 'sp-2-big-left' | 'sp-2-big-right' | 'sp-2-big-top' | 'sp-2-big-bottom' |
+  'sp-3-row' | 'sp-3-col' | 'sp-3-hero-left' | 'sp-3-hero-right' | 'sp-3-hero-top' | 'sp-3-hero-bottom' |
+  'sp-4-grid' | 'sp-4-hero' | 'sp-4-hero-right' | 'sp-4-top-bottom' | 'sp-4-strip-h' |
+  'sp-5-grid' | 'sp-5-hero' | 'sp-6-grid' |
+  'sp-1-left' | 'sp-1-right' | 'sp-1-center';
 
 interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
@@ -149,11 +151,22 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'sp-2-h',         label: '2 горизонтально',     slots: 2, group: 'Розворот 2 фото' },
   { id: 'sp-2-big-left',  label: 'Велике ліворуч',      slots: 2, group: 'Розворот 2 фото' },
   { id: 'sp-2-big-right', label: 'Велике праворуч',     slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-2-big-top',   label: 'Велике зверху',       slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-2-big-bottom',label: 'Велике знизу',        slots: 2, group: 'Розворот 2 фото' },
   { id: 'sp-3-row',       label: '3 в ряд',             slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-3-col',       label: '3 в стовпець',        slots: 3, group: 'Розворот 3 фото' },
   { id: 'sp-3-hero-left', label: 'Велике + 2 праворуч', slots: 3, group: 'Розворот 3 фото' },
   { id: 'sp-3-hero-right',label: '2 ліворуч + велике',  slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-3-hero-top',  label: 'Велике + 2 знизу',    slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-3-hero-bottom',label:'2 зверху + велике',    slots: 3, group: 'Розворот 3 фото' },
   { id: 'sp-4-grid',      label: '4 рівно',             slots: 4, group: 'Розворот 4 фото' },
   { id: 'sp-4-hero',      label: 'Велике + 3',          slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-4-hero-right',label: '3 + велике',          slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-4-top-bottom',label: '2 зверху + 2 знизу',  slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-4-strip-h',   label: '4 смуги горизонт',    slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-5-grid',      label: '5 сітка',             slots: 5, group: 'Розворот 5+ фото' },
+  { id: 'sp-5-hero',      label: 'Велике + 4',          slots: 5, group: 'Розворот 5+ фото' },
+  { id: 'sp-6-grid',      label: '6 рівно',             slots: 6, group: 'Розворот 5+ фото' },
 ];
 
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
@@ -261,11 +274,22 @@ function getSlotDefs(layout: LayoutType, W: number, H: number): { i: number; s: 
   if (layout === 'sp-2-h')         return [S(0, 0, 0, W, h2), S(1, 0, h2+g, W, h2)];
   if (layout === 'sp-2-big-left')  return [S(0, 0, 0, W*0.65, H), S(1, W*0.65+g, 0, W*0.35-g, H)];
   if (layout === 'sp-2-big-right') return [S(0, 0, 0, W*0.35, H), S(1, W*0.35+g, 0, W*0.65-g, H)];
+  if (layout === 'sp-2-big-top')   return [S(0, 0, 0, W, H*0.65), S(1, 0, H*0.65+g, W, H*0.35-g)];
+  if (layout === 'sp-2-big-bottom')return [S(0, 0, 0, W, H*0.35), S(1, 0, H*0.35+g, W, H*0.65-g)];
   if (layout === 'sp-3-row')       return [S(0, 0, 0, w3, H), S(1, w3+g, 0, w3, H), S(2, 2*(w3+g), 0, w3, H)];
   if (layout === 'sp-3-hero-left') return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h2), S(2, W*0.55+g, h2+g, W*0.45-g, h2)];
   if (layout === 'sp-3-hero-right')return [S(0, 0, 0, W*0.45, h2), S(1, 0, h2+g, W*0.45, h2), S(2, W*0.45+g, 0, W*0.55-g, H)];
+  if (layout === 'sp-3-col')       return [S(0, 0, 0, W, h3), S(1, 0, h3+g, W, h3), S(2, 0, 2*(h3+g), W, h3)];
+  if (layout === 'sp-3-hero-top')  return [S(0, 0, 0, W, H*0.55), S(1, 0, H*0.55+g, w2, H*0.45-g), S(2, w2+g, H*0.55+g, w2, H*0.45-g)];
+  if (layout === 'sp-3-hero-bottom')return [S(0, 0, 0, w2, H*0.45), S(1, w2+g, 0, w2, H*0.45), S(2, 0, H*0.45+g, W, H*0.55-g)];
   if (layout === 'sp-4-grid')      return [S(0, 0, 0, w2, h2), S(1, w2+g, 0, w2, h2), S(2, 0, h2+g, w2, h2), S(3, w2+g, h2+g, w2, h2)];
   if (layout === 'sp-4-hero')      return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h3), S(2, W*0.55+g, h3+g, W*0.45-g, h3), S(3, W*0.55+g, 2*(h3+g), W*0.45-g, h3)];
+  if (layout === 'sp-4-hero-right')return [S(0, 0, 0, W*0.45-g, h3), S(1, 0, h3+g, W*0.45-g, h3), S(2, 0, 2*(h3+g), W*0.45-g, h3), S(3, W*0.45, 0, W*0.55, H)];
+  if (layout === 'sp-4-top-bottom')return [S(0, 0, 0, w2, h2), S(1, w2+g, 0, w2, h2), S(2, 0, h2+g, w2, h2), S(3, w2+g, h2+g, w2, h2)];
+  if (layout === 'sp-4-strip-h')   return [S(0, 0, 0, W, h4), S(1, 0, h4+g, W, h4), S(2, 0, 2*(h4+g), W, h4), S(3, 0, 3*(h4+g), W, h4)];
+  if (layout === 'sp-5-grid')      return [S(0, 0, 0, w3, h2), S(1, w3+g, 0, w3, h2), S(2, 2*(w3+g), 0, w3, h2), S(3, 0, h2+g, w2, h2), S(4, w2+g, h2+g, w2, h2)];
+  if (layout === 'sp-5-hero')      { const bh=H*0.55; const sw=(W-3*g)/4; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3].map(ii=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
+  if (layout === 'sp-6-grid')      return [S(0, 0, 0, w3, h2), S(1, w3+g, 0, w3, h2), S(2, 2*(w3+g), 0, w3, h2), S(3, 0, h2+g, w3, h2), S(4, w3+g, h2+g, w3, h2), S(5, 2*(w3+g), h2+g, w3, h2)];
 
   return [S(0, 0, 0, W, H)];
 }
@@ -1356,7 +1380,7 @@ export default function BookLayoutEditor() {
                 )}
                 {/* Layout groups — spread layouts for photobooks, page layouts for magazines */}
                 {(isSpreadMode
-                  ? ['Розворот 1 фото', 'Розворот 2 фото', 'Розворот 3 фото', 'Розворот 4 фото']
+                  ? ['Розворот 1 фото', 'Розворот 2 фото', 'Розворот 3 фото', 'Розворот 4 фото', 'Розворот 5+ фото']
                   : ['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7–9 фото', 'Текст']
                 ).map(group => {
                   const gl = LAYOUTS.filter(l => l.group === group);
