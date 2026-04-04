@@ -97,7 +97,7 @@ export interface CoverConfig {
   textFontSize: number;
   extraTexts?: ExtraTextBlock[];
   // Printed cover
-  printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded' };
+  printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' };
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
   printedBgColor?: string;
@@ -229,7 +229,9 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
         const texts = config.printedTextBlocks ?? [];
         const overlay = config.printedOverlay ?? { type: 'none' as const, color: '#000000', opacity: 40, gradient: 'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };
         const slotPx = { x: slot.x/100*canvasW, y: slot.y/100*canvasH, w: slot.w/100*canvasW, h: slot.h/100*canvasH };
-        const br = slot.shape === 'circle' ? '50%' : slot.shape === 'rounded' ? '12px' : '0px';
+        const isHeart = slot.shape === 'heart';
+        const heartClipId = 'heart-clip-' + Math.round(slotPx.x) + '-' + Math.round(slotPx.y);
+        const br = isHeart ? '0px' : slot.shape === 'circle' ? '50%' : slot.shape === 'rounded' ? '12px' : '0px';
         return (
           <>
             {/* Photo slot */}
@@ -239,10 +241,30 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               onDrop={e=>{e.preventDefault();setDragOver(false);const id=e.dataTransfer.getData('text/plain');if(id)onChange({photoId:id});}}
               onPointerDown={e => startSlotDrag(e, 'move')}
               onClick={() => { if (!photo && photos.length > 0) { haptic.success(); onChange({ photoId: photos[0].id }); } }}
-              style={{ position:'absolute', left:slotPx.x, top:slotPx.y, width:slotPx.w, height:slotPx.h,
-                borderRadius:br, overflow:'hidden', cursor:'move', zIndex:2, touchAction:'manipulation',
-                border: dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)'),
-                background: photo ? 'transparent' : (dragOver ? 'rgba(59,130,246,0.08)' : '#f1f5f9') }}>
+            {isHeart && (
+              <svg width={0} height={0} style={{ position:'absolute' }}>
+                <defs>
+                  <clipPath id={heartClipId} clipPathUnits="userSpaceOnUse">
+                    <path d={`M ${slotPx.x + slotPx.w/2} ${slotPx.y + slotPx.h * 0.28}
+                      C ${slotPx.x + slotPx.w/2} ${slotPx.y + slotPx.h * 0.13}, ${slotPx.x + slotPx.w * 0.15} ${slotPx.y}, ${slotPx.x + slotPx.w * 0.05} ${slotPx.y + slotPx.h * 0.22}
+                      C ${slotPx.x - slotPx.w * 0.05} ${slotPx.y + slotPx.h * 0.45}, ${slotPx.x + slotPx.w * 0.15} ${slotPx.y + slotPx.h * 0.65}, ${slotPx.x + slotPx.w/2} ${slotPx.y + slotPx.h * 0.95}
+                      C ${slotPx.x + slotPx.w * 0.85} ${slotPx.y + slotPx.h * 0.65}, ${slotPx.x + slotPx.w * 1.05} ${slotPx.y + slotPx.h * 0.45}, ${slotPx.x + slotPx.w * 0.95} ${slotPx.y + slotPx.h * 0.22}
+                      C ${slotPx.x + slotPx.w * 0.85} ${slotPx.y} ${slotPx.x + slotPx.w/2} ${slotPx.y + slotPx.h * 0.13}, ${slotPx.x + slotPx.w/2} ${slotPx.y + slotPx.h * 0.28} Z`}/>
+                  </clipPath>
+                </defs>
+              </svg>
+            )}
+            <div
+              onDragOver={e=>{e.preventDefault();e.stopPropagation();setDragOver(true);}}
+              onDragLeave={()=>setDragOver(false)}
+              onDrop={e=>{e.preventDefault();setDragOver(false);const id=e.dataTransfer.getData('text/plain');if(id)onChange({photoId:id});}}
+              onPointerDown={e => startSlotDrag(e, 'move')}
+              onClick={() => { if (!photo && photos.length > 0) { haptic.success(); onChange({ photoId: photos[0].id }); } }}
+                            style={{ position:'absolute', left:slotPx.x, top:slotPx.y, width:slotPx.w, height:slotPx.h,
+                borderRadius:br, overflow: isHeart ? 'visible' : 'hidden', cursor:'move', zIndex:2, touchAction:'manipulation',
+                clipPath: isHeart ? `url(#${heartClipId})` : undefined,
+                border: !isHeart && (dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)')),
+                background: !isHeart && (photo ? 'transparent' : (dragOver ? 'rgba(59,130,246,0.08)' : '#f1f5f9')) }}>
               {photo
                 ? <>
                     <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}

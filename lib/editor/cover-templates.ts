@@ -4,7 +4,7 @@ export interface CoverTemplate {
   label: string;
   group: string;
   bgColor: string;
-  photoSlot: { x: number; y: number; w: number; h: number; shape: 'rect' | 'rounded' | 'circle' };
+  photoSlot: { x: number; y: number; w: number; h: number; shape: 'rect' | 'rounded' | 'circle' | 'heart' };
   texts: {
     text: string;
     x: number; // % from left
@@ -231,6 +231,31 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     texts: [
       { text: '2025', x: 14, y: 78, fontSize: 52, fontFamily: 'Cormorant Garamond', color: '#8a7a50', bold: false },
       { text: 'THE FAMILY MEMORIES', x: 14, y: 90, fontSize: 11, fontFamily: 'Montserrat', color: '#8a7a50', bold: false },
+    ],
+  },
+
+  {
+    id: 'ref-heart-photo',
+    label: 'Серце з фото',
+    group: 'Мінімалістичні',
+    bgColor: '#ffffff',
+    photoSlot: { x: 10, y: 8, w: 80, h: 72, shape: 'heart' },
+    texts: [
+      { text: 'ІМʼЯ & ІМʼЯ', x: 50, y: 86, fontSize: 28, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
+      { text: '19.11.2025', x: 50, y: 94, fontSize: 16, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+    ],
+  },
+  {
+    id: 'ref-our-wedding-day',
+    label: 'Our Wedding Day',
+    group: 'Елегантні',
+    bgColor: '#f2d5c0',
+    photoSlot: { x: 50, y: 50, w: 0, h: 0, shape: 'rect' },
+    texts: [
+      { text: 'OUR', x: 50, y: 42, fontSize: 16, fontFamily: 'Cormorant Garamond', color: '#b8966a', bold: false },
+      { text: 'wedding', x: 50, y: 54, fontSize: 40, fontFamily: 'Dancing Script', color: '#b8966a', bold: false },
+      { text: 'DAY', x: 50, y: 63, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#b8966a', bold: false },
+      { text: '04.10.2025', x: 50, y: 88, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#b8966a', bold: false },
     ],
   },
 

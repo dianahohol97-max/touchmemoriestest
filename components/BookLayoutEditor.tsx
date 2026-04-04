@@ -58,7 +58,7 @@ interface CoverState {
   textFontFamily: string;
   textFontSize: number;
   extraTexts: { id: string; text: string; x: number; y: number; fontFamily: string; fontSize: number; color: string; }[];
-  printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded' };
+  printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' };
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
   printedBgColor?: string;
@@ -67,7 +67,7 @@ interface CoverState {
   backCoverCropX?: number;
   backCoverCropY?: number;
   backCoverZoom?: number;
-  backCoverSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded' };
+  backCoverSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' };
 }
 
 type LayoutType =
@@ -1602,10 +1602,10 @@ export default function BookLayoutEditor() {
                       <div>
                         <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Форма фотослота</div>
                         <div style={{ display:'flex', gap:4 }}>
-                          {(['rect','rounded','circle'] as const).map(sh => (
+                          {(['rect','rounded','circle','heart'] as const).map(sh => (
                             <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
                               style={{ flex:1, padding:'6px 4px', border: ps.shape===sh ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: ps.shape===sh ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:16 }}>
-                              {sh==='rect'?'▭':sh==='rounded'?'▢':'◯'}
+                              {sh==='rect'?'▭':sh==='rounded'?'▢':sh==='heart'?'♥':'◯'}
                             </button>
                           ))}
                         </div>
@@ -1716,7 +1716,7 @@ export default function BookLayoutEditor() {
                                 return (
                                   <button key={sh} onClick={()=>setCoverState(p=>({...p,backCoverSlot:{...bs,shape:sh}}))}
                                     style={{ flex:1, padding:'5px 4px', border: bs.shape===sh ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: bs.shape===sh ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:14 }}>
-                                    {sh==='rect'?'▭':sh==='rounded'?'▢':'◯'}
+                                    {sh==='rect'?'▭':sh==='rounded'?'▢':sh==='heart'?'♥':'◯'}
                                   </button>
                                 );
                               })}
@@ -2923,7 +2923,7 @@ export default function BookLayoutEditor() {
                                       return (
                                         <button key={sh} onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,shape:sh})}));}}
                                           style={{background:curShape===sh?'rgba(255,255,255,0.3)':'none',border:'none',color:'#fff',cursor:'pointer',fontSize:12,padding:'2px 5px',borderRadius:8}}>
-                                          {sh==='rect'?'▭':sh==='rounded'?'▢':'◯'}
+                                          {sh==='rect'?'▭':sh==='rounded'?'▢':sh==='heart'?'♥':'◯'}
                                         </button>
                                       );
                                     })}
@@ -4147,10 +4147,10 @@ export default function BookLayoutEditor() {
                       <div>
                         <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Форма фотослота</div>
                         <div style={{ display:'flex', gap:8 }}>
-                          {(['rect','rounded','circle'] as const).map(sh => (
+                          {(['rect','rounded','circle','heart'] as const).map(sh => (
                             <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
                               style={{ flex:1, padding:'10px 4px', border: ps.shape===sh?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: ps.shape===sh?'#f0f3ff':'#fff', cursor:'pointer', fontSize:20 }}>
-                              {sh==='rect'?'▭':sh==='rounded'?'▢':'◯'}
+                              {sh==='rect'?'▭':sh==='rounded'?'▢':sh==='heart'?'♥':'◯'}
                             </button>
                           ))}
                         </div>
