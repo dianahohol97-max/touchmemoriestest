@@ -503,7 +503,7 @@ export default function BookLayoutEditor() {
   const [saveStatus, setSaveStatus] = useState<'idle'|'saving'|'saved'>('idle');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Калька state: text, uploaded illustration
-  const [kalkaState, setKalkaState] = useState<{ text: string; textColor: string; fontSize: number; fontFamily: string; imageUrl: string | null; }>({ text: '', textColor: '#333333', fontSize: 24, fontFamily: 'Playfair Display', imageUrl: null });
+  const [kalkaState, setKalkaState] = useState<{ text: string; textColor: string; fontSize: number; fontFamily: string; imageUrl: string | null; imgCropX: number; imgCropY: number; imgZoom: number; imgScale: number; imgX: number; imgY: number; }>({ text: '', textColor: '#333333', fontSize: 24, fontFamily: 'Playfair Display', imageUrl: null, imgCropX: 50, imgCropY: 50, imgZoom: 1, imgScale: 80, imgX: 50, imgY: 50 });
   const kalkaImageInputRef = useRef<HTMLInputElement>(null);
   // Форзац state: each endpaper can have optional content (costs +200₴)
   const [endpaperState, setEndpaperState] = useState<{ first: { enabled: boolean; text: string; textColor: string; imageUrl: string | null }; last: { enabled: boolean; text: string; textColor: string; imageUrl: string | null } }>({
@@ -2135,7 +2135,7 @@ export default function BookLayoutEditor() {
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Ілюстрація</div>
                   <input ref={kalkaImageInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => {
                     const f = e.target.files?.[0]; if (!f) return;
-                    setKalkaState(p => ({ ...p, imageUrl: URL.createObjectURL(f as Blob) }));
+                    setKalkaState(p => ({ ...p, imageUrl: URL.createObjectURL(f as Blob), imgCropX:50, imgCropY:50, imgZoom:1 }));
                   }}/>
                   <div style={{ display:'flex', gap:6 }}>
                     <button onClick={() => kalkaImageInputRef.current?.click()}
@@ -2150,6 +2150,27 @@ export default function BookLayoutEditor() {
                   {kalkaState.imageUrl && (
                     <img src={kalkaState.imageUrl} style={{ marginTop:6, width:'100%', maxHeight:80, objectFit:'contain', borderRadius:6, border:'1px solid #e2e8f0' }}/>
                   )}
+                  {/* Image positioning controls */}
+                  {kalkaState.imageUrl && (
+                    <div style={{ marginTop:8, background:'#f8fafc', borderRadius:8, padding:8, border:'1px solid #e2e8f0', display:'flex', flexDirection:'column', gap:6 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#64748b' }}><span>Розмір</span><span>{kalkaState.imgScale}%</span></div>
+                      <input type="range" min={10} max={200} value={kalkaState.imgScale} onChange={e=>setKalkaState(p=>({...p,imgScale:+e.target.value}))} style={{ width:'100%', accentColor:'#1e2d7d' }}/>
+                      <div style={{ display:'flex', gap:6 }}>
+                        <div style={{ flex:1 }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#64748b' }}><span>X</span><span>{kalkaState.imgX}%</span></div>
+                          <input type="range" min={0} max={100} value={kalkaState.imgX} onChange={e=>setKalkaState(p=>({...p,imgX:+e.target.value}))} style={{ width:'100%', accentColor:'#1e2d7d' }}/>
+                        </div>
+                        <div style={{ flex:1 }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#64748b' }}><span>Y</span><span>{kalkaState.imgY}%</span></div>
+                          <input type="range" min={0} max={100} value={kalkaState.imgY} onChange={e=>setKalkaState(p=>({...p,imgY:+e.target.value}))} style={{ width:'100%', accentColor:'#1e2d7d' }}/>
+                        </div>
+                      </div>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#64748b' }}><span>Зум</span><span>{Math.round(kalkaState.imgZoom*100)}%</span></div>
+                      <input type="range" min={50} max={300} value={Math.round(kalkaState.imgZoom*100)} onChange={e=>setKalkaState(p=>({...p,imgZoom:+e.target.value/100}))} style={{ width:'100%', accentColor:'#1e2d7d' }}/>
+                      <button onClick={()=>setKalkaState(p=>({...p,imgScale:80,imgX:50,imgY:50,imgZoom:1,imgCropX:50,imgCropY:50}))}
+                        style={{ padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:10, color:'#64748b' }}>↺ Скинути</button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Напис</div>
@@ -2159,12 +2180,7 @@ export default function BookLayoutEditor() {
                 </div>
                 <div>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Шрифт</div>
-                  <select value={kalkaState.fontFamily} onChange={e => setKalkaState(p=>({...p,fontFamily:e.target.value}))}
-                    style={{ width:'100%', padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12 }}>
-                    {['Playfair Display','Great Vibes','Cormorant Garamond','Montserrat','Open Sans','Dancing Script','Pacifico','Caveat','Lato','Raleway'].map(f=>(
-                      <option key={f} value={f}>{f}</option>
-                    ))}
-                  </select>
+                  <FontPicker value={kalkaState.fontFamily} onChange={v => setKalkaState(p=>({...p,fontFamily:v}))} />
                 </div>
                 <div style={{ display:'flex', gap:10, alignItems:'center' }}>
                   <div style={{ flex:1 }}>
@@ -2735,7 +2751,9 @@ export default function BookLayoutEditor() {
                   <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(220,230,255,0.3) 0%, rgba(200,215,245,0.2) 50%, rgba(220,230,255,0.3) 100%)', pointerEvents: 'none' }}/>
                   <div style={{ position: 'absolute', inset: 0, opacity: 0.06, backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(100,130,200,0.3) 8px, transparent 10px)', pointerEvents: 'none' }}/>
                   {kalkaState.imageUrl && (
-                    <img src={kalkaState.imageUrl} style={{ position: 'absolute', inset: '10%', width: '80%', height: '80%', objectFit: 'contain', opacity: 0.65 }} draggable={false}/>
+                    <div style={{ position: 'absolute', left: `${kalkaState.imgX - kalkaState.imgScale/2}%`, top: `${kalkaState.imgY - kalkaState.imgScale/2}%`, width: `${kalkaState.imgScale}%`, height: `${kalkaState.imgScale}%`, overflow: 'hidden', opacity: 0.65, pointerEvents: 'none' }}>
+                      <img src={kalkaState.imageUrl} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%`, transform:`scale(${kalkaState.imgZoom})`, transformOrigin:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%` }} draggable={false}/>
+                    </div>
                   )}
                   {kalkaState.text && (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
@@ -3147,7 +3165,9 @@ export default function BookLayoutEditor() {
                       <div style={{ position: 'absolute', inset: 0, opacity: 0.06, backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(100,130,200,0.3) 8px, transparent 10px)', pointerEvents: 'none' }}/>
                       {/* Uploaded illustration */}
                       {kalkaState.imageUrl && (
-                        <img src={kalkaState.imageUrl} style={{ position: 'absolute', inset: '10%', width: '80%', height: '80%', objectFit: 'contain', opacity: 0.65 }} draggable={false}/>
+                        <div style={{ position: 'absolute', left: `${kalkaState.imgX - kalkaState.imgScale/2}%`, top: `${kalkaState.imgY - kalkaState.imgScale/2}%`, width: `${kalkaState.imgScale}%`, height: `${kalkaState.imgScale}%`, overflow: 'hidden', opacity: 0.65, pointerEvents: 'none' }}>
+                          <img src={kalkaState.imageUrl} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%`, transform:`scale(${kalkaState.imgZoom})`, transformOrigin:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%` }} draggable={false}/>
+                        </div>
                       )}
                       {/* Text */}
                       {kalkaState.text && (
