@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import { useT } from '@/lib/i18n/context';
 import { Sparkles, PenLine, Truck, Users } from 'lucide-react';
 
 interface FeatureCard {
@@ -21,6 +22,7 @@ interface HowItWorksClientProps {
 const ICONS = [Sparkles, PenLine, Truck, Users];
 
 export function HowItWorksClient({ featureCards }: HowItWorksClientProps) {
+  const t = useT();
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
   const { content, blocks } = useTheme();
 

@@ -1,5 +1,4 @@
-
-  const t = useT();'use client';
+'use client';
 import { useT } from '@/lib/i18n/context';
 import { motion } from 'framer-motion';
 import styles from './ProductCard.module.css';

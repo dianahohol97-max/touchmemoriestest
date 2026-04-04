@@ -15,7 +15,8 @@ interface Product {
 }
 
 export function ProductStrip({
-  const t = useT(); products = [] }: { products: Product[] }) {
+  products = [] }: { products: Product[] }) {
+    const t = useT();
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,

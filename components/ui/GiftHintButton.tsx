@@ -13,7 +13,8 @@ interface Props {
 }
 
 export default function GiftHintButton({
-  const t = useT(); productId, productSlug, productName, productImage, productPrice }: Props) {
+  productId, productSlug, productName, productImage, productPrice }: Props) {
+    const t = useT();
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState<'choose' | 'form' | 'sent'>('choose');
     const [channel, setChannel] = useState<'email' | 'sms'>('email');
