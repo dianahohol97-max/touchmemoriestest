@@ -600,19 +600,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         sessionStorage.removeItem(`bookConfig_${productSlug}`);
 
         const pt = getProductType();
-        // Wishbook — no editor needed, go directly to order summary
-        if (pt === 'wishbook') {
-            const params = new URLSearchParams();
-            params.set('product', productSlug);
-            if (selectedSize) params.set('size', selectedSize);
-            if (selectedCoverType) params.set('cover', selectedCoverType);
-            if (selectedLamination) params.set('lamination', selectedLamination);
-            if (selectedCoverColor) params.set('cover_color', selectedCoverColor);
-            if (selectedDecorationType !== 'none') params.set('decoration', selectedDecorationType);
-            if (selectedDecorationVariant) params.set('decoration_variant', selectedDecorationVariant);
-            router.push(`/order/wishbook?${params.toString()}`);
-            return;
-        }
+        // Wishbook — uses same editor as photobooks (cover editor + layout)
 
         // Navigate to photo upload step (Phase 2) with all params
         const params = new URLSearchParams();
