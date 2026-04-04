@@ -1,10 +1,13 @@
 // Cover template presets — each template defines bg color, text blocks, and photo slot config
+export type PhotoSlotDef = { x: number; y: number; w: number; h: number; shape: 'rect' | 'rounded' | 'circle' | 'heart' };
+
 export interface CoverTemplate {
   id: string;
   label: string;
   group: string;
   bgColor: string;
-  photoSlot: { x: number; y: number; w: number; h: number; shape: 'rect' | 'rounded' | 'circle' | 'heart' };
+  photoSlot: PhotoSlotDef;          // primary slot (legacy)
+  photoSlots?: PhotoSlotDef[];       // multi-slot override — if set, used instead of photoSlot
   texts: {
     text: string;
     x: number; // % from left
@@ -256,6 +259,29 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
       { text: 'wedding', x: 50, y: 54, fontSize: 40, fontFamily: 'Dancing Script', color: '#b8966a', bold: false },
       { text: 'DAY', x: 50, y: 63, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#b8966a', bold: false },
       { text: '04.10.2025', x: 50, y: 88, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#b8966a', bold: false },
+    ],
+  },
+
+  {
+    id: 'ref-baby-newborn',
+    label: 'Новонароджений',
+    group: 'Дитячі',
+    bgColor: '#ffffff',
+    // Primary slot = slot[0] top-left
+    photoSlot: { x: 2, y: 2, w: 35, h: 37, shape: 'rect' },
+    // All 6 slots: top row (4 equal) + bottom row (2 wide)
+    photoSlots: [
+      { x: 2,  y: 2,  w: 23, h: 37, shape: 'rect' }, // top 1
+      { x: 27, y: 2,  w: 23, h: 37, shape: 'rect' }, // top 2
+      { x: 52, y: 2,  w: 23, h: 37, shape: 'rect' }, // top 3
+      { x: 77, y: 2,  w: 21, h: 37, shape: 'rect' }, // top 4
+      { x: 2,  y: 41, w: 48, h: 32, shape: 'rect' }, // bottom left (wide)
+      { x: 52, y: 41, w: 46, h: 32, shape: 'rect' }, // bottom right (wide)
+    ],
+    texts: [
+      { text: 'Аделіночка', x: 28, y: 83, fontSize: 42, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
+      { text: '20.10.2025   16:57', x: 72, y: 82, fontSize: 13, fontFamily: 'Dancing Script', color: '#555555', bold: false },
+      { text: '3320 кг              53 см', x: 72, y: 90, fontSize: 13, fontFamily: 'Dancing Script', color: '#555555', bold: false },
     ],
   },
 

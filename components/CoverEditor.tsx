@@ -98,6 +98,7 @@ export interface CoverConfig {
   extraTexts?: ExtraTextBlock[];
   // Printed cover
   printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' };
+  printedPhotoSlots?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart'; photoId?: string|null; cropX?: number; cropY?: number; zoom?: number }[];
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
   printedBgColor?: string;
@@ -345,6 +346,29 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
             {/* Overlay */}
             {overlay.type === 'color' && <div style={{ position:'absolute', inset:0, zIndex:3, pointerEvents:'none', background:overlay.color, opacity:overlay.opacity/100 }}/>}
             {overlay.type === 'gradient' && <div style={{ position:'absolute', inset:0, zIndex:3, pointerEvents:'none', backgroundImage:overlay.gradient }}/>}
+            {/* Multi photo slots — when template has photoSlots[] */}
+            {config.printedPhotoSlots && config.printedPhotoSlots.length > 1 && config.printedPhotoSlots.slice(1).map((psl, si) => {
+              const photo = photos.find(p => p.id === psl.photoId);
+              const px = { x: psl.x/100*canvasW, y: psl.y/100*canvasH, w: psl.w/100*canvasW, h: psl.h/100*canvasH };
+              const br2 = psl.shape === 'circle' ? '50%' : psl.shape === 'rounded' ? '8px' : '0px';
+              return (
+                <div key={'psl-'+si} style={{ position:'absolute', left:px.x, top:px.y, width:px.w, height:px.h,
+                  borderRadius:br2, overflow:'hidden', zIndex:2,
+                  border: photo ? 'none' : '1.5px dashed rgba(148,163,184,0.6)',
+                  background: photo ? 'transparent' : '#f1f5f9', cursor:'pointer' }}
+                  onDragOver={e=>{e.preventDefault();e.stopPropagation();}}
+                  onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id){const slots=(config.printedPhotoSlots||[]).map((s,i)=>i===si+1?{...s,photoId:id}:s);onChange({printedPhotoSlots:slots} as any);}}}
+                  onClick={() => { if(!photo && photos.length > 0){const id=photos.find(p=>!(config.printedPhotoSlots||[]).some(s=>s.photoId===p.id))?.id||photos[0].id;const slots=(config.printedPhotoSlots||[]).map((s,i)=>i===si+1?{...s,photoId:id}:s);onChange({printedPhotoSlots:slots} as any);} }}>
+                  {photo
+                    ? <img src={photo.preview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} draggable={false}/>
+                    : <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:2 }}>
+                        <span style={{ fontSize:12, color:'rgba(148,163,184,0.8)' }}>📷</span>
+                      </div>
+                  }
+                  {photo && <button onClick={e=>{e.stopPropagation();const slots=(config.printedPhotoSlots||[]).map((s,i)=>i===si+1?{...s,photoId:null}:s);onChange({printedPhotoSlots:slots} as any);}} style={{ position:'absolute',top:2,right:2,width:16,height:16,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>}
+                </div>
+              );
+            })}
             {/* Text blocks */}
             {texts.map(tb => (
               <div key={tb.id} onPointerDown={e => startTextDrag(e, tb.id, tb.x, tb.y)}

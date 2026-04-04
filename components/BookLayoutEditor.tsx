@@ -59,6 +59,7 @@ interface CoverState {
   textFontSize: number;
   extraTexts: { id: string; text: string; x: number; y: number; fontFamily: string; fontSize: number; color: string; }[];
   printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' };
+  printedPhotoSlots?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart'; photoId?: string|null; cropX?: number; cropY?: number; zoom?: number }[];
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
   printedBgColor?: string;
@@ -1575,7 +1576,8 @@ export default function BookLayoutEditor() {
                     setCoverState(p => ({
                       ...p,
                       printedBgColor: tmpl.bgColor,
-                      printedPhotoSlot: { ...tmpl.photoSlot },
+                      printedPhotoSlot: tmpl.photoSlots ? tmpl.photoSlots[0] : { ...tmpl.photoSlot },
+                      printedPhotoSlots: tmpl.photoSlots ? tmpl.photoSlots.map(s => ({ ...s, photoId: null, cropX: 50, cropY: 50, zoom: 1 })) : undefined,
                       printedTextBlocks: tmpl.texts.map((t, i) => ({
                         id: 'tmpl-' + Date.now() + '-' + i,
                         text: t.text,

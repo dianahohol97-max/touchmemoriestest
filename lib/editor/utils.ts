@@ -212,6 +212,7 @@ export function buildCoverEditorProps(
     printedTextBlocks: coverState.printedTextBlocks,
     printedOverlay: coverState.printedOverlay,
     printedBgColor: coverState.printedBgColor,
+    printedPhotoSlots: (coverState as any).printedPhotoSlots,
   };
 }
 
@@ -235,6 +236,7 @@ export function handleCoverChange(
     ...(cfg.textFontSize !== undefined && { textFontSize: cfg.textFontSize }),
     ...(cfg.extraTexts !== undefined && { extraTexts: cfg.extraTexts }),
     ...(cfg.printedPhotoSlot !== undefined && { printedPhotoSlot: cfg.printedPhotoSlot }),
+    ...((cfg as any).printedPhotoSlots !== undefined && { printedPhotoSlots: (cfg as any).printedPhotoSlots }),
     ...(cfg.printedTextBlocks !== undefined && { printedTextBlocks: cfg.printedTextBlocks }),
     ...(cfg.printedOverlay !== undefined && { printedOverlay: cfg.printedOverlay }),
     ...(cfg.printedBgColor !== undefined && { printedBgColor: cfg.printedBgColor }),
