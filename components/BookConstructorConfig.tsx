@@ -740,6 +740,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             { id: 'w1', name: 'Велюр', sort_order: 1 },
                             { id: 'w2', name: 'Шкірзамінник', sort_order: 2 },
                             { id: 'w3', name: 'Тканина', sort_order: 3 },
+                            { id: 'w4', name: 'Друкована', sort_order: 4 },
                         ];
                         return (
                         <div>
