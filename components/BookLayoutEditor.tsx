@@ -2604,10 +2604,19 @@ export default function BookLayoutEditor() {
                             e.preventDefault(); e.stopPropagation(); setDropTarget(null);
                             const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
                             if (!photoId) return;
+                            // Multi-photo drop → autoCollage all selected photos
+                            let multiIds: string[] = [];
+                            try { multiIds = JSON.parse(e.dataTransfer?.getData('photoIds') || '[]'); } catch {}
+                            if (multiIds.length > 1) {
+                              const existing = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
+                              const allIds = [...new Set([...existing, ...multiIds])];
+                              autoCollage(allIds, spreadPageIdx);
+                              return;
+                            }
                             const sourceType = e.dataTransfer?.getData('sourceType');
                             // Swap between slots
                             if (sourceType === 'pageSlot' || sourceType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
-                            // Drop from sidebar → REPLACE photo in this slot (not add)
+                            // Single photo from sidebar → REPLACE photo in this slot
                             pushHistory();
                             setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId }) }));
                           }}
@@ -2650,6 +2659,15 @@ export default function BookLayoutEditor() {
                                   e.preventDefault(); e.stopPropagation(); setDropTarget(null);
                                   const pid = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
                                   if (!pid) return;
+                                  // Multi-photo drop → autoCollage
+                                  let multiIds: string[] = [];
+                                  try { multiIds = JSON.parse(e.dataTransfer?.getData('photoIds') || '[]'); } catch {}
+                                  if (multiIds.length > 1) {
+                                    const existing = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
+                                    const allIds = [...new Set([...existing, ...multiIds])];
+                                    autoCollage(allIds, spreadPageIdx);
+                                    return;
+                                  }
                                   const srcType = e.dataTransfer?.getData('sourceType');
                                   if (srcType === 'pageSlot' || srcType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
                                   pushHistory();
