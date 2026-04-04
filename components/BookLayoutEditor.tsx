@@ -2329,9 +2329,10 @@ export default function BookLayoutEditor() {
                       onDragOver={e=>{e.preventDefault();}}
                       onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}>
                       {backPhoto && (
-                        <div style={{ width:'100%', height:'100%', position:'absolute', inset:0, overflow:'hidden', cursor:'grab' }}
+                        <div style={{ width:'100%', height:'100%', position:'absolute', inset:0, overflow:'hidden', cursor:'grab', zIndex:2 }}
                           onPointerDown={e => {
                             e.preventDefault(); e.stopPropagation();
+                            console.log('[BACK-COVER-CROP] pointer down', { bCropX, bCropY, bZoom });
                             const cx = bCropX, cy = bCropY;
                             const sensitivity = 1.5 / Math.max(1, bZoom);
                             startPointerDrag(e, (dx: number, dy: number) => {
@@ -2361,6 +2362,10 @@ export default function BookLayoutEditor() {
                             <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.min(4,(p.backCoverZoom??1)+0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
                             <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
                             <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:1,backCoverCropX:50,backCoverCropY:50}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
+                          </div>
+                          {/* Label */}
+                          <div style={{position:'absolute',top:4,left:4,background:'rgba(0,0,0,0.5)',borderRadius:8,padding:'2px 8px',zIndex:20,pointerEvents:'none'}}>
+                            <span style={{color:'#fff',fontSize:8,fontWeight:700}}>Задня</span>
                           </div>
                         </>
                       )}
