@@ -8,6 +8,34 @@ export interface FrameConfig {
 
 export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opacity: 100 };
 
+// PNG frames — rendered as <img> overlay, black bg = transparent (mix-blend-mode: multiply not needed, these have real alpha)
+export const PNG_FRAMES = [
+  // ── Акварельні квіткові ──
+  { id: 'png-pink-roses-watercolor',  label: 'Рожеві троянди',    group: 'Акварельні', src: '/frames/pink-roses-watercolor.png' },
+  { id: 'png-pink-flower-corner',     label: 'Рожеві маки',        group: 'Акварельні', src: '/frames/pink-flower-corner.png' },
+  { id: 'png-eucalyptus-gold-square', label: 'Евкаліпт квадрат',  group: 'Акварельні', src: '/frames/eucalyptus-gold-square.png' },
+  { id: 'png-jasmine-corners',        label: 'Жасмин кутики',     group: 'Акварельні', src: '/frames/jasmine-corners.png' },
+  { id: 'png-botanical-vines',        label: 'Ботанічні ліани',   group: 'Акварельні', src: '/frames/botanical-vines-square.png' },
+  { id: 'png-lily-corner',            label: 'Лілії кутик',       group: 'Акварельні', src: '/frames/lily-corner.png' },
+  // ── Золоті класичні ──
+  { id: 'png-gold-baroque-simple',    label: 'Золото бароко',      group: 'Золоті',    src: '/frames/gold-baroque-simple.png' },
+  { id: 'png-gold-baroque-ornate',    label: 'Золото розкішне',    group: 'Золоті',    src: '/frames/gold-baroque-ornate.png' },
+  { id: 'png-gold-rococo-ornate',     label: 'Золото рококо',      group: 'Золоті',    src: '/frames/gold-rococo-ornate.png' },
+  { id: 'png-gold-ornate-portrait',   label: 'Золото портрет',     group: 'Золоті',    src: '/frames/gold-ornate-portrait.png' },
+  // ── Весільні (gold + florals) ──
+  { id: 'png-boho-gold-floral',       label: 'Бохо золото',        group: 'Весільні PNG', src: '/frames/boho-gold-floral.png' },
+  { id: 'png-roses-gold-circle',      label: 'Троянди коло',       group: 'Весільні PNG', src: '/frames/roses-gold-circle.png' },
+  { id: 'png-eucalyptus-gold-circle', label: 'Евкаліпт коло',      group: 'Весільні PNG', src: '/frames/eucalyptus-gold-circle.png' },
+  // ── Векторні декоративні ──
+  { id: 'png-gdj-floral-wreath',      label: 'Квітковий вінок',    group: 'Векторні', src: '/frames/gdj-floral-wreath.png' },
+  { id: 'png-gdj-leaves-circle',      label: 'Листя коло',         group: 'Векторні', src: '/frames/gdj-leaves-circle.png' },
+  { id: 'png-gdj-botanical-square',   label: 'Ботаніка квадрат',   group: 'Векторні', src: '/frames/gdj-botanical-square.png' },
+  { id: 'png-gdj-vintage',            label: 'Вінтаж',             group: 'Векторні', src: '/frames/gdj-vintage.png' },
+];
+
+// All frames combined (SVG + PNG) — used in picker
+export const ALL_FRAMES_FLAT = [...PNG_FRAMES]; // SVG appended below
+
 // SVG frame definitions
 export const FRAMES = [
   // ── Simple frames ──
@@ -505,6 +533,27 @@ interface FrameLayerProps {
 
 export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
   if (!frame.frameId) return null;
+
+  // PNG frame
+  const pngDef = PNG_FRAMES.find(f => f.id === frame.frameId);
+  if (pngDef) {
+    return (
+      <div style={{ position:'absolute', inset:0, zIndex:35, pointerEvents:'none' }}>
+        <img
+          src={pngDef.src}
+          alt=""
+          style={{
+            position:'absolute', inset:0,
+            width:'100%', height:'100%',
+            objectFit:'cover',
+            opacity: frame.opacity / 100,
+          }}
+        />
+      </div>
+    );
+  }
+
+  // SVG frame
   const def = FRAMES.find(f=>f.id===frame.frameId);
   if (!def) return null;
   const svgContent = def.render(canvasW, canvasH, frame.color, frame.opacity);
@@ -523,27 +572,38 @@ interface FrameControlsProps {
 
 export function FrameControls({ frame, onChange }: FrameControlsProps) {
   const allGroups = [...new Set(FRAMES.map(f => f.group))];
+  const allPngGroups = [...new Set(PNG_FRAMES.map(f => f.group))];
   const thumbW = 72, thumbH = 52;
+
+  // Find label from either SVG or PNG frames
+  const activeLabel =
+    PNG_FRAMES.find(f => f.id === frame.frameId)?.label ||
+    FRAMES.find(f => f.id === frame.frameId)?.label ||
+    'Рамка';
+
+  // Is active frame a PNG?
+  const isPng = !!PNG_FRAMES.find(f => f.id === frame.frameId);
+
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
       {/* Active frame controls — ALWAYS visible at top */}
       {frame.frameId && (
         <div style={{ background:'#f0f3ff', borderRadius:10, padding:10, border:'1px solid #c7d2fe' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-            <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>
-              {FRAMES.find(f=>f.id===frame.frameId)?.label || 'Рамка'}
-            </span>
+            <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>{activeLabel}</span>
             <button onClick={()=>onChange({...frame,frameId:null})}
               style={{ padding:'3px 10px', border:'1px solid #fee2e2', borderRadius:6, background:'#fff7f7', cursor:'pointer', fontWeight:600, fontSize:10, color:'#ef4444' }}>
               ✕ Прибрати
             </button>
           </div>
           <div style={{ display:'flex', gap:8 }}>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:10, color:'#64748b', marginBottom:3 }}>Колір</div>
-              <input type="color" value={frame.color} onChange={e=>onChange({...frame,color:e.target.value})}
-                style={{ width:'100%', height:26, borderRadius:4, border:'1px solid #e2e8f0', cursor:'pointer', padding:1 }}/>
-            </div>
+            {!isPng && (
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:10, color:'#64748b', marginBottom:3 }}>Колір</div>
+                <input type="color" value={frame.color} onChange={e=>onChange({...frame,color:e.target.value})}
+                  style={{ width:'100%', height:26, borderRadius:4, border:'1px solid #e2e8f0', cursor:'pointer', padding:1 }}/>
+              </div>
+            )}
             <div style={{ flex:1 }}>
               <div style={{ display:'flex', justifyContent:'space-between' }}>
                 <span style={{ fontSize:10, color:'#64748b' }}>Прозорість</span>
@@ -557,6 +617,29 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
         </div>
       )}
 
+      {/* PNG frames — grouped */}
+      {allPngGroups.map(group => (
+        <div key={group}>
+          <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4 }}>{group}</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4 }}>
+            {PNG_FRAMES.filter(f=>f.group===group).map(f => {
+              const active = frame.frameId===f.id;
+              return (
+                <button key={f.id} onClick={() => onChange({ ...frame, frameId: active ? null : f.id })}
+                  style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'6px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: active?'#f0f3ff':'#fff', cursor:'pointer' }}>
+                  <div style={{ width:thumbW, height:thumbH, position:'relative', overflow:'hidden', borderRadius:4, background:'#f8fafc' }}>
+                    <img src={f.src} alt={f.label}
+                      style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  </div>
+                  <span style={{ fontSize:9, fontWeight:600, color: active?'#1e2d7d':'#64748b', lineHeight:1.2, textAlign:'center' }}>{f.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* SVG frames — grouped */}
       {allGroups.map(group => (
         <div key={group}>
           <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4 }}>{group}</div>
