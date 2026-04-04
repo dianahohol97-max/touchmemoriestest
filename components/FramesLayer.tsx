@@ -11,7 +11,7 @@ export interface FrameConfig {
   zIndex?: number;
 }
 
-export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opacity: 100, scale: 1, x: 0, y: 0, zIndex: 35 };
+export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opacity: 100, scale: 0.6, x: 0, y: 0, zIndex: 35 };
 
 // PNG frames — rendered as <img> overlay, black bg = transparent (mix-blend-mode: multiply not needed, these have real alpha)
 export const PNG_FRAMES = [
@@ -180,12 +180,13 @@ interface FrameLayerProps {
 export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
   if (!frame.frameId) return null;
 
-  const scale = frame.scale ?? 1;
+  const scale = frame.scale ?? 0.6;
   const xOff = frame.x ?? 0;
   const yOff = frame.y ?? 0;
-  // Frame renders at scale% of canvas size, centered + offset
-  const fw = canvasW * scale;
-  const fh = canvasH * scale;
+  // Use the smaller dimension as base so frame doesn't stretch on spreads
+  const baseDim = Math.min(canvasW, canvasH);
+  const fw = baseDim * scale;
+  const fh = baseDim * scale;
   const cx = (canvasW - fw) / 2 + xOff;
   const cy = (canvasH - fh) / 2 + yOff;
 
@@ -199,7 +200,7 @@ export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
   if (pngDef) {
     return (
       <div style={wrapStyle}>
-        <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'fill', display:'block' }} />
+        <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block' }} />
       </div>
     );
   }
@@ -270,7 +271,7 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
               <span style={{ fontSize:10, color:'#64748b' }}>Розмір</span>
               <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{Math.round((frame.scale??1)*100)}%</span>
             </div>
-            <input type="range" min={20} max={150} value={Math.round((frame.scale??1)*100)}
+            <input type="range" min={10} max={200} value={Math.round((frame.scale??0.6)*100)}
               onChange={e=>onChange({...frame, scale: +e.target.value/100})}
               style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
           </div>
@@ -281,7 +282,7 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
                 <span style={{ fontSize:10, color:'#64748b' }}>← →</span>
                 <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{frame.x??0}px</span>
               </div>
-              <input type="range" min={-300} max={300} value={frame.x??0}
+              <input type="range" min={-500} max={500} value={frame.x??0}
                 onChange={e=>onChange({...frame, x: +e.target.value})}
                 style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
             </div>
@@ -290,12 +291,12 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
                 <span style={{ fontSize:10, color:'#64748b' }}>↑ ↓</span>
                 <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{frame.y??0}px</span>
               </div>
-              <input type="range" min={-300} max={300} value={frame.y??0}
+              <input type="range" min={-500} max={500} value={frame.y??0}
                 onChange={e=>onChange({...frame, y: +e.target.value})}
                 style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
             </div>
           </div>
-          <button onClick={()=>onChange({...frame, scale:1, x:0, y:0, zIndex:35})}
+          <button onClick={()=>onChange({...frame, scale:0.6, x:0, y:0, zIndex:35})}
             style={{ marginTop:6, width:'100%', padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b' }}>
             ↺ Скинути позицію
           </button>

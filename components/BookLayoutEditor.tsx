@@ -1156,7 +1156,7 @@ export default function BookLayoutEditor() {
     setSelectedTextId(null); setEditingTextId(null);
   };
   const startTxtDragForPage = (e: React.PointerEvent, id: string, tx: number, ty: number, pageIdx: number) => {
-    e.stopPropagation(); e.preventDefault();
+    e.stopPropagation();
     haptic.light();
     startPointerDrag(e,
       (dx, dy) => {
@@ -3116,8 +3116,8 @@ export default function BookLayoutEditor() {
                       const isEd = editingTextId === tb.id;
                       return (
                         <div key={tb.id}
-                          onPointerDown={e => { e.stopPropagation(); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx); }}
-                          onDoubleClick={() => setEditingTextId(tb.id)}
+                          onPointerDown={e => { e.stopPropagation(); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); setTFontSize(tb.fontSize||28); setTFontFamily(tb.fontFamily||'Open Sans'); setTColor(tb.color||'#000'); setTBold(!!tb.bold); setTItalic(!!tb.italic); if(!isEd) startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx); }}
+                          onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
                           style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor:'move', zIndex:10, padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', minWidth:20, touchAction:'none' }}>
                           <div contentEditable={isEd} suppressContentEditableWarning onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
                             style={{ fontSize:tb.fontSize, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', outline:'none', whiteSpace:'nowrap', userSelect: isEd ? 'text' : 'none' }}>
