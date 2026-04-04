@@ -2763,9 +2763,21 @@ export default function BookLayoutEditor() {
                             const sourceType = e.dataTransfer?.getData('sourceType');
                             // Swap between slots
                             if (sourceType === 'pageSlot' || sourceType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
-                            // Single photo from sidebar → REPLACE photo in this slot
-                            pushHistory();
-                            setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId }) }));
+                            // Single photo from sidebar:
+                            const hasEmptySlots = (spreadPage?.slots||[]).some(s => !s.photoId);
+                            if (photo && !hasEmptySlots) {
+                              // ALL slots filled → ADD photo via autoCollage (layout adapts)
+                              const existing = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
+                              autoCollage([...existing, photoId], spreadPageIdx);
+                            } else if (photo) {
+                              // Has empty slots → REPLACE this specific slot
+                              pushHistory();
+                              setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId }) }));
+                            } else {
+                              // Empty slot → place photo
+                              pushHistory();
+                              setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId }) }));
+                            }
                           }}
                           onClick={(e) => {
                             if (textTool) return; // let click propagate to canvas for text placement
@@ -2796,7 +2808,7 @@ export default function BookLayoutEditor() {
                                 return incoming ? (
                                   <div style={{ position:'absolute', inset:0, zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.35)', pointerEvents:'none' }}>
                                     <img src={incoming.preview} style={{ width:'80%', height:'80%', objectFit:'cover', borderRadius:4, opacity:0.85, boxShadow:'0 4px 20px rgba(0,0,0,0.4)' }} draggable={false}/>
-                                    <div style={{ position:'absolute', bottom:6, left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.75)', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:10 }}>Замінити фото</div>
+                                    <div style={{ position:'absolute', bottom:6, left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.75)', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:10 }}>{(spreadPage?.slots||[]).some(s => !s.photoId) ? 'Замінити фото' : 'Додати фото'}</div>
                                   </div>
                                 ) : null;
                               })()}
@@ -2818,8 +2830,15 @@ export default function BookLayoutEditor() {
                                   }
                                   const srcType = e.dataTransfer?.getData('sourceType');
                                   if (srcType === 'pageSlot' || srcType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
-                                  pushHistory();
-                                  setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId: pid }) }));
+                                  // Smart drop: add if all slots filled, replace if empty slots exist
+                                  const hasEmpty = (spreadPage?.slots||[]).some(s => !s.photoId);
+                                  if (!hasEmpty) {
+                                    const existing = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
+                                    autoCollage([...existing, pid], spreadPageIdx);
+                                  } else {
+                                    pushHistory();
+                                    setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId: pid }) }));
+                                  }
                                 }}
                                 onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(1, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                 onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
