@@ -1,12 +1,16 @@
 'use client';
+import React from 'react';
 
 export interface FrameConfig {
   frameId: string | null;
   color: string;
   opacity: number;
+  scale: number;
+  x: number;
+  y: number;
 }
 
-export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opacity: 100 };
+export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opacity: 100, scale: 1, x: 0, y: 0 };
 
 // PNG frames — rendered as <img> overlay, black bg = transparent (mix-blend-mode: multiply not needed, these have real alpha)
 export const PNG_FRAMES = [
@@ -553,33 +557,41 @@ interface FrameLayerProps {
 export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
   if (!frame.frameId) return null;
 
-  // PNG frame
+  const scale = frame.scale ?? 1;
+  const xOff = frame.x ?? 0;
+  const yOff = frame.y ?? 0;
+
+  const wrapStyle: React.CSSProperties = {
+    position: 'absolute', inset: 0, zIndex: 35, pointerEvents: 'none', overflow: 'visible',
+  };
+  const innerStyle: React.CSSProperties = {
+    position: 'absolute', top: 0, left: 0,
+    width: '100%', height: '100%',
+    transform: `translate(${xOff}px, ${yOff}px) scale(${scale})`,
+    transformOrigin: 'center center',
+    opacity: frame.opacity / 100,
+  };
+
   const pngDef = PNG_FRAMES.find(f => f.id === frame.frameId);
   if (pngDef) {
     return (
-      <div style={{ position:'absolute', inset:0, zIndex:35, pointerEvents:'none' }}>
-        <img
-          src={pngDef.src}
-          alt=""
-          style={{
-            position:'absolute', inset:0,
-            width:'100%', height:'100%',
-            objectFit:'cover',
-            opacity: frame.opacity / 100,
-          }}
-        />
+      <div style={wrapStyle}>
+        <div style={innerStyle}>
+          <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+        </div>
       </div>
     );
   }
 
-  // SVG frame
-  const def = FRAMES.find(f=>f.id===frame.frameId);
+  const def = FRAMES.find(f => f.id === frame.frameId);
   if (!def) return null;
   const svgContent = def.render(canvasW, canvasH, frame.color, frame.opacity);
   return (
-    <div style={{ position:'absolute', inset:0, zIndex:35, pointerEvents:'none' }}>
-      <svg width={canvasW} height={canvasH} style={{ display:'block' }}
-        dangerouslySetInnerHTML={{ __html: svgContent }} />
+    <div style={wrapStyle}>
+      <div style={{ ...innerStyle, opacity: 1 }}>
+        <svg width={canvasW} height={canvasH} style={{ display:'block', opacity: frame.opacity / 100 }}
+          dangerouslySetInnerHTML={{ __html: svgContent }} />
+      </div>
     </div>
   );
 }
@@ -633,6 +645,41 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
                 style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
             </div>
           </div>
+          {/* Scale */}
+          <div style={{ marginTop:6 }}>
+            <div style={{ display:'flex', justifyContent:'space-between' }}>
+              <span style={{ fontSize:10, color:'#64748b' }}>Розмір</span>
+              <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{Math.round((frame.scale??1)*100)}%</span>
+            </div>
+            <input type="range" min={20} max={150} value={Math.round((frame.scale??1)*100)}
+              onChange={e=>onChange({...frame, scale: +e.target.value/100})}
+              style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
+          </div>
+          {/* Position */}
+          <div style={{ display:'flex', gap:8, marginTop:6 }}>
+            <div style={{ flex:1 }}>
+              <div style={{ display:'flex', justifyContent:'space-between' }}>
+                <span style={{ fontSize:10, color:'#64748b' }}>← →</span>
+                <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{frame.x??0}px</span>
+              </div>
+              <input type="range" min={-300} max={300} value={frame.x??0}
+                onChange={e=>onChange({...frame, x: +e.target.value})}
+                style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ display:'flex', justifyContent:'space-between' }}>
+                <span style={{ fontSize:10, color:'#64748b' }}>↑ ↓</span>
+                <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{frame.y??0}px</span>
+              </div>
+              <input type="range" min={-300} max={300} value={frame.y??0}
+                onChange={e=>onChange({...frame, y: +e.target.value})}
+                style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
+            </div>
+          </div>
+          <button onClick={()=>onChange({...frame, scale:1, x:0, y:0})}
+            style={{ marginTop:6, width:'100%', padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b' }}>
+            ↺ Скинути позицію
+          </button>
         </div>
       )}
 
