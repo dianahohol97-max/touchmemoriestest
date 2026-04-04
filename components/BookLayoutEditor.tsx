@@ -1859,6 +1859,18 @@ export default function BookLayoutEditor() {
                     </div>
                   </div>
                 )}
+                {coverState.decoType==='metal' && (
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт напису</div>
+                      <FontPicker value={coverState.textFontFamily || 'Montserrat'} onChange={v=>setCoverState(prev=>({...prev,textFontFamily:v}))} />
+                    </div>
+                    <div>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#94a3b8', marginBottom:3 }}><span>Розмір</span><span>{coverState.textFontSize||18}px</span></div>
+                      <input type="range" min={8} max={40} value={coverState.textFontSize||18} onChange={e=>setCoverState(prev=>({...prev,textFontSize:+e.target.value}))} style={{ width:'100%' }}/>
+                    </div>
+                  </div>
+                )}
                 {/* Variant selector — shows for acryl, photovstavka, metal */}
                 {(() => {
                   const sizeKey = (config?.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
