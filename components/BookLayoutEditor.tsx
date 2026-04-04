@@ -2552,12 +2552,12 @@ export default function BookLayoutEditor() {
                       return (
                         <React.Fragment key={i}>
                         <div
-                          onPointerDown={e => { if (photo && !dragPhotoId) { e.stopPropagation(); startSpreadSlotDrag(e, 'move'); } }}
                           onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                           onDragLeave={() => setDropTarget(null)}
                           onDrop={e => {
                             e.preventDefault(); e.stopPropagation(); setDropTarget(null);
                             const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
+                            if (!photoId || !photoId.startsWith('photo-')) return;
                             const sourceType = e.dataTransfer?.getData('sourceType');
                             if (sourceType === 'pageSlot' || sourceType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
                             const existing = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
@@ -2646,6 +2646,11 @@ export default function BookLayoutEditor() {
                                 </div>
                               )}
                               <style>{`.sp-zoom-hint{opacity:0!important}div:hover>.sp-zoom-hint{opacity:1!important}`}</style>
+                              {/* Move handle — drag bar at top of filled slot */}
+                              <div onPointerDown={e => { e.stopPropagation(); startSpreadSlotDrag(e, 'move'); }}
+                                style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'50%',height:14,cursor:'move',zIndex:25,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(0,0,0,0.3)',opacity:0,transition:'opacity 0.15s'}} className="sp-move-handle">
+                                <div style={{width:16,height:3,borderRadius:2,background:'rgba(255,255,255,0.7)'}}/>
+                              </div>
                               {/* Delete button — visible on hover */}
                               <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);}} style={{position:'absolute',top:4,right:4,width:24,height:24,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity 0.15s',zIndex:20,fontSize:12}} className="spread-del-btn">×</button>
                               <style>{`.spread-del-btn{opacity:0!important}div:hover>.spread-del-btn{opacity:1!important}`}</style>
@@ -2694,7 +2699,7 @@ export default function BookLayoutEditor() {
                         </React.Fragment>
                       );
                     })}
-                    <style>{`.sp-resize-handle{opacity:0!important}div:hover~.sp-resize-handle,div:hover>.sp-resize-handle{opacity:1!important}`}</style>
+                    <style>{`.sp-resize-handle{opacity:0!important}.sp-move-handle{opacity:0!important}div:hover>.sp-resize-handle,div:hover>.sp-move-handle{opacity:1!important}`}</style>
                     {/* FreeSlots on spread */}
                     <FreeSlotLayer
                       slots={freeSlots[spreadPageIdx] || []}
