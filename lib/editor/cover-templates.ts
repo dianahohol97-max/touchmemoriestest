@@ -285,6 +285,36 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     ],
   },
 
+  {
+    id: 'ref-wedding-magazine',
+    label: 'WEDDING Magazine',
+    group: 'Елегантні',
+    bgColor: '#ffffff',
+    photoSlot: { x: 20, y: 14, w: 60, h: 58, shape: 'rect' },
+    texts: [
+      { text: 'WEDDING', x: 50, y: 10, fontSize: 56, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
+      { text: 'Імʼя та Імʼя', x: 50, y: 80, fontSize: 28, fontFamily: 'Cormorant Garamond', color: '#1a1a1a', bold: false },
+      { text: '05/08/2025', x: 50, y: 88, fontSize: 18, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+    ],
+  },
+  {
+    id: 'ref-wedding-3col',
+    label: 'Три фото в ряд',
+    group: 'Елегантні',
+    bgColor: '#ffffff',
+    photoSlot: { x: 0, y: 22, w: 34, h: 52, shape: 'rect' },
+    photoSlots: [
+      { x: 0,  y: 22, w: 34, h: 52, shape: 'rect' },
+      { x: 35, y: 14, w: 30, h: 60, shape: 'rect' },
+      { x: 66, y: 22, w: 34, h: 52, shape: 'rect' },
+    ],
+    texts: [
+      { text: 'Імʼя & Імʼя', x: 50, y: 82, fontSize: 30, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
+      { text: 'WEDDING DAY', x: 50, y: 90, fontSize: 13, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
+      { text: '20.09.2025', x: 50, y: 96, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+    ],
+  },
+
   // ── Подорожі ──
   {
     id: 'travel-adventure',
