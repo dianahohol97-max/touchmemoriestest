@@ -180,7 +180,12 @@ export const FONT_DATA: { name: string; cyr: boolean }[] = [
   { name: 'Permanent Marker', cyr: false }, { name: 'Handlee', cyr: false },
   { name: 'Architects Daughter', cyr: false }, { name: 'Reenie Beanie', cyr: false },
   { name: 'Comforter', cyr: true }, { name: 'Tektur', cyr: true },
-  // Декоративні (24)
+  // NEW cyrillic handwriting
+  { name: 'Cormorant Unicase', cyr: true }, { name: 'Podkova', cyr: true },
+  { name: 'Seymour One', cyr: true }, { name: 'Shantell Sans', cyr: true },
+  { name: 'Comforter Brush', cyr: true }, { name: 'Kyiv Type Sans', cyr: true },
+  { name: 'Wix Madefor Text', cyr: true }, { name: 'Schibsted Grotesk', cyr: true },
+  // Декоративні (30)
   { name: 'Abril Fatface', cyr: false }, { name: 'Cinzel', cyr: false },
   { name: 'Bebas Neue', cyr: false }, { name: 'Righteous', cyr: false },
   { name: 'Cormorant SC', cyr: true }, { name: 'Dela Gothic One', cyr: false },
@@ -193,13 +198,19 @@ export const FONT_DATA: { name: string; cyr: boolean }[] = [
   { name: 'Open Sans', cyr: true }, { name: 'Kurale', cyr: true },
   { name: 'Tenor Sans', cyr: true }, { name: 'Forum', cyr: true },
   { name: 'Oranienbaum', cyr: true }, { name: 'Bellota', cyr: true },
+  // NEW cyrillic decorative
+  { name: 'Playfair Display SC', cyr: true }, { name: 'Prosto One', cyr: true },
+  { name: 'Stalinist One', cyr: true }, { name: 'Underdog', cyr: true },
+  { name: 'Gabriela', cyr: true }, { name: 'Cormorant Infant', cyr: true },
+  { name: 'Cinzel Decorative', cyr: false }, { name: 'El Messiri', cyr: false },
+  { name: 'Marmelad', cyr: true }, { name: 'Ledger', cyr: true },
 ];
 
 export const FONT_GROUPS = [
   { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans','Rubik','Ubuntu','Exo 2','Jost','Manrope','Roboto','Fira Sans','Source Sans 3','Noto Sans','Outfit','DM Sans','Plus Jakarta Sans'] },
   { group: 'Класичні', fonts: ['Playfair Display','Cormorant Garamond','EB Garamond','Libre Baskerville','Lora','Merriweather','PT Serif','Noto Serif','Crimson Text','Cormorant','Old Standard TT','Literata','Bitter','Vollkorn'] },
-  { group: 'Рукописні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Caveat','Marck Script','Bad Script','Neucha','Pangolin','Ruslan Display','Amatic SC','Indie Flower','Kalam','Patrick Hand','Shadows Into Light','Permanent Marker','Handlee','Architects Daughter','Reenie Beanie','Comforter','Tektur'] },
-  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Cormorant SC','Dela Gothic One','Unbounded','Kelly Slab','Philosopher','Russo One','Comfortaa','Lobster','Poiret One','Yeseva One','Alegreya','Alegreya SC','Press Start 2P','Spectral','Kurale','Tenor Sans','Forum','Oranienbaum','Bellota'] },
+  { group: 'Рукописні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Caveat','Marck Script','Bad Script','Neucha','Pangolin','Ruslan Display','Amatic SC','Indie Flower','Kalam','Patrick Hand','Shadows Into Light','Permanent Marker','Handlee','Architects Daughter','Reenie Beanie','Comforter','Tektur','Cormorant Unicase','Podkova','Seymour One','Shantell Sans','Comforter Brush','Kyiv Type Sans','Wix Madefor Text','Schibsted Grotesk'] },
+  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Cormorant SC','Dela Gothic One','Unbounded','Kelly Slab','Philosopher','Russo One','Comfortaa','Lobster','Poiret One','Yeseva One','Alegreya','Alegreya SC','Press Start 2P','Spectral','Kurale','Tenor Sans','Forum','Oranienbaum','Bellota','Playfair Display SC','Prosto One','Stalinist One','Underdog','Gabriela','Cormorant Infant','Cinzel Decorative','El Messiri','Marmelad','Ledger'] },
 ];
 
 // Google Fonts URL (single source — loaded once)
