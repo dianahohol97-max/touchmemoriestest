@@ -1141,8 +1141,9 @@ export default function BookLayoutEditor() {
     if (!textTool) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const id = 'txt-' + Date.now();
+    const cW = rect.width; // actual canvas width (pageW for page mode, spreadW for spread mode)
     pushHistory();
-    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / pageW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
+    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
   };
   const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
@@ -2767,6 +2768,7 @@ export default function BookLayoutEditor() {
                             setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId }) }));
                           }}
                           onClick={(e) => {
+                            if (textTool) return; // let click propagate to canvas for text placement
                             e.stopPropagation();
                             if (tapSelectedPhotoId) {
                               haptic.success();
