@@ -269,7 +269,7 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
           <div style={{ marginTop:6 }}>
             <div style={{ display:'flex', justifyContent:'space-between' }}>
               <span style={{ fontSize:10, color:'#64748b' }}>Розмір</span>
-              <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{Math.round((frame.scale??1)*100)}%</span>
+              <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{Math.round((frame.scale??0.6)*100)}%</span>
             </div>
             <input type="range" min={10} max={200} value={Math.round((frame.scale??0.6)*100)}
               onChange={e=>onChange({...frame, scale: +e.target.value/100})}
@@ -323,7 +323,7 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
             {PNG_FRAMES.filter(f=>f.group===group).map(f => {
               const active = frame.frameId===f.id;
               return (
-                <button key={f.id} onClick={() => onChange({ ...frame, frameId: active ? null : f.id })}
+                <button key={f.id} onClick={() => onChange(active ? { ...frame, frameId: null } : { ...DEFAULT_FRAME, frameId: f.id, color: frame.color })}
                   style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'6px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: active?'#f0f3ff':'#fff', cursor:'pointer' }}>
                   <div style={{ width:thumbW, height:thumbH, position:'relative', overflow:'hidden', borderRadius:4, background:'#f8fafc' }}>
                     <img src={f.src} alt={f.label}
@@ -347,7 +347,7 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
               const previewColor = active ? '#1e2d7d' : '#64748b';
               const svgContent = f.render(thumbW, thumbH, previewColor, active ? 100 : 60);
               return (
-                <button key={f.id} onClick={() => onChange({ ...frame, frameId: active ? null : f.id })}
+                <button key={f.id} onClick={() => onChange(active ? { ...frame, frameId: null } : { ...DEFAULT_FRAME, frameId: f.id, color: frame.color })}
                   style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'6px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: active?'#f0f3ff':'#fff', cursor:'pointer' }}>
                   <svg viewBox={`0 0 ${thumbW} ${thumbH}`} width={thumbW} height={thumbH} dangerouslySetInnerHTML={{ __html: svgContent }}/>
                   <span style={{ fontSize:9, fontWeight:600, color: active?'#1e2d7d':'#64748b', lineHeight:1.2 }}>{f.label}</span>

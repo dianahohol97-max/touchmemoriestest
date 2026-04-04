@@ -3116,9 +3116,10 @@ export default function BookLayoutEditor() {
                       const isEd = editingTextId === tb.id;
                       return (
                         <div key={tb.id}
-                          onPointerDown={e => { e.stopPropagation(); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); setTFontSize(tb.fontSize||28); setTFontFamily(tb.fontFamily||'Open Sans'); setTColor(tb.color||'#000'); setTBold(!!tb.bold); setTItalic(!!tb.italic); if(!isEd) startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx); }}
+                          onPointerDown={e => { e.stopPropagation(); if(!isSel) { setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); setTFontSize(tb.fontSize||28); setTFontFamily(tb.fontFamily||'Open Sans'); setTColor(tb.color||'#000'); setTBold(!!tb.bold); setTItalic(!!tb.italic); startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx); } }}
+                          onClick={e => { e.stopPropagation(); if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor:'move', zIndex:10, padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', minWidth:20, touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex:10, padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', minWidth:20, touchAction:'none' }}>
                           <div contentEditable={isEd} suppressContentEditableWarning onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
                             style={{ fontSize:tb.fontSize, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', outline:'none', whiteSpace:'nowrap', userSelect: isEd ? 'text' : 'none' }}>
                             {tb.text}
@@ -3431,7 +3432,8 @@ export default function BookLayoutEditor() {
                         const isEd = editingTextId === tb.id;
                         return (
                           <div key={tb.id}
-                            onPointerDown={e=>{e.stopPropagation();setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);if(!isEd)startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}
+                            onPointerDown={e=>{e.stopPropagation();if(!isSel){setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}}
+                            onClick={e=>{e.stopPropagation();if(isSel&&!isEd){setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}
                             style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex:20,cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30,touchAction:'none'}}>
