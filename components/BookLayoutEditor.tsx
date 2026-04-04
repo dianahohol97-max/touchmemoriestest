@@ -65,6 +65,7 @@ interface CoverState {
   backCoverCropX?: number;
   backCoverCropY?: number;
   backCoverZoom?: number;
+  backCoverSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded' };
 }
 
 type LayoutType =
@@ -1646,10 +1647,30 @@ export default function BookLayoutEditor() {
                       </div>
                       <div style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>Перетягніть фото прямо на задню обкладинку</div>
                       {coverState.backCoverPhotoId && (
-                        <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
-                          style={{ width:'100%', padding:'5px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
-                          × Видалити фото з задньої
-                        </button>
+                        <>
+                          <div style={{ marginBottom:6 }}>
+                            <div style={{ fontSize:10, fontWeight:700, color:'#64748b', marginBottom:4 }}>Форма слота</div>
+                            <div style={{ display:'flex', gap:4 }}>
+                              {(['rect','rounded','circle'] as const).map(sh => {
+                                const bs = coverState.backCoverSlot ?? { x:0,y:0,w:100,h:100,shape:'rect' };
+                                return (
+                                  <button key={sh} onClick={()=>setCoverState(p=>({...p,backCoverSlot:{...bs,shape:sh}}))}
+                                    style={{ flex:1, padding:'5px 4px', border: bs.shape===sh ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: bs.shape===sh ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:14 }}>
+                                    {sh==='rect'?'▭':sh==='rounded'?'▢':'◯'}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <button onClick={()=>setCoverState(p=>({...p,backCoverSlot:{x:0,y:0,w:100,h:100,shape:'rect'}}))}
+                            style={{ width:'100%', padding:'5px', fontSize:10, color:'#64748b', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, cursor:'pointer', marginBottom:6 }}>
+                            ↺ На весь розмір
+                          </button>
+                          <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
+                            style={{ width:'100%', padding:'5px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
+                            × Видалити фото з задньої
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -2359,54 +2380,93 @@ export default function BookLayoutEditor() {
                   const bCropX = coverState.backCoverCropX ?? 50;
                   const bCropY = coverState.backCoverCropY ?? 50;
                   const bZoom = coverState.backCoverZoom ?? 1;
+                  const bSlot = coverState.backCoverSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' as const };
+                  const bSlotPx = { x: bSlot.x/100*pageW, y: bSlot.y/100*cH, w: bSlot.w/100*pageW, h: bSlot.h/100*cH };
+                  const bBr = bSlot.shape === 'circle' ? '50%' : bSlot.shape === 'rounded' ? '12px' : '0px';
+                  const startBackSlotDrag = (e2: React.PointerEvent, type: string) => {
+                    e2.stopPropagation(); e2.preventDefault();
+                    const orig = { ...bSlot };
+                    startPointerDrag(e2, (dx: number, dy: number) => {
+                      const ddx = dx/pageW*100, ddy = dy/cH*100;
+                      if (type==='move') setCoverState((p: any)=>({...p,backCoverSlot:{...orig,x:Math.max(0,Math.min(100-orig.w,orig.x+ddx)),y:Math.max(0,Math.min(100-orig.h,orig.y+ddy))}}));
+                      else if (type==='se') setCoverState((p: any)=>({...p,backCoverSlot:{...orig,w:Math.max(10,orig.w+ddx),h:Math.max(10,orig.h+ddy)}}));
+                      else if (type==='sw') setCoverState((p: any)=>({...p,backCoverSlot:{...orig,x:orig.x+ddx,w:Math.max(10,orig.w-ddx),h:Math.max(10,orig.h+ddy)}}));
+                      else if (type==='ne') setCoverState((p: any)=>({...p,backCoverSlot:{...orig,y:orig.y+ddy,w:Math.max(10,orig.w+ddx),h:Math.max(10,orig.h-ddy)}}));
+                      else if (type==='nw') setCoverState((p: any)=>({...p,backCoverSlot:{...orig,x:orig.x+ddx,y:orig.y+ddy,w:Math.max(10,orig.w-ddx),h:Math.max(10,orig.h-ddy)}}));
+                    });
+                  };
                   return (
                     <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: backBg, borderRight: '2px solid rgba(0,0,0,0.12)' }}
                       onDragOver={e=>{e.preventDefault();}}
                       onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}>
-                      {backPhoto && (
-                        <div style={{ width:'100%', height:'100%', position:'absolute', inset:0, overflow:'hidden', cursor:'grab', zIndex:2 }}
-                          onPointerDown={e => {
-                            e.preventDefault(); e.stopPropagation();
-                            const cx = bCropX, cy = bCropY;
-                            const sensitivity = 1.5 / Math.max(1, bZoom);
-                            startPointerDrag(e, (dx: number, dy: number) => {
-                              setCoverState((p: any) => ({
-                                ...p,
-                                backCoverCropX: Math.max(0, Math.min(100, cx - dx / sensitivity)),
-                                backCoverCropY: Math.max(0, Math.min(100, cy - dy / sensitivity)),
-                              }));
-                            });
-                          }}
-                          onWheel={e => {
-                            if (!backPhoto) return;
-                            e.preventDefault();
-                            const delta = e.deltaY > 0 ? -0.05 : 0.05;
-                            setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(1, Math.min(4, (p.backCoverZoom ?? 1) + delta)) }));
-                          }}>
-                          <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:`${bCropX}% ${bCropY}%`, userSelect:'none', pointerEvents:'none' }} draggable={false}/>
+                      {/* Back cover photo slot */}
+                      {isPrinted && (
+                        <div
+                          onPointerDown={e => { if (!backPhoto) return; startBackSlotDrag(e, 'move'); }}
+                          onDragOver={e=>{e.preventDefault();}}
+                          onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}
+                          onClick={() => { if (!backPhoto && photos.length > 0) setCoverState(p=>({...p,backCoverPhotoId:photos[0].id})); }}
+                          style={{ position:'absolute', left:bSlotPx.x, top:bSlotPx.y, width:bSlotPx.w, height:bSlotPx.h,
+                            borderRadius:bBr, overflow:'hidden', cursor: backPhoto ? 'move' : 'pointer', zIndex:2,
+                            border: backPhoto ? 'none' : '2px dashed rgba(148,163,184,0.8)',
+                            background: backPhoto ? 'transparent' : '#f1f5f9' }}>
+                          {backPhoto ? (
+                            <>
+                              <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}
+                                onPointerDown={e => {
+                                  e.stopPropagation(); e.preventDefault();
+                                  const cx = bCropX, cy = bCropY;
+                                  const sensitivity = 1.5 / Math.max(1, bZoom);
+                                  startPointerDrag(e, (dx: number, dy: number) => {
+                                    setCoverState((p: any) => ({...p,
+                                      backCoverCropX: Math.max(0, Math.min(100, cx - dx / sensitivity)),
+                                      backCoverCropY: Math.max(0, Math.min(100, cy - dy / sensitivity)),
+                                    }));
+                                  });
+                                }}
+                                onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(1, Math.min(4, (p.backCoverZoom ?? 1) + delta)) })); }}>
+                                <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:`${bCropX}% ${bCropY}%`, userSelect:'none', pointerEvents:'none' }} draggable={false}/>
+                              </div>
+                              {/* Zoom controls */}
+                              <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
+                                style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3, background:'rgba(0,0,0,0.7)', borderRadius:16, padding:'2px 8px', zIndex:20 }}>
+                                <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.max(1,(p.backCoverZoom??1)-0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
+                                <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round(bZoom*100)}%</span>
+                                <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.min(4,(p.backCoverZoom??1)+0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
+                                <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                                <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:1,backCoverCropX:50,backCoverCropY:50}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
+                              </div>
+                              {/* Delete photo */}
+                              <button onClick={()=>setCoverState((p: any)=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()}>×</button>
+                            </>
+                          ) : (
+                            <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'#94a3b8' }}>
+                              <ImageIcon size={22}/><span style={{ fontSize:9, fontWeight:600 }}>Перетягніть фото</span>
+                            </div>
+                          )}
                         </div>
                       )}
-                      {backPhoto && isPrinted && (
-                        <>
-                          <button onClick={()=>setCoverState((p: any)=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:4,right:8,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }}>×</button>
-                          <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
-                            style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3, background:'rgba(0,0,0,0.7)', borderRadius:16, padding:'2px 8px', zIndex:20 }}>
-                            <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.max(1,(p.backCoverZoom??1)-0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
-                            <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round(bZoom*100)}%</span>
-                            <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.min(4,(p.backCoverZoom??1)+0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
-                            <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
-                            <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:1,backCoverCropX:50,backCoverCropY:50}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
-                          </div>
-                          {/* Label */}
-                          <div style={{position:'absolute',top:4,left:4,background:'rgba(0,0,0,0.5)',borderRadius:8,padding:'2px 8px',zIndex:20,pointerEvents:'none'}}>
-                            <span style={{color:'#fff',fontSize:8,fontWeight:700}}>Задня</span>
-                          </div>
-                        </>
-                      )}
-                      <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                        {isPrinted && !backPhoto && <span style={{ color:'rgba(0,0,0,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ — перетягніть фото</span>}
-                        {!isPrinted && <span style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>}
+                      {/* Resize handles for back cover slot */}
+                      {isPrinted && (['nw','ne','se','sw'] as const).map(dir => {
+                        const lp = (dir==='ne'||dir==='se') ? bSlotPx.x+bSlotPx.w : bSlotPx.x;
+                        const tp = (dir==='se'||dir==='sw') ? bSlotPx.y+bSlotPx.h : bSlotPx.y;
+                        return (
+                          <div key={dir} onPointerDown={e=>startBackSlotDrag(e,dir)}
+                            style={{ position:'absolute', left:lp-7, top:tp-7, width:14, height:14,
+                              borderRadius:'50%', background:'#3b82f6', border:'2.5px solid #fff',
+                              cursor:`${dir}-resize`, zIndex:10, boxShadow:'0 1px 4px rgba(0,0,0,0.4)',
+                              touchAction:'manipulation' }}/>
+                        );
+                      })}
+                      {/* Label */}
+                      <div style={{position:'absolute',top:4,left:4,background:'rgba(0,0,0,0.5)',borderRadius:8,padding:'2px 8px',zIndex:20,pointerEvents:'none'}}>
+                        <span style={{color:'#fff',fontSize:8,fontWeight:700}}>Задня</span>
                       </div>
+                      {!isPrinted && (
+                        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                          <span style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
