@@ -328,7 +328,7 @@ export default function BookLayoutEditor() {
   const [pages, setPages] = useState<Page[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 40 : 70);
-  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'>('photos');
+  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'>('layouts');
   const [coverState, setCoverState] = useState<CoverState>(() => {
     // Synchronously read config to initialize cover state immediately
     try {
@@ -541,7 +541,7 @@ export default function BookLayoutEditor() {
   // Auto-switch to cover tab on page 0
   useEffect(() => {
     if (currentIdx === 0) setLeftTab('cover');
-    else if (leftTab === 'cover') setLeftTab('photos');
+    else if (leftTab === 'cover') setLeftTab('layouts');
   }, [currentIdx]);
 
   useEffect(() => {
@@ -1268,7 +1268,6 @@ export default function BookLayoutEditor() {
         {/* ICON SIDEBAR — desktop only */}
         {!isMobile && <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
           {([
-            ['photos', <ImageIcon key="p" size={20}/>, 'Фото'],
             ['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'],
             ['text', <Type key="t" size={20}/>, 'Текст'],
             ['bg', <span key="bg" style={{fontSize:16,fontWeight:700}}>Фн</span>, 'Фон'],
@@ -3773,7 +3772,6 @@ export default function BookLayoutEditor() {
       {isMobile && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'#fff', borderTop:'1px solid #e2e8f0', display:'flex', zIndex:200, paddingBottom:'env(safe-area-inset-bottom)' }}>
           {[
-            ['photos', <ImageIcon key="p" size={18}/>, 'Фото'],
             ['layouts', <LayoutGrid key="l" size={18}/>, 'Шаблон'],
             ['text', <Type key="t" size={18}/>, 'Текст'],
             ['bg', <span key="bg" style={{fontSize:14,fontWeight:700}}>Фн</span>, 'Фон'],
