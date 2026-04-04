@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, Sho
 import { autoBuild } from '@/lib/editor/auto-build';
 import { AutoBuildModal } from './editor/AutoBuildModal';
 import { FontPicker } from './editor/FontPicker';
+import { CoverTemplatesPicker } from './editor/CoverTemplatesPicker';
+import { CoverTemplate } from '@/lib/editor/cover-templates';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
@@ -1566,6 +1568,28 @@ export default function BookLayoutEditor() {
             {/* COVER */}
             {leftTab === 'cover' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {/* COVER TEMPLATES PICKER */}
+                {isPrinted && (
+                  <CoverTemplatesPicker onApply={(tmpl: CoverTemplate) => {
+                    pushHistory();
+                    setCoverState(p => ({
+                      ...p,
+                      printedBgColor: tmpl.bgColor,
+                      printedPhotoSlot: { ...tmpl.photoSlot },
+                      printedTextBlocks: tmpl.texts.map((t, i) => ({
+                        id: 'tmpl-' + Date.now() + '-' + i,
+                        text: t.text,
+                        x: t.x, y: t.y,
+                        fontSize: t.fontSize,
+                        fontFamily: t.fontFamily,
+                        color: t.color,
+                        bold: t.bold,
+                      })),
+                      printedOverlay: tmpl.overlay ?? { type: 'none' as const, color: '#000000', opacity: 40, gradient: '' },
+                    }));
+                  }} />
+                )}
+
                 {/* PRINTED COVER CONTROLS — for all printed/soft-cover products */}
                 {isPrinted && (() => {
                   const pt = coverState.printedTextBlocks ?? [];
