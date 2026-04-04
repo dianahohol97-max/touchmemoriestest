@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { motion } from 'framer-motion';
 import styles from './ProductStrip.module.css';
 import { useInView } from 'react-intersection-observer';
@@ -13,7 +14,8 @@ interface Product {
     slug: string;
 }
 
-export function ProductStrip({ products = [] }: { products: Product[] }) {
+export function ProductStrip({
+  const t = useT(); products = [] }: { products: Product[] }) {
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,

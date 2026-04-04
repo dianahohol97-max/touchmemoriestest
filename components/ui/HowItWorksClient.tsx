@@ -25,9 +25,9 @@ export function HowItWorksClient({ featureCards }: HowItWorksClientProps) {
   const { content, blocks } = useTheme();
 
   const defaultFeatures = [
-    { id: '1', title: 'Преміальна якість', description: 'Використовуємо лише кращі матеріали з Італії та Японії для довговічності ваших спогадів.' },
-    { id: '2', title: 'Унікальний дизайн', description: 'Наші дизайнери створюють макети, які підкреслюють настрій кожної фотографії.' },
-    { id: '3', title: 'Швидка доставка', description: 'Відправляємо готові вироби по всій Україні та за кордон у надійній упаковці.' },
+    { id: '1', title: t('home.quality_title'), description: t('home.quality_desc') },
+    { id: '2', title: t('home.design_title'), description: t('home.design_desc') },
+    { id: '3', title: t('home.delivery_title'), description: t('home.delivery_desc') },
   ];
 
   const rawFeatures = featureCards.length > 0

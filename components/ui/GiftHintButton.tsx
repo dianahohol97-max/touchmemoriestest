@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Gift, X, Mail, MessageSquare, Send, Check } from 'lucide-react';
@@ -11,7 +12,8 @@ interface Props {
     productPrice: number;
 }
 
-export default function GiftHintButton({ productId, productSlug, productName, productImage, productPrice }: Props) {
+export default function GiftHintButton({
+  const t = useT(); productId, productSlug, productName, productImage, productPrice }: Props) {
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState<'choose' | 'form' | 'sent'>('choose');
     const [channel, setChannel] = useState<'email' | 'sms'>('email');
@@ -37,7 +39,7 @@ export default function GiftHintButton({ productId, productSlug, productName, pr
                 <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <Gift size={20} color="#263A99" />
-                        <span style={{ fontWeight: 800, fontSize: '16px', color: '#263A99' }}>Натякнути на подарунок</span>
+                        <span style={{ fontWeight: 800, fontSize: '16px', color: '#263A99' }}>{t('ui.hint_gift')}</span>
                     </div>
                     <button onClick={() => { setOpen(false); setStep('choose'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
                 </div>

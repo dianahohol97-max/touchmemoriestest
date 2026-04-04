@@ -32,7 +32,15 @@
     "constructor": "Konstruktor",
     "our_works": "Nasze prace",
     "home": "Strona główna",
-    "print_cta": "Zamów druk zdjęć"
+    "print_cta": "Zamów druk zdjęć",
+    "photobook_tag": "Fotoksiążka",
+    "magazine_tag": "Magazyn foto",
+    "quality_title": "Najwyższa jakość",
+    "quality_desc": "Używamy tylko najlepszych materiałów z Włoch i Japonii dla trwałości wspomnień.",
+    "design_title": "Unikalny design",
+    "design_desc": "Nasi projektanci tworzą układy podkreślające nastrój każdego zdjęcia.",
+    "delivery_title": "Szybka dostawa",
+    "delivery_desc": "Wysyłamy gotowe produkty po całej Ukrainie i na cały świat w bezpiecznym opakowaniu."
   },
   "catalog": {
     "title": "Katalog",
@@ -156,5 +164,19 @@
   },
   "contacts": {
     "title": "Kontakty"
+  },
+  "ui": {
+    "read_more": "Czytaj",
+    "read_all": "Wszystkie artykuły",
+    "details": "Więcej",
+    "wishlist_add": "Do listy życzeń",
+    "wishlist_in": "Na liście życzeń ♥",
+    "hint_gift": "Zasugeruj jako prezent",
+    "subscribe": "Zapisz się",
+    "subscribe_thanks": "✓ Dziękujemy za zapisanie!",
+    "other_products": "Inne produkty",
+    "popular_products": "Najpopularniejsze produkty",
+    "loading": "Ładowanie...",
+    "all_articles": "Wszystkie artykuły"
   }
 }

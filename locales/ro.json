@@ -32,7 +32,15 @@
     "constructor": "Constructor",
     "our_works": "Lucrările noastre",
     "home": "Acasă",
-    "print_cta": "Comandă imprimare foto"
+    "print_cta": "Comandă imprimare foto",
+    "photobook_tag": "Album foto",
+    "magazine_tag": "Revistă foto",
+    "quality_title": "Calitate premium",
+    "quality_desc": "Folosim doar cele mai bune materiale din Italia și Japonia pentru amintiri durabile.",
+    "design_title": "Design unic",
+    "design_desc": "Designerii noștri creează machete care subliniază atmosfera fiecărei fotografii.",
+    "delivery_title": "Livrare rapidă",
+    "delivery_desc": "Livrăm produsele finite în toată Ucraina și în lume în ambalaje sigure."
   },
   "catalog": {
     "title": "Catalog",
@@ -156,5 +164,19 @@
   },
   "contacts": {
     "title": "Contacte"
+  },
+  "ui": {
+    "read_more": "Citește",
+    "read_all": "Toate articolele",
+    "details": "Detalii",
+    "wishlist_add": "Lista de dorințe",
+    "wishlist_in": "În lista de dorințe ♥",
+    "hint_gift": "Sugerează ca cadou",
+    "subscribe": "Abonează-te",
+    "subscribe_thanks": "✓ Mulțumim pentru abonare!",
+    "other_products": "Alte produse",
+    "popular_products": "Cele mai populare produse",
+    "loading": "Se încarcă...",
+    "all_articles": "Toate articolele"
   }
 }

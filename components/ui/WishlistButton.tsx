@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 
@@ -19,7 +20,8 @@ function getSessionId() {
 }
 
 export default function WishlistButton({ productId, productSlug, productName, productImage, productPrice, size = 'md' }: Props) {
-    const [inWishlist, setInWishlist] = useState(false);
+      const t = useT();
+  const [inWishlist, setInWishlist] = useState(false);
     const [loading, setLoading] = useState(false);
     const [bounce, setBounce] = useState(false);
 
@@ -70,7 +72,7 @@ export default function WishlistButton({ productId, productSlug, productName, pr
                 fill={inWishlist ? '#ef4444' : 'none'}
                 color={inWishlist ? '#ef4444' : '#94a3b8'}
             />
-            {!isSmall && (inWishlist ? 'У бажаному ♥' : 'До бажаного')}
+            {!isSmall && (inWishlist ? t('ui.wishlist_in') : t('ui.wishlist_add'))}
         </button>
     );
 }

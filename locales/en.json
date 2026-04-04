@@ -32,7 +32,15 @@
     "constructor": "Constructor",
     "our_works": "Our Works",
     "home": "Home",
-    "print_cta": "Order Photo Print"
+    "print_cta": "Order Photo Print",
+    "photobook_tag": "Photo Book",
+    "magazine_tag": "Glossy Magazine",
+    "quality_title": "Premium Quality",
+    "quality_desc": "We use only the finest materials from Italy and Japan for lasting memories.",
+    "design_title": "Unique Design",
+    "design_desc": "Our designers create layouts that highlight the mood of every photo.",
+    "delivery_title": "Fast Delivery",
+    "delivery_desc": "We ship finished products across Ukraine and worldwide in secure packaging."
   },
   "catalog": {
     "title": "Catalog",
@@ -156,5 +164,19 @@
   },
   "contacts": {
     "title": "Contacts"
+  },
+  "ui": {
+    "read_more": "Read",
+    "read_all": "Read all articles",
+    "details": "View more",
+    "wishlist_add": "Add to wishlist",
+    "wishlist_in": "In wishlist ♥",
+    "hint_gift": "Hint as a gift",
+    "subscribe": "Subscribe",
+    "subscribe_thanks": "✓ Thank you for subscribing!",
+    "other_products": "Other products",
+    "popular_products": "Most popular products",
+    "loading": "Loading...",
+    "all_articles": "All articles"
   }
 }

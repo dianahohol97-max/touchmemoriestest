@@ -32,7 +32,15 @@
     "constructor": "Gestalter",
     "our_works": "Unsere Arbeiten",
     "home": "Startseite",
-    "print_cta": "Fotodruck bestellen"
+    "print_cta": "Fotodruck bestellen",
+    "photobook_tag": "Fotobuch",
+    "magazine_tag": "Foto-Magazin",
+    "quality_title": "Premium-Qualität",
+    "quality_desc": "Wir verwenden nur die besten Materialien aus Italien und Japan für langlebige Erinnerungen.",
+    "design_title": "Einzigartiges Design",
+    "design_desc": "Unsere Designer erstellen Layouts, die die Stimmung jedes Fotos unterstreichen.",
+    "delivery_title": "Schnelle Lieferung",
+    "delivery_desc": "Wir versenden fertige Produkte in der ganzen Ukraine und weltweit in sicherer Verpackung."
   },
   "catalog": {
     "title": "Katalog",
@@ -156,5 +164,19 @@
   },
   "contacts": {
     "title": "Kontakt"
+  },
+  "ui": {
+    "read_more": "Lesen",
+    "read_all": "Alle Artikel lesen",
+    "details": "Mehr erfahren",
+    "wishlist_add": "Wunschliste",
+    "wishlist_in": "Auf der Wunschliste ♥",
+    "hint_gift": "Als Geschenk andeuten",
+    "subscribe": "Abonnieren",
+    "subscribe_thanks": "✓ Danke für die Anmeldung!",
+    "other_products": "Andere Produkte",
+    "popular_products": "Beliebteste Produkte",
+    "loading": "Laden...",
+    "all_articles": "Alle Artikel"
   }
 }
