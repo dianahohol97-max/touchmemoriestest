@@ -151,24 +151,30 @@ export const CYRILLIC_DECORATIVE_FONTS = [
 ];
 
 export const FONT_GROUPS = [
-  { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans'] },
-  { group: 'Класичні', fonts: ['Playfair Display','Georgia','Cormorant Garamond','EB Garamond','Libre Baskerville'] },
-  { group: 'Каліграфічні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Alex Brush','Pinyon Script','Italianno'] },
-  { group: 'Кириличні', fonts: ['Marck Script','Philosopher','Russo One','Comfortaa','Lobster','Caveat','Poiret One','Open Sans'] },
-  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous'] },
+  { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans','Rubik','Ubuntu','Exo 2','Jost','Manrope'] },
+  { group: 'Класичні', fonts: ['Playfair Display','Cormorant Garamond','EB Garamond','Libre Baskerville','Lora','Merriweather','PT Serif','Noto Serif'] },
+  { group: 'Рукописні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Caveat','Marck Script','Bad Script','Neucha','Pangolin','Ruslan Display'] },
+  { group: 'Кириличні', fonts: ['Philosopher','Russo One','Comfortaa','Lobster','Poiret One','Open Sans','Yeseva One','Kurale','Keleti','Press Start 2P','Spectral','Alegreya'] },
+  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Cormorant SC','Dela Gothic One','Unbounded','Kelly Slab'] },
 ];
 
 // Google Fonts URL (single source — loaded once)
 export const GOOGLE_FONTS_URL = (() => {
   const families = [
-    'Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin+Sans',
-    'Playfair+Display','Cormorant+Garamond','EB+Garamond','Libre+Baskerville',
-    'Dancing+Script','Great+Vibes','Pacifico','Sacramento','Satisfy',
-    'Alex+Brush','Pinyon+Script','Italianno','Marck+Script','Philosopher',
-    'Russo+One','Comfortaa','Lobster','Caveat','Poiret+One','Open+Sans',
-    'Abril+Fatface','Cinzel','Bebas+Neue','Righteous','Rubik','Ubuntu',
+    // Сучасні
+    'Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin+Sans','Rubik','Ubuntu','Exo+2','Jost','Manrope',
+    // Класичні
+    'Playfair+Display','Cormorant+Garamond','EB+Garamond','Libre+Baskerville','Lora','Merriweather','PT+Serif','Noto+Serif',
+    // Рукописні
+    'Dancing+Script','Great+Vibes','Pacifico','Sacramento','Satisfy','Caveat','Marck+Script','Bad+Script','Neucha','Pangolin','Ruslan+Display',
+    // Кириличні
+    'Philosopher','Russo+One','Comfortaa','Lobster','Poiret+One','Open+Sans','Yeseva+One','Kurale','Press+Start+2P','Spectral','Alegreya',
+    // Декоративні
+    'Abril+Fatface','Cinzel','Bebas+Neue','Righteous','Cormorant+SC','Dela+Gothic+One','Unbounded','Kelly+Slab',
+    // Legacy (keep for existing projects)
+    'Montserrat',
   ].map(f => `family=${f}:ital,wght@0,400;0,700;1,400`).join('&');
-  return `https://fonts.googleapis.com/css2?${families}&display=swap`;
+  return `https://fonts.googleapis.com/css2?${families}&subset=cyrillic,cyrillic-ext,latin&display=swap`;
 })();
 
 // ── Printed cover background presets ─────────────────────────────────────────

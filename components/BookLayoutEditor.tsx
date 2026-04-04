@@ -1531,8 +1531,11 @@ export default function BookLayoutEditor() {
                                 style={{ width:20, height:20, borderRadius:'50%', background:'#ef4444', color:'#fff', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
                             </div>
                             <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-                              <input type="color" value={tb.color} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,color:e.target.value}:t)}))}
-                                style={{ width:24, height:24, border:'none', borderRadius:3, cursor:'pointer' }}/>
+                              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
+                                <input type="color" value={tb.color} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,color:e.target.value}:t)}))}
+                                  style={{ width:32, height:28, border:'1px solid #e2e8f0', borderRadius:4, cursor:'pointer', padding:1 }}/>
+                                <span style={{ fontSize:7, color:'#94a3b8' }}>колір</span>
+                              </div>
                               <input type="range" min={10} max={72} value={tb.fontSize} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontSize:+e.target.value}:t)}))}
                                 style={{ flex:1 }}/>
                               <span style={{ fontSize:10, color:'#94a3b8', minWidth:20 }}>{tb.fontSize}</span>
@@ -1541,24 +1544,12 @@ export default function BookLayoutEditor() {
                             </div>
                             <select value={tb.fontFamily} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontFamily:e.target.value}:t)}))}
                               style={{ width:'100%', padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, cursor:'pointer', fontFamily:tb.fontFamily }}>
-                              {[
-                                ['Playfair Display','Playfair Display'],
-                                ['Cormorant Garamond','Cormorant Garamond'],
-                                ['Cinzel','Cinzel'],
-                                ['EB Garamond','EB Garamond'],
-                                ['Dancing Script','Dancing Script'],
-                                ['Great Vibes','Great Vibes'],
-                                ['Pinyon Script','Pinyon Script'],
-                                ['Sacramento','Sacramento'],
-                                ['Pacifico','Pacifico'],
-                                ['Lobster','Lobster'],
-                                ['Caveat','Caveat'],
-                                ['Montserrat','Montserrat'],
-                                ['Raleway','Raleway'],
-                                ['Oswald','Oswald'],
-                                ['Bebas Neue','Bebas Neue'],
-                              ].map(([val, label]) => (
-                                <option key={val} value={val} style={{ fontFamily:val }}>{label}</option>
+                              {FONT_GROUPS.map(g => (
+                                <optgroup key={g.group} label={g.group}>
+                                  {g.fonts.map(f => (
+                                    <option key={f} value={f} style={{ fontFamily:f }}>{f}</option>
+                                  ))}
+                                </optgroup>
                               ))}
                             </select>
                           </div>
