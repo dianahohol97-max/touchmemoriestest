@@ -2249,12 +2249,11 @@ export default function BookLayoutEditor() {
             })()}
 
             {/* TEXT */}
-            {leftTab === 'stickers' && (
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                <input type="text" placeholder="Пошук стікерів..." 
-                  style={{ padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none', width:'100%', boxSizing:'border-box' }}/>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:4 }}>
-                  {[
+            {leftTab === 'stickers' && (() => {
+              const STICKER_GROUPS = [
+                {
+                  group: 'Emoji',
+                  items: [
                     {name:'Серце', emoji:'❤️', url:''},
                     {name:'Зірка', emoji:'⭐', url:''},
                     {name:'Сонце', emoji:'☀️', url:''},
@@ -2266,28 +2265,49 @@ export default function BookLayoutEditor() {
                     {name:'Діамант', emoji:'💎', url:''},
                     {name:'Веселка', emoji:'🌈', url:''},
                     {name:"Полум'я", emoji:'🔥', url:''},
-                    {name:'Блиск.', emoji:'⚡', url:''},
                     {name:'Зірочки', emoji:'✨', url:''},
                     {name:'Бант', emoji:'🎀', url:''},
                     {name:'Кулька', emoji:'🎈', url:''},
                     {name:'Сніжинка', emoji:'❄️', url:''},
-                  ].map(sticker => (
-                    <button key={sticker.name}
-                      onClick={() => {
-                        const spi = getActivePageIdx();
-                        const newS = { id:'stk-'+Date.now(), url:sticker.url, emoji:(sticker as any).emoji||'', x:42, y:42, w:'12%', h:'12%' };
-                        setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
-                        toast.success('Стікер додано', { duration: 1500 });
-                      }}
-                      style={{ padding:'6px 2px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, overflow:'hidden', minWidth:0 }}
-                      title={sticker.name}>
-                      <span style={{ fontSize:22, lineHeight:1 }}>{(sticker as any).emoji || '★'}</span>
-                      <span style={{ fontSize:7, color:'#64748b', textAlign:'center', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{sticker.name}</span>
-                    </button>
+                    {name:'Торт', emoji:'🎂', url:''},
+                  ],
+                },
+                {
+                  group: 'Серця PNG',
+                  items: [
+                    {name:'Подвійні серця', emoji:'', url:'/stickers/hearts-double-multicolor.png'},
+                  ],
+                },
+              ];
+              return (
+                <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                  {STICKER_GROUPS.map(grp => (
+                    <div key={grp.group}>
+                      <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>{grp.group}</div>
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:4 }}>
+                        {grp.items.map(sticker => (
+                          <button key={sticker.name}
+                            onClick={() => {
+                              const spi = getActivePageIdx();
+                              const newS = { id:'stk-'+Date.now(), url:sticker.url, emoji:sticker.emoji, x:42, y:42, w:'20%', h:'20%' };
+                              setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
+                              toast.success('Стікер додано', { duration: 1500 });
+                            }}
+                            style={{ padding:'6px 2px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, overflow:'hidden', minWidth:0 }}
+                            title={sticker.name}>
+                            {sticker.url
+                              ? <img src={sticker.url} alt={sticker.name} style={{ width:40, height:40, objectFit:'contain' }} />
+                              : <span style={{ fontSize:22, lineHeight:1 }}>{sticker.emoji}</span>
+                            }
+                            <span style={{ fontSize:7, color:'#64748b', textAlign:'center', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{sticker.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {leftTab === 'options' && (
               <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
@@ -3037,7 +3057,7 @@ export default function BookLayoutEditor() {
                     {(pageStickers[spreadPageIdx] || []).map(st => (
                       <div key={st.id} style={{ position:'absolute', left:st.x, top:st.y, width:st.w, height:st.h, cursor:'move', zIndex:12, touchAction:'none', fontSize:typeof st.w==='number'?st.w*0.8:32 }}
                         onPointerDown={e => { e.stopPropagation(); const origX = typeof st.x === 'number' ? st.x : 0; const origY = typeof st.y === 'number' ? st.y : 0; startPointerDrag(e, (dx:number,dy:number) => { setPageStickers(prev => ({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(s=>s.id===st.id?{...s,x:origX+dx,y:origY+dy}:s)})); }); }}>
-                        {st.emoji || ''}
+                        {st.url ? <img src={st.url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block' }} draggable={false}/> : <span style={{ fontSize:typeof st.w==='string'&&st.w.endsWith('%')?Math.round(spreadW*parseFloat(st.w)/100*0.7):32, lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{st.emoji}</span>}
                         <button onClick={()=>setPageStickers(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(s=>s.id!==st.id)}))} style={{position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
                       </div>
                     ))}
