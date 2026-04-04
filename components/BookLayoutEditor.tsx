@@ -208,8 +208,8 @@ function makeSlots(n: number): SlotData[] {
 const FONTS = FONT_GROUPS.flatMap(g => g.fonts);
 const COLORS = ['#1e2d7d', '#ffffff', '#000000', '#e63946', '#2a9d8f', '#f4a261', '#264653', '#e9c46a'];
 
-function getSlotDefs(layout: LayoutType, W: number, H: number): { i: number; s: React.CSSProperties }[] {
-  const g = 4;
+function getSlotDefs(layout: LayoutType, W: number, H: number, gap: number = 4): { i: number; s: React.CSSProperties }[] {
+  const g = gap;
   const w2 = (W - g) / 2, h2 = (H - g) / 2;
   const w3 = (W - 2 * g) / 3, h3 = (H - 2 * g) / 3;
   const w4 = (W - 3 * g) / 4, h4 = (H - 3 * g) / 4;
@@ -347,6 +347,7 @@ export default function BookLayoutEditor() {
   const [selectedFreeSlotId, setSelectedFreeSlotId] = useState<string | null>(null);
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
   const [pageGap, setPageGap] = useState(0); // px gap/padding around photo slots on all pages
+  const [slotGap, setSlotGap] = useState(4); // px gap between photo slots in layouts
   const [pageBorder, setPageBorder] = useState({ width: 0, color: '#e2e8f0' }); // border around slots
   const [pageShapes, setPageShapes] = useState<Record<number, Shape[]>>({});
   const [pageFrames, setPageFrames] = useState<Record<number, FrameConfig>>({});
@@ -920,7 +921,7 @@ export default function BookLayoutEditor() {
     setFreeSlots(newFreeSlots);
     setCurrentIdx(1);
     // Apply gapless option — remove gap between photos
-    if (opts.gapless) { setPageGap(0); }
+    if (opts.gapless) { setPageGap(0); setSlotGap(0); }
     // Apply avoidSpine — filter result pages to avoid sp-full (photo across spine)
     // This is handled by filtering layouts before autoBuild: exclude sp-full when avoidSpine
     toast.success(`Книгу зібрано! ${Math.ceil(result.pages.length / (isSpreadMode ? 2 : 1))} розворотів, ${photos.length} фото`, { duration: 3000 });
@@ -1871,6 +1872,13 @@ export default function BookLayoutEditor() {
                     <span style={{ fontSize:11, color:'#64748b', minWidth:28, textAlign:'right' }}>{pageGap}px</span>
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:11, color:'#475569', minWidth:56 }}>Лінії</span>
+                    <input type="range" min="0" max="12" step="1" value={slotGap}
+                      onChange={e => setSlotGap(Number(e.target.value))}
+                      style={{ flex:1, accentColor:'#7c3aed' }}/>
+                    <span style={{ fontSize:11, color:'#64748b', minWidth:28, textAlign:'right' }}>{slotGap}px</span>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <span style={{ fontSize:11, color:'#475569', minWidth:56 }}>Рамка</span>
                     <input type="range" min="0" max="5" step="0.5" value={pageBorder.width}
                       onChange={e => setPageBorder(p => ({...p, width: Number(e.target.value)}))}
@@ -2517,7 +2525,7 @@ export default function BookLayoutEditor() {
                 const spreadW = pageW * 2;
                 const isSpreadLayout = (spreadPage?.layout || '').startsWith('sp-');
                 const layout = spreadPage?.layout || 'sp-full';
-                const spreadDefs = getSlotDefs(layout as LayoutType, spreadW, cH);
+                const spreadDefs = getSlotDefs(layout as LayoutType, spreadW, cH, slotGap);
                 return (
                   <div
                     onPointerDown={() => setActiveSide(0)}
@@ -2525,7 +2533,6 @@ export default function BookLayoutEditor() {
                     onDrop={e => {
                       e.preventDefault();
                       const photoId = e.dataTransfer.getData('photoId') || e.dataTransfer.getData('text/plain');
-                      console.log('[CANVAS-DROP]', { photoId, currentPhotos: (spreadPage?.slots||[]).filter(s=>s.photoId).length });
                       if (!photoId || !photoId.startsWith('photo-')) return;
                       let multiIds: string[] = [];
                       try { multiIds = JSON.parse(e.dataTransfer.getData('photoIds') || '[]'); } catch {}
@@ -2890,7 +2897,7 @@ export default function BookLayoutEditor() {
                       </div>
                     );
                   }
-                  const pageDefs = getSlotDefs(page.layout, pageW, cH);
+                  const pageDefs = getSlotDefs(page.layout, pageW, cH, slotGap);
                   const pageKey = (si: number) => `${pageIdx}-${si}`;
                   return (
                     <div key={pageRenderKey}
@@ -3305,7 +3312,7 @@ export default function BookLayoutEditor() {
                 if (!pg) return <div style={{ flex:1, height:'100%', background:'#f1f5f9' }}/>;
                 // In spread mode, left page has the spread layout — render full width
                 if (isSpreadMode && side === 'left') {
-                  const defs = getSlotDefs(pg.layout, TW, TW * prop.h / (prop.w * 2));
+                  const defs = getSlotDefs(pg.layout, TW, TW * prop.h / (prop.w * 2), Math.max(1, slotGap * TW / (pageW * 2)));
                   return (
                     <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden', background:'#fff' }}>
                       {defs.map(({i, s}) => {
