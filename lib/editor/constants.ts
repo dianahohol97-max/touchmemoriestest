@@ -150,30 +150,52 @@ export const CYRILLIC_DECORATIVE_FONTS = [
   { label:'Ubuntu', value:'Ubuntu', style:'sans' },
 ];
 
+// Each font has: name, cyrillic support flag
+export const FONT_DATA: { name: string; cyr: boolean }[] = [
+  // Сучасні
+  { name: 'Montserrat', cyr: true }, { name: 'Inter', cyr: true }, { name: 'Lato', cyr: true },
+  { name: 'Raleway', cyr: true }, { name: 'Nunito', cyr: true }, { name: 'Poppins', cyr: true },
+  { name: 'Oswald', cyr: true }, { name: 'Josefin Sans', cyr: false }, { name: 'Rubik', cyr: true },
+  { name: 'Ubuntu', cyr: true }, { name: 'Exo 2', cyr: true }, { name: 'Jost', cyr: true },
+  { name: 'Manrope', cyr: true }, { name: 'Roboto', cyr: true }, { name: 'Fira Sans', cyr: true },
+  // Класичні
+  { name: 'Playfair Display', cyr: true }, { name: 'Cormorant Garamond', cyr: true },
+  { name: 'EB Garamond', cyr: true }, { name: 'Libre Baskerville', cyr: false },
+  { name: 'Lora', cyr: true }, { name: 'Merriweather', cyr: true },
+  { name: 'PT Serif', cyr: true }, { name: 'Noto Serif', cyr: true },
+  { name: 'Crimson Text', cyr: false }, { name: 'Cormorant', cyr: true },
+  // Рукописні
+  { name: 'Dancing Script', cyr: false }, { name: 'Great Vibes', cyr: false },
+  { name: 'Pacifico', cyr: true }, { name: 'Sacramento', cyr: false },
+  { name: 'Satisfy', cyr: false }, { name: 'Caveat', cyr: true },
+  { name: 'Marck Script', cyr: true }, { name: 'Bad Script', cyr: true },
+  { name: 'Neucha', cyr: true }, { name: 'Pangolin', cyr: true },
+  { name: 'Ruslan Display', cyr: true }, { name: 'Amatic SC', cyr: true },
+  { name: 'Indie Flower', cyr: false }, { name: 'Kalam', cyr: false },
+  { name: 'Patrick Hand', cyr: false },
+  // Декоративні
+  { name: 'Abril Fatface', cyr: false }, { name: 'Cinzel', cyr: false },
+  { name: 'Bebas Neue', cyr: false }, { name: 'Righteous', cyr: false },
+  { name: 'Cormorant SC', cyr: true }, { name: 'Dela Gothic One', cyr: false },
+  { name: 'Unbounded', cyr: true }, { name: 'Kelly Slab', cyr: true },
+  { name: 'Philosopher', cyr: true }, { name: 'Russo One', cyr: true },
+  { name: 'Comfortaa', cyr: true }, { name: 'Lobster', cyr: true },
+  { name: 'Poiret One', cyr: true }, { name: 'Yeseva One', cyr: true },
+  { name: 'Press Start 2P', cyr: true }, { name: 'Spectral', cyr: true },
+  { name: 'Alegreya', cyr: true }, { name: 'Alegreya SC', cyr: true },
+  { name: 'Open Sans', cyr: true }, { name: 'Kurale', cyr: true },
+];
+
 export const FONT_GROUPS = [
-  { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans','Rubik','Ubuntu','Exo 2','Jost','Manrope'] },
-  { group: 'Класичні', fonts: ['Playfair Display','Cormorant Garamond','EB Garamond','Libre Baskerville','Lora','Merriweather','PT Serif','Noto Serif'] },
-  { group: 'Рукописні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Caveat','Marck Script','Bad Script','Neucha','Pangolin','Ruslan Display'] },
-  { group: 'Кириличні', fonts: ['Philosopher','Russo One','Comfortaa','Lobster','Poiret One','Open Sans','Yeseva One','Kurale','Keleti','Press Start 2P','Spectral','Alegreya'] },
-  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Cormorant SC','Dela Gothic One','Unbounded','Kelly Slab'] },
+  { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans','Rubik','Ubuntu','Exo 2','Jost','Manrope','Roboto','Fira Sans'] },
+  { group: 'Класичні', fonts: ['Playfair Display','Cormorant Garamond','EB Garamond','Libre Baskerville','Lora','Merriweather','PT Serif','Noto Serif','Crimson Text','Cormorant'] },
+  { group: 'Рукописні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Caveat','Marck Script','Bad Script','Neucha','Pangolin','Ruslan Display','Amatic SC','Indie Flower','Kalam','Patrick Hand'] },
+  { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Cormorant SC','Dela Gothic One','Unbounded','Kelly Slab','Philosopher','Russo One','Comfortaa','Lobster','Poiret One','Yeseva One','Alegreya','Alegreya SC','Press Start 2P','Spectral','Kurale'] },
 ];
 
 // Google Fonts URL (single source — loaded once)
 export const GOOGLE_FONTS_URL = (() => {
-  const families = [
-    // Сучасні
-    'Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin+Sans','Rubik','Ubuntu','Exo+2','Jost','Manrope',
-    // Класичні
-    'Playfair+Display','Cormorant+Garamond','EB+Garamond','Libre+Baskerville','Lora','Merriweather','PT+Serif','Noto+Serif',
-    // Рукописні
-    'Dancing+Script','Great+Vibes','Pacifico','Sacramento','Satisfy','Caveat','Marck+Script','Bad+Script','Neucha','Pangolin','Ruslan+Display',
-    // Кириличні
-    'Philosopher','Russo+One','Comfortaa','Lobster','Poiret+One','Open+Sans','Yeseva+One','Kurale','Press+Start+2P','Spectral','Alegreya',
-    // Декоративні
-    'Abril+Fatface','Cinzel','Bebas+Neue','Righteous','Cormorant+SC','Dela+Gothic+One','Unbounded','Kelly+Slab',
-    // Legacy (keep for existing projects)
-    'Montserrat',
-  ].map(f => `family=${f}:ital,wght@0,400;0,700;1,400`).join('&');
+  const families = FONT_DATA.map(f => f.name.replace(/ /g, '+')).map(f => `family=${f}:ital,wght@0,400;0,700;1,400`).join('&');
   return `https://fonts.googleapis.com/css2?${families}&subset=cyrillic,cyrillic-ext,latin&display=swap`;
 })();
 

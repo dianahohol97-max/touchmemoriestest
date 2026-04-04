@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
 import { autoBuild } from '@/lib/editor/auto-build';
 import { AutoBuildModal } from './editor/AutoBuildModal';
+import { FontPicker } from './editor/FontPicker';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
@@ -1603,16 +1604,7 @@ export default function BookLayoutEditor() {
                               <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,bold:!t.bold}:t)}))}
                                 style={{ padding:'2px 6px', border: tb.bold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:4, background: tb.bold?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:700 }}>B</button>
                             </div>
-                            <select value={tb.fontFamily} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontFamily:e.target.value}:t)}))}
-                              style={{ width:'100%', padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, cursor:'pointer', fontFamily:tb.fontFamily }}>
-                              {FONT_GROUPS.map(g => (
-                                <optgroup key={g.group} label={g.group}>
-                                  {g.fonts.map(f => (
-                                    <option key={f} value={f} style={{ fontFamily:f }}>{f}</option>
-                                  ))}
-                                </optgroup>
-                              ))}
-                            </select>
+                            <FontPicker value={tb.fontFamily} onChange={f=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontFamily:f}:t)}))} />
                           </div>
                         ))}
                       </div>
@@ -1763,12 +1755,7 @@ export default function BookLayoutEditor() {
                     </div>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт</div>
-                      <select value={coverState.textFontFamily} onChange={e=>setCoverState(prev=>({...prev,textFontFamily:e.target.value}))}
-                        style={{ width:'100%', padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12 }}>
-                        <optgroup label="Кириличні каліграфічні"><option value="Marck Script">Marck Script</option><option value="Caveat">Caveat</option><option value="Philosopher">Philosopher</option><option value="Comfortaa">Comfortaa</option><option value="Lobster">Lobster</option></optgroup>
-                        <optgroup label="Латинські каліграфічні"><option value="Dancing Script">Dancing Script</option><option value="Great Vibes">Great Vibes</option><option value="Pinyon Script">Pinyon Script</option><option value="Sacramento">Sacramento</option><option value="Pacifico">Pacifico</option></optgroup>
-                        <optgroup label="Елегантні"><option value="Playfair Display">Playfair Display</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="Cinzel">Cinzel</option><option value="Montserrat">Montserrat</option></optgroup>
-                      </select>
+                      <FontPicker value={coverState.textFontFamily || 'Marck Script'} onChange={v=>setCoverState(prev=>({...prev,textFontFamily:v}))} />
                     </div>
                     <div>
                       <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#94a3b8', marginBottom:3 }}><span>Розмір</span><span>{coverState.textFontSize||24}px</span></div>
@@ -1780,12 +1767,7 @@ export default function BookLayoutEditor() {
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт</div>
-                      <select value={coverState.textFontFamily} onChange={e=>setCoverState(prev=>({...prev,textFontFamily:e.target.value}))}
-                        style={{ width:'100%', padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12 }}>
-                        <optgroup label="Кириличні каліграфічні"><option value="Marck Script">Marck Script</option><option value="Caveat">Caveat</option><option value="Philosopher">Philosopher</option><option value="Comfortaa">Comfortaa</option></optgroup>
-                        <optgroup label="Латинські каліграфічні"><option value="Dancing Script">Dancing Script</option><option value="Great Vibes">Great Vibes</option><option value="Sacramento">Sacramento</option></optgroup>
-                        <optgroup label="Елегантні"><option value="Playfair Display">Playfair Display</option><option value="Cinzel">Cinzel</option><option value="Cormorant Garamond">Cormorant Garamond</option></optgroup>
-                      </select>
+                      <FontPicker value={coverState.textFontFamily || 'Marck Script'} onChange={v=>setCoverState(prev=>({...prev,textFontFamily:v}))} />
                     </div>
                     <div>
                       <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#94a3b8', marginBottom:3 }}><span>Розмір</span><span>{coverState.textFontSize||24}px</span></div>
@@ -2286,15 +2268,7 @@ export default function BookLayoutEditor() {
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Шрифт</div>
-                  <select value={tFontFamily}
-                    onChange={e => { const v=e.target.value; setTFontFamily(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontFamily: v }, selectedTextPageIdx); }}
-                    style={{ padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, width:'100%', fontFamily:tFontFamily }}>
-                    {FONT_GROUPS.map(g => (
-                      <optgroup key={g.group} label={g.group}>
-                        {g.fonts.map(f => <option key={f} value={f}>{f}</option>)}
-                      </optgroup>
-                    ))}
-                  </select>
+                  <FontPicker value={tFontFamily} onChange={v => { setTFontFamily(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontFamily: v }, selectedTextPageIdx); }} />
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Розмір: {tFontSize}px</div>
                     {!selectedTextId && <span style={{ fontSize:9, color:'#f59e0b', fontWeight:600 }}>↑ клікніть на текст</span>}
@@ -4157,15 +4131,7 @@ export default function BookLayoutEditor() {
                   {/* Style controls */}
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Шрифт</div>
-                    <select value={tFontFamily}
-                      onChange={e => { const v=e.target.value; setTFontFamily(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontFamily: v }, selectedTextPageIdx); }}
-                      style={{ padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, width:'100%', fontFamily:tFontFamily }}>
-                      {FONT_GROUPS.map(g => (
-                        <optgroup key={g.group} label={g.group}>
-                          {g.fonts.map(f => <option key={f} value={f}>{f}</option>)}
-                        </optgroup>
-                      ))}
-                    </select>
+                    <FontPicker value={tFontFamily} onChange={v => { setTFontFamily(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontFamily: v }, selectedTextPageIdx); }} />
 
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Розмір</div>
