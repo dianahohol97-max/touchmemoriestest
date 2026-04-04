@@ -617,9 +617,9 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-      {/* Active frame controls — ALWAYS visible at top */}
+      {/* Active frame controls — STICKY at top */}
       {frame.frameId && (
-        <div style={{ background:'#f0f3ff', borderRadius:10, padding:10, border:'1px solid #c7d2fe' }}>
+        <div style={{ background:'#f0f3ff', borderRadius:10, padding:10, border:'1px solid #c7d2fe', position:'sticky', top:0, zIndex:5 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
             <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>{activeLabel}</span>
             <button onClick={()=>onChange({...frame,frameId:null})}
