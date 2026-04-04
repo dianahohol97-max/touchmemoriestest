@@ -2578,14 +2578,11 @@ export default function BookLayoutEditor() {
                             const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
                             if (!photoId || !photoId.startsWith('photo-')) return;
                             const sourceType = e.dataTransfer?.getData('sourceType');
+                            // Swap between slots
                             if (sourceType === 'pageSlot' || sourceType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
-                            const existing = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
-                            if (!photo) {
-                              pushHistory();
-                              setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId }) }));
-                            } else {
-                              autoCollage([...existing, photoId], spreadPageIdx);
-                            }
+                            // Drop from sidebar → REPLACE photo in this slot (not add)
+                            pushHistory();
+                            setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId }) }));
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
