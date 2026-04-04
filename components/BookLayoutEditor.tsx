@@ -1373,7 +1373,7 @@ export default function BookLayoutEditor() {
             ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац']]:[] as any),
             ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:18}}>▣</span>, 'Обкл.']]:[] as any),
           ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
-            <button key={id} onClick={() => { setLeftTab(id as any); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); }}
+            <button key={id} onClick={() => { setLeftTab(id as any); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); if (id === 'kalka' && currentIdx !== 1) setCurrentIdx(1); if (id === 'cover') setCurrentIdx(0); }}
               style={{ width: '100%', padding: '10px 4px', border: 'none', cursor: 'pointer', background: leftTab === id ? '#1e2d7d' : 'transparent', color: leftTab === id ? '#fff' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginBottom: 2, transition: 'background 0.15s' }}>
               {icon}
               <span style={{ fontSize: 9, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
@@ -3090,23 +3090,35 @@ export default function BookLayoutEditor() {
 
                   // КАЛЬКА: right page of first spread (pageIdx===2, side===1)
                   if (isKalkaPage(pageIdx)) return (
-                    <div key={pageRenderKey} onClick={() => setLeftTab('kalka' as any)}
+                    <div key={pageRenderKey} onClick={() => { setLeftTab('kalka' as any); }}
                       style={{ width: pageW, height: cH, position: 'relative', background: '#fff', borderRadius: '0 4px 4px 0', boxShadow: 'inset 1px 0 3px rgba(0,0,0,0.08)', overflow: 'hidden', cursor: 'pointer',
                         border: leftTab === ('kalka' as any) ? '2px solid #3b82f6' : 'none' }}>
-                      {/* Калька texture */}
-                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(240,245,255,0.85)', backdropFilter: 'blur(0.5px)', pointerEvents: 'none' }}/>
+                      {/* Калька texture — semi-transparent vellum/tracing paper look */}
+                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(245,248,255,0.92) 0%, rgba(235,240,250,0.88) 50%, rgba(245,248,255,0.92) 100%)', pointerEvents: 'none' }}/>
+                      {/* Subtle paper grain */}
+                      <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, transparent 4px)', pointerEvents: 'none' }}/>
                       {/* Uploaded illustration */}
                       {kalkaState.imageUrl && (
-                        <img src={kalkaState.imageUrl} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.7 }} draggable={false}/>
+                        <img src={kalkaState.imageUrl} style={{ position: 'absolute', inset: '10%', width: '80%', height: '80%', objectFit: 'contain', opacity: 0.65 }} draggable={false}/>
                       )}
                       {/* Text */}
                       {kalkaState.text && (
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                          <span style={{ fontSize: kalkaState.fontSize, fontFamily: kalkaState.fontFamily, color: kalkaState.textColor, textAlign: 'center', padding: '0 16px', opacity: 0.8, whiteSpace: 'pre-wrap' }}>{kalkaState.text}</span>
+                          <span style={{ fontSize: kalkaState.fontSize * (pageW / 400), fontFamily: kalkaState.fontFamily, color: kalkaState.textColor, textAlign: 'center', padding: '0 16px', opacity: 0.75, whiteSpace: 'pre-wrap', lineHeight: 1.3 }}>{kalkaState.text}</span>
                         </div>
                       )}
-                      {/* Label */}
-                      <div style={{ position: 'absolute', bottom: 6, left: 0, right: 0, textAlign: 'center', fontSize: 9, color: '#94a3b8', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', pointerEvents: 'none' }}>КАЛЬКА — тисніть для редагування</div>
+                      {/* Empty state hint */}
+                      {!kalkaState.text && !kalkaState.imageUrl && (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, pointerEvents: 'none' }}>
+                          <div style={{ fontSize: 28, opacity: 0.15 }}>📜</div>
+                          <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>Калька</span>
+                          <span style={{ fontSize: 9, color: '#cbd5e1' }}>Натисніть для редагування</span>
+                        </div>
+                      )}
+                      {/* Label at bottom */}
+                      {(kalkaState.text || kalkaState.imageUrl) && (
+                        <div style={{ position: 'absolute', bottom: 4, left: 0, right: 0, textAlign: 'center', fontSize: 8, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.5, pointerEvents: 'none' }}>КАЛЬКА</div>
+                      )}
                     </div>
                   );
 
@@ -4002,7 +4014,7 @@ export default function BookLayoutEditor() {
             ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац']]:[] as any),
             ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:14}}>▣</span>, 'Обкл.']]:[] as any),
           ].map(([id, icon, label]) => (
-            <button key={id as string} onClick={() => { setLeftTab(id as any); setMobilePanel(true); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); }}
+            <button key={id as string} onClick={() => { setLeftTab(id as any); setMobilePanel(true); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); if (id === 'kalka' && currentIdx !== 1) setCurrentIdx(1); if (id === 'cover') setCurrentIdx(0); }}
               style={{ flex:1, padding:'8px 2px', border:'none', background: leftTab===id && mobilePanel ? '#1e2d7d' : 'transparent', color: leftTab===id && mobilePanel ? '#fff' : '#64748b', display:'flex', flexDirection:'column', alignItems:'center', gap:2, cursor:'pointer', minWidth:0 }}>
               {icon as React.ReactNode}
               <span style={{ fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>{label as string}</span>
