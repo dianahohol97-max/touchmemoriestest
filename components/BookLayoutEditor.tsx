@@ -2533,7 +2533,8 @@ export default function BookLayoutEditor() {
                           onDrop={e => {
                             e.preventDefault(); e.stopPropagation(); setDropTarget(null);
                             const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
-                            if (!photoId || !photoId.startsWith('photo-')) return;
+                            console.log('[SLOT-DROP]', { slotIdx: i, photoId, hasPhoto: !!photo, sourceType: e.dataTransfer?.getData('sourceType') });
+                            if (!photoId || !photoId.startsWith('photo-')) { console.log('[SLOT-DROP] rejected — no valid photoId'); return; }
                             const sourceType = e.dataTransfer?.getData('sourceType');
                             if (sourceType === 'pageSlot' || sourceType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
                             const existing = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
