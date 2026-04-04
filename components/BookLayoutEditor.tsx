@@ -2641,6 +2641,17 @@ export default function BookLayoutEditor() {
                                 ) : null;
                               })()}
                               <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default', padding: pageGap > 0 ? pageGap : 0, boxSizing:'border-box' }}
+                                onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDropTarget(key); }}
+                                onDragLeave={() => setDropTarget(null)}
+                                onDrop={e => {
+                                  e.preventDefault(); e.stopPropagation(); setDropTarget(null);
+                                  const pid = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
+                                  if (!pid || !pid.startsWith('photo-')) return;
+                                  const srcType = e.dataTransfer?.getData('sourceType');
+                                  if (srcType === 'pageSlot' || srcType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
+                                  pushHistory();
+                                  setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId: pid }) }));
+                                }}
                                 onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(1, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                 onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                 <img src={photo.preview} draggable={photoEditSlot !== key}
