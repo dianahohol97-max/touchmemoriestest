@@ -8,11 +8,12 @@ import { useCartStore } from '@/store/cart-store';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import { useT } from '@/lib/i18n/context';
+import { useT, useTranslation } from '@/lib/i18n/context';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function Navigation() {
     const t = useT();
+    const { locale } = useTranslation();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -58,10 +59,10 @@ export function Navigation() {
 
                         return {
                             id: link.id,
-                            name: link.link_text,
+                            name: (link.translations as any)?.[locale]?.text || link.link_text,
                             href: link.link_url,
                             children: children?.map(child => ({
-                                name: child.link_text,
+                                name: (child.translations as any)?.[locale]?.text || child.link_text,
                                 href: child.link_url
                             }))
                         };
@@ -93,7 +94,7 @@ export function Navigation() {
             }
         }
         fetchNavigationData();
-    }, []);
+    }, [locale]);
 
     // Search functionality
     useEffect(() => {
@@ -245,7 +246,7 @@ export function Navigation() {
                                         activeDropdown === 'other' ? "opacity-100" : "opacity-80"
                                     )}
                                 >
-                                    Інші товари
+                                    {t('nav.other')}
                                     <ChevronDown size={14} className={cn("transition-transform duration-200", activeDropdown === 'other' && "rotate-180")} />
                                 </button>
 
@@ -365,7 +366,7 @@ export function Navigation() {
                     >
                         <div className="container h-20 flex items-center justify-between border-b border-primary/5 px-8">
                             <span className="font-heading font-extrabold text-xl tracking-widest text-primary">
-                                МЕНЮ
+                                {t('ui.mobile_menu')}
                             </span>
                             <button
                                 onClick={() => setIsMobileMenuOpen(false)}
@@ -378,7 +379,7 @@ export function Navigation() {
                         <nav className="flex flex-col p-8 gap-1 overflow-y-auto">
                             {[
                                 ...mainNavLinks,
-                                { name: 'Інші товари', href: '/catalog' },
+                                { name: t('nav.other'), href: '/catalog' },
                                 ...aboutDropdownItems
                             ].map(link => (
                                 <Link
@@ -425,7 +426,7 @@ export function Navigation() {
                                     <input
                                         type="text"
                                         autoFocus
-                                        placeholder="Пошук товарів..."
+                                        placeholder={t('ui.search_placeholder')}
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 focus:bg-white transition-all"
@@ -445,19 +446,19 @@ export function Navigation() {
                             <div className="max-h-[60vh] overflow-y-auto p-6">
                                 {searchLoading && (
                                     <div className="text-center py-8 text-gray-500">
-                                        Пошук...
+                                        {t('ui.search_loading')}
                                     </div>
                                 )}
 
                                 {!searchLoading && searchQuery.length >= 2 && searchResults.length === 0 && (
                                     <div className="text-center py-8 text-gray-500">
-                                        Товарів не знайдено. Спробуйте інший запит.
+                                        {t('ui.search_no_results')}
                                     </div>
                                 )}
 
                                 {!searchLoading && searchQuery.length < 2 && (
                                     <div className="text-center py-8 text-gray-400 text-sm">
-                                        Введіть мінімум 2 символи для пошуку
+                                        {t('ui.search_min_chars')}
                                     </div>
                                 )}
 
@@ -501,7 +502,7 @@ export function Navigation() {
 
                             {/* Footer hint */}
                             <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 text-center">
-                                Натисніть ESC щоб закрити
+                                {t('ui.search_esc')}
                             </div>
                         </motion.div>
                     </>

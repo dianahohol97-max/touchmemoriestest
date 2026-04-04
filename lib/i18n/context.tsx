@@ -101,3 +101,7 @@ export function useTranslation() {
 export function useT() {
     return useContext(I18nContext).t;
 }
+
+export function useLocale() {
+    return useContext(I18nContext).locale;
+}

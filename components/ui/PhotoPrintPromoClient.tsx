@@ -36,20 +36,20 @@ export function PhotoPrintPromoClient({
     const defaultSteps = [
         {
             number: '1',
-            title: 'Оберіть формат',
-            description: 'Стандартний, нестандартний, Polaroid — вибери розмір, який підходить вам.',
+            title: t('photo_print.step1_title'),
+            description: t('photo_print.step1_desc'),
             icon: <Layout size={24} className="text-primary" />
         },
         {
             number: '2',
-            title: 'Завантажте фото',
-            description: 'Надішли нам фотографії у зручний спосіб — через Telegram або на email.',
+            title: t('photo_print.step2_title'),
+            description: t('photo_print.step2_desc'),
             icon: <Upload size={24} className="text-primary" />
         },
         {
             number: '3',
-            title: 'Оформіть замовлення',
-            description: 'Ми підтвердимо деталі та надішлемо готові фото у зазначені терміни.',
+            title: t('photo_print.step3_title'),
+            description: t('photo_print.step3_desc'),
             icon: <Truck size={24} className="text-primary" />
         }
     ];

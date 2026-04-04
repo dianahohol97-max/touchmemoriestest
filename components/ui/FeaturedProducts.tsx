@@ -1,10 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import { useT, useLocale } from '@/lib/i18n/context';
+import { detectCurrency, formatPrice } from '@/lib/i18n/currency';
 
 interface Product {
     id: string;
@@ -17,6 +19,9 @@ interface Product {
 
 export function FeaturedProducts({ products = [] }: { products: Product[] }) {
     const { blocks } = useTheme();
+    const t = useT();
+    const locale = useLocale();
+    const currency = useMemo(() => detectCurrency(locale), [locale]);
     const block = blocks.find(b => b.block_name === 'featured_products');
     const style = block?.style_metadata || {};
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -137,7 +142,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                                             </h3>
                                             <div className="mt-auto w-full pt-4">
                                                 <div className="text-lg font-black text-[#1e2d7d]">
-                                                    {product.price_from ? 'від ' : ''}{product.price} ₴
+                                                    {product.price_from ? `${t('ui.from')} ` : ''}{formatPrice(typeof product.price === 'string' ? parseFloat(product.price) : product.price, currency)}
                                                 </div>
                                             </div>
                                         </div>

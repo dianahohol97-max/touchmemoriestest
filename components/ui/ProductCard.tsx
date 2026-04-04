@@ -1,5 +1,7 @@
 'use client';
-import { useT } from '@/lib/i18n/context';
+import { useT, useLocale } from '@/lib/i18n/context';
+import { detectCurrency, formatPrice } from '@/lib/i18n/currency';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import styles from './ProductCard.module.css';
 import Link from 'next/link';
@@ -22,7 +24,12 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+    const t = useT();
+    const locale = useLocale();
+    const currency = useMemo(() => detectCurrency(locale), [locale]);
     const categorySlug = typeof product.categories === 'object' ? product.categories?.slug || 'all' : 'all';
+    const rawPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+    const priceDisplay = rawPrice ? formatPrice(rawPrice, currency) : null;
 
     return (
         <motion.div
@@ -52,11 +59,16 @@ export function ProductCard({ product }: ProductCardProps) {
                         <h3 className="font-heading text-[14px] sm:text-[20px] font-bold m-0 text-primary leading-tight tracking-tight mb-1 sm:mb-2">
                             {product.name}
                         </h3>
+                        {priceDisplay && (
+                            <p className="text-[13px] text-primary/60 font-medium mt-1">
+                                {product.price_from ? `${t('ui.from')} ` : ''}{priceDisplay}
+                            </p>
+                        )}
                     </div>
 
                     <div className="mt-2 sm:mt-6 flex justify-center w-full">
                         <div className="w-full bg-[#1e2d7d] text-white font-bold text-[11px] sm:text-sm py-2 sm:py-3 px-2 sm:px-6 rounded-lg hover:bg-[#152158] transition-colors duration-200 cursor-pointer text-center">
-                            Детальніше
+                            {t('ui.details')}
                         </div>
                     </div>
                 </div>

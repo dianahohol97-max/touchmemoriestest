@@ -1,5 +1,5 @@
 'use client';
-import { useT } from '@/lib/i18n/context';
+import { useT, useTranslation } from '@/lib/i18n/context';
 import { useState, useEffect } from 'react';
 import styles from './Footer.module.css';
 import { useInView } from 'react-intersection-observer';
@@ -63,7 +63,7 @@ function NewsletterFormFooter() {
                         <input
                             type="email"
                             required
-                            placeholder="Ваш email"
+                            placeholder={t('footer.email_placeholder')}
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             disabled={loading}
@@ -90,7 +90,8 @@ export function Footer({ categories = [] }: FooterProps) {
     });
 
     const { content, blocks } = useTheme();
-  const t = useT();
+    const t = useT();
+    const { locale } = useTranslation();
     const [openSection, setOpenSection] = useState<string | null>(null);
     const [sections, setSections] = useState<any[]>([]);
     const footerBlock = blocks.find(b => b.block_name === 'footer');
@@ -125,11 +126,11 @@ export function Footer({ categories = [] }: FooterProps) {
             if (footerSections && footerSections.length > 0) {
                 const formattedSections = footerSections.map(section => ({
                     id: section.section_name,
-                    title: section.section_title,
+                    title: (section.translations as any)?.[locale]?.title || section.section_title,
                     links: (section.footer_links as any[])
                         .filter(link => link.is_active)
                         .sort((a, b) => a.display_order - b.display_order)
-                        .map(link => ({ label: link.link_text, href: link.link_url }))
+                        .map(link => ({ label: (link.translations as any)?.[locale]?.text || link.link_text, href: link.link_url }))
                 }));
                 setSections(formattedSections);
             } else {
@@ -168,7 +169,7 @@ export function Footer({ categories = [] }: FooterProps) {
             }
         }
         fetchFooterData();
-    }, []);
+    }, [locale]);
 
     return (
         <footer ref={ref} className="bg-premium-gradient border-t border-primary/5 pt-16 pb-12 relative overflow-hidden">
@@ -274,8 +275,8 @@ export function Footer({ categories = [] }: FooterProps) {
                     </p>
                     <div className="flex gap-12">
                         {[
-                            { label: 'Політика конфіденційності', href: '/privacy-policy' },
-                            { label: 'Публічна оферта', href: '/public-offer' }
+                            { label: t('footer.privacy'), href: '/privacy-policy' },
+                            { label: t('footer.offer'), href: '/public-offer' }
                         ].map((link) => (
                             <Link key={link.label} href={link.href} className="text-[13px] text-primary/20 hover:text-primary transition-colors font-medium no-underline">
                                 {link.label}

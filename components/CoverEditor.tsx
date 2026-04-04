@@ -1,6 +1,7 @@
 'use client';
 import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 import { useState, useRef, useEffect } from 'react';
+import { useT } from '@/lib/i18n/context';
 import { ImageIcon, Move } from 'lucide-react';
 
 export type CoverMaterial = 'velour' | 'leatherette' | 'fabric' | 'printed';
@@ -114,6 +115,7 @@ interface CoverEditorProps {
 }
 
 export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange, hidePhotoSlot = false }: CoverEditorProps) {
+  const t = useT();
   const [dragOver, setDragOver] = useState(false);
   // Load Cyrillic calligraphic fonts
   useEffect(() => {
@@ -325,11 +327,11 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                     <style>{`.slot-move-handle{opacity:0!important}div:hover>.slot-move-handle{opacity:1!important}`}</style>
                   </>
                 : <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, color:'#94a3b8' }}>
-                    <ImageIcon size={28}/><span style={{ fontSize:11, fontWeight:600, textAlign:'center' }}>Перетягніть фото</span>
+                    <ImageIcon size={28}/><span style={{ fontSize:11, fontWeight:600, textAlign:'center' }}>{t('constructor.drag_photo')}</span>
                   </div>}
-              {photo && <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()} title="Прибрати фото">×</button>}
+              {photo && <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()} title={t('constructor.remove_photo')}>×</button>}
               {/* Delete slot entirely */}
-              <button onClick={()=>onChange({printedPhotoSlot:null, photoId:null} as any)} style={{ position:'absolute',top: photo ? 28 : 4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(239,68,68,0.75)',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()} title="Видалити фотослот">🗑</button>
+              <button onClick={()=>onChange({printedPhotoSlot:null, photoId:null} as any)} style={{ position:'absolute',top: photo ? 28 : 4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(239,68,68,0.75)',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()} title={t('constructor.delete_slot')}>🗑</button>
             </div>
             {/* Resize handles */}
             {(['nw','ne','se','sw'] as const).map(dir => {
@@ -446,7 +448,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 </div>
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
-              : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Перетягніть фото<br/>на акрил</span></div>}
+              : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>{t('constructor.drag_photo_acrylic').replace('\n','')}<br/>{t('constructor.drag_photo_acrylic').split('\n')[1] || 'to acrylic'}</span></div>}
             </div>
           )}
 
@@ -492,7 +494,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                     style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
                 </div>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
-              : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Перетягніть фото<br/>у вставку</span></div>}
+              : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>{t('constructor.drag_photo_insert').replace('\n','')}<br/>{t('constructor.drag_photo_insert').split('\n')[1] || 'to insert'}</span></div>}
             </div>
           )}
 

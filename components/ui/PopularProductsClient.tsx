@@ -1,8 +1,8 @@
 'use client';
-import { useT } from '@/lib/i18n/context';
-
+import { useT, useLocale } from '@/lib/i18n/context';
+import { detectCurrency, formatPrice } from '@/lib/i18n/currency';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Product {
@@ -29,8 +29,10 @@ interface PopularProductsClientProps {
 
 export function PopularProductsClient({ products, sectionContent }: PopularProductsClientProps) {
     const t = useT();
+    const locale = useLocale();
+    const currency = useMemo(() => detectCurrency(locale), [locale]);
   const heading = sectionContent?.heading || t('home.popular');
-  const ctaText = sectionContent?.cta_text || 'Переглянути всі продукти →';
+  const ctaText = sectionContent?.cta_text || t('ui.view_all_products');
   const ctaUrl  = sectionContent?.cta_url  || '/catalog';
 
   const CARD_WIDTH = 260;
@@ -135,8 +137,8 @@ export function PopularProductsClient({ products, sectionContent }: PopularProdu
                     {product.name}
                   </h3>
                   <p style={{ fontWeight: 800, fontSize: '1rem', color: '#1e2d7d' }}>
-                    {product.price_from ? 'від ' : ''}
-                    {(product.sale_price ?? product.price).toLocaleString('uk-UA')} ₴
+                    {product.price_from ? `${t('ui.from')} ` : ''}
+                    {formatPrice(product.sale_price ?? product.price, currency)}
                   </p>
                 </div>
               </Link>

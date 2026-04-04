@@ -9,6 +9,7 @@ import { FontPicker } from './editor/FontPicker';
 import { CoverTemplatesPicker } from './editor/CoverTemplatesPicker';
 import { CoverTemplate } from '@/lib/editor/cover-templates';
 import { toast } from 'sonner';
+import { useT } from '@/lib/i18n/context';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
 import { BookPreviewModal } from './BookPreviewModal';
@@ -404,6 +405,7 @@ function LayoutSVG({ layout, active }: { layout: LayoutType; active: boolean }) 
 
 export default function BookLayoutEditor() {
   const router = useRouter();
+  const t = useT();
   const [isMobile, setIsMobile] = useState(false);
   const [mobilePanel, setMobilePanel] = useState(false); // bottom sheet open
   useEffect(() => {
@@ -595,7 +597,7 @@ export default function BookLayoutEditor() {
   useEffect(() => {
     const cfg = sessionStorage.getItem('bookConstructorConfig');
     if (cfg) setConfig(JSON.parse(cfg));
-    else { toast.error('Конфігурація не знайдена'); router.push('/order/book'); }
+    else { toast.error(t('constructor.config_not_found')); router.push('/order/book'); }
     const ph = sessionStorage.getItem('bookConstructorPhotos');
     if (ph) setPhotos(JSON.parse(ph));
     // Restore editor draft if user navigated back
@@ -651,7 +653,7 @@ export default function BookLayoutEditor() {
     const isPhotobook = (config.productSlug || '').toLowerCase().includes('photobook') || (config.productSlug || '').toLowerCase().includes('fotoknig') || (config.productName || '').toLowerCase().includes('фотокниг');
     const initLayout: LayoutType = isPhotobook ? 'sp-full' : 'p-full';
     const ps: Page[] = [];
-    ps.push({ id: 0, label: 'Обкладинка', layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
+    ps.push({ id: 0, label: t('constructor.cover'), layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
     for (let i = 1; i <= total; i++) {
       ps.push({ id: i, label: `${i}`, layout: initLayout, slots: makeSlots(1), textBlocks: [] });
     }
@@ -754,8 +756,8 @@ export default function BookLayoutEditor() {
     const newId2 = pages.length + 1;
     setPages(prev => [
       ...prev,
-      { id: newId1, label: `Стор. ${newId1}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
-      { id: newId2, label: `Стор. ${newId2}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
+      { id: newId1, label: `${t('constructor.page_short')} ${newId1}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
+      { id: newId2, label: `${t('constructor.page_short')} ${newId2}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
     ]);
     const newSpreadIdx = Math.ceil(pages.length / 2);
     setCurrentIdx(newSpreadIdx);
@@ -763,14 +765,14 @@ export default function BookLayoutEditor() {
 
   const removeCurrentSpread = () => {
     pushHistory();
-    if (pages.length <= minPagesLen) { toast.error(`Мінімальна кількість розворотів: ${minSpreads}`); return; }
-    if (currentIdx === 0) { toast.error('Не можна видалити обкладинку'); return; }
+    if (pages.length <= minPagesLen) { toast.error(`${t('constructor.min_spreads')} ${minSpreads}`); return; }
+    if (currentIdx === 0) { toast.error(t('constructor.cannot_delete_cover')); return; }
     // pages[0] = cover, spread N = pages[(N-1)*2+1] and pages[(N-1)*2+2]
     const p1 = (currentIdx - 1) * 2 + 1;
     const p2 = p1 + 1;
     setPages(prev => prev.filter((_, i) => i !== p1 && i !== p2));
     setCurrentIdx(prev => Math.max(1, Math.min(prev, Math.ceil((pages.length - 3) / 2))));
-    toast.success('Розворот видалено');
+    toast.success(t('constructor.spread_deleted'));
   };
 
   const getCurBg = (idx: number): PageBackground => pageBgs[idx] || DEFAULT_BG;
@@ -869,7 +871,7 @@ export default function BookLayoutEditor() {
     pushHistory();
     let pi = 0;
     setPages(prev => prev.map(p => ({ ...p, slots: p.slots.map(sl => { if (sl.photoId) return sl; const ph = photos[pi]; if (!ph) return sl; pi++; return { ...sl, photoId: ph.id }; }) })));
-    toast.success('Фото розставлено');
+    toast.success(t('constructor.photos_placed'));
   };
 
   // Auto-collage: drop N photos onto a page → pick best layout + assign
@@ -1392,7 +1394,7 @@ export default function BookLayoutEditor() {
         {/* CONTENT PANEL — desktop only, mobile uses bottom sheet */}
         {!isMobile && <div style={{ width: 220, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: 800, fontSize: 12, color: '#1e2d7d' }}>
-            {({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','frames':'Рамки','stickers':'Стікери','options':'Опції','cover':'Обкладинка'} as Record<string,string>)[leftTab] || leftTab}
+            {(({'photos':t('constructor.tab_photos'),'layouts':t('constructor.tab_layouts'),'text':t('constructor.tab_text'),'bg':t('constructor.tab_bg'),'shapes':t('constructor.tab_shapes'),'frames':t('constructor.tab_frames'),'stickers':t('constructor.tab_stickers'),'options':t('constructor.tab_options'),'cover':t('constructor.cover')} as Record<string,string>)[leftTab] || leftTab}
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: 10 }}>
 
@@ -1442,7 +1444,7 @@ export default function BookLayoutEditor() {
                 {photos.length === 0 && <p style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', margin: 0 }}>Додайте фото щоб почати</p>}
                 {tapSelectedPhotoId && (
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 10px', marginBottom: 6, fontSize: 11, color: '#1d4ed8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    👆 Тапніть фотослот щоб розмістити фото
+                    {t('constructor.tap_slot_hint')}
                   </div>
                 )}
                 {/* Multi-select action bar */}
@@ -1462,7 +1464,7 @@ export default function BookLayoutEditor() {
                         toast.success(`${ids.length} фото → авторозміщення на розворот`);
                       }}
                       style={{ padding:'8px', border:'none', borderRadius:6, background:'#7c3aed', color:'#fff', fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                      ✦ Розмістити на {isSpreadMode ? 'розворот' : 'сторінку'}
+                      ✦ {t(isSpreadMode ? 'constructor.place_on_spread' : 'constructor.place_on_page')}
                     </button>
                     <button
                       onClick={() => setSelectedPhotoIds(new Set())}
@@ -1522,7 +1524,7 @@ export default function BookLayoutEditor() {
                 )}
                 {/* Layout groups — spread layouts for photobooks, page layouts for magazines */}
                 {(isSpreadMode
-                  ? ['Розворот 1 фото', 'Розворот 2 фото', 'Розворот 3 фото', 'Розворот 4 фото', 'Розворот 5+ фото']
+                  ? [t('constructor.spread_group_1'), t('constructor.spread_group_2'), t('constructor.spread_group_3'), t('constructor.spread_group_4'), t('constructor.spread_group_5')]
                   : ['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7–9 фото', 'Текст']
                 ).map(group => {
                   const gl = LAYOUTS.filter(l => l.group === group);
@@ -1610,7 +1612,7 @@ export default function BookLayoutEditor() {
                       {/* Photo slot shape — hidden for hard cover journal (color-only cover) */}
                       {!isHardCoverJournal && (
                       <div>
-                        <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Форма фотослота</div>
+                        <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>{t('constructor.slot_shape')}</div>
                         <div style={{ display:'flex', gap:4 }}>
                           {(['rect','rounded','circle','heart'] as const).map(sh => (
                             <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
@@ -1716,7 +1718,7 @@ export default function BookLayoutEditor() {
                         <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
                           style={{ padding:'2px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
                       </div>
-                      <div style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>Перетягніть фото прямо на задню обкладинку</div>
+                      <div style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>{t('constructor.drag_photo_back')}</div>
                       {coverState.backCoverPhotoId && (
                         <>
                           <div style={{ marginBottom:6 }}>
@@ -1739,7 +1741,7 @@ export default function BookLayoutEditor() {
                           </button>
                           <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
                             style={{ width:'100%', padding:'5px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
-                            × Видалити фото з задньої
+                            × {t('constructor.remove_photo_back')}
                           </button>
                         </>
                       )}
@@ -1773,7 +1775,7 @@ export default function BookLayoutEditor() {
                       {coverState.photoId && (
                         <button onClick={() => setCoverState(prev=>({...prev, photoId:null}))}
                           style={{ marginTop:4, width:'100%', padding:'4px', fontSize:10, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:4, cursor:'pointer' }}>
-                          × Видалити фото з вставки
+                          × {t('constructor.remove_photo_insert')}
                         </button>
                       )}
                     </div>
@@ -2088,7 +2090,7 @@ export default function BookLayoutEditor() {
                     {coverState.backCoverPhotoId && (
                       <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
                         style={{ width:'100%', padding:'6px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
-                        × Видалити фото з задньої
+                        × {t('constructor.remove_photo_back')}
                       </button>
                     )}
                     {!coverState.backCoverPhotoId && (
@@ -2361,7 +2363,7 @@ export default function BookLayoutEditor() {
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                     <button onClick={addSpread}
                       style={{ flex:1, padding:'9px 8px', border:'1px solid #d1fae5', borderRadius:8, background:'#f0fdf4', cursor:'pointer', fontWeight:700, fontSize:12, color:'#059669', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
-                      <span style={{fontSize:16}}>+</span> Додати розворот
+                      <span style={{fontSize:16}}>+</span> {t('constructor.add_spread')}
                     </button>
                     <button onClick={removeCurrentSpread} disabled={currentIdx === 0 || pages.length <= minPagesLen}
                       style={{ flex:1, padding:'9px 8px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor: currentIdx === 0 || pages.length <= minPagesLen ? 'not-allowed' : 'pointer', fontWeight:700, fontSize:12, color: currentIdx === 0 || pages.length <= minPagesLen ? '#fca5a5' : '#ef4444', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
@@ -2470,7 +2472,7 @@ export default function BookLayoutEditor() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? '12px 8px 72px 8px' : '24px 32px 140px 32px', background: '#f4f6fb', position:'relative' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} style={{ background: 'none', border: 'none', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', opacity: currentIdx === 0 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronLeft size={20} /></button>
-            <span>{currentIdx === 0 ? 'Обкладинка' : `${(currentIdx-1)*2+1}–${(currentIdx-1)*2+2}`}</span>
+            <span>{currentIdx === 0 ? t('constructor.cover') : `${(currentIdx-1)*2+1}–${(currentIdx-1)*2+2}`}</span>
             <button onClick={() => setCurrentIdx(i => Math.min(Math.ceil((pages.length - 1) / 2), i + 1))} disabled={currentIdx === Math.ceil((pages.length - 1) / 2)} style={{ background: 'none', border: 'none', cursor: currentIdx === Math.ceil((pages.length - 1) / 2) ? 'not-allowed' : 'pointer', opacity: currentIdx === Math.ceil((pages.length - 1) / 2) ? 0.3 : 1, color: '#1e2d7d' }}><ChevronRight size={20} /></button>
             {currentIdx !== 0 && (() => {
               const activeIdx = getActivePageIdx();
@@ -2501,7 +2503,7 @@ export default function BookLayoutEditor() {
                 {currentIdx !== 0 && (
                   <button onClick={removeCurrentSpread} title="Видалити поточний розворот" disabled={pages.length <= minPagesLen}
                     style={{ display:'flex', alignItems:'center', gap:3, padding:'5px 10px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:pages.length<=3?'not-allowed':'pointer', color:pages.length<=3?'#fca5a5':'#ef4444', fontWeight:700, fontSize:12, opacity:pages.length<=3?0.5:1 }}>
-                    − розворот
+                    {t('constructor.remove_spread')}
                   </button>
                 )}
               </>
@@ -2598,7 +2600,7 @@ export default function BookLayoutEditor() {
                             </>
                           ) : (
                             <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'#94a3b8' }}>
-                              <ImageIcon size={22}/><span style={{ fontSize:9, fontWeight:600 }}>Перетягніть фото</span>
+                              <ImageIcon size={22}/><span style={{ fontSize:9, fontWeight:600 }}>{t('constructor.drag_photo')}</span>
                             </div>
                           )}
                         </div>
@@ -3821,7 +3823,7 @@ export default function BookLayoutEditor() {
               {photos.length === 0 && (
                 <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 16px', color:'#94a3b8', fontSize:12 }}>
                   <ImageIcon size={20}/>
-                  <span>Завантажте фото щоб почати. Перетягуйте з цієї стрічки на розворот.</span>
+                  <span>{t('constructor.upload_photos_hint')}</span>
                 </div>
               )}
               {photos.map((ph, i) => {
@@ -4097,7 +4099,7 @@ export default function BookLayoutEditor() {
       {/* MOBILE: Tap-to-place floating banner */}
       {isMobile && tapSelectedPhotoId && !mobilePanel && (
         <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:250, background:'#1e2d7d', color:'#fff', padding:'10px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', boxShadow:'0 2px 12px rgba(0,0,0,0.2)' }}>
-          <span style={{ fontSize:13, fontWeight:600 }}>👆 Тапніть на фотослот для розміщення</span>
+          <span style={{ fontSize:13, fontWeight:600 }}>{t('constructor.tap_slot_hint')}</span>
           <button onClick={()=>setTapSelectedPhotoId(null)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontSize:12, fontWeight:600 }}>Скасувати</button>
         </div>
       )}
@@ -4168,7 +4170,7 @@ export default function BookLayoutEditor() {
               <div style={{ width:36, height:4, borderRadius:2, background:'#d1d5db' }}/>
             </div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 16px 8px', borderBottom:'1px solid #f1f5f9' }}>
-              <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':'Зображення','layouts':'Шаблон','text':'Текст','bg':'Фон','shapes':'Фігури','stickers':'Стікери','cover':'Обкладинка','frames':'Рамки','kalka':'Калька','endpaper':'Форзац'} as Record<string,string>)[leftTab]}</span>
+              <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':t('constructor.tab_photos'),'layouts':t('constructor.tab_layouts'),'text':t('constructor.tab_text'),'bg':t('constructor.tab_bg'),'shapes':t('constructor.tab_shapes'),'stickers':t('constructor.tab_stickers'),'cover':t('constructor.cover'),'frames':t('constructor.tab_frames'),'kalka':t('constructor.tab_kalka'),'endpaper':t('constructor.tab_endpaper')} as Record<string,string>)[leftTab]}</span>
               <button onClick={()=>setMobilePanel(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:20, lineHeight:1, padding:'0 4px' }}>×</button>
             </div>
           <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'12px 14px', boxSizing:'border-box', width:'100%', minWidth:0 }}>
@@ -4192,7 +4194,7 @@ export default function BookLayoutEditor() {
                 <div style={{ display:'flex', gap:8, marginTop:10, paddingTop:10, borderTop:'1px solid #f1f5f9' }}>
                   <button onClick={()=>{ addSpread(); setMobilePanel(false); }}
                     style={{ flex:1, padding:'10px 6px', border:'1px solid #d1fae5', borderRadius:10, background:'#f0fdf4', cursor:'pointer', fontWeight:700, fontSize:12, color:'#059669', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
-                    <span style={{fontSize:18,lineHeight:1}}>+</span> Додати розворот
+                    <span style={{fontSize:18,lineHeight:1}}>+</span> {t('constructor.add_spread')}
                   </button>
                   <button onClick={()=>{ removeCurrentSpread(); setMobilePanel(false); }} disabled={currentIdx===0||pages.length<=3}
                     style={{ flex:1, padding:'10px 6px', border:'1px solid #fee2e2', borderRadius:10, background:'#fff7f7', cursor:currentIdx===0||pages.length<=3?'not-allowed':'pointer', fontWeight:700, fontSize:12, color:currentIdx===0||pages.length<=3?'#fca5a5':'#ef4444', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
@@ -4261,7 +4263,7 @@ export default function BookLayoutEditor() {
                     <>
                       {/* Photo slot shape */}
                       <div>
-                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Форма фотослота</div>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>{t('constructor.slot_shape')}</div>
                         <div style={{ display:'flex', gap:8 }}>
                           {(['rect','rounded','circle','heart'] as const).map(sh => (
                             <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
@@ -4614,7 +4616,7 @@ export default function BookLayoutEditor() {
                     {coverState.backCoverPhotoId && (
                       <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
                         style={{ width:'100%', padding:'6px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
-                        × Видалити фото з задньої
+                        × {t('constructor.remove_photo_back')}
                       </button>
                     )}
                     {!coverState.backCoverPhotoId && (

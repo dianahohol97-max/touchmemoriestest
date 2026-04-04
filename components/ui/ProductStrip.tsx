@@ -1,5 +1,7 @@
 'use client';
-import { useT } from '@/lib/i18n/context';
+import { useT, useLocale } from '@/lib/i18n/context';
+import { detectCurrency, formatPrice } from '@/lib/i18n/currency';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import styles from './ProductStrip.module.css';
 import { useInView } from 'react-intersection-observer';
@@ -17,6 +19,8 @@ interface Product {
 export function ProductStrip({
   products = [] }: { products: Product[] }) {
     const t = useT();
+    const locale = useLocale();
+    const currency = useMemo(() => detectCurrency(locale), [locale]);
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,
@@ -78,7 +82,7 @@ export function ProductStrip({
                                         fontWeight: 600,
                                         boxShadow: 'var(--button-shadow)'
                                     }}>
-                                        Детальніше
+                                        {t('ui.details')}
                                     </div>
                                 </div>
                             </div>
