@@ -982,7 +982,10 @@ export default function BookLayoutEditor() {
   const startCrop = (e: React.PointerEvent, key: string, cx: number, cy: number) => {
     e.preventDefault(); e.stopPropagation();
     haptic.light();
-    const [pi, si] = key.split('-').map(Number);
+    // Key format: "pageIdx-slotIdx" or "spread-pageIdx-slotIdx"
+    const parts = key.split('-');
+    const pi = parts[0] === 'spread' ? Number(parts[1]) : Number(parts[0]);
+    const si = parts[0] === 'spread' ? Number(parts[2]) : Number(parts[1]);
     const sensitivity = 1.5 / Math.max(1, pages[pi]?.slots[si]?.zoom || 1);
     startPointerDrag(e,
       (dx, dy) => setPages(prev => prev.map((p, i) => i !== pi ? p : {
