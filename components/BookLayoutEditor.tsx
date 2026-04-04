@@ -2508,6 +2508,14 @@ export default function BookLayoutEditor() {
             )}
           </div>
 
+          {/* Форзац surcharge notice for magazines/travelbooks */}
+          {hasEndpaper && (
+            <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:10, padding:'8px 14px', fontSize:12, color:'#92400e', marginBottom:10, maxWidth: cW, textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+              <span style={{ fontSize:16 }}>📋</span>
+              <span>Форзац — перша та остання сторінка. Друк на форзаці <b>+200 ₴</b> за кожну. Натисніть <b>«ФЗ»</b> для налаштування.</span>
+            </div>
+          )}
+
           {/* Active page indicator */}
           {currentIdx !== 0 && !isSpreadMode && (
             <div style={{ fontSize:11, color:'#94a3b8', marginBottom:8, textAlign:'center' }}>
