@@ -2524,7 +2524,7 @@ export default function BookLayoutEditor() {
                     onDrop={e => {
                       e.preventDefault();
                       const photoId = e.dataTransfer.getData('photoId') || e.dataTransfer.getData('text/plain');
-                      if (!photoId || !photoId.startsWith('photo-')) return;
+                      if (!photoId) return;
                       let multiIds: string[] = [];
                       try { multiIds = JSON.parse(e.dataTransfer.getData('photoIds') || '[]'); } catch {}
                       if (multiIds.length > 1) { autoCollage(multiIds, spreadPageIdx); return; }
@@ -2591,7 +2591,7 @@ export default function BookLayoutEditor() {
                           onDrop={e => {
                             e.preventDefault(); e.stopPropagation(); setDropTarget(null);
                             const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
-                            if (!photoId || !photoId.startsWith('photo-')) return;
+                            if (!photoId) return;
                             const sourceType = e.dataTransfer?.getData('sourceType');
                             // Swap between slots
                             if (sourceType === 'pageSlot' || sourceType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
@@ -2637,7 +2637,7 @@ export default function BookLayoutEditor() {
                                 onDrop={e => {
                                   e.preventDefault(); e.stopPropagation(); setDropTarget(null);
                                   const pid = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
-                                  if (!pid || !pid.startsWith('photo-')) return;
+                                  if (!pid) return;
                                   const srcType = e.dataTransfer?.getData('sourceType');
                                   if (srcType === 'pageSlot' || srcType === 'freeSlot') { onDrop(e, spreadPageIdx, i); return; }
                                   pushHistory();
@@ -2908,7 +2908,7 @@ export default function BookLayoutEditor() {
                       onDrop={e => {
                         e.preventDefault();
                         const photoId = e.dataTransfer.getData('photoId') || e.dataTransfer.getData('text/plain');
-                        if (!photoId || !photoId.startsWith('photo-')) return;
+                        if (!photoId) return;
                         // Multi-photo drop?
                         let multiIds: string[] = [];
                         try { multiIds = JSON.parse(e.dataTransfer.getData('photoIds') || '[]'); } catch {}
