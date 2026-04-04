@@ -90,7 +90,7 @@ type LayoutType =
   'sp-5-grid' | 'sp-5-hero' | 'sp-6-grid' |
   'sp-1-left' | 'sp-1-right' | 'sp-1-center';
 
-interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; }
+interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; shape?: 'rect' | 'rounded' | 'circle'; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
@@ -2559,7 +2559,7 @@ export default function BookLayoutEditor() {
                             transition: 'all 0.2s ease',
                             cursor: dragPhotoId ? 'copy' : 'default',
                             boxSizing: 'border-box',
-                            borderRadius: photo ? 0 : 4,
+                            borderRadius: (() => { const sh = (slot as any)?.shape || 'rect'; return sh === 'circle' ? '50%' : sh === 'rounded' ? 12 : photo ? 0 : 4; })(),
                             zIndex: 1,
                           }}
                         >
@@ -2597,6 +2597,20 @@ export default function BookLayoutEditor() {
                                     <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
                                     <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
                                     <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✕ фото</button>
+                                  </div>
+                                )}
+                                {/* Shape selector — visible in crop mode */}
+                                {photoEditSlot===key && (
+                                  <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',top:4,left:'50%',transform:'translateX(-50%)',display:'flex',gap:2,background:'rgba(0,0,0,0.6)',borderRadius:12,padding:'2px 4px',zIndex:40}}>
+                                    {(['rect','rounded','circle'] as const).map(sh => {
+                                      const curShape = (slot as any)?.shape || 'rect';
+                                      return (
+                                        <button key={sh} onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,shape:sh})}));}}
+                                          style={{background:curShape===sh?'rgba(255,255,255,0.3)':'none',border:'none',color:'#fff',cursor:'pointer',fontSize:12,padding:'2px 5px',borderRadius:8}}>
+                                          {sh==='rect'?'▭':sh==='rounded'?'▢':'◯'}
+                                        </button>
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </div>
