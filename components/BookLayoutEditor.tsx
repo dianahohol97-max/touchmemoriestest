@@ -90,7 +90,7 @@ type LayoutType =
   'sp-5-grid' | 'sp-5-hero' | 'sp-6-grid' |
   'sp-1-left' | 'sp-1-right' | 'sp-1-center';
 
-interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; shape?: 'rect' | 'rounded' | 'circle'; }
+interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; shape?: 'rect' | 'rounded' | 'circle'; customX?: number; customY?: number; customW?: number; customH?: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
@@ -2525,9 +2525,34 @@ export default function BookLayoutEditor() {
                       const photo = slot ? getPhoto(slot.photoId) : null;
                       const key = `spread-${spreadPageIdx}-${i}`;
                       const isOver = dropTarget === key;
+                      // Custom overrides: if slot has customX/Y/W/H, use those instead of layout defaults
+                      const hasCustom = slot?.customX !== undefined;
+                      const slotStyle: React.CSSProperties = hasCustom ? {
+                        ...s, left: slot!.customX, top: slot!.customY, width: slot!.customW, height: slot!.customH
+                      } : s;
+                      // Slot drag for repositioning/resizing
+                      const startSpreadSlotDrag = (e2: React.PointerEvent, type: 'move'|'se'|'sw'|'ne'|'nw') => {
+                        e2.stopPropagation(); e2.preventDefault();
+                        const origLeft = Number(slotStyle.left) || 0;
+                        const origTop = Number(slotStyle.top) || 0;
+                        const origW = Number(slotStyle.width) || 100;
+                        const origH = Number(slotStyle.height) || 100;
+                        pushHistory();
+                        startPointerDrag(e2, (dx, dy) => {
+                          let nx = origLeft, ny = origTop, nw = origW, nh = origH;
+                          if (type === 'move') { nx = origLeft + dx; ny = origTop + dy; }
+                          else if (type === 'se') { nw = Math.max(40, origW + dx); nh = Math.max(40, origH + dy); }
+                          else if (type === 'sw') { nx = origLeft + dx; nw = Math.max(40, origW - dx); nh = Math.max(40, origH + dy); }
+                          else if (type === 'ne') { ny = origTop + dy; nw = Math.max(40, origW + dx); nh = Math.max(40, origH - dy); }
+                          else if (type === 'nw') { nx = origLeft + dx; ny = origTop + dy; nw = Math.max(40, origW - dx); nh = Math.max(40, origH - dy); }
+                          setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: nx, customY: ny, customW: nw, customH: nh }) }));
+                        });
+                      };
                       
                       return (
-                        <div key={i}
+                        <React.Fragment key={i}>
+                        <div
+                          onPointerDown={e => { if (photo && !dragPhotoId) { e.stopPropagation(); startSpreadSlotDrag(e, 'move'); } }}
                           onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                           onDragLeave={() => setDropTarget(null)}
                           onDrop={e => {
@@ -2551,7 +2576,7 @@ export default function BookLayoutEditor() {
                               setTapSelectedPhotoId(null);
                             }
                           }}
-                          style={{ ...s,
+                          style={{ ...slotStyle,
                             overflow: 'hidden',
                             
                             background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
@@ -2649,8 +2674,27 @@ export default function BookLayoutEditor() {
                             </div>
                           )}
                         </div>
+                        {/* Resize handles for spread slot */}
+                        {photo && (() => {
+                          const sl = slotStyle;
+                          const lx = Number(sl.left)||0, ty = Number(sl.top)||0, sw = Number(sl.width)||100, sh = Number(sl.height)||100;
+                          return (['nw','ne','se','sw'] as const).map(dir => {
+                            const hx = (dir==='ne'||dir==='se') ? lx+sw : lx;
+                            const hy = (dir==='se'||dir==='sw') ? ty+sh : ty;
+                            return (
+                              <div key={`h-${i}-${dir}`} onPointerDown={e=>startSpreadSlotDrag(e,dir)}
+                                style={{ position:'absolute', left:hx-6, top:hy-6, width:12, height:12,
+                                  borderRadius:'50%', background:'#3b82f6', border:'2px solid #fff',
+                                  cursor:`${dir}-resize`, zIndex:8, boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
+                                  opacity:0, transition:'opacity 0.15s', touchAction:'manipulation' }}
+                                className="sp-resize-handle"/>
+                            );
+                          });
+                        })()}
+                        </React.Fragment>
                       );
                     })}
+                    <style>{`.sp-resize-handle{opacity:0!important}div:hover~.sp-resize-handle,div:hover>.sp-resize-handle{opacity:1!important}`}</style>
                     {/* FreeSlots on spread */}
                     <FreeSlotLayer
                       slots={freeSlots[spreadPageIdx] || []}
