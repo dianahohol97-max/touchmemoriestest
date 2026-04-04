@@ -842,12 +842,18 @@ export default function BookLayoutEditor() {
     toast.success(`${groups.length} груп → ${Math.ceil((newPages.length - 1) / 2)} розворотів`, { duration: 2500 });
   };
 
-  const runAutoBuild = (opts: { density: 'sparse'|'balanced'|'dense'; variety: 'min'|'medium'|'max'; coverPhoto: boolean }) => {
+  const runAutoBuild = (opts: { density: 'sparse'|'balanced'|'dense'; variety: 'min'|'medium'|'max'; coverPhoto: boolean; gapless?: boolean; avoidSpine?: boolean }) => {
     if (photos.length === 0) return;
     pushHistory();
     const result = autoBuild({
       photos,
-      layouts: LAYOUTS.filter(l => isSpreadMode ? l.id.startsWith('sp-') : !l.id.startsWith('sp-')),
+      layouts: LAYOUTS.filter(l => {
+        if (isSpreadMode && !l.id.startsWith('sp-')) return false;
+        if (!isSpreadMode && l.id.startsWith('sp-')) return false;
+        // Avoid spine: exclude layouts that span across center (sp-full, sp-2-h, sp-3-col, sp-4-strip-h)
+        if (opts.avoidSpine && ['sp-full','sp-2-h','sp-3-col','sp-4-strip-h','sp-3-hero-top','sp-3-hero-bottom'].includes(l.id)) return false;
+        return true;
+      }),
       currentPageCount: pages.length,
       minPages: minPagesLen,
       density: opts.density,
@@ -912,8 +918,12 @@ export default function BookLayoutEditor() {
 
     setPages(newPages);
     setFreeSlots(newFreeSlots);
-    setCurrentIdx(1); // go to first content spread
-    toast.success(`Книгу зібрано! ${result.pages.length} сторінок, ${photos.length} фото`, { duration: 3000 });
+    setCurrentIdx(1);
+    // Apply gapless option — remove gap between photos
+    if (opts.gapless) { setPageGap(0); }
+    // Apply avoidSpine — filter result pages to avoid sp-full (photo across spine)
+    // This is handled by filtering layouts before autoBuild: exclude sp-full when avoidSpine
+    toast.success(`Книгу зібрано! ${Math.ceil(result.pages.length / (isSpreadMode ? 2 : 1))} розворотів, ${photos.length} фото`, { duration: 3000 });
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -4332,6 +4342,7 @@ export default function BookLayoutEditor() {
         photoCount={photos.length}
         existingPages={pages.length}
         minSpreads={minSpreads}
+        isSpreadMode={isSpreadMode}
         onBuild={runAutoBuild}
       />
 

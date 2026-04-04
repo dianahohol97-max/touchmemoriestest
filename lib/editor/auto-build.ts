@@ -192,45 +192,54 @@ export function autoBuild(options: AutoBuildOptions): AutoBuildResult {
   const usedLayouts: string[] = [];
   const resultPages: { layout: string; photoIds: string[] }[] = [];
 
-  // Reserve first page for cover (page 0)
-  // If hasKalka: pages 1=forзац, 2=kalka
-  // If hasEndpaper: pages 1=forзац, last=forзац
+  // Detect spread mode: if layouts contain sp- prefix layouts
+  const isSpreadMode = layouts.some(l => l.id.startsWith('sp-'));
 
-  // Build content pages from photo groups
-  // Each spread = 2 pages. We build pages in pairs.
-  // Split pageGroups into spreads (pairs of pages)
-  const spreadPairs: [PhotoClassified[], PhotoClassified[]][] = [];
-  for (let i = 0; i < pageGroups.length; i += 2) {
-    const left = pageGroups[i] || [];
-    const right = pageGroups[i + 1] || [];
-    spreadPairs.push([left, right]);
-  }
-
-  for (const [leftPhotos, rightPhotos] of spreadPairs) {
-    // Left page
-    if (leftPhotos.length > 0) {
-      const orient = dominantOrientation(leftPhotos);
-      const layoutId = pickBestLayout(leftPhotos.length, orient, layouts, usedLayouts, variety);
-      usedLayouts.push(layoutId);
-      resultPages.push({ layout: layoutId, photoIds: leftPhotos.map(p => p.id) });
-    } else {
-      resultPages.push({ layout: 'p-full', photoIds: [] });
+  if (isSpreadMode) {
+    // SPREAD MODE: each pageGroup = 1 spread page with spread layout
+    for (const group of pageGroups) {
+      if (group.length > 0) {
+        const orient = dominantOrientation(group);
+        const layoutId = pickBestLayout(group.length, orient, layouts, usedLayouts, variety);
+        usedLayouts.push(layoutId);
+        resultPages.push({ layout: layoutId, photoIds: group.map(p => p.id) });
+        // Add empty right page (spread pair requirement)
+        resultPages.push({ layout: layoutId, photoIds: [] });
+      }
+    }
+  } else {
+    // PAGE MODE: split into spread pairs (left + right pages)
+    const spreadPairs: [PhotoClassified[], PhotoClassified[]][] = [];
+    for (let i = 0; i < pageGroups.length; i += 2) {
+      const left = pageGroups[i] || [];
+      const right = pageGroups[i + 1] || [];
+      spreadPairs.push([left, right]);
     }
 
-    // Right page
-    if (rightPhotos.length > 0) {
-      const orient = dominantOrientation(rightPhotos);
-      const layoutId = pickBestLayout(rightPhotos.length, orient, layouts, usedLayouts, variety);
-      usedLayouts.push(layoutId);
-      resultPages.push({ layout: layoutId, photoIds: rightPhotos.map(p => p.id) });
-    } else {
-      resultPages.push({ layout: 'p-full', photoIds: [] });
+    for (const [leftPhotos, rightPhotos] of spreadPairs) {
+      if (leftPhotos.length > 0) {
+        const orient = dominantOrientation(leftPhotos);
+        const layoutId = pickBestLayout(leftPhotos.length, orient, layouts, usedLayouts, variety);
+        usedLayouts.push(layoutId);
+        resultPages.push({ layout: layoutId, photoIds: leftPhotos.map(p => p.id) });
+      } else {
+        resultPages.push({ layout: layouts[0]?.id || 'p-full', photoIds: [] });
+      }
+
+      if (rightPhotos.length > 0) {
+        const orient = dominantOrientation(rightPhotos);
+        const layoutId = pickBestLayout(rightPhotos.length, orient, layouts, usedLayouts, variety);
+        usedLayouts.push(layoutId);
+        resultPages.push({ layout: layoutId, photoIds: rightPhotos.map(p => p.id) });
+      } else {
+        resultPages.push({ layout: layouts[0]?.id || 'p-full', photoIds: [] });
+      }
     }
   }
 
   return {
     pages: resultPages,
     coverPhotoId,
-    totalSpreads: spreadPairs.length,
+    totalSpreads: isSpreadMode ? pageGroups.length : Math.ceil(resultPages.length / 2),
   };
 }

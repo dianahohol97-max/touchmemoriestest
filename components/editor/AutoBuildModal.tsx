@@ -8,17 +8,22 @@ interface AutoBuildModalProps {
   photoCount: number;
   existingPages: number;
   minSpreads: number;
+  isSpreadMode?: boolean;
   onBuild: (options: {
     density: 'sparse' | 'balanced' | 'dense';
     variety: 'min' | 'medium' | 'max';
     coverPhoto: boolean;
+    gapless: boolean;
+    avoidSpine: boolean;
   }) => void;
 }
 
-export function AutoBuildModal({ open, onClose, photoCount, existingPages, minSpreads, onBuild }: AutoBuildModalProps) {
+export function AutoBuildModal({ open, onClose, photoCount, existingPages, minSpreads, isSpreadMode, onBuild }: AutoBuildModalProps) {
   const [density, setDensity] = useState<'sparse' | 'balanced' | 'dense'>('balanced');
   const [variety, setVariety] = useState<'min' | 'medium' | 'max'>('medium');
   const [coverPhoto, setCoverPhoto] = useState(true);
+  const [gapless, setGapless] = useState(false);
+  const [avoidSpine, setAvoidSpine] = useState(false);
 
   if (!open) return null;
 
@@ -101,11 +106,29 @@ export function AutoBuildModal({ open, onClose, photoCount, existingPages, minSp
         </div>
 
         {/* Cover photo checkbox */}
-        <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:24, cursor:'pointer' }}>
+        <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12, cursor:'pointer' }}>
           <input type="checkbox" checked={coverPhoto} onChange={e=>setCoverPhoto(e.target.checked)}
             style={{ width:16, height:16, accentColor:'#1e2d7d' }}/>
           <span style={{ fontSize:12, fontWeight:600, color:'#374151' }}>Найкраще фото на обкладинку</span>
         </label>
+
+        {/* Gapless — no white lines between photos */}
+        {isSpreadMode && (
+          <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12, cursor:'pointer' }}>
+            <input type="checkbox" checked={gapless} onChange={e=>setGapless(e.target.checked)}
+              style={{ width:16, height:16, accentColor:'#1e2d7d' }}/>
+            <span style={{ fontSize:12, fontWeight:600, color:'#374151' }}>Без білих ліній між фото</span>
+          </label>
+        )}
+
+        {/* Avoid spine — don't place photos across center fold */}
+        {isSpreadMode && (
+          <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:24, cursor:'pointer' }}>
+            <input type="checkbox" checked={avoidSpine} onChange={e=>setAvoidSpine(e.target.checked)}
+              style={{ width:16, height:16, accentColor:'#1e2d7d' }}/>
+            <span style={{ fontSize:12, fontWeight:600, color:'#374151' }}>Не ставити фото на лінію згину</span>
+          </label>
+        )}
 
         {/* Actions */}
         <div style={{ display:'flex', gap:8 }}>
@@ -113,7 +136,7 @@ export function AutoBuildModal({ open, onClose, photoCount, existingPages, minSp
             style={{ flex:1, padding:'12px', border:'1px solid #e2e8f0', borderRadius:10, background:'#fff', cursor:'pointer', fontSize:13, fontWeight:600, color:'#64748b' }}>
             Скасувати
           </button>
-          <button onClick={()=>{ onBuild({ density, variety, coverPhoto }); onClose(); }}
+          <button onClick={()=>{ onBuild({ density, variety, coverPhoto, gapless, avoidSpine }); onClose(); }}
             disabled={photoCount === 0}
             style={{ flex:2, padding:'12px', border:'none', borderRadius:10, background: photoCount > 0 ? '#1e2d7d' : '#cbd5e1', cursor: photoCount > 0 ? 'pointer' : 'not-allowed', fontSize:13, fontWeight:700, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
             <Wand2 size={14}/> Зібрати книгу
