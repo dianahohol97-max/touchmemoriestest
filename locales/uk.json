@@ -31,7 +31,8 @@
     "how_it_works": "Як це працює",
     "constructor": "Конструктор",
     "our_works": "Наші роботи",
-    "home": "Головна"
+    "home": "Головна",
+    "print_cta": "Замовити друк фото"
   },
   "catalog": {
     "title": "Каталог",
@@ -49,7 +50,7 @@
   },
   "product": {
     "order": "Замовити",
-    "order_with_designer": "Оформити з дизайнером",
+    "order_with_designer": "Замовити з дизайнером",
     "open_constructor": "Відкрити конструктор",
     "add_to_cart": "Додати в кошик",
     "description": "Опис",
@@ -60,7 +61,9 @@
     "cover": "Обкладинка",
     "color": "Колір",
     "quantity": "Кількість",
-    "price_from": "від"
+    "price_from": "від",
+    "order_now": "Замовити",
+    "order_now_arrow": "Замовити →"
   },
   "checkout": {
     "title": "Оформлення замовлення",
@@ -132,5 +135,26 @@
     "clear": "Очистити кошик",
     "title": "Кошик",
     "items": "Товари"
+  },
+  "faq": {
+    "title": "Питання та відповіді",
+    "cat_delivery": "Доставка",
+    "cat_constructor": "Конструктор",
+    "cat_payment": "Оплата",
+    "cat_production": "Виробництво"
+  },
+  "blog": {
+    "title": "Блог",
+    "heading": "Блог TouchMemories",
+    "read_more": "Читати далі"
+  },
+  "wedding": {
+    "newspaper": "Весільна газета",
+    "photobook": "Весільна фотокнига",
+    "magazine": "Весільний журнал",
+    "order": "Замовити"
+  },
+  "contacts": {
+    "title": "Контакти"
   }
 }

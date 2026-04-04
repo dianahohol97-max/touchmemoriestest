@@ -24,7 +24,7 @@ export function WeddingSection() {
                     href: '/catalog?category=guestbooks'
                 },
                 {
-                    name: 'Весільна газета',
+                    name: t('wedding.newspaper'),
                     image: '/images/wedding/newspaper.png',
                     href: '/catalog?category=newspapers'
                 }
@@ -35,12 +35,12 @@ export function WeddingSection() {
             title: 'Після весілля',
             products: [
                 {
-                    name: 'Весільна фотокнига',
+                    name: t('wedding.photobook'),
                     image: '/images/wedding/photobook.png',
                     href: '/catalog?category=photobooks'
                 },
                 {
-                    name: 'Весільний журнал',
+                    name: t('wedding.magazine'),
                     image: '/images/wedding/magazine.png',
                     href: '/catalog?category=hlyantsevi-zhurnaly'
                 }
@@ -102,7 +102,7 @@ export function WeddingSection() {
                                                 href={product.href}
                                                 className="inline-block bg-[#1e2d7d] text-white hover:bg-[#263a99] font-semibold px-5 py-2.5 rounded-full transition-colors text-sm"
                                             >
-                                                Замовити
+                                                {t('wedding.order')}
                                             </Link>
                                         </div>
                                     </motion.div>

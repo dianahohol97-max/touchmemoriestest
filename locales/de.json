@@ -31,7 +31,8 @@
     "how_it_works": "Wie es funktioniert",
     "constructor": "Gestalter",
     "our_works": "Unsere Arbeiten",
-    "home": "Startseite"
+    "home": "Startseite",
+    "print_cta": "Fotodruck bestellen"
   },
   "catalog": {
     "title": "Katalog",
@@ -49,7 +50,7 @@
   },
   "product": {
     "order": "Bestellen",
-    "order_with_designer": "Mit Designer Bestellen",
+    "order_with_designer": "Mit Designer bestellen",
     "open_constructor": "Konfigurator Öffnen",
     "add_to_cart": "In den Warenkorb",
     "description": "Beschreibung",
@@ -60,7 +61,9 @@
     "cover": "Einband",
     "color": "Farbe",
     "quantity": "Menge",
-    "price_from": "ab"
+    "price_from": "ab",
+    "order_now": "Bestellen",
+    "order_now_arrow": "Bestellen →"
   },
   "checkout": {
     "title": "Bestellung Aufgeben",
@@ -132,5 +135,26 @@
     "clear": "Warenkorb leeren",
     "title": "Warenkorb",
     "items": "Artikel"
+  },
+  "faq": {
+    "title": "Häufige Fragen",
+    "cat_delivery": "Lieferung",
+    "cat_constructor": "Konfigurator",
+    "cat_payment": "Zahlung",
+    "cat_production": "Produktion"
+  },
+  "blog": {
+    "title": "Blog",
+    "heading": "TouchMemories Blog",
+    "read_more": "Mehr lesen"
+  },
+  "wedding": {
+    "newspaper": "Hochzeitszeitung",
+    "photobook": "Hochzeitsfotobuch",
+    "magazine": "Hochzeitsmagazin",
+    "order": "Bestellen"
+  },
+  "contacts": {
+    "title": "Kontakt"
   }
 }

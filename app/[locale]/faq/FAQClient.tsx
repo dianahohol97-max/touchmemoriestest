@@ -1,6 +1,8 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 
 export default function FAQPage() {
+  const t = useT();
   const faqs = [
     {
       category: 'Замовлення',
@@ -23,22 +25,22 @@ export default function FAQPage() {
       a: 'Кількість правок необмежена і безкоштовна. Ви можете вносити зміни до моменту фінального затвердження.',
     },
     {
-      category: 'Доставка',
+      category: t('faq.cat_delivery'),
       q: 'Як відбувається доставка?',
       a: 'Доставляємо по всій Україні та за кордон. Вартість доставки оплачує замовник відповідно до тарифів поштової служби.',
     },
     {
-      category: 'Доставка',
+      category: t('faq.cat_delivery'),
       q: 'Чи можна повернути товар?',
       a: 'Відповідно до законодавства України, індивідуально виготовлені товари не підлягають поверненню. Якщо є виробничий брак — виготовимо новий безкоштовно.',
     },
     {
-      category: 'Конструктор',
+      category: t('faq.cat_constructor'),
       q: 'Як надіслати фото для виготовлення?',
       a: 'Є кілька варіантів: Google Диск (доступ на touch.memories3@gmail.com), Telegram t.me/touchmemories, або dropmefiles.com.ua.',
     },
     {
-      category: 'Оплата',
+      category: t('faq.cat_payment'),
       q: 'Яка способи оплати?',
       a: 'Оплата узгоджується з менеджером: передоплата або повна оплата. Приймаємо банківські перекази та онлайн-платежі.',
     },
@@ -52,7 +54,7 @@ export default function FAQPage() {
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-3xl mx-auto px-4 py-16">
-        <h1 className="text-4xl font-serif font-bold mb-4">Питання та відповіді</h1>
+        <h1 className="text-4xl font-serif font-bold mb-4">{t('faq.title')}</h1>
         <p className="text-stone-500 mb-12">Відповіді на найпоширеніші запитання про наші продукти та послуги</p>
         <div className="space-y-4">
           {faqs.map((faq, i) => (

@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -120,6 +121,7 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
 };
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const t = useT();
     const resolvedParams = React.use(params);
     const router = useRouter();
     const supabase = createBrowserClient(
@@ -727,7 +729,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         display: 'block'
                                     }}
                                 >
-                                    Замовити →
+                                    {t('product.order_now_arrow')}
                                 </Link>
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
                                     Завантажте фото та оформіть замовлення за 3 кроки
@@ -876,7 +878,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5
                                         }}
                                     >
-                                        Замовити відразу
+                                        {t('product.order_now')}
                                     </button>
                                     <button
                                         onClick={() => setShowPersonalizationInput(!showPersonalizationInput)}
@@ -979,7 +981,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         transition: 'background-color 0.2s'
                                     }}
                                 >
-                                    Замовити відразу
+                                    {t('product.order_now')}
                                 </button>
                                 {/* Show "Order with designer" button for products with options (TravelBook, magazines, etc.) */}
                                 {(product.options && Array.isArray(product.options) && product.options.length > 0) && (
@@ -1003,7 +1005,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         }}
                                         className="hover:bg-blue-50"
                                     >
-                                        Замовити з дизайнером
+                                        {t('product.order_with_designer')}
                                     </Link>
                                 )}
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>

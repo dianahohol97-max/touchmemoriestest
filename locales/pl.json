@@ -31,7 +31,8 @@
     "how_it_works": "Jak to działa",
     "constructor": "Konstruktor",
     "our_works": "Nasze prace",
-    "home": "Strona główna"
+    "home": "Strona główna",
+    "print_cta": "Zamów druk zdjęć"
   },
   "catalog": {
     "title": "Katalog",
@@ -49,7 +50,7 @@
   },
   "product": {
     "order": "Zamów",
-    "order_with_designer": "Zamów z Projektantem",
+    "order_with_designer": "Zamów z projektantem",
     "open_constructor": "Otwórz Konfigurator",
     "add_to_cart": "Dodaj do Koszyka",
     "description": "Opis",
@@ -60,7 +61,9 @@
     "cover": "Okładka",
     "color": "Kolor",
     "quantity": "Ilość",
-    "price_from": "od"
+    "price_from": "od",
+    "order_now": "Zamów",
+    "order_now_arrow": "Zamów →"
   },
   "checkout": {
     "title": "Realizacja Zamówienia",
@@ -132,5 +135,26 @@
     "clear": "Wyczyść koszyk",
     "title": "Koszyk",
     "items": "Produkty"
+  },
+  "faq": {
+    "title": "FAQ",
+    "cat_delivery": "Dostawa",
+    "cat_constructor": "Kreator",
+    "cat_payment": "Płatność",
+    "cat_production": "Produkcja"
+  },
+  "blog": {
+    "title": "Blog",
+    "heading": "Blog TouchMemories",
+    "read_more": "Czytaj więcej"
+  },
+  "wedding": {
+    "newspaper": "Gazeta ślubna",
+    "photobook": "Ślubna fotoksiążka",
+    "magazine": "Magazyn ślubny",
+    "order": "Zamów"
+  },
+  "contacts": {
+    "title": "Kontakty"
   }
 }

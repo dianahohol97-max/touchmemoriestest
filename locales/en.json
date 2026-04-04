@@ -31,7 +31,8 @@
     "how_it_works": "How It Works",
     "constructor": "Constructor",
     "our_works": "Our Works",
-    "home": "Home"
+    "home": "Home",
+    "print_cta": "Order Photo Print"
   },
   "catalog": {
     "title": "Catalog",
@@ -60,7 +61,9 @@
     "cover": "Cover",
     "color": "Color",
     "quantity": "Quantity",
-    "price_from": "from"
+    "price_from": "from",
+    "order_now": "Order",
+    "order_now_arrow": "Order →"
   },
   "checkout": {
     "title": "Checkout",
@@ -132,5 +135,26 @@
     "clear": "Clear Cart",
     "title": "Cart",
     "items": "Items"
+  },
+  "faq": {
+    "title": "FAQ",
+    "cat_delivery": "Delivery",
+    "cat_constructor": "Constructor",
+    "cat_payment": "Payment",
+    "cat_production": "Production"
+  },
+  "blog": {
+    "title": "Blog",
+    "heading": "TouchMemories Blog",
+    "read_more": "Read more"
+  },
+  "wedding": {
+    "newspaper": "Wedding Newspaper",
+    "photobook": "Wedding Photo Book",
+    "magazine": "Wedding Magazine",
+    "order": "Order"
+  },
+  "contacts": {
+    "title": "Contacts"
   }
 }

@@ -31,7 +31,8 @@
     "how_it_works": "Cum funcționează",
     "constructor": "Constructor",
     "our_works": "Lucrările noastre",
-    "home": "Acasă"
+    "home": "Acasă",
+    "print_cta": "Comandă imprimare foto"
   },
   "catalog": {
     "title": "Catalog",
@@ -49,7 +50,7 @@
   },
   "product": {
     "order": "Comandă",
-    "order_with_designer": "Comandă cu Designer",
+    "order_with_designer": "Comandă cu designer",
     "open_constructor": "Deschide Constructorul",
     "add_to_cart": "Adaugă în Coș",
     "description": "Descriere",
@@ -60,7 +61,9 @@
     "cover": "Copertă",
     "color": "Culoare",
     "quantity": "Cantitate",
-    "price_from": "de la"
+    "price_from": "de la",
+    "order_now": "Comandă",
+    "order_now_arrow": "Comandă →"
   },
   "checkout": {
     "title": "Finalizare Comandă",
@@ -132,5 +135,26 @@
     "clear": "Golește coșul",
     "title": "Coș",
     "items": "Produse"
+  },
+  "faq": {
+    "title": "Întrebări frecvente",
+    "cat_delivery": "Livrare",
+    "cat_constructor": "Constructor",
+    "cat_payment": "Plată",
+    "cat_production": "Producție"
+  },
+  "blog": {
+    "title": "Blog",
+    "heading": "Blog TouchMemories",
+    "read_more": "Citește mai mult"
+  },
+  "wedding": {
+    "newspaper": "Ziar de nuntă",
+    "photobook": "Album foto de nuntă",
+    "magazine": "Revistă de nuntă",
+    "order": "Comandă"
+  },
+  "contacts": {
+    "title": "Contacte"
   }
 }
