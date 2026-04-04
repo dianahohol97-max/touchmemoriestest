@@ -279,9 +279,9 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
       { x: 52, y: 41, w: 46, h: 32, shape: 'rect' }, // bottom right (wide)
     ],
     texts: [
-      { text: 'Аделіночка', x: 28, y: 83, fontSize: 42, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
-      { text: '20.10.2025   16:57', x: 72, y: 82, fontSize: 13, fontFamily: 'Dancing Script', color: '#555555', bold: false },
-      { text: '3320 кг              53 см', x: 72, y: 90, fontSize: 13, fontFamily: 'Dancing Script', color: '#555555', bold: false },
+      { text: 'Аделіночка', x: 50, y: 80, fontSize: 36, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
+      { text: '20.10.2025 · 16:57', x: 50, y: 89, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#777777', bold: false },
+      { text: '3320 г · 53 см', x: 50, y: 95, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#777777', bold: false },
     ],
   },
 
