@@ -1,9 +1,4 @@
 import { createClient } from '@/lib/supabase/server';
-import ukLocale from '@/locales/uk.json';
-import enLocale from '@/locales/en.json';
-import roLocale from '@/locales/ro.json';
-import plLocale from '@/locales/pl.json';
-import deLocale from '@/locales/de.json';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, Clock, ArrowRight, User } from 'lucide-react';
@@ -110,7 +105,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
             <main style={{ paddingTop: '100px', paddingBottom: '80px', maxWidth: '1200px', margin: '0 auto', padding: '100px 24px 80px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '60px' }}>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 900, color: '#263A99', marginBottom: '16px', letterSpacing: '-0.02em' }}>
-                        {_loc?.blog?.heading || 'Блог TouchMemories'}
+                        Блог TouchMemories
                     </h1>
                     <p style={{ fontSize: '18px', color: '#64748b', maxWidth: '600px', margin: '0 auto' }}>
                         Натхнення, ідеї для подарунків та поради щодо створення ідеальної фотокниги.
