@@ -391,6 +391,7 @@ export default function BookLayoutEditor() {
   const [textTool, setTextTool] = useState(false);
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [hoveredSpreadSlot, setHoveredSpreadSlot] = useState<number | null>(null);
+  const [editSlotKey, setEditSlotKey] = useState<string | null>(null); // "spread-pageIdx-slotIdx" when editing slot size/position
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [crossPageDragShapeId, setCrossPageDragShapeId] = useState<string|null>(null);
   const [crossDragPos, setCrossDragPos] = useState<{x:number;y:number}|null>(null);
@@ -2562,6 +2563,11 @@ export default function BookLayoutEditor() {
                           else if (type === 'sw') { nx = origLeft + dx; nw = Math.max(40, origW - dx); nh = Math.max(40, origH + dy); }
                           else if (type === 'ne') { ny = origTop + dy; nw = Math.max(40, origW + dx); nh = Math.max(40, origH - dy); }
                           else if (type === 'nw') { nx = origLeft + dx; ny = origTop + dy; nw = Math.max(40, origW - dx); nh = Math.max(40, origH - dy); }
+                          // Clamp to canvas boundaries
+                          nx = Math.max(0, Math.min(spreadW - nw, nx));
+                          ny = Math.max(0, Math.min(cH - nh, ny));
+                          nw = Math.min(nw, spreadW - nx);
+                          nh = Math.min(nh, cH - ny);
                           setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: nx, customY: ny, customW: nw, customH: nh }) }));
                         });
                       };
@@ -2638,6 +2644,8 @@ export default function BookLayoutEditor() {
                                     <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
                                     <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
                                     <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✕ фото</button>
+                                    <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
+                                    <button onClick={e=>{e.stopPropagation();setEditSlotKey(editSlotKey===key?null:key);setPhotoEditSlot(null);}} style={{background:'rgba(59,130,246,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✎ Слот</button>
                                   </div>
                                 )}
                                 {/* Shape selector — visible in crop mode */}
@@ -2662,16 +2670,16 @@ export default function BookLayoutEditor() {
                                 </div>
                               )}
                               <style>{`.sp-zoom-hint{opacity:0!important}div:hover>.sp-zoom-hint{opacity:1!important}`}</style>
-                              {/* Move handle — drag bar at top of filled slot */}
-                              {hoveredSpreadSlot === i && (
+                              {/* Move handle — visible in slot edit mode */}
+                              {editSlotKey === key && (
                                 <div onPointerDown={e => { e.stopPropagation(); startSpreadSlotDrag(e, 'move'); }}
-                                  style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'50%',height:14,cursor:'move',zIndex:25,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(0,0,0,0.35)'}}>
-                                  <div style={{width:16,height:3,borderRadius:2,background:'rgba(255,255,255,0.7)'}}/>
+                                  style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'60%',height:16,cursor:'move',zIndex:25,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(59,130,246,0.8)'}}>
+                                  <div style={{width:20,height:3,borderRadius:2,background:'rgba(255,255,255,0.8)'}}/>
                                 </div>
                               )}
                               {/* Delete button — visible on hover */}
                               {hoveredSpreadSlot === i && (
-                                <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);}} style={{position:'absolute',top:4,right:4,width:24,height:24,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,fontSize:12}}>×</button>
+                                <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setEditSlotKey(null);}} style={{position:'absolute',top:4,right:4,width:24,height:24,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,fontSize:12}}>×</button>
                               )}
                               {/* DPI warning */}
                               {(() => {
@@ -2698,21 +2706,44 @@ export default function BookLayoutEditor() {
                             </div>
                           )}
                         </div>
-                        {/* Resize handles for spread slot */}
-                        {photo && hoveredSpreadSlot === i && (() => {
+                        {/* Slot edit mode — resize handles + snap lines + done button */}
+                        {editSlotKey === key && (() => {
                           const sl = slotStyle;
                           const lx = Number(sl.left)||0, ty = Number(sl.top)||0, sw = Number(sl.width)||100, sh = Number(sl.height)||100;
-                          return (['nw','ne','se','sw'] as const).map(dir => {
-                            const hx = (dir==='ne'||dir==='se') ? lx+sw : lx;
-                            const hy = (dir==='se'||dir==='sw') ? ty+sh : ty;
-                            return (
-                              <div key={`h-${i}-${dir}`} onPointerDown={e=>startSpreadSlotDrag(e,dir)}
-                                style={{ position:'absolute', left:hx-7, top:hy-7, width:14, height:14,
-                                  borderRadius:'50%', background:'#3b82f6', border:'2.5px solid #fff',
-                                  cursor:`${dir}-resize`, zIndex:15, boxShadow:'0 1px 4px rgba(0,0,0,0.4)',
-                                  touchAction:'manipulation' }}/>
-                            );
-                          });
+                          return (
+                            <>
+                              {/* Blue selection border */}
+                              <div style={{position:'absolute',left:lx-2,top:ty-2,width:sw+4,height:sh+4,border:'2px solid #3b82f6',borderRadius:4,zIndex:14,pointerEvents:'none'}}/>
+                              {/* Snap guides — center lines */}
+                              <div style={{position:'absolute',left:lx+sw/2,top:0,width:1,height:cH,background:'rgba(59,130,246,0.2)',zIndex:13,pointerEvents:'none'}}/>
+                              <div style={{position:'absolute',left:0,top:ty+sh/2,width:spreadW,height:1,background:'rgba(59,130,246,0.2)',zIndex:13,pointerEvents:'none'}}/>
+                              {/* Canvas center guides */}
+                              <div style={{position:'absolute',left:spreadW/2,top:0,width:1,height:cH,background:'rgba(239,68,68,0.15)',zIndex:12,pointerEvents:'none'}}/>
+                              <div style={{position:'absolute',left:0,top:cH/2,width:spreadW,height:1,background:'rgba(239,68,68,0.15)',zIndex:12,pointerEvents:'none'}}/>
+                              {/* Resize handles */}
+                              {(['nw','ne','se','sw'] as const).map(dir => {
+                                const hx = (dir==='ne'||dir==='se') ? lx+sw : lx;
+                                const hy = (dir==='se'||dir==='sw') ? ty+sh : ty;
+                                return (
+                                  <div key={`h-${i}-${dir}`} onPointerDown={e=>startSpreadSlotDrag(e,dir)}
+                                    style={{ position:'absolute', left:hx-7, top:hy-7, width:14, height:14,
+                                      borderRadius:'50%', background:'#3b82f6', border:'2.5px solid #fff',
+                                      cursor:`${dir}-resize`, zIndex:16, boxShadow:'0 1px 4px rgba(0,0,0,0.4)',
+                                      touchAction:'manipulation' }}/>
+                                );
+                              })}
+                              {/* Size info */}
+                              <div style={{position:'absolute',left:lx+sw/2,top:ty+sh+8,transform:'translateX(-50%)',background:'rgba(0,0,0,0.7)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:10,zIndex:16,whiteSpace:'nowrap'}}>
+                                {Math.round(sw)}×{Math.round(sh)}px
+                              </div>
+                              {/* Done button */}
+                              <button onClick={e=>{e.stopPropagation();setEditSlotKey(null);}}
+                                onMouseDown={e=>e.stopPropagation()}
+                                style={{position:'absolute',left:lx+sw/2,top:ty-24,transform:'translateX(-50%)',background:'#16a34a',color:'#fff',border:'none',cursor:'pointer',fontSize:10,fontWeight:700,padding:'3px 12px',borderRadius:10,zIndex:16,boxShadow:'0 2px 6px rgba(0,0,0,0.3)'}}>
+                                ✓ Готово
+                              </button>
+                            </>
+                          );
                         })()}
                         </React.Fragment>
                       );
