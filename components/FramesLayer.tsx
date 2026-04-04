@@ -578,7 +578,7 @@ export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
     return (
       <div style={wrapStyle}>
         <div style={innerStyle}>
-          <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+          <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'fill', display:'block' }} />
         </div>
       </div>
     );
@@ -696,7 +696,7 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
                   style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'6px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: active?'#f0f3ff':'#fff', cursor:'pointer' }}>
                   <div style={{ width:thumbW, height:thumbH, position:'relative', overflow:'hidden', borderRadius:4, background:'#f8fafc' }}>
                     <img src={f.src} alt={f.label}
-                      style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                      style={{ width:'100%', height:'100%', objectFit:'contain' }} />
                   </div>
                   <span style={{ fontSize:9, fontWeight:600, color: active?'#1e2d7d':'#64748b', lineHeight:1.2, textAlign:'center' }}>{f.label}</span>
                 </button>
