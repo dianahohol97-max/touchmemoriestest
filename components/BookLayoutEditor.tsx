@@ -2503,8 +2503,15 @@ export default function BookLayoutEditor() {
                       if (multiIds.length > 1) { autoCollage(multiIds, spreadPageIdx); return; }
                       const currentPhotos = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
                       if (currentPhotos.length > 0) { autoCollage([...currentPhotos, photoId], spreadPageIdx); return; }
+                      // Empty spread — place photo in first empty slot, keeping current layout
                       pushHistory();
-                      setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, layout: 'sp-full' as LayoutType, slots: [{ photoId, cropX: 50, cropY: 50, zoom: 1 }], textBlocks: p.textBlocks || [] }));
+                      const firstEmptyIdx = spreadPage?.slots?.findIndex(s => !s.photoId) ?? 0;
+                      if (spreadPage && spreadPage.slots.length > 0) {
+                        setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== firstEmptyIdx ? s2 : { ...s2, photoId }) }));
+                      } else {
+                        // No slots at all (shouldn't happen) — use sp-full fallback
+                        setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, layout: 'sp-full' as LayoutType, slots: [{ photoId, cropX: 50, cropY: 50, zoom: 1 }], textBlocks: p.textBlocks || [] }));
+                      }
                     }}
                     onClick={(e) => { setSelectedFreeSlotId(null); setSelectedTextId(null); if (textTool && spreadPage) onCanvasClickForPage(e, spreadPageIdx); }}
                     style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
