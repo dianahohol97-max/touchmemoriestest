@@ -2332,7 +2332,6 @@ export default function BookLayoutEditor() {
                         <div style={{ width:'100%', height:'100%', position:'absolute', inset:0, overflow:'hidden', cursor:'grab', zIndex:2 }}
                           onPointerDown={e => {
                             e.preventDefault(); e.stopPropagation();
-                            console.log('[BACK-COVER-CROP] pointer down', { bCropX, bCropY, bZoom });
                             const cx = bCropX, cy = bCropY;
                             const sensitivity = 1.5 / Math.max(1, bZoom);
                             startPointerDrag(e, (dx: number, dy: number) => {
