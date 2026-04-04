@@ -291,7 +291,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         objectFit: 'cover',
                         objectPosition: `${config.photoCropX ?? 50}% ${config.photoCropY ?? 50}%`,
                         position: 'absolute', top: 0, left: 0,
-                        transform: `scale(${config.photoZoom ?? 1})`,
+                        transform: `scale(${config.photoZoom ?? 1}) rotate(${(config as any).photoRotation??0}deg)`,
                         transformOrigin: `${config.photoCropX ?? 50}% ${config.photoCropY ?? 50}%`,
                         userSelect: 'none', pointerEvents: 'none', touchAction: 'none',
                       }}
@@ -306,7 +306,13 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.min(4, (config.photoZoom??1)+0.1) } as any);}}
                         style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
                       <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
-                      <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom:1, photoCropX:50, photoCropY:50 } as any);}}
+                      <button onClick={e=>{e.stopPropagation(); onChange({ photoRotation: (((config as any).photoRotation??0)-90+360)%360 } as any);}}
+                        style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}}>↶</button>
+                      <span style={{color:'#fff',fontSize:7,fontWeight:600,minWidth:18,textAlign:'center'}}>{(config as any).photoRotation??0}°</span>
+                      <button onClick={e=>{e.stopPropagation(); onChange({ photoRotation: (((config as any).photoRotation??0)+90)%360 } as any);}}
+                        style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}}>↷</button>
+                      <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                      <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom:1, photoCropX:50, photoCropY:50, photoRotation:0 } as any);}}
                         style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
                     </div>
                   </div>
@@ -417,8 +423,27 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       });
                     }}
                     onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(1, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
-                    <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${config.photoZoom??1})`, transformOrigin:`${config.photoCropX??50}% ${config.photoCropY??50}%`, userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
+                    <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${config.photoZoom??1}) rotate(${(config as any).photoRotation??0}deg)`, transformOrigin:`${config.photoCropX??50}% ${config.photoCropY??50}%`, userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
                   </div>
+                {/* Zoom + rotation toolbar */}
+                <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
+                  style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3,
+                    background:'rgba(0,0,0,0.75)', borderRadius:16, padding:'2px 8px', zIndex:30 }}>
+                  <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.max(1, (config.photoZoom??1)-0.1) } as any);}}
+                    style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
+                  <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round((config.photoZoom??1)*100)}%</span>
+                  <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.min(4, (config.photoZoom??1)+0.1) } as any);}}
+                    style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
+                  <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                  <button onClick={e=>{e.stopPropagation(); onChange({ photoRotation: (((config as any).photoRotation??0)-90+360)%360 } as any);}}
+                    style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}}>↶</button>
+                  <span style={{color:'#fff',fontSize:7,fontWeight:600,minWidth:18,textAlign:'center'}}>{(config as any).photoRotation??0}°</span>
+                  <button onClick={e=>{e.stopPropagation(); onChange({ photoRotation: (((config as any).photoRotation??0)+90)%360 } as any);}}
+                    style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}}>↷</button>
+                  <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                  <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom:1, photoCropX:50, photoCropY:50, photoRotation:0 } as any);}}
+                    style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
+                </div>
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
               : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Перетягніть фото<br/>на акрил</span></div>}
@@ -445,8 +470,27 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       });
                     }}
                     onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(1, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
-                    <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${config.photoZoom??1})`, transformOrigin:`${config.photoCropX??50}% ${config.photoCropY??50}%`, userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
+                    <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${config.photoZoom??1}) rotate(${(config as any).photoRotation??0}deg)`, transformOrigin:`${config.photoCropX??50}% ${config.photoCropY??50}%`, userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
                   </div>
+                {/* Zoom + rotation toolbar */}
+                <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
+                  style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3,
+                    background:'rgba(0,0,0,0.75)', borderRadius:16, padding:'2px 8px', zIndex:30 }}>
+                  <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.max(1, (config.photoZoom??1)-0.1) } as any);}}
+                    style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
+                  <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round((config.photoZoom??1)*100)}%</span>
+                  <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom: Math.min(4, (config.photoZoom??1)+0.1) } as any);}}
+                    style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
+                  <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                  <button onClick={e=>{e.stopPropagation(); onChange({ photoRotation: (((config as any).photoRotation??0)-90+360)%360 } as any);}}
+                    style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}}>↶</button>
+                  <span style={{color:'#fff',fontSize:7,fontWeight:600,minWidth:18,textAlign:'center'}}>{(config as any).photoRotation??0}°</span>
+                  <button onClick={e=>{e.stopPropagation(); onChange({ photoRotation: (((config as any).photoRotation??0)+90)%360 } as any);}}
+                    style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}}>↷</button>
+                  <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                  <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom:1, photoCropX:50, photoCropY:50, photoRotation:0 } as any);}}
+                    style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
+                </div>
                 <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
               : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>Перетягніть фото<br/>у вставку</span></div>}
             </div>
@@ -460,8 +504,8 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
               <span contentEditable suppressContentEditableWarning
                 onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
-                style={{ color:flexColorVal==='gold'?'#3D2800':'#1A1A1A', fontSize:Math.max(10,Math.min(boxW/8,22))+'px',
-                  fontFamily:'Montserrat,sans-serif', fontWeight:700, letterSpacing:'0.05em',
+                style={{ color:flexColorVal==='gold'?'#3D2800':'#1A1A1A', fontSize:(config.textFontSize || Math.max(10,Math.min(boxW/8,22)))+'px',
+                  fontFamily:(config.textFontFamily || 'Montserrat')+',sans-serif', fontWeight:700, letterSpacing:'0.05em',
                   outline:'none', cursor:'text', textAlign:'center', padding:'0 6px', maxWidth:'90%', wordBreak:'break-word' }}>
                 {config.decoText||'Ваш текст'}
               </span>

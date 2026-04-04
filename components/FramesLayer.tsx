@@ -8,9 +8,10 @@ export interface FrameConfig {
   scale: number;
   x: number;
   y: number;
+  zIndex?: number;
 }
 
-export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opacity: 100, scale: 1, x: 0, y: 0 };
+export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opacity: 100, scale: 1, x: 0, y: 0, zIndex: 35 };
 
 // PNG frames — rendered as <img> overlay, black bg = transparent (mix-blend-mode: multiply not needed, these have real alpha)
 export const PNG_FRAMES = [
@@ -182,15 +183,15 @@ export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
   const scale = frame.scale ?? 1;
   const xOff = frame.x ?? 0;
   const yOff = frame.y ?? 0;
+  // Frame renders at scale% of canvas size, centered + offset
+  const fw = canvasW * scale;
+  const fh = canvasH * scale;
+  const cx = (canvasW - fw) / 2 + xOff;
+  const cy = (canvasH - fh) / 2 + yOff;
 
   const wrapStyle: React.CSSProperties = {
-    position: 'absolute', inset: 0, zIndex: 35, pointerEvents: 'none', overflow: 'visible',
-  };
-  const innerStyle: React.CSSProperties = {
-    position: 'absolute', top: 0, left: 0,
-    width: '100%', height: '100%',
-    transform: `translate(${xOff}px, ${yOff}px) scale(${scale})`,
-    transformOrigin: 'center center',
+    position: 'absolute', left: cx, top: cy, width: fw, height: fh,
+    zIndex: frame.zIndex ?? 35, pointerEvents: 'none', overflow: 'visible',
     opacity: frame.opacity / 100,
   };
 
@@ -198,22 +199,18 @@ export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
   if (pngDef) {
     return (
       <div style={wrapStyle}>
-        <div style={innerStyle}>
-          <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'fill', display:'block' }} />
-        </div>
+        <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'fill', display:'block' }} />
       </div>
     );
   }
 
   const def = FRAMES.find(f => f.id === frame.frameId);
   if (!def) return null;
-  const svgContent = def.render(canvasW, canvasH, frame.color, frame.opacity);
+  const svgContent = def.render(fw, fh, frame.color, 100);
   return (
     <div style={wrapStyle}>
-      <div style={{ ...innerStyle, opacity: 1 }}>
-        <svg width={canvasW} height={canvasH} style={{ display:'block', opacity: frame.opacity / 100 }}
-          dangerouslySetInnerHTML={{ __html: svgContent }} />
-      </div>
+      <svg width={fw} height={fh} style={{ display:'block' }}
+        dangerouslySetInnerHTML={{ __html: svgContent }} />
     </div>
   );
 }
@@ -298,10 +295,22 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
                 style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
             </div>
           </div>
-          <button onClick={()=>onChange({...frame, scale:1, x:0, y:0})}
+          <button onClick={()=>onChange({...frame, scale:1, x:0, y:0, zIndex:35})}
             style={{ marginTop:6, width:'100%', padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b' }}>
             ↺ Скинути позицію
           </button>
+          {/* Z-index layer control */}
+          <div style={{ display:'flex', gap:4, marginTop:6 }}>
+            <button onClick={()=>onChange({...frame, zIndex: Math.max(1, (frame.zIndex??35)-5)})}
+              style={{ flex:1, padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b', fontWeight:600 }}>
+              ↓ Назад
+            </button>
+            <span style={{ display:'flex', alignItems:'center', fontSize:10, fontWeight:700, color:'#1e2d7d', minWidth:30, justifyContent:'center' }}>{frame.zIndex??35}</span>
+            <button onClick={()=>onChange({...frame, zIndex: Math.min(99, (frame.zIndex??35)+5)})}
+              style={{ flex:1, padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b', fontWeight:600 }}>
+              ↑ Вперед
+            </button>
+          </div>
         </div>
       )}
 

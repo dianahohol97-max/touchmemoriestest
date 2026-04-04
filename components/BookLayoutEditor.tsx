@@ -1895,7 +1895,7 @@ export default function BookLayoutEditor() {
                   );
                 })()}
 
-                {(coverState.decoType === 'flex' || coverState.decoType === 'graviruvannya') && (
+                {(coverState.decoType === 'flex' || coverState.decoType === 'graviruvannya' || coverState.decoType === 'metal') && (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Написи на обкладинці</div>
                   <button onClick={() => setCoverState(prev=>({...prev, extraTexts:[...(prev.extraTexts||[]), {id:'et-'+Date.now(), text:'Ваш напис', x:50, y:75, fontFamily:prev.textFontFamily||'Marck Script', fontSize:20, color:'#ffffff'}]}))}
