@@ -188,6 +188,52 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     ],
   },
 
+  // ── З референсів Діани ──
+  {
+    id: 'ref-wedding-moments',
+    label: 'Wedding Moments',
+    group: 'Елегантні',
+    bgColor: '#ffffff',
+    photoSlot: { x: 20, y: 8, w: 60, h: 52, shape: 'rect' },
+    texts: [
+      { text: 'WEDDING', x: 50, y: 68, fontSize: 22, fontFamily: 'Cormorant Garamond', color: '#9e9e9e', bold: false },
+      { text: 'moments', x: 50, y: 78, fontSize: 30, fontFamily: 'Dancing Script', color: '#9e9e9e', bold: false },
+      { text: '15.06.2024', x: 50, y: 90, fontSize: 16, fontFamily: 'Cormorant Garamond', color: '#bdbdbd', bold: false },
+    ],
+  },
+  {
+    id: 'ref-we',
+    label: 'WE.',
+    group: 'Мінімалістичні',
+    bgColor: '#ffffff',
+    photoSlot: { x: 7, y: 5, w: 86, h: 82, shape: 'rect' },
+    texts: [
+      { text: 'WE.', x: 78, y: 88, fontSize: 52, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
+    ],
+  },
+  {
+    id: 'ref-nashi-spohady',
+    label: 'Наші спогади',
+    group: 'Мінімалістичні',
+    bgColor: '#4ec8c8',
+    photoSlot: { x: 35, y: 55, w: 30, h: 30, shape: 'rect' },
+    texts: [
+      { text: 'Наші спогади', x: 50, y: 38, fontSize: 36, fontFamily: 'Dancing Script', color: '#ffffff', bold: false },
+    ],
+  },
+  {
+    id: 'ref-family-memories',
+    label: 'Family Memories',
+    group: 'Фото на весь фон',
+    bgColor: '#ffffff',
+    photoSlot: { x: 25, y: 0, w: 75, h: 100, shape: 'rect' },
+    overlay: { type: 'none' as const, color: '#000000', opacity: 0, gradient: '' },
+    texts: [
+      { text: '2025', x: 14, y: 78, fontSize: 52, fontFamily: 'Cormorant Garamond', color: '#8a7a50', bold: false },
+      { text: 'THE FAMILY MEMORIES', x: 14, y: 90, fontSize: 11, fontFamily: 'Montserrat', color: '#8a7a50', bold: false },
+    ],
+  },
+
   // ── Подорожі ──
   {
     id: 'travel-adventure',
