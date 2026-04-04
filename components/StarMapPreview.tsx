@@ -78,15 +78,35 @@ function projectSky(
 
 // ─── Heart clip path ──────────────────────────────────────────────────────────
 function drawHeart(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number) {
-    // Proper heart shape using 4 bezier curves
+    // Classic heart shape — two round lobes meeting at a point
     ctx.beginPath();
-    ctx.moveTo(cx, cy + s * 0.65);
-    // bottom-left curve
-    ctx.bezierCurveTo(cx - s * 1.2, cy + s * 0.1, cx - s * 1.25, cy - s * 0.6, cx - s * 0.5, cy - s * 0.55);
-    // left lobe arc to top center
-    ctx.bezierCurveTo(cx - s * 0.1, cy - s * 0.95, cx + s * 0.1, cy - s * 0.95, cx + s * 0.5, cy - s * 0.55);
-    // right lobe arc
-    ctx.bezierCurveTo(cx + s * 1.25, cy - s * 0.6, cx + s * 1.2, cy + s * 0.1, cx, cy + s * 0.65);
+    const topY = cy - s * 0.35;
+    const botY = cy + s * 0.75;
+    ctx.moveTo(cx, botY); // bottom point
+    // Left side: bottom point → left lobe
+    ctx.bezierCurveTo(
+        cx - s * 0.1, cy + s * 0.2,  // control near bottom
+        cx - s * 1.3, cy - s * 0.1,  // control left
+        cx - s * 0.65, topY           // left lobe top
+    );
+    // Left lobe → top center
+    ctx.bezierCurveTo(
+        cx - s * 0.2, cy - s * 0.8,  // control top-left
+        cx, cy - s * 0.6,            // near center top
+        cx, cy - s * 0.25            // center dip
+    );
+    // Top center → right lobe
+    ctx.bezierCurveTo(
+        cx, cy - s * 0.6,            // near center top
+        cx + s * 0.2, cy - s * 0.8,  // control top-right
+        cx + s * 0.65, topY           // right lobe top
+    );
+    // Right lobe → bottom point
+    ctx.bezierCurveTo(
+        cx + s * 1.3, cy - s * 0.1,  // control right
+        cx + s * 0.1, cy + s * 0.2,  // control near bottom
+        cx, botY                      // back to bottom point
+    );
     ctx.closePath();
 }
 
@@ -148,7 +168,7 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         const mapH = isFull ? H : Math.round(H*0.60);
         const cx=W/2, cy = isFull ? H/2 : mapH/2;
         const R = isHeart
-            ? Math.min(W,mapH)*0.40
+            ? Math.min(W,mapH)*0.46
             : Math.min(W/2-20, mapH/2-20)*0.96;
 
         // Compute LST (RA of zenith in degrees)
@@ -250,13 +270,14 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         // Stars
         for(const [ra,dec,mag] of STAR_CATALOG) {
             const pos=P(ra,dec,true); if(!pos) continue;
-            const size=Math.max(0.3, 4.5-(mag+1.5)*0.55);
-            const alpha=Math.max(0.25, Math.min(1.0, 1.2-mag*0.14));
-            if(mag<1.5) {
-                const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,size*5);
+            const size=Math.max(0.3, 3.2-(mag+1.5)*0.42);
+            const alpha=Math.max(0.2, Math.min(1.0, 1.2-mag*0.15));
+            // Glow only for bright stars on DARK backgrounds
+            if(mag<1.5 && !isLight) {
+                const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,size*4);
                 g.addColorStop(0,config.starColor); g.addColorStop(0.3,config.starColor+'bb'); g.addColorStop(1,config.starColor+'00');
-                ctx.globalAlpha=alpha*0.4; ctx.fillStyle=g;
-                ctx.beginPath(); ctx.arc(pos.x,pos.y,size*5,0,Math.PI*2); ctx.fill();
+                ctx.globalAlpha=alpha*0.35; ctx.fillStyle=g;
+                ctx.beginPath(); ctx.arc(pos.x,pos.y,size*4,0,Math.PI*2); ctx.fill();
             }
             ctx.globalAlpha=alpha; ctx.fillStyle=config.starColor;
             ctx.beginPath(); ctx.arc(pos.x,pos.y,size,0,Math.PI*2); ctx.fill();
