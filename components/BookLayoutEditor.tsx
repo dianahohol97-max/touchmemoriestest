@@ -976,6 +976,22 @@ export default function BookLayoutEditor() {
   };
   const clearSlot = (pi: number, si: number) => {
     pushHistory();
+    // In spread mode: after removing photo, re-layout with remaining photos
+    if (isSpreadMode && pi > 0) {
+      const page = pages[pi];
+      if (page) {
+        const remaining = page.slots.filter((sl, j) => j !== si && sl.photoId).map(sl => sl.photoId!);
+        if (remaining.length === 0) {
+          // No photos left — reset to default empty layout
+          setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, layout: defaultLayout(), slots: makeSlots(1) }));
+        } else {
+          // Re-collage with remaining photos
+          autoCollage(remaining, pi);
+        }
+        setPhotoEditSlot(null);
+        return;
+      }
+    }
     setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, photoId: null }) }));
   };
 
