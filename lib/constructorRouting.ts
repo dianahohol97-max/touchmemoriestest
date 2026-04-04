@@ -55,7 +55,7 @@ const DIRECT_ORDER_ROUTES: Partial<Record<ProductType, string>> = {
   'prints':   '/order/prints',
   'magnets':  '/order/magnets',
   'puzzles':  '/order/puzzles',
-  'posters':  '/order/posters',
+  'posters':  '/editor/poster',
 };
 
 // Constructor URLs used by the wizard after mode selection
