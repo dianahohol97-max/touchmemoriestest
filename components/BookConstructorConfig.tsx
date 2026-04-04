@@ -288,8 +288,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const cover = searchParams.get('cover');
         const decoration = searchParams.get('decoration');
         const textLayout = searchParams.get('text_layout');
+        // Also read Ukrainian param names from catalog URL
+        const coverFromCatalog = searchParams.get('Матеріал обкладинки') || searchParams.get('Матеріал+обкладинки');
 
-        if (!pages) return; // Need at least pages to pre-fill
+        const pt = getProductType();
+        if (!pages && pt !== 'wishbook') return; // Need at least pages to pre-fill (except wishbook)
 
         // Size (photobooks have size, magazines don't)
         if (size) {
@@ -299,16 +302,18 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         }
 
         // Pages
-        setSelectedPageCount(pages.includes('сторінок') ? pages : `${pages} сторінок`);
+        if (pages) setSelectedPageCount(pages.includes('сторінок') ? pages : `${pages} сторінок`);
 
         // Cover type: from URL or derive from product slug
-        if (cover) {
-            setSelectedCoverType(cover);
+        const coverValue = cover || coverFromCatalog;
+        if (coverValue) {
+            // Map Ukrainian catalog names to internal names
+            const coverMap: Record<string, string> = { 'Велюрова': 'Велюр', 'Шкірзамінник': 'Шкірзамінник', 'Тканинна': 'Тканина', 'Друкована': 'Друкована' };
+            setSelectedCoverType(coverMap[coverValue] || coverValue);
         } else {
-            const pt = getProductType();
-            if (pt === 'photobook') {
+            if (pt === 'photobook' || pt === 'wishbook') {
                 const sl = productSlug.toLowerCase();
-                if (sl.includes('velour') || sl.includes('velyur')) setSelectedCoverType('Велюр');
+                if (sl.includes('velour') || sl.includes('velyur') || sl.includes('Велюр')) setSelectedCoverType('Велюр');
                 else if (sl.includes('leather')) setSelectedCoverType('Шкірзамінник');
                 else if (sl.includes('fabric') || sl.includes('tkanina')) setSelectedCoverType('Тканина');
                 else if (sl.includes('printed') || sl.includes('drukov')) setSelectedCoverType('Друкована');
@@ -730,13 +735,19 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
 
                     {/* ── Wishbook: Cover type — identical to photobook ── */}
-                    {productType === 'wishbook' && coverTypes.length > 0 && (
+                    {productType === 'wishbook' && (() => {
+                        const types = coverTypes.length > 0 ? coverTypes : [
+                            { id: 'w1', name: 'Велюр', sort_order: 1 },
+                            { id: 'w2', name: 'Шкірзамінник', sort_order: 2 },
+                            { id: 'w3', name: 'Тканина', sort_order: 3 },
+                        ];
+                        return (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
                                 Тип обкладинки <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {coverTypes.sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
+                                {types.sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
                                     <button key={cover.id} type="button"
                                         onClick={() => { setSelectedCoverType(cover.name); setSelectedDecorationType('none'); setSelectedDecorationVariant(''); setSelectedLamination(''); setSelectedPageCount(''); setSelectedCoverColor(''); }}
                                         className={`p-4 rounded-lg border-2 text-center transition-all ${
@@ -750,7 +761,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 ))}
                             </div>
                         </div>
-                    )}
+                    ); })()}
 
                     {/* ── Wishbook: Color swatches — identical to photobook ── */}
                     {productType === 'wishbook' && selectedCoverType && selectedCoverType !== 'Друкована' && (() => {
