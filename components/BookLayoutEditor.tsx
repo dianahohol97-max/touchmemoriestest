@@ -390,6 +390,7 @@ export default function BookLayoutEditor() {
   const [textGuides, setTextGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] });
   const [textTool, setTextTool] = useState(false);
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
+  const [hoveredSpreadSlot, setHoveredSpreadSlot] = useState<number | null>(null);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [crossPageDragShapeId, setCrossPageDragShapeId] = useState<string|null>(null);
   const [crossDragPos, setCrossDragPos] = useState<{x:number;y:number}|null>(null);
@@ -2552,6 +2553,8 @@ export default function BookLayoutEditor() {
                       return (
                         <React.Fragment key={i}>
                         <div
+                          onMouseEnter={() => setHoveredSpreadSlot(i)}
+                          onMouseLeave={() => setHoveredSpreadSlot(null)}
                           onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                           onDragLeave={() => setDropTarget(null)}
                           onDrop={e => {
@@ -2647,13 +2650,16 @@ export default function BookLayoutEditor() {
                               )}
                               <style>{`.sp-zoom-hint{opacity:0!important}div:hover>.sp-zoom-hint{opacity:1!important}`}</style>
                               {/* Move handle — drag bar at top of filled slot */}
-                              <div onPointerDown={e => { e.stopPropagation(); startSpreadSlotDrag(e, 'move'); }}
-                                style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'50%',height:14,cursor:'move',zIndex:25,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(0,0,0,0.3)',opacity:0,transition:'opacity 0.15s'}} className="sp-move-handle">
-                                <div style={{width:16,height:3,borderRadius:2,background:'rgba(255,255,255,0.7)'}}/>
-                              </div>
+                              {hoveredSpreadSlot === i && (
+                                <div onPointerDown={e => { e.stopPropagation(); startSpreadSlotDrag(e, 'move'); }}
+                                  style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'50%',height:14,cursor:'move',zIndex:25,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(0,0,0,0.35)'}}>
+                                  <div style={{width:16,height:3,borderRadius:2,background:'rgba(255,255,255,0.7)'}}/>
+                                </div>
+                              )}
                               {/* Delete button — visible on hover */}
-                              <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);}} style={{position:'absolute',top:4,right:4,width:24,height:24,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity 0.15s',zIndex:20,fontSize:12}} className="spread-del-btn">×</button>
-                              <style>{`.spread-del-btn{opacity:0!important}div:hover>.spread-del-btn{opacity:1!important}`}</style>
+                              {hoveredSpreadSlot === i && (
+                                <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);}} style={{position:'absolute',top:4,right:4,width:24,height:24,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,fontSize:12}}>×</button>
+                              )}
                               {/* DPI warning */}
                               {(() => {
                                 const slotW = Number(s.width) || spreadW;
@@ -2680,7 +2686,7 @@ export default function BookLayoutEditor() {
                           )}
                         </div>
                         {/* Resize handles for spread slot */}
-                        {photo && (() => {
+                        {photo && hoveredSpreadSlot === i && (() => {
                           const sl = slotStyle;
                           const lx = Number(sl.left)||0, ty = Number(sl.top)||0, sw = Number(sl.width)||100, sh = Number(sl.height)||100;
                           return (['nw','ne','se','sw'] as const).map(dir => {
@@ -2688,18 +2694,16 @@ export default function BookLayoutEditor() {
                             const hy = (dir==='se'||dir==='sw') ? ty+sh : ty;
                             return (
                               <div key={`h-${i}-${dir}`} onPointerDown={e=>startSpreadSlotDrag(e,dir)}
-                                style={{ position:'absolute', left:hx-6, top:hy-6, width:12, height:12,
-                                  borderRadius:'50%', background:'#3b82f6', border:'2px solid #fff',
-                                  cursor:`${dir}-resize`, zIndex:8, boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
-                                  opacity:0, transition:'opacity 0.15s', touchAction:'manipulation' }}
-                                className="sp-resize-handle"/>
+                                style={{ position:'absolute', left:hx-7, top:hy-7, width:14, height:14,
+                                  borderRadius:'50%', background:'#3b82f6', border:'2.5px solid #fff',
+                                  cursor:`${dir}-resize`, zIndex:15, boxShadow:'0 1px 4px rgba(0,0,0,0.4)',
+                                  touchAction:'manipulation' }}/>
                             );
                           });
                         })()}
                         </React.Fragment>
                       );
                     })}
-                    <style>{`.sp-resize-handle{opacity:0!important}.sp-move-handle{opacity:0!important}div:hover>.sp-resize-handle,div:hover>.sp-move-handle{opacity:1!important}`}</style>
                     {/* FreeSlots on spread */}
                     <FreeSlotLayer
                       slots={freeSlots[spreadPageIdx] || []}
