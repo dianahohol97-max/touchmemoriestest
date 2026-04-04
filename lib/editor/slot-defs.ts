@@ -96,6 +96,22 @@ export function getSlotDefs(layout: LayoutType, W: number, H: number): SlotDef[]
   if (layout === 'sp-5-grid')      return [S(0, 0, 0, w3, h2), S(1, w3+g, 0, w3, h2), S(2, 2*(w3+g), 0, w3, h2), S(3, 0, h2+g, w2, h2), S(4, w2+g, h2+g, w2, h2)];
   if (layout === 'sp-5-hero')      { const bh=H*0.55; const sw=(W-3*g)/4; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3].map(ii=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
   if (layout === 'sp-6-grid')      return [S(0, 0, 0, w3, h2), S(1, w3+g, 0, w3, h2), S(2, 2*(w3+g), 0, w3, h2), S(3, 0, h2+g, w3, h2), S(4, w3+g, h2+g, w3, h2), S(5, 2*(w3+g), h2+g, w3, h2)];
+  if (layout === 'sp-1-left-wide') return [S(0, 0, 0, W*0.65, H)];
+  if (layout === 'sp-1-right-wide')return [S(0, W*0.35, 0, W*0.65, H)];
+  if (layout === 'sp-2-left-pair') return [S(0, 0, 0, w2, h2), S(1, 0, h2+g, w2, h2)];
+  if (layout === 'sp-2-right-pair')return [S(0, w2+g, 0, w2, h2), S(1, w2+g, h2+g, w2, h2)];
+  if (layout === 'sp-2-diag')      return [S(0, 0, 0, W*0.55, H*0.55), S(1, W*0.45+g, H*0.45+g, W*0.55-g, H*0.55-g)];
+  if (layout === 'sp-3-l-shape')   return [S(0, 0, 0, W*0.55, h2), S(1, 0, h2+g, W*0.55, h2), S(2, W*0.55+g, 0, W*0.45-g, H)];
+  if (layout === 'sp-3-t-shape')   return [S(0, 0, 0, w2, H*0.45), S(1, w2+g, 0, w2, H*0.45), S(2, W*0.25, H*0.45+g, W*0.5, H*0.55-g)];
+  if (layout === 'sp-3-center')    return [S(0, 0, 0, W*0.3, H), S(1, W*0.3+g, 0, W*0.4-2*g, H), S(2, W*0.7, 0, W*0.3, H)];
+  if (layout === 'sp-4-strip-v')   { const w4=(W-3*g)/4; return [S(0, 0, 0, w4, H), S(1, w4+g, 0, w4, H), S(2, 2*(w4+g), 0, w4, H), S(3, 3*(w4+g), 0, w4, H)]; }
+  if (layout === 'sp-4-mosaic')    return [S(0, 0, 0, W*0.6, H*0.6), S(1, W*0.6+g, 0, W*0.4-g, H*0.4), S(2, W*0.6+g, H*0.4+g, W*0.4-g, H*0.6-g), S(3, 0, H*0.6+g, W*0.6, H*0.4-g)];
+  if (layout === 'sp-4-hero-top')  return [S(0, 0, 0, W, H*0.55), S(1, 0, H*0.55+g, w3, H*0.45-g), S(2, w3+g, H*0.55+g, w3, H*0.45-g), S(3, 2*(w3+g), H*0.55+g, w3, H*0.45-g)];
+  if (layout === 'sp-4-hero-bottom')return [S(0, 0, 0, w3, H*0.45), S(1, w3+g, 0, w3, H*0.45), S(2, 2*(w3+g), 0, w3, H*0.45), S(3, 0, H*0.45+g, W, H*0.55-g)];
+  if (layout === 'sp-5-quilt')     return [S(0, 0, 0, w2, h2), S(1, w2+g, 0, w2, h2), S(2, 0, h2+g, w3, h2), S(3, w3+g, h2+g, w3, h2), S(4, 2*(w3+g), h2+g, w3, h2)];
+  if (layout === 'sp-6-hero')      { const bh=H*0.55; const sw=(W-4*g)/5; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3,4].map(ii=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
+  if (layout === 'sp-7-grid')      { const w47=(W-3*g)/4; return [S(0,0,0,w47,h2),S(1,w47+g,0,w47,h2),S(2,2*(w47+g),0,w47,h2),S(3,3*(w47+g),0,w47,h2),S(4,0,h2+g,w3,h2),S(5,w3+g,h2+g,w3,h2),S(6,2*(w3+g),h2+g,w3,h2)]; }
+  if (layout === 'sp-8-grid')      { const w48=(W-3*g)/4; return [S(0,0,0,w48,h2),S(1,w48+g,0,w48,h2),S(2,2*(w48+g),0,w48,h2),S(3,3*(w48+g),0,w48,h2),S(4,0,h2+g,w48,h2),S(5,w48+g,h2+g,w48,h2),S(6,2*(w48+g),h2+g,w48,h2),S(7,3*(w48+g),h2+g,w48,h2)]; }
 
   return [S(0, 0, 0, W, H)];
 }
