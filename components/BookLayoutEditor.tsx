@@ -3083,20 +3083,22 @@ export default function BookLayoutEditor() {
                   // ФОРЗАЦ (білий) — ліва сторінка першого розвороту при кальці
                   if (isKalkaForzats(pageIdx)) return (
                     <div key={pageRenderKey}
-                      style={{ width: pageW, height: cH, background: '#fff', borderRadius: '4px 0 0 4px', boxShadow: 'inset -1px 0 3px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ color: '#e2e8f0', fontSize: 9, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', writingMode: 'vertical-rl' }}>ФОРЗАЦ</span>
+                      style={{ width: pageW, height: cH, background: '#fafbfc', borderRadius: '4px 0 0 4px', boxShadow: 'inset -1px 0 3px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', position:'relative' }}>
+                      <span style={{ color: '#d1d5db', fontSize: 9, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', writingMode: 'vertical-rl' }}>ФОРЗАЦ</span>
+                      {/* Block any interaction */}
+                      <div style={{ position:'absolute', inset:0, cursor:'not-allowed' }}/>
                     </div>
                   );
 
                   // КАЛЬКА: right page of first spread (pageIdx===2, side===1)
                   if (isKalkaPage(pageIdx)) return (
                     <div key={pageRenderKey} onClick={() => { setLeftTab('kalka' as any); }}
-                      style={{ width: pageW, height: cH, position: 'relative', background: '#fff', borderRadius: '0 4px 4px 0', boxShadow: 'inset 1px 0 3px rgba(0,0,0,0.08)', overflow: 'hidden', cursor: 'pointer',
-                        border: leftTab === ('kalka' as any) ? '2px solid #3b82f6' : 'none' }}>
-                      {/* Калька texture — semi-transparent vellum/tracing paper look */}
-                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(245,248,255,0.92) 0%, rgba(235,240,250,0.88) 50%, rgba(245,248,255,0.92) 100%)', pointerEvents: 'none' }}/>
-                      {/* Subtle paper grain */}
-                      <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, transparent 4px)', pointerEvents: 'none' }}/>
+                      style={{ width: pageW, height: cH, position: 'relative', background: '#f8f9fc', borderRadius: '0 4px 4px 0', boxShadow: 'inset 1px 0 3px rgba(0,0,0,0.08)', overflow: 'hidden', cursor: 'pointer',
+                        border: leftTab === ('kalka' as any) ? '2px solid #3b82f6' : '1.5px dashed #c7d2fe' }}>
+                      {/* Калька texture — visible semi-transparent overlay */}
+                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(220,230,255,0.3) 0%, rgba(200,215,245,0.2) 50%, rgba(220,230,255,0.3) 100%)', pointerEvents: 'none' }}/>
+                      {/* Diagonal lines pattern — like tracing paper */}
+                      <div style={{ position: 'absolute', inset: 0, opacity: 0.06, backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(100,130,200,0.3) 8px, transparent 10px)', pointerEvents: 'none' }}/>
                       {/* Uploaded illustration */}
                       {kalkaState.imageUrl && (
                         <img src={kalkaState.imageUrl} style={{ position: 'absolute', inset: '10%', width: '80%', height: '80%', objectFit: 'contain', opacity: 0.65 }} draggable={false}/>
