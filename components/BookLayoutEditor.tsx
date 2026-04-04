@@ -2525,6 +2525,7 @@ export default function BookLayoutEditor() {
                     onDrop={e => {
                       e.preventDefault();
                       const photoId = e.dataTransfer.getData('photoId') || e.dataTransfer.getData('text/plain');
+                      console.log('[CANVAS-DROP]', { photoId, currentPhotos: (spreadPage?.slots||[]).filter(s=>s.photoId).length });
                       if (!photoId || !photoId.startsWith('photo-')) return;
                       let multiIds: string[] = [];
                       try { multiIds = JSON.parse(e.dataTransfer.getData('photoIds') || '[]'); } catch {}
