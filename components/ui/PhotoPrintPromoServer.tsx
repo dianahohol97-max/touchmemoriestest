@@ -1,7 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { PhotoPrintPromoClient } from './PhotoPrintPromoClient';
 
-export async function PhotoPrintPromoServer() {
+export async function PhotoPrintPromoServer({ locale = "uk" }: { locale?: string } = {}) {
     const supabase = getAdminClient();
 
     // Fetch section content
@@ -12,5 +12,14 @@ export async function PhotoPrintPromoServer() {
         .eq('is_active', true)
         .maybeSingle();
 
+    if (sectionData && locale !== 'uk') {
+        const trans = (sectionData as any).translations?.[locale];
+        if (trans) {
+            if (trans.heading) (sectionData as any).heading = trans.heading;
+            if (trans.subheading) (sectionData as any).subheading = trans.subheading;
+            if (trans.body) (sectionData as any).body_text = trans.body;
+            if (trans.cta_text) (sectionData as any).cta_text = trans.cta_text;
+        }
+    }
     return <PhotoPrintPromoClient sectionContent={sectionData || undefined} />;
 }

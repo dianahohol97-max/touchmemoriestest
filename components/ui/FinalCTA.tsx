@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
@@ -6,6 +7,7 @@ import Link from 'next/link';
 import GuestBookConfigModal from '../GuestBookConfigModal';
 
 export function FinalCTA() {
+    const t = useT();
     const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
 
@@ -28,9 +30,7 @@ export function FinalCTA() {
 
                         {/* Subtext */}
                         <p className="text-lg text-gray-700 leading-relaxed mb-10">
-                            Книга побажань — це місце, де ваші гості залишать найтепліші слова та побажання.
-                            Ідеальний подарунок на весілля, день народження чи іншу особливу подію.
-                        </p>
+                            {t('ui.final_cta_body')}</p>
 
                         {/* Buttons */}
                         <div className="flex gap-3 flex-wrap">

@@ -1,7 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { HowItWorksClient } from './HowItWorksClient';
 
-export async function HowItWorksServer() {
+export async function HowItWorksServer({ locale = 'uk' }: { locale?: string } = {}) {
     const supabase = getAdminClient();
 
     // Fetch feature cards
@@ -11,5 +11,10 @@ export async function HowItWorksServer() {
         .eq('is_active', true)
         .order('sort_order');
 
-    return <HowItWorksClient featureCards={featureCards || []} />;
+    const translatedCards = (featureCards || []).map((card: any) => {
+        const trans = card.translations?.[locale];
+        if (!trans) return card;
+        return { ...card, title: trans.title || card.title, subtitle: trans.subtitle || card.subtitle };
+    });
+    return <HowItWorksClient featureCards={translatedCards} />;
 }

@@ -1,4 +1,5 @@
 'use client';
+import { useTranslation } from '@/lib/i18n/context';
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -23,6 +24,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [theme, setTheme] = useState<any>({});
     const [blocks, setBlocks] = useState<any[]>([]);
     const [contentMap, setContentMap] = useState<Record<string, string>>({});
+    const { locale } = useTranslation();
     const [isLoading, setIsLoading] = useState(true);
 
     const supabase = createClient();
@@ -42,7 +44,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
                 if (contentRes.data) {
                     const map: Record<string, string> = {};
-                    contentRes.data.forEach((c: any) => { map[c.key] = c.value; });
+                    contentRes.data.forEach((c: any) => {
+                        const trans = c.translations?.[locale];
+                        map[c.key] = (trans?.value) || c.value;
+                    });
                     setContentMap(map);
                 }
             } catch (e) {
@@ -70,7 +75,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         window.addEventListener('message', handleMessage);
 
         return () => window.removeEventListener('message', handleMessage);
-    }, []);
+    }, [locale]);
 
     // 3. Apply CSS Variables when theme changes
     useEffect(() => {

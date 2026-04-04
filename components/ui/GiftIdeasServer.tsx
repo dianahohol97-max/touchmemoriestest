@@ -1,7 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { GiftIdeasClient } from './GiftIdeasClient';
 
-export async function GiftIdeasServer() {
+export async function GiftIdeasServer({ locale = "uk" }: { locale?: string } = {}) {
     const supabase = getAdminClient();
 
     // Fetch section content

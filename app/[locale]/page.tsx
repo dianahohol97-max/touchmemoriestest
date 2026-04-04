@@ -27,7 +27,8 @@ import { getAdminClient } from '@/lib/supabase/admin';
 
 export const revalidate = 0; // Force fresh data fetch (no cache)
 
-export default async function Home() {
+export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   let products: any[] = [];
   let categories: any[] = [];
   let allCategories: any[] = [];
@@ -113,23 +114,23 @@ export default async function Home() {
         </SectionWrapper>
 
         <div style={{ order: 15 }}>
-          <PopularProducts />
+          <PopularProducts locale={locale} />
         </div>
 
         <SectionWrapper name="categories_books" defaultOrder={25}>
-          <ConstructorSelection />
+          <ConstructorSelection locale={locale} />
         </SectionWrapper>
 
         <SectionWrapper name="photo_print" defaultOrder={29}>
-          <PhotoPrintPromo />
+          <PhotoPrintPromo locale={locale} />
         </SectionWrapper>
 
         <SectionWrapper name="how_it_works" defaultOrder={31}>
-          <HowItWorks />
+          <HowItWorks locale={locale} />
         </SectionWrapper>
 
         <SectionWrapper name="gift_ideas" defaultOrder={35}>
-          <GiftIdeas />
+          <GiftIdeas locale={locale} />
         </SectionWrapper>
 
 <SectionWrapper name="travel" defaultOrder={36}>
@@ -353,7 +354,7 @@ export default async function Home() {
                 </SectionWrapper>
 
         <SectionWrapper name="custom_book" defaultOrder={41}>
-          <CustomBookPromo />
+          <CustomBookPromo locale={locale} />
         </SectionWrapper>
 
         <SectionWrapper name="wedding" defaultOrder={45}>

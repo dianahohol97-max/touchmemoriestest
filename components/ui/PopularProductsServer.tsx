@@ -1,7 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { PopularProductsClient } from './PopularProductsClient';
 
-export async function PopularProductsServer() {
+export async function PopularProductsServer({ locale = "uk" }: { locale?: string } = {}) {
     let products: any[] = [];
     let sectionData: any = undefined;
 
@@ -9,7 +9,16 @@ export async function PopularProductsServer() {
         const supabase = getAdminClient();
         if (!supabase) {
             console.error('[PopularProductsServer] Supabase client is null');
-            return <PopularProductsClient products={[]} />;
+            if (sectionData && locale !== 'uk') {
+        const trans = (sectionData as any).translations?.[locale];
+        if (trans) {
+            if (trans.heading) (sectionData as any).heading = trans.heading;
+            if (trans.subheading) (sectionData as any).subheading = trans.subheading;
+            if (trans.body) (sectionData as any).body_text = trans.body;
+            if (trans.cta_text) (sectionData as any).cta_text = trans.cta_text;
+        }
+    }
+    return <PopularProductsClient products={[]} />;
         }
 
         // Fetch popular products
