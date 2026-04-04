@@ -120,10 +120,10 @@ export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: ex
             {sel && (
               <>
                 {/* Delete */}
-                <button onMouseDown={e=>{e.stopPropagation();del(shape.id);}} style={{ position:'absolute',top:-10,right:-10,width:20,height:20,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'2px solid #fff',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:60 }}>×</button>
+                <button onPointerDown={e=>{e.stopPropagation();e.preventDefault();}} onClick={e=>{e.stopPropagation();del(shape.id);}} style={{ position:'absolute',top:-10,right:-10,width:20,height:20,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'2px solid #fff',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:60 }}>×</button>
                 {/* Move to other page */}
                 {onMoveToOtherPage && (
-                  <button onMouseDown={e=>{e.stopPropagation();onMoveToOtherPage(shape);}} style={{ position:'absolute',top:-10,left:-10,width:20,height:20,borderRadius:'50%',background:'#3b82f6',color:'#fff',border:'2px solid #fff',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',zIndex:60 }} title="Перенести на іншу сторінку">⇄</button>
+                  <button onPointerDown={e=>{e.stopPropagation();e.preventDefault();}} onClick={e=>{e.stopPropagation();onMoveToOtherPage(shape);}} style={{ position:'absolute',top:-10,left:-10,width:20,height:20,borderRadius:'50%',background:'#3b82f6',color:'#fff',border:'2px solid #fff',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',zIndex:60 }} title="Перенести на іншу сторінку">⇄</button>
                 )}
                 {/* Resize SE */}
                 <div onPointerDown={e=>{e.stopPropagation();startDrag(e,shape.id,'se');}} style={{ position:'absolute',bottom:-5,right:-5,width:HANDLE_SIZE+2,height:HANDLE_SIZE+2,borderRadius:2,background:'#fff',border:'2px solid #3b82f6',cursor:'se-resize',zIndex:60 }}/>

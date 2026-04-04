@@ -477,6 +477,14 @@ export default function BookLayoutEditor() {
         e.preventDefault();
         setCurrentIdx(i => Math.min(Math.ceil((pages.length - 1) / 2), i + 1));
       }
+      // Delete/Backspace — remove selected shape
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShapeId) {
+        e.preventDefault();
+        const pi = getActivePageIdx();
+        const curShapes = getCurShapes(pi);
+        setPageShapes((prev: any) => ({ ...prev, [pi]: curShapes.filter((s: any) => s.id !== selectedShapeId) }));
+        setSelectedShapeId(null);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
