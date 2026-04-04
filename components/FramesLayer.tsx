@@ -526,6 +526,37 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
   const thumbW = 72, thumbH = 52;
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+      {/* Active frame controls — ALWAYS visible at top */}
+      {frame.frameId && (
+        <div style={{ background:'#f0f3ff', borderRadius:10, padding:10, border:'1px solid #c7d2fe' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+            <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>
+              {FRAMES.find(f=>f.id===frame.frameId)?.label || 'Рамка'}
+            </span>
+            <button onClick={()=>onChange({...frame,frameId:null})}
+              style={{ padding:'3px 10px', border:'1px solid #fee2e2', borderRadius:6, background:'#fff7f7', cursor:'pointer', fontWeight:600, fontSize:10, color:'#ef4444' }}>
+              ✕ Прибрати
+            </button>
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:10, color:'#64748b', marginBottom:3 }}>Колір</div>
+              <input type="color" value={frame.color} onChange={e=>onChange({...frame,color:e.target.value})}
+                style={{ width:'100%', height:26, borderRadius:4, border:'1px solid #e2e8f0', cursor:'pointer', padding:1 }}/>
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ display:'flex', justifyContent:'space-between' }}>
+                <span style={{ fontSize:10, color:'#64748b' }}>Прозорість</span>
+                <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{frame.opacity}%</span>
+              </div>
+              <input type="range" min={10} max={100} value={frame.opacity}
+                onChange={e=>onChange({...frame,opacity:+e.target.value})}
+                style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
+            </div>
+          </div>
+        </div>
+      )}
+
       {allGroups.map(group => (
         <div key={group}>
           <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:4 }}>{group}</div>
@@ -545,31 +576,6 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
           </div>
         </div>
       ))}
-
-      {frame.frameId && (
-        <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:8 }}>
-          <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:10, color:'#94a3b8', marginBottom:3 }}>Колір рамки</div>
-              <input type="color" value={frame.color} onChange={e=>onChange({...frame,color:e.target.value})}
-                style={{ width:'100%', height:28, borderRadius:4, border:'1px solid #e2e8f0', cursor:'pointer', padding:2 }}/>
-            </div>
-            <div style={{ flex:1 }}>
-              <div style={{ display:'flex', justifyContent:'space-between' }}>
-                <span style={{ fontSize:10, color:'#94a3b8' }}>Прозорість</span>
-                <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{frame.opacity}%</span>
-              </div>
-              <input type="range" min={10} max={100} value={frame.opacity}
-                onChange={e=>onChange({...frame,opacity:+e.target.value})}
-                style={{ width:'100%', marginTop:6 }}/>
-            </div>
-          </div>
-          <button onClick={()=>onChange({...frame,frameId:null})}
-            style={{ padding:'6px', border:'1px solid #fee2e2', borderRadius:7, background:'#fff7f7', cursor:'pointer', fontWeight:600, fontSize:11, color:'#ef4444', width:'100%' }}>
-            ✕ Прибрати рамку
-          </button>
-        </div>
-      )}
     </div>
   );
 }

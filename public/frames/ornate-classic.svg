@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="none">
+<g opacity="0.85">
+  <!-- Outer border -->
+  <rect x="40" y="40" width="920" height="920" rx="8" stroke="currentColor" stroke-width="4" fill="none"/>
+  <!-- Inner border -->
+  <rect x="55" y="55" width="890" height="890" rx="4" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.5"/>
+  <!-- Third border -->
+  <rect x="65" y="65" width="870" height="870" rx="2" stroke="currentColor" stroke-width="0.8" fill="none" opacity="0.3"/>
+  
+  <!-- Corner ornaments - Top Left -->
+  <g transform="translate(40,40)">
+    <path d="M0,0 Q0,30 15,30 Q30,30 30,0" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M0,0 Q15,15 30,0" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <circle cx="15" cy="15" r="4" fill="currentColor" opacity="0.7"/>
+    <path d="M30,0 L60,0" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+    <path d="M0,30 L0,60" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+    <circle cx="0" cy="0" r="5" fill="currentColor" opacity="0.8"/>
+  </g>
+  <!-- Corner ornaments - Top Right -->
+  <g transform="translate(960,40) scale(-1,1)">
+    <path d="M0,0 Q0,30 15,30 Q30,30 30,0" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M0,0 Q15,15 30,0" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <circle cx="15" cy="15" r="4" fill="currentColor" opacity="0.7"/>
+    <circle cx="0" cy="0" r="5" fill="currentColor" opacity="0.8"/>
+  </g>
+  <!-- Corner ornaments - Bottom Left -->
+  <g transform="translate(40,960) scale(1,-1)">
+    <path d="M0,0 Q0,30 15,30 Q30,30 30,0" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M0,0 Q15,15 30,0" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <circle cx="15" cy="15" r="4" fill="currentColor" opacity="0.7"/>
+    <circle cx="0" cy="0" r="5" fill="currentColor" opacity="0.8"/>
+  </g>
+  <!-- Corner ornaments - Bottom Right -->
+  <g transform="translate(960,960) scale(-1,-1)">
+    <path d="M0,0 Q0,30 15,30 Q30,30 30,0" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M0,0 Q15,15 30,0" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <circle cx="15" cy="15" r="4" fill="currentColor" opacity="0.7"/>
+    <circle cx="0" cy="0" r="5" fill="currentColor" opacity="0.8"/>
+  </g>
+  
+  <!-- Center top/bottom ornament -->
+  <g transform="translate(500,40)">
+    <path d="M-30,0 Q-15,-12 0,-12 Q15,-12 30,0" stroke="currentColor" stroke-width="2" fill="none"/>
+    <circle cx="0" cy="-12" r="3" fill="currentColor" opacity="0.7"/>
+    <path d="M-15,0 Q0,-6 15,0" stroke="currentColor" stroke-width="1" fill="none" opacity="0.5"/>
+  </g>
+  <g transform="translate(500,960) scale(1,-1)">
+    <path d="M-30,0 Q-15,-12 0,-12 Q15,-12 30,0" stroke="currentColor" stroke-width="2" fill="none"/>
+    <circle cx="0" cy="-12" r="3" fill="currentColor" opacity="0.7"/>
+  </g>
+  <!-- Center side ornaments -->
+  <g transform="translate(40,500) rotate(-90)">
+    <path d="M-30,0 Q-15,-12 0,-12 Q15,-12 30,0" stroke="currentColor" stroke-width="2" fill="none"/>
+    <circle cx="0" cy="-12" r="3" fill="currentColor" opacity="0.7"/>
+  </g>
+  <g transform="translate(960,500) rotate(90)">
+    <path d="M-30,0 Q-15,-12 0,-12 Q15,-12 30,0" stroke="currentColor" stroke-width="2" fill="none"/>
+    <circle cx="0" cy="-12" r="3" fill="currentColor" opacity="0.7"/>
+  </g>
+</g>
+</svg>
