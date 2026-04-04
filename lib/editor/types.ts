@@ -106,7 +106,7 @@ export type LayoutType =
   | 'sp-3-row' | 'sp-3-col' | 'sp-3-hero-left' | 'sp-3-hero-right' | 'sp-3-hero-top' | 'sp-3-hero-bottom'
   | 'sp-4-grid' | 'sp-4-hero' | 'sp-4-hero-right' | 'sp-4-top-bottom' | 'sp-4-strip-h'
   | 'sp-5-grid' | 'sp-5-hero' | 'sp-6-grid'
-  | 'sp-1-left' | 'sp-1-right' | 'sp-1-center' | 'sp-1-left-wide' | 'sp-1-right-wide' | 'sp-2-left-pair' | 'sp-2-right-pair' | 'sp-2-diag' | 'sp-3-l-shape' | 'sp-3-t-shape' | 'sp-3-center' | 'sp-4-strip-v' | 'sp-4-mosaic' | 'sp-4-hero-top' | 'sp-4-hero-bottom' | 'sp-5-quilt' | 'sp-6-hero' | 'sp-7-grid' | 'sp-8-grid' | 'sp-5-strip' | 'sp-6-mosaic' | 'sp-7-hero' | 'sp-8-mosaic' | 'sp-9-grid' | 'sp-10-grid' | 'sp-10-hero' | 'sp-12-grid';
+  | 'sp-1-left' | 'sp-1-right' | 'sp-1-center' | 'sp-1-left-wide' | 'sp-1-right-wide' | 'sp-2-left-pair' | 'sp-2-right-pair' | 'sp-2-diag' | 'sp-3-l-shape' | 'sp-3-t-shape' | 'sp-3-center' | 'sp-4-strip-v' | 'sp-4-mosaic' | 'sp-4-hero-top' | 'sp-4-hero-bottom' | 'sp-5-quilt' | 'sp-6-hero' | 'sp-7-grid' | 'sp-8-grid' | 'sp-5-strip' | 'sp-6-mosaic' | 'sp-7-hero' | 'sp-8-mosaic' | 'sp-9-grid' | 'sp-10-grid' | 'sp-10-hero' | 'sp-12-grid' | 'sp-1-top-strip' | 'sp-1-bottom-strip' | 'sp-2-75-25' | 'sp-2-25-75' | 'sp-2-cross' | 'sp-3-uneven' | 'sp-3-steps' | 'sp-3-panorama' | 'sp-4-focus' | 'sp-4-corner' | 'sp-4-cinema' | 'sp-5-focus' | 'sp-6-cols' | 'sp-9-hero' | 'sp-15-grid' | 'sp-16-grid';
 
 export interface SlotData {
   photoId: string | null;

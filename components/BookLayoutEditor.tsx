@@ -96,7 +96,10 @@ type LayoutType =
   'sp-4-strip-v' | 'sp-4-mosaic' | 'sp-4-hero-top' | 'sp-4-hero-bottom' |
   'sp-5-quilt' | 'sp-6-hero' | 'sp-7-grid' | 'sp-8-grid' |
   'sp-5-strip' | 'sp-6-mosaic' | 'sp-7-hero' | 'sp-8-mosaic' |
-  'sp-9-grid' | 'sp-10-grid' | 'sp-10-hero' | 'sp-12-grid';
+  'sp-9-grid' | 'sp-10-grid' | 'sp-10-hero' | 'sp-12-grid' |
+  'sp-1-top-strip' | 'sp-1-bottom-strip' | 'sp-2-75-25' | 'sp-2-25-75' | 'sp-2-cross' |
+  'sp-3-uneven' | 'sp-3-steps' | 'sp-3-panorama' | 'sp-4-focus' | 'sp-4-corner' | 'sp-4-cinema' |
+  'sp-5-focus' | 'sp-6-cols' | 'sp-9-hero' | 'sp-15-grid' | 'sp-16-grid';
 
 interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; shape?: 'rect' | 'rounded' | 'circle'; customX?: number; customY?: number; customW?: number; customH?: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
@@ -199,6 +202,22 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'sp-10-grid',     label: '10 сітка (5×2)',      slots: 10, group: 'Розворот 5+ фото' },
   { id: 'sp-10-hero',     label: 'Велике + 9',          slots: 10, group: 'Розворот 5+ фото' },
   { id: 'sp-12-grid',     label: '12 сітка (4×3)',      slots: 12, group: 'Розворот 5+ фото' },
+  { id: 'sp-1-top-strip', label: 'Смуга зверху',        slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-1-bottom-strip',label:'Смуга знизу',        slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-2-75-25',     label: '¾ + ¼',               slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-2-25-75',     label: '¼ + ¾',               slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-2-cross',     label: '2 хрест',             slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-3-uneven',    label: '1 велике + 2 малих',  slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-3-steps',     label: '3 сходинками',        slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-3-panorama',  label: 'Панорама + 2',        slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-4-focus',     label: '1 велике + 3 малих',  slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-4-corner',    label: '4 по кутах',          slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-4-cinema',    label: '4 кінострічка',       slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-5-focus',     label: '1 велике + 4 малих',  slots: 5, group: 'Розворот 5+ фото' },
+  { id: 'sp-6-cols',      label: '6 (2×3 стовпці)',     slots: 6, group: 'Розворот 5+ фото' },
+  { id: 'sp-9-hero',      label: 'Велике + 8',          slots: 9, group: 'Розворот 5+ фото' },
+  { id: 'sp-15-grid',     label: '15 сітка (5×3)',      slots: 15, group: 'Розворот 5+ фото' },
+  { id: 'sp-16-grid',     label: '16 сітка (4×4)',      slots: 16, group: 'Розворот 5+ фото' },
 ];
 
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
@@ -346,6 +365,22 @@ function getSlotDefs(layout: LayoutType, W: number, H: number, gap: number = 4):
   if (layout === 'sp-10-grid')     { const w510=(W-4*g)/5; return Array.from({length:10},(_, ii)=>S(ii, (ii%5)*(w510+g), Math.floor(ii/5)*(h2+g), w510, h2)); }
   if (layout === 'sp-10-hero')     { const bh=H*0.45; const sw=(W-8*g)/9; const sh=H-bh-g; return [S(0,0,0,W,bh), ...Array.from({length:9},(_,ii)=>S(ii+1,ii*(sw+g),bh+g,sw,sh))]; }
   if (layout === 'sp-12-grid')     { const w412=(W-3*g)/4; const h312=(H-2*g)/3; return Array.from({length:12},(_, ii)=>S(ii, (ii%4)*(w412+g), Math.floor(ii/4)*(h312+g), w412, h312)); }
+  if (layout === 'sp-1-top-strip') return [S(0, 0, 0, W, H*0.4)];
+  if (layout === 'sp-1-bottom-strip')return [S(0, 0, H*0.6, W, H*0.4)];
+  if (layout === 'sp-2-75-25')     return [S(0, 0, 0, W*0.75, H), S(1, W*0.75+g, 0, W*0.25-g, H)];
+  if (layout === 'sp-2-25-75')     return [S(0, 0, 0, W*0.25, H), S(1, W*0.25+g, 0, W*0.75-g, H)];
+  if (layout === 'sp-2-cross')     return [S(0, 0, H*0.15, W*0.55, H*0.7), S(1, W*0.45+g, 0, W*0.55-g, H*0.7)];
+  if (layout === 'sp-3-uneven')    return [S(0, 0, 0, W*0.6, H), S(1, W*0.6+g, 0, W*0.4-g, H*0.5-g/2), S(2, W*0.6+g, H*0.5+g/2, W*0.4-g, H*0.5-g/2)];
+  if (layout === 'sp-3-steps')     return [S(0, 0, 0, w3, H*0.7), S(1, w3+g, H*0.15, w3, H*0.7), S(2, 2*(w3+g), H*0.3, w3, H*0.7)];
+  if (layout === 'sp-3-panorama')  return [S(0, 0, 0, W, H*0.55), S(1, 0, H*0.55+g, w2, H*0.45-g), S(2, w2+g, H*0.55+g, w2, H*0.45-g)];
+  if (layout === 'sp-4-focus')     return [S(0, 0, 0, W*0.65, H*0.65), S(1, W*0.65+g, 0, W*0.35-g, H*0.45), S(2, W*0.65+g, H*0.45+g, W*0.35-g, H*0.55-g), S(3, 0, H*0.65+g, W*0.65, H*0.35-g)];
+  if (layout === 'sp-4-corner')    return [S(0, 0, 0, W*0.48, H*0.48), S(1, W*0.52, 0, W*0.48, H*0.48), S(2, 0, H*0.52, W*0.48, H*0.48), S(3, W*0.52, H*0.52, W*0.48, H*0.48)];
+  if (layout === 'sp-4-cinema')    { const ch=H*0.5; const cw=(W-3*g)/4; return [S(0,0,(H-ch)/2,cw,ch),S(1,cw+g,(H-ch)/2,cw,ch),S(2,2*(cw+g),(H-ch)/2,cw,ch),S(3,3*(cw+g),(H-ch)/2,cw,ch)]; }
+  if (layout === 'sp-5-focus')     return [S(0, 0, 0, W*0.6, H*0.6), S(1, W*0.6+g, 0, W*0.4-g, H*0.3-g/2), S(2, W*0.6+g, H*0.3+g/2, W*0.4-g, H*0.3-g/2), S(3, 0, H*0.6+g, W*0.3-g/2, H*0.4-g), S(4, W*0.3+g/2, H*0.6+g, W*0.7-g/2, H*0.4-g)];
+  if (layout === 'sp-6-cols')      { const cw=(W-g)/2; const ch=(H-2*g)/3; return [S(0,0,0,cw,ch),S(1,cw+g,0,cw,ch),S(2,0,ch+g,cw,ch),S(3,cw+g,ch+g,cw,ch),S(4,0,2*(ch+g),cw,ch),S(5,cw+g,2*(ch+g),cw,ch)]; }
+  if (layout === 'sp-9-hero')      { const bh=H*0.4; const sw=(W-3*g)/4; const sh=(H-bh-2*g)/2; return [S(0,0,0,W,bh), ...Array.from({length:8},(_,ii)=>S(ii+1,(ii%4)*(sw+g),bh+g+Math.floor(ii/4)*(sh+g),sw,sh))]; }
+  if (layout === 'sp-15-grid')     { const cw=(W-4*g)/5; const ch=(H-2*g)/3; return Array.from({length:15},(_,ii)=>S(ii,(ii%5)*(cw+g),Math.floor(ii/5)*(ch+g),cw,ch)); }
+  if (layout === 'sp-16-grid')     { const cw=(W-3*g)/4; const ch=(H-3*g)/4; return Array.from({length:16},(_,ii)=>S(ii,(ii%4)*(cw+g),Math.floor(ii/4)*(ch+g),cw,ch)); }
 
   return [S(0, 0, 0, W, H)];
 }
