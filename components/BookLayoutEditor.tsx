@@ -1917,41 +1917,65 @@ export default function BookLayoutEditor() {
                   </button>
                 </div>
                 {/* Gap & Border controls */}
-                <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10, marginTop:6, display:'flex', flexDirection:'column', gap:8 }}>
-                  <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.05em', textTransform:'uppercase' }}>Відступ і рамка (всі сторінки)</div>
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <span style={{ fontSize:11, color:'#475569', minWidth:56 }}>Відступ</span>
+                <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10, marginTop:6, display:'flex', flexDirection:'column', gap:10 }}>
+                  <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.05em', textTransform:'uppercase' }}>Відступи та рамки</div>
+                  
+                  {/* Padding inside each photo */}
+                  <div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:2 }}>
+                      <span style={{ fontSize:11, fontWeight:600, color:'#475569' }}>Відступ від краю фото</span>
+                      <span style={{ fontSize:10, color:'#94a3b8' }}>{pageGap}px</span>
+                    </div>
                     <input type="range" min="0" max="20" step="1" value={pageGap}
                       onChange={e => setPageGap(Number(e.target.value))}
-                      style={{ flex:1, accentColor:'#7c3aed' }}/>
-                    <span style={{ fontSize:11, color:'#64748b', minWidth:28, textAlign:'right' }}>{pageGap}px</span>
+                      style={{ width:'100%', accentColor:'#7c3aed' }}/>
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <span style={{ fontSize:11, color:'#475569', minWidth:56 }}>Лінії</span>
+
+                  {/* Gap/lines between photos */}
+                  <div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:2 }}>
+                      <span style={{ fontSize:11, fontWeight:600, color:'#475569' }}>Лінії між фото</span>
+                      <span style={{ fontSize:10, color:'#94a3b8' }}>{slotGap}px</span>
+                    </div>
                     <input type="range" min="0" max="12" step="1" value={slotGap}
                       onChange={e => setSlotGap(Number(e.target.value))}
-                      style={{ flex:1, accentColor:'#7c3aed' }}/>
-                    <span style={{ fontSize:11, color:'#64748b', minWidth:28, textAlign:'right' }}>{slotGap}px</span>
+                      style={{ width:'100%', accentColor:'#7c3aed' }}/>
+                    {slotGap > 0 && (
+                      <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:4 }}>
+                        <span style={{ fontSize:10, color:'#94a3b8' }}>Колір ліній:</span>
+                        <input type="color" value={pageBorder.color}
+                          onChange={e => setPageBorder(p => ({...p, color: e.target.value}))}
+                          style={{ width:24, height:20, border:'1px solid #e2e8f0', borderRadius:3, cursor:'pointer', padding:1 }}/>
+                        {['#ffffff','#f1f5f9','#000000','#1e2d7d'].map(c => (
+                          <button key={c} onClick={() => setPageBorder(p => ({...p, color: c}))}
+                            style={{ width:18, height:18, borderRadius:3, background:c, border: pageBorder.color===c ? '2px solid #3b82f6' : '1px solid #d1d5db', cursor:'pointer', flexShrink:0 }}/>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <span style={{ fontSize:11, color:'#475569', minWidth:56 }}>Рамка</span>
+
+                  {/* Border around each photo */}
+                  <div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:2 }}>
+                      <span style={{ fontSize:11, fontWeight:600, color:'#475569' }}>Рамка навколо фото</span>
+                      <span style={{ fontSize:10, color:'#94a3b8' }}>{pageBorder.width}px</span>
+                    </div>
                     <input type="range" min="0" max="5" step="0.5" value={pageBorder.width}
                       onChange={e => setPageBorder(p => ({...p, width: Number(e.target.value)}))}
-                      style={{ flex:1, accentColor:'#7c3aed' }}/>
-                    <span style={{ fontSize:11, color:'#64748b', minWidth:28, textAlign:'right' }}>{pageBorder.width}px</span>
+                      style={{ width:'100%', accentColor:'#7c3aed' }}/>
+                    {pageBorder.width > 0 && (
+                      <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:4 }}>
+                        <span style={{ fontSize:10, color:'#94a3b8' }}>Колір рамки:</span>
+                        <input type="color" value={pageBorder.color}
+                          onChange={e => setPageBorder(p => ({...p, color: e.target.value}))}
+                          style={{ width:24, height:20, border:'1px solid #e2e8f0', borderRadius:3, cursor:'pointer', padding:1 }}/>
+                        {['#e2e8f0','#ffffff','#000000','#1e2d7d','#7c3aed'].map(c => (
+                          <button key={c} onClick={() => setPageBorder(p => ({...p, color: c}))}
+                            style={{ width:18, height:18, borderRadius:3, background:c, border: pageBorder.color===c ? '2px solid #3b82f6' : '1px solid #d1d5db', cursor:'pointer', flexShrink:0 }}/>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {pageBorder.width > 0 && (
-                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <span style={{ fontSize:11, color:'#475569', minWidth:56 }}>Колір</span>
-                      <input type="color" value={pageBorder.color}
-                        onChange={e => setPageBorder(p => ({...p, color: e.target.value}))}
-                        style={{ width:28, height:24, border:'1px solid #e2e8f0', borderRadius:4, cursor:'pointer', padding:1 }}/>
-                      {['#e2e8f0','#ffffff','#000000','#1e2d7d','#7c3aed'].map(c => (
-                        <button key={c} onClick={() => setPageBorder(p => ({...p, color: c}))}
-                          style={{ width:20, height:20, borderRadius:4, background:c, border: pageBorder.color===c ? '2px solid #3b82f6' : '1px solid #e2e8f0', cursor:'pointer', flexShrink:0 }}/>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 </>
                 )}
