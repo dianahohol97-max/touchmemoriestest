@@ -104,7 +104,7 @@ type LayoutType =
   'sp-3-uneven' | 'sp-3-steps' | 'sp-3-panorama' | 'sp-4-focus' | 'sp-4-corner' | 'sp-4-cinema' |
   'sp-5-focus' | 'sp-6-cols' | 'sp-9-hero' | 'sp-15-grid' | 'sp-16-grid';
 
-interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; shape?: 'rect' | 'rounded' | 'circle'; customX?: number; customY?: number; customW?: number; customH?: number; }
+interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
@@ -1713,7 +1713,7 @@ export default function BookLayoutEditor() {
                           <div style={{ marginBottom:6 }}>
                             <div style={{ fontSize:10, fontWeight:700, color:'#64748b', marginBottom:4 }}>Форма слота</div>
                             <div style={{ display:'flex', gap:4 }}>
-                              {(['rect','rounded','circle'] as const).map(sh => {
+                              {((['rect','rounded','circle','heart'] as const)).map(sh => {
                                 const bs = coverState.backCoverSlot ?? { x:0,y:0,w:100,h:100,shape:'rect' };
                                 return (
                                   <button key={sh} onClick={()=>setCoverState(p=>({...p,backCoverSlot:{...bs,shape:sh}}))}
@@ -2920,7 +2920,7 @@ export default function BookLayoutEditor() {
                                 {/* Shape selector — visible in crop mode */}
                                 {photoEditSlot===key && (
                                   <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',top:4,left:'50%',transform:'translateX(-50%)',display:'flex',gap:2,background:'rgba(0,0,0,0.6)',borderRadius:12,padding:'2px 4px',zIndex:40}}>
-                                    {(['rect','rounded','circle'] as const).map(sh => {
+                                    {((['rect','rounded','circle','heart'] as const)).map(sh => {
                                       const curShape = (slot as any)?.shape || 'rect';
                                       return (
                                         <button key={sh} onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,shape:sh})}));}}

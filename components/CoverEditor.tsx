@@ -236,12 +236,6 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
         return (
           <>
             {/* Photo slot */}
-            <div
-              onDragOver={e=>{e.preventDefault();e.stopPropagation();setDragOver(true);}}
-              onDragLeave={()=>setDragOver(false)}
-              onDrop={e=>{e.preventDefault();setDragOver(false);const id=e.dataTransfer.getData('text/plain');if(id)onChange({photoId:id});}}
-              onPointerDown={e => startSlotDrag(e, 'move')}
-              onClick={() => { if (!photo && photos.length > 0) { haptic.success(); onChange({ photoId: photos[0].id }); } }}
             {isHeart && (
               <svg width={0} height={0} style={{ position:'absolute' }}>
                 <defs>
@@ -264,8 +258,8 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                             style={{ position:'absolute', left:slotPx.x, top:slotPx.y, width:slotPx.w, height:slotPx.h,
                 borderRadius:br, overflow: isHeart ? 'visible' : 'hidden', cursor:'move', zIndex:2, touchAction:'manipulation',
                 clipPath: isHeart ? `url(#${heartClipId})` : undefined,
-                border: !isHeart && (dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)')),
-                background: !isHeart && (photo ? 'transparent' : (dragOver ? 'rgba(59,130,246,0.08)' : '#f1f5f9')) }}>
+                border: isHeart ? 'none' : (dragOver ? '2px dashed #3b82f6' : (photo ? 'none' : '2px dashed rgba(148,163,184,0.8)')),
+                background: isHeart ? 'transparent' : (photo ? 'transparent' : (dragOver ? 'rgba(59,130,246,0.08)' : '#f1f5f9')) }}>
               {photo
                 ? <>
                     <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}

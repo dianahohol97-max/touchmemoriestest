@@ -63,7 +63,7 @@ export interface PrintedPhotoSlot {
   y: number;
   w: number;
   h: number;
-  shape: 'rect' | 'circle' | 'rounded';
+  shape: 'rect' | 'circle' | 'rounded' | 'heart';
 }
 
 export interface PrintedTextBlock {
