@@ -54,6 +54,7 @@ export const PNG_FRAMES = [
   { id: 'png-pink-cherry-gold-poly',  label: 'Сакура золото',      group: 'Весільні PNG', src: '/frames/pink-cherry-gold-poly.png' },
   // ── Спеціальні ──
   { id: 'png-polaroid-paperclip',     label: 'Поляроїд',           group: 'Спеціальні', src: '/frames/polaroid-paperclip.png' },
+  { id: 'png-vyshyvanka-blue-top',     label: 'Вишиванка синя',     group: 'Спеціальні', src: '/frames/vyshyvanka-blue-top.png' },
 ];
 
 // All frames combined (SVG + PNG) — used in picker
