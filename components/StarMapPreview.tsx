@@ -250,8 +250,8 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         // Stars
         for(const [ra,dec,mag] of STAR_CATALOG) {
             const pos=P(ra,dec,true); if(!pos) continue;
-            const size=Math.max(0.5, 4.2-(mag+1.5)*0.55);
-            const alpha=Math.max(0.55, Math.min(1.0, 1.15-mag*0.12));
+            const size=Math.max(0.3, 4.5-(mag+1.5)*0.55);
+            const alpha=Math.max(0.25, Math.min(1.0, 1.2-mag*0.14));
             if(mag<1.5) {
                 const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,size*5);
                 g.addColorStop(0,config.starColor); g.addColorStop(0.3,config.starColor+'bb'); g.addColorStop(1,config.starColor+'00');
