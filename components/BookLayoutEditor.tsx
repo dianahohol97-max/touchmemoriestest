@@ -683,6 +683,15 @@ export default function BookLayoutEditor() {
     (config?.productName || '').toLowerCase().includes('тревел') ||
     (config?.productName || '').toLowerCase().includes('побажань');
 
+  // Wishbook: only cover, no internal pages
+  const isWishbook = _slug.includes('wish') || _slug.includes('guest') || _slug.includes('pobazhan') ||
+    (config?.productName || '').toLowerCase().includes('побажань');
+
+  // Wishbook: force cover-only mode
+  useEffect(() => {
+    if (isWishbook) { setCurrentIdx(0); setLeftTab('cover'); }
+  }, [isWishbook]);
+
   // Spread mode: photobooks open 180° flat — layouts span BOTH pages of a spread
   // Page mode: magazines/journals/travelbooks — layouts are per-page
   const isSpreadMode = _slug.includes('photobook') || _slug.includes('fotoknig') ||
@@ -1336,7 +1345,7 @@ export default function BookLayoutEditor() {
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <div style={{ textAlign:'right', paddingRight:4 }}>
-              <div style={{ fontSize:11, color:'#94a3b8' }}>{pages.length-1} стор. ({Math.ceil((pages.length-1)/2)} розворот{Math.ceil((pages.length-1)/2)===1?'':'и'})</div>
+              <div style={{ fontSize:11, color:'#94a3b8' }}>{isWishbook ? 'Тільки обкладинка' : `${pages.length-1} стор. (${Math.ceil((pages.length-1)/2)} розворот${Math.ceil((pages.length-1)/2)===1?'':'и'})`}</div>
               <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d' }}>{dynamicPrice} ₴{priceDiff!==0&&<span style={{ fontSize:11, color:priceDiff>0?'#10b981':'#ef4444', marginLeft:4 }}>{priceDiff>0?'+':''}{priceDiff}₴</span>}</div>
             </div>
             <button onClick={()=>setShowPreview(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}><Eye size={14}/> Попередній перегляд</button>
@@ -1372,17 +1381,20 @@ export default function BookLayoutEditor() {
 
         {/* ICON SIDEBAR — desktop only */}
         {!isMobile && <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
-          {([
-            ['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'],
-            ['text', <Type key="t" size={20}/>, 'Текст'],
-            ['bg', <span key="bg" style={{fontSize:16,fontWeight:700}}>Фн</span>, 'Фон'],
-            ['shapes', <span key="sh" style={{fontSize:16,fontWeight:700}}>◻</span>, 'Фігури'],
-            ['stickers', <span key="stk" style={{fontSize:16}}>★</span>, 'Стікери'],
-            ['frames', <span key="fr" style={{fontSize:16,fontWeight:700}}>⬜</span>, 'Рамки'],
-            ...(hasKalka?[['kalka', <span key="kl" style={{fontSize:13,fontWeight:700}}>КЛ</span>, 'Калька']]:[] as any),
-            ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац']]:[] as any),
-            ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:18}}>▣</span>, 'Обкл.']]:[] as any),
-          ] as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
+          {((() => {
+            const allTabs: [string, React.ReactNode, string][] = [
+              ...(!isWishbook ? [['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'] as [string, React.ReactNode, string]] : []),
+              ['text', <Type key="t" size={20}/>, 'Текст'],
+              ['bg', <span key="bg" style={{fontSize:16,fontWeight:700}}>Фн</span>, 'Фон'],
+              ['shapes', <span key="sh" style={{fontSize:16,fontWeight:700}}>◻</span>, 'Фігури'],
+              ['stickers', <span key="stk" style={{fontSize:16}}>★</span>, 'Стікери'],
+              ['frames', <span key="fr" style={{fontSize:16,fontWeight:700}}>⬜</span>, 'Рамки'],
+              ...(hasKalka?[['kalka', <span key="kl" style={{fontSize:13,fontWeight:700}}>КЛ</span>, 'Калька'] as [string, React.ReactNode, string]]:[]),
+              ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац'] as [string, React.ReactNode, string]]:[]),
+              ...(currentIdx===0 || isWishbook?[['cover', <span key="cv" style={{fontSize:18}}>▣</span>, 'Обкл.'] as [string, React.ReactNode, string]]:[]),
+            ];
+            return allTabs;
+          })() as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
             <button key={id} onClick={() => { setLeftTab(id as any); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); if (id === 'kalka' && currentIdx !== 1) setCurrentIdx(1); if (id === 'cover') setCurrentIdx(0); }}
               style={{ width: '100%', padding: '10px 4px', border: 'none', cursor: 'pointer', background: leftTab === id ? '#1e2d7d' : 'transparent', color: leftTab === id ? '#fff' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginBottom: 2, transition: 'background 0.15s' }}>
               {icon}
@@ -1394,7 +1406,7 @@ export default function BookLayoutEditor() {
         {/* CONTENT PANEL — desktop only, mobile uses bottom sheet */}
         {!isMobile && <div style={{ width: 220, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: 800, fontSize: 12, color: '#1e2d7d' }}>
-            {(({'photos':t('constructor.tab_photos'),'layouts':t('constructor.tab_layouts'),'text':t('constructor.tab_text'),'bg':t('constructor.tab_bg'),'shapes':t('constructor.tab_shapes'),'frames':t('constructor.tab_frames'),'stickers':t('constructor.tab_stickers'),'options':t('constructor.tab_options'),'cover':t('constructor.cover')} as Record<string,string>)[leftTab] || leftTab}
+            {(({'photos':t('constructor.tab_photos'),'layouts':t('constructor.tab_layouts'),'text':t('constructor.tab_text'),'bg':t('constructor.tab_bg'),'shapes':t('constructor.tab_shapes'),'frames':t('constructor.tab_frames'),'stickers':t('constructor.tab_stickers'),'options':t('constructor.tab_options'),'cover':t('constructor.cover')} as Record<string,string>)[leftTab] || leftTab)}
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: 10 }}>
 
@@ -1581,7 +1593,7 @@ export default function BookLayoutEditor() {
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
                 {/* COVER TEMPLATES PICKER */}
                 {isPrinted && (
-                  <CoverTemplatesPicker productType={_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')?'magazine':_slug.includes('travelbook')?'travelbook':'photobook'} onApply={(tmpl: CoverTemplate) => {
+                  <CoverTemplatesPicker productType={isWishbook?'wishbook':_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')?'magazine':_slug.includes('travelbook')?'travelbook':'photobook'} onApply={(tmpl: CoverTemplate) => {
                     pushHistory();
                     setCoverState(p => ({
                       ...p,
@@ -2471,6 +2483,9 @@ export default function BookLayoutEditor() {
         {/* CANVAS */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? '12px 8px 72px 8px' : '24px 32px 140px 32px', background: '#f4f6fb', position:'relative' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+            {isWishbook ? (
+              <span>Обкладинка</span>
+            ) : (<>
             <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} style={{ background: 'none', border: 'none', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', opacity: currentIdx === 0 ? 0.3 : 1, color: '#1e2d7d' }}><ChevronLeft size={20} /></button>
             <span>{currentIdx === 0 ? t('constructor.cover') : `${(currentIdx-1)*2+1}–${(currentIdx-1)*2+2}`}</span>
             <button onClick={() => setCurrentIdx(i => Math.min(Math.ceil((pages.length - 1) / 2), i + 1))} disabled={currentIdx === Math.ceil((pages.length - 1) / 2)} style={{ background: 'none', border: 'none', cursor: currentIdx === Math.ceil((pages.length - 1) / 2) ? 'not-allowed' : 'pointer', opacity: currentIdx === Math.ceil((pages.length - 1) / 2) ? 0.3 : 1, color: '#1e2d7d' }}><ChevronRight size={20} /></button>
@@ -2494,7 +2509,7 @@ export default function BookLayoutEditor() {
               );
             })()}
             {/* Add / Remove spread — desktop only, mobile has it in Layouts panel */}
-            {!isMobile && (
+            {!isMobile && !isWishbook && (
               <>
                 <button onClick={addSpread} title="Додати розворот"
                   style={{ display:'flex', alignItems:'center', gap:3, padding:'5px 10px', border:'1px solid #d1fae5', borderRadius:8, background:'#f0fdf4', cursor:'pointer', color:'#059669', fontWeight:700, fontSize:12 }}>
@@ -2508,6 +2523,7 @@ export default function BookLayoutEditor() {
                 )}
               </>
             )}
+          </>)}
           </div>
 
           {/* Форзац surcharge notice for magazines/travelbooks */}
@@ -3612,8 +3628,8 @@ export default function BookLayoutEditor() {
           )}
         </div>
 
-        {/* RIGHT PANEL — Spread Navigator — desktop only */}
-        {!isMobile &&
+        {/* RIGHT PANEL — Spread Navigator — desktop only, hidden for wishbook */}
+        {!isMobile && !isWishbook &&
         <div style={{ width: 180, borderLeft: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Розвороти</span>

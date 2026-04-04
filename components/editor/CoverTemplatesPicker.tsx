@@ -3,7 +3,7 @@ import { COVER_TEMPLATES, CoverTemplate } from '@/lib/editor/cover-templates';
 
 interface CoverTemplatesPickerProps {
   onApply: (template: CoverTemplate) => void;
-  productType?: string; // 'photobook' | 'magazine' | 'travelbook' | 'journal'
+  productType?: string; // 'photobook' | 'magazine' | 'travelbook' | 'journal' | 'wishbook'
 }
 
 function MiniPreview({ t }: { t: CoverTemplate }) {
@@ -56,7 +56,7 @@ function MiniPreview({ t }: { t: CoverTemplate }) {
 export function CoverTemplatesPicker({ onApply, productType }: CoverTemplatesPickerProps) {
   // Filter templates: show only matching tags, or templates without tags (universal)
   const filtered = COVER_TEMPLATES.filter(t => {
-    if (!t.tags || t.tags.length === 0) return !productType || !['magazine','journal'].includes(productType); // universal templates only for non-magazine
+    if (!t.tags || t.tags.length === 0) return !productType || !['magazine','journal','wishbook'].includes(productType); // universal templates only for photobook/travelbook
     if (!productType) return true;
     return t.tags.includes(productType);
   });
