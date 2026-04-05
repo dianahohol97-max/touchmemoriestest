@@ -136,7 +136,19 @@
     "privacy": "Політика конфіденційності",
     "offer": "Публічна оферта",
     "rights": "Всі права захищені",
-    "email_placeholder": "Ваш email"
+    "email_placeholder": "Ваш email",
+    "products": "Продукти",
+    "help": "Допомога",
+    "photobooks": "Фотокниги",
+    "magazines": "Глянцеві журнали",
+    "photo_print": "Фотодрук",
+    "faq": "Питання та відповіді",
+    "constructor": "Конструктор",
+    "brand_desc": "Зберігаємо ваші найцінніші спогади у преміальних фотокнигах та продуктах з 2018 року.",
+    "travel_book": "Travel Book",
+    "posters": "Постери",
+    "calendars": "Календарі",
+    "wishbook": "Книга побажань"
   },
   "cart": {
     "empty": "Кошик порожній",

@@ -136,7 +136,19 @@
     "privacy": "Polityka Prywatności",
     "rights": "Wszelkie prawa zastrzeżone",
     "offer": "Regulamin",
-    "email_placeholder": "Twój email"
+    "email_placeholder": "Twój email",
+    "products": "Produkty",
+    "help": "Pomoc",
+    "photobooks": "Fotoksiążki",
+    "magazines": "Magazyny Błyszczące",
+    "photo_print": "Wydruki Foto",
+    "faq": "FAQ",
+    "constructor": "Konstruktor",
+    "brand_desc": "Zachowujemy Wasze najcenniejsze wspomnienia w albumach foto premium od 2018.",
+    "travel_book": "Travel Book",
+    "posters": "Plakaty",
+    "calendars": "Kalendarze",
+    "wishbook": "Księga Gości"
   },
   "cart": {
     "empty": "Koszyk jest pusty",

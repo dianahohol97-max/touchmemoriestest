@@ -138,20 +138,20 @@ export function Footer({ categories = [] }: FooterProps) {
                 setSections([
                     {
                         id: 'products',
-                        title: 'Продукти',
+                        title: t('footer.products'),
                         links: [
-                            { label: 'Фотокниги', href: '/catalog?category=photobooks' },
-                            { label: 'Глянцеві журнали', href: '/catalog?category=hlyantsevi-zhurnaly' },
-                            { label: 'Фотодрук', href: '/catalog?category=prints' }
+                            { label: t('footer.photobooks'), href: '/catalog?category=photobooks' },
+                            { label: t('footer.magazines'), href: '/catalog?category=hlyantsevi-zhurnaly' },
+                            { label: t('footer.photo_print'), href: '/catalog?category=prints' }
                         ]
                     },
                     {
                         id: 'help',
-                        title: 'Допомога',
+                        title: t('footer.help'),
                         links: [
                             { label: t('footer.delivery'), href: '/shipping-returns' },
-                            { label: 'Питання та відповіді', href: '/faq' },
-                            { label: 'Конструктор', href: '/constructor/photobook' }
+                            { label: t('footer.faq'), href: '/faq' },
+                            { label: t('footer.constructor'), href: '/constructor/photobook' }
                         ]
                     },
                     {
@@ -185,7 +185,7 @@ export function Footer({ categories = [] }: FooterProps) {
                             </h2>
                         </Link>
                         <p className="text-[14px] text-primary/60 font-body leading-relaxed max-w-sm">
-                            {content['footer_brand_desc'] || "Зберігаємо ваші найцінніші спогади у преміальних фотокнигах та продуктах з 2018 року."}
+                            {content['footer_brand_desc'] || t('footer.brand_desc')}
                         </p>
                         
                         <div className="flex flex-col gap-2">

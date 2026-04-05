@@ -136,7 +136,19 @@
     "privacy": "Privacy Policy",
     "offer": "Terms of Service",
     "rights": "All rights reserved",
-    "email_placeholder": "Your email"
+    "email_placeholder": "Your email",
+    "products": "Products",
+    "help": "Help",
+    "photobooks": "Photo Books",
+    "magazines": "Glossy Magazines",
+    "photo_print": "Photo Prints",
+    "faq": "FAQ",
+    "constructor": "Constructor",
+    "brand_desc": "Preserving your most precious memories in premium photo books and products since 2018.",
+    "travel_book": "Travel Book",
+    "posters": "Posters",
+    "calendars": "Calendars",
+    "wishbook": "Guest Book"
   },
   "cart": {
     "empty": "Your cart is empty",

@@ -136,7 +136,19 @@
     "privacy": "Politica de Confidențialitate",
     "rights": "Toate drepturile rezervate",
     "offer": "Termeni de utilizare",
-    "email_placeholder": "Email-ul tău"
+    "email_placeholder": "Email-ul tău",
+    "products": "Produse",
+    "help": "Ajutor",
+    "photobooks": "Albume Foto",
+    "magazines": "Reviste Lucioase",
+    "photo_print": "Tipărire Foto",
+    "faq": "Întrebări Frecvente",
+    "constructor": "Constructor",
+    "brand_desc": "Păstrăm cele mai prețioase amintiri în albume foto premium din 2018.",
+    "travel_book": "Travel Book",
+    "posters": "Postere",
+    "calendars": "Calendare",
+    "wishbook": "Carte de Oaspeți"
   },
   "cart": {
     "empty": "Coșul este gol",

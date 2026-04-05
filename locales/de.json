@@ -136,7 +136,19 @@
     "privacy": "Datenschutzrichtlinie",
     "rights": "Alle Rechte vorbehalten",
     "offer": "Nutzungsbedingungen",
-    "email_placeholder": "Ihre E-Mail"
+    "email_placeholder": "Ihre E-Mail",
+    "products": "Produkte",
+    "help": "Hilfe",
+    "photobooks": "Fotobücher",
+    "magazines": "Hochglanzmagazine",
+    "photo_print": "Fotodrucke",
+    "faq": "FAQ",
+    "constructor": "Konfigurator",
+    "brand_desc": "Wir bewahren Ihre wertvollsten Erinnerungen in Premium-Fotobüchern seit 2018.",
+    "travel_book": "Travel Book",
+    "posters": "Poster",
+    "calendars": "Kalender",
+    "wishbook": "Gästebuch"
   },
   "cart": {
     "empty": "Warenkorb ist leer",
