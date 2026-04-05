@@ -426,12 +426,20 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // ==============================
         if (productType === 'magazine' || productType === 'photo-journal-soft' || productType === 'photo-journal-hard') {
             const pageNum = parseInt(selectedPageCount?.match(/\d+/)?.[0] || '0');
+            let magazineTotal = 0;
             if (pageNum > 0) {
                 const copiesNum = parseInt(selectedCopies) || 1;
-                return getMagazinePrice(pageNum, false) * copiesNum;
+                magazineTotal = getMagazinePrice(pageNum, false) * copiesNum;
+            } else {
+                const copiesNum = parseInt(selectedCopies) || 1;
+                magazineTotal = (product.price || 475) * copiesNum;
             }
-            const copiesNum = parseInt(selectedCopies) || 1;
-            return (product.price || 475) * copiesNum;
+            // Add text layout surcharge (+175 ₴)
+            const textLayout = searchParams.get('text_layout');
+            if (textLayout === 'with') {
+                magazineTotal += 175;
+            }
+            return magazineTotal;
         }
 
         // ==============================
@@ -1296,6 +1304,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
                 {/* Real-time Price Display */}
                 <div className="mt-8 pt-6 border-t border-gray-200">
+                    {/* Text layout surcharge note */}
+                    {searchParams.get('text_layout') === 'with' && (
+                        <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg px-4 py-2">
+                            <span className="text-sm text-blue-800 font-medium">✏️ З версткою тексту</span>
+                            <span className="text-sm font-bold text-blue-800">+175 ₴</span>
+                        </div>
+                    )}
                     <div className="flex justify-between items-center">
                         <div>
                             <p className="text-sm text-gray-600 mb-1">{t('book_config.estimated_price')}</p>
