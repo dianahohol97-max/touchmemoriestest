@@ -312,7 +312,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     texts: [
       { text: 'Імʼя & Імʼя', x: 50, y: 82, fontSize: 30, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
       { text: 'WEDDING DAY', x: 50, y: 90, fontSize: 13, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
-      { text: '20.09.2025', x: 50, y: 96, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+      { text: '20.09.2025', x: 50, y: 95, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
     ],
   },
 
@@ -393,7 +393,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     texts: [
       { text: 'FAMILY', x: 50, y: 82, fontSize: 36, fontFamily: 'Playfair Display', color: '#d4af37', bold: true },
       { text: 'portrait', x: 50, y: 90, fontSize: 20, fontFamily: 'Dancing Script', color: '#c0a060', bold: false },
-      { text: '2025', x: 50, y: 97, fontSize: 11, fontFamily: 'Montserrat', color: '#888888', bold: false },
+      { text: '2025', x: 50, y: 95, fontSize: 11, fontFamily: 'Montserrat', color: '#888888', bold: false },
     ],
   },
   {
@@ -435,7 +435,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     texts: [
       { text: 'Імʼя & Імʼя', x: 50, y: 10, fontSize: 36, fontFamily: 'Great Vibes', color: '#ffffff', bold: false },
       { text: 'WEDDING DAY', x: 50, y: 90, fontSize: 14, fontFamily: 'Montserrat', color: '#e0e0e0', bold: true },
-      { text: '15.06.2025', x: 50, y: 96, fontSize: 12, fontFamily: 'Cormorant Garamond', color: '#cccccc', bold: false },
+      { text: '15.06.2025', x: 50, y: 95, fontSize: 12, fontFamily: 'Cormorant Garamond', color: '#cccccc', bold: false },
     ],
   },
   {
@@ -588,7 +588,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
       { text: 'HAPPY BIRTHDAY', x: 28, y: 35, fontSize: 20, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
       { text: '2026', x: 18, y: 82, fontSize: 42, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: false },
       { text: 'glow up', x: 20, y: 90, fontSize: 24, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
-      { text: 'EXCLUSIVE MAGAZINE', x: 75, y: 97, fontSize: 10, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
+      { text: 'EXCLUSIVE MAGAZINE', x: 75, y: 95, fontSize: 10, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
     ],
   },
   {
@@ -613,7 +613,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     overlay: { type: 'gradient', color: '#000000', opacity: 20, gradient: 'linear-gradient(180deg,rgba(0,0,0,0.1) 0%,transparent 25%,transparent 80%,rgba(0,0,0,0.25) 100%)' },
     texts: [
       { text: 'ENJOY LIFE', x: 50, y: 10, fontSize: 38, fontFamily: 'Playfair Display', color: '#ffffff', bold: false },
-      { text: 'EXCLUSIVE MAGAZINE', x: 75, y: 97, fontSize: 9, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
+      { text: 'EXCLUSIVE MAGAZINE', x: 75, y: 95, fontSize: 9, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
     ],
   },
   {
@@ -628,8 +628,8 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
       { text: 'LOVE', x: 40, y: 10, fontSize: 42, fontFamily: 'Playfair Display', color: '#c02030', bold: true },
       { text: 'story', x: 55, y: 22, fontSize: 36, fontFamily: 'Dancing Script', color: '#c02030', bold: false },
       { text: 'IRYNA & ARTEM', x: 50, y: 32, fontSize: 16, fontFamily: 'Montserrat', color: '#333333', bold: true },
-      { text: 'EXCLUSIVE MAGAZINE', x: 25, y: 97, fontSize: 9, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
-      { text: '12.05.2024', x: 82, y: 97, fontSize: 12, fontFamily: 'Dancing Script', color: '#ffffff', bold: false },
+      { text: 'EXCLUSIVE MAGAZINE', x: 25, y: 95, fontSize: 9, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
+      { text: '12.05.2024', x: 82, y: 95, fontSize: 12, fontFamily: 'Dancing Script', color: '#ffffff', bold: false },
     ],
   },
   {
@@ -671,7 +671,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     overlay: { type: 'gradient', color: '#000000', opacity: 15, gradient: 'linear-gradient(180deg,rgba(0,0,0,0.2) 0%,transparent 20%,transparent 85%,rgba(0,0,0,0.15) 100%)' },
     texts: [
       { text: 'STYLE', x: 50, y: 8, fontSize: 38, fontFamily: 'Playfair Display', color: '#ffffff', bold: false },
-      { text: 'MAGAZINE', x: 50, y: 96, fontSize: 10, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
+      { text: 'MAGAZINE', x: 50, y: 95, fontSize: 10, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
     ],
   },
   {
@@ -686,7 +686,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
       { text: 'HER', x: 50, y: 6, fontSize: 36, fontFamily: 'Playfair Display', color: '#ffffff', bold: false },
       { text: 'STORY', x: 50, y: 15, fontSize: 28, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
       { text: 'Імʼя', x: 50, y: 90, fontSize: 22, fontFamily: 'Great Vibes', color: '#ffffff', bold: false },
-      { text: 'MAGAZINE • 2025', x: 50, y: 97, fontSize: 9, fontFamily: 'Montserrat', color: '#cccccc', bold: false },
+      { text: 'MAGAZINE • 2025', x: 50, y: 95, fontSize: 9, fontFamily: 'Montserrat', color: '#cccccc', bold: false },
     ],
   },
   {
@@ -703,7 +703,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
       { text: 'APR 2026', x: 18, y: 22, fontSize: 10, fontFamily: 'Montserrat', color: '#d4af37', bold: false },
       { text: 'Імʼя', x: 25, y: 50, fontSize: 24, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
       { text: 'NEVER GIVE UP', x: 42, y: 85, fontSize: 28, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
-      { text: 'EXCLUSIVE MAGAZINE', x: 50, y: 97, fontSize: 8, fontFamily: 'Montserrat', color: '#d4af37', bold: false },
+      { text: 'EXCLUSIVE MAGAZINE', x: 50, y: 95, fontSize: 8, fontFamily: 'Montserrat', color: '#d4af37', bold: false },
     ],
   },
   {
@@ -714,9 +714,9 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#3d2b1f',
     photoSlot: { x: 0, y: 0, w: 65, h: 93, shape: 'rect' },
     texts: [
-      { text: 'BEAUTY CODE', x: 83, y: 50, fontSize: 42, fontFamily: 'Playfair Display', color: '#f5f0e8', bold: false },
-      { text: 'PROFESSIONAL FASHION MODEL', x: 22, y: 97, fontSize: 7, fontFamily: 'Montserrat', color: '#c0b0a0', bold: false },
-      { text: 'EXCLUSIVE MAGAZINE', x: 78, y: 97, fontSize: 7, fontFamily: 'Montserrat', color: '#c0b0a0', bold: false },
+      { text: 'BEAUTY CODE', x: 83, y: 50, fontSize: 28, fontFamily: 'Playfair Display', color: '#f5f0e8', bold: false },
+      { text: 'PROFESSIONAL FASHION MODEL', x: 22, y: 95, fontSize: 7, fontFamily: 'Montserrat', color: '#c0b0a0', bold: false },
+      { text: 'EXCLUSIVE MAGAZINE', x: 78, y: 95, fontSize: 7, fontFamily: 'Montserrat', color: '#c0b0a0', bold: false },
     ],
   },
   {
@@ -731,7 +731,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
       { text: 'BIRTHDAY', x: 50, y: 10, fontSize: 38, fontFamily: 'Playfair Display', color: '#ffffff', bold: false },
       { text: 'до 40', x: 85, y: 28, fontSize: 28, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
       { text: 'ВИПУСКУ', x: 85, y: 34, fontSize: 12, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
-      { text: 'EXCLUSIVE MAGAZINE', x: 75, y: 97, fontSize: 7, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
+      { text: 'EXCLUSIVE MAGAZINE', x: 75, y: 95, fontSize: 7, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
     ],
   },
   {
@@ -744,8 +744,8 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     overlay: { type: 'gradient', color: '#000000', opacity: 15, gradient: 'linear-gradient(180deg,rgba(0,0,0,0.15) 0%,transparent 20%,transparent 85%,rgba(0,0,0,0.1) 100%)' },
     texts: [
       { text: 'YOUR ERA', x: 50, y: 8, fontSize: 38, fontFamily: 'Playfair Display', color: '#8b1a1a', bold: false },
-      { text: 'PROFESSIONAL FASHION MODEL', x: 22, y: 97, fontSize: 7, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
-      { text: 'EXCLUSIVE MAGAZINE', x: 78, y: 97, fontSize: 7, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
+      { text: 'PROFESSIONAL FASHION MODEL', x: 22, y: 95, fontSize: 7, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
+      { text: 'EXCLUSIVE MAGAZINE', x: 78, y: 95, fontSize: 7, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
     ],
   },
   {
@@ -758,8 +758,8 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     overlay: { type: 'none' as const, color: '#000000', opacity: 0, gradient: '' },
     texts: [
       { text: 'ІМʼЯ', x: 50, y: 10, fontSize: 38, fontFamily: 'Playfair Display', color: '#ffffff', bold: false },
-      { text: 'PROFESSIONAL FASHION MODEL', x: 22, y: 97, fontSize: 7, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
-      { text: 'EXCLUSIVE MAGAZINE', x: 78, y: 97, fontSize: 7, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
+      { text: 'PROFESSIONAL FASHION MODEL', x: 22, y: 95, fontSize: 7, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
+      { text: 'EXCLUSIVE MAGAZINE', x: 78, y: 95, fontSize: 7, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
     ],
   },
   {
@@ -787,8 +787,8 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     photoSlot: { x: 0, y: 0, w: 100, h: 100, shape: 'rect' },
     overlay: { type: 'gradient', color: '#000000', opacity: 25, gradient: 'linear-gradient(180deg,rgba(0,0,0,0.3) 0%,transparent 25%,transparent 70%,rgba(0,0,0,0.3) 100%)' },
     texts: [
-      { text: 'VOL. 21', x: 15, y: 4, fontSize: 10, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
-      { text: 'JULY 2025', x: 85, y: 4, fontSize: 10, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
+      { text: 'VOL. 21', x: 15, y: 5, fontSize: 10, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
+      { text: 'JULY 2025', x: 85, y: 5, fontSize: 10, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
       { text: 'MAGAZINE', x: 50, y: 14, fontSize: 38, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
       { text: 'LIMITED EDITION', x: 78, y: 28, fontSize: 16, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
       { text: 'Серцем назавжди', x: 78, y: 35, fontSize: 12, fontFamily: 'Dancing Script', color: '#ffffff', bold: false },

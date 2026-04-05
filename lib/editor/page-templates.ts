@@ -39,7 +39,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
       { text: 'Цей журнал — маленький подарунок для тебе. Він про тебе.', x: 50, y: 52, fontSize: 12, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
       { text: 'Дякую, що ти є.', x: 50, y: 82, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
       { text: 'З любов\'ю, [Ім\'я]', x: 50, y: 88, fontSize: 12, fontFamily: 'Dancing Script', color: '#333333', bold: false },
-      { text: 'Пам\'ятай, ти неймовірна!', x: 50, y: 96, fontSize: 10, fontFamily: 'Montserrat', color: '#999999', bold: false },
+      { text: 'Пам\'ятай, ти неймовірна!', x: 50, y: 95, fontSize: 10, fontFamily: 'Montserrat', color: '#999999', bold: false },
     ],
   },
 
@@ -97,11 +97,11 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     bgColor: '#ffffff',
     hasPhoto: true,
     texts: [
-      { text: 'FASHION MAGAZINE', x: 88, y: 3, fontSize: 8, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
+      { text: 'FASHION MAGAZINE', x: 88, y: 5, fontSize: 8, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
       { text: 'ТАМ, ДЕ ЛЕГКО', x: 50, y: 10, fontSize: 24, fontFamily: 'Cormorant Garamond', color: '#1a1a1a', bold: false },
       { text: 'МИСТЕЦТВО БУТИ ПОРУЧ', x: 65, y: 40, fontSize: 20, fontFamily: 'Playfair Display', color: '#ffffff', bold: true },
       { text: '[Ім\'я] обирає не гучні історії, а глибокі. Не феєрверки — а тишу, в якій усе зрозуміло.', x: 65, y: 55, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#ffffff', bold: false },
-      { text: 'THYNK UNLIMITED', x: 15, y: 97, fontSize: 8, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
+      { text: 'THYNK UNLIMITED', x: 15, y: 95, fontSize: 8, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
     ],
   },
 

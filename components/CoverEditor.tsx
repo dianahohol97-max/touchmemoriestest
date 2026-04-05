@@ -382,7 +382,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   onClick={e=>{e.stopPropagation();(e.target as HTMLElement).focus();}}
                   style={{ color:tb.color||'#fff', fontSize:tb.fontSize+'px', fontFamily:tb.fontFamily+',serif',
                     fontWeight:tb.bold?700:400, outline:'none', cursor:'text', display:'block', whiteSpace:'nowrap',
-                    textShadow:'0 1px 3px rgba(0,0,0,0.5)', minWidth:'60px' }}>
+                    textShadow:'0 1px 3px rgba(0,0,0,0.5)', minWidth:'60px', maxWidth: canvasW*0.9+'px', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {tb.text}
                 </span>
                 <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
