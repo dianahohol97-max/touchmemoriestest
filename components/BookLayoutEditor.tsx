@@ -8,7 +8,7 @@ import { AutoBuildModal } from './editor/AutoBuildModal';
 import { FontPicker } from './editor/FontPicker';
 import { CoverTemplatesPicker } from './editor/CoverTemplatesPicker';
 import { PageTemplatesPicker } from './editor/PageTemplatesPicker';
-import { PageTemplate } from '@/lib/editor/page-templates';
+import { PageTemplate, PAGE_TEMPLATES } from '@/lib/editor/page-templates';
 import { CoverTemplate } from '@/lib/editor/cover-templates';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
@@ -1537,46 +1537,6 @@ export default function BookLayoutEditor() {
                   </div>
                 )}
                 {/* Layout groups — spread layouts for photobooks, page layouts for magazines */}
-                {/* Page text templates — for magazines/journals */}
-                {(_slug.includes('magazine') || _slug.includes('journal') || _slug.includes('zhurnal')) && currentIdx !== 0 && (
-                  <div style={{ marginBottom: 8, borderBottom: '1px solid #f1f5f9', paddingBottom: 8 }}>
-                    <PageTemplatesPicker productType="magazine"
-                      hasTextBlocks={(() => {
-                        const pi = isSpreadMode ? (currentIdx - 1) * 2 + 1 : currentIdx;
-                        return (pages[pi]?.textBlocks?.length ?? 0) > 0;
-                      })()}
-                      onClear={() => {
-                        const pageIdx = isSpreadMode ? (currentIdx - 1) * 2 + 1 + activeSide : currentIdx;
-                        pushHistory();
-                        setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [] }));
-                        setPageBgs(prev => { const next = { ...prev }; delete next[pageIdx]; return next; });
-                        toast.success('Шаблон прибрано');
-                      }}
-                      onApply={(tmpl: PageTemplate) => {
-                      if (!confirm(`Застосувати шаблон "${tmpl.label}"? Існуючий текст на сторінці буде замінено.`)) return;
-                      const pageIdx = isSpreadMode ? (currentIdx - 1) * 2 + 1 + activeSide : currentIdx;
-                      pushHistory();
-                      setPages(prev => prev.map((p, i) => i !== pageIdx ? p : {
-                        ...p,
-                        layout: (tmpl.layout || p.layout) as any,
-                        textBlocks: tmpl.texts.map((t, ti) => ({
-                          id: 'ptmpl-' + Date.now() + '-' + ti,
-                          text: t.text,
-                          x: t.x, y: t.y,
-                          fontSize: t.fontSize,
-                          fontFamily: t.fontFamily,
-                          color: t.color,
-                          bold: t.bold,
-                          italic: t.italic || false,
-                        })),
-                      }));
-                      if (tmpl.bgColor && tmpl.bgColor !== '#ffffff') {
-                        setPageBgs(prev => ({ ...prev, [pageIdx]: { type: 'color' as const, color: tmpl.bgColor!, opacity: 100, imageUrl: null, blur: 0 } }));
-                      }
-                      toast.success(`Шаблон "${tmpl.label}" застосовано`);
-                    }} />
-                  </div>
-                )}
                 {(isSpreadMode
                   ? [t('constructor.spread_group_1'), t('constructor.spread_group_2'), t('constructor.spread_group_3'), t('constructor.spread_group_4'), t('constructor.spread_group_5')]
                   : ['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7–9 фото', 'Текст']
@@ -1603,6 +1563,48 @@ export default function BookLayoutEditor() {
                     </div>
                   );
                 })}
+                {/* Text templates as layout thumbnails — for magazines */}
+                {!isSpreadMode && (_slug.includes('magazine') || _slug.includes('journal') || _slug.includes('zhurnal')) && currentIdx !== 0 && (() => {
+                  const textTemplates = PAGE_TEMPLATES.filter(t => t.tags?.includes('magazine'));
+                  const groups = [...new Set(textTemplates.map(t => t.group))];
+                  return groups.map(group => (
+                    <div key={'txt-'+group}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', padding: '8px 4px 4px', textTransform: 'uppercase' }}>📝 {group}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                        {textTemplates.filter(t => t.group === group).map(tmpl => (
+                          <button key={tmpl.id} title={tmpl.label}
+                            onClick={() => {
+                              const pageIdx = isSpreadMode ? (currentIdx - 1) * 2 + 1 + activeSide : currentIdx;
+                              pushHistory();
+                              const newBlocks = tmpl.texts.map((t, ti) => ({
+                                id: 'ptmpl-' + Date.now() + '-' + ti + '-' + Math.random().toString(36).slice(2,6),
+                                text: t.text, x: t.x, y: t.y,
+                                fontSize: t.fontSize, fontFamily: t.fontFamily,
+                                color: t.color, bold: t.bold, italic: t.italic || false,
+                              }));
+                              setPages(prev => prev.map((p, i) => i !== pageIdx ? p : {
+                                ...p,
+                                textBlocks: [...(p.textBlocks || []), ...newBlocks],
+                              }));
+                              if (tmpl.bgColor && tmpl.bgColor !== '#ffffff') {
+                                setPageBgs(prev => ({ ...prev, [pageIdx]: { type: 'color' as const, color: tmpl.bgColor!, opacity: 100, imageUrl: null, blur: 0 } }));
+                              }
+                              toast.success(`"${tmpl.label}" додано`);
+                            }}
+                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '7px 4px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>
+                            <div style={{ width: '100%', height: 48, borderRadius: 4, background: tmpl.bgColor || '#f8fafc', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#94a3b8', overflow: 'hidden', position: 'relative' }}>
+                              {tmpl.hasPhoto && <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 10 }}>📷</span>}
+                              <span style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.2, padding: '0 4px', color: '#64748b' }}>
+                                {tmpl.texts[0]?.text.slice(0, 20)}...
+                              </span>
+                            </div>
+                            <span style={{ fontSize: 9, fontWeight: 600, color: '#374151', textAlign: 'center', lineHeight: 1.2 }}>{tmpl.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()}
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
 
                   <button onClick={() => { const idx = getActivePageIdx(); setPages(prev => prev.map((p, i) => i !== idx ? p : { ...p, slots: makeSlots(LAYOUTS.find(l => l.id === p.layout)?.slots || 0) })); }}
