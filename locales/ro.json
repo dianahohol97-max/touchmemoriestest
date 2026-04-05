@@ -40,7 +40,16 @@
     "design_title": "Design unic",
     "design_desc": "Designerii noștri creează machete care subliniază atmosfera fiecărei fotografii.",
     "delivery_title": "Livrare rapidă",
-    "delivery_desc": "Livrăm produsele finite în toată Ucraina și în lume în ambalaje sigure."
+    "delivery_desc": "Livrăm produsele finite în toată Ucraina și în lume în ambalaje sigure.",
+    "read_article": "Citește articolul",
+    "all_articles": "Toate articolele →",
+    "ideas_tips": "Idei și sfaturi",
+    "travelbook_title": "Travel Book — jurnalul călătoriei tale",
+    "travelbook_desc": "Format A4, copertă tare, hârtie lucioasă 170g. Modul perfect de a păstra amintirile din călătorii.",
+    "tb_feat_1": "Format A4 (21 × 29.7 cm) — ca o revistă adevărată",
+    "tb_feat_2": "De la 12 la 80 de pagini la alegere",
+    "tb_feat_3": "Producție în 5–7 zile lucrătoare",
+    "tb_feat_4": "Livrare în toată Ucraina"
   },
   "catalog": {
     "title": "Catalog",
@@ -483,5 +492,12 @@
     "review_text": "\"Calitate incredibilă! A depășit toate așteptările mele.\"",
     "review_author": "Client Touch Memories",
     "you_may_like": "S-ar putea să vă placă și"
+  },
+  "custom_book": {
+    "photo_print_label": "Tipărire Foto",
+    "gifts_label": "Cadouri",
+    "default_heading": "Albume foto, reviste și produse foto cu suflet",
+    "default_body": "Touch.Memories — un studio din Ternopil care transformă fotografiile tale în produse fizice frumoase",
+    "default_cta": "Magazin →"
   }
 }

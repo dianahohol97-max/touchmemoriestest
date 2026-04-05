@@ -41,16 +41,16 @@ export function CustomBookPromoClient({
       { icon: 'menu_book',                  label: t('nav.photobooks'), href: '/catalog?category=photobooks' },
       { icon: 'auto_stories',               label: t('nav.magazines'),   href: '/catalog?category=hlyantsevi-zhurnaly' },
       { icon: 'explore',                    label: 'TravelBook', href: '/catalog/travelbook-20x30' },
-      { icon: 'photo_library',              label: 'Фотодрук',  href: '/catalog/photo-prints' },
-      { icon: 'featured_seasonal_and_gifts',label: 'Подарунки', href: '/catalog?category=gifts' },
+      { icon: 'photo_library',              label: t('custom_book.photo_print_label'),  href: '/catalog/photo-prints' },
+      { icon: 'featured_seasonal_and_gifts',label: t('custom_book.gifts_label'), href: '/catalog?category=gifts' },
     ];
     
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
 
-  const heading   = sectionContent?.heading   || 'Фотокниги, журнали та фотовироби з душею';
-  const subheading = sectionContent?.subheading || 'Touch.Memories — студія у Тернополі, яка перетворює ваші фотографії на красиві фізичні вироби';
-  const bodyText  = sectionContent?.body_text  || 'Фотокниги, глянцеві журнали, тревел-буки, фотодрук та сувеніри — все з преміум якістю та турботою до деталей.';
-  const ctaText   = sectionContent?.cta_text   || 'В магазин →';
+  const heading   = sectionContent?.heading   || t('custom_book.default_heading');
+  const subheading = sectionContent?.subheading || t('custom_book.default_body');
+  const bodyText  = sectionContent?.body_text  || t('custom_book.default_body');
+  const ctaText   = sectionContent?.cta_text   || t('custom_book.default_cta');
   const ctaUrl    = sectionContent?.cta_url    || '/catalog';
 
   return (

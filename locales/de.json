@@ -40,7 +40,16 @@
     "design_title": "Einzigartiges Design",
     "design_desc": "Unsere Designer erstellen Layouts, die die Stimmung jedes Fotos unterstreichen.",
     "delivery_title": "Schnelle Lieferung",
-    "delivery_desc": "Wir versenden fertige Produkte in der ganzen Ukraine und weltweit in sicherer Verpackung."
+    "delivery_desc": "Wir versenden fertige Produkte in der ganzen Ukraine und weltweit in sicherer Verpackung.",
+    "read_article": "Artikel lesen",
+    "all_articles": "Alle Artikel →",
+    "ideas_tips": "Ideen & Tipps",
+    "travelbook_title": "Travel Book — Ihr Reisejournal",
+    "travelbook_desc": "A4-Format, Hardcover, 170g Hochglanzpapier. Der perfekte Weg, Reiseerinnerungen in einer stilvollen Publikation zu bewahren.",
+    "tb_feat_1": "A4-Format (21 × 29,7 cm) — wie ein echtes Magazin",
+    "tb_feat_2": "Von 12 bis 80 Seiten zur Auswahl",
+    "tb_feat_3": "Herstellung in 5–7 Werktagen",
+    "tb_feat_4": "Lieferung in der gesamten Ukraine"
   },
   "catalog": {
     "title": "Katalog",
@@ -483,5 +492,12 @@
     "review_text": "\"Unglaubliche Qualität! Hat alle meine Erwartungen übertroffen.\"",
     "review_author": "Touch Memories Kunde",
     "you_may_like": "Das könnte Ihnen auch gefallen"
+  },
+  "custom_book": {
+    "photo_print_label": "Fotodrucke",
+    "gifts_label": "Geschenke",
+    "default_heading": "Fotobücher, Magazine & Fotoprodukte mit Seele",
+    "default_body": "Touch.Memories — ein Studio in Ternopil, das Ihre Fotos in schöne physische Produkte verwandelt",
+    "default_cta": "Shop →"
   }
 }
