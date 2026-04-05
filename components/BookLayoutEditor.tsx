@@ -419,6 +419,7 @@ export default function BookLayoutEditor() {
   const { addItem } = useCartStore();
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const designerOrderId = searchParams?.get('designer_order_id') || null;
+  const hasTextLayout = searchParams?.get('text_layout') === 'with';
   const [designerSaving, setDesignerSaving] = useState(false);
 
   const [config, setConfig] = useState<BookConfig | null>(null);
@@ -688,6 +689,8 @@ export default function BookLayoutEditor() {
   // Wishbook: only cover, no internal pages
   const isWishbook = _slug.includes('wish') || _slug.includes('guest') || _slug.includes('pobazhan') ||
     (config?.productName || '').toLowerCase().includes('побажань');
+  const isMagazine = _slug.includes('magazine') || _slug.includes('journal') || _slug.includes('zhurnal');
+  const magazineTextEnabled = isMagazine && hasTextLayout;
 
   // Wishbook: force cover-only mode
   useEffect(() => {
@@ -1384,9 +1387,9 @@ export default function BookLayoutEditor() {
         {/* ICON SIDEBAR — desktop only */}
         {!isMobile && <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
           {((() => {
-            const allTabs: [string, React.ReactNode, string][] = [
+            const allTabs: [string, React.ReactNode, string, boolean?][] = [
               ...(!isWishbook ? [['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'] as [string, React.ReactNode, string]] : []),
-              ['text', <Type key="t" size={20}/>, 'Текст'],
+              ['text', <Type key="t" size={20}/>, 'Текст', isMagazine && !hasTextLayout],
               ['bg', <span key="bg" style={{fontSize:16,fontWeight:700}}>Фн</span>, 'Фон'],
               ['shapes', <span key="sh" style={{fontSize:16,fontWeight:700}}>◻</span>, 'Фігури'],
               ['stickers', <span key="stk" style={{fontSize:16}}>★</span>, 'Стікери'],
@@ -1396,9 +1399,9 @@ export default function BookLayoutEditor() {
               ...(currentIdx===0 || isWishbook?[['cover', <span key="cv" style={{fontSize:18}}>▣</span>, 'Обкл.'] as [string, React.ReactNode, string]]:[]),
             ];
             return allTabs;
-          })() as [string, React.ReactNode, string][]).map(([id, icon, label]) => (
-            <button key={id} onClick={() => { setLeftTab(id as any); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); if (id === 'kalka' && currentIdx !== 1) setCurrentIdx(1); if (id === 'cover') setCurrentIdx(0); }}
-              style={{ width: '100%', padding: '10px 4px', border: 'none', cursor: 'pointer', background: leftTab === id ? '#1e2d7d' : 'transparent', color: leftTab === id ? '#fff' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginBottom: 2, transition: 'background 0.15s' }}>
+          })() as [string, React.ReactNode, string, boolean?][]).map(([id, icon, label, disabled]) => (
+            <button key={id} disabled={!!disabled} onClick={() => { if (disabled) return; setLeftTab(id as any); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); if (id === 'kalka' && currentIdx !== 1) setCurrentIdx(1); if (id === 'cover') setCurrentIdx(0); }}
+              style={{ width: '100%', padding: '10px 4px', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', background: leftTab === id ? '#1e2d7d' : 'transparent', color: leftTab === id ? '#fff' : disabled ? '#d1d5db' : '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginBottom: 2, transition: 'background 0.15s', opacity: disabled ? 0.4 : 1 }}>
               {icon}
               <span style={{ fontSize: 9, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
             </button>
@@ -1564,7 +1567,7 @@ export default function BookLayoutEditor() {
                   );
                 })}
                 {/* Text templates as layout thumbnails — for magazines */}
-                {!isSpreadMode && (_slug.includes('magazine') || _slug.includes('journal') || _slug.includes('zhurnal')) && currentIdx !== 0 && (() => {
+                {!isSpreadMode && magazineTextEnabled && currentIdx !== 0 && (() => {
                   const textTemplates = PAGE_TEMPLATES.filter(t => t.tags?.includes('magazine'));
                   const groups = [...new Set(textTemplates.map(t => t.group))];
                   return groups.map(group => (
