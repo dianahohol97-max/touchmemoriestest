@@ -144,7 +144,12 @@
     "pay": "Zur Kasse",
     "clear": "Warenkorb leeren",
     "title": "Warenkorb",
-    "items": "Artikel"
+    "items": "Artikel",
+    "your_cart_empty": "Ihr Warenkorb ist leer",
+    "continue_shopping": "Weiter einkaufen",
+    "total_to_pay": "Zu bezahlen:",
+    "checkout": "Zur Kasse",
+    "free_shipping": "Kostenloser Versand ab 2000 ₴"
   },
   "faq": {
     "title": "Häufige Fragen",
@@ -250,5 +255,48 @@
     "add_to_cart": "In den Warenkorb",
     "save_layout": "Layout speichern",
     "send_for_review": "Zur Genehmigung senden"
+  },
+  "order": {
+    "base_price": "Grundpreis",
+    "total_label": "Gesamt:",
+    "processing": "Wird bearbeitet...",
+    "place_order": "Bestellung aufgeben",
+    "fill_required": "Bitte füllen Sie alle Pflichtfelder aus",
+    "ready_to_order": "Bereit zur Bestellung",
+    "production_time": "Produktion:"
+  },
+  "gift_hint": {
+    "title": "Lass sie wissen, was du willst 😉",
+    "subtitle": "Wir senden einen schönen Hinweis zu diesem Produkt in Ihrem Namen.",
+    "recipient_email": "HINWEIS SENDEN AN (E-MAIL) *",
+    "recipient_name": "NAME DES EMPFÄNGERS",
+    "recipient_placeholder": "Alexander",
+    "from_label": "VON",
+    "from_placeholder": "Ihre Liebste (oder anonym)",
+    "message_label": "PERSÖNLICHE NACHRICHT",
+    "message_placeholder": "Das wäre ein perfektes Geschenk...",
+    "sending": "Wird gesendet...",
+    "send_btn": "Hinweis senden 💌",
+    "sent_title": "Hinweis gesendet! 💌",
+    "sent_subtitle": "Wir hoffen, es klappt 😉",
+    "done": "Großartig",
+    "error_generic": "Etwas ist schiefgelaufen",
+    "error_connection": "Verbindungsfehler"
+  },
+  "price_calc": {
+    "loading": "Konfigurator wird geladen...",
+    "title": "Preiskalkulator",
+    "choose_product": "Produkttyp wählen",
+    "from_price": "Ab",
+    "price_on_request": "Preis auf Anfrage",
+    "no_products": "Keine Produkte zur Konfiguration verfügbar.",
+    "back": "Zurück zur Auswahl",
+    "customize": "Parameter anpassen",
+    "personalization": "Produktpersonalisierung",
+    "yes": "Ja",
+    "no": "Nein",
+    "custom_note": "Dieses Produkt wird nach Bestellung individuell angepasst. Der Grundpreis bleibt unverändert.",
+    "estimated_price": "Geschätzter Preis",
+    "order_btn": "Bestellen"
   }
 }

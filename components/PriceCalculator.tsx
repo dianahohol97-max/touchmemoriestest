@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import Image from 'next/image';
 import { Product, CustomAttribute } from '@/lib/types/product';
+import { useT } from '@/lib/i18n/context';
 
 function AnimatedNumber({ value }: { value: number }) {
     const [displayValue, setDisplayValue] = useState(value);
@@ -24,6 +25,7 @@ function AnimatedNumber({ value }: { value: number }) {
 }
 
 export default function PriceCalculator() {
+    const t = useT();
     const supabase = createClient();
     const [allProducts, setAllProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -114,7 +116,7 @@ export default function PriceCalculator() {
 
     if (loading) return (
         <section className={styles.calculatorSection} style={{ padding: '80px 0' }}>
-            <div style={{ textAlign: 'center' }}>Завантаження конфігуратора...</div>
+            <div style={{ textAlign: 'center' }}>{t('price_calc.loading')}</div>
         </section>
     );
 
@@ -122,7 +124,7 @@ export default function PriceCalculator() {
         <section className={`${styles.calculatorSection} section-padding`}>
             <div className="container">
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                    <h2 className="section-title">Калькулятор вартості</h2>
+                    <h2 className="section-title">{t('price_calc.title')}</h2>
                 </div>
 
                 <div className={styles.configCard}>
@@ -136,7 +138,7 @@ export default function PriceCalculator() {
                             >
                                 <div className={styles.stepHeader}>
                                     <div className={styles.stepNumber}>1</div>
-                                    <h3 className={styles.stepTitle}>Оберіть тип продукту</h3>
+                                    <h3 className={styles.stepTitle}>{t('price_calc.choose_product')}</h3>
                                 </div>
 
                                 <div className={styles.productGrid}>
@@ -160,7 +162,7 @@ export default function PriceCalculator() {
                                             <div>
                                                 <div className={styles.productName}>{p.name}</div>
                                                 <div style={{ fontSize: '14px', opacity: 0.6, marginTop: '4px' }}>
-                                                    {p.price > 0 ? `Від ${p.price} ₴` : 'Ціна за запитом'}
+                                                    {p.price > 0 ? `${t('price_calc.from_price')} ${p.price} ₴` : t('price_calc.price_on_request')}
                                                 </div>
                                             </div>
                                         </div>
@@ -168,7 +170,7 @@ export default function PriceCalculator() {
                                 </div>
                                 {allProducts.length === 0 && (
                                     <div style={{ textAlign: 'center', padding: '40px', opacity: 0.5 }}>
-                                        Немає доступних продуктів для конфігурації.
+                                        {t('price_calc.no_products')}
                                     </div>
                                 )}
                             </motion.div>
@@ -180,12 +182,12 @@ export default function PriceCalculator() {
                                 exit={{ opacity: 0, x: -20 }}
                             >
                                 <button className={styles.backButton} onClick={() => setStep(1)}>
-                                    <ArrowLeft size={16} /> Назад до вибору
+                                    <ArrowLeft size={16} /> {t('price_calc.back')}
                                 </button>
 
                                 <div className={styles.stepHeader}>
                                     <div className={styles.stepNumber}>2</div>
-                                    <h3 className={styles.stepTitle}>Налаштуйте параметри</h3>
+                                    <h3 className={styles.stepTitle}>{t('price_calc.customize')}</h3>
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '40px' }}>
@@ -195,7 +197,7 @@ export default function PriceCalculator() {
                                         </div>
                                         <div>
                                             <div style={{ fontWeight: 800, fontSize: '20px', color: 'var(--primary)' }}>{selectedProduct?.name}</div>
-                                            <div style={{ opacity: 0.6, fontSize: '14px' }}>Персоналізація продукту</div>
+                                            <div style={{ opacity: 0.6, fontSize: '14px' }}>{t('price_calc.personalization')}</div>
                                         </div>
                                     </div>
 
@@ -227,13 +229,13 @@ export default function PriceCalculator() {
                                                             className={`${styles.optionButton} ${selections[attr.key] === true ? styles.optionButtonActive : ''}`}
                                                             onClick={() => setSelections(prev => ({ ...prev, [attr.key]: true }))}
                                                         >
-                                                            Так
+                                                            {t('price_calc.yes')}
                                                         </button>
                                                         <button
                                                             className={`${styles.optionButton} ${selections[attr.key] === false ? styles.optionButtonActive : ''}`}
                                                             onClick={() => setSelections(prev => ({ ...prev, [attr.key]: false }))}
                                                         >
-                                                            Ні
+                                                            {t('price_calc.no')}
                                                         </button>
                                                     </div>
                                                 )}
@@ -244,14 +246,14 @@ export default function PriceCalculator() {
                                         {selectedProduct?.is_personalized &&
                                             !(selectedProduct.custom_attributes?.length || selectedProduct.characteristics?.length) && (
                                                 <div style={{ padding: '24px', background: '#f8fafc', borderRadius: '3px', marginBottom: '32px' }}>
-                                                    Цей товар налаштовується індивідуально після замовлення. Базова ціна залишається незмінною.
+                                                    {t('price_calc.custom_note')}
                                                 </div>
                                             )}
                                     </div>
 
                                     <div className={styles.summaryBlock}>
                                         <div className={styles.priceDisplay}>
-                                            <span className={styles.priceLabel}>Орієнтовна вартість</span>
+                                            <span className={styles.priceLabel}>{t('price_calc.estimated_price')}</span>
                                             <div className={styles.priceValue}>
                                                 <AnimatedNumber value={finalPrice} /> ₴
                                             </div>
@@ -262,7 +264,7 @@ export default function PriceCalculator() {
                                             disabled={!isStep2Complete}
                                             onClick={() => window.location.href = `/catalog/${selectedProduct?.slug}`}
                                         >
-                                            Замовити <ArrowRight size={20} />
+                                            {t('price_calc.order_btn')} <ArrowRight size={20} />
                                         </button>
                                     </div>
                                 </div>

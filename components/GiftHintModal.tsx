@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, User, MessageCircle, Send, CheckCircle2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
+import { useT } from '@/lib/i18n/context';
 
 interface GiftHintModalProps {
     product: {
@@ -17,6 +18,7 @@ interface GiftHintModalProps {
 }
 
 export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModalProps) {
+    const t = useT();
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
     const [formData, setFormData] = useState({
@@ -51,10 +53,10 @@ export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModa
                     colors: ['#ef4444', '#263A99', '#f43f5e']
                 });
             } else {
-                toast.error(data.error || 'Щось пішло не так');
+                toast.error(data.error || t('gift_hint.error_generic'));
             }
         } catch (e) {
-            toast.error('Помилка з’єднання');
+            toast.error(t('gift_hint.error_connection'));
         } finally {
             setSending(false);
         }
@@ -79,13 +81,13 @@ export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModa
                         <>
                             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                                 <div style={iconBadgeStyle}>💝</div>
-                                <h2 style={titleStyle}>Хай знають що ви хочете 😉</h2>
-                                <p style={subtitleStyle}>Ми надішлемо красивий натяк на цей товар від вашого імені.</p>
+                                <h2 style={titleStyle}>{t('gift_hint.title')}</h2>
+                                <p style={subtitleStyle}>{t('gift_hint.subtitle')}</p>
                             </div>
 
                             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div>
-                                    <label style={labelStyle}>КОМУ НАДІСЛАТИ НАТЯК (EMAIL) *</label>
+                                    <label style={labelStyle}>{t('gift_hint.recipient_email')}</label>
                                     <div style={inputWrapperStyle}>
                                         <Mail size={18} color="#94a3b8" />
                                         <input
@@ -101,12 +103,12 @@ export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModa
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                     <div>
-                                        <label style={labelStyle}>ІМ'Я ОТРИМУВАЧА</label>
+                                        <label style={labelStyle}>{t('gift_hint.recipient_name')}</label>
                                         <div style={inputWrapperStyle}>
                                             <User size={18} color="#94a3b8" />
                                             <input
                                                 required
-                                                placeholder="Олександр"
+                                                placeholder={t("gift_hint.recipient_placeholder")}
                                                 style={inputStyle}
                                                 value={formData.recipient_name}
                                                 onChange={e => setFormData({ ...formData, recipient_name: e.target.value })}
@@ -114,11 +116,11 @@ export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModa
                                         </div>
                                     </div>
                                     <div>
-                                        <label style={labelStyle}>ВІД КОГО</label>
+                                        <label style={labelStyle}>{t('gift_hint.from_label')}</label>
                                         <div style={inputWrapperStyle}>
                                             <SparkleIcon size={18} color="#94a3b8" />
                                             <input
-                                                placeholder="Ваша кохана (або анонімно)"
+                                                placeholder={t("gift_hint.from_placeholder")}
                                                 style={inputStyle}
                                                 value={formData.sender_name}
                                                 onChange={e => setFormData({ ...formData, sender_name: e.target.value })}
@@ -128,11 +130,11 @@ export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModa
                                 </div>
 
                                 <div>
-                                    <label style={labelStyle}>ОСОБИСТЕ ПОВІДОМЛЕННЯ</label>
+                                    <label style={labelStyle}>{t('gift_hint.message_label')}</label>
                                     <div style={{ ...inputWrapperStyle, alignItems: 'flex-start', padding: '16px' }}>
                                         <MessageCircle size={18} color="#94a3b8" style={{ marginTop: '4px' }} />
                                         <textarea
-                                            placeholder="Це було б ідеальним подарунком..."
+                                            placeholder={t("gift_hint.message_placeholder")}
                                             style={{ ...inputStyle, height: '80px', padding: 0 }}
                                             value={formData.message}
                                             onChange={e => setFormData({ ...formData, message: e.target.value })}
@@ -147,7 +149,7 @@ export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModa
                                         backgroundColor: sending ? '#94a3b8' : '#ef4444'
                                     }}
                                 >
-                                    {sending ? 'Відправляємо...' : 'Надіслати натяк 💌'}
+                                    {sending ? t('gift_hint.sending') : t('gift_hint.send_btn')}
                                 </button>
                             </form>
                         </>
@@ -160,9 +162,9 @@ export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModa
                             >
                                 <CheckCircle2 size={64} color="#22c55e" />
                             </motion.div>
-                            <h2 style={{ ...titleStyle, marginTop: '24px' }}>Натяк надіслано! 💌</h2>
-                            <p style={subtitleStyle}>Сподіваємось спрацює 😉<br />Ми повідомили {formData.recipient_name} про ваше бажання.</p>
-                            <button onClick={onClose} style={doneBtnStyle}>Чудово</button>
+                            <h2 style={{ ...titleStyle, marginTop: '24px' }}>{t('gift_hint.sent_title')}</h2>
+                            <p style={subtitleStyle}>{t('gift_hint.sent_subtitle')}</p>
+                            <button onClick={onClose} style={doneBtnStyle}>{t('gift_hint.done')}</button>
                         </div>
                     )}
                 </motion.div>

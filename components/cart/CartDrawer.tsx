@@ -4,8 +4,10 @@ import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useT } from '@/lib/i18n/context';
 
 export default function CartDrawer() {
+    const t = useT();
     const {
         items,
         isDrawerOpen,
@@ -66,7 +68,7 @@ export default function CartDrawer() {
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <ShoppingBag size={24} color="var(--primary)" />
-                                <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Кошик</h2>
+                                <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>{t('cart.title')}</h2>
                                 <span style={{
                                     backgroundColor: '#f0f0f0',
                                     padding: '2px 8px',
@@ -127,7 +129,7 @@ export default function CartDrawer() {
                                     }}>
                                         <ShoppingBag size={40} />
                                     </div>
-                                    <p style={{ fontWeight: 600 }}>Ваш кошик порожній</p>
+                                    <p style={{ fontWeight: 600 }}>{t('cart.your_cart_empty')}</p>
                                     <button
                                         onClick={closeDrawer}
                                         style={{
@@ -140,7 +142,7 @@ export default function CartDrawer() {
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        Продовжити покупки
+                                        {t('cart.continue_shopping')}
                                     </button>
                                 </div>
                             ) : (
@@ -227,7 +229,7 @@ export default function CartDrawer() {
                                 backgroundColor: '#fdfdfd'
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                                    <span style={{ fontWeight: 600, color: '#666' }}>Разом до оплати:</span>
+                                    <span style={{ fontWeight: 600, color: '#666' }}>{t('cart.total_to_pay')}</span>
                                     <span style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary)' }}>{total} ₴</span>
                                 </div>
 
@@ -253,7 +255,7 @@ export default function CartDrawer() {
                                     onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
                                     onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
                                 >
-                                    Оформити замовлення <ArrowRight size={20} />
+                                    {t('cart.checkout')} <ArrowRight size={20} />
                                 </Link>
 
                                 <p style={{
@@ -263,7 +265,7 @@ export default function CartDrawer() {
                                     marginTop: '16px',
                                     marginBlockEnd: 0
                                 }}>
-                                    Безкоштовна доставка для замовлень від 2000 ₴
+                                    {t('cart.free_shipping')}
                                 </p>
                             </div>
                         )}

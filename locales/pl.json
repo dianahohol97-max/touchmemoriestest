@@ -144,7 +144,12 @@
     "pay": "Złóż zamówienie",
     "clear": "Wyczyść koszyk",
     "title": "Koszyk",
-    "items": "Produkty"
+    "items": "Produkty",
+    "your_cart_empty": "Twój koszyk jest pusty",
+    "continue_shopping": "Kontynuuj zakupy",
+    "total_to_pay": "Do zapłaty:",
+    "checkout": "Złóż zamówienie",
+    "free_shipping": "Darmowa dostawa dla zamówień powyżej 2000 ₴"
   },
   "faq": {
     "title": "FAQ",
@@ -250,5 +255,48 @@
     "add_to_cart": "Dodaj do koszyka",
     "save_layout": "Zapisz układ",
     "send_for_review": "Wyślij do zatwierdzenia"
+  },
+  "order": {
+    "base_price": "Cena bazowa",
+    "total_label": "Razem:",
+    "processing": "Przetwarzanie...",
+    "place_order": "Złóż zamówienie",
+    "fill_required": "Proszę wypełnić wszystkie wymagane pola",
+    "ready_to_order": "Gotowe do zamówienia",
+    "production_time": "Produkcja:"
+  },
+  "gift_hint": {
+    "title": "Niech wiedzą, czego chcesz 😉",
+    "subtitle": "Wyślemy piękną podpowiedź o tym produkcie w Twoim imieniu.",
+    "recipient_email": "WYŚLIJ PODPOWIEDŹ DO (EMAIL) *",
+    "recipient_name": "IMIĘ ODBIORCY",
+    "recipient_placeholder": "Aleksander",
+    "from_label": "OD KOGO",
+    "from_placeholder": "Twoja ukochana (lub anonimowo)",
+    "message_label": "WIADOMOŚĆ OSOBISTA",
+    "message_placeholder": "To byłby idealny prezent...",
+    "sending": "Wysyłanie...",
+    "send_btn": "Wyślij podpowiedź 💌",
+    "sent_title": "Podpowiedź wysłana! 💌",
+    "sent_subtitle": "Mamy nadzieję, że zadziała 😉",
+    "done": "Świetnie",
+    "error_generic": "Coś poszło nie tak",
+    "error_connection": "Błąd połączenia"
+  },
+  "price_calc": {
+    "loading": "Ładowanie konfiguratora...",
+    "title": "Kalkulator cen",
+    "choose_product": "Wybierz typ produktu",
+    "from_price": "Od",
+    "price_on_request": "Cena na zapytanie",
+    "no_products": "Brak dostępnych produktów do konfiguracji.",
+    "back": "Wróć do wyboru",
+    "customize": "Dostosuj parametry",
+    "personalization": "Personalizacja produktu",
+    "yes": "Tak",
+    "no": "Nie",
+    "custom_note": "Ten produkt jest dostosowywany indywidualnie po zamówieniu. Cena bazowa pozostaje bez zmian.",
+    "estimated_price": "Szacunkowa cena",
+    "order_btn": "Zamów"
   }
 }

@@ -144,7 +144,12 @@
     "pay": "Finalizează comanda",
     "clear": "Golește coșul",
     "title": "Coș",
-    "items": "Produse"
+    "items": "Produse",
+    "your_cart_empty": "Coșul tău este gol",
+    "continue_shopping": "Continuă cumpărăturile",
+    "total_to_pay": "Total de plată:",
+    "checkout": "Finalizează comanda",
+    "free_shipping": "Livrare gratuită pentru comenzi peste 2000 ₴"
   },
   "faq": {
     "title": "Întrebări frecvente",
@@ -250,5 +255,48 @@
     "add_to_cart": "Adaugă în coș",
     "save_layout": "Salvează aspectul",
     "send_for_review": "Trimite pentru aprobare"
+  },
+  "order": {
+    "base_price": "Preț de bază",
+    "total_label": "Total:",
+    "processing": "Se procesează...",
+    "place_order": "Plasează comanda",
+    "fill_required": "Vă rugăm completați toate câmpurile obligatorii",
+    "ready_to_order": "Gata de comandă",
+    "production_time": "Producție:"
+  },
+  "gift_hint": {
+    "title": "Spune-le ce îți dorești 😉",
+    "subtitle": "Vom trimite un indiciu frumos despre acest produs în numele tău.",
+    "recipient_email": "TRIMITE INDICIUL CĂTRE (EMAIL) *",
+    "recipient_name": "NUMELE DESTINATARULUI",
+    "recipient_placeholder": "Alexandru",
+    "from_label": "DE LA",
+    "from_placeholder": "Persoana dragă (sau anonim)",
+    "message_label": "MESAJ PERSONAL",
+    "message_placeholder": "Acesta ar fi un cadou perfect...",
+    "sending": "Se trimite...",
+    "send_btn": "Trimite indiciul 💌",
+    "sent_title": "Indiciu trimis! 💌",
+    "sent_subtitle": "Sperăm că funcționează 😉",
+    "done": "Excelent",
+    "error_generic": "Ceva nu a mers bine",
+    "error_connection": "Eroare de conexiune"
+  },
+  "price_calc": {
+    "loading": "Se încarcă configuratorul...",
+    "title": "Calculator de preț",
+    "choose_product": "Alegeți tipul de produs",
+    "from_price": "De la",
+    "price_on_request": "Preț la cerere",
+    "no_products": "Nu sunt produse disponibile pentru configurare.",
+    "back": "Înapoi la selecție",
+    "customize": "Personalizați parametrii",
+    "personalization": "Personalizare produs",
+    "yes": "Da",
+    "no": "Nu",
+    "custom_note": "Acest produs este personalizat individual după comandă. Prețul de bază rămâne neschimbat.",
+    "estimated_price": "Preț estimat",
+    "order_btn": "Comandă"
   }
 }

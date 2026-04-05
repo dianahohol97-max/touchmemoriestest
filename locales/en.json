@@ -144,7 +144,12 @@
     "pay": "Proceed to Checkout",
     "clear": "Clear Cart",
     "title": "Cart",
-    "items": "Items"
+    "items": "Items",
+    "your_cart_empty": "Your cart is empty",
+    "continue_shopping": "Continue shopping",
+    "total_to_pay": "Total to pay:",
+    "checkout": "Checkout",
+    "free_shipping": "Free shipping for orders over 2000 ₴"
   },
   "faq": {
     "title": "FAQ",
@@ -250,5 +255,48 @@
     "add_to_cart": "Add to cart",
     "save_layout": "Save layout",
     "send_for_review": "Send for review"
+  },
+  "order": {
+    "base_price": "Base price",
+    "total_label": "Total:",
+    "processing": "Processing...",
+    "place_order": "Place order",
+    "fill_required": "Please fill in all required fields",
+    "ready_to_order": "Ready to order",
+    "production_time": "Production:"
+  },
+  "gift_hint": {
+    "title": "Let them know what you want 😉",
+    "subtitle": "We'll send a beautiful hint about this product on your behalf.",
+    "recipient_email": "SEND HINT TO (EMAIL) *",
+    "recipient_name": "RECIPIENT'S NAME",
+    "recipient_placeholder": "Alexander",
+    "from_label": "FROM",
+    "from_placeholder": "Your loved one (or anonymous)",
+    "message_label": "PERSONAL MESSAGE",
+    "message_placeholder": "This would be a perfect gift...",
+    "sending": "Sending...",
+    "send_btn": "Send hint 💌",
+    "sent_title": "Hint sent! 💌",
+    "sent_subtitle": "We hope it works 😉",
+    "done": "Great",
+    "error_generic": "Something went wrong",
+    "error_connection": "Connection error"
+  },
+  "price_calc": {
+    "loading": "Loading configurator...",
+    "title": "Price calculator",
+    "choose_product": "Choose product type",
+    "from_price": "From",
+    "price_on_request": "Price on request",
+    "no_products": "No products available for configuration.",
+    "back": "Back to selection",
+    "customize": "Customize parameters",
+    "personalization": "Product personalization",
+    "yes": "Yes",
+    "no": "No",
+    "custom_note": "This product is customized individually after ordering. The base price remains unchanged.",
+    "estimated_price": "Estimated price",
+    "order_btn": "Order"
   }
 }
