@@ -1577,7 +1577,7 @@ export default function BookLayoutEditor() {
                         {textTemplates.filter(t => t.group === group).map(tmpl => (
                           <button key={tmpl.id} title={tmpl.label}
                             onClick={() => {
-                              const pageIdx = isSpreadMode ? (currentIdx - 1) * 2 + 1 + activeSide : currentIdx;
+                              const pageIdx = getActivePageIdx();
                               pushHistory();
                               const newBlocks = tmpl.texts.map((t, ti) => ({
                                 id: 'ptmpl-' + Date.now() + '-' + ti + '-' + Math.random().toString(36).slice(2,6),
