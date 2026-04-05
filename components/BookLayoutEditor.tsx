@@ -1546,14 +1546,15 @@ export default function BookLayoutEditor() {
                         return (pages[pi]?.textBlocks?.length ?? 0) > 0;
                       })()}
                       onClear={() => {
-                        const pageIdx = isSpreadMode ? (currentIdx - 1) * 2 + 1 : currentIdx;
+                        const pageIdx = isSpreadMode ? (currentIdx - 1) * 2 + 1 + activeSide : currentIdx;
                         pushHistory();
                         setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [] }));
                         setPageBgs(prev => { const next = { ...prev }; delete next[pageIdx]; return next; });
                         toast.success('Шаблон прибрано');
                       }}
                       onApply={(tmpl: PageTemplate) => {
-                      const pageIdx = isSpreadMode ? (currentIdx - 1) * 2 + 1 : currentIdx;
+                      if (!confirm(`Застосувати шаблон "${tmpl.label}"? Існуючий текст на сторінці буде замінено.`)) return;
+                      const pageIdx = isSpreadMode ? (currentIdx - 1) * 2 + 1 + activeSide : currentIdx;
                       pushHistory();
                       setPages(prev => prev.map((p, i) => i !== pageIdx ? p : {
                         ...p,
