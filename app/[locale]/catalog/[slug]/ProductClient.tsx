@@ -169,6 +169,30 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
     const [customProductOptions, setCustomProductOptions] = useState<Record<string, string | number>>({});
     const [dynamicPrice, setDynamicPrice] = useState<number | null>(null);
+
+    // Recalculate price when customProductOptions change for travelbook
+    useEffect(() => {
+        if (!product) return;
+        const slugLower = (product.slug || '').toLowerCase();
+        if (!slugLower.includes('travel') && !slugLower.includes('travelbook')) return;
+
+        const TRAVELBOOK_PRICES: Record<number, number> = {
+            12: 550, 16: 700, 20: 850, 24: 1000, 28: 1150, 32: 1300,
+            36: 1450, 40: 1600, 44: 1750, 48: 1900, 52: 2025,
+            56: 2125, 60: 2225, 64: 2325, 68: 2425, 72: 2525,
+            76: 2650, 80: 2775,
+        };
+
+        const pages = Number(customProductOptions['Кількість сторінок']) || 0;
+        if (!pages) return;
+
+        let total = TRAVELBOOK_PRICES[pages] || 0;
+        if (!total) return;
+        if (customProductOptions['Ламінація'] === 'З ламінацією сторінок') total += pages * 5;
+        if (customProductOptions['Індивідуальна обкладинка'] === 'Індивідуальна (+50 ₴)') total += 50;
+
+        setDynamicPrice(total);
+    }, [customProductOptions, product]);
     const [personalizationNote, setPersonalizationNote] = useState('');
     const [showPersonalizationInput, setShowPersonalizationInput] = useState(false);
     const [guestbookModalOpen, setGuestbookModalOpen] = useState(false);
@@ -214,6 +238,15 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         }
                     });
                 }
+                // For travelbook/photojournal/wishbook — also init ProductOptionsSelector defaults
+                // so dynamicPrice gets calculated on first render
+                const slugLower = (data.slug || '').toLowerCase();
+                if (slugLower.includes('travel') || slugLower.includes('travelbook')) {
+                    if (!defaultOptions['Кількість сторінок']) defaultOptions['Кількість сторінок'] = 12;
+                    if (!defaultOptions['Ламінація']) defaultOptions['Ламінація'] = 'Без ламінації';
+                    if (!defaultOptions['Індивідуальна обкладинка']) defaultOptions['Індивідуальна обкладинка'] = 'Стандартна';
+                }
+
                 setCustomProductOptions(defaultOptions);
 
                 // Fetch Related Products
