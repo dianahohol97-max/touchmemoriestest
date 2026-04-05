@@ -3,10 +3,12 @@ import { PAGE_TEMPLATES, PageTemplate } from '@/lib/editor/page-templates';
 
 interface PageTemplatesPickerProps {
   onApply: (template: PageTemplate) => void;
+  onClear: () => void;
+  hasTextBlocks?: boolean;
   productType?: string;
 }
 
-export function PageTemplatesPicker({ onApply, productType }: PageTemplatesPickerProps) {
+export function PageTemplatesPicker({ onApply, onClear, hasTextBlocks, productType }: PageTemplatesPickerProps) {
   const filtered = PAGE_TEMPLATES.filter(t => {
     if (!t.tags || t.tags.length === 0) return true;
     if (!productType) return true;
@@ -23,6 +25,15 @@ export function PageTemplatesPicker({ onApply, productType }: PageTemplatesPicke
         Готові текстові сторінки — тексти можна редагувати після застосування
       </div>
 
+      {hasTextBlocks && (
+        <button onClick={onClear}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            padding: '8px 12px', border: '1px solid #fee2e2', borderRadius: 8,
+            background: '#fff7f7', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#ef4444' }}>
+          ✕ Прибрати шаблон (очистити текст і фон)
+        </button>
+      )}
+
       {groups.map(group => (
         <div key={group}>
           <div style={{ fontSize: 9, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
@@ -30,18 +41,10 @@ export function PageTemplatesPicker({ onApply, productType }: PageTemplatesPicke
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {filtered.filter(t => t.group === group).map(t => (
-              <button
-                key={t.id}
-                onClick={() => onApply(t)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8,
-                  background: '#fff', cursor: 'pointer', transition: 'all 0.15s',
-                  textAlign: 'left',
-                }}
+              <button key={t.id} onClick={() => onApply(t)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#1e2d7d'; e.currentTarget.style.background = '#f8f9ff'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#fff'; }}
-              >
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#fff'; }}>
                 <div style={{ width: 36, height: 36, borderRadius: 6, background: t.bgColor || '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14, color: '#94a3b8' }}>
                   {t.hasPhoto ? '📷' : '📝'}
                 </div>
