@@ -270,8 +270,8 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         // Stars
         for(const [ra,dec,mag] of STAR_CATALOG) {
             const pos=P(ra,dec,true); if(!pos) continue;
-            const size=Math.max(0.3, 3.2-(mag+1.5)*0.42);
-            const alpha=Math.max(0.2, Math.min(1.0, 1.2-mag*0.15));
+            const size=Math.max(0.2, 3.0-(mag+1.5)*0.38);
+            const alpha=Math.max(0.12, Math.min(1.0, 1.2-mag*0.15));
             // Glow only for bright stars on DARK backgrounds
             if(mag<1.5 && !isLight) {
                 const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,size*4);
