@@ -7,6 +7,8 @@ import { autoBuild } from '@/lib/editor/auto-build';
 import { AutoBuildModal } from './editor/AutoBuildModal';
 import { FontPicker } from './editor/FontPicker';
 import { CoverTemplatesPicker } from './editor/CoverTemplatesPicker';
+import { PageTemplatesPicker } from './editor/PageTemplatesPicker';
+import { PageTemplate } from '@/lib/editor/page-templates';
 import { CoverTemplate } from '@/lib/editor/cover-templates';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
@@ -1535,6 +1537,33 @@ export default function BookLayoutEditor() {
                   </div>
                 )}
                 {/* Layout groups — spread layouts for photobooks, page layouts for magazines */}
+                {/* Page text templates — for magazines/journals */}
+                {(_slug.includes('magazine') || _slug.includes('journal') || _slug.includes('zhurnal')) && currentIdx !== 0 && (
+                  <div style={{ marginBottom: 8, borderBottom: '1px solid #f1f5f9', paddingBottom: 8 }}>
+                    <PageTemplatesPicker productType="magazine" onApply={(tmpl: PageTemplate) => {
+                      const pageIdx = isSpreadMode ? (currentIdx - 1) * 2 + 1 : currentIdx;
+                      pushHistory();
+                      setPages(prev => prev.map((p, i) => i !== pageIdx ? p : {
+                        ...p,
+                        layout: (tmpl.layout || p.layout) as any,
+                        textBlocks: tmpl.texts.map((t, ti) => ({
+                          id: 'ptmpl-' + Date.now() + '-' + ti,
+                          text: t.text,
+                          x: t.x, y: t.y,
+                          fontSize: t.fontSize,
+                          fontFamily: t.fontFamily,
+                          color: t.color,
+                          bold: t.bold,
+                          italic: t.italic || false,
+                        })),
+                      }));
+                      if (tmpl.bgColor && tmpl.bgColor !== '#ffffff') {
+                        setPageBgs(prev => ({ ...prev, [pageIdx]: { type: 'color' as const, color: tmpl.bgColor!, opacity: 100, imageUrl: null, blur: 0 } }));
+                      }
+                      toast.success(`Шаблон "${tmpl.label}" застосовано`);
+                    }} />
+                  </div>
+                )}
                 {(isSpreadMode
                   ? [t('constructor.spread_group_1'), t('constructor.spread_group_2'), t('constructor.spread_group_3'), t('constructor.spread_group_4'), t('constructor.spread_group_5')]
                   : ['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7–9 фото', 'Текст']
