@@ -4,6 +4,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getSlotDefs } from '@/lib/editor/slot-defs';
 import type { LayoutType } from '@/lib/editor/types';
 import { BackgroundLayer, PageBackground, DEFAULT_BG } from './BackgroundLayer';
+import type { Shape } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES } from './FramesLayer';
 
 // ── Interfaces ──
@@ -34,13 +35,6 @@ interface FreeSlot {
   filter?: string;
 }
 
-interface Shape {
-  id: string; type: string;
-  x: number; y: number; w: number; h: number;
-  fill: string; stroke: string; strokeW: number;
-  opacity: number; rotation: number;
-  text?: string; fontSize?: number; fontFamily?: string; textColor?: string;
-}
 
 interface KalkaState {
   text: string; textColor: string; fontSize: number; fontFamily: string;
@@ -128,15 +122,16 @@ export function BookPreviewModal({
         transform: sh.rotation ? `rotate(${sh.rotation}deg)` : undefined,
         pointerEvents: 'none', zIndex: 3,
       };
-      if (sh.type === 'rect') return <div key={sh.id} style={{ ...style, background: sh.fill, border: sh.strokeW ? `${sh.strokeW}px solid ${sh.stroke}` : 'none', borderRadius: 2 }} />;
-      if (sh.type === 'circle') return <div key={sh.id} style={{ ...style, background: sh.fill, border: sh.strokeW ? `${sh.strokeW}px solid ${sh.stroke}` : 'none', borderRadius: '50%' }} />;
-      if (sh.type === 'line') return <div key={sh.id} style={{ ...style, height: sh.strokeW || 2, background: sh.stroke || sh.fill }} />;
-      if (sh.type === 'text' && sh.text) return (
+      if (sh.type === 'rect') return <div key={sh.id} style={{ ...style, background: sh.fill, border: sh.strokeWidth ? `${sh.strokeWidth}px solid ${sh.stroke}` : 'none', borderRadius: 2 }} />;
+      if (sh.type === 'circle') return <div key={sh.id} style={{ ...style, background: sh.fill, border: sh.strokeWidth ? `${sh.strokeWidth}px solid ${sh.stroke}` : 'none', borderRadius: '50%' }} />;
+      if (sh.type === 'line') return <div key={sh.id} style={{ ...style, height: sh.strokeWidth || 2, background: sh.stroke || sh.fill }} />;
+      const shAny = sh as any;
+      if (shAny.type === 'text' && shAny.text) return (
         <div key={sh.id} style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: sh.fontSize || 16, fontFamily: sh.fontFamily || 'Open Sans', color: sh.textColor || sh.fill, fontWeight: 700 }}>{sh.text}</span>
+          <span style={{ fontSize: shAny.fontSize || 16, fontFamily: shAny.fontFamily || 'Open Sans', color: shAny.textColor || sh.fill, fontWeight: 700 }}>{shAny.text}</span>
         </div>
       );
-      return <div key={sh.id} style={{ ...style, background: sh.fill, border: sh.strokeW ? `${sh.strokeW}px solid ${sh.stroke}` : 'none' }} />;
+      return <div key={sh.id} style={{ ...style, background: sh.fill, border: sh.strokeWidth ? `${sh.strokeWidth}px solid ${sh.stroke}` : 'none' }} />;
     });
   };
 
