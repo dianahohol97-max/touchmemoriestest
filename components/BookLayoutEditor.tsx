@@ -4741,6 +4741,16 @@ export default function BookLayoutEditor() {
           selectedCoverType={config?.selectedCoverType || ''}
           effectiveCoverColor={effectiveCoverColor}
           onClose={() => setShowPreview(false)}
+          pageBgs={pageBgs}
+          pageFrames={pageFrames}
+          pageShapes={pageShapes}
+          pageStickers={pageStickers}
+          slotGap={slotGap}
+          pageGap={pageGap}
+          pageBorder={pageBorder}
+          kalkaState={kalkaState}
+          isSpreadMode={isSpreadMode}
+          hasKalka={hasKalka}
         />
       )}
 
