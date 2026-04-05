@@ -710,11 +710,30 @@ export default function BookLayoutEditor() {
   const isKalkaForzats = (pageIdx: number) => hasKalka && pageIdx === kalkaForzatsIdx;
   const isKalkaPage = (pageIdx: number) => hasKalka && pageIdx === kalkaPageIdx;
   const isKalkaEndPage = (pageIdx: number) => hasKalka && pageIdx >= kalkaEndPageIdxStart && kalkaEndPageIdxStart > 0;
-  // Форзац: travelbook or magazine with enableEndpaper=true
-  const hasEndpaper = !!(config?.enableEndpaper) && (_slug.includes('travelbook') || _slug.includes('magazine') || _slug.includes('journal'));
+  // Форзац: travelbook or magazine — ALWAYS present, locked by default
+  // User must confirm surcharge to unlock editing
+  const hasEndpaper = !isSpreadMode && (_slug.includes('travelbook') || _slug.includes('magazine') || _slug.includes('journal') || _slug.includes('fotozhurnal'));
   const endpaperFirstIdx = hasEndpaper ? 1 : -1;
   const endpaperLastIdx = hasEndpaper ? pages.length - 1 : -1;
   const isEndpaperPage = (pageIdx: number) => hasEndpaper && (pageIdx === endpaperFirstIdx || pageIdx === endpaperLastIdx);
+  const endpaperSurcharge = _slug.includes('travelbook') ? 100 : 200;
+  // Track which endpaper pages are unlocked (user confirmed surcharge)
+  const [endpaperUnlocked, setEndpaperUnlocked] = useState<{ first: boolean; last: boolean }>({ first: false, last: false });
+  const isEndpaperUnlocked = (pageIdx: number) => {
+    if (pageIdx === endpaperFirstIdx) return endpaperUnlocked.first;
+    if (pageIdx === endpaperLastIdx) return endpaperUnlocked.last;
+    return false;
+  };
+  const confirmEndpaperUnlock = (pageIdx: number) => {
+    const isFirst = pageIdx === endpaperFirstIdx;
+    const label = isFirst ? 'перший' : 'останній';
+    const confirmed = window.confirm(`Друк на форзаці (${label}) — доплата +${endpaperSurcharge} ₴.\n\nПісля підтвердження ви зможете додати фото або текст на цю сторінку.\n\nПродовжити?`);
+    if (confirmed) {
+      setEndpaperUnlocked(prev => ({ ...prev, [isFirst ? 'first' : 'last']: true }));
+      return true;
+    }
+    return false;
+  };
   const cur = pages[currentIdx];
 
   const sizeKey = getSizeKeyForProduct(config);
@@ -1260,13 +1279,17 @@ export default function BookLayoutEditor() {
 
 // ── Pricing (imported from @/lib/editor/pricing) ─────────────────────────
   const currentPageCount = Math.max(0, pages.length - 1);
-  const { dynamicPrice, priceDiff } = calculateDynamicPrice(
+  const { dynamicPrice: baseDynamicPrice, priceDiff: basePriceDiff } = calculateDynamicPrice(
     config.selectedCoverType || 'Велюр',
     config.selectedSize || '20x20',
     currentPageCount,
     config.selectedPageCount || '20',
     config.totalPrice,
   );
+  // Add endpaper surcharge for unlocked forzats pages
+  const endpaperExtra = (endpaperUnlocked.first ? endpaperSurcharge : 0) + (endpaperUnlocked.last ? endpaperSurcharge : 0);
+  const dynamicPrice = baseDynamicPrice + endpaperExtra;
+  const priceDiff = basePriceDiff + endpaperExtra;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
@@ -3295,8 +3318,39 @@ export default function BookLayoutEditor() {
                   // ФОРЗАЦ (для журналів і тревел-буків)
                   if (isEndpaperPage(pageIdx)) {
                     const isFirst = pageIdx === endpaperFirstIdx;
+                    const unlocked = isEndpaperUnlocked(pageIdx);
                     const ep = isFirst ? endpaperState.first : endpaperState.last;
-                    const epKey = isFirst ? 'first' : 'last';
+
+                    // If NOT unlocked — show locked forzats
+                    if (!unlocked) {
+                      return (
+                        <div key={pageRenderKey}
+                          onClick={() => confirmEndpaperUnlock(pageIdx)}
+                          onDragOver={e => { e.preventDefault(); }}
+                          onDrop={e => {
+                            e.preventDefault(); e.stopPropagation();
+                            if (confirmEndpaperUnlock(pageIdx)) {
+                              // After unlock, re-drop will work on next interaction
+                            }
+                          }}
+                          style={{ width: pageW, height: cH, position: 'relative', background: '#fafbfc',
+                            borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0',
+                            boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)',
+                            overflow: 'hidden', cursor: 'pointer',
+                            border: '1.5px dashed #e2e8f0' }}>
+                          <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, pointerEvents:'none' }}>
+                            <span style={{ color:'#cbd5db', fontSize:11, fontWeight:700, letterSpacing:1, textTransform:'uppercase', writingMode:'vertical-rl' }}>ФОРЗАЦ</span>
+                          </div>
+                          <div style={{ position:'absolute', bottom:8, left:0, right:0, textAlign:'center', pointerEvents:'none' }}>
+                            <span style={{ fontSize:9, color:'#94a3b8', fontWeight:600 }}>
+                              Натисніть для друку (+{endpaperSurcharge} ₴)
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // UNLOCKED — editable forzats (same as before but with surcharge badge)
                     return (
                       <div key={pageRenderKey}
                         onClick={() => setLeftTab('endpaper' as any)}
@@ -3312,9 +3366,9 @@ export default function BookLayoutEditor() {
                           </div>
                         )}
                         <div style={{ position:'absolute', bottom:6, left:0, right:0, textAlign:'center', fontSize:9, color:'#94a3b8', fontWeight:600, letterSpacing:1, textTransform:'uppercase', pointerEvents:'none' }}>
-                          ФОРЗАЦ {isFirst ? '(перший)' : '(останній)'} {ep.enabled ? '· друк +200₴' : '· білий'}
+                          ФОРЗАЦ {isFirst ? '(перший)' : '(останній)'} · друк +{endpaperSurcharge}₴
                         </div>
-                        {!ep.enabled && !ep.imageUrl && !ep.text && (
+                        {!ep.imageUrl && !ep.text && (
                           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
                             <span style={{ color:'#e2e8f0', fontSize:9, fontWeight:600, letterSpacing:1, textTransform:'uppercase', writingMode:'vertical-rl' }}>ФОРЗАЦ — тисніть для редагування</span>
                           </div>
