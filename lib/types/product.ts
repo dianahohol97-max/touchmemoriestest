@@ -60,4 +60,6 @@ export interface Product {
   popular_order?: number;
   created_at?: string;
   updated_at?: string;
+  /** JSONB: { "en": { "name": "...", "short_description": "..." }, "ro": {...} } */
+  translations?: Record<string, Record<string, string>> | null;
 }

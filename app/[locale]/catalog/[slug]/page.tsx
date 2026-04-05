@@ -2,9 +2,10 @@ import { Metadata, ResolvingMetadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import ProductClient from './ProductClient';
 import { notFound } from 'next/navigation';
+import { getLocalized } from '@/lib/i18n/localize';
 
 interface Props {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; locale: string }>;
 }
 
 // Force dynamic rendering so product data is always fresh
@@ -15,26 +16,26 @@ export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug, locale } = await params;
   const supabase = await createClient();
 
   const { data: product, error } = await supabase
     .from('products')
-    .select('name, short_description, meta_title, meta_description')
+    .select('name, short_description, meta_title, meta_description, translations')
     .eq('slug', slug)
     .eq('is_active', true)
     .single();
 
   if (error || !product) {
     return {
-      title: 'Товар не знайдено | Touch.Memories',
+      title: 'Product not found | Touch.Memories',
     };
   }
 
   // Use meta_title/meta_description if available, otherwise fallback to name/short_description
   return {
-    title: product.meta_title || `${product.name} | Touch.Memories`,
-    description: product.meta_description || product.short_description || 'Фотокнига від Touch.Memories',
+    title: product.meta_title || `${getLocalized(product, locale || 'uk', 'name')} | Touch.Memories`,
+    description: product.meta_description || getLocalized(product, locale || 'uk', 'short_description') || 'Touch.Memories',
   };
 }
 

@@ -1,5 +1,6 @@
 'use client';
-import { useT } from '@/lib/i18n/context';
+import { useT, useLocale } from '@/lib/i18n/context';
+import { getLocalized } from '@/lib/i18n/localize';
 import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -122,6 +123,7 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const t = useT();
+    const locale = useLocale();
     const resolvedParams = React.use(params);
     const router = useRouter();
     const supabase = createBrowserClient(
@@ -209,7 +211,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             setIsLoading(true);
             const { data, error } = await supabase
                 .from('products')
-                .select('*, categories(name, slug)')
+                .select('*, categories(name, slug), translations')
                 .eq('slug', resolvedParams.slug)
                 .eq('is_active', true)
                 .single();
@@ -252,7 +254,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 // Fetch Related Products
                 const { data: relatedData } = await supabase
                     .from('products')
-                    .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, category_id')
+                    .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, category_id, translations')
                     .eq('is_active', true)
                     .neq('id', data.id)
                     .limit(4);
@@ -443,7 +445,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             <span>→</span>
                         </>
                     )}
-                    <span style={{ color: '#263A99', fontWeight: 600 }}>{product.name}</span>
+                    <span style={{ color: '#263A99', fontWeight: 600 }}>{getLocalized(product, locale, "name")}</span>
                 </div>
 
                 {/* Two Column Layout */}
@@ -464,7 +466,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             ) : mainImage ? (
                                 <Image
                                     src={mainImage}
-                                    alt={product.name}
+                                    alt={getLocalized(product, locale, "name")}
                                     fill
                                     style={{ objectFit: 'cover' }}
                                 />
@@ -493,7 +495,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             backgroundColor: '#f8f9fa'
                                         }}
                                     >
-                                        <Image src={src} alt={`${product.name} thumbnail ${idx}`} fill style={{ objectFit: 'cover' }} />
+                                        <Image src={src} alt={`${getLocalized(product, locale, "name")} thumbnail ${idx}`} fill style={{ objectFit: 'cover' }} />
                                     </button>
                                 ))}
                                 {product.video_url && (
@@ -524,7 +526,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     {/* Right Column: Details */}
                     <div>
                         <h1 className={styles.productTitleMain} style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: '16px', lineHeight: 1.2 }}>
-                            {product.name}
+                            {getLocalized(product, locale, "name")}
                         </h1>
                         {product.short_description && (
                             <p style={{ fontSize: '16px', color: '#666', lineHeight: 1.6, marginBottom: '24px' }}>

@@ -1,6 +1,7 @@
 'use client';
 import { useT, useLocale } from '@/lib/i18n/context';
 import { detectCurrency, formatPrice } from '@/lib/i18n/currency';
+import { getLocalized } from '@/lib/i18n/localize';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import styles from './ProductCard.module.css';
@@ -44,7 +45,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 <div className="relative w-full aspect-[2/3] overflow-hidden bg-gray-50 border-b border-gray-100">
                     <Image
                         src={product.images?.[0] || 'https://via.placeholder.com/400'}
-                        alt={product.name}
+                        alt={getLocalized(product, locale, "name")}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover object-center transition-transform duration-700 ease-[0.23,1,0.32,1] group-hover:scale-110"
@@ -57,7 +58,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 <div className="p-3 sm:p-6 flex flex-col flex-1 text-center justify-between">
                     <div>
                         <h3 className="font-heading text-[14px] sm:text-[20px] font-bold m-0 text-primary leading-tight tracking-tight mb-1 sm:mb-2">
-                            {product.name}
+                            {getLocalized(product, locale, "name")}
                         </h3>
                         {priceDisplay && (
                             <p className="text-[13px] text-primary/60 font-medium mt-1">

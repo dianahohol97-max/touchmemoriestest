@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { Calendar, Clock, ArrowRight, User } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
+import { getLocalized } from '@/lib/i18n/localize';
 
 export const metadata = {
   title: 'Блог — ідеї та натхнення | Touch.Memories',
@@ -48,7 +49,9 @@ const ARTICLES = [
   },
 ];
 
-export default async function BlogHomePage({ searchParams }: { searchParams: Promise<{ category?: string, page?: string }> }) {
+export default async function BlogHomePage({ searchParams, params }: { searchParams: Promise<{ category?: string, page?: string }>, params: Promise<{ locale?: string }> }) {
+    const { locale: loc } = await params;
+    const locale = loc || 'uk';
     const supabase = await createClient();
     const { category, page } = await searchParams;
     const currentPage = parseInt(page || '1');
@@ -117,7 +120,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                     <Link href={`/blog/${featuredPost.slug}`} style={{ display: 'block', textDecoration: 'none', marginBottom: '60px' }}>
                         <div style={{ position: 'relative', borderRadius: "12px", overflow: 'hidden', height: '500px', display: 'flex', alignItems: 'flex-end', backgroundColor: '#e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
                             {featuredPost.cover_image && (
-                                <Image src={featuredPost.cover_image} alt={featuredPost.title} fill style={{ objectFit: 'cover' }} priority />
+                                <Image src={featuredPost.cover_image} alt={getLocalized(featuredPost, locale, "title")} fill style={{ objectFit: 'cover' }} priority />
                             )}
                             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(38, 58, 153, 0.9) 0%, rgba(38, 58, 153, 0.4) 50%, transparent 100%)' }} />
                             <div style={{ position: 'relative', padding: '48px', width: '100%', maxWidth: '800px', color: 'white' }}>
@@ -132,10 +135,10 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                     )}
                                 </div>
                                 <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', fontWeight: 900, lineHeight: 1.1, marginBottom: '16px' }}>
-                                    {featuredPost.title}
+                                    {getLocalized(featuredPost, locale, "title")}
                                 </h2>
                                 <p style={{ fontSize: '18px', color: '#cbd5e1', marginBottom: '24px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {featuredPost.excerpt}
+                                    {getLocalized(featuredPost, locale, "excerpt")}
                                 </p>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '24px', fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><User size={16} /> {featuredPost.author_name}</span>
@@ -170,7 +173,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                             {(posts && posts.length > 0 ? posts : ARTICLES as any).map((post: any, index: number) => (
                                 <Link key={post.id || post.slug} href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%', group: 'article' } as any}>
                                     <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "12px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
-                                        {(post.cover_image || post.image) && <Image src={post.cover_image || post.image} alt={post.title} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
+                                        {(post.cover_image || post.image) && <Image src={post.cover_image || post.image} alt={getLocalized(post, locale, "title")} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
                                         {(post.blog_categories || post.category) && (
                                             <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '6px 14px', borderRadius: "12px", fontSize: '12px', fontWeight: 800, color: '#263A99', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                                                 {stripEmoji(post.blog_categories?.name || post.category)}
@@ -179,10 +182,10 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                     </div>
                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                         <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px', lineHeight: 1.3 }}>
-                                            {post.title}
+                                            {getLocalized(post, locale, "title")}
                                         </h3>
                                         <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '20px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
-                                            {post.excerpt}
+                                            {getLocalized(post, locale, "excerpt")}
                                         </p>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -265,7 +268,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: Pro
                                                 0{index + 1}
                                             </div>
                                             <div>
-                                                <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#263A99', marginBottom: '4px', lineHeight: 1.3 }}>{post.title}</h4>
+                                                <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#263A99', marginBottom: '4px', lineHeight: 1.3 }}>{getLocalized(post, locale, "title")}</h4>
                                                 <span style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(post.published_at).toLocaleDateString('uk-UA')}</span>
                                             </div>
                                         </Link>

@@ -1,6 +1,7 @@
 'use client';
 import { useT, useLocale } from '@/lib/i18n/context';
 import { detectCurrency, formatPrice } from '@/lib/i18n/currency';
+import { getLocalized } from '@/lib/i18n/localize';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -13,6 +14,7 @@ interface Product {
   sale_price: number | null;
   price_from: boolean;
   images: string[];
+  translations?: Record<string, Record<string, string>> | null;
 }
 
 interface SectionContent {
@@ -122,7 +124,7 @@ export function PopularProductsClient({ products, sectionContent }: PopularProdu
                   {product.images?.[0] ? (
                     <img
                       src={product.images[0]}
-                      alt={product.name}
+                      alt={getLocalized(product, locale, "name")}
                       style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s' }}
                     />
                   ) : (
@@ -134,7 +136,7 @@ export function PopularProductsClient({ products, sectionContent }: PopularProdu
 
                 <div style={{ padding: '14px 16px' }}>
                   <h3 style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a2e', lineHeight: 1.35, marginBottom: '6px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {product.name}
+                    {getLocalized(product, locale, "name")}
                   </h3>
                   <p style={{ fontWeight: 800, fontSize: '1rem', color: '#1e2d7d' }}>
                     {product.price_from ? `${t('ui.from')} ` : ''}

@@ -24,7 +24,7 @@ export async function PopularProductsServer({ locale = "uk" }: { locale?: string
         // Fetch popular products
         const { data: productsData, error: productsError } = await supabase
             .from('products')
-            .select('id, name, slug, price, sale_price, price_from, images')
+            .select('id, name, slug, price, sale_price, price_from, images, translations')
             .eq('is_popular', true)
             .eq('is_active', true)
             .order('popular_order', { ascending: true, nullsFirst: false })

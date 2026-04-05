@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
+import { getLocalized } from '@/lib/i18n/localize';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Clock, User, ArrowLeft } from 'lucide-react';
@@ -14,8 +15,9 @@ const stripEmoji = (text?: string) => {
     return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u2764\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; locale?: string }> }) {
+    const { slug, locale: loc } = await params;
+    const locale = loc || 'uk';
     const supabase = await createClient();
     const { data: category } = await supabase.from('blog_categories').select('*').eq('slug', slug).single();
 
@@ -29,8 +31,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
 }
 
-export default async function CategoryPage({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams: Promise<{ page?: string }> }) {
-    const { slug } = await params;
+export default async function CategoryPage({ params, searchParams }: { params: Promise<{ slug: string; locale?: string }>, searchParams: Promise<{ page?: string }> }) {
+    const { slug, locale: loc } = await params;
+    const locale = loc || 'uk';
     const { page } = await searchParams;
     const supabase = await createClient();
 
@@ -75,14 +78,14 @@ export default async function CategoryPage({ params, searchParams }: { params: P
                         {posts.map((post: any) => (
                             <Link key={post.id} href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' } as any}>
                                 <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
-                                    {post.cover_image && <Image src={post.cover_image} alt={post.title} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
+                                    {post.cover_image && <Image src={post.cover_image} alt={getLocalized(post, locale, "title")} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
                                 </div>
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                     <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px', lineHeight: 1.3 }}>
-                                        {post.title}
+                                        {getLocalized(post, locale, "title")}
                                     </h3>
                                     <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '20px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
-                                        {post.excerpt}
+                                        {getLocalized(post, locale, "excerpt")}
                                     </p>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

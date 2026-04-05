@@ -7,6 +7,7 @@ import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import MarkdownViewer from '@/components/ui/MarkdownViewer';
 import BlogShareButton from '@/components/ui/BlogShareButton';
+import { getLocalized } from '@/lib/i18n/localize';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -17,8 +18,8 @@ const stripEmoji = (text?: string) => {
 };
 
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; locale: string }> }) {
+    const { slug, locale } = await params;
 
     try {
         const supabase = await createClient();
@@ -31,11 +32,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         }
 
         return {
-            title: post?.meta_title || `${post?.title || 'Стаття'} | TouchMemories`,
-            description: post?.meta_description || post?.excerpt || '',
+            title: post?.meta_title || `${getLocalized(post, locale, 'title') || 'Article'} | TouchMemories`,
+            description: post?.meta_description || getLocalized(post, locale, 'excerpt') || '',
             openGraph: {
-                title: post?.og_title || post?.meta_title || post?.title || 'Стаття',
-                description: post?.meta_description || post?.excerpt || '',
+                title: post?.og_title || post?.meta_title || getLocalized(post, locale, 'title') || 'Article',
+                description: post?.meta_description || getLocalized(post, locale, 'excerpt') || '',
                 images: post?.cover_image ? [{ url: post.cover_image, width: 1200, height: 630 }] : [],
                 type: 'article',
                 publishedTime: post?.published_at,
@@ -49,8 +50,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
 }
 
-export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string; locale: string }> }) {
+    const { slug, locale } = await params;
     const supabase = await createClient();
 
     let post: any = null;
@@ -110,7 +111,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     const jsonLdArticle = {
         '@context': 'https://schema.org',
         '@type': 'Article',
-        'headline': post?.title || '',
+        'headline': getLocalized(post, locale, 'title') || '',
         'image': post?.cover_image ? [post.cover_image] : [],
         'author': {
             '@type': 'Person',
@@ -138,7 +139,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 'name': stripEmoji(post?.blog_categories?.name || 'Стаття'),
                 'item': post?.blog_categories ? `${domain}/blog?category=${post.blog_categories.slug}` : `${domain}/blog`
             },
-            { '@type': 'ListItem', 'position': 4, 'name': post?.title || '' }
+            { '@type': 'ListItem', 'position': 4, 'name': getLocalized(post, locale, 'title') || '' }
         ]
     };
 
@@ -171,7 +172,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                 <span>→</span>
                             </>
                         )}
-                        <span style={{ color: '#263A99', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{post?.title || ''}</span>
+                        <span style={{ color: '#263A99', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{getLocalized(post, locale, 'title') || ''}</span>
                     </div>
 
                     {/* Header */}
@@ -223,13 +224,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     {/* Cover Image */}
                     {post?.cover_image && (
                         <div style={{ width: '100%', height: '500px', position: 'relative', borderRadius: "3px", overflow: 'hidden', marginBottom: '48px', backgroundColor: '#f8fafc' }}>
-                            <Image src={post.cover_image} alt={post?.cover_image_alt || post?.title || 'Cover image'} fill style={{ objectFit: 'cover' }} priority />
+                            <Image src={post.cover_image} alt={post?.cover_image_alt || getLocalized(post, locale, 'title') || 'Cover image'} fill style={{ objectFit: 'cover' }} priority />
                         </div>
                     )}
 
                     {/* Article Content */}
                     <div style={{ fontSize: '18px', lineHeight: 1.8, color: '#263A99', marginBottom: '60px' }}>
-                        <MarkdownViewer source={post?.content || ''} />
+                        <MarkdownViewer source={getLocalized(post, locale, 'content') || ''} />
                     </div>
 
                     {/* Tags */}
@@ -287,7 +288,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                         <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
                                             {sp?.cover_image && <Image src={sp.cover_image} alt={sp?.title || 'Article'} fill style={{ objectFit: 'cover' }} />}
                                         </div>
-                                        <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px' }}>{sp?.title || ''}</h4>
+                                        <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px' }}>{getLocalized(sp, locale, 'title') || ''}</h4>
                                         <div style={{ fontSize: '13px', color: '#94a3b8' }}>{sp?.published_at ? new Date(sp.published_at).toLocaleDateString('uk-UA') : ''}</div>
                                     </Link>
                                 ))}
