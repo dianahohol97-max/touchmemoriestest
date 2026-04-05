@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 
 import { useState, useEffect } from 'react';
 import styles from './ProductOptions.module.css';
@@ -47,6 +48,7 @@ export default function ProductOptions({
   onOptionsChange,
   initialValues = {}
 }: ProductOptionsProps) {
+  const t = useT();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>(() => {
     const initial: Record<string, any> = {};
     attributes.forEach(attr => {
@@ -216,7 +218,7 @@ export default function ProductOptions({
               onChange={(e) => handleOptionChange(attr.key, e.target.checked)}
               className={styles.checkbox}
             />
-            <span>Так</span>
+            <span>{t('ui.yes')}</span>
           </label>
         );
 
@@ -253,7 +255,7 @@ export default function ProductOptions({
 
   return (
     <div className={styles.productOptions}>
-      <h4 className={styles.heading}>Оберіть параметри:</h4>
+      <h4 className={styles.heading}>{t('ui.choose_params')}</h4>
       <div className={styles.optionsContainer}>
         {attributes.map((attr) => (
           <div key={attr.key} className={styles.optionGroup}>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, X, AlertTriangle, ChevronRight, GripVertical, Info } from 'lucide-react';
+import { useT } from '@/lib/i18n/context';
 import { toast } from 'sonner';
 
 interface PhotoFile {
@@ -43,6 +44,7 @@ const PRINT_DIMENSIONS: Record<string, { width: number; height: number }> = {
 };
 
 export default function BookPhotoUpload() {
+    const t = useT();
     const router = useRouter();
     const [config, setConfig] = useState<BookConfig | null>(null);
     const [photos, setPhotos] = useState<PhotoFile[]>([]);
@@ -59,11 +61,11 @@ export default function BookPhotoUpload() {
                 setConfig(loadedConfig);
             } catch (error) {
                 console.error('Failed to parse book config:', error);
-                toast.error('Помилка завантаження конфігурації');
+                toast.error(t('photo_upload.upload_error'));
                 router.push('/order/book');
             }
         } else {
-            toast.error('Спочатку оберіть конфігурацію');
+            toast.error(t('photo_upload.choose_config_first'));
             router.push('/order/book');
         }
     }, [router]);
@@ -79,7 +81,7 @@ export default function BookPhotoUpload() {
 
             // Check max 500 photos limit
             if (photos.length + newPhotos.length >= 500) {
-                toast.error('Максимум 500 фото на проект');
+                toast.error(t('photo_upload.max_photos'));
                 break;
             }
 
@@ -109,7 +111,7 @@ export default function BookPhotoUpload() {
 
         setPhotos(prev => [...prev, ...newPhotos]);
         if (newPhotos.length > 0) {
-            toast.success(`Завантажено ${newPhotos.length} фото`);
+            toast.success(t('photo_upload.photos_uploaded').replace('{n}', String(newPhotos.length)));
         }
     };
 
@@ -184,16 +186,16 @@ export default function BookPhotoUpload() {
         if (photo.width < requiredWidth || photo.height < requiredHeight) {
             return {
                 ok: false,
-                message: `Низька роздільність. Рекомендовано: ${Math.round(requiredWidth)}×${Math.round(requiredHeight)}px`
+                message: t('photo_upload.low_res_warning').replace('{w}', String(Math.round(requiredWidth))).replace('{h}', String(Math.round(requiredHeight)))
             };
         }
 
-        return { ok: true, message: 'Якість відмінна' };
+        return { ok: true, message: t('photo_upload.quality_ok') };
     };
 
     const handleContinue = () => {
         if (photos.length === 0) {
-            toast.error('Додайте хоча б одне фото');
+            toast.error(t('photo_upload.add_photo_first'));
             return;
         }
 
@@ -225,7 +227,7 @@ export default function BookPhotoUpload() {
     if (!config) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-gray-500">Завантаження...</div>
+                <div className="text-gray-500">{t('photo_upload.loading')}</div>
             </div>
         );
     }
@@ -238,7 +240,7 @@ export default function BookPhotoUpload() {
             {/* Header */}
             <div className="mb-4 sm:mb-8">
                 <h1 className="text-xl sm:text-3xl font-bold text-[#1e2d7d] mb-1 sm:mb-2">{config.productName}</h1>
-                <p className="text-gray-600">Крок 2: Завантаження фотографій</p>
+                <p className="text-gray-600">{t('photo_upload.step2_title')}</p>
             </div>
 
             {/* Configuration Summary */}
@@ -246,31 +248,31 @@ export default function BookPhotoUpload() {
                 <div className="flex items-start gap-3">
                     <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
-                        <p className="text-sm font-semibold text-blue-900 mb-1">Обрана конфігурація</p>
+                        <p className="text-sm font-semibold text-blue-900 mb-1">{t('photo_upload.selected_config')}</p>
                         <div className="text-sm text-blue-700 space-y-1">
-                            {config.selectedSize && <p>• Розмір: {config.selectedSize}</p>}
+                            {config.selectedSize && <p>• {t('photo_upload.size_label')} {config.selectedSize}</p>}
                             <p>• {config.selectedPageCount}</p>
-                            {config.selectedCoverType && <p>• Обкладинка: {config.selectedCoverType}{config.selectedCoverColor ? ` · ${config.selectedCoverColor}` : ''}</p>}
+                            {config.selectedCoverType && <p>• {t('photo_upload.cover_label')} {config.selectedCoverType}{config.selectedCoverColor ? ` · ${config.selectedCoverColor}` : ''}</p>}
                             {config.selectedDecorationType && config.selectedDecorationType !== 'none' && (
-                                <p>• Оздоблення: {config.selectedDecorationType}{config.selectedDecorationVariant ? ` · ${config.selectedDecorationVariant}` : ''}{config.decorationSurcharge ? ` (+${config.decorationSurcharge} ₴)` : ''}</p>
+                                <p>• {t('photo_upload.decoration_label')} {config.selectedDecorationType}{config.selectedDecorationVariant ? ` · ${config.selectedDecorationVariant}` : ''}{config.decorationSurcharge ? ` (+${config.decorationSurcharge} ₴)` : ''}</p>
                             )}
-                            {config.selectedLamination && <p>• Ламінація обкладинки: {config.selectedLamination}</p>}
+                            {config.selectedLamination && <p>• {t('photo_upload.lamination_cover')} {config.selectedLamination}</p>}
                             {config.selectedPageLamination && config.selectedPageLamination !== 'Без ламінації' && (() => {
                                 const pages = parseInt(config.selectedPageCount?.match(/\d+/)?.[0] || '0');
                                 const lamCost = pages > 0 ? pages * 5 : 0;
-                                return <p>• Ламінування сторінок: {config.selectedPageLamination}{lamCost > 0 ? ` (+${lamCost} ₴)` : ''}</p>;
+                                return <p>• {t('photo_upload.lamination_pages')} {config.selectedPageLamination}{lamCost > 0 ? ` (+${lamCost} ₴)` : ''}</p>;
                             })()}
-                            {recommendedRange && <p>• Рекомендована кількість фото: <b>{recommendedRange}</b></p>}
+                            {recommendedRange && <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange}</b></p>}
                             {(() => {
                                 const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
                                 const textLayout = params.get('text_layout');
                                 return (
                                     <>
-                                        {textLayout && <p>• {textLayout === 'with' ? 'З версткою тексту (+175 ₴)' : 'Без тексту'}</p>}
+                                        {textLayout && <p>• {textLayout === 'with' ? t('photo_upload.with_text_layout') : t('photo_upload.without_text')}</p>}
                                     </>
                                 );
                             })()}
-                            <p>• Орієнтовна вартість: {config.totalPrice} ₴</p>
+                            <p>• {t('photo_upload.estimated_price')} {config.totalPrice} ₴</p>
                         </div>
                     </div>
                 </div>
@@ -283,7 +285,7 @@ export default function BookPhotoUpload() {
                     {lowQualityCount > 0 && (
                         <div className="flex items-center gap-2 text-yellow-700">
                             <AlertTriangle className="w-5 h-5" />
-                            <span className="text-sm font-medium">{lowQualityCount} фото низької якості</span>
+                            <span className="text-sm font-medium">{t('photo_upload.low_quality_photos').replace('{n}', String(lowQualityCount))}</span>
                         </div>
                     )}
                 </div>
@@ -303,10 +305,10 @@ export default function BookPhotoUpload() {
             >
                 <Upload className="w-8 h-8 sm:w-12 sm:h-12 text-[#1e2d7d] mx-auto mb-3" />
                 <p className="text-base sm:text-lg font-semibold text-[#1e2d7d] mb-1 sm:mb-2">
-                    Перетягніть фото сюди
+                    {t('photo_upload.drag_photos')}
                 </p>
                 <p className="text-sm text-gray-500 mb-4">
-                    або просто перетягніть фото сюди
+                    {t('photo_upload.or_drag')}
                 </p>
                 <button
                     className="px-6 py-3 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] transition-colors"
@@ -315,7 +317,7 @@ export default function BookPhotoUpload() {
                         fileInputRef.current?.click();
                     }}
                 >
-                    Мої пристрої
+                    {t('photo_upload.my_devices')}
                 </button>
                 <input
                     ref={fileInputRef}
@@ -335,10 +337,10 @@ export default function BookPhotoUpload() {
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-800">
-                            Завантажені фото ({photos.length})
+                            {t('photo_upload.uploaded_photos')} ({photos.length})
                         </h3>
                         <p className="text-sm text-gray-500">
-                            Перетягніть фото для зміни порядку
+                            {t('photo_upload.drag_to_reorder')}
                         </p>
                     </div>
                     <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4 max-h-[40vh] sm:max-h-[600px] overflow-y-auto p-1 sm:p-2">
@@ -407,11 +409,11 @@ export default function BookPhotoUpload() {
             {/* Help Text */}
             {photos.length > 0 && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">💡 Підказки:</h4>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('photo_upload.tips_title')}</h4>
                     <ul className="text-sm text-gray-600 space-y-1">
-                        <li>• Перетягніть фото для зміни порядку</li>
-                        <li>• Жовта рамка означає низьку роздільність фото</li>
-                        <li>• Рекомендована роздільність: мінімум 300 DPI для якісного друку</li>
+                        <li>{t('photo_upload.tip_drag')}</li>
+                        <li>{t('photo_upload.tip_yellow')}</li>
+                        <li>{t('photo_upload.tip_dpi')}</li>
 
                     </ul>
                 </div>
@@ -450,7 +452,7 @@ export default function BookPhotoUpload() {
                     }}
                     className="w-full sm:flex-1 px-6 py-3 sm:py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-base sm:text-lg"
                 >
-                    ← Назад до конфігурації
+                    {t('photo_upload.back_to_config')}
                 </button>
                 <button
                     onClick={handleContinue}
@@ -461,7 +463,7 @@ export default function BookPhotoUpload() {
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                 >
-                    Продовжити в редакторі
+                    {t('photo_upload.continue_editor')}
                     <ChevronRight className="w-5 h-5" />
                 </button>
             </div>

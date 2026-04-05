@@ -196,7 +196,9 @@
     "open_constructor": "Konfigurator öffnen",
     "order_with_designer": "Mit Designer bestellen",
     "view_all_products": "Alle Produkte anzeigen →",
-    "from": "ab"
+    "from": "ab",
+    "choose_params": "Parameter wählen:",
+    "yes": "Ja"
   },
   "photo_print": {
     "step1_title": "Format wählen",
@@ -298,5 +300,38 @@
     "custom_note": "Dieses Produkt wird nach Bestellung individuell angepasst. Der Grundpreis bleibt unverändert.",
     "estimated_price": "Geschätzter Preis",
     "order_btn": "Bestellen"
+  },
+  "photo_upload": {
+    "upload_error": "Fehler beim Laden der Konfiguration",
+    "choose_config_first": "Wählen Sie zuerst eine Konfiguration",
+    "max_photos": "Maximal 500 Fotos pro Projekt",
+    "photos_uploaded": "{n} Fotos hochgeladen",
+    "low_res_warning": "Niedrige Auflösung. Empfohlen: {w}×{h}px",
+    "quality_ok": "Ausgezeichnete Qualität",
+    "add_photo_first": "Fügen Sie mindestens ein Foto hinzu",
+    "loading": "Wird geladen...",
+    "step2_title": "Schritt 2: Fotos hochladen",
+    "selected_config": "Gewählte Konfiguration",
+    "size_label": "Größe:",
+    "cover_label": "Einband:",
+    "decoration_label": "Dekoration:",
+    "lamination_cover": "Einband-Laminierung:",
+    "lamination_pages": "Seiten-Laminierung:",
+    "recommended_count": "Empfohlene Fotoanzahl:",
+    "with_text_layout": "Mit Textlayout (+175 ₴)",
+    "without_text": "Ohne Text",
+    "estimated_price": "Geschätzter Preis:",
+    "low_quality_photos": "{n} Fotos niedriger Qualität",
+    "drag_photos": "Fotos hierher ziehen",
+    "or_drag": "oder einfach Fotos hierher ziehen",
+    "my_devices": "Meine Geräte",
+    "uploaded_photos": "Hochgeladene Fotos",
+    "drag_to_reorder": "Ziehen Sie Fotos zum Sortieren",
+    "tips_title": "💡 Tipps:",
+    "tip_drag": "Fotos zum Sortieren ziehen",
+    "tip_yellow": "Gelber Rahmen zeigt niedrige Auflösung an",
+    "tip_dpi": "Empfohlene Auflösung: mindestens 300 DPI für Qualitätsdruck",
+    "back_to_config": "← Zurück zur Konfiguration",
+    "continue_editor": "Im Editor fortfahren"
   }
 }

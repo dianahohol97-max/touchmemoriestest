@@ -193,10 +193,12 @@
     "search_no_results": "Nie znaleziono produktów. Spróbuj innego zapytania.",
     "search_min_chars": "Wpisz co najmniej 2 znaki, aby wyszukać",
     "search_esc": "Naciśnij ESC, aby zamknąć",
-    "open_constructor": "Otwórz kreator",
+    "open_constructor": "Otwórz konstruktor",
     "order_with_designer": "Zamów z projektantem",
     "view_all_products": "Zobacz wszystkie produkty →",
-    "from": "od"
+    "from": "od",
+    "choose_params": "Wybierz parametry:",
+    "yes": "Tak"
   },
   "photo_print": {
     "step1_title": "Wybierz format",
@@ -298,5 +300,38 @@
     "custom_note": "Ten produkt jest dostosowywany indywidualnie po zamówieniu. Cena bazowa pozostaje bez zmian.",
     "estimated_price": "Szacunkowa cena",
     "order_btn": "Zamów"
+  },
+  "photo_upload": {
+    "upload_error": "Błąd ładowania konfiguracji",
+    "choose_config_first": "Najpierw wybierz konfigurację",
+    "max_photos": "Maksymalnie 500 zdjęć na projekt",
+    "photos_uploaded": "Załadowano {n} zdjęć",
+    "low_res_warning": "Niska rozdzielczość. Zalecane: {w}×{h}px",
+    "quality_ok": "Doskonała jakość",
+    "add_photo_first": "Dodaj przynajmniej jedno zdjęcie",
+    "loading": "Ładowanie...",
+    "step2_title": "Krok 2: Prześlij zdjęcia",
+    "selected_config": "Wybrana konfiguracja",
+    "size_label": "Rozmiar:",
+    "cover_label": "Okładka:",
+    "decoration_label": "Dekoracja:",
+    "lamination_cover": "Laminacja okładki:",
+    "lamination_pages": "Laminacja stron:",
+    "recommended_count": "Zalecana ilość zdjęć:",
+    "with_text_layout": "Z układem tekstu (+175 ₴)",
+    "without_text": "Bez tekstu",
+    "estimated_price": "Szacunkowa cena:",
+    "low_quality_photos": "{n} zdjęć niskiej jakości",
+    "drag_photos": "Przeciągnij zdjęcia tutaj",
+    "or_drag": "lub po prostu przeciągnij zdjęcia tutaj",
+    "my_devices": "Moje urządzenia",
+    "uploaded_photos": "Załadowane zdjęcia",
+    "drag_to_reorder": "Przeciągnij zdjęcia aby zmienić kolejność",
+    "tips_title": "💡 Wskazówki:",
+    "tip_drag": "Przeciągnij zdjęcia aby zmienić kolejność",
+    "tip_yellow": "Żółta ramka oznacza niską rozdzielczość zdjęcia",
+    "tip_dpi": "Zalecana rozdzielczość: minimum 300 DPI dla jakościowego druku",
+    "back_to_config": "← Wróć do konfiguracji",
+    "continue_editor": "Kontynuuj w edytorze"
   }
 }

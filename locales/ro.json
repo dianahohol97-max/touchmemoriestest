@@ -196,7 +196,9 @@
     "open_constructor": "Deschide constructorul",
     "order_with_designer": "Comandă cu designer",
     "view_all_products": "Vezi toate produsele →",
-    "from": "de la"
+    "from": "de la",
+    "choose_params": "Alegeți parametrii:",
+    "yes": "Da"
   },
   "photo_print": {
     "step1_title": "Alegeți formatul",
@@ -298,5 +300,38 @@
     "custom_note": "Acest produs este personalizat individual după comandă. Prețul de bază rămâne neschimbat.",
     "estimated_price": "Preț estimat",
     "order_btn": "Comandă"
+  },
+  "photo_upload": {
+    "upload_error": "Eroare la încărcarea configurației",
+    "choose_config_first": "Alegeți mai întâi configurația",
+    "max_photos": "Maximum 500 fotografii per proiect",
+    "photos_uploaded": "{n} fotografii încărcate",
+    "low_res_warning": "Rezoluție scăzută. Recomandat: {w}×{h}px",
+    "quality_ok": "Calitate excelentă",
+    "add_photo_first": "Adăugați cel puțin o fotografie",
+    "loading": "Se încarcă...",
+    "step2_title": "Pasul 2: Încărcați fotografiile",
+    "selected_config": "Configurație selectată",
+    "size_label": "Dimensiune:",
+    "cover_label": "Copertă:",
+    "decoration_label": "Decorare:",
+    "lamination_cover": "Laminare copertă:",
+    "lamination_pages": "Laminare pagini:",
+    "recommended_count": "Număr recomandat de fotografii:",
+    "with_text_layout": "Cu layout text (+175 ₴)",
+    "without_text": "Fără text",
+    "estimated_price": "Preț estimat:",
+    "low_quality_photos": "{n} fotografii de calitate scăzută",
+    "drag_photos": "Trageți fotografiile aici",
+    "or_drag": "sau trageți fotografiile aici",
+    "my_devices": "Dispozitivele mele",
+    "uploaded_photos": "Fotografii încărcate",
+    "drag_to_reorder": "Trageți pentru a reordona",
+    "tips_title": "💡 Sfaturi:",
+    "tip_drag": "Trageți fotografiile pentru a reordona",
+    "tip_yellow": "Chenarul galben indică rezoluție scăzută",
+    "tip_dpi": "Rezoluție recomandată: minim 300 DPI pentru tipărire de calitate",
+    "back_to_config": "← Înapoi la configurație",
+    "continue_editor": "Continuă în editor"
   }
 }
