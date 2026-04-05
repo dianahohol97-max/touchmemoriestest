@@ -157,7 +157,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         if (s.includes('puzzle') || s.includes('canvas')) return '5–7 робочих днів';
         // Posters: 2–4 working days
         if (ps.includes('poster') || s.includes('poster') || ps.includes('зодіак') || ps.includes('монограм') || ps.includes('диплом') || ps.includes('portrait') || ps.includes('birth')) return '2–4 робочих дні';
-        return '7–14 робочих днів';
+        return t('product_page.production_days');
     };
 
     const isJournalProduct = (slug: string = '', categorySlug: string = '') => {
@@ -401,7 +401,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             personalization_note: personalizationNote
         });
 
-        toast.success('Товар додано до кошика');
+        toast.success(t('product_page.added_to_cart'));
     };
 
     return (
@@ -428,14 +428,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     }}
                     className="hover:text-[#1e2d7d]"
                 >
-                    ← Назад
+                    {t('product_page.back')}
                 </button>
 
                 {/* Breadcrumbs */}
                 <div className={styles.breadcrumbs} style={{ fontSize: '14px', color: '#888', marginBottom: '32px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    <Link href="/" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">Головна</Link>
+                    <Link href="/" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{t('product_page.home')}</Link>
                     <span>→</span>
-                    <Link href="/catalog" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">Каталог</Link>
+                    <Link href="/catalog" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{t('product_page.catalog')}</Link>
                     <span>→</span>
                     {product.categories && (
                         <>
@@ -534,7 +534,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                             <div className={styles.priceContainer} style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)' }}>
-                                {`${product.price_from ? 'від ' : ''}${finalPrice} ₴`}
+                                {`${product.price_from ? t('product_page.from_price') + ' ' : ''}${finalPrice} ₴`}
                             </div>
                             {product.sale_price && (
                                 <div style={{ fontSize: '20px', fontWeight: 600, color: '#94a3b8', textDecoration: 'line-through' }}>
@@ -546,7 +546,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         {product.is_personalized && (
                             <div className="inline-flex items-center gap-2 bg-[#dbeafe] text-[#1e2d7d] text-sm font-medium px-3 py-1 rounded-full" style={{ marginBottom: '24px' }}>
                                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#1e2d7d' }}></span>
-                                Виготовляється під замовлення
+                                {t('product_page.made_to_order')}
                             </div>
                         )}
 
@@ -584,7 +584,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 fontWeight: customProductOptions[opt.name] ? 700 : 400,
                                                             }}
                                                         >
-                                                            <option value="">Оберіть {opt.name.toLowerCase()}</option>
+                                                            <option value="">{t('product_page.choose_option')} {opt.name.toLowerCase()}</option>
                                                             {items.map((item: any, idx: number) => {
                                                                 const label = item.label || item.name || String(item);
                                                                 const value = item.value || item.name || String(item);
@@ -851,7 +851,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 }}
                                                 className="hover:bg-[#f0f3ff]"
                                             >
-                                                Оформити з дизайнером
+                                                {t('product_page.order_with_designer')}
                                             </button>
                                         ) : (
                                         <Link
@@ -870,7 +870,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             }}
                                             className="hover:bg-[#f0f3ff] rounded-md"
                                         >
-                                            Оформити з дизайнером
+                                            {t('product_page.order_with_designer')}
                                         </Link>
                                         )}
                                     </div>
@@ -929,17 +929,17 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             transition: 'background-color 0.2s'
                                         }}
                                     >
-                                        Додати персоналізацію та замовити
+                                        {t('product_page.add_personalization')}
                                     </button>
                                 </div>
 
                                 {showPersonalizationInput && (
                                     <div style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: "3px", backgroundColor: '#f8fafc' }}>
-                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>Опишіть вашу персоналізацію:</label>
+                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#263A99' }}>{t('product_page.describe_personalization')}</label>
                                         <textarea
                                             value={personalizationNote}
                                             onChange={(e) => setPersonalizationNote(e.target.value)}
-                                            placeholder="напр. Напис 'Keep Memories' на обкладинці..."
+                                            placeholder={t("product_page.personalization_placeholder")}
                                             style={{
                                                 width: '100%',
                                                 minHeight: '100px',
@@ -954,7 +954,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         <button
                                             onClick={() => {
                                                 if (!personalizationNote.trim()) {
-                                                    toast.error('Будь ласка, введіть опис персоналізації');
+                                                    toast.error(t('product_page.enter_personalization'));
                                                     return;
                                                 }
                                                 handleAddToCart();
@@ -974,13 +974,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5
                                             }}
                                         >
-                                            Додати до замовлення
+                                            {t('product_page.add_to_order')}
                                         </button>
                                     </div>
                                 )}
 
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
-                                    Персоналізація — це індивідуальний надпис або оформлення на ваш вибір                                </p>
+                                    {t('product_page.personalization_note')}                                </p>
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
@@ -1044,8 +1044,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 )}
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
                                     {(product.options && Array.isArray(product.options) && product.options.length > 0)
-                                        ? 'Потрібна допомога з оформленням? Зв\'яжіться з нашим дизайнером'
-                                        : 'Швидке оформлення замовлення без зайвих кліків'
+                                        ? t('product_page.designer_help')
+                                        : t('product_page.quick_order')
                                     }
                                 </p>
                             </div>
@@ -1057,13 +1057,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 <div style={{ background: '#dcfce7', padding: '6px', borderRadius: "3px" }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
-                                Швидка та безпечна доставка Новою Поштою
+                                {t('product_page.shipping_info')}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#475569', fontWeight: 500 }}>
                                 <div style={{ background: '#dcfce7', padding: '6px', borderRadius: "3px" }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
-                                Оплата при отриманні або онлайн (Apple Pay/Google Pay)
+                                {t('product_page.payment_info')}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#475569', fontWeight: 500 }}>
                                 <div style={{ background: '#dcfce7', padding: '6px', borderRadius: "3px" }}>
@@ -1072,7 +1072,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 Термін виготовлення: {getProductionTime(product.categories?.slug || product.category_id, product.slug || '')}
                                 {isJournalProduct(product.slug, product.categories?.slug || '') && (
                                     <span style={{ marginLeft: 8, fontSize: 12, color: '#f59e0b', fontWeight: 700, background: '#fffbeb', padding: '2px 8px', borderRadius: 4, border: '1px solid #fde68a' }}>
-                                        ⚡ Термінове 1–2 дні +30%
+                                        {t('product_page.urgent_order')}
                                     </span>
                                 )}
                             </div>
@@ -1099,7 +1099,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 whiteSpace: 'nowrap'
                             }}
                         >
-                            Докладний опис
+                            {t('product_page.description_tab')}
                         </button>
                         {product.specs && product.specs.length > 0 && (
                             <button
@@ -1118,7 +1118,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     whiteSpace: 'nowrap'
                                 }}
                             >
-                                Характеристики
+                                {t('product_page.specs_tab')}
                             </button>
                         )}
                         <button
@@ -1137,7 +1137,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 whiteSpace: 'nowrap'
                             }}
                         >
-                            Відгуки
+                            {t('product_page.reviews_tab')}
                         </button>
                     </div>
 
@@ -1146,7 +1146,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             product.description ? (
                                 <div style={{ maxWidth: '800px', lineHeight: 1.8, fontSize: '16px', color: '#475569' }} dangerouslySetInnerHTML={{ __html: product.description }} />
                             ) : (
-                                <div className="text-slate-500 py-8">Детальний опис для цього товару ще не додано.</div>
+                                <div className="text-slate-500 py-8">{t('product_page.no_description')}</div>
                             )
                         )}
 
@@ -1170,8 +1170,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
                                             {[1, 2, 3, 4, 5].map(s => <Star key={s} size={16} fill="#fbbf24" color="#fbbf24" />)}
                                         </div>
-                                        <p style={{ fontSize: '15px', color: '#475569', lineHeight: 1.6, marginBottom: '16px' }}>«Неймовірна якість! Перевершило всі мої очікування. Замовила на подарунок батькам, вони просто в захваті.»</p>
-                                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#263A99' }}>Клієнт Touch Memories</div>
+                                        <p style={{ fontSize: '15px', color: '#475569', lineHeight: 1.6, marginBottom: '16px' }}>{t('product_page.review_text')}</p>
+                                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#263A99' }}>{t('product_page.review_author')}</div>
                                     </div>
                                 ))}
                             </div>
@@ -1183,7 +1183,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 {relatedProducts.length > 0 && (
                     <div style={{ paddingTop: '60px' }}>
                         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '40px', textAlign: 'center' }}>
-                            Вам також може сподобатись
+                            {t('product_page.you_may_like')}
                         </h2>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }} className={styles.relatedGrid}>
                             {relatedProducts.map((p) => (

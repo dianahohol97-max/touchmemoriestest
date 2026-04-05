@@ -427,5 +427,49 @@
     "choose_pages_warning": "⚠️ Wybierz liczbę stron",
     "cancel": "Anuluj",
     "continue_upload": "Kontynuuj do przesyłania zdjęć"
+  },
+  "gift_ideas": {
+    "heading": "Nie wiesz co wybrać na prezent?",
+    "subheading": "Zrób szybki test i otrzymaj spersonalizowane rekomendacje na twoją wyjątkową okazję",
+    "cta": "Rozpocznij test"
+  },
+  "constructor_sel": {
+    "video_placeholder": "Film zostanie dodany",
+    "open_constructor": "Otwórz konstruktor",
+    "order_designer": "Zamów z projektantem",
+    "photobooks_heading": "Fotoksiążki",
+    "photobooks_desc": "Zbierz najlepsze chwile w pięknej fotoksiążce — prezent, który zostanie na całe życie. Wybierz format, okładkę i liczbę stron dopasowaną do Twojego stylu.",
+    "magazines_heading": "Magazyny błyszczące",
+    "magazines_desc": "Stwórz błyszczący magazyn ze swoimi zdjęciami — stylowy i nowoczesny format na zachowanie wspomnień."
+  },
+  "product_page": {
+    "production_days": "7–14 dni roboczych",
+    "added_to_cart": "Dodano do koszyka",
+    "back": "← Wstecz",
+    "home": "Strona główna",
+    "catalog": "Katalog",
+    "from_price": "od",
+    "made_to_order": "Produkowane na zamówienie",
+    "choose_option": "Wybierz",
+    "order_with_designer": "Zamów z projektantem",
+    "select_required": "Wybierz wszystkie wymagane opcje przed zamówieniem",
+    "add_personalization": "Dodaj personalizację i zamów",
+    "describe_personalization": "Opisz personalizację:",
+    "personalization_placeholder": "np. Napis 'Keep Memories' na okładce...",
+    "enter_personalization": "Proszę wprowadzić opis personalizacji",
+    "add_to_order": "Dodaj do zamówienia",
+    "personalization_note": "Personalizacja to indywidualny napis lub projekt do wyboru",
+    "designer_help": "Potrzebujesz pomocy? Skontaktuj się z naszym projektantem",
+    "quick_order": "Szybkie zamawianie bez zbędnych kroków",
+    "shipping_info": "Szybka i bezpieczna dostawa Nova Poshta",
+    "payment_info": "Płatność przy odbiorze lub online (Apple Pay/Google Pay)",
+    "urgent_order": "⚡ Pilne 1–2 dni +30%",
+    "description_tab": "Opis",
+    "specs_tab": "Specyfikacje",
+    "reviews_tab": "Opinie",
+    "no_description": "Szczegółowy opis tego produktu nie został jeszcze dodany.",
+    "review_text": "\"Niesamowita jakość! Przekroczyło wszystkie moje oczekiwania.\"",
+    "review_author": "Klient Touch Memories",
+    "you_may_like": "Może Ci się spodobać"
   }
 }

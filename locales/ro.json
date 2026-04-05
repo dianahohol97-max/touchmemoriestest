@@ -427,5 +427,49 @@
     "choose_pages_warning": "⚠️ Alegeți numărul de pagini",
     "cancel": "Anulare",
     "continue_upload": "Continuă la încărcare foto"
+  },
+  "gift_ideas": {
+    "heading": "Nu știi ce să alegi cadou?",
+    "subheading": "Fă un test rapid și primește recomandări personalizate pentru ocazia ta specială",
+    "cta": "Începe testul"
+  },
+  "constructor_sel": {
+    "video_placeholder": "Video va fi adăugat",
+    "open_constructor": "Deschide constructorul",
+    "order_designer": "Comandă cu designer",
+    "photobooks_heading": "Albume foto",
+    "photobooks_desc": "Adunați cele mai bune momente într-un album foto frumos — un cadou care durează o viață. Alegeți formatul, coperta și numărul de pagini pe stilul vostru.",
+    "magazines_heading": "Reviste lucioase",
+    "magazines_desc": "Creați o revistă lucioasă cu fotografiile voastre — un format modern și stilat pentru păstrarea amintirilor."
+  },
+  "product_page": {
+    "production_days": "7–14 zile lucrătoare",
+    "added_to_cart": "Adăugat în coș",
+    "back": "← Înapoi",
+    "home": "Acasă",
+    "catalog": "Catalog",
+    "from_price": "de la",
+    "made_to_order": "Fabricat la comandă",
+    "choose_option": "Alegeți",
+    "order_with_designer": "Comandă cu designer",
+    "select_required": "Selectați toate opțiunile obligatorii înainte de comandă",
+    "add_personalization": "Adaugă personalizare și comandă",
+    "describe_personalization": "Descrieți personalizarea:",
+    "personalization_placeholder": "ex. Text 'Keep Memories' pe copertă...",
+    "enter_personalization": "Vă rugăm introduceți descrierea personalizării",
+    "add_to_order": "Adaugă la comandă",
+    "personalization_note": "Personalizarea este o inscripție sau un design la alegere",
+    "designer_help": "Aveți nevoie de ajutor? Contactați designerul nostru",
+    "quick_order": "Comandă rapidă fără pași suplimentari",
+    "shipping_info": "Livrare rapidă și sigură prin Nova Poshta",
+    "payment_info": "Plata la livrare sau online (Apple Pay/Google Pay)",
+    "urgent_order": "⚡ Urgent 1–2 zile +30%",
+    "description_tab": "Descriere",
+    "specs_tab": "Specificații",
+    "reviews_tab": "Recenzii",
+    "no_description": "Descrierea detaliată pentru acest produs nu a fost încă adăugată.",
+    "review_text": "\"Calitate incredibilă! A depășit toate așteptările mele.\"",
+    "review_author": "Client Touch Memories",
+    "you_may_like": "S-ar putea să vă placă și"
   }
 }

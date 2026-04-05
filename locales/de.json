@@ -427,5 +427,49 @@
     "choose_pages_warning": "⚠️ Seitenanzahl wählen",
     "cancel": "Abbrechen",
     "continue_upload": "Weiter zum Foto-Upload"
+  },
+  "gift_ideas": {
+    "heading": "Wissen Sie nicht, was Sie schenken sollen?",
+    "subheading": "Machen Sie einen kurzen Test und erhalten Sie personalisierte Empfehlungen für Ihren besonderen Anlass",
+    "cta": "Test starten"
+  },
+  "constructor_sel": {
+    "video_placeholder": "Video wird hinzugefügt",
+    "open_constructor": "Konfigurator öffnen",
+    "order_designer": "Mit Designer bestellen",
+    "photobooks_heading": "Fotobücher",
+    "photobooks_desc": "Sammeln Sie Ihre besten Momente in einem schönen Fotobuch — ein Geschenk, das ein Leben lang bleibt. Wählen Sie Format, Einband und Seitenzahl passend zu Ihrem Stil.",
+    "magazines_heading": "Hochglanzmagazine",
+    "magazines_desc": "Erstellen Sie ein Hochglanzmagazin mit Ihren Fotos — ein stilvolles und modernes Format zur Aufbewahrung von Erinnerungen."
+  },
+  "product_page": {
+    "production_days": "7–14 Werktage",
+    "added_to_cart": "Zum Warenkorb hinzugefügt",
+    "back": "← Zurück",
+    "home": "Startseite",
+    "catalog": "Katalog",
+    "from_price": "ab",
+    "made_to_order": "Auf Bestellung gefertigt",
+    "choose_option": "Wählen",
+    "order_with_designer": "Mit Designer bestellen",
+    "select_required": "Wählen Sie alle erforderlichen Optionen vor der Bestellung",
+    "add_personalization": "Personalisierung hinzufügen und bestellen",
+    "describe_personalization": "Beschreiben Sie Ihre Personalisierung:",
+    "personalization_placeholder": "z.B. Text 'Keep Memories' auf dem Einband...",
+    "enter_personalization": "Bitte geben Sie eine Personalisierungsbeschreibung ein",
+    "add_to_order": "Zur Bestellung hinzufügen",
+    "personalization_note": "Personalisierung ist eine individuelle Inschrift oder Gestaltung Ihrer Wahl",
+    "designer_help": "Brauchen Sie Hilfe? Kontaktieren Sie unseren Designer",
+    "quick_order": "Schnelle Bestellung ohne zusätzliche Schritte",
+    "shipping_info": "Schnelle und sichere Lieferung über Nova Poshta",
+    "payment_info": "Zahlung bei Lieferung oder online (Apple Pay/Google Pay)",
+    "urgent_order": "⚡ Dringend 1–2 Tage +30%",
+    "description_tab": "Beschreibung",
+    "specs_tab": "Eigenschaften",
+    "reviews_tab": "Bewertungen",
+    "no_description": "Eine ausführliche Beschreibung wurde noch nicht hinzugefügt.",
+    "review_text": "\"Unglaubliche Qualität! Hat alle meine Erwartungen übertroffen.\"",
+    "review_author": "Touch Memories Kunde",
+    "you_may_like": "Das könnte Ihnen auch gefallen"
   }
 }

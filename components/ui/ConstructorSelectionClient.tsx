@@ -38,20 +38,20 @@ export function ConstructorSelectionClient({
     const [magazineModalOpen, setMagazineModalOpen] = useState(false);
 
     // Photobooks content with fallbacks
-    const photobooksHeading = sectionContent?.metadata?.photobooks?.heading || 'Фотокниги';
+    const photobooksHeading = sectionContent?.metadata?.photobooks?.heading || t('constructor_sel.photobooks_heading');
     const photobooksDescription = sectionContent?.metadata?.photobooks?.description ||
-        'Зберіть найкращі моменти у красиву фотокнигу — подарунок, який залишиться на все життя. Обирайте формат, обкладинку та кількість сторінок під свій стиль. Ідеально для весіль, подорожей, сімейних архівів та особливих дат.';
+        t('constructor_sel.photobooks_desc');
     const photobooksConstructorUrl = sectionContent?.metadata?.photobooks?.constructor_url || '/order/book?product=photobook-velour';
-    const photobooksConstructorButtonText = sectionContent?.metadata?.photobooks?.constructor_button_text || 'Відкрити конструктор';
-    const photobooksDesignerButtonText = sectionContent?.metadata?.photobooks?.designer_button_text || 'Оформити з дизайнером';
+    const photobooksConstructorButtonText = sectionContent?.metadata?.photobooks?.constructor_button_text || t('constructor_sel.open_constructor');
+    const photobooksDesignerButtonText = sectionContent?.metadata?.photobooks?.designer_button_text || t('constructor_sel.order_designer');
 
     // Magazines content with fallbacks
-    const magazinesHeading = sectionContent?.metadata?.magazines?.heading || 'Глянцеві журнали';
+    const magazinesHeading = sectionContent?.metadata?.magazines?.heading || t('constructor_sel.magazines_heading');
     const magazinesDescription = sectionContent?.metadata?.magazines?.description ||
-        'Створіть глянцевий журнал зі своїми фото — стильний і сучасний формат для збереження спогадів. Ідеально для модних зйомок, тематичних подій, подорожей та корпоративних проєктів.';
+        t('constructor_sel.magazines_desc');
     const magazinesConstructorUrl = sectionContent?.metadata?.magazines?.constructor_url || '/order/book?product=personalized-glossy-magazine';
-    const magazinesConstructorButtonText = sectionContent?.metadata?.magazines?.constructor_button_text || 'Відкрити конструктор';
-    const magazinesDesignerButtonText = sectionContent?.metadata?.magazines?.designer_button_text || 'Оформити з дизайнером';
+    const magazinesConstructorButtonText = sectionContent?.metadata?.magazines?.constructor_button_text || t('constructor_sel.open_constructor');
+    const magazinesDesignerButtonText = sectionContent?.metadata?.magazines?.designer_button_text || t('constructor_sel.order_designer');
 
     console.log('[ConstructorSelectionClient] photobooks URL:', photobooksConstructorUrl);
     console.log('[ConstructorSelectionClient] magazines URL:', magazinesConstructorUrl);
@@ -74,7 +74,7 @@ export function ConstructorSelectionClient({
                             <div className="aspect-[4/5] bg-gradient-to-br from-stone-100 to-[#f0f3ff] rounded-xl overflow-hidden shadow-lg border border-stone-200 flex items-center justify-center relative">
                                 <div className="text-center">
                                     <Play size={48} className="mx-auto mb-2 text-stone-400" />
-                                    <span className="text-stone-500 text-sm font-medium">Відео буде додано</span>
+                                    <span className="text-stone-500 text-sm font-medium">{t('constructor_sel.video_placeholder')}</span>
                                 </div>
                                 {/* <video autoPlay muted loop playsInline className="w-full h-full object-cover">
                                     <source src="/videos/photobook-preview.mp4" type="video/mp4" />
@@ -383,7 +383,7 @@ export function ConstructorSelectionClient({
                             <div className="aspect-[4/5] bg-[#f0f2f8] rounded-xl overflow-hidden shadow-lg border border-gray-200 flex items-center justify-center relative">
                                 <div className="text-center">
                                     <Play size={48} className="mx-auto mb-2 text-[#1e2d7d]" />
-                                    <span className="text-[#1e2d7d] text-sm font-medium">Відео буде додано</span>
+                                    <span className="text-[#1e2d7d] text-sm font-medium">{t('constructor_sel.video_placeholder')}</span>
                                 </div>
                                 {/* <video autoPlay muted loop playsInline className="w-full h-full object-cover">
                                     <source src="/videos/magazine-preview.mp4" type="video/mp4" />

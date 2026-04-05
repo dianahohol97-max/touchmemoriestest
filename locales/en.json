@@ -427,5 +427,49 @@
     "choose_pages_warning": "⚠️ Choose page count",
     "cancel": "Cancel",
     "continue_upload": "Continue to photo upload"
+  },
+  "gift_ideas": {
+    "heading": "Don't know what to choose as a gift?",
+    "subheading": "Take a quick quiz and get personalized recommendations for your special occasion",
+    "cta": "Take quiz"
+  },
+  "constructor_sel": {
+    "video_placeholder": "Video coming soon",
+    "open_constructor": "Open constructor",
+    "order_designer": "Order with designer",
+    "photobooks_heading": "Photo Books",
+    "photobooks_desc": "Collect your best moments in a beautiful photo book — a gift that lasts a lifetime. Choose format, cover and page count to match your style. Perfect for weddings, travel, family archives and special dates.",
+    "magazines_heading": "Glossy Magazines",
+    "magazines_desc": "Create a glossy magazine with your photos — a stylish and modern format for preserving memories. Perfect for fashion shoots, themed events, travel and corporate projects."
+  },
+  "product_page": {
+    "production_days": "7–14 business days",
+    "added_to_cart": "Added to cart",
+    "back": "← Back",
+    "home": "Home",
+    "catalog": "Catalog",
+    "from_price": "from",
+    "made_to_order": "Made to order",
+    "choose_option": "Choose",
+    "order_with_designer": "Order with designer",
+    "select_required": "Select all required options before ordering",
+    "add_personalization": "Add personalization and order",
+    "describe_personalization": "Describe your personalization:",
+    "personalization_placeholder": "e.g. Text 'Keep Memories' on the cover...",
+    "enter_personalization": "Please enter personalization description",
+    "add_to_order": "Add to order",
+    "personalization_note": "Personalization is a custom inscription or design of your choice",
+    "designer_help": "Need help with the design? Contact our designer",
+    "quick_order": "Quick ordering without extra steps",
+    "shipping_info": "Fast and secure delivery via Nova Poshta",
+    "payment_info": "Cash on delivery or online (Apple Pay/Google Pay)",
+    "urgent_order": "⚡ Urgent 1–2 days +30%",
+    "description_tab": "Description",
+    "specs_tab": "Specifications",
+    "reviews_tab": "Reviews",
+    "no_description": "Detailed description for this product has not been added yet.",
+    "review_text": "\"Incredible quality! Exceeded all my expectations. I ordered it as a gift for my parents, they were absolutely delighted.\"",
+    "review_author": "Touch Memories Customer",
+    "you_may_like": "You may also like"
   }
 }
