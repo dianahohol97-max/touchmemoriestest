@@ -9,14 +9,9 @@ export interface FrameConfig {
   x: number;
   y: number;
   zIndex?: number;
-  // Photo inside the frame (frame-as-slot)
-  photoId?: string | null;
-  cropX?: number;   // 0-100%
-  cropY?: number;   // 0-100%
-  zoom?: number;    // 1 = default
 }
 
-export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opacity: 100, scale: 0.6, x: 0, y: 0, zIndex: 35, photoId: null, cropX: 50, cropY: 50, zoom: 1 };
+export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opacity: 100, scale: 0.6, x: 0, y: 0, zIndex: 35 };
 
 // PNG frames — rendered as <img> overlay, black bg = transparent (mix-blend-mode: multiply not needed, these have real alpha)
 export const PNG_FRAMES = [
@@ -180,268 +175,43 @@ interface FrameLayerProps {
   frame: FrameConfig;
   canvasW: number;
   canvasH: number;
-  /** Photo lookup — pass getPhoto from editor */
-  getPhoto?: (id: string | null | undefined) => { id: string; preview: string; width: number; height: number } | null;
-  /** Called when frame config changes (photo added/removed, crop, zoom) */
-  onChange?: (frame: FrameConfig) => void;
-  /** Currently dragged photo id from sidebar (for drop highlight) */
-  dragPhotoId?: string | null;
-  /** Mobile tap-to-place photo id */
-  tapPhotoId?: string | null;
-  /** Called after tap-to-place to clear selection */
-  onTapPlace?: () => void;
 }
 
-export function FrameLayer({ frame, canvasW, canvasH, getPhoto, onChange, dragPhotoId, tapPhotoId, onTapPlace }: FrameLayerProps) {
-  const [isOver, setIsOver] = React.useState(false);
-  const [isCropping, setIsCropping] = React.useState(false);
-  const [isHovered, setIsHovered] = React.useState(false);
-  const cropStartRef = React.useRef<{ x: number; y: number; cx: number; cy: number } | null>(null);
-
+export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
   if (!frame.frameId) return null;
 
   // Auto-migrate: old default was scale:1 (fullscreen), new default is 0.6
   const scale = (frame.scale === 1 && frame.x === 0 && frame.y === 0) ? 0.6 : (frame.scale ?? 0.6);
   const xOff = frame.x ?? 0;
   const yOff = frame.y ?? 0;
-  // Use the smaller dimension as base so frame doesn't stretch on spreads
   const baseDim = Math.min(canvasW, canvasH);
   const fw = baseDim * scale;
   const fh = baseDim * scale;
   const cx = (canvasW - fw) / 2 + xOff;
   const cy = (canvasH - fh) / 2 + yOff;
 
-  const photo = getPhoto ? getPhoto(frame.photoId) : null;
-  const hasPhoto = !!photo;
+  const wrapStyle: React.CSSProperties = {
+    position: 'absolute', left: cx, top: cy, width: fw, height: fh,
+    zIndex: frame.zIndex ?? 35, pointerEvents: 'none', overflow: 'visible',
+    opacity: frame.opacity / 100,
+  };
+
   const pngDef = PNG_FRAMES.find(f => f.id === frame.frameId);
-  const svgDef = FRAMES.find(f => f.id === frame.frameId);
-  const isPng = !!pngDef;
-  const interactive = !!onChange;
-
-  // Photo zone: inset from frame edges (the transparent center area)
-  const insetPct = isPng ? 0.18 : 0.08;
-  const photoZone = {
-    x: fw * insetPct,
-    y: fh * insetPct,
-    w: fw * (1 - 2 * insetPct),
-    h: fh * (1 - 2 * insetPct),
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault(); e.stopPropagation(); setIsOver(false);
-    if (!onChange) return;
-    const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
-    if (!photoId) return;
-    onChange({ ...frame, photoId, cropX: 50, cropY: 50, zoom: 1 });
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    if (!hasPhoto || !onChange) return;
-    e.preventDefault(); e.stopPropagation();
-    const delta = e.deltaY > 0 ? -0.05 : 0.05;
-    const nz = Math.max(1, Math.min(4, (frame.zoom ?? 1) + delta));
-    onChange({ ...frame, zoom: nz });
-  };
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (!hasPhoto || !onChange) return;
-    e.stopPropagation(); e.preventDefault();
-    setIsCropping(true);
-    cropStartRef.current = { x: e.clientX, y: e.clientY, cx: frame.cropX ?? 50, cy: frame.cropY ?? 50 };
-    const onMove = (ev: PointerEvent) => {
-      if (!cropStartRef.current) return;
-      const dx = ev.clientX - cropStartRef.current.x;
-      const dy = ev.clientY - cropStartRef.current.y;
-      const ncx = Math.max(0, Math.min(100, cropStartRef.current.cx - dx * 0.15));
-      const ncy = Math.max(0, Math.min(100, cropStartRef.current.cy - dy * 0.15));
-      onChange({ ...frame, cropX: ncx, cropY: ncy });
-    };
-    const onUp = () => {
-      setIsCropping(false);
-      cropStartRef.current = null;
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-  };
-
-  const clearPhoto = (e: React.MouseEvent) => {
-    e.stopPropagation(); e.preventDefault();
-    if (onChange) onChange({ ...frame, photoId: null, cropX: 50, cropY: 50, zoom: 1 });
-  };
-
-  // ─── NO PHOTO: render same as before (decorative overlay, pointerEvents: none) ───
-  // BUT with a small interactive drop zone in the center for receiving photos
-  if (!hasPhoto) {
+  if (pngDef) {
     return (
-      <>
-        {/* Decorative frame — pointerEvents: none, overflow: visible — same as original */}
-        <div style={{
-          position: 'absolute', left: cx, top: cy, width: fw, height: fh,
-          zIndex: frame.zIndex ?? 35, pointerEvents: 'none', overflow: 'visible',
-          opacity: frame.opacity / 100,
-        }}>
-          {pngDef ? (
-            <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block' }} />
-          ) : svgDef ? (
-            <svg width={fw} height={fh} style={{ display:'block' }}
-              dangerouslySetInnerHTML={{ __html: svgDef.render(fw, fh, frame.color, 100) }} />
-          ) : null}
-        </div>
-        {/* Interactive drop zone in the center — only visible on drag/hover */}
-        {interactive && (
-          <div
-            style={{
-              position: 'absolute',
-              left: cx + photoZone.x, top: cy + photoZone.y,
-              width: photoZone.w, height: photoZone.h,
-              zIndex: (frame.zIndex ?? 35) + 1,
-              pointerEvents: 'auto',
-              borderRadius: 4,
-              cursor: tapPhotoId ? 'copy' : 'default',
-            }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => { setIsHovered(false); setIsOver(false); }}
-            onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsOver(true); }}
-            onDragLeave={() => setIsOver(false)}
-            onDrop={handleDrop}
-            onClick={tapPhotoId && onChange ? (e => {
-              e.stopPropagation();
-              onChange({ ...frame, photoId: tapPhotoId, cropX: 50, cropY: 50, zoom: 1 });
-              onTapPlace?.();
-            }) : undefined}
-          >
-            {/* Drop highlight */}
-            {(isOver || isHovered && tapPhotoId) && (
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'rgba(59,130,246,0.12)',
-                border: '2px dashed #3b82f6',
-                borderRadius: 4,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span style={{ fontSize: Math.max(9, fw * 0.04), color: '#3b82f6', fontWeight: 600, textAlign: 'center' }}>
-                  📸 {tapPhotoId ? 'Натисніть' : 'Відпустіть'}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-      </>
+      <div style={wrapStyle}>
+        <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block' }} />
+      </div>
     );
   }
 
-  // ─── HAS PHOTO: photo underneath, frame on top ───
+  const def = FRAMES.find(f => f.id === frame.frameId);
+  if (!def) return null;
+  const svgContent = def.render(fw, fh, frame.color, 100);
   return (
-    <div
-      style={{
-        position: 'absolute', left: cx, top: cy, width: fw, height: fh,
-        zIndex: frame.zIndex ?? 35,
-        pointerEvents: 'none', // wrapper is non-interactive; only photo zone is
-        overflow: 'visible',
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Photo inside the frame zone — interactive */}
-      <div
-        style={{
-          position: 'absolute',
-          left: photoZone.x, top: photoZone.y,
-          width: photoZone.w, height: photoZone.h,
-          overflow: 'hidden',
-          cursor: isCropping ? 'grabbing' : 'grab',
-          touchAction: 'none',
-          zIndex: 1,
-          pointerEvents: 'auto',
-          borderRadius: 2,
-        }}
-        onPointerDown={interactive ? handlePointerDown : undefined}
-        onWheel={interactive ? handleWheel : undefined}
-        onDragOver={interactive ? (e => { e.preventDefault(); e.stopPropagation(); setIsOver(true); }) : undefined}
-        onDragLeave={interactive ? (() => setIsOver(false)) : undefined}
-        onDrop={interactive ? handleDrop : undefined}
-      >
-        <img
-          src={photo!.preview}
-          alt=""
-          draggable={false}
-          style={{
-            width: '100%', height: '100%',
-            objectFit: 'cover',
-            objectPosition: `${frame.cropX ?? 50}% ${frame.cropY ?? 50}%`,
-            transform: `scale(${frame.zoom ?? 1})`,
-            transformOrigin: `${frame.cropX ?? 50}% ${frame.cropY ?? 50}%`,
-            userSelect: 'none', display: 'block',
-          }}
-        />
-        {/* Drop overlay for replacing */}
-        {isOver && (
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(59,130,246,0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            pointerEvents: 'none',
-          }}>
-            <span style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10 }}>Замінити фото</span>
-          </div>
-        )}
-        {/* Zoom badge */}
-        {(frame.zoom ?? 1) !== 1 && !isCropping && (
-          <div style={{ position:'absolute', bottom:4, left:4, background:'rgba(0,0,0,0.6)', borderRadius:10, padding:'2px 6px', zIndex:10, pointerEvents:'none' }}>
-            <span style={{ color:'#fff', fontSize:8, fontWeight:700 }}>{Math.round((frame.zoom ?? 1)*100)}%</span>
-          </div>
-        )}
-      </div>
-
-      {/* Frame image on top — pointerEvents: none */}
-      {pngDef ? (
-        <img src={pngDef.src} alt=""
-          style={{
-            position: 'absolute', inset: 0,
-            width: '100%', height: '100%',
-            objectFit: 'contain', display: 'block',
-            pointerEvents: 'none', zIndex: 2,
-            opacity: frame.opacity / 100,
-          }} />
-      ) : svgDef ? (
-        <svg width={fw} height={fh}
-          style={{
-            position: 'absolute', left: 0, top: 0,
-            display: 'block', pointerEvents: 'none', zIndex: 2,
-            opacity: frame.opacity / 100,
-          }}
-          dangerouslySetInnerHTML={{ __html: svgDef.render(fw, fh, frame.color, 100) }} />
-      ) : null}
-
-      {/* Delete button — on hover, interactive */}
-      {isHovered && interactive && !isCropping && (
-        <button
-          onClick={clearPhoto}
-          style={{
-            position: 'absolute', top: photoZone.y - 8, right: fw - photoZone.x - photoZone.w - 8,
-            width: 22, height: 22, borderRadius: '50%',
-            background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 10, fontSize: 12, fontWeight: 700, pointerEvents: 'auto',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-          }}
-        >×</button>
-      )}
-
-      {/* Crop hint — on hover */}
-      {isHovered && interactive && !isCropping && (
-        <div style={{
-          position: 'absolute',
-          bottom: fh - photoZone.y - photoZone.h - 20,
-          left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: '3px 10px', zIndex: 10,
-          pointerEvents: 'none', whiteSpace: 'nowrap',
-        }}>
-          <span style={{ color: '#fff', fontSize: 9, fontWeight: 600 }}>тягніть — кадрувати · скрол — зум</span>
-        </div>
-      )}
+    <div style={wrapStyle}>
+      <svg width={fw} height={fh} style={{ display:'block' }}
+        dangerouslySetInnerHTML={{ __html: svgContent }} />
     </div>
   );
 }
@@ -449,22 +219,18 @@ export function FrameLayer({ frame, canvasW, canvasH, getPhoto, onChange, dragPh
 interface FrameControlsProps {
   frame: FrameConfig;
   onChange: (frame: FrameConfig) => void;
-  /** Photo lookup for frame photo preview */
-  getPhoto?: (id: string | null | undefined) => { id: string; preview: string } | null;
 }
 
-export function FrameControls({ frame, onChange, getPhoto }: FrameControlsProps) {
+export function FrameControls({ frame, onChange }: FrameControlsProps) {
   const allGroups = [...new Set(FRAMES.map(f => f.group))];
   const allPngGroups = [...new Set(PNG_FRAMES.map(f => f.group))];
   const thumbW = 72, thumbH = 52;
 
-  // Find label from either SVG or PNG frames
   const activeLabel =
     PNG_FRAMES.find(f => f.id === frame.frameId)?.label ||
     FRAMES.find(f => f.id === frame.frameId)?.label ||
     'Рамка';
 
-  // Is active frame a PNG?
   const isPng = !!PNG_FRAMES.find(f => f.id === frame.frameId);
 
   return (
@@ -476,7 +242,7 @@ export function FrameControls({ frame, onChange, getPhoto }: FrameControlsProps)
             <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>{activeLabel}</span>
             <button onClick={()=>onChange({...frame,frameId:null})}
               style={{ padding:'3px 10px', border:'1px solid #fee2e2', borderRadius:6, background:'#fff7f7', cursor:'pointer', fontWeight:600, fontSize:10, color:'#ef4444' }}>
-              ✕ Прибрати
+              \u2715 Прибрати
             </button>
           </div>
           <div style={{ display:'flex', gap:8 }}>
@@ -511,93 +277,38 @@ export function FrameControls({ frame, onChange, getPhoto }: FrameControlsProps)
           <div style={{ display:'flex', gap:8, marginTop:6 }}>
             <div style={{ flex:1 }}>
               <div style={{ display:'flex', justifyContent:'space-between' }}>
-                <span style={{ fontSize:10, color:'#64748b' }}>← →</span>
+                <span style={{ fontSize:10, color:'#64748b' }}>\u2190 \u2192</span>
                 <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{frame.x??0}px</span>
               </div>
-              <input type="range" min={-500} max={500} value={frame.x??0}
+              <input type="range" min={-300} max={300} value={frame.x??0}
                 onChange={e=>onChange({...frame, x: +e.target.value})}
                 style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
             </div>
             <div style={{ flex:1 }}>
               <div style={{ display:'flex', justifyContent:'space-between' }}>
-                <span style={{ fontSize:10, color:'#64748b' }}>↑ ↓</span>
+                <span style={{ fontSize:10, color:'#64748b' }}>\u2191 \u2193</span>
                 <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{frame.y??0}px</span>
               </div>
-              <input type="range" min={-500} max={500} value={frame.y??0}
+              <input type="range" min={-300} max={300} value={frame.y??0}
                 onChange={e=>onChange({...frame, y: +e.target.value})}
                 style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
             </div>
           </div>
           <button onClick={()=>onChange({...frame, scale:0.6, x:0, y:0, zIndex:35})}
             style={{ marginTop:6, width:'100%', padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b' }}>
-            ↺ Скинути позицію
+            \u21ba Скинути позицію
           </button>
           {/* Z-index layer control */}
           <div style={{ display:'flex', gap:4, marginTop:6 }}>
             <button onClick={()=>onChange({...frame, zIndex: Math.max(1, (frame.zIndex??35)-5)})}
               style={{ flex:1, padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b', fontWeight:600 }}>
-              ↓ Назад
+              \u2193 Назад
             </button>
             <span style={{ display:'flex', alignItems:'center', fontSize:10, fontWeight:700, color:'#1e2d7d', minWidth:30, justifyContent:'center' }}>{frame.zIndex??35}</span>
             <button onClick={()=>onChange({...frame, zIndex: Math.min(99, (frame.zIndex??35)+5)})}
               style={{ flex:1, padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b', fontWeight:600 }}>
-              ↑ Вперед
+              \u2191 Вперед
             </button>
-          </div>
-          {/* ── Photo inside frame controls ── */}
-          <div style={{ marginTop:8, padding:'8px 0 0', borderTop:'1px solid #e2e8f0' }}>
-            <div style={{ fontSize:10, fontWeight:800, color:'#1e2d7d', marginBottom:6 }}>📸 Фото в рамці</div>
-            {frame.photoId && getPhoto?.(frame.photoId) ? (
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <img src={getPhoto(frame.photoId)!.preview} alt=""
-                    style={{ width:40, height:40, objectFit:'cover', borderRadius:4, border:'1px solid #e2e8f0' }}/>
-                  <button onClick={()=>onChange({...frame, photoId:null, cropX:50, cropY:50, zoom:1})}
-                    style={{ padding:'3px 10px', border:'1px solid #fee2e2', borderRadius:6, background:'#fff7f7', cursor:'pointer', fontWeight:600, fontSize:10, color:'#ef4444' }}>
-                    ✕ Прибрати фото
-                  </button>
-                </div>
-                {/* Zoom control */}
-                <div>
-                  <div style={{ display:'flex', justifyContent:'space-between' }}>
-                    <span style={{ fontSize:10, color:'#64748b' }}>Масштаб фото</span>
-                    <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{Math.round((frame.zoom??1)*100)}%</span>
-                  </div>
-                  <input type="range" min={100} max={400} value={Math.round((frame.zoom??1)*100)}
-                    onChange={e=>onChange({...frame, zoom: +e.target.value/100})}
-                    style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
-                </div>
-                {/* Crop position */}
-                <div style={{ display:'flex', gap:8 }}>
-                  <div style={{ flex:1 }}>
-                    <div style={{ display:'flex', justifyContent:'space-between' }}>
-                      <span style={{ fontSize:10, color:'#64748b' }}>← →</span>
-                      <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{Math.round(frame.cropX??50)}%</span>
-                    </div>
-                    <input type="range" min={0} max={100} value={Math.round(frame.cropX??50)}
-                      onChange={e=>onChange({...frame, cropX: +e.target.value})}
-                      style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
-                  </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ display:'flex', justifyContent:'space-between' }}>
-                      <span style={{ fontSize:10, color:'#64748b' }}>↑ ↓</span>
-                      <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{Math.round(frame.cropY??50)}%</span>
-                    </div>
-                    <input type="range" min={0} max={100} value={Math.round(frame.cropY??50)}
-                      onChange={e=>onChange({...frame, cropY: +e.target.value})}
-                      style={{ width:'100%', marginTop:4, accentColor:'#1e2d7d' }}/>
-                  </div>
-                </div>
-                <button onClick={()=>onChange({...frame, cropX:50, cropY:50, zoom:1})}
-                  style={{ width:'100%', padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b' }}>
-                  ↺ Скинути кадрування
-                </button>
-              </div>
-            ) : (
-              <div style={{ fontSize:10, color:'#94a3b8', fontStyle:'italic', textAlign:'center', padding:'8px 0' }}>
-                Перетягніть фото на рамку на сторінці
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -160,21 +160,9 @@ export function BookPreviewModal({
     const pngDef = PNG_FRAMES.find(f => f.id === fc.frameId);
     const svgDef = FRAMES.find(f => f.id === fc.frameId);
     const isPng = !!pngDef;
-    const framePhoto = getPhoto(fc.photoId);
-    const insetPct = isPng ? 0.18 : 0.08;
 
     return (
       <div style={{ position: 'absolute', left: fcx, top: fcy, width: fw, height: fh, zIndex: fc.zIndex ?? 35, pointerEvents: 'none', overflow: 'visible' }}>
-        {framePhoto && (
-          <div style={{ position: 'absolute', left: fw * insetPct, top: fh * insetPct, width: fw * (1 - 2 * insetPct), height: fh * (1 - 2 * insetPct), overflow: 'hidden', zIndex: 1, borderRadius: 2 }}>
-            <img src={framePhoto.preview} alt="" draggable={false} style={{
-              width: '100%', height: '100%', objectFit: 'cover',
-              objectPosition: `${fc.cropX ?? 50}% ${fc.cropY ?? 50}%`,
-              transform: `scale(${fc.zoom ?? 1})`,
-              transformOrigin: `${fc.cropX ?? 50}% ${fc.cropY ?? 50}%`,
-            }} />
-          </div>
-        )}
         {pngDef ? (
           <img src={pngDef.src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 2, opacity: fc.opacity / 100 }} />
         ) : svgDef ? (

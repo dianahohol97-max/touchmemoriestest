@@ -2184,7 +2184,7 @@ export default function BookLayoutEditor() {
                 onChange={frame => {
                   const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
                   setPageFrames(prev=>({...prev,[idx]:frame}));
-                }} getPhoto={getPhoto}
+                }}
               />
             )}
 
@@ -2696,7 +2696,7 @@ export default function BookLayoutEditor() {
                           selectedId={selectedShapeId}
                           onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
                         />
-                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH} getPhoto={getPhoto} onChange={f => setPageFrames(prev=>({...prev,[0]:f}))} dragPhotoId={dragPhotoId} tapPhotoId={tapSelectedPhotoId} onTapPlace={() => setTapSelectedPhotoId(null)}/>
+                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH}/>
                         {(pageStickers[0]||[]).map(stk => (
                           <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
                             onPointerDown={e => {
@@ -2772,7 +2772,7 @@ export default function BookLayoutEditor() {
                           selectedId={selectedShapeId}
                           onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
                         />
-                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH} getPhoto={getPhoto} onChange={f => setPageFrames(prev=>({...prev,[0]:f}))} dragPhotoId={dragPhotoId} tapPhotoId={tapSelectedPhotoId} onTapPlace={() => setTapSelectedPhotoId(null)}/>
+                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH}/>
                         {(pageStickers[0]||[]).map(stk => (
                           <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
                             onPointerDown={e => {
@@ -3194,7 +3194,7 @@ export default function BookLayoutEditor() {
                     {/* Shapes on spread */}
                     <ShapesLayer shapes={getCurShapes(spreadPageIdx)} canvasW={spreadW} canvasH={cH} onChange={newShapes => setPageShapes(prev=>({...prev,[spreadPageIdx]:newShapes}))}/>
                     {/* Frames on spread */}
-                    <FrameLayer frame={getCurFrame(spreadPageIdx)} canvasW={spreadW} canvasH={cH} getPhoto={getPhoto} onChange={f => setPageFrames(prev=>({...prev,[spreadPageIdx]:f}))} dragPhotoId={dragPhotoId} tapPhotoId={tapSelectedPhotoId} onTapPlace={() => setTapSelectedPhotoId(null)}/>
+                    <FrameLayer frame={getCurFrame(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
                     {/* Stickers on spread */}
                     {(pageStickers[spreadPageIdx] || []).map(st => (
                       <div key={st.id} style={{ position:'absolute', left:st.x, top:st.y, width:st.w, height:st.h, cursor:'move', zIndex:12, touchAction:'none', fontSize:typeof st.w==='number'?st.w*0.8:32 }}
@@ -3596,7 +3596,7 @@ export default function BookLayoutEditor() {
                         ) : null;
                       })()}
                       {/* Frame layer */}
-                      <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH} getPhoto={getPhoto} onChange={f => setPageFrames(prev=>({...prev,[pageIdx]:f}))} dragPhotoId={dragPhotoId} tapPhotoId={tapSelectedPhotoId} onTapPlace={() => setTapSelectedPhotoId(null)}/>
+                      <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
                       {/* Sticker layer */}
                       {(pageStickers[pageIdx]||[]).map(stk => (
                         <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
@@ -4679,7 +4679,7 @@ export default function BookLayoutEditor() {
                 onChange={frame => {
                   const idx = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
                   setPageFrames(prev=>({...prev,[idx]:frame}));
-                }} getPhoto={getPhoto}
+                }}
               />
             )}
 
