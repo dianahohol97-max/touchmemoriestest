@@ -211,7 +211,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             setIsLoading(true);
             const { data, error } = await supabase
                 .from('products')
-                .select('*, categories(name, slug), translations')
+                .select('*, categories(name, slug)')
                 .eq('slug', resolvedParams.slug)
                 .eq('is_active', true)
                 .single();
@@ -254,7 +254,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 // Fetch Related Products
                 const { data: relatedData } = await supabase
                     .from('products')
-                    .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, category_id, translations')
+                    .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, category_id')
                     .eq('is_active', true)
                     .neq('id', data.id)
                     .limit(4);
