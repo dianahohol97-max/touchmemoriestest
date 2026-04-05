@@ -213,12 +213,12 @@ export function FrameLayer({ frame, canvasW, canvasH, getPhoto, onChange, dragPh
 
   const photo = getPhoto ? getPhoto(frame.photoId) : null;
   const hasPhoto = !!photo;
-  const isPng = !!PNG_FRAMES.find(f => f.id === frame.frameId);
   const pngDef = PNG_FRAMES.find(f => f.id === frame.frameId);
   const svgDef = FRAMES.find(f => f.id === frame.frameId);
+  const isPng = !!pngDef;
+  const interactive = !!onChange;
 
   // Photo zone: inset from frame edges (the transparent center area)
-  // For PNG frames — ~20% inset; for SVG frames — ~10% inset (since SVG borders are thinner)
   const insetPct = isPng ? 0.18 : 0.08;
   const photoZone = {
     x: fw * insetPct,
@@ -252,7 +252,6 @@ export function FrameLayer({ frame, canvasW, canvasH, getPhoto, onChange, dragPh
       if (!cropStartRef.current) return;
       const dx = ev.clientX - cropStartRef.current.x;
       const dy = ev.clientY - cropStartRef.current.y;
-      // Sensitivity: ~0.15% per pixel movement
       const ncx = Math.max(0, Math.min(100, cropStartRef.current.cx - dx * 0.15));
       const ncy = Math.max(0, Math.min(100, cropStartRef.current.cy - dy * 0.15));
       onChange({ ...frame, cropX: ncx, cropY: ncy });
@@ -272,155 +271,176 @@ export function FrameLayer({ frame, canvasW, canvasH, getPhoto, onChange, dragPh
     if (onChange) onChange({ ...frame, photoId: null, cropX: 50, cropY: 50, zoom: 1 });
   };
 
-  // The outer wrapper: interactive when onChange is provided
-  const interactive = !!onChange;
-  const wrapStyle: React.CSSProperties = {
-    position: 'absolute', left: cx, top: cy, width: fw, height: fh,
-    zIndex: frame.zIndex ?? 35,
-    pointerEvents: interactive ? 'auto' : 'none',
-    overflow: 'hidden',
-    borderRadius: 4,
-  };
+  // ─── NO PHOTO: render same as before (decorative overlay, pointerEvents: none) ───
+  // BUT with a small interactive drop zone in the center for receiving photos
+  if (!hasPhoto) {
+    return (
+      <>
+        {/* Decorative frame — pointerEvents: none, overflow: visible — same as original */}
+        <div style={{
+          position: 'absolute', left: cx, top: cy, width: fw, height: fh,
+          zIndex: frame.zIndex ?? 35, pointerEvents: 'none', overflow: 'visible',
+          opacity: frame.opacity / 100,
+        }}>
+          {pngDef ? (
+            <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block' }} />
+          ) : svgDef ? (
+            <svg width={fw} height={fh} style={{ display:'block' }}
+              dangerouslySetInnerHTML={{ __html: svgDef.render(fw, fh, frame.color, 100) }} />
+          ) : null}
+        </div>
+        {/* Interactive drop zone in the center — only visible on drag/hover */}
+        {interactive && (
+          <div
+            style={{
+              position: 'absolute',
+              left: cx + photoZone.x, top: cy + photoZone.y,
+              width: photoZone.w, height: photoZone.h,
+              zIndex: (frame.zIndex ?? 35) + 1,
+              pointerEvents: 'auto',
+              borderRadius: 4,
+              cursor: tapPhotoId ? 'copy' : 'default',
+            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => { setIsHovered(false); setIsOver(false); }}
+            onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsOver(true); }}
+            onDragLeave={() => setIsOver(false)}
+            onDrop={handleDrop}
+            onClick={tapPhotoId && onChange ? (e => {
+              e.stopPropagation();
+              onChange({ ...frame, photoId: tapPhotoId, cropX: 50, cropY: 50, zoom: 1 });
+              onTapPlace?.();
+            }) : undefined}
+          >
+            {/* Drop highlight */}
+            {(isOver || isHovered && tapPhotoId) && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'rgba(59,130,246,0.12)',
+                border: '2px dashed #3b82f6',
+                borderRadius: 4,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span style={{ fontSize: Math.max(9, fw * 0.04), color: '#3b82f6', fontWeight: 600, textAlign: 'center' }}>
+                  📸 {tapPhotoId ? 'Натисніть' : 'Відпустіть'}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </>
+    );
+  }
 
+  // ─── HAS PHOTO: photo underneath, frame on top ───
   return (
     <div
-      style={wrapStyle}
+      style={{
+        position: 'absolute', left: cx, top: cy, width: fw, height: fh,
+        zIndex: frame.zIndex ?? 35,
+        pointerEvents: 'none', // wrapper is non-interactive; only photo zone is
+        overflow: 'visible',
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onDragOver={interactive ? (e => { e.preventDefault(); e.stopPropagation(); setIsOver(true); }) : undefined}
-      onDragLeave={interactive ? (() => setIsOver(false)) : undefined}
-      onDrop={interactive ? handleDrop : undefined}
-      onWheel={interactive ? handleWheel : undefined}
-      onClick={interactive && tapPhotoId && onChange ? (e => {
-        e.stopPropagation();
-        onChange({ ...frame, photoId: tapPhotoId, cropX: 50, cropY: 50, zoom: 1 });
-        onTapPlace?.();
-      }) : undefined}
     >
-      {/* Layer 1 (bottom): Photo inside the frame zone */}
-      {photo ? (
-        <div
-          style={{
-            position: 'absolute',
-            left: photoZone.x, top: photoZone.y,
-            width: photoZone.w, height: photoZone.h,
-            overflow: 'hidden',
-            cursor: isCropping ? 'grabbing' : 'grab',
-            touchAction: 'none',
-            zIndex: 1,
-          }}
-          onPointerDown={interactive ? handlePointerDown : undefined}
-        >
-          <img
-            src={photo.preview}
-            alt=""
-            draggable={false}
-            style={{
-              width: '100%', height: '100%',
-              objectFit: 'cover',
-              objectPosition: `${frame.cropX ?? 50}% ${frame.cropY ?? 50}%`,
-              transform: `scale(${frame.zoom ?? 1})`,
-              transformOrigin: `${frame.cropX ?? 50}% ${frame.cropY ?? 50}%`,
-              userSelect: 'none', display: 'block',
-            }}
-          />
-        </div>
-      ) : interactive ? (
-        /* Empty state: drop zone indicator */
-        <div
-          style={{
-            position: 'absolute',
-            left: photoZone.x, top: photoZone.y,
-            width: photoZone.w, height: photoZone.h,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            background: isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.5)',
-            border: isOver ? '2px dashed #3b82f6' : '1.5px dashed #c7d2fe',
-            borderRadius: 4,
-            zIndex: 1,
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <span style={{ fontSize: Math.max(9, fw * 0.04), color: isOver ? '#3b82f6' : '#94a3b8', fontWeight: 600, textAlign: 'center', lineHeight: 1.3 }}>
-            {isOver ? '📸 Відпустіть' : '🖼️ Перетягніть\nфото'}
-          </span>
-        </div>
-      ) : null}
-
-      {/* Layer 2 (top): Frame image — PNG or SVG, always on top */}
-      {pngDef ? (
+      {/* Photo inside the frame zone — interactive */}
+      <div
+        style={{
+          position: 'absolute',
+          left: photoZone.x, top: photoZone.y,
+          width: photoZone.w, height: photoZone.h,
+          overflow: 'hidden',
+          cursor: isCropping ? 'grabbing' : 'grab',
+          touchAction: 'none',
+          zIndex: 1,
+          pointerEvents: 'auto',
+          borderRadius: 2,
+        }}
+        onPointerDown={interactive ? handlePointerDown : undefined}
+        onWheel={interactive ? handleWheel : undefined}
+        onDragOver={interactive ? (e => { e.preventDefault(); e.stopPropagation(); setIsOver(true); }) : undefined}
+        onDragLeave={interactive ? (() => setIsOver(false)) : undefined}
+        onDrop={interactive ? handleDrop : undefined}
+      >
         <img
-          src={pngDef.src}
+          src={photo!.preview}
           alt=""
+          draggable={false}
+          style={{
+            width: '100%', height: '100%',
+            objectFit: 'cover',
+            objectPosition: `${frame.cropX ?? 50}% ${frame.cropY ?? 50}%`,
+            transform: `scale(${frame.zoom ?? 1})`,
+            transformOrigin: `${frame.cropX ?? 50}% ${frame.cropY ?? 50}%`,
+            userSelect: 'none', display: 'block',
+          }}
+        />
+        {/* Drop overlay for replacing */}
+        {isOver && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'rgba(59,130,246,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            pointerEvents: 'none',
+          }}>
+            <span style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10 }}>Замінити фото</span>
+          </div>
+        )}
+        {/* Zoom badge */}
+        {(frame.zoom ?? 1) !== 1 && !isCropping && (
+          <div style={{ position:'absolute', bottom:4, left:4, background:'rgba(0,0,0,0.6)', borderRadius:10, padding:'2px 6px', zIndex:10, pointerEvents:'none' }}>
+            <span style={{ color:'#fff', fontSize:8, fontWeight:700 }}>{Math.round((frame.zoom ?? 1)*100)}%</span>
+          </div>
+        )}
+      </div>
+
+      {/* Frame image on top — pointerEvents: none */}
+      {pngDef ? (
+        <img src={pngDef.src} alt=""
           style={{
             position: 'absolute', inset: 0,
             width: '100%', height: '100%',
             objectFit: 'contain', display: 'block',
-            pointerEvents: 'none',
-            zIndex: 2,
+            pointerEvents: 'none', zIndex: 2,
             opacity: frame.opacity / 100,
-          }}
-        />
+          }} />
       ) : svgDef ? (
-        <svg
-          width={fw} height={fh}
+        <svg width={fw} height={fh}
           style={{
-            position: 'absolute', inset: 0,
-            display: 'block',
-            pointerEvents: 'none',
-            zIndex: 2,
+            position: 'absolute', left: 0, top: 0,
+            display: 'block', pointerEvents: 'none', zIndex: 2,
             opacity: frame.opacity / 100,
           }}
-          dangerouslySetInnerHTML={{ __html: svgDef.render(fw, fh, frame.color, 100) }}
-        />
+          dangerouslySetInnerHTML={{ __html: svgDef.render(fw, fh, frame.color, 100) }} />
       ) : null}
 
-      {/* Drop overlay when dragging a photo */}
-      {isOver && dragPhotoId && (
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 3,
-          background: 'rgba(59,130,246,0.15)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          pointerEvents: 'none', borderRadius: 4,
-        }}>
-          <div style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10 }}>
-            {hasPhoto ? 'Замінити фото' : 'Додати фото'}
-          </div>
-        </div>
+      {/* Delete button — on hover, interactive */}
+      {isHovered && interactive && !isCropping && (
+        <button
+          onClick={clearPhoto}
+          style={{
+            position: 'absolute', top: photoZone.y - 8, right: fw - photoZone.x - photoZone.w - 8,
+            width: 22, height: 22, borderRadius: '50%',
+            background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10, fontSize: 12, fontWeight: 700, pointerEvents: 'auto',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          }}
+        >×</button>
       )}
 
-      {/* Zoom/crop controls — visible when photo exists and hovered */}
-      {hasPhoto && isHovered && interactive && !isCropping && (
-        <>
-          {/* Delete photo button */}
-          <button
-            onClick={clearPhoto}
-            style={{
-              position: 'absolute', top: photoZone.y + 4, right: fw - photoZone.x - photoZone.w + 4,
-              width: 22, height: 22, borderRadius: '50%',
-              background: 'rgba(239,68,68,0.85)', color: '#fff', border: 'none',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              zIndex: 10, fontSize: 12, fontWeight: 700,
-            }}
-          >×</button>
-          {/* Zoom badge */}
-          {(frame.zoom ?? 1) !== 1 && (
-            <div style={{
-              position: 'absolute', bottom: fh - photoZone.y - photoZone.h + 4, left: photoZone.x + 4,
-              background: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: '2px 6px', zIndex: 10,
-            }}>
-              <span style={{ color: '#fff', fontSize: 8, fontWeight: 700 }}>{Math.round((frame.zoom ?? 1) * 100)}%</span>
-            </div>
-          )}
-          {/* Crop hint */}
-          <div style={{
-            position: 'absolute',
-            bottom: fh - photoZone.y - photoZone.h + 4,
-            left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(0,0,0,0.55)', borderRadius: 10, padding: '2px 8px', zIndex: 10,
-          }}>
-            <span style={{ color: '#fff', fontSize: 8, fontWeight: 600 }}>тягніть — кадрувати · скрол — зум</span>
-          </div>
-        </>
+      {/* Crop hint — on hover */}
+      {isHovered && interactive && !isCropping && (
+        <div style={{
+          position: 'absolute',
+          bottom: fh - photoZone.y - photoZone.h - 20,
+          left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: '3px 10px', zIndex: 10,
+          pointerEvents: 'none', whiteSpace: 'nowrap',
+        }}>
+          <span style={{ color: '#fff', fontSize: 9, fontWeight: 600 }}>тягніть — кадрувати · скрол — зум</span>
+        </div>
       )}
     </div>
   );
