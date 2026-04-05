@@ -380,9 +380,9 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   onBlur={e=>onChange({printedTextBlocks:texts.map(t=>t.id===tb.id?{...t,text:e.currentTarget.textContent||''}:t)})}
                   onPointerDown={e=>e.stopPropagation()}
                   onClick={e=>{e.stopPropagation();(e.target as HTMLElement).focus();}}
-                  style={{ color:tb.color||'#fff', fontSize:Math.min(tb.fontSize, 36)+'px', fontFamily:tb.fontFamily+',serif',
+                  style={{ color:tb.color||'#fff', fontSize:tb.fontSize+'px', fontFamily:tb.fontFamily+',serif',
                     fontWeight:tb.bold?700:400, outline:'none', cursor:'text', display:'block', whiteSpace:'nowrap',
-                    textShadow:'0 1px 3px rgba(0,0,0,0.5)', minWidth:'40px', maxWidth: canvasW*0.8+'px', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    textShadow:'0 1px 3px rgba(0,0,0,0.5)', minWidth:'40px', maxWidth: canvasW*0.85+'px', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {tb.text}
                 </span>
                 <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
