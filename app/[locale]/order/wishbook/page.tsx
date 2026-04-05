@@ -104,7 +104,7 @@ function WishbookCoverEditorContent() {
       <main style={{ maxWidth: 900, margin: '0 auto', padding: '90px 16px 60px' }}>
         <div style={{ marginBottom: 28 }}>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1e2d7d', marginBottom: 6 }}>Редактор обкладинки — Книга побажань</h1>
-          <p style={{ fontSize: 14, color: '#64748b' }}>Завантажте фото та налаштуйте дизайн обкладинки</p>
+          <p style={{ fontSize: 14, color: '#64748b' }}>Налаштуйте дизайн обкладинки вашої книги побажань</p>
         </div>
 
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -133,49 +133,59 @@ function WishbookCoverEditorContent() {
 
           {/* RIGHT: Controls */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Photo upload */}
-            <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, marginBottom: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 10 }}>📸 Фото для обкладинки</div>
-              {photos.length === 0 ? (
-                <div onClick={() => fileInputRef.current?.click()}
-                  style={{ border: '2px dashed #cbd5e1', borderRadius: 10, padding: '20px 16px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc' }}>
-                  <Upload size={22} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
-                  <p style={{ fontSize: 13, color: '#64748b', fontWeight: 600, margin: 0 }}>Завантажити фото</p>
-                  <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, marginBottom: 0 }}>JPG, PNG · до 20 МБ</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {photos.map(ph => (
-                    <div key={ph.id} style={{ position: 'relative' }}>
-                      <img src={ph.preview} alt=""
-                        onClick={() => setCoverState(prev => ({ ...prev, photoId: ph.id }))}
-                        style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', border: coverState.photoId === ph.id ? '2px solid #1e2d7d' : '2px solid #e2e8f0' }} />
-                      {coverState.photoId === ph.id && (
-                        <div style={{ position: 'absolute', top: 2, left: 2, width: 14, height: 14, background: '#1e2d7d', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Check size={8} color="#fff" />
-                        </div>
-                      )}
-                      <button onClick={() => setPhotos(prev => prev.filter(p => p.id !== ph.id))}
-                        style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, background: '#ef4444', borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <X size={8} color="#fff" />
-                      </button>
-                    </div>
-                  ))}
-                  <div onClick={() => fileInputRef.current?.click()}
-                    style={{ width: 60, height: 60, border: '2px dashed #cbd5e1', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', fontSize: 22 }}>+</div>
-                </div>
-              )}
-              <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
-                onChange={e => e.target.files && handleFiles(e.target.files)} />
-            </div>
-
-            {/* Text */}
+            {/* Text — FIRST (primary for wishbook) */}
             <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, marginBottom: 14 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 10 }}>✏️ Текст на обкладинці</div>
               <input value={coverState.decoText || ''}
                 onChange={e => setCoverState(prev => ({ ...prev, decoText: e.target.value }))}
                 placeholder="Наприклад: Наше весілля · 2025"
                 style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+
+            {/* Photo upload — OPTIONAL, collapsible */}
+            <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, marginBottom: 14 }}>
+              <div 
+                onClick={() => {
+                  const el = document.getElementById('wishbook-photo-section');
+                  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+                }}
+                style={{ fontSize: 13, fontWeight: 700, color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>📸 Додати фото на обкладинку <span style={{ fontSize: 11, fontWeight: 400, color: '#94a3b8' }}>(необов'язково)</span></span>
+                <span style={{ fontSize: 16, color: '#94a3b8' }}>▾</span>
+              </div>
+              <div id="wishbook-photo-section" style={{ display: 'none', marginTop: 12 }}>
+                {photos.length === 0 ? (
+                  <div onClick={() => fileInputRef.current?.click()}
+                    style={{ border: '2px dashed #cbd5e1', borderRadius: 10, padding: '20px 16px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc' }}>
+                    <Upload size={22} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
+                    <p style={{ fontSize: 13, color: '#64748b', fontWeight: 600, margin: 0 }}>Завантажити фото</p>
+                    <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, marginBottom: 0 }}>JPG, PNG · до 20 МБ</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {photos.map(ph => (
+                      <div key={ph.id} style={{ position: 'relative' }}>
+                        <img src={ph.preview} alt=""
+                          onClick={() => setCoverState(prev => ({ ...prev, photoId: ph.id }))}
+                          style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', border: coverState.photoId === ph.id ? '2px solid #1e2d7d' : '2px solid #e2e8f0' }} />
+                        {coverState.photoId === ph.id && (
+                          <div style={{ position: 'absolute', top: 2, left: 2, width: 14, height: 14, background: '#1e2d7d', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Check size={8} color="#fff" />
+                          </div>
+                        )}
+                        <button onClick={() => setPhotos(prev => prev.filter(p => p.id !== ph.id))}
+                          style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, background: '#ef4444', borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <X size={8} color="#fff" />
+                        </button>
+                      </div>
+                    ))}
+                    <div onClick={() => fileInputRef.current?.click()}
+                      style={{ width: 60, height: 60, border: '2px dashed #cbd5e1', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', fontSize: 22 }}>+</div>
+                  </div>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+                  onChange={e => e.target.files && handleFiles(e.target.files)} />
+              </div>
             </div>
 
             {/* Summary */}
