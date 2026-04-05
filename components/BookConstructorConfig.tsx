@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
 import TravelBookCoverSelector from './TravelBookCoverSelector';
+import { useT } from '@/lib/i18n/context';
 
 interface ProductOption {
     name: string;
@@ -106,6 +107,7 @@ const FABRIC_BOOK_COLORS: Record<string, string> = {
   'Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020',
 };
 export default function BookConstructorConfig({ productSlug }: BookConstructorConfigProps) {
+    const t = useT();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [product, setProduct] = useState<BookProduct | null>(null);
@@ -546,7 +548,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const handleContinue = () => {
         // Validate cover color for soft covers
         if (selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) {
-            alert('Будь ласка, оберіть колір обкладинки');
+            alert(t('book_config.choose_cover_color_alert'));
             return;
         }
         // Store configuration in sessionStorage
@@ -658,7 +660,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-gray-500">Завантаження...</div>
+                <div className="text-gray-500">{t('book_config.loading')}</div>
             </div>
         );
     }
@@ -666,7 +668,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     if (!product) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-red-500">Продукт не знайдено</div>
+                <div className="text-red-500">{t('book_config.product_not_found')}</div>
             </div>
         );
     }
@@ -682,16 +684,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 <h1 className="text-3xl font-bold text-[#1e2d7d] mb-2">
                     {productType === 'photobook' || productType === 'wishbook'
                         ? (selectedCoverType
-                            ? `${product?.name || (productType === 'wishbook' ? 'Книга побажань' : 'Фотокнига')} — ${selectedCoverType.toLowerCase()} обкладинка`
-                            : product?.name || (productType === 'wishbook' ? 'Книга побажань' : 'Фотокнига'))
+                            ? `${product?.name || (productType === 'wishbook' ? t('book_config.wishbook_name') : t('book_config.photobook_name'))} — ${selectedCoverType.toLowerCase()} обкладинка`
+                            : product?.name || (productType === 'wishbook' ? t('book_config.wishbook_name') : t('book_config.photobook_name')))
                         : product.name}
                 </h1>
-                <p className="text-gray-600">Крок 1: Налаштування конфігурації</p>
+                <p className="text-gray-600">{t('book_config.step1_title')}</p>
             </div>
 
             {/* Configuration Form */}
             <div className="bg-white rounded-xl border border-gray-200 p-8 mb-8">
-                <h2 className="text-xl font-bold text-[#1e2d7d] mb-6">Оберіть параметри</h2>
+                <h2 className="text-xl font-bold text-[#1e2d7d] mb-6">{t('book_config.choose_params')}</h2>
 
                 <div className="space-y-6">
 
@@ -699,13 +701,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {productType === 'wishbook' && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                Розмір <span className="text-red-500">*</span>
+                                {t('book_config.size_label')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {[
-                                    { name: '20×30', w: 20, h: 30, label: 'Вертикальна' },
-                                    { name: '30×20', w: 30, h: 20, label: 'Горизонтальна' },
-                                    { name: '23×23', w: 23, h: 23, label: 'Квадратна' },
+                                    { name: '20×30', w: 20, h: 30, label: t('book_config.vertical') },
+                                    { name: '30×20', w: 30, h: 20, label: t('book_config.horizontal') },
+                                    { name: '23×23', w: 23, h: 23, label: t('book_config.square') },
                                 ].map(sz => (
                                     <button key={sz.name} type="button"
                                         onClick={() => setSelectedSize(sz.name)}
@@ -733,7 +735,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         return (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                Тип обкладинки <span className="text-red-500">*</span>
+                                {t('book_config.cover_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 {types.sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
@@ -760,7 +762,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         return (
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                    Колір обкладинки <span className="text-red-500">*</span>
+                                    {t('book_config.cover_color')} <span className="text-red-500">*</span>
                                 </label>
                                 <div className="flex flex-wrap gap-2">
                                     {Object.entries(colors).map(([name, hex]) => (
@@ -779,7 +781,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     ))}
                                 </div>
                                 {selectedCoverColor && (
-                                    <p className="text-sm text-gray-500 mt-2">Обрано: <strong>{selectedCoverColor}</strong></p>
+                                    <p className="text-sm text-gray-500 mt-2">{t('book_config.selected_label')} <strong>{selectedCoverColor}</strong></p>
                                 )}
                             </div>
                         );
@@ -789,7 +791,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {productType === 'wishbook' && selectedCoverType === 'Друкована' && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                Тип ламінації <span className="text-red-500">*</span>
+                                {t('book_config.lamination_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-2 gap-3">
                                 {['Глянцева', 'Матова'].map(lam => (
@@ -811,7 +813,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {productType === 'wishbook' && selectedCoverType && selectedCoverType !== 'Друкована' && decorationTypes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                Оздоблення обкладинки
+                                {t('book_config.decoration')}
                             </label>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 <button type="button"
@@ -821,7 +823,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                             ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
                                             : 'border-gray-200 hover:border-gray-400 text-gray-700'
                                     }`}>
-                                    <span className="block font-bold">Без оздоблення</span>
+                                    <span className="block font-bold">{t('book_config.no_decoration')}</span>
                                 </button>
                                 {decorationTypes.map((dt: any) => {
                                     const hasVariants = decorationVariants.some(
@@ -865,7 +867,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     onChange={(e) => setSelectedDecorationVariant(e.target.value)}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
                                 >
-                                    <option value="">Оберіть варіант</option>
+                                    <option value="">{t('book_config.choose_variant')}</option>
                                     {variants.map((v: any) => (
                                         <option key={v.id} value={v.variant_name}>
                                             {v.variant_name}{Number(v.surcharge) > 0 ? ` (+${v.surcharge} ₴)` : ''}
@@ -880,7 +882,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {productType === 'photobook' && photobookSizes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                Розмір <span className="text-red-500">*</span>
+                                {t('book_config.size_label')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {photobookSizes.sort((a: any, b: any) => a.sort_order - b.sort_order).map((size: any) => (
@@ -923,7 +925,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {productType === 'photobook' && coverTypes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                Тип обкладинки <span className="text-red-500">*</span>
+                                {t('book_config.cover_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 {coverTypes.sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
@@ -955,7 +957,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         return (
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                    Колір обкладинки <span className="text-red-500">*</span>
+                                    {t('book_config.cover_color')} <span className="text-red-500">*</span>
                                 </label>
                                 <div className="flex flex-wrap gap-2">
                                     {Object.entries(colors).map(([name, hex]) => (
@@ -977,7 +979,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     ))}
                                 </div>
                                 {selectedCoverColor && (
-                                    <p className="text-sm text-gray-500 mt-2">Обрано: <strong>{selectedCoverColor}</strong></p>
+                                    <p className="text-sm text-gray-500 mt-2">{t('book_config.selected_label')} <strong>{selectedCoverColor}</strong></p>
                                 )}
                             </div>
                         );
@@ -987,7 +989,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {productType === 'photobook' && selectedCoverType === 'Друкована' && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                Тип ламінації <span className="text-red-500">*</span>
+                                {t('book_config.lamination_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-2 gap-3">
                                 {['Глянцева', 'Матова'].map((lam) => (
@@ -1012,7 +1014,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {productType === 'photobook' && selectedCoverType && selectedCoverType !== 'Друкована' && decorationTypes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                Оздоблення обкладинки
+                                {t('book_config.decoration')}
                             </label>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 <button
@@ -1024,7 +1026,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                             : 'border-gray-200 hover:border-gray-400 text-gray-700'
                                     }`}
                                 >
-                                    <span className="block font-bold">Без оздоблення</span>
+                                    <span className="block font-bold">{t('book_config.no_decoration')}</span>
                                 </button>
                                 {decorationTypes.map((dt: any) => {
                                     // Check if this decoration type has variants for selected cover+size
@@ -1072,7 +1074,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     onChange={(e) => setSelectedDecorationVariant(e.target.value)}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
                                 >
-                                    <option value="">Оберіть варіант</option>
+                                    <option value="">{t('book_config.choose_variant')}</option>
                                     {variants.map((v: any) => (
                                         <option key={v.id} value={v.variant_name}>
                                             {v.variant_name}
@@ -1088,14 +1090,14 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {productType === 'photobook' && photobookPrices.length > 0 && selectedSize && selectedCoverType && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Кількість сторінок <span className="text-red-500">*</span>
+                                {t('book_config.page_count')} <span className="text-red-500">*</span>
                             </label>
                             <select
                                 value={selectedPageCount}
                                 onChange={(e) => setSelectedPageCount(e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
                             >
-                                <option value="">Оберіть кількість сторінок</option>
+                                <option value="">{t('book_config.choose_page_count')}</option>
                                 {[...new Set(photobookPrices
                                     .filter((p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize)
                                     .map((p: any) => p.page_count)
@@ -1117,7 +1119,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {productType !== 'photobook' && product.variants && product.variants.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Розмір <span className="text-red-500">*</span>
+                                {t('book_config.size_label')} <span className="text-red-500">*</span>
                             </label>
                             <select
                                 value={selectedSize}
@@ -1186,11 +1188,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 />
                                 <div className="flex-1">
                                     <label htmlFor="kalka" className="block text-sm font-semibold text-gray-700 cursor-pointer">
-                                        Калька перед першою сторінкою (+280 ₴)
+                                        {t('book_config.kalka_label')}
                                     </label>
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Напівпрозора перша сторінка з надписом або фото.
-                                        Перша ліва та остання права сторінки стануть порожніми (форзац).
+                                        {t('book_config.kalka_desc')}
+                                        {t('book_config.kalka_note')}
                                     </p>
                                 </div>
                             </div>
@@ -1210,13 +1212,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 />
                                 <div className="flex-1">
                                     <label htmlFor="endpaper" className="block text-sm font-semibold text-gray-700 cursor-pointer">
-                                        Друк на форзаці
+                                        {t('book_config.endpaper_label')}
                                         {productType === 'travelbook' && ' (+100 ₴)'}
                                         {productType === 'magazine' && ' (+200 ₴)'}
                                     </label>
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Перша ліва та остання права сторінки за замовчуванням порожні.
-                                        З цією опцією ви зможете завантажити дизайн для форзацу.
+                                        {t('book_config.endpaper_desc')}
+                                        {t('book_config.endpaper_note')}
                                     </p>
                                 </div>
                             </div>
@@ -1228,10 +1230,10 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         <div className="border-t pt-6">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Обкладинка Travel Book
+                                    {t('book_config.travelbook_cover_title')}
                                 </label>
                                 <p className="text-xs text-gray-500 mb-3">
-                                    Оберіть дизайн обкладинки з колекцією міст зі всього світу
+                                    {t('book_config.travelbook_cover_desc')}
                                 </p>
 
                                 {selectedCover ? (
@@ -1255,7 +1257,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                             onClick={() => setShowCoverSelector(true)}
                                             className="px-4 py-2 text-sm font-medium text-purple-700 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
                                         >
-                                            Змінити
+                                            {t('book_config.change_btn')}
                                         </button>
                                     </div>
                                 ) : (
@@ -1264,7 +1266,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                         className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors text-gray-600 hover:text-purple-700"
                                     >
                                         <ImageIcon className="w-5 h-5" />
-                                        Обрати обкладинку
+                                        {t('book_config.choose_cover_btn')}
                                     </button>
                                 )}
                             </div>
@@ -1279,13 +1281,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                             <div>
                                 <p className="text-sm font-semibold text-blue-900 mb-1">
-                                    📸 Рекомендована кількість фото
+                                    {t('book_config.photo_rec_title')}
                                 </p>
                                 <p className="text-sm text-blue-700">
                                     Для {selectedPageCount} рекомендуємо підготувати <strong>{photoRec} фото</strong>
                                 </p>
                                 <p className="text-xs text-blue-600 mt-2">
-                                    Це орієнтовна кількість — ви можете завантажити більше або менше фото.
+                                    {t('book_config.photo_rec_note')}
                                 </p>
                             </div>
                         </div>
@@ -1296,14 +1298,14 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 <div className="mt-8 pt-6 border-t border-gray-200">
                     <div className="flex justify-between items-center">
                         <div>
-                            <p className="text-sm text-gray-600 mb-1">Орієнтовна вартість:</p>
+                            <p className="text-sm text-gray-600 mb-1">{t('book_config.estimated_price')}</p>
                             <p className="text-xs text-gray-500">
-                                Остаточна ціна може змінитися в залежності від складності макету
+                                {t('book_config.price_disclaimer')}
                             </p>
                         </div>
                         <div className="text-right">
                             {totalPrice === 0 ? (
-                                <p className="text-base font-semibold text-amber-600">⚠️ Оберіть кількість сторінок</p>
+                                <p className="text-base font-semibold text-amber-600">{t('book_config.choose_pages_warning')}</p>
                             ) : (
                                 <p className="text-3xl font-bold text-[#1e2d7d]">{totalPrice} ₴</p>
                             )}
@@ -1318,7 +1320,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     onClick={() => router.back()}
                     className="flex-1 px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-lg"
                 >
-                    Скасувати
+                    {t('book_config.cancel')}
                 </button>
                 <button
                     onClick={handleContinue}
@@ -1329,7 +1331,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                 >
-                    Продовжити до завантаження фото
+                    {t('book_config.continue_upload')}
                     <ChevronRight className="w-5 h-5" />
                 </button>
             </div>

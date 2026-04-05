@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Upload, X, AlertTriangle, ShoppingCart, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
@@ -76,6 +77,7 @@ function PhotoPreview({
   polaroidFont?: string;
   polaroidColor?: string;
 }) {
+  const t = useT();
   const MAX_W = typeof window !== 'undefined' && window.innerWidth < 500
     ? Math.min(window.innerWidth - 48, 320)
     : 320;
@@ -156,7 +158,7 @@ function PhotoPreview({
           <div style={{ position:'absolute', left:borderPxPolaroid, bottom: Math.round(borderBottomPxP * 0.2), width:photoAreaWP, display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>
             <input
               type="text"
-              placeholder="Підпис..."
+              placeholder={t("photo_print.caption_placeholder")}
               value={photo.polaroidText || ''}
               onChange={e => onTextChange?.(photo.id, e.target.value)}
               onClick={e => e.stopPropagation()}
@@ -172,7 +174,7 @@ function PhotoPreview({
           <button onClick={()=>onCropChange(photo.id,photo.cropX,photo.cropY,Math.min(3,(photo.zoom||1)+0.1))} style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14 }}>+</button>
           <button onClick={()=>onCropChange(photo.id,50,50,1)} style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:10, color:'#64748b' }}>↺</button>
         </div>
-        <p style={{ fontSize:10, color:'#94a3b8', textAlign:'center', marginTop:4 }}>Тягніть фото для кадрування • коліщатко для масштабу</p>
+        <p style={{ fontSize:10, color:'#94a3b8', textAlign:'center', marginTop:4 }}>{t('photo_print.crop_hint')}</p>
       </div>
     );
   } else if (isNonstandard) {
@@ -258,7 +260,7 @@ function PhotoPreview({
         {/* Border size label */}
         {showBorder && borderPx > 0 && (
           <div style={{ position:'absolute', bottom:2, left:'50%', transform:'translateX(-50%)', fontSize:8, color:'#999', pointerEvents:'none', zIndex:5, background:'rgba(255,255,255,0.8)', padding:'1px 4px', borderRadius:3, whiteSpace:'nowrap' }}>
-            рамка 3 мм
+            {t('photo_print.border_3mm')}
           </div>
         )}
 
@@ -285,7 +287,7 @@ function PhotoPreview({
           <div style={{ position:'absolute', left:borderPx, bottom: Math.round(borderBottomPx * 0.2), width:photoAreaW, display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>
             <input
               type="text"
-              placeholder="Підпис..."
+              placeholder={t("photo_print.caption_placeholder")}
               value={photo.polaroidText || ''}
               onChange={e => onTextChange?.(photo.id, e.target.value)}
               onClick={e => e.stopPropagation()}
@@ -322,13 +324,14 @@ function PhotoPreview({
         <button onClick={() => onCropChange(photo.id, 50, 50, 1)}
           style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:10, color:'#64748b' }}>↺</button>
       </div>
-      <p style={{ fontSize:10, color:'#94a3b8', textAlign:'center', marginTop:4 }}>Тягніть фото для кадрування • коліщатко для масштабу</p>
+      <p style={{ fontSize:10, color:'#94a3b8', textAlign:'center', marginTop:4 }}>{t('photo_print.crop_hint')}</p>
     </div>
   );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function PhotoPrintConstructor({ productSlug, initialSize, initialFinish, initialBorder }: PhotoPrintConstructorProps) {
+  const t = useT();
   const { addItem } = useCartStore();
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [product, setProduct] = useState<any>(null);
@@ -398,14 +401,14 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       .filter(p => selectedPhotoIds.has(p.id))
       .map(p => ({ ...p, id: Math.random().toString(36).slice(7) + Date.now() }));
     setPhotos(prev => [...prev, ...dupes]);
-    toast.success(`Продубльовано ${dupes.length} фото`);
+    toast.success(t('photo_print.duplicated').replace('{n}', String(dupes.length)));
   };
   const deleteSelected = () => {
     const count = selectedPhotoIds.size;
     setPhotos(prev => prev.filter(p => !selectedPhotoIds.has(p.id)));
     clearSelection();
     setActivePhotoIdx(0);
-    toast.success(`Видалено ${count} фото`);
+    toast.success(t('photo_print.deleted').replace('{n}', String(count)));
   }; // грн per photo with text
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -448,7 +451,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (!file.type.startsWith('image/')) continue;
-      if (photos.length + newPhotos.length >= 500) { toast.error('Максимум 500 фото'); break; }
+      if (photos.length + newPhotos.length >= 500) { toast.error(t('photo_print.max_photos')); break; }
       const preview = URL.createObjectURL(file);
       try {
         const img = await new Promise<HTMLImageElement>((res, rej) => { const im = new window.Image(); im.onload=()=>res(im); im.onerror=rej; im.src=preview; });
@@ -456,7 +459,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       } catch { URL.revokeObjectURL(preview); }
     }
     setPhotos(prev => [...prev, ...newPhotos]);
-    if (newPhotos.length) { toast.success(`Завантажено ${newPhotos.length} фото`); setActivePhotoIdx(photos.length); }
+    if (newPhotos.length) { toast.success(t('photo_print.uploaded').replace('{n}', String(newPhotos.length))); setActivePhotoIdx(photos.length); }
   };
 
   const updateCrop = (id: string, cropX: number, cropY: number, zoom: number) => {
@@ -512,8 +515,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
   const handleAddToCart = () => {
     const minOrder = 20;
-  if (photos.length === 0) { toast.error('Додайте хоча б одне фото'); return; }
-  if (photos.length < minOrder) { toast.error(`Мінімальне замовлення — ${minOrder} фото`); return; }
+  if (photos.length === 0) { toast.error(t('photo_print.add_photo_first')); return; }
+  if (photos.length < minOrder) { toast.error(t('photo_print.min_order').replace('{n}', String(minOrder))); return; }
     addItem({
       id: `${product.id}_${Date.now()}`,
       product_id: product.id, name: product.name,
@@ -525,12 +528,12 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         ? `${photos.length} фото. Написи: ${photos.filter(p=>p.polaroidText?.trim()).map((p,i)=>`фото ${photos.indexOf(p)+1}: "${p.polaroidText}"`).join(', ') || 'немає'}`
         : `${photos.length} фото для друку`
     });
-    toast.success('Додано до кошика!');
+    toast.success(t('photo_print.add_to_cart') + '!');
     setPhotos([]);
   };
 
-  if (loading) return <div className="flex items-center justify-center py-12 text-gray-500">Завантаження...</div>;
-  if (!product) return <div className="flex items-center justify-center py-12 text-red-500">Продукт не знайдено</div>;
+  if (loading) return <div className="flex items-center justify-center py-12 text-gray-500">{t('photo_print.loading')}</div>;
+  if (!product) return <div className="flex items-center justify-center py-12 text-red-500">{t('photo_print.not_found')}</div>;
 
   const activePhoto = photos[activePhotoIdx];
   const sizeOptions = getSizeOptions();
@@ -582,8 +585,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               style={{ width:320, height:280, border:`2px dashed ${dragging?'#1e2d7d':'#cbd5e1'}`, borderRadius:12, background:dragging?'#dbeafe':'#f8fafc', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12, cursor:'pointer', transition:'all 0.2s' }}>
               <Upload size={40} color="#1e2d7d" />
               <div style={{ textAlign:'center' }}>
-                <div style={{ fontWeight:700, color:'#1e2d7d', fontSize:15 }}>Завантажте фото</div>
-                <div style={{ color:'#94a3b8', fontSize:12, marginTop:4 }}>або перетягніть сюди</div>
+                <div style={{ fontWeight:700, color:'#1e2d7d', fontSize:15 }}>{t('photo_print.upload_photos')}</div>
+                <div style={{ color:'#94a3b8', fontSize:12, marginTop:4 }}>{t('photo_print.or_drag')}</div>
               </div>
               <button style={{ padding:'8px 20px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>
                 Вибрати фото
@@ -631,8 +634,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 </label>
                 {selectedPhotoIds.size > 0 && (
                   <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                    <span style={{ fontSize:12, color:'#64748b' }}>Вибрані фото: <b>{selectedPhotoIds.size}</b></span>
-                    <button onClick={clearSelection} style={{ fontSize:12, color:'#e05a2b', fontWeight:700, background:'none', border:'none', cursor:'pointer' }}>Очистити виділення</button>
+                    <span style={{ fontSize:12, color:'#64748b' }}>{t('photo_print.selected_photos')} <b>{selectedPhotoIds.size}</b></span>
+                    <button onClick={clearSelection} style={{ fontSize:12, color:'#e05a2b', fontWeight:700, background:'none', border:'none', cursor:'pointer' }}>{t('photo_print.clear_selection')}</button>
                     <button onClick={clearSelection} style={{ background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:16, lineHeight:1 }}>×</button>
                   </div>
                 )}
@@ -642,25 +645,25 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 <>
                   {/* Edit selected */}
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12, marginBottom:12 }}>
-                    <div style={{ fontWeight:700, fontSize:13, color:'#374151', marginBottom:10 }}>Редагувати вибрані фото</div>
+                    <div style={{ fontWeight:700, fontSize:13, color:'#374151', marginBottom:10 }}>{t('photo_print.edit_selected')}</div>
 
                     {/* Rotate + Orientation */}
                     <div style={{ display:'flex', gap:16, marginBottom:12 }}>
                       <div>
-                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Обернути</div>
+                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>{t('photo_print.rotate')}</div>
                         <div style={{ display:'flex', gap:4 }}>
-                          <button onClick={() => rotateSelected('ccw')} title="Проти годинникової" style={{ width:38, height:38, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>↺</button>
-                          <button onClick={() => rotateSelected('cw')} title="За годинниковою" style={{ width:38, height:38, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>↻</button>
+                          <button onClick={() => rotateSelected('ccw')} title={t("photo_print.ccw")} style={{ width:38, height:38, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>↺</button>
+                          <button onClick={() => rotateSelected('cw')} title={t("photo_print.cw")} style={{ width:38, height:38, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>↻</button>
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Орієнтація</div>
+                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>{t('photo_print.orientation')}</div>
                         <div style={{ display:'flex', gap:4 }}>
-                          <button onClick={() => setOrientationSelected('portrait')} title="Вертикальна"
+                          <button onClick={() => setOrientationSelected('portrait')} title={t("photo_print.portrait")}
                             style={{ width:38, height:38, border: selectedPhotos.every(p=>p.orientation==='portrait') ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: selectedPhotos.every(p=>p.orientation==='portrait') ? '#f0f3ff':'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
                             <div style={{ width:14, height:20, border:'2px solid currentColor', borderRadius:2, color: selectedPhotos.every(p=>p.orientation==='portrait') ? '#1e2d7d':'#374151' }}/>
                           </button>
-                          <button onClick={() => setOrientationSelected('landscape')} title="Горизонтальна"
+                          <button onClick={() => setOrientationSelected('landscape')} title={t("photo_print.landscape")}
                             style={{ width:38, height:38, border: selectedPhotos.every(p=>p.orientation==='landscape') ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: selectedPhotos.every(p=>p.orientation==='landscape') ? '#f0f3ff':'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
                             <div style={{ width:20, height:14, border:'2px solid currentColor', borderRadius:2, color: selectedPhotos.every(p=>p.orientation==='landscape') ? '#1e2d7d':'#374151' }}/>
                           </button>
@@ -671,20 +674,20 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                     {/* Border per photo */}
                     {!isPolaroid && (
                       <div style={{ marginBottom:12 }}>
-                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Кадрування</div>
+                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>{t('photo_print.crop')}</div>
                         <select
                           value={selectedPhotos.every(p=>p.border) ? 'with' : 'none'}
                           onChange={e => setBorderSelected(e.target.value === 'with')}
                           style={{ width:'100%', padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, background:'#fff', cursor:'pointer' }}>
-                          <option value="none">Без рамки</option>
-                          <option value="with">З рамкою 3мм</option>
+                          <option value="none">{t('photo_print.no_border')}</option>
+                          <option value="with">{t('photo_print.with_border')}</option>
                         </select>
                       </div>
                     )}
 
                     {/* Quantity per photo */}
                     <div style={{ marginBottom:12 }}>
-                      <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Кількість</div>
+                      <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>{t('photo_print.quantity')}</div>
                       <div style={{ display:'flex', alignItems:'center', gap:0, border:'1px solid #e2e8f0', borderRadius:8, overflow:'hidden', width:'fit-content' }}>
                         <button onClick={() => setQtySelected(-1)} style={{ width:40, height:38, border:'none', background:'#f8fafc', cursor:'pointer', fontSize:18, color:'#374151', fontWeight:700 }}>−</button>
                         <input
@@ -700,8 +703,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
                     {/* Duplicate + Delete */}
                     <div style={{ display:'flex', gap:8 }}>
-                      <button onClick={duplicateSelected} style={{ flex:1, padding:'9px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#374151' }}>Дублювати</button>
-                      <button onClick={deleteSelected} style={{ flex:1, padding:'9px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', fontWeight:700, fontSize:13, color:'#ef4444' }}>Видалити</button>
+                      <button onClick={duplicateSelected} style={{ flex:1, padding:'9px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#374151' }}>{t('photo_print.duplicate')}</button>
+                      <button onClick={deleteSelected} style={{ flex:1, padding:'9px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', fontWeight:700, fontSize:13, color:'#ef4444' }}>{t('photo_print.delete')}</button>
                     </div>
                   </div>
                 </>
@@ -710,20 +713,20 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           )}
 
           <div style={{ background:'#fff', borderRadius:12, border:'1px solid #e2e8f0', padding:20, marginBottom:16 }}>
-            <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:16 }}>Налаштування</h3>
+            <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:16 }}>{t('photo_print.settings')}</h3>
 
             {/* Photo counter */}
             <div style={{ padding:'10px 14px', borderRadius:8, background:photos.length===0?'#fff7ed':'#eff6ff', border:`1px solid ${photos.length===0?'#fed7aa':'#bfdbfe'}`, marginBottom:16 }}>
               <span style={{ fontWeight:700, color:photos.length===0?'#c2410c':photos.length<20?'#d97706':'#1d4ed8', fontSize:13 }}>
               {photos.length}/500 фотографій
-              {photos.length > 0 && photos.length < 20 && <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>мінімум 20 шт</span>}
+              {photos.length > 0 && photos.length < 20 && <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>{t('photo_print.min_20')}</span>}
             </span>
             </div>
 
             {/* Size */}
             {sizeOptions.length > 0 && (
               <div style={{ marginBottom:16 }}>
-                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>Розмір *</label>
+                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>{t('photo_print.size_label')}</label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
                   {sizeOptions.map(opt => (
                     <button key={opt.name} onClick={() => setSelectedSize(opt.name)}
@@ -738,7 +741,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             {/* Finish */}
             {finishOptions.length > 0 && (
               <div style={{ marginBottom:16 }}>
-                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>Покриття</label>
+                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>{t('photo_print.finish_label')}</label>
                 <div style={{ display:'flex', gap:6 }}>
                   {finishOptions.map(opt => (
                     <button key={opt.name} onClick={() => setSelectedFinish(opt.name)}
@@ -753,9 +756,9 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             {/* Border */}
             {hasBorderOption && (
               <div style={{ marginBottom:16 }}>
-                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>Біла рамочка 3мм</label>
+                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>{t('photo_print.white_border')}</label>
                 <div style={{ display:'flex', gap:6 }}>
-                  {[{v:'none',l:'Без рамочки'},{v:'with',l:'З рамочкою'}].map(({v,l}) => (
+                  {[{v:'none',l:t('photo_print.no_border_opt')},{v:'with',l:t('photo_print.with_border_opt')}].map(({v,l}) => (
                     <button key={v} onClick={() => setSelectedBorder(v)}
                       style={{ padding:'6px 14px', border:selectedBorder===v?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:selectedBorder===v?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:selectedBorder===v?'#1e2d7d':'#374151' }}>
                       {l}
@@ -768,16 +771,16 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             {/* Nonstandard info */}
             {isNonstandard && (
               <div style={{ padding:'10px 14px', borderRadius:8, background:'#f0fdf4', border:'1px solid #bbf7d0', marginBottom:16 }}>
-                <p style={{ fontSize:12, color:'#15803d', fontWeight:600, margin:0 }}>✓ Автоматична біла рамка 3мм</p>
+                <p style={{ fontSize:12, color:'#15803d', fontWeight:600, margin:0 }}>{t('photo_print.auto_border')}</p>
               </div>
             )}
 
             {/* Polaroid caption style */}
             {isPolaroid && (
               <div style={{ marginBottom:16 }}>
-                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:8 }}>Стиль підпису</label>
+                <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:8 }}>{t('photo_print.caption_style')}</label>
                 {/* Font selector */}
-                <label style={{ display:'block', fontSize:11, color:'#94a3b8', fontWeight:600, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>Шрифт</label>
+                <label style={{ display:'block', fontSize:11, color:'#94a3b8', fontWeight:600, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>{t('photo_print.font')}</label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
                   {POLAROID_FONTS.map(f => (
                     <button key={f.value} onClick={() => setPolaroidFont(f.value)}
@@ -798,7 +801,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                   ))}
                 </div>
                 {/* Color selector */}
-                <label style={{ display:'block', fontSize:11, color:'#94a3b8', fontWeight:600, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>Колір</label>
+                <label style={{ display:'block', fontSize:11, color:'#94a3b8', fontWeight:600, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>{t('photo_print.color')}</label>
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                   {POLAROID_COLORS.map(c => (
                     <button key={c.value} onClick={() => setPolaroidColor(c.value)}
@@ -818,7 +821,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 </div>
                 {/* Preview */}
                 <p style={{ marginTop:10, fontSize:13, fontFamily:polaroidFont, color:polaroidColor, textAlign:'center', background:'#f8fafc', borderRadius:8, padding:'6px 12px', border:'1px solid #f1f5f9' }}>
-                  Підпис виглядатиме ось так
+                  {t('photo_print.caption_preview')}
                 </p>
               </div>
             )}
@@ -828,7 +831,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               {selectedSize && photos.length > 0 && (
                 <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
                   <span style={{ fontSize:13, color:'#64748b' }}>
-                    {photos.reduce((s,p)=>s+(p.qty||1),0)} шт × {(() => { const s = sizeOptions.find(o=>o.name===selectedSize); return s?.price ?? product.price ?? 0; })()} ₴
+                    {photos.reduce((s,p)=>s+(p.qty||1),0)} {t('photo_print.pcs')} × {(() => { const s = sizeOptions.find(o=>o.name===selectedSize); return s?.price ?? product.price ?? 0; })()} ₴
                   </span>
                 </div>
               )}
@@ -839,7 +842,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 </div>
               )}
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontWeight:800, fontSize:16, color:'#1e2d7d' }}>Разом:</span>
+                <span style={{ fontWeight:800, fontSize:16, color:'#1e2d7d' }}>{t('photo_print.total')}</span>
                 <span style={{ fontWeight:900, fontSize:26, color:'#1e2d7d' }}>{calculatePrice()} ₴</span>
               </div>
             </div>
@@ -848,7 +851,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           {/* Add to cart */}
           <button onClick={handleAddToCart} disabled={photos.length < 20}
             style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px', background:photos.length < 20?'#94a3b8':'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:16, cursor:photos.length < 20?'not-allowed':'pointer', boxShadow:photos.length < 20?'none':'0 4px 16px rgba(30,45,125,0.3)', transition:'all 0.2s' }}>
-            <ShoppingCart size={18} /> Додати до кошика
+            <ShoppingCart size={18} /> {t('photo_print.add_to_cart')}
           </button>
 
           <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={e=>handleFileSelect(e.target.files)} style={{ display:'none' }} />
