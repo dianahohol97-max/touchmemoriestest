@@ -124,13 +124,13 @@ export function Footer({ categories = [] }: FooterProps) {
                 .order('display_order', { ascending: true });
 
             if (footerSections && footerSections.length > 0) {
-                const formattedSections = footerSections.map(section => ({
+                const formattedSections = footerSections.map((section: any) => ({
                     id: section.section_name,
-                    title: (section.translations as any)?.[locale]?.title || section.section_title,
+                    title: section.translations?.[locale]?.title || section.section_title,
                     links: (section.footer_links as any[])
                         .filter(link => link.is_active)
                         .sort((a, b) => a.display_order - b.display_order)
-                        .map(link => ({ label: (link.translations as any)?.[locale]?.text || link.link_text, href: link.link_url }))
+                        .map(link => ({ label: link.translations?.[locale]?.text || link.link_text, href: link.link_url }))
                 }));
                 setSections(formattedSections);
             } else {
