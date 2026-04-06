@@ -499,5 +499,14 @@
     "default_heading": "Photo Books, Magazines & Photo Products with Soul",
     "default_body": "Touch.Memories — a studio in Ternopil that turns your photos into beautiful physical products",
     "default_cta": "Shop →"
+  },
+  "hero": {
+    "pill_photobook": "Photo Book",
+    "pill_magazine": "Glossy Magazine",
+    "pill_magazine_hard": "Magazine Hard Cover",
+    "pill_travelbook": "Travel Book",
+    "pill_guestbook": "Guest Book",
+    "pill_albums": "Photo Albums",
+    "created_with_love": "Created with Love"
   }
 }

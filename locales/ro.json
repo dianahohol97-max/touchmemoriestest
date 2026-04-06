@@ -499,5 +499,14 @@
     "default_heading": "Albume foto, reviste și produse foto cu suflet",
     "default_body": "Touch.Memories — un studio din Ternopil care transformă fotografiile tale în produse fizice frumoase",
     "default_cta": "Magazin →"
+  },
+  "hero": {
+    "pill_photobook": "Album Foto",
+    "pill_magazine": "Revistă Lucioasă",
+    "pill_magazine_hard": "Revistă Copertă Tare",
+    "pill_travelbook": "Travel Book",
+    "pill_guestbook": "Carte Oaspeți",
+    "pill_albums": "Albume Foto",
+    "created_with_love": "Creat cu dragoste"
   }
 }

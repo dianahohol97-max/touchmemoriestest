@@ -499,5 +499,14 @@
     "default_heading": "Fotoksiążki, magazyny i produkty foto z duszą",
     "default_body": "Touch.Memories — studio w Tarnopolu, które zamienia Twoje zdjęcia w piękne produkty fizyczne",
     "default_cta": "Sklep →"
+  },
+  "hero": {
+    "pill_photobook": "Fotoksiążka",
+    "pill_magazine": "Magazyn Błyszczący",
+    "pill_magazine_hard": "Magazyn Twarda Okładka",
+    "pill_travelbook": "Travel Book",
+    "pill_guestbook": "Księga Gości",
+    "pill_albums": "Albumy Foto",
+    "created_with_love": "Stworzone z miłością"
   }
 }

@@ -1,4 +1,5 @@
 import styles from './page.module.css';
+import { getServerT } from '@/lib/i18n/server';
 import { Navigation } from '@/components/ui/Navigation';
 import { Hero } from '@/components/ui/Hero';
 import PopularProducts from '@/components/ui/PopularProducts';
@@ -29,6 +30,7 @@ export const revalidate = 0; // Force fresh data fetch (no cache)
 
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
+  const t = getServerT(locale);
   let products: any[] = [];
   let categories: any[] = [];
   let allCategories: any[] = [];
@@ -170,7 +172,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                         href={article.link_url || '#'}
                         className="text-stone-900 font-semibold text-sm hover:text-stone-600 transition-colors inline-flex items-center gap-2"
                       >
-                        Читати статтю
+                        {t('home.read_article')}
                         <span>→</span>
                       </Link>
                     </div>
@@ -185,22 +187,21 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
                   {/* Heading */}
                   <h2 className="text-4xl lg:text-5xl font-black text-[#1e2d7d] leading-tight mb-6">
-                    Travel Book — журнал твоєї подорожі
+                    {t('home.travelbook_title')}
                   </h2>
 
                   {/* Description */}
                   <p className="text-gray-700 text-lg leading-relaxed mb-8">
-                    A4 формат, тверда обкладинка, 170г глянцевий папір. Ідеальний спосіб
-                    зберегти спогади про подорожі у стильному виданні, яке ви створили самі.
+                    {t('home.travelbook_desc')}
                   </p>
 
                   {/* Features */}
                   <ul className="space-y-3 mb-8">
                     {[
-                      'Формат A4 (21 × 29.7 см) — як справжній журнал',
-                      'Від 12 до 80 сторінок на вибір',
-                      'Виготовлення за 5–7 робочих днів',
-                      'Доставка по всій Україні',
+                      t('home.tb_feat_1'),
+                      t('home.tb_feat_2'),
+                      t('home.tb_feat_3'),
+                      t('home.tb_feat_4'),
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3 text-stone-700 text-sm">
                         <span className="text-[#4a5cc7] mt-0.5">•</span>
@@ -265,14 +266,14 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             <div className="flex items-end justify-between mb-12">
               <div>
                 <h2 className="text-3xl lg:text-4xl font-heading font-black text-primary tracking-tight">
-                  Ідеї та поради
+                  {t('home.ideas_tips')}
                 </h2>
               </div>
               <Link
                 href="/blog"
                 className="hidden sm:block text-sm font-bold text-primary/50 hover:text-primary tracking-widest uppercase transition-colors"
               >
-                Всі статті →
+                {t('home.all_articles')}
               </Link>
             </div>
 
@@ -345,7 +346,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                 href="/blog"
                 className="text-sm text-stone-500 hover:text-stone-800 tracking-wider uppercase border-b border-stone-300 pb-0.5"
               >
-                Всі статті →
+                {t('home.all_articles')}
               </Link>
             </div>
 

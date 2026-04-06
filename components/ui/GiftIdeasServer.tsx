@@ -12,6 +12,16 @@ export async function GiftIdeasServer({ locale = "uk" }: { locale?: string } = {
         .eq('is_active', true)
         .maybeSingle();
 
+    // Apply locale translations
+    if (sectionData && locale !== 'uk') {
+        const trans = (sectionData as any).translations?.[locale];
+        if (trans) {
+            if (trans.heading) (sectionData as any).heading = trans.heading;
+            if (trans.subheading || trans.body) (sectionData as any).subheading = trans.subheading || trans.body;
+            if (trans.cta_text) (sectionData as any).cta_text = trans.cta_text;
+        }
+    }
+
     return (
         <GiftIdeasClient
             collections={[]}

@@ -499,5 +499,14 @@
     "default_heading": "Фотокниги, журнали та фотовироби з душею",
     "default_body": "Touch.Memories — студія у Тернополі, яка перетворює ваші фотографії на красиві фізичні вироби",
     "default_cta": "В магазин →"
+  },
+  "hero": {
+    "pill_photobook": "Фотокнига",
+    "pill_magazine": "Глянцевий журнал",
+    "pill_magazine_hard": "Журнал з твердою обкладинкою",
+    "pill_travelbook": "Тревелбук",
+    "pill_guestbook": "Книга побажань",
+    "pill_albums": "Фотоальбоми",
+    "created_with_love": "Створено з любов'ю"
   }
 }

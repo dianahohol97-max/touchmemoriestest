@@ -50,11 +50,21 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
   const { content } = useTheme();
   const t = useT();
 
+  // Category pills — localized
+  const pills = [
+    { id: '1', text: t('hero.pill_photobook'), url: '/catalog?category=photobooks' },
+    { id: '2', text: t('hero.pill_magazine'), url: '/catalog/personalized-glossy-magazine' },
+    { id: '3', text: t('hero.pill_magazine_hard'), url: '/catalog/fotozhurnal-tverd-obkladynka' },
+    { id: '4', text: t('hero.pill_travelbook'), url: '/catalog/travelbook-20x30' },
+    { id: '5', text: t('hero.pill_guestbook'), url: '/catalog?category=guestbooks' },
+    { id: '6', text: t('hero.pill_albums'), url: '/catalog?category=photoalbomy-failykovi' },
+  ];
+
   const overlineText =
     heroContent?.overline_text ||
     siteContent['hero_overline'] ||
     content['hero_overline'] ||
-    "Створено з любов'ю";
+    t('hero.created_with_love');
 
   const bgImage =
     heroContent?.background_image_url ||
@@ -107,7 +117,7 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
           transition={{ duration: 0.6, ease: easing, delay: 0.25 }}
           style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}
         >
-          {REFERENCE_PILLS.map((pill) => (
+          {pills.map((pill) => (
             <Link
               key={pill.id}
               href={pill.url}
