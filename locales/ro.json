@@ -182,7 +182,10 @@
   "blog": {
     "title": "Blog",
     "heading": "Blog TouchMemories",
-    "read_more": "Citește mai mult"
+    "read_more": "Citește mai mult",
+    "ideas_title": "Idei și Inspirație",
+    "read": "Citește",
+    "read_all": "Citește toate articolele"
   },
   "wedding": {
     "newspaper": "Ziar de nuntă",
@@ -508,5 +511,20 @@
     "pill_guestbook": "Carte Oaspeți",
     "pill_albums": "Albume Foto",
     "created_with_love": "Creat cu dragoste"
+  },
+  "social_proof": {
+    "your_reviews": "Recenziile Voastre",
+    "reviews_subtitle": "Suntem fericiți să facem parte din cele mai calde amintiri ale voastre.",
+    "wedding_book": "Carte de Nuntă"
+  },
+  "inspiration": {
+    "gallery_title": "Galeria de Inspirație",
+    "gallery_subtitle": "O lume de amintiri creată de clienții noștri. Fiecare pagină este o poveste.",
+    "view_instagram": "Vezi mai mult pe Instagram"
+  },
+  "examples": {
+    "title": "Exemple Reale din Lucrările Noastre",
+    "subtitle": "Fiecare album foto este o poveste unică.",
+    "view_all": "Vezi toate exemplele"
   }
 }

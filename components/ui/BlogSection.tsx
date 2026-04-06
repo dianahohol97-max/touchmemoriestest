@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, BookOpen } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import { useT } from '@/lib/i18n/context';
 import { PRODUCT_IMAGES } from '@/lib/productImages';
 
 interface BlogPost {
@@ -28,6 +29,7 @@ interface BlogSectionProps {
 
 export function BlogSection({ posts = [] }: BlogSectionProps) {
     const { content } = useTheme();
+    const t = useT();
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,
@@ -48,7 +50,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                     className="text-center mb-16"
                 >
                     <h2 className="text-[40px] lg:text-[56px] font-black text-[#1e2d7d] leading-none tracking-tight mb-4">
-                        {content['blog_title'] || 'Ідеї та натхнення'}
+                        {content['blog_title'] || t('blog.ideas_title')}
                     </h2>
                     <div className="w-24 h-1 bg-primary/10 mx-auto rounded-full" />
                 </motion.div>
@@ -91,7 +93,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
 
                                     <div className="pt-2">
                                         <span className="inline-flex items-center text-[13px] font-bold uppercase tracking-[0.15em] text-primary group-hover:gap-3 transition-all duration-300">
-                                            Читати
+                                            {t('blog.read')}
                                             <ArrowRight size={16} className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                                         </span>
                                     </div>
@@ -112,7 +114,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                         href="/blog"
                         className="btn-secondary"
                     >
-                        Читати всі статті
+                        {t('blog.read_all')}
                         <BookOpen size={18} className="ml-2" />
                     </Link>
                 </motion.div>

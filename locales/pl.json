@@ -182,7 +182,10 @@
   "blog": {
     "title": "Blog",
     "heading": "Blog TouchMemories",
-    "read_more": "Czytaj więcej"
+    "read_more": "Czytaj więcej",
+    "ideas_title": "Pomysły i Inspiracja",
+    "read": "Czytaj",
+    "read_all": "Czytaj wszystkie artykuły"
   },
   "wedding": {
     "newspaper": "Gazeta ślubna",
@@ -508,5 +511,20 @@
     "pill_guestbook": "Księga Gości",
     "pill_albums": "Albumy Foto",
     "created_with_love": "Stworzone z miłością"
+  },
+  "social_proof": {
+    "your_reviews": "Wasze Opinie",
+    "reviews_subtitle": "Cieszymy się, że jesteśmy częścią waszych najcieplejszych wspomnień.",
+    "wedding_book": "Księga Weselna"
+  },
+  "inspiration": {
+    "gallery_title": "Galeria Inspiracji",
+    "gallery_subtitle": "Świat wspomnień stworzony przez naszych klientów. Każda strona to historia.",
+    "view_instagram": "Zobacz więcej na Instagramie"
+  },
+  "examples": {
+    "title": "Prawdziwe Przykłady Naszych Prac",
+    "subtitle": "Każda fotoksiążka to unikalna historia.",
+    "view_all": "Zobacz wszystkie przykłady"
   }
 }

@@ -182,7 +182,10 @@
   "blog": {
     "title": "Blog",
     "heading": "TouchMemories Blog",
-    "read_more": "Mehr lesen"
+    "read_more": "Mehr lesen",
+    "ideas_title": "Ideen & Inspiration",
+    "read": "Lesen",
+    "read_all": "Alle Artikel lesen"
   },
   "wedding": {
     "newspaper": "Hochzeitszeitung",
@@ -508,5 +511,20 @@
     "pill_guestbook": "Gästebuch",
     "pill_albums": "Fotoalben",
     "created_with_love": "Mit Liebe gemacht"
+  },
+  "social_proof": {
+    "your_reviews": "Ihre Bewertungen",
+    "reviews_subtitle": "Wir freuen uns, Teil Ihrer wärmsten Erinnerungen zu sein.",
+    "wedding_book": "Hochzeitsbuch"
+  },
+  "inspiration": {
+    "gallery_title": "Inspirations-Galerie",
+    "gallery_subtitle": "Eine Welt der Erinnerungen, geschaffen von unseren Kunden. Jede Seite ist eine Geschichte.",
+    "view_instagram": "Mehr auf Instagram ansehen"
+  },
+  "examples": {
+    "title": "Echte Beispiele Unserer Arbeit",
+    "subtitle": "Jedes Fotobuch ist eine einzigartige Geschichte.",
+    "view_all": "Alle Beispiele ansehen"
   }
 }

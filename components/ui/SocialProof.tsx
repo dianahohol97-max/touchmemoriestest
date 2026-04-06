@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { DynamicText } from './DynamicText';
+import { useT } from '@/lib/i18n/context';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -25,7 +26,7 @@ const fallbackReviews = [
         id: '1',
         author: '@maybe_natasha',
         image_url: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600",
-        category: 'Весільна книга'
+        category: 'wedding_book'
     },
     {
         id: '2',
@@ -59,6 +60,7 @@ export function SocialProof() {
         threshold: 0.1,
     });
     const { content, blocks } = useTheme();
+    const t = useT();
     const block = blocks.find(b => b.block_name === 'social_proof');
     const style = block?.style_metadata || {};
 
@@ -111,11 +113,11 @@ export function SocialProof() {
                     className="mb-8"
                 >
                     <h2 className="text-[40px] lg:text-[48px] font-black leading-[1.05] tracking-tight mb-4 text-[#1e2d7d]">
-                        Ваші відгуки
+                        {t('social_proof.your_reviews')}
                     </h2>
 
                     <p className="text-[18px] opacity-70 mb-16 font-body leading-relaxed max-w-2xl mx-auto">
-                        Ми щасливі бути частиною ваших найтепліших спогадів. Погляньте, як наші клієнти зберігають свої моменти.
+                        {t('social_proof.reviews_subtitle')}
                     </p>
                 </motion.div>
             </div>

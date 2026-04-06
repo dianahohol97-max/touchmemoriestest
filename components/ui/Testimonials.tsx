@@ -4,36 +4,44 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Star } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import { useLocale } from '@/lib/i18n/context';
 
-const testimonials = [
-    {
-        name: 'Марина О.',
-        text: 'Фотокнига просто неймовірна! Якість друку та паперу на найвищому рівні. Дякую за збережені спогади!',
-        rating: 5,
-        city: 'Київ',
-    },
-    {
-        name: 'Андрій К.',
-        text: 'Дуже зручний конструктор. Зробив книгу за годину, а результат перевершив очікування. Рекомендую!',
-        rating: 5,
-        city: 'Львів',
-    },
-    {
-        name: 'Олена С.',
-        text: 'Замовляла глянцевий журнал про нашу подорож. Це найкращий подарунок для чоловіка! Швидка доставка.',
-        rating: 5,
-        city: 'Одеса',
-    },
-    {
-        name: 'Вікторія П.',
-        text: 'Прекрасна якість палітурки. Книга виглядає дуже дорого та стильно. Буду замовляти ще!',
-        rating: 5,
-        city: 'Дніпро',
-    }
-];
+const testimonials: Record<string, { name: string; text: string; rating: number; city: string }[]> = {
+    uk: [
+        { name: 'Марина О.', text: 'Фотокнига просто неймовірна! Якість друку та паперу на найвищому рівні. Дякую за збережені спогади!', rating: 5, city: 'Київ' },
+        { name: 'Андрій К.', text: 'Дуже зручний конструктор. Зробив книгу за годину, а результат перевершив очікування. Рекомендую!', rating: 5, city: 'Львів' },
+        { name: 'Олена С.', text: 'Замовляла глянцевий журнал про нашу подорож. Це найкращий подарунок для чоловіка! Швидка доставка.', rating: 5, city: 'Одеса' },
+        { name: 'Вікторія П.', text: 'Прекрасна якість палітурки. Книга виглядає дуже дорого та стильно. Буду замовляти ще!', rating: 5, city: 'Дніпро' },
+    ],
+    en: [
+        { name: 'Marina O.', text: 'The photo book is absolutely incredible! Print and paper quality are top-notch. Thank you for preserving our memories!', rating: 5, city: 'Kyiv' },
+        { name: 'Andrew K.', text: 'Very intuitive constructor. Made a book in an hour, and the result exceeded expectations. Highly recommend!', rating: 5, city: 'Lviv' },
+        { name: 'Helen S.', text: 'Ordered a glossy magazine about our trip. Best gift for my husband! Fast delivery too.', rating: 5, city: 'Odesa' },
+        { name: 'Victoria P.', text: 'Excellent binding quality. The book looks premium and stylish. Will definitely order again!', rating: 5, city: 'Dnipro' },
+    ],
+    ro: [
+        { name: 'Marina O.', text: 'Albumul foto este absolut incredibil! Calitatea imprimării este de top. Mulțumim!', rating: 5, city: 'Kyiv' },
+        { name: 'Andrei K.', text: 'Constructor foarte intuitiv. Am făcut o carte într-o oră, iar rezultatul a depășit așteptările!', rating: 5, city: 'Lviv' },
+        { name: 'Elena S.', text: 'Am comandat o revistă lucioasă despre călătoria noastră. Cel mai bun cadou!', rating: 5, city: 'Odesa' },
+        { name: 'Victoria P.', text: 'Calitate excelentă a legăturii. Cartea arată premium și stilată!', rating: 5, city: 'Dnipro' },
+    ],
+    pl: [
+        { name: 'Marina O.', text: 'Fotoksiążka jest absolutnie niesamowita! Jakość druku i papieru na najwyższym poziomie!', rating: 5, city: 'Kijów' },
+        { name: 'Andrzej K.', text: 'Bardzo intuicyjny konstruktor. Zrobiłem książkę w godzinę, a wynik przekroczył oczekiwania!', rating: 5, city: 'Lwów' },
+        { name: 'Helena S.', text: 'Zamówiłam błyszczący magazyn o naszej podróży. Najlepszy prezent! Szybka dostawa.', rating: 5, city: 'Odessa' },
+        { name: 'Wiktoria P.', text: 'Doskonała jakość oprawy. Książka wygląda luksusowo i stylowo!', rating: 5, city: 'Dniepr' },
+    ],
+    de: [
+        { name: 'Marina O.', text: 'Das Fotobuch ist absolut unglaublich! Druck- und Papierqualität sind erstklassig!', rating: 5, city: 'Kyiv' },
+        { name: 'Andreas K.', text: 'Sehr intuitiver Konfigurator. Habe ein Buch in einer Stunde erstellt, das Ergebnis übertrifft alle Erwartungen!', rating: 5, city: 'Lviv' },
+        { name: 'Helena S.', text: 'Habe ein Hochglanzmagazin über unsere Reise bestellt. Das beste Geschenk! Schnelle Lieferung.', rating: 5, city: 'Odesa' },
+        { name: 'Victoria P.', text: 'Ausgezeichnete Bindungsqualität. Das Buch sieht premium und stilvoll aus!', rating: 5, city: 'Dnipro' },
+    ],
+};
 
 export function Testimonials() {
     const { content } = useTheme();
+    const locale = useLocale();
     const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
 
     const activeTestimonials = useMemo(() => {
@@ -45,8 +53,8 @@ export function Testimonials() {
                 console.error('Failed to parse testimonials_json', e);
             }
         }
-        return testimonials;
-    }, [content['testimonials_json']]);
+        return testimonials[locale] || testimonials['uk'];
+    }, [content['testimonials_json'], locale]);
 
     return (
         <section ref={ref} style={{ padding: '120px 20px', backgroundColor: '#fcfcfc' }}>

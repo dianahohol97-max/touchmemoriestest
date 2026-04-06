@@ -1,4 +1,5 @@
 'use client';
+import { useT } from '@/lib/i18n/context';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Image from 'next/image';
@@ -13,6 +14,7 @@ const IMAGES = [
 ];
 
 export function InspirationGallery() {
+    const t = useT();
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,
@@ -22,8 +24,8 @@ export function InspirationGallery() {
         <section ref={ref} className="section-padding bg-white">
             <div className="container">
                 <div className="mb-24 text-center">
-                    <h2 className="section-title">Галерея натхнення</h2>
-                    <p className="section-subtitle">Світ спогадів, створений нашими клієнтами. Кожна сторінка — це історія, яка заслуговує на життя поза екраном смартфона.</p>
+                    <h2 className="section-title">{t('inspiration.gallery_title')}</h2>
+                    <p className="section-subtitle">{t('inspiration.gallery_subtitle')}</p>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:auto-rows-[250px]">
@@ -49,7 +51,7 @@ export function InspirationGallery() {
 
                 <div className="mt-20 text-center">
                     <button className="btn-secondary group">
-                        Переглянути більше в Instagram
+                        {t('inspiration.view_instagram')}
                         <span className="ml-3 group-hover:translate-x-1 transition-transform">→</span>
                     </button>
                 </div>

@@ -25,7 +25,7 @@ export function FinalCTA() {
                     >
                         {/* Main Heading */}
                         <h2 className="text-[#1e2d7d] font-bold text-3xl lg:text-4xl leading-tight mb-6">
-                            Книга побажань — зробіть своє свято незабутнім
+                            {t('final_cta.guestbook_cta')}
                         </h2>
 
                         {/* Subtext */}
@@ -38,13 +38,13 @@ export function FinalCTA() {
                                 onClick={() => setIsConfigModalOpen(true)}
                                 className="flex-1 bg-[#1e2d7d] text-white text-center px-6 py-3 rounded-full font-semibold hover:bg-[#263a99] transition-colors duration-200"
                             >
-                                Оформити з дизайнером
+                                {t('final_cta.order_designer')}
                             </button>
                             <Link
                                 href="/order/book?product=wishbook"
                                 className="flex-1 border-2 border-[#1e2d7d] text-[#1e2d7d] bg-white hover:bg-[#f0f2f8] font-semibold px-6 py-3 rounded-xl transition-colors text-center"
                             >
-                                Відкрити конструктор
+                                {t('final_cta.open_constructor')}
                             </Link>
                         </div>
                     </motion.div>
@@ -62,7 +62,7 @@ export function FinalCTA() {
                                 <div key={i} className="aspect-square bg-gray-300 rounded-xl overflow-hidden">
                                     <img
                                         src={`/images/wishbook-${i + 1}.jpg`}
-                                        alt={`Книга побажань ${i + 1}`}
+                                        alt={`${t('final_cta.guestbook_alt')} ${i + 1}`}
                                         className="w-full h-full object-cover"
                                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                     />

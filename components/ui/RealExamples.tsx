@@ -1,36 +1,26 @@
 'use client';
+import { useT, useLocale } from '@/lib/i18n/context';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Image from 'next/image';
 
-const EXAMPLES = [
-    {
-        id: '1',
-        title: 'Весільні спогади',
-        image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1200',
-        description: 'Розкішний шовк та преміальний друк'
-    },
-    {
-        id: '2',
-        title: 'Подорож до Альп',
-        image: 'https://images.unsplash.com/photo-1493246507139-91e8bef99c1e?q=80&w=1200',
-        description: 'Панорамні розвороти для великих моментів'
-    },
-    {
-        id: '3',
-        title: 'Сімейний архів',
-        image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=1200',
-        description: 'Класика, що зберігається десятиліттями'
-    },
-    {
-        id: '4',
-        title: 'Перший рік малюка',
-        image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=1200',
-        description: 'Кожна деталь має значення'
-    }
+const EXAMPLE_IMAGES = [
+    'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1200',
+    'https://images.unsplash.com/photo-1493246507139-91e8bef99c1e?q=80&w=1200',
+    'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=1200',
+    'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=1200',
 ];
+const EXAMPLE_DATA: Record<string, { title: string; description: string }[]> = {
+    uk: [{title:'Весільні спогади',description:'Розкішний шовк та преміальний друк'},{title:'Подорож до Альп',description:'Панорамні розвороти для великих моментів'},{title:'Сімейний архів',description:'Класика, що зберігається десятиліттями'},{title:'Перший рік малюка',description:'Кожна деталь має значення'}],
+    en: [{title:'Wedding Memories',description:'Luxury silk and premium printing'},{title:'Trip to the Alps',description:'Panoramic spreads for big moments'},{title:'Family Archive',description:'Classics that last for decades'},{title:"Baby's First Year",description:'Every detail matters'}],
+    ro: [{title:'Amintiri de Nuntă',description:'Mătase de lux și imprimare premium'},{title:'Călătorie în Alpi',description:'Pagini panoramice'},{title:'Arhiva Familiei',description:'Clasice care durează decenii'},{title:'Primul An',description:'Fiecare detaliu contează'}],
+    pl: [{title:'Wspomnienia Weselne',description:'Luksusowy jedwab i druk premium'},{title:'Podróż do Alp',description:'Panoramiczne rozkładówki'},{title:'Archiwum Rodzinne',description:'Klasyka na dziesięciolecia'},{title:'Pierwszy Rok Dziecka',description:'Każdy detal ma znaczenie'}],
+    de: [{title:'Hochzeitserinnerungen',description:'Luxuriöse Seide und Premium-Druck'},{title:'Reise in die Alpen',description:'Panoramische Doppelseiten'},{title:'Familienarchiv',description:'Klassiker die Jahrzehnte überdauern'},{title:'Babys Erstes Jahr',description:'Jedes Detail zählt'}],
+};
 
 export function RealExamples() {
+    const t = useT();
+    const locale = useLocale();
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,
@@ -40,14 +30,14 @@ export function RealExamples() {
         <section ref={ref} className="section-padding bg-premium-subtle">
             <div className="container">
                 <div className="mb-24 text-center">
-                    <h2 className="section-title">Магічне перетворення</h2>
-                    <p className="section-subtitle">Подивіться, як ваші цифрові фото стають справжніми витворами мистецтва в руках майстрів Touch.Memories</p>
+                    <h2 className="section-title">{t('examples.title')}</h2>
+                    <p className="section-subtitle">{t('examples.subtitle')}</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    {EXAMPLES.map((item, idx) => (
+                    {(EXAMPLE_DATA[locale] || EXAMPLE_DATA['uk']).map((item, idx) => (
                         <motion.div
-                            key={item.id}
+                            key={idx}
                             initial={{ opacity: 0, y: 30 }}
                             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                             transition={{ duration: 0.8, delay: idx * 0.2 }}
@@ -55,7 +45,7 @@ export function RealExamples() {
                         >
                             <div className="relative aspect-[16/10] overflow-hidden">
                                 <Image
-                                    src={item.image}
+                                    src={EXAMPLE_IMAGES[idx]}
                                     alt={item.title}
                                     fill
                                     className="object-cover transition-transform duration-1000 group-hover:scale-105"
