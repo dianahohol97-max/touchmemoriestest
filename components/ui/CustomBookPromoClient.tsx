@@ -71,8 +71,7 @@ export function CustomBookPromoClient({
           {/* Description */}
           <p className="text-stone-600 leading-relaxed max-w-3xl mx-auto mb-12"
             style={{ fontSize: '1.05rem', lineHeight: 1.7 }}>
-            {subheading}
-            {bodyText && bodyText !== subheading && <> {bodyText}</>}
+            {bodyText || subheading}
           </p>
 
           {/* Icons row — exact reference style */}
