@@ -49,7 +49,8 @@
     "tb_feat_1": "A4-Format (21 × 29,7 cm) — wie ein echtes Magazin",
     "tb_feat_2": "Von 12 bis 80 Seiten zur Auswahl",
     "tb_feat_3": "Herstellung in 5–7 Werktagen",
-    "tb_feat_4": "Lieferung in der gesamten Ukraine"
+    "tb_feat_4": "Lieferung in der gesamten Ukraine",
+    "why_choose_us": "Warum uns wählen"
   },
   "catalog": {
     "title": "Katalog",
@@ -63,7 +64,9 @@
     "from_price": "ab",
     "search_placeholder": "Suchen...",
     "popular": "Beliebt",
-    "newest": "Neuheiten"
+    "newest": "Neuheiten",
+    "view_more": "Mehr",
+    "popular_badge": "Beliebt"
   },
   "product": {
     "order": "Bestellen",
@@ -191,7 +194,13 @@
     "newspaper": "Hochzeitszeitung",
     "photobook": "Hochzeitsfotobuch",
     "magazine": "Hochzeitsmagazin",
-    "order": "Bestellen"
+    "order": "Bestellen",
+    "before_subtitle": "Von der Vorbereitung zum Fest",
+    "before_title": "Vor der Hochzeit",
+    "after_subtitle": "zu ewigen Erinnerungen.",
+    "after_title": "Nach der Hochzeit",
+    "guestbook": "Gästebuch",
+    "order_btn": "Bestellen"
   },
   "contacts": {
     "title": "Kontakt"
@@ -526,5 +535,23 @@
     "title": "Echte Beispiele Unserer Arbeit",
     "subtitle": "Jedes Fotobuch ist eine einzigartige Geschichte.",
     "view_all": "Alle Beispiele ansehen"
+  },
+  "final_cta": {
+    "guestbook_cta": "Gästebuch — Machen Sie Ihr Fest Unvergesslich",
+    "order_designer": "Mit Designer Bestellen",
+    "open_constructor": "Konfigurator Öffnen",
+    "guestbook_alt": "Gästebuch"
+  },
+  "option_labels": {
+    "Розмір": "Größe",
+    "Кількість сторінок": "Seiten",
+    "Тип ламінації": "Laminierung",
+    "Калька перед першою сторінкою": "Transparentpapier",
+    "Кількість": "Menge",
+    "Тип обкладинки": "Einband",
+    "Матеріал": "Material",
+    "Ламінація": "Laminierung",
+    "Популярне": "Beliebt",
+    "Індивідуальна обкладинка": "Individueller Einband"
   }
 }

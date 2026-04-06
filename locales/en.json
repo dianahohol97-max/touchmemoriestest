@@ -49,7 +49,8 @@
     "tb_feat_1": "A4 format (21 × 29.7 cm) — like a real magazine",
     "tb_feat_2": "From 12 to 80 pages to choose",
     "tb_feat_3": "Production in 5–7 business days",
-    "tb_feat_4": "Delivery across Ukraine"
+    "tb_feat_4": "Delivery across Ukraine",
+    "why_choose_us": "Why Choose Us"
   },
   "catalog": {
     "title": "Catalog",
@@ -63,7 +64,9 @@
     "from_price": "from",
     "search_placeholder": "Search...",
     "popular": "Popular",
-    "newest": "New"
+    "newest": "New",
+    "view_more": "View more",
+    "popular_badge": "Popular"
   },
   "product": {
     "order": "Order",
@@ -191,7 +194,13 @@
     "newspaper": "Wedding Newspaper",
     "photobook": "Wedding Photo Book",
     "magazine": "Wedding Magazine",
-    "order": "Order"
+    "order": "Order",
+    "before_subtitle": "From preparation to celebration",
+    "before_title": "Before the Wedding",
+    "after_subtitle": "to eternal memories of it.",
+    "after_title": "After the Wedding",
+    "guestbook": "Guest Book",
+    "order_btn": "Order"
   },
   "contacts": {
     "title": "Contacts"
@@ -526,5 +535,31 @@
     "title": "Real Examples of Our Work",
     "subtitle": "Every photo book is a unique story. Here are some of our favorite projects.",
     "view_all": "View all examples"
+  },
+  "final_cta": {
+    "guestbook_cta": "Guest Book — Make Your Celebration Unforgettable",
+    "order_designer": "Order with Designer",
+    "open_constructor": "Open Constructor",
+    "guestbook_alt": "Guest Book"
+  },
+  "option_labels": {
+    "Розмір": "Size",
+    "Кількість сторінок": "Page Count",
+    "Тип ламінації": "Lamination Type",
+    "Калька перед першою сторінкою": "Tracing Paper",
+    "Кількість": "Quantity",
+    "Покриття": "Finish",
+    "Біла рамочка 3мм": "White Border 3mm",
+    "Тип обкладинки": "Cover Type",
+    "Матеріал обкладинки": "Cover Material",
+    "Матеріал": "Material",
+    "Рамка": "Frame",
+    "Ламінація": "Lamination",
+    "Ламінація сторінок": "Page Lamination",
+    "Колір сторінок": "Page Color",
+    "Вид": "Type",
+    "Кількість примірників": "Copies",
+    "Популярне": "Popular",
+    "Індивідуальна обкладинка": "Custom Cover"
   }
 }

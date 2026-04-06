@@ -49,7 +49,8 @@
     "tb_feat_1": "Format A4 (21 × 29.7 cm) — jak prawdziwy magazyn",
     "tb_feat_2": "Od 12 do 80 stron do wyboru",
     "tb_feat_3": "Produkcja w 5–7 dni roboczych",
-    "tb_feat_4": "Dostawa w całej Ukrainie"
+    "tb_feat_4": "Dostawa w całej Ukrainie",
+    "why_choose_us": "Dlaczego warto nas wybrać"
   },
   "catalog": {
     "title": "Katalog",
@@ -63,7 +64,9 @@
     "from_price": "od",
     "search_placeholder": "Szukaj...",
     "popular": "Popularne",
-    "newest": "Nowości"
+    "newest": "Nowości",
+    "view_more": "Więcej",
+    "popular_badge": "Popularne"
   },
   "product": {
     "order": "Zamów",
@@ -191,7 +194,13 @@
     "newspaper": "Gazeta ślubna",
     "photobook": "Ślubna fotoksiążka",
     "magazine": "Magazyn ślubny",
-    "order": "Zamów"
+    "order": "Zamów",
+    "before_subtitle": "Od przygotowań do święta",
+    "before_title": "Przed Ślubem",
+    "after_subtitle": "do wiecznych wspomnień.",
+    "after_title": "Po Ślubie",
+    "guestbook": "Księga Gości",
+    "order_btn": "Zamów"
   },
   "contacts": {
     "title": "Kontakty"
@@ -526,5 +535,23 @@
     "title": "Prawdziwe Przykłady Naszych Prac",
     "subtitle": "Każda fotoksiążka to unikalna historia.",
     "view_all": "Zobacz wszystkie przykłady"
+  },
+  "final_cta": {
+    "guestbook_cta": "Księga Gości — Uczyń Swoje Święto Niezapomnianym",
+    "order_designer": "Zamów z Projektantem",
+    "open_constructor": "Otwórz Konstruktor",
+    "guestbook_alt": "Księga Gości"
+  },
+  "option_labels": {
+    "Розмір": "Rozmiar",
+    "Кількість сторінок": "Strony",
+    "Тип ламінації": "Laminacja",
+    "Калька перед першою сторінкою": "Kalka",
+    "Кількість": "Ilość",
+    "Тип обкладинки": "Okładka",
+    "Матеріал": "Materiał",
+    "Ламінація": "Laminacja",
+    "Популярне": "Popularne",
+    "Індивідуальна обкладинка": "Okładka Indywidualna"
   }
 }

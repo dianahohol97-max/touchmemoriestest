@@ -112,12 +112,14 @@ export function Footer({ categories = [] }: FooterProps) {
                     id,
                     section_name,
                     section_title,
+                    translations,
                     footer_links (
                         id,
                         link_text,
                         link_url,
                         display_order,
-                        is_active
+                        is_active,
+                        translations
                     )
                 `)
                 .eq('is_active', true)

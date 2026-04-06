@@ -49,7 +49,8 @@
     "tb_feat_1": "Format A4 (21 × 29.7 cm) — ca o revistă adevărată",
     "tb_feat_2": "De la 12 la 80 de pagini la alegere",
     "tb_feat_3": "Producție în 5–7 zile lucrătoare",
-    "tb_feat_4": "Livrare în toată Ucraina"
+    "tb_feat_4": "Livrare în toată Ucraina",
+    "why_choose_us": "De ce să ne alegeți"
   },
   "catalog": {
     "title": "Catalog",
@@ -63,7 +64,9 @@
     "from_price": "de la",
     "search_placeholder": "Caută...",
     "popular": "Populare",
-    "newest": "Noi"
+    "newest": "Noi",
+    "view_more": "Mai multe",
+    "popular_badge": "Popular"
   },
   "product": {
     "order": "Comandă",
@@ -191,7 +194,13 @@
     "newspaper": "Ziar de nuntă",
     "photobook": "Album foto de nuntă",
     "magazine": "Revistă de nuntă",
-    "order": "Comandă"
+    "order": "Comandă",
+    "before_subtitle": "De la pregătire la sărbătoare",
+    "before_title": "Înainte de Nuntă",
+    "after_subtitle": "la amintiri eterne.",
+    "after_title": "După Nuntă",
+    "guestbook": "Carte de Oaspeți",
+    "order_btn": "Comandă"
   },
   "contacts": {
     "title": "Contacte"
@@ -526,5 +535,24 @@
     "title": "Exemple Reale din Lucrările Noastre",
     "subtitle": "Fiecare album foto este o poveste unică.",
     "view_all": "Vezi toate exemplele"
+  },
+  "final_cta": {
+    "guestbook_cta": "Carte de Oaspeți — Faceți Sărbătoarea de Neuitat",
+    "order_designer": "Comandă cu Designer",
+    "open_constructor": "Deschide Constructorul",
+    "guestbook_alt": "Carte de Oaspeți"
+  },
+  "option_labels": {
+    "Розмір": "Dimensiune",
+    "Кількість сторінок": "Pagini",
+    "Тип ламінації": "Laminare",
+    "Калька перед першою сторінкою": "Calc",
+    "Кількість": "Cantitate",
+    "Покриття": "Finisaj",
+    "Тип обкладинки": "Copertă",
+    "Матеріал": "Material",
+    "Ламінація": "Laminare",
+    "Популярне": "Popular",
+    "Індивідуальна обкладинка": "Copertă Personalizată"
   }
 }

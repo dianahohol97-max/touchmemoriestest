@@ -93,7 +93,7 @@ function CatalogContent() {
             // Fetch products
             const { data: prodData } = await supabase
                 .from('products')
-                .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, is_personalized, is_partially_personalized, categories(name, slug)')
+                .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, is_personalized, is_partially_personalized, translations, categories(name, slug)')
                 .eq('is_active', true);
 
             if (prodData) {
@@ -326,7 +326,7 @@ function CatalogContent() {
                                 <div key={product.id} className="relative">
                                     {product.is_popular && (
                                         <div className="absolute top-4 left-4 z-20 flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-md text-xs font-bold shadow-sm">
-                                            Популярне
+                                            {t('catalog.popular_badge')}
                                         </div>
                                     )}
                                     <ProductCard product={product} />

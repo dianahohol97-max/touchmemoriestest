@@ -15,11 +15,11 @@ export function WeddingSection() {
 
     const categories = [
         {
-            subtitle: 'Від підготовки до свята',
-            title: 'До весілля',
+            subtitle: t('wedding.before_subtitle'),
+            title: t('wedding.before_title'),
             products: [
                 {
-                    name: 'Книга побажань',
+                    name: t('wedding.guestbook'),
                     image: '/images/wedding/guestbook.png',
                     href: '/catalog?category=guestbooks'
                 },
@@ -31,8 +31,8 @@ export function WeddingSection() {
             ]
         },
         {
-            subtitle: 'до вічних спогадів про нього.',
-            title: 'Після весілля',
+            subtitle: t('wedding.after_subtitle'),
+            title: t('wedding.after_title'),
             products: [
                 {
                     name: t('wedding.photobook'),

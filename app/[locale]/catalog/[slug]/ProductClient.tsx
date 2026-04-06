@@ -124,6 +124,7 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const t = useT();
     const locale = useLocale();
+    const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
     const resolvedParams = React.use(params);
     const router = useRouter();
     const supabase = createBrowserClient(
@@ -572,7 +573,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 return (
                                                     <div key={opt.name}>
                                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e2d7d' }}>
-                                                            {opt.name} {opt.required !== false ? <span style={{color:'#e53e3e'}}>*</span> : null}
+                                                            {optLabel(opt.name)} {opt.required !== false ? <span style={{color:'#e53e3e'}}>*</span> : null}
                                                         </label>
                                                         <select
                                                             value={customProductOptions[opt.name] || ''}
