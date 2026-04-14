@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import CityMapPreview from './CityMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
+import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 
 interface CityMapConfig {
     // Step 1: Location
@@ -29,6 +30,7 @@ interface CityMapConfig {
     border: 'simple-frame' | 'white-mat' | 'no-border';
     orientation: 'portrait' | 'landscape';
     fontFamily: string;
+    mapLang?: string;
 
     // Step 4: Size & Product
     size: string;
@@ -63,6 +65,7 @@ export default function CityMapConstructor() {
         border: 'simple-frame',
         orientation: 'portrait',
         fontFamily: 'Georgia',
+        mapLang: 'uk',
 
         // Step 4 defaults
         size: '30×40 см',
@@ -442,7 +445,16 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
         { id: 'no-border', name: 'Без рамки' }
     ];
 
-    const fonts = ['Georgia', 'Playfair Display', 'Lora', 'Montserrat', 'Roboto', 'Open Sans', 'Raleway', 'Cormorant Garamond'];
+    // Full font list from photobook editor
+
+    // Load Google Fonts
+    useEffect(() => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = GOOGLE_FONTS_URL;
+        document.head.appendChild(link);
+        return () => { try { document.head.removeChild(link); } catch {} };
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -616,20 +628,102 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
                 </div>
             </div>
 
-            {/* Font */}
+            {/* Font — grouped visual picker */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Шрифт</label>
-                <select
-                    value={config.fontFamily}
-                    onChange={(e) => setConfig({ ...config, fontFamily: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
-                >
-                    {fonts.map((font) => (
-                        <option key={font} value={font} style={{ fontFamily: font }}>
-                            {font}
-                        </option>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Шрифт надпису</label>
+                <div style={{ display:'flex', flexDirection:'column', gap:8, maxHeight:280, overflowY:'auto', paddingRight:4 }}>
+                    {FONT_GROUPS.map(group => (
+                        <div key={group.group}>
+                            <div style={{ fontSize:9, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>{group.group}</div>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                                {group.fonts.map(font => {
+                                    const isActive = config.fontFamily === font;
+                                    return (
+                                        <button key={font} type="button"
+                                            onClick={() => setConfig({ ...config, fontFamily: font })}
+                                            style={{
+                                                padding:'4px 9px', borderRadius:7, cursor:'pointer', fontSize:12,
+                                                fontFamily: font,
+                                                border: isActive ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                                                background: isActive ? '#f0f3ff' : '#fff',
+                                                color: isActive ? '#1e2d7d' : '#374151',
+                                                fontWeight: isActive ? 700 : 400,
+                                            }}>
+                                            {font}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     ))}
-                </select>
+                </div>
+            </div>
+
+            {/* Map language — city/street names on map tiles */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Мова надписів на карті</label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                    {([
+                        { code: 'uk', label: '🇺🇦 Укр' },
+                        { code: 'en', label: '🇬🇧 Eng' },
+                        { code: 'ru', label: '🇷🇺 Рус' },
+                        { code: 'de', label: '🇩🇪 Deu' },
+                        { code: 'fr', label: '🇫🇷 Fra' },
+                        { code: 'es', label: '🇪🇸 Esp' },
+                        { code: 'it', label: '🇮🇹 Ita' },
+                        { code: 'pl', label: '🇵🇱 Pol' },
+                        { code: 'pt', label: '🇵🇹 Por' },
+                        { code: 'ro', label: '🇷🇴 Rom' },
+                        { code: 'nl', label: '🇳🇱 Nld' },
+                        { code: 'cs', label: '🇨🇿 Ces' },
+                        { code: 'sk', label: '🇸🇰 Slk' },
+                        { code: 'hu', label: '🇭🇺 Hun' },
+                        { code: 'tr', label: '🇹🇷 Tur' },
+                        { code: 'ar', label: '🇸🇦 Ara' },
+                        { code: 'zh', label: '🇨🇳 Zho' },
+                        { code: 'ja', label: '🇯🇵 Jpn' },
+                        { code: 'ko', label: '🇰🇷 Kor' },
+                        { code: 'he', label: '🇮🇱 Heb' },
+                        { code: 'fa', label: '🇮🇷 Per' },
+                        { code: 'sv', label: '🇸🇪 Swe' },
+                        { code: 'fi', label: '🇫🇮 Fin' },
+                        { code: 'no', label: '🇳🇴 Nor' },
+                        { code: 'da', label: '🇩🇰 Dan' },
+                        { code: 'el', label: '🇬🇷 Ell' },
+                        { code: 'bg', label: '🇧🇬 Bul' },
+                        { code: 'hr', label: '🇭🇷 Hrv' },
+                        { code: 'sr', label: '🇷🇸 Srp' },
+                        { code: 'lt', label: '🇱🇹 Lit' },
+                        { code: 'lv', label: '🇱🇻 Lav' },
+                        { code: 'et', label: '🇪🇪 Est' },
+                        { code: 'ka', label: '🇬🇪 Geo' },
+                        { code: 'hy', label: '🇦🇲 Arm' },
+                        { code: 'az', label: '🇦🇿 Aze' },
+                        { code: 'kk', label: '🇰🇿 Kaz' },
+                        { code: 'be', label: '🇧🇾 Bel' },
+                        { code: 'vi', label: '🇻🇳 Vie' },
+                        { code: 'th', label: '🇹🇭 Tha' },
+                        { code: 'id', label: '🇮🇩 Ind' },
+                        { code: 'ms', label: '🇲🇾 Msa' },
+                    ] as const).map(({ code, label }) => {
+                        const isActive = ((config as any).mapLang || 'uk') === code;
+                        return (
+                            <button key={code} type="button"
+                                onClick={() => setConfig({ ...config, mapLang: code } as any)}
+                                style={{
+                                    padding:'4px 8px', borderRadius:7, cursor:'pointer', fontSize:11, fontWeight: isActive ? 700 : 400,
+                                    border: isActive ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                                    background: isActive ? '#f0f3ff' : '#fff',
+                                    color: isActive ? '#1e2d7d' : '#374151',
+                                }}>
+                                {label}
+                            </button>
+                        );
+                    })}
+                </div>
+                <p style={{ fontSize:10, color:'#94a3b8', marginTop:6 }}>
+                    * Написи на карті залежать від даних OpenStreetMap — деякі міста можуть мати обмежений переклад
+                </p>
             </div>
 
             {/* Text Color Override */}

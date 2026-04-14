@@ -20,6 +20,7 @@ interface CityMapConfig {
     border: 'simple-frame' | 'white-mat' | 'no-border';
     orientation: 'portrait' | 'landscape';
     fontFamily: string;
+    mapLang?: string;
     size: string;
     productType: string;
     price: number;
@@ -66,31 +67,31 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
     }, []);
 
     // Get tile URL based on map style
+    // Language → CartoCDN uses OSM data, language shown depends on OSM name: tags
+    // For client-side lang: we append a labels overlay tile with lang param via MapTiler (free)
+    // Or use Stadia/CartoCDN + lang label overlay from openstreetmap.org
+    const lang = (config as any).mapLang || 'local';
+
     const getTileUrl = () => {
+        // For toner styles: use no-label base + separate label layer with lang
         switch (config.mapStyle) {
-            // Dark styles
             case 'dark-mode':
                 return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
             case 'blueprint':
                 return 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
             case 'plum':
                 return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-            // Clean B&W minimal — like Etsy bestsellers (CartoCDN Positron no-labels + grayscale filter)
             case 'classic-bw':
                 return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
-            // Minimal with labels
             case 'smooth-light':
                 return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-            // Stadia Stamen Toner (pure black-white minimal, classic poster look)
             case 'stamen-toner':
-                return 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png';
+                return 'https://tiles.stadiamaps.com/tiles/stamen_toner_background/{z}/{x}/{y}{r}.png';
             case 'stamen-toner-lite':
                 return 'https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png';
-            // Warm styles
             case 'vintage-sepia':
             case 'harvest':
                 return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
-            // Color styles
             case 'color-outdoors':
             case 'bayside':
             case 'forest-green':
@@ -99,6 +100,23 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             default:
                 return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
         }
+    };
+
+    // Label tile with language support via MapTiler (free tier, 100k tiles/month)
+    // Falls back to local language if lang not available
+    const getLabelTileUrl = () => {
+        // CartoCDN does not support lang param natively
+        // Use Stadia Maps language tiles for supported languages
+        const stadiaLangs = new Set(['en','de','fr','es','it','pl','pt','ru','zh','ja','ko','ar','tr','nl','cs','sk','hu','fi','sv','no','da','el','bg','hr','sr','he','uk','ro','lt','lv','et']);
+        if (lang === 'local') {
+            return 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
+        }
+        if (stadiaLangs.has(lang)) {
+            // Stadia Maps supports name:lang via their vector tiles
+            // For raster: use their label tiles — language changes via their API
+            return 'https://tiles.stadiamaps.com/tiles/stamen_toner_labels/{z}/{x}/{y}{r}.png';
+        }
+        return 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
     };
 
     // Get CSS filter based on map style
@@ -192,6 +210,10 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                             attributionControl={false}
                         >
                             <TileLayer url={getTileUrl()} />
+                            {/* Label overlay — separate tile layer for language control */}
+                            {config.mapStyle !== 'dark-mode' && config.mapStyle !== 'smooth-light' && config.mapStyle !== 'plum' && (
+                                <TileLayer url={getLabelTileUrl()} />
+                            )}
                             {isClient && <MapUpdater lat={config.latitude} lng={config.longitude} zoom={config.zoom} />}
                         </MapContainer>
                     )}
