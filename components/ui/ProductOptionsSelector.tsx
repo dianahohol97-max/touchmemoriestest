@@ -770,7 +770,10 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       {/* Wishbook cover color swatches — shown after material selected */}
       {productType === 'wishbook' && (() => {
         const material = selectedOptions['Матеріал обкладинки'];
-        if (!material || material === 'Друкована тверда') return null;
+        if (!material) return null;
+        // Hide color swatches for any printed cover variant
+        const isPrintedMaterial = String(material).toLowerCase().includes('друков') || String(material).toLowerCase().includes('printed');
+        if (isPrintedMaterial) return null;
         const isVelour = String(material).toLowerCase().includes('велюр');
         const isLeather = String(material).toLowerCase().includes('ткан') || String(material).toLowerCase().includes('fabric');
         const colors = isVelour ? VELOUR_COLORS : isLeather ? FABRIC_COLORS_WB : LEATHERETTE_COLORS_WB;
