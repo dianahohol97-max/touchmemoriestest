@@ -553,7 +553,12 @@
     "Матеріал": "Material",
     "Ламінація": "Laminare",
     "Популярне": "Popular",
-    "Індивідуальна обкладинка": "Copertă Personalizată"
+    "Індивідуальна обкладинка": "Copertă Personalizată",
+    "Рамка": "Ramă",
+    "Кількість примірників": "Număr de exemplare",
+    "Матеріал обкладинки": "Material copertă",
+    "Колір сторінок": "Culoarea paginilor",
+    "Ламінація сторінок": "Laminare pagini"
   },
   "option_value_labels": {
     "Без кальки": "Fără hârtie calc",

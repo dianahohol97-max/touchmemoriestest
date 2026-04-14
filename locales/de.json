@@ -552,7 +552,12 @@
     "Матеріал": "Material",
     "Ламінація": "Laminierung",
     "Популярне": "Beliebt",
-    "Індивідуальна обкладинка": "Individueller Einband"
+    "Індивідуальна обкладинка": "Individueller Einband",
+    "Рамка": "Rahmen",
+    "Кількість примірників": "Anzahl der Exemplare",
+    "Матеріал обкладинки": "Einbandmaterial",
+    "Колір сторінок": "Seitenfarbe",
+    "Ламінація сторінок": "Seitenlamination"
   },
   "option_value_labels": {
     "Без кальки": "Ohne Transparentpapier",

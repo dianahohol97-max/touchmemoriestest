@@ -12,6 +12,14 @@ export async function generateStaticParams() {
     return LOCALES.map(locale => ({ locale }));
 }
 
+const META: Record<Locale, { title: string; description: string; locale: string }> = {
+    uk: { title: 'Touch.Memories — Фотокниги, журнали та фотовироби', description: 'Замовляйте фотокниги, тревел-буки, журнали, календарі, постери та пазли. Доставка по Україні та світу.', locale: 'uk_UA' },
+    en: { title: 'Touch.Memories — Photo Books, Journals & Photo Gifts', description: 'Order custom photo books, travel books, magazines, calendars and posters. Delivery worldwide.', locale: 'en_US' },
+    pl: { title: 'Touch.Memories — Fotoksiążki, Albumy i Prezenty Foto', description: 'Zamów fotoksiążki, podróżniki, magazyny, kalendarze i plakaty. Wysyłka do Polski i całego świata.', locale: 'pl_PL' },
+    de: { title: 'Touch.Memories — Fotobücher, Zeitschriften & Fotogeschenke', description: 'Bestellen Sie Fotobücher, Reisejournale, Kalender und Poster. Lieferung weltweit.', locale: 'de_DE' },
+    ro: { title: 'Touch.Memories — Cărți Foto, Reviste și Cadouri Foto', description: 'Comandați cărți foto, jurnale de călătorie, calendare și postere. Livrare în România și în toată lumea.', locale: 'ro_RO' },
+};
+
 export async function generateMetadata({
     params,
 }: {
@@ -23,7 +31,20 @@ export async function generateMetadata({
         alternates[l === 'uk' ? 'uk-UA' : l] = `${SITE_URL}/${l}`;
     });
     alternates['x-default'] = `${SITE_URL}/uk`;
-    return { alternates: { languages: alternates } };
+    const m = META[locale] || META.uk;
+    return {
+        title: m.title,
+        description: m.description,
+        alternates: { canonical: `${SITE_URL}/${locale}`, languages: alternates },
+        openGraph: {
+            title: m.title,
+            description: m.description,
+            locale: m.locale,
+            url: `${SITE_URL}/${locale}`,
+            type: 'website',
+            siteName: 'Touch.Memories',
+        },
+    };
 }
 
 export default async function LocaleLayout({
@@ -38,7 +59,9 @@ export default async function LocaleLayout({
 
     return (
         <I18nServerProvider locale={locale}>
-            {children}
+            <div lang={locale}>
+                {children}
+            </div>
         </I18nServerProvider>
     );
 }

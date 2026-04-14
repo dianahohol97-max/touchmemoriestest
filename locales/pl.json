@@ -552,7 +552,12 @@
     "Матеріал": "Materiał",
     "Ламінація": "Laminacja",
     "Популярне": "Popularne",
-    "Індивідуальна обкладинка": "Okładka Indywidualna"
+    "Індивідуальна обкладинка": "Okładka Indywidualna",
+    "Рамка": "Ramka",
+    "Кількість примірників": "Liczba egzemplarzy",
+    "Матеріал обкладинки": "Materiał okładki",
+    "Колір сторінок": "Kolor stron",
+    "Ламінація сторінок": "Laminacja stron"
   },
   "option_value_labels": {
     "Без кальки": "Bez kalki",
