@@ -82,15 +82,15 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                 return 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
             case 'smooth-light':
                 return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-            // For B&W poster styles: Positron no-labels base + CSS grayscale+contrast
+            // For B&W poster styles: Voyager has stronger road lines that survive grayscale
             case 'stamen-toner':
             case 'stamen-toner-lite':
             case 'classic-bw':
-                // light_all = roads + labels + no POI icons, CSS makes it B&W
-                return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                // voyager has bolder roads that stay visible after grayscale+contrast
+                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
             case 'vintage-sepia':
             case 'harvest':
-                return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
             case 'color-outdoors':
             case 'bayside':
             case 'forest-green':
@@ -122,14 +122,12 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
         switch (config.mapStyle) {
             // Pure B&W minimal — like reference images (high contrast, clean)
             case 'classic-bw':
-                return 'grayscale(100%) contrast(170%) brightness(1.05)';
+                return 'grayscale(100%) contrast(200%) brightness(0.95)';
             case 'stamen-toner':
-                // light_all → B&W high contrast poster
-                return 'grayscale(100%) contrast(160%) brightness(1.05)';
+                // voyager → B&W high contrast poster with visible roads
+                return 'grayscale(100%) contrast(210%) brightness(0.95)';
             case 'stamen-toner-lite':
-                return 'grayscale(100%) contrast(120%) brightness(1.1)';
-            case 'classic-bw':
-                return 'grayscale(100%) contrast(140%) brightness(1.05)';
+                return 'grayscale(100%) contrast(150%) brightness(1.05)';
             case 'vintage-sepia':
             case 'harvest':
                 return 'grayscale(100%) sepia(55%) contrast(130%) brightness(1.05)';
