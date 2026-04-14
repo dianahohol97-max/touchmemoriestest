@@ -86,9 +86,10 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             case 'smooth-light':
                 return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
             case 'stamen-toner':
-                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+                // Rastertiles voyager = clean roads + minimal labels, good poster quality
+                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
             case 'stamen-toner-lite':
-                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
             case 'vintage-sepia':
             case 'harvest':
                 return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
@@ -125,9 +126,11 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             case 'classic-bw':
                 return 'grayscale(100%) contrast(170%) brightness(1.05)';
             case 'stamen-toner':
-                return 'grayscale(100%) contrast(200%) brightness(1.02)';
+                // Voyager → convert to sharp B&W for classic poster look
+                return 'grayscale(100%) contrast(160%) brightness(1.05) saturate(0)';
             case 'stamen-toner-lite':
-                return 'grayscale(100%) contrast(150%) brightness(1.05)';
+                // light_all → soft gray poster
+                return 'grayscale(100%) contrast(120%) brightness(1.08)';
             case 'smooth-light':
                 return 'grayscale(100%) contrast(120%) brightness(1.08)';
             // Dark
@@ -209,8 +212,8 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                             attributionControl={false}
                         >
                             <TileLayer url={getTileUrl()} />
-                            {/* Label overlay — separate tile layer for language control */}
-                            {config.mapStyle !== 'dark-mode' && config.mapStyle !== 'smooth-light' && config.mapStyle !== 'plum' && (
+                            {/* Label overlay — only for nolabels base tiles */}
+                            {(config.mapStyle === 'classic-bw' || config.mapStyle === 'vintage-sepia' || config.mapStyle === 'harvest' || config.mapStyle === 'color-outdoors' || config.mapStyle === 'bayside' || config.mapStyle === 'forest-green' || config.mapStyle === 'paste') && (
                                 <TileLayer url={getLabelTileUrl()} />
                             )}
                             {isClient && <MapUpdater lat={config.latitude} lng={config.longitude} zoom={config.zoom} />}
