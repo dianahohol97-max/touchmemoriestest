@@ -16,7 +16,7 @@ interface CityMapConfig {
     coordinates: string;
     mapStyle: string;
     textColor: 'light' | 'dark';
-    layout: 'original' | 'modern' | 'no-text' | 'circle' | 'heart' | 'square-border';
+    layout: 'original' | 'modern' | 'no-text' | 'circle' | 'heart' | 'square-border' | 'title-bottom' | 'title-top';
     border: 'simple-frame' | 'white-mat' | 'no-border';
     orientation: 'portrait' | 'landscape';
     fontFamily: string;
@@ -127,21 +127,31 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                     </>
                 )}
 
+                {/* ── title-top layout: title above map ── */}
+                {config.layout === 'title-top' && (
+                    <div style={{ position:'absolute', top:0, left:0, right:0, height:'22%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'8px 16px', background:'#fff', zIndex:10 }}>
+                        <div style={{ fontFamily: config.fontFamily, fontWeight:900, fontSize:'clamp(14px,3.5vw,32px)', letterSpacing:'0.12em', textTransform:'uppercase', color: config.textColor === 'light' ? '#1a1a1a' : '#1a1a1a', textAlign:'center', lineHeight:1.1 }}>
+                            {config.title || 'ВАШЕ МІСТО'}
+                        </div>
+                        {config.subtitle && (
+                            <div style={{ fontFamily: config.fontFamily, fontSize:'clamp(8px,1.5vw,13px)', letterSpacing:'0.2em', textTransform:'uppercase', color:'#666', marginTop:4 }}>
+                                {config.subtitle}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Map Container */}
                 <div
-                    className={`absolute ${
-                        config.layout === 'original' ? 'inset-0 top-0 bottom-[25%]' :
-                        config.layout === 'modern' ? 'inset-0' :
-                        config.layout === 'no-text' ? 'inset-0' :
-                        config.layout === 'circle' ? 'inset-0 top-0 bottom-[30%]' :
-                        config.layout === 'heart' ? 'inset-0 top-0 bottom-[30%]' :
-                        'inset-0'
-                    }`}
                     style={{
+                        position: 'absolute',
+                        top: config.layout === 'title-top' ? '22%' : 0,
+                        bottom: (config.layout === 'title-bottom' || config.layout === 'circle' || config.layout === 'heart') ? '25%' : 0,
+                        left: 0, right: 0,
                         filter: getMapFilter(),
                         clipPath:
-                            config.layout === 'circle' ? 'circle(40% at 50% 45%)' :
-                            config.layout === 'heart' ? 'path("M 50,30 C 50,20 30,5 20,15 C 5,30 20,45 50,70 C 80,45 95,30 80,15 C 70,5 50,20 50,30 Z")' :
+                            config.layout === 'circle' ? 'circle(38% at 50% 50%)' :
+                            config.layout === 'heart' ? 'path("M 50,75 C 50,75 5,45 5,25 C 5,10 18,5 30,15 C 38,20 50,28 50,28 C 50,28 62,20 70,15 C 82,5 95,10 95,25 C 95,45 50,75 50,75 Z")' :
                             'none'
                     }}
                 >
@@ -160,31 +170,38 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                     )}
                 </div>
 
-                {/* Text Overlays */}
-                {config.layout !== 'no-text' && (
-                    <div className={`absolute ${
-                        config.layout === 'original' || config.layout === 'circle' || config.layout === 'heart' ?
-                            'bottom-0 left-0 right-0 h-[25%] bg-gradient-to-t from-gray-100 to-transparent flex flex-col items-center justify-center p-4' :
-                        config.layout === 'modern' ?
-                            'bottom-4 left-4 bg-white bg-opacity-90 p-4 rounded-lg max-w-[60%]' :
-                        'bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent'
-                    }`}
-                    style={{
-                        color: config.textColor === 'light' ? '#1a1a1a' : '#ffffff',
-                        fontFamily: config.fontFamily
-                    }}>
-                        <div className={`text-center ${config.layout === 'modern' ? 'text-left' : ''}`}>
-                            {config.title && (
-                                <h2 className="text-2xl font-bold mb-1">{config.title}</h2>
-                            )}
-                            {config.subtitle && (
-                                <p className="text-sm opacity-80">{config.subtitle}</p>
-                            )}
-                            {config.textNote && (
-                                <p className="text-xs opacity-70 mt-2">{config.textNote}</p>
-                            )}
-                            <p className="text-xs opacity-60 mt-2 font-mono">{config.coordinates}</p>
+                {/* ── title-bottom / circle / heart text area ── */}
+                {(config.layout === 'title-bottom' || config.layout === 'circle' || config.layout === 'heart') && (
+                    <div style={{ position:'absolute', bottom:0, left:0, right:0, height:'25%', background:'#fff', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'6px 12px', zIndex:10 }}>
+                        <div style={{ fontFamily: config.fontFamily, fontWeight:900, fontSize:'clamp(13px,3vw,28px)', letterSpacing:'0.15em', textTransform:'uppercase', color:'#1a1a1a', textAlign:'center', lineHeight:1.1 }}>
+                            {config.title || 'ВАШЕ МІСТО'}
                         </div>
+                        {config.subtitle && (
+                            <div style={{ fontFamily: config.fontFamily, fontSize:'clamp(7px,1.2vw,11px)', letterSpacing:'0.22em', textTransform:'uppercase', color:'#666', marginTop:3, textAlign:'center' }}>
+                                {config.subtitle}
+                            </div>
+                        )}
+                        {config.coordinates && (
+                            <div style={{ fontFamily:'monospace', fontSize:'clamp(6px,1vw,9px)', color:'#999', marginTop:4, letterSpacing:'0.05em' }}>
+                                {config.coordinates}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ── modern layout: overlay text ── */}
+                {config.layout === 'modern' && (
+                    <div style={{ position:'absolute', bottom:16, left:12, background:'rgba(255,255,255,0.92)', padding:'10px 14px', borderRadius:8, maxWidth:'60%', zIndex:10 }}>
+                        {config.title && <div style={{ fontFamily: config.fontFamily, fontWeight:900, fontSize:'clamp(12px,2.5vw,22px)', letterSpacing:'0.1em', textTransform:'uppercase', color:'#1a1a1a' }}>{config.title}</div>}
+                        {config.subtitle && <div style={{ fontFamily: config.fontFamily, fontSize:'clamp(7px,1.2vw,11px)', letterSpacing:'0.15em', textTransform:'uppercase', color:'#555', marginTop:3 }}>{config.subtitle}</div>}
+                        <div style={{ fontFamily:'monospace', fontSize:'clamp(6px,0.9vw,9px)', color:'#888', marginTop:4 }}>{config.coordinates}</div>
+                    </div>
+                )}
+
+                {/* ── title-top: coords at bottom ── */}
+                {config.layout === 'title-top' && (
+                    <div style={{ position:'absolute', bottom:8, left:0, right:0, textAlign:'center', zIndex:10 }}>
+                        <span style={{ fontFamily:'monospace', fontSize:'clamp(6px,0.9vw,9px)', color: '#999' }}>{config.coordinates}</span>
                     </div>
                 )}
             </div>

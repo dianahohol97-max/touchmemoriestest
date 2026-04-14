@@ -25,7 +25,7 @@ interface CityMapConfig {
     // Step 3: Design
     mapStyle: string;
     textColor: 'light' | 'dark';
-    layout: 'original' | 'modern' | 'no-text' | 'circle' | 'heart' | 'square-border';
+    layout: 'original' | 'modern' | 'no-text' | 'circle' | 'heart' | 'square-border' | 'title-bottom' | 'title-top';
     border: 'simple-frame' | 'white-mat' | 'no-border';
     orientation: 'portrait' | 'landscape';
     fontFamily: string;
@@ -59,7 +59,7 @@ export default function CityMapConstructor() {
         // Step 3 defaults
         mapStyle: 'classic-bw',
         textColor: 'light',
-        layout: 'original',
+        layout: 'title-bottom',
         border: 'simple-frame',
         orientation: 'portrait',
         fontFamily: 'Georgia',
@@ -425,12 +425,12 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
     ];
 
     const layouts = [
-        { id: 'original', name: 'Оригінальний', desc: 'Карта 75%, текст знизу' },
-        { id: 'modern', name: 'Сучасний', desc: 'Повна карта, текст поверх' },
-        { id: 'no-text', name: 'Без тексту', desc: 'Тільки карта' },
-        { id: 'circle', name: 'Круг', desc: 'Карта в колі' },
-        { id: 'heart', name: 'Серце', desc: 'Карта у формі серця' },
-        { id: 'square-border', name: 'Квадрат з рамкою', desc: 'З внутрішньою рамкою' }
+        { id: 'title-bottom', name: 'Класичний', desc: 'Карта + назва знизу', icon: '🗺 МІСТО' },
+        { id: 'title-top', name: 'Заголовок зверху', desc: 'Назва + карта + координати', icon: 'МІСТО 🗺' },
+        { id: 'modern', name: 'Мінімалізм', desc: 'Карта на весь постер, текст поверх', icon: '▣' },
+        { id: 'no-text', name: 'Без тексту', desc: 'Тільки карта', icon: '□' },
+        { id: 'circle', name: 'Круг', desc: 'Карта в колі', icon: '○' },
+        { id: 'heart', name: 'Серце', desc: 'Карта у формі серця', icon: '♥' },
     ];
 
     const borders = [
@@ -492,28 +492,77 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
                 </div>
             </div>
 
-            {/* Layout */}
+            {/* Layout — visual mini previews */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">Макет</label>
-                <div className="space-y-2">
-                    {layouts.map((layout) => (
-                        <button
-                            key={layout.id}
-                            onClick={() => setConfig({ ...config, layout: layout.id as any })}
-                            className={`w-full p-3 border-2 rounded-lg text-left transition-all ${
-                                config.layout === layout.id
-                                    ? 'border-[#1e2d7d] bg-blue-50'
-                                    : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                        >
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-sm font-semibold text-gray-900">{layout.name}</div>
-                                    <div className="text-xs text-gray-500">{layout.desc}</div>
-                                </div>
-                            </div>
-                        </button>
-                    ))}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+                    {layouts.map((layout) => {
+                        const isActive = config.layout === layout.id;
+                        return (
+                            <button key={layout.id}
+                                onClick={() => setConfig({ ...config, layout: layout.id as any })}
+                                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, padding:'8px 4px',
+                                    border: isActive ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                                    borderRadius:10, background: isActive ? '#f0f3ff' : '#fff',
+                                    cursor:'pointer', transition:'all 0.15s' }}>
+                                {/* Mini layout sketch */}
+                                <svg viewBox="0 0 60 80" style={{ width:48, height:64 }} xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="0" y="0" width="60" height="80" rx="3" fill={isActive?'#e8ecff':'#f8fafc'} stroke={isActive?'#1e2d7d':'#cbd5e1'} strokeWidth="1.5"/>
+                                    {layout.id === 'title-bottom' && <>
+                                        {/* Map top 70% */}
+                                        <rect x="3" y="3" width="54" height="54" rx="2" fill={isActive?'#c7d2fe':'#e2e8f0'}/>
+                                        <line x1="3" y1="25" x2="57" y2="25" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.8"/>
+                                        <line x1="20" y1="3" x2="20" y2="57" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.8"/>
+                                        <line x1="40" y1="3" x2="30" y2="57" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.5" opacity="0.6"/>
+                                        {/* Title bottom */}
+                                        <rect x="8" y="61" width="44" height="5" rx="1" fill={isActive?'#1e2d7d':'#374151'} opacity="0.7"/>
+                                        <rect x="15" y="69" width="30" height="3" rx="1" fill={isActive?'#3b52d4':'#94a3b8'} opacity="0.5"/>
+                                        <rect x="20" y="74" width="20" height="2" rx="1" fill={isActive?'#3b52d4':'#94a3b8'} opacity="0.3"/>
+                                    </>}
+                                    {layout.id === 'title-top' && <>
+                                        {/* Title top */}
+                                        <rect x="8" y="5" width="44" height="5" rx="1" fill={isActive?'#1e2d7d':'#374151'} opacity="0.7"/>
+                                        <rect x="15" y="12" width="30" height="3" rx="1" fill={isActive?'#3b52d4':'#94a3b8'} opacity="0.5"/>
+                                        {/* Map bottom 70% */}
+                                        <rect x="3" y="18" width="54" height="54" rx="2" fill={isActive?'#c7d2fe':'#e2e8f0'}/>
+                                        <line x1="3" y1="38" x2="57" y2="38" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.8"/>
+                                        <line x1="25" y1="18" x2="25" y2="72" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.8"/>
+                                        <line x1="45" y1="18" x2="35" y2="72" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.5" opacity="0.6"/>
+                                        <rect x="12" y="74" width="36" height="2" rx="1" fill={isActive?'#3b52d4':'#94a3b8'} opacity="0.3"/>
+                                    </>}
+                                    {layout.id === 'modern' && <>
+                                        <rect x="3" y="3" width="54" height="74" rx="2" fill={isActive?'#c7d2fe':'#e2e8f0'}/>
+                                        <line x1="3" y1="30" x2="57" y2="30" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.8"/>
+                                        <line x1="20" y1="3" x2="20" y2="77" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.8"/>
+                                        <rect x="6" y="58" width="36" height="4" rx="1" fill="#fff" opacity="0.7"/>
+                                        <rect x="6" y="64" width="24" height="3" rx="1" fill="#fff" opacity="0.5"/>
+                                    </>}
+                                    {layout.id === 'no-text' && <>
+                                        <rect x="3" y="3" width="54" height="74" rx="2" fill={isActive?'#c7d2fe':'#e2e8f0'}/>
+                                        <line x1="3" y1="28" x2="57" y2="28" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.8"/>
+                                        <line x1="22" y1="3" x2="22" y2="77" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.8"/>
+                                        <line x1="42" y1="3" x2="35" y2="77" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.5" opacity="0.5"/>
+                                    </>}
+                                    {layout.id === 'circle' && <>
+                                        <circle cx="30" cy="34" r="26" fill={isActive?'#c7d2fe':'#e2e8f0'} stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="1"/>
+                                        <line x1="10" y1="34" x2="50" y2="34" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.7"/>
+                                        <line x1="30" y1="10" x2="30" y2="58" stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="0.7"/>
+                                        <rect x="10" y="66" width="40" height="4" rx="1" fill={isActive?'#1e2d7d':'#374151'} opacity="0.6"/>
+                                        <rect x="18" y="72" width="24" height="3" rx="1" fill={isActive?'#3b52d4':'#94a3b8'} opacity="0.4"/>
+                                    </>}
+                                    {layout.id === 'heart' && <>
+                                        <path d="M30 58 C30 58 6 42 6 26 C6 16 14 10 22 14 C26 16 30 20 30 20 C30 20 34 16 38 14 C46 10 54 16 54 26 C54 42 30 58 30 58Z"
+                                            fill={isActive?'#c7d2fe':'#e2e8f0'} stroke={isActive?'#818cf8':'#94a3b8'} strokeWidth="1"/>
+                                        <rect x="10" y="64" width="40" height="4" rx="1" fill={isActive?'#1e2d7d':'#374151'} opacity="0.6"/>
+                                        <rect x="18" y="71" width="24" height="3" rx="1" fill={isActive?'#3b52d4':'#94a3b8'} opacity="0.4"/>
+                                    </>}
+                                </svg>
+                                <span style={{ fontSize:10, fontWeight:700, color: isActive?'#1e2d7d':'#374151', textAlign:'center', lineHeight:1.3 }}>
+                                    {layout.name}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
