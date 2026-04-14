@@ -3267,6 +3267,11 @@ export default function BookLayoutEditor() {
               const dy = e.touches[0].clientY - e.touches[1].clientY;
               (e.currentTarget as any)._pinchDist = Math.sqrt(dx*dx + dy*dy);
               (e.currentTarget as any)._pinchZoom = zoom;
+              (e.currentTarget as any)._swipeStartX = null; // cancel swipe if 2 fingers
+            } else if (e.touches.length === 1) {
+              (e.currentTarget as any)._swipeStartX = e.touches[0].clientX;
+              (e.currentTarget as any)._swipeStartY = e.touches[0].clientY;
+              (e.currentTarget as any)._swipeMoved = false;
             }
           }}
           onTouchMove={e => {
@@ -3280,10 +3285,40 @@ export default function BookLayoutEditor() {
                 const newZoom = Math.round(Math.max(20, Math.min(150, startZoom * dist / startDist)));
                 setZoom(newZoom);
               }
+            } else if (e.touches.length === 1) {
+              const sx = (e.currentTarget as any)._swipeStartX;
+              const sy = (e.currentTarget as any)._swipeStartY;
+              if (sx !== null && sx !== undefined) {
+                const dx = e.touches[0].clientX - sx;
+                const dy = e.touches[0].clientY - sy;
+                if (Math.abs(dx) > 8) (e.currentTarget as any)._swipeMoved = true;
+              }
             }
           }}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? '12px 8px 140px 8px' : '24px 32px 140px 32px', background: '#f4f6fb', position:'relative', WebkitOverflowScrolling:'touch' as any }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+          onTouchEnd={e => {
+            const sx = (e.currentTarget as any)._swipeStartX;
+            const sy = (e.currentTarget as any)._swipeStartY;
+            if (sx === null || sx === undefined) return;
+            const ex = e.changedTouches[0]?.clientX ?? sx;
+            const ey = e.changedTouches[0]?.clientY ?? (sy||0);
+            const dx = ex - sx;
+            const dy = ey - (sy||0);
+            const hasDragged = (e.currentTarget as any)._swipeMoved;
+            // Only trigger swipe if horizontal swipe > 60px and not much vertical movement
+            if (isMobile && hasDragged && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+              if (dx < 0) {
+                // swipe left → next spread
+                setCurrentIdx(i => Math.min(Math.ceil((pages.length - 1) / 2), i + 1));
+              } else {
+                // swipe right → prev spread
+                setCurrentIdx(i => Math.max(0, i - 1));
+              }
+            }
+            (e.currentTarget as any)._swipeStartX = null;
+            (e.currentTarget as any)._swipeMoved = false;
+          }}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? `8px 8px ${mobilePanel ? '370px' : '115px'} 8px` : '24px 32px 140px 32px', background: '#f4f6fb', position:'relative', WebkitOverflowScrolling:'touch' as any }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: isMobile ? 6 : 16, display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12 }}>
             {isWishbook ? (
               <span>Обкладинка</span>
             ) : (<>
@@ -4706,7 +4741,7 @@ export default function BookLayoutEditor() {
 
         {/* MOBILE: mini photo strip directly under canvas */}
         {isMobile && photos.length > 0 && (
-          <div style={{ position:'absolute', bottom: 60, left:0, right:0, background:'rgba(255,255,255,0.95)', backdropFilter:'blur(8px)', borderTop:'1px solid #f1f5f9', zIndex:40, padding:'6px 8px', display:'flex', gap:6, overflowX:'auto', overflowY:'hidden', WebkitOverflowScrolling:'touch' as any, scrollbarWidth:'none' }}>
+          <div style={{ position:'absolute', bottom: 72, left:0, right:0, background:'rgba(255,255,255,0.95)', backdropFilter:'blur(8px)', borderTop:'1px solid #f1f5f9', zIndex:40, padding:'6px 8px', display:'flex', gap:6, overflowX:'auto', overflowY:'hidden', WebkitOverflowScrolling:'touch' as any, scrollbarWidth:'none' }}>
             {photos.filter(p => {
               const used = pages.some(pg => pg.slots.some(s => s.photoId === p.id)) || Object.values(freeSlots).some(arr => arr.some(fs => fs.photoId === p.id));
               return !used;
@@ -5063,47 +5098,61 @@ export default function BookLayoutEditor() {
 
       {/* MOBILE: Bottom Tab Bar */}
       {isMobile && (
-        <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'rgba(255,255,255,0.97)', backdropFilter:'blur(12px)', borderTop:'1px solid #e2e8f0', display:'flex', zIndex:200, paddingBottom:'env(safe-area-inset-bottom)', boxShadow:'0 -2px 12px rgba(0,0,0,0.06)' }}>
-          {/* Spread navigator arrows — left/right */}
-          <button onClick={() => { if (currentIdx > 0) setCurrentIdx(i => Math.max(0, i - 1)); }}
-            disabled={currentIdx === 0}
-            style={{ padding:'8px 12px', border:'none', background:'transparent', color: currentIdx===0 ? '#d1d5db' : '#1e2d7d', cursor: currentIdx===0 ? 'default' : 'pointer', fontSize:20, fontWeight:700, display:'flex', alignItems:'center', flexShrink:0 }}>‹</button>
-
-          {/* Tool buttons */}
-          {[
-            ['photos', '🖼', 'Фото'],
-            ['layouts', '⊞', 'Шаблон'],
-            ['text', 'Aa', 'Текст'],
-            ['bg', '🎨', 'Фон'],
-            ['stickers', '✨', 'Стікер'],
-            ...(currentIdx===0 ? [['cover', '📖', 'Обкл.']] : [] as any),
-          ].map(([id, icon, label]) => {
-            const active = leftTab===id && mobilePanel;
-            return (
-              <button key={id as string}
-                onClick={() => {
-                  if (active) { setMobilePanel(false); return; }
-                  setLeftTab(id as any);
-                  setMobilePanel(true);
-                  if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1);
-                  if (id === 'cover') setCurrentIdx(0);
-                }}
-                style={{ flex:1, padding:'6px 2px 4px', border:'none',
-                  background: active ? '#1e2d7d' : 'transparent',
-                  color: active ? '#fff' : '#374151',
-                  display:'flex', flexDirection:'column', alignItems:'center', gap:1,
-                  cursor:'pointer', minWidth:0, borderRadius: active ? '8px 8px 0 0' : 0,
-                  margin:'4px 2px 0', transition:'background 0.15s' }}>
-                <span style={{ fontSize:16, lineHeight:1 }}>{icon as string}</span>
-                <span style={{ fontSize:8, fontWeight:700, whiteSpace:'nowrap' }}>{label as string}</span>
-              </button>
-            );
-          })}
-
-          {/* Right arrow */}
-          <button onClick={() => { if (currentIdx < Math.ceil((pages.length - 1) / 2)) setCurrentIdx(i => i + 1); }}
-            disabled={currentIdx >= Math.ceil((pages.length - 1) / 2)}
-            style={{ padding:'8px 12px', border:'none', background:'transparent', color: currentIdx >= Math.ceil((pages.length-1)/2) ? '#d1d5db' : '#1e2d7d', cursor: currentIdx >= Math.ceil((pages.length-1)/2) ? 'default' : 'pointer', fontSize:20, fontWeight:700, display:'flex', alignItems:'center', flexShrink:0 }}>›</button>
+        <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'rgba(255,255,255,0.98)', backdropFilter:'blur(16px)', borderTop:'1px solid #e2e8f0', zIndex:200, paddingBottom:'env(safe-area-inset-bottom)', boxShadow:'0 -4px 20px rgba(0,0,0,0.08)' }}>
+          {/* Spread navigation dots bar */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 12px 0', borderBottom:'1px solid #f1f5f9' }}>
+            <button onPointerDown={()=>{ if(currentIdx>0) setCurrentIdx(i=>i-1); }}
+              disabled={currentIdx===0}
+              style={{ width:34, height:34, border:'1px solid #e2e8f0', borderRadius:10, background:currentIdx===0?'#f8fafc':'#fff', color:currentIdx===0?'#d1d5db':'#1e2d7d', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:700, cursor:currentIdx===0?'default':'pointer', flexShrink:0, touchAction:'manipulation' }}>‹</button>
+            <div style={{ display:'flex', alignItems:'center', gap:5, overflow:'hidden', maxWidth:'calc(100vw - 100px)' }}>
+              {Array.from({length: Math.ceil((pages.length-1)/2)+1}, (_, i) => (
+                <button key={i} onPointerDown={()=>setCurrentIdx(i)}
+                  style={{ width: i===currentIdx ? 22 : 7, height:7, borderRadius:4, background: i===currentIdx ? '#1e2d7d' : '#cbd5e1', border:'none', cursor:'pointer', transition:'all 0.2s', flexShrink:0, padding:0, touchAction:'manipulation' }}/>
+              ))}
+            </div>
+            <button onPointerDown={()=>{ if(currentIdx<Math.ceil((pages.length-1)/2)) setCurrentIdx(i=>i+1); }}
+              disabled={currentIdx>=Math.ceil((pages.length-1)/2)}
+              style={{ width:34, height:34, border:'1px solid #e2e8f0', borderRadius:10, background:currentIdx>=Math.ceil((pages.length-1)/2)?'#f8fafc':'#fff', color:currentIdx>=Math.ceil((pages.length-1)/2)?'#d1d5db':'#1e2d7d', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:700, cursor:currentIdx>=Math.ceil((pages.length-1)/2)?'default':'pointer', flexShrink:0, touchAction:'manipulation' }}>›</button>
+          </div>
+          {/* Tool buttons row */}
+          <div style={{ display:'flex', alignItems:'stretch' }}>
+            {([
+              ['photos', '🖼', 'Фото'],
+              ['layouts', '⊞', 'Макет'],
+              ['text', 'Aa', 'Текст'],
+              ['bg', '🎨', 'Фон'],
+              ['stickers', '⭐', 'Стікер'],
+              ...(currentIdx===0 ? [['cover', '🖊', 'Обкл.']] : [['frames', '▭', 'Рамки']]) as any,
+            ] as [string,string,string][]).map(([id, icon, label]) => {
+              const active = leftTab===id && mobilePanel;
+              return (
+                <button key={id}
+                  onPointerDown={() => {
+                    if (active) { setMobilePanel(false); return; }
+                    setLeftTab(id as any);
+                    setMobilePanel(true);
+                    if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1);
+                    if (id === 'cover') setCurrentIdx(0);
+                  }}
+                  style={{ flex:1, padding:'7px 2px 5px', border:'none',
+                    background: active ? '#1e2d7d' : 'transparent',
+                    color: active ? '#fff' : '#374151',
+                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2,
+                    cursor:'pointer', minWidth:0, touchAction:'manipulation',
+                    borderTop: active ? '2px solid #3b52d4' : '2px solid transparent',
+                    transition:'background 0.15s' }}>
+                  <span style={{ fontSize:19, lineHeight:1 }}>{icon}</span>
+                  <span style={{ fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>{label}</span>
+                </button>
+              );
+            })}
+            {/* Quick Auto button */}
+            <button onPointerDown={()=>{ autoFill(); toast.success('✨ Авто!', {duration:1200}); }}
+              style={{ flex:1, padding:'7px 2px 5px', border:'none', background:'transparent', color:'#374151', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, cursor:'pointer', minWidth:0, touchAction:'manipulation', borderTop:'2px solid transparent' }}>
+              <span style={{ fontSize:19, lineHeight:1 }}>✨</span>
+              <span style={{ fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>Авто</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -5144,7 +5193,7 @@ export default function BookLayoutEditor() {
               }
               (el as any)._swipeStartY = undefined;
             }}
-            style={{ position:'fixed', bottom:0, left:0, right:0, width:'100vw', maxWidth:'100vw', zIndex:300, background:'#fff', borderRadius:'20px 20px 0 0', boxShadow:'0 -8px 40px rgba(0,0,0,0.18)', maxHeight: mobilePanelHeight==='full' ? '92vh' : '68vh', display:'flex', flexDirection:'column', paddingBottom:'calc(60px + env(safe-area-inset-bottom))', overflow:'hidden', boxSizing:'border-box', transition:'transform 0.25s ease-out, max-height 0.25s ease' }}>
+            style={{ position:'fixed', bottom:0, left:0, right:0, width:'100vw', maxWidth:'100vw', zIndex:300, background:'#fff', borderRadius:'20px 20px 0 0', boxShadow:'0 -8px 40px rgba(0,0,0,0.18)', maxHeight: mobilePanelHeight==='full' ? '92vh' : '68vh', display:'flex', flexDirection:'column', paddingBottom:'calc(72px + env(safe-area-inset-bottom))', overflow:'hidden', boxSizing:'border-box', transition:'transform 0.25s ease-out, max-height 0.25s ease' }}>
             {/* Swipe handle */}
             <div style={{ display:'flex', justifyContent:'center', padding:'8px 0 4px' }}>
               <div style={{ width:36, height:4, borderRadius:2, background:'#d1d5db' }}/>
@@ -5222,14 +5271,23 @@ export default function BookLayoutEditor() {
                     <span><b>Тап на фото</b> → потім <b>тапніть слот</b> на сторінці щоб вставити</span>
                   </div>
                 )}
-                <button onClick={()=>document.getElementById('photo-upload-mobile')?.click()} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
-                  <ImageIcon size={16}/> Завантажити фото
-                </button>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={()=>document.getElementById('photo-upload-mobile')?.click()}
+                    style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'11px 10px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d', touchAction:'manipulation' }}>
+                    <ImageIcon size={16}/> Додати фото
+                  </button>
+                  {photos.length > 0 && (
+                    <button onPointerDown={()=>{ autoFill(); setMobilePanel(false); toast.success('Фото розкладено!'); }}
+                      style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'11px 12px', border:'2px solid #10b981', borderRadius:10, background:'#f0fdf4', cursor:'pointer', fontWeight:700, fontSize:13, color:'#059669', touchAction:'manipulation', flexShrink:0 }}>
+                      <span style={{fontSize:18}}>⚡</span> Авто
+                    </button>
+                  )}
+                </div>
                 <input id="photo-upload-mobile" type="file" multiple accept="image/*" style={{display:'none'}} onChange={handleUpload}/>
                 {tapSelectedPhotoId && (
-                  <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'8px 10px', marginBottom:8, fontSize:11, color:'#1d4ed8', fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                    <span>👆 Тапніть фотослот на сторінці</span>
-                    <button onClick={()=>setTapSelectedPhotoId(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:14, padding:'0 4px' }}>×</button>
+                  <div style={{ background:'#dbeafe', border:'2px solid #3b82f6', borderRadius:10, padding:'10px 12px', fontSize:12, color:'#1d4ed8', fontWeight:700, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <span>👆 Тапніть на слот у книзі</span>
+                    <button onClick={()=>setTapSelectedPhotoId(null)} style={{ background:'rgba(0,0,0,0.08)', border:'none', borderRadius:6, cursor:'pointer', color:'#1d4ed8', fontSize:13, padding:'2px 8px', fontWeight:700, touchAction:'manipulation' }}>✕</button>
                   </div>
                 )}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
@@ -5257,16 +5315,70 @@ export default function BookLayoutEditor() {
                 </div>
               </div>
             )}
-            {leftTab === 'stickers' && (
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(5, minmax(0, 1fr))', gap:8 }}>
-                {['❤️','⭐','☀️','🌸','👑','🦋','🌙','☁️','💎','🌈','🔥','⚡','✨','🎀','🎈','❄️'].map((em,i) => (
-                  <button key={i} onClick={()=>{ const spi=getActivePageIdx(); setPageStickers(prev=>({...prev,[spi]:[...(prev[spi]||[]),{id:'stk-'+Date.now(),url:'',emoji:em,x:42,y:42,w:'12%',h:'12%'}]})); toast.success('Стікер додано'); setMobilePanel(false); }}
-                    style={{ padding:8, border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:24, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    {em}
-                  </button>
-                ))}
+            {leftTab === 'stickers' && (() => {
+              const spi = getActivePageIdx();
+              const removeBackgroundMobile = (url: string, stkId: string) => {
+                const img2 = new window.Image(); img2.onload = () => {
+                  const cv = document.createElement('canvas'); cv.width = img2.width; cv.height = img2.height;
+                  const cx2 = cv.getContext('2d')!; cx2.drawImage(img2, 0, 0);
+                  const d = cx2.getImageData(0, 0, cv.width, cv.height); const px = d.data;
+                  const corners = [[px[0],px[1],px[2]],[px[(cv.width-1)*4],px[(cv.width-1)*4+1],px[(cv.width-1)*4+2]],[px[(cv.height-1)*cv.width*4],px[(cv.height-1)*cv.width*4+1],px[(cv.height-1)*cv.width*4+2]]];
+                  const bg = corners.reduce((a,c)=>[a[0]+c[0],a[1]+c[1],a[2]+c[2]],[0,0,0]).map(v=>v/3);
+                  for(let i=0;i<px.length;i+=4){if(Math.abs(px[i]-bg[0])<45&&Math.abs(px[i+1]-bg[1])<45&&Math.abs(px[i+2]-bg[2])<45)px[i+3]=0;}
+                  cx2.putImageData(d,0,0);
+                  setPageStickers(prev=>({...prev,[spi]:(prev[spi]||[]).map(s=>s.id===stkId?{...s,url:cv.toDataURL('image/png')}:s)}));
+                  toast.success('Фон видалено!', {duration:1500});
+                }; img2.src = url;
+              };
+              return (
+              <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                {/* Custom upload */}
+                <div>
+                  <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>Власний стікер</div>
+                  <label style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d' }}>
+                    <span style={{fontSize:18}}>📎</span> Завантажити PNG / фото
+                    <input type="file" accept="image/*" style={{display:'none'}} onChange={e => {
+                      const file = e.target.files?.[0]; if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = ev => {
+                        const url = ev.target!.result as string;
+                        const newS = { id:'stk-custom-'+Date.now(), url, emoji:'', x:35, y:35, w:'28%', h:'28%' };
+                        setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
+                        toast.success('Стікер додано!');
+                        setMobilePanel(false);
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = '';
+                    }}/>
+                  </label>
+                  {/* Show custom stickers with remove-bg */}
+                  {(pageStickers[spi]||[]).filter(s=>s.id.startsWith('stk-custom-')).length > 0 && (
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginTop:8 }}>
+                      {(pageStickers[spi]||[]).filter(s=>s.id.startsWith('stk-custom-')).map(stk => (
+                        <div key={stk.id} style={{ position:'relative', borderRadius:8, overflow:'hidden', border:'1px solid #e2e8f0', background:'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0/10px 10px', aspectRatio:'1' }}>
+                          <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain' }}/>
+                          <button onClick={()=>removeBackgroundMobile(stk.url, stk.id)}
+                            style={{ position:'absolute', bottom:2, right:2, background:'rgba(139,92,246,0.9)', border:'none', borderRadius:6, color:'#fff', fontSize:11, padding:'2px 5px', cursor:'pointer', touchAction:'manipulation' }}>✂️</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Emoji grid */}
+                <div>
+                  <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>Emoji</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(6, minmax(0, 1fr))', gap:6 }}>
+                    {['❤️','🧡','💛','💚','💙','💜','⭐','🌟','✨','⚡','🔥','🌸','🌺','🌻','🦋','🌙','☀️','🌈','☁️','❄️','💎','👑','🎀','🎈','🎂','🎁','🎉','🎊','🌊','🏔️','🌿','🍃'].map((em,i) => (
+                      <button key={i} onPointerDown={()=>{ setPageStickers(prev=>({...prev,[spi]:[...(prev[spi]||[]),{id:'stk-'+Date.now(),url:'',emoji:em,x:38,y:38,w:'14%',h:'14%'}]})); toast.success('Додано'); setMobilePanel(false); }}
+                        style={{ padding:6, border:'1px solid #f1f5f9', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', touchAction:'manipulation' }}>
+                        {em}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* MOBILE COVER PANEL */}
             {leftTab === 'cover' && (() => {
@@ -5517,6 +5629,58 @@ export default function BookLayoutEditor() {
                           style={{ width:'100%', padding:'10px', border:'2px solid #1e2d7d', borderRadius:8, fontSize:14, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?700:400, fontStyle:tb.italic?'italic':'normal', boxSizing:'border-box' }}
                           autoFocus
                         />
+                      </div>
+                    );
+                  })()}
+                  {/* Page templates — show only for inner pages */}
+                  {currentIdx !== 0 && (() => {
+                    const pageIdx = getActivePageIdx();
+                    const tGroups = [...new Set(PAGE_TEMPLATES.map(t => t.group))];
+                    return (
+                      <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10, marginTop:4 }}>
+                        <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>Готові шаблони сторінок</div>
+                        {tGroups.map(grp => (
+                          <div key={grp} style={{ marginBottom:10 }}>
+                            <div style={{ fontSize:10, fontWeight:700, color:'#64748b', marginBottom:6 }}>📝 {grp}</div>
+                            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                              {PAGE_TEMPLATES.filter(t => t.group === grp).map(tmpl => (
+                                <button key={tmpl.id}
+                                  onPointerDown={() => {
+                                    const existing = pages[pageIdx]?.textBlocks || [];
+                                    if (existing.length > 0 && !window.confirm('Замінити поточний шаблон?')) return;
+                                    pushHistory();
+                                    const newBlocks = tmpl.texts.map((t, ti) => ({
+                                      id: 'ptmpl-'+Date.now()+'-'+ti, text: t.text, x: t.x, y: t.y,
+                                      fontSize: t.fontSize, fontFamily: t.fontFamily, color: t.color,
+                                      bold: t.bold, italic: t.italic || false,
+                                    }));
+                                    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: newBlocks }));
+                                    if (tmpl.bgColor && tmpl.bgColor !== '#ffffff') {
+                                      setPageBgs(prev => ({ ...prev, [pageIdx]: { type:'color' as const, color:tmpl.bgColor!, opacity:100, imageUrl:null, blur:0 } }));
+                                    }
+                                    toast.success(`"${tmpl.label}" застосовано`);
+                                    setMobilePanel(false);
+                                  }}
+                                  style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:10, background:'#fff', cursor:'pointer', textAlign:'left', touchAction:'manipulation' }}>
+                                  <div style={{ width:36, height:46, borderRadius:4, background:tmpl.bgColor||'#f8fafc', border:'1px solid #f1f5f9', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                                    <span style={{ fontSize:7, color:'#94a3b8', textAlign:'center', padding:'0 2px', lineHeight:1.2 }}>{tmpl.texts[0]?.text.slice(0,16)}...</span>
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize:12, fontWeight:700, color:'#1e2d7d' }}>{tmpl.label}</div>
+                                    <div style={{ fontSize:10, color:'#94a3b8' }}>{tmpl.texts.length} текстових блоків</div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        {/* Clear all texts button */}
+                        {(pages[pageIdx]?.textBlocks||[]).length > 0 && (
+                          <button onPointerDown={()=>{ pushHistory(); setPages(prev=>prev.map((p,i)=>i!==pageIdx?p:{...p,textBlocks:[]})); toast.success('Тексти видалено'); }}
+                            style={{ width:'100%', padding:'10px', border:'1px solid #fde68a', borderRadius:10, background:'#fffbeb', cursor:'pointer', fontWeight:700, fontSize:12, color:'#d97706', marginTop:6, touchAction:'manipulation' }}>
+                            🗑 Видалити всі тексти
+                          </button>
+                        )}
                       </div>
                     );
                   })()}
