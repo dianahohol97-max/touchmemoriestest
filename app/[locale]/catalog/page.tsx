@@ -1,3 +1,5 @@
+export const revalidate = 3600;
+
 import CatalogClient from './CatalogClient';
 
 export const metadata = {

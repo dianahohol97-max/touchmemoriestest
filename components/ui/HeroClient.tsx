@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { useT } from '@/lib/i18n/context';
 import { PRODUCT_IMAGES } from '@/lib/productImages';
@@ -75,11 +76,18 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
   return (
     <header className="relative h-[921px] w-full flex items-end overflow-hidden">
 
-      {/* Background image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${bgImage}')` }}
-      />
+      {/* Background image — next/image with priority for LCP */}
+      <div className="absolute inset-0">
+        <Image
+          src={bgImage}
+          alt=""
+          fill
+          priority
+          fetchPriority="high"
+          sizes="100vw"
+          style={{ objectFit: 'cover', objectPosition: 'center' }}
+        />
+      </div>
 
       {/* Scrim — exact from reference */}
       <div

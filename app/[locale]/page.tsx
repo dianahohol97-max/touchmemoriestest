@@ -26,7 +26,7 @@ import { TravelBookCTA } from '@/components/TravelBookCTA';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 
-export const revalidate = 0; // Force fresh data fetch (no cache)
+export const revalidate = 3600; // Cache for 1 hour — revalidate on deploy
 
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -45,62 +45,59 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
     if (!supabase) {
       console.error('[Homepage] FATAL: Supabase client is null - env vars missing');
     } else {
-      // Test query
-      const { data: testData, error: testError } = await supabase.from('hero_buttons').select('count');
-      console.log('[Homepage] TEST hero_buttons:', JSON.stringify({ count: testData, error: testError }));
+      // Run all queries in parallel for maximum speed
+      const [
+        { data: p, error: pe },
+        { data: c },
+        { data: ac },
+        { data: ta },
+        { data: fb },
+        { data: b },
+      ] = await Promise.all([
+        supabase
+          .from('products')
+          .select('*, categories(name, slug, translations)')
+          .eq('is_active', true)
+          .eq('is_popular', true)
+          .order('popular_order', { ascending: true })
+          .limit(8),
+        supabase
+          .from('categories')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true })
+          .limit(3),
+        supabase
+          .from('categories')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true }),
+        supabase
+          .from('featured_articles')
+          .select('*')
+          .eq('section', 'travel')
+          .eq('is_active', true)
+          .order('position', { ascending: true })
+          .limit(2),
+        supabase
+          .from('blog_posts')
+          .select('*, category:blog_categories(name, slug)')
+          .eq('is_published', true)
+          .eq('is_featured', true)
+          .order('published_at', { ascending: false })
+          .limit(3),
+        supabase
+          .from('site_blocks')
+          .select('*')
+          .order('position_order', { ascending: true }),
+      ]);
 
-      const { data: p, error: pe } = await supabase
-        .from('products')
-        .select('*, categories(name, slug)')
-        .eq('is_active', true)
-        .eq('is_popular', true)
-        .order('popular_order', { ascending: true })
-        .limit(8);
       if (pe) console.error('[Homepage] products error:', JSON.stringify(pe));
       products = p || [];
-      console.log('[Homepage] products:', products.length);
-
-      const { data: c } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true })
-        .limit(3);
       categories = c || [];
-
-      const { data: ac } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
       allCategories = ac || [];
-      console.log('[Homepage] categories:', categories.length, 'all:', allCategories.length);
-
-      // Fetch featured articles for Travel Book section
-      const { data: ta } = await supabase
-        .from('featured_articles')
-        .select('*')
-        .eq('section', 'travel')
-        .eq('is_active', true)
-        .order('position', { ascending: true })
-        .limit(2);
       travelArticles = ta || [];
-
-      // Fetch featured blog posts for Blog section
-      const { data: fb } = await supabase
-        .from('blog_posts')
-        .select('*, category:blog_categories(name, slug)')
-        .eq('is_published', true)
-        .eq('is_featured', true)
-        .order('published_at', { ascending: false })
-        .limit(3);
       featuredBlogPosts = fb || [];
-      console.log('[Homepage] travel articles:', travelArticles.length, 'featured posts:', featuredBlogPosts.length);
-
-      const { data: b } = await supabase
-        .from('site_blocks')
-        .select('*')
-        .order('position_order', { ascending: true });
       blocks = b || [];
     }
   } catch (err) {
@@ -150,6 +147,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                       <img
                         src={article.image_url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'}
                         alt={article.title}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -226,6 +225,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                         <img
                           src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80"
                           alt="Travel Book Preview"
+                          loading="lazy"
+                          decoding="async"
                           className="absolute inset-0 w-full h-full object-cover opacity-70"
                         />
 
@@ -288,6 +289,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                       <img
                         src={featuredBlogPosts[0].featured_image || 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80'}
                         alt={featuredBlogPosts[0].title}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
@@ -319,6 +322,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                         <img
                           src={post.featured_image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80'}
                           alt={post.title}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />

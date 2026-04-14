@@ -125,6 +125,8 @@ export function PopularProductsClient({ products, sectionContent }: PopularProdu
                     <img
                       src={product.images[0]}
                       alt={getLocalized(product, locale, "name")}
+                      loading="lazy"
+                      decoding="async"
                       style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s' }}
                     />
                   ) : (

@@ -71,6 +71,8 @@ export function Categories({ blockName = 'categories' }: { blockName?: string })
                             <img
                                 src={image}
                                 alt={title}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                             />
                         ) : (

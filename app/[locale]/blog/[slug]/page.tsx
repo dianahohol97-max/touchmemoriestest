@@ -10,7 +10,7 @@ import BlogShareButton from '@/components/ui/BlogShareButton';
 import { getLocalized } from '@/lib/i18n/localize';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600;
 
 const stripEmoji = (text?: string) => {
     if (!text) return '';
