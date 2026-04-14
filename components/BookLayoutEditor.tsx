@@ -1175,43 +1175,27 @@ export default function BookLayoutEditor() {
     pushHistory();
 
     const page = pages[targetIdx];
-    // Collect ALL existing photos: from layout slots + FreeSlots
+    // Collect existing photos from layout slots only (preserve first N for new layout)
     const layoutPhotos = page ? page.slots.map(s2 => s2.photoId).filter(Boolean) as string[] : [];
-    const freePhotos = (freeSlots[targetIdx] || []).map(fs => fs.photoId).filter(Boolean) as string[];
-    const allPhotos = [...layoutPhotos, ...freePhotos];
 
     if (def.slots > 0) {
-      // Create new layout slots, carrying over existing photos
+      // Create new layout slots, carrying over first N photos
       const newSlots = Array.from({ length: def.slots }, (_, si) => ({
-        photoId: allPhotos[si] ?? null,
+        photoId: layoutPhotos[si] ?? null,
         cropX: 50, cropY: 50, zoom: 1,
       }));
-      // Extra photos that don't fit in new layout → keep as FreeSlots
-      const extraPhotos = allPhotos.slice(def.slots);
-      const extraFreeSlots: FreeSlot[] = extraPhotos.map((id, ei) => ({
-        id: 'free-' + Date.now() + '-' + ei,
-        x: 10 + (ei % 3) * 30, y: 10 + Math.floor(ei / 3) * 30,
-        w: 35, h: 35, shape: 'rect' as const,
-        photoId: id, cropX: 50, cropY: 50, zoom: 1,
-      }));
+      // Extra photos dropped silently — they remain in the photo strip
       setPages(prev => prev.map((p, i) =>
         i !== targetIdx ? p : { ...p, layout, slots: newSlots, textBlocks: p.textBlocks || [] }
       ));
-      setFreeSlots(prev => ({ ...prev, [targetIdx]: extraFreeSlots.length > 0 ? extraFreeSlots : [] }));
+      // Clear any existing FreeSlots on this page
+      setFreeSlots(prev => { const u = { ...prev }; delete u[targetIdx]; return u; });
     } else {
-      // Text-only layout — move all photos to FreeSlots
-      const freeFromLayout: FreeSlot[] = allPhotos.map((id, ei) => ({
-        id: 'free-' + Date.now() + '-' + ei,
-        x: 10 + (ei % 3) * 30, y: 10 + Math.floor(ei / 3) * 30,
-        w: 35, h: 35, shape: 'rect' as const,
-        photoId: id, cropX: 50, cropY: 50, zoom: 1,
-      }));
+      // Text-only layout — clear all slots and FreeSlots
       setPages(prev => prev.map((p, i) =>
         i !== targetIdx ? p : { ...p, layout, slots: [], textBlocks: p.textBlocks || [] }
       ));
-      if (freeFromLayout.length > 0) {
-        setFreeSlots(prev => ({ ...prev, [targetIdx]: freeFromLayout }));
-      }
+      setFreeSlots(prev => { const u = { ...prev }; delete u[targetIdx]; return u; });
     }
   };
 
