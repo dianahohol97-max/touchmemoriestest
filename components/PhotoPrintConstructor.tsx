@@ -102,9 +102,10 @@ function PhotoPreview({
     e.preventDefault();
     haptic.light();
     const zoomFactor = photo.zoom || 1;
-    const sensitivity = 0.3 / zoomFactor;
-    const startCropX = photo.cropX;
-    const startCropY = photo.cropY;
+    // sensitivity: lower = more movement per pixel (easier to pan)
+    const sensitivity = 0.12 / Math.max(1, zoomFactor);
+    const startCropX = photo.cropX ?? 50;
+    const startCropY = photo.cropY ?? 50;
     startPointerDrag(e, (dx, dy) => {
       onCropChange(
         photo.id,
@@ -118,7 +119,7 @@ function PhotoPreview({
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
-    onCropChange(photo.id, photo.cropX, photo.cropY, Math.max(0.5, Math.min(3, (photo.zoom || 1) + delta)));
+    onCropChange(photo.id, photo.cropX ?? 50, photo.cropY ?? 50, Math.max(0.1, Math.min(3, (photo.zoom || 1) + delta)));
   };
 
   if (isPolaroid) {
@@ -235,16 +236,14 @@ function PhotoPreview({
             draggable={false}
             style={{
               position: 'absolute',
-              width: `${(photo.zoom||1)*100}%`,
-              height: `${(photo.zoom||1)*100}%`,
-              minWidth: '100%',
-              minHeight: '100%',
+              width: '100%',
+              height: '100%',
               objectFit: 'cover',
               objectPosition: `${photo.cropX||50}% ${photo.cropY||50}%`,
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
+              top: 0, left: 0,
+              transform: `scale(${photo.zoom||1})`,
+              transformOrigin: `${photo.cropX||50}% ${photo.cropY||50}%`,
               userSelect: 'none', pointerEvents: 'none',
-              maxWidth: 'none',
             }}
           />
         </div>
@@ -309,19 +308,19 @@ function PhotoPreview({
 
       {/* Zoom controls with manual input */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:6 }}>
-        <button onClick={() => onCropChange(photo.id, photo.cropX, photo.cropY, Math.max(0.5,(photo.zoom||1)-0.1))}
+        <button onClick={() => onCropChange(photo.id, photo.cropX ?? 50, photo.cropY ?? 50, Math.max(0.1,(photo.zoom||1)-0.1))}
           style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14, lineHeight:1 }}>−</button>
         <input
-          type="number" min={50} max={300} step={5}
+          type="number" min={10} max={300} step={5}
           value={Math.round((photo.zoom||1)*100)}
           onChange={e => {
-            const v = Math.max(50, Math.min(300, parseInt(e.target.value) || 100));
-            onCropChange(photo.id, photo.cropX, photo.cropY, v/100);
+            const v = Math.max(10, Math.min(300, parseInt(e.target.value) || 100));
+            onCropChange(photo.id, photo.cropX ?? 50, photo.cropY ?? 50, v/100);
           }}
           style={{ width:58, padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, fontWeight:700, color:'#475569', textAlign:'center', MozAppearance:'textfield' }}
         />
         <span style={{ fontSize:11, color:'#94a3b8' }}>%</span>
-        <button onClick={() => onCropChange(photo.id, photo.cropX, photo.cropY, Math.min(3,(photo.zoom||1)+0.1))}
+        <button onClick={() => onCropChange(photo.id, photo.cropX ?? 50, photo.cropY ?? 50, Math.min(3,(photo.zoom||1)+0.1))}
           style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:14, lineHeight:1 }}>+</button>
         <button onClick={() => onCropChange(photo.id, 50, 50, 1)}
           style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:10, color:'#64748b' }}>↺</button>
