@@ -3367,7 +3367,7 @@ export default function BookLayoutEditor() {
                           }}
                           style={{ ...slotStyle,
                             overflow: 'hidden',
-                            transform: (slot?.rotation ? `rotate(${slot.rotation}deg)` : undefined),
+                            transform: undefined,
                             background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
                             border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : '1px solid rgba(255,255,255,0.4)') : '1.5px dashed #c7d2fe'),
                             transition: 'all 0.2s ease',
@@ -3422,7 +3422,7 @@ export default function BookLayoutEditor() {
                                 <img src={photo.preview} draggable={photoEditSlot !== key}
                                   onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
                                   onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
-                                  style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1})`, transformOrigin:`${slot!.cropX??50}% ${slot!.cropY??50}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
+                                  style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:`${slot!.cropX??50}% ${slot!.cropY??50}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>  
                                 {/* Zoom hint + badge */}
                                 {photoEditSlot !== key && (slot!.zoom||1) !== 1 && (
                                   <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
@@ -3831,7 +3831,7 @@ export default function BookLayoutEditor() {
                               boxSizing: 'border-box',
                               padding: photo && pageGap > 0 ? pageGap : 0,
                               borderRadius: photo ? 0 : 4,
-                              transform: `${isOver && photo ? 'scale(1.02)' : 'scale(1)'}${slot?.rotation ? ` rotate(${slot.rotation}deg)` : ''}`,
+                              transform: `${isOver && photo ? 'scale(1.02)' : 'scale(1)'}`,
                               zIndex: isOver && photo ? 5 : 1,
                             }}
                           >
@@ -3852,7 +3852,7 @@ export default function BookLayoutEditor() {
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img src={photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
-                                    style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1})`, transformOrigin:`${slot!.cropX??50}% ${slot!.cropY??50}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
+                                    style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:`${slot!.cropX??50}% ${slot!.cropY??50}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
                                   {/* Zoom hint — always visible when zoomed, full controls in crop mode */}
                                   {photoEditSlot !== key && (slot!.zoom||1) !== 1 && (
                                     <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
