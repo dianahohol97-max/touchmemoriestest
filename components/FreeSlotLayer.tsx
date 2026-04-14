@@ -18,6 +18,7 @@ export interface FreeSlot {
   cropY: number;
   zoom: number;
   filter?: string; // CSS filter string e.g. 'grayscale(1)', 'sepia(0.8)'
+  padding?: number; // white frame padding in px (0 = no frame)
 }
 
 interface FreeSlotLayerProps {
@@ -299,7 +300,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
             }}
           >
             {/* Clip container */}
-            <div style={{ position:'absolute', inset:0, borderRadius: br, overflow:'hidden', background: photo ? 'transparent' : 'rgba(99,102,241,0.06)' }}>
+            <div style={{ position:'absolute', inset:0, borderRadius: br, overflow:'hidden', background: photo ? ((slot.padding||0) > 0 ? '#ffffff' : 'transparent') : 'rgba(99,102,241,0.06)', padding: (slot.padding||0) > 0 ? slot.padding : 0, boxSizing:'border-box' }}>
               {photo ? (
                 <div ref={el => photoContainerRef(el, slot.id)}
                   style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative' }}>
@@ -378,9 +379,9 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                   {sel && !inCrop && (
                     <div onMouseDown={e => e.stopPropagation()}
                       style={{ position:'absolute', bottom:6, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:4, background:'rgba(0,0,0,0.7)', borderRadius:20, padding:'3px 10px', zIndex:40, whiteSpace:'nowrap' }}>
-                      <button onClick={e=>{e.stopPropagation();update(slot.id,{zoom:Math.max(0.5,(slot.zoom||1)-0.1)});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:16, lineHeight:1, padding:'0 2px' }}>−</button>
+                      <button onPointerDown={e=>{e.stopPropagation();update(slot.id,{zoom:Math.max(0.1,(slot.zoom||1)-0.1)});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:16, lineHeight:1, padding:'2px 4px', touchAction:'manipulation' }}>−</button>
                       <span style={{ color:'#fff', fontSize:9, fontWeight:700, minWidth:30, textAlign:'center' }}>{Math.round((slot.zoom||1)*100)}%</span>
-                      <button onClick={e=>{e.stopPropagation();update(slot.id,{zoom:Math.min(4,(slot.zoom||1)+0.1)});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:16, lineHeight:1, padding:'0 2px' }}>+</button>
+                      <button onPointerDown={e=>{e.stopPropagation();update(slot.id,{zoom:Math.min(4,(slot.zoom||1)+0.1)});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:16, lineHeight:1, padding:'2px 4px', touchAction:'manipulation' }}>+</button>
                       <div style={{ width:1, height:12, background:'rgba(255,255,255,0.3)', margin:'0 2px' }}/>
                       <button onClick={e=>{e.stopPropagation();update(slot.id,{zoom:1,cropX:50,cropY:50});}} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:9, fontWeight:700, padding:'0 2px' }}>↺</button>
                     </div>
@@ -475,6 +476,18 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                       <button key={label} {...tb(() => update(slot.id, { filter: f || undefined }))}
                         style={{ padding:'3px 5px', border:(slot.filter||'')===f?'1.5px solid #8b5cf6':'1px solid #f1f5f9', borderRadius:4, background:(slot.filter||'')===f?'#f5f3ff':'transparent', cursor:'pointer', fontSize:8, fontWeight:700, color:(slot.filter||'')===f?'#7c3aed':'#94a3b8', minHeight:22, touchAction:'manipulation', lineHeight:1 }}>
                         {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* Row 3: white frame (padding) */}
+                {photo && (
+                  <div style={{ display:'flex', alignItems:'center', gap:2 }}>
+                    <span style={{ fontSize:8, color:'#94a3b8', fontWeight:600, marginRight:2 }}>Рамка:</span>
+                    {([0, 4, 8, 12, 20] as number[]).map(p => (
+                      <button key={p} {...tb(() => update(slot.id, { padding: p || undefined }))}
+                        style={{ padding:'3px 5px', border:(slot.padding||0)===p?'1.5px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:4, background:(slot.padding||0)===p?'#eff6ff':'#fff', cursor:'pointer', fontSize:8, fontWeight:700, color:(slot.padding||0)===p?'#1e2d7d':'#64748b', minHeight:22, touchAction:'manipulation', lineHeight:1 }}>
+                        {p === 0 ? '✕' : `${p}px`}
                       </button>
                     ))}
                   </div>
