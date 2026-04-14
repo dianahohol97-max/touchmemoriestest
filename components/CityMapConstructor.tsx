@@ -317,8 +317,8 @@ function Step1Location({ config, setConfig }: { config: CityMapConfig; setConfig
                 </label>
                 <input
                     type="range"
-                    min="10"
-                    max="16"
+                    min="5"
+                    max="18"
                     value={config.zoom}
                     onChange={(e) => setConfig({ ...config, zoom: parseInt(e.target.value) })}
                     className="w-full"

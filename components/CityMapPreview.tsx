@@ -41,6 +41,22 @@ const TileLayer = dynamic(
     { ssr: false }
 );
 
+// Syncs map center/zoom when config changes (Leaflet doesn't react to prop changes)
+const MapUpdater = dynamic(
+    () => import('react-leaflet').then((mod) => {
+        const { useMap } = mod;
+        function Updater({ lat, lng, zoom }: { lat: number; lng: number; zoom: number }) {
+            const map = useMap();
+            useEffect(() => {
+                map.setView([lat, lng], zoom, { animate: true });
+            }, [lat, lng, zoom]);
+            return null;
+        }
+        return Updater;
+    }),
+    { ssr: false }
+);
+
 export default function CityMapPreview({ config, setConfig }: CityMapPreviewProps) {
     const [isClient, setIsClient] = useState(false);
     const mapRef = useRef<any>(null);
@@ -93,14 +109,13 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
         }
     };
 
-    const aspectRatio = config.orientation === 'portrait' ? 'aspect-[3/4]' : 'aspect-[4/3]';
-
     return (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Попередній перегляд</h3>
+        <div className="bg-white rounded-lg shadow-lg p-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Попередній перегляд</h3>
 
-            {/* Poster Preview */}
-            <div className={`relative ${aspectRatio} bg-gray-200 rounded-lg overflow-hidden`}>
+            {/* Poster Preview — constrained height */}
+            <div style={{ maxHeight: '70vh', aspectRatio: config.orientation === 'portrait' ? '3/4' : '4/3', position:'relative', overflow:'hidden' }}
+                className="bg-gray-200 rounded-lg">
                 {/* Border */}
                 {config.border === 'simple-frame' && (
                     <div className="absolute inset-0 border-8 border-black pointer-events-none z-20" />
@@ -140,6 +155,7 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                             attributionControl={false}
                         >
                             <TileLayer url={getTileUrl()} />
+                            {isClient && <MapUpdater lat={config.latitude} lng={config.longitude} zoom={config.zoom} />}
                         </MapContainer>
                     )}
                 </div>
