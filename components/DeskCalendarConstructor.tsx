@@ -125,6 +125,24 @@ function getMonthDays(year: number, month: number) {
 
 // ── Draw month page on canvas ─────────────────────────────────────────────────
 
+// Marked date: { day, shape: 'circle'|'heart', color }
+interface MarkedDate { day: number; shape: 'circle' | 'heart'; color: string; }
+
+function drawHeart(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  ctx.save();
+  ctx.translate(cx, cy - r * 0.1);
+  const s = r / 8;
+  ctx.beginPath();
+  for (let i = 0; i <= 100; i++) {
+    const t = (i / 100) * Math.PI * 2;
+    const x = s * 16 * Math.pow(Math.sin(t), 3);
+    const y = -s * (13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t));
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.restore();
+}
+
 function drawMonthPage(
   canvas: HTMLCanvasElement,
   month: number, // 1-12
@@ -134,6 +152,7 @@ function drawMonthPage(
   photo: string | null,
   W: number,
   H: number,
+  markedDates: MarkedDate[] = [],
 ) {
   const ctx = canvas.getContext('2d')!;
   canvas.width = W;
@@ -217,8 +236,6 @@ function drawMonthPage(
 
   // Days
   const { startOffset, daysInMonth } = getMonthDays(year, month);
-  const today = new Date();
-  const isCurrentMonth = today.getMonth() + 1 === month && today.getFullYear() === year;
 
   for (let day = 1; day <= daysInMonth; day++) {
     const pos = startOffset + day - 1;
@@ -226,20 +243,28 @@ function drawMonthPage(
     const row = Math.floor(pos / 7);
     const x = pad + col * cellW + cellW / 2;
     const y = calendarTop + dayNameH + row * cellH + cellH / 2;
+    const r = Math.round(cellH * 0.38);
 
     const isSunday = col === 6;
     const isSaturday = col === 5;
-    const isToday = isCurrentMonth && today.getDate() === day;
+    const mark = markedDates.find(m => m.day === day);
 
-    if (isToday) {
-      ctx.fillStyle = design.todayBg;
-      ctx.beginPath();
-      ctx.arc(x, y, Math.round(cellH * 0.38), 0, Math.PI * 2);
-      ctx.fill();
+    // Draw mark background
+    if (mark) {
+      ctx.fillStyle = mark.color;
+      if (mark.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Heart shape
+        drawHeart(ctx, x, y, r * 1.1);
+        ctx.fill();
+      }
     }
 
-    ctx.fillStyle = isToday ? design.todayColor : isSunday ? design.sundayColor : isSaturday ? design.saturdayColor : design.dayColor;
-    ctx.font = `${isToday ? 700 : 400} ${Math.round(13 * s)}px '${design.font}', sans-serif`;
+    ctx.fillStyle = mark ? '#ffffff' : isSunday ? design.sundayColor : isSaturday ? design.saturdayColor : design.dayColor;
+    ctx.font = `${mark ? 700 : 400} ${Math.round(13 * s)}px '${design.font}', sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(day), x, y);
@@ -354,10 +379,10 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 // ── Month Preview Component ───────────────────────────────────────────────────
 
-function MonthCanvas({ month, year, design, lang, photo, W, H, isCover, coverTitle }: {
+function MonthCanvas({ month, year, design, lang, photo, W, H, isCover, coverTitle, markedDates }: {
   month: number; year: number; design: Design; lang: LangCode;
   photo: string | null; W: number; H: number;
-  isCover?: boolean; coverTitle?: string;
+  isCover?: boolean; coverTitle?: string; markedDates?: MarkedDate[];
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -365,8 +390,8 @@ function MonthCanvas({ month, year, design, lang, photo, W, H, isCover, coverTit
     const c = canvasRef.current;
     if (!c) return;
     if (isCover) drawCoverPage(c, design, lang, year, coverTitle || String(year), photo, W, H);
-    else drawMonthPage(c, month, year, design, lang, photo, W, H);
-  }, [month, year, design, lang, photo, W, H, isCover, coverTitle]);
+    else drawMonthPage(c, month, year, design, lang, photo, W, H, markedDates || []);
+  }, [month, year, design, lang, photo, W, H, isCover, coverTitle, markedDates]);
 
   return <canvas ref={canvasRef} width={W} height={H} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 6 }} />;
 }
@@ -383,6 +408,10 @@ export default function DeskCalendarConstructor() {
   const [coverTitle, setCoverTitle] = useState('');
   const [activeMonth, setActiveMonth] = useState(0); // 0 = cover, 1-12 = months
   const [photos, setPhotos] = useState<(string | null)[]>(Array(13).fill(null)); // [cover, jan..dec]
+  // markedDates: { [monthKey: string]: MarkedDate[] }  key = "m1".."m12"
+  const [markedDates, setMarkedDates] = useState<Record<string, MarkedDate[]>>({});
+  const [markShape, setMarkShape] = useState<'circle' | 'heart'>('circle');
+  const [markColor, setMarkColor] = useState('#1e2d7d');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<number>(0);
 
@@ -410,6 +439,25 @@ export default function DeskCalendarConstructor() {
     uploadTargetRef.current = idx;
     fileInputRef.current?.click();
   };
+
+  // Toggle mark on a day in the active month
+  const toggleMark = (day: number) => {
+    if (activeMonth === 0) return; // no marks on cover
+    const key = `m${activeMonth}`;
+    setMarkedDates(prev => {
+      const existing = prev[key] || [];
+      const idx = existing.findIndex(m => m.day === day);
+      if (idx >= 0) {
+        // Remove if same shape, else update shape/color
+        const same = existing[idx].shape === markShape && existing[idx].color === markColor;
+        if (same) return { ...prev, [key]: existing.filter((_, i) => i !== idx) };
+        return { ...prev, [key]: existing.map((m, i) => i === idx ? { ...m, shape: markShape, color: markColor } : m) };
+      }
+      return { ...prev, [key]: [...existing, { day, shape: markShape, color: markColor }] };
+    });
+  };
+
+  const currentMarks = activeMonth > 0 ? (markedDates[`m${activeMonth}`] || []) : [];
 
   const handleOrder = () => {
     addItem({
@@ -536,6 +584,85 @@ export default function DeskCalendarConstructor() {
             )}
           </div>
 
+          {/* Marked dates UI — only for month pages */}
+          {activeMonth > 0 && (
+            <div>
+              <label style={{ fontSize:12, fontWeight:700, color:'#374151', display:'block', marginBottom:8 }}>
+                Виділені дні — {locale.months[activeMonth-1]}
+              </label>
+
+              {/* Shape + color picker */}
+              <div style={{ display:'flex', gap:6, alignItems:'center', marginBottom:8, flexWrap:'wrap' }}>
+                <button onClick={() => setMarkShape('circle')}
+                  style={{ padding:'5px 10px', border: markShape==='circle' ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                    borderRadius:20, background: markShape==='circle' ? '#f0f3ff' : '#fff',
+                    color: markShape==='circle' ? '#1e2d7d' : '#374151', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                  ⬤ Коло
+                </button>
+                <button onClick={() => setMarkShape('heart')}
+                  style={{ padding:'5px 10px', border: markShape==='heart' ? '2px solid #e11d48' : '1px solid #e2e8f0',
+                    borderRadius:20, background: markShape==='heart' ? '#fff1f2' : '#fff',
+                    color: markShape==='heart' ? '#e11d48' : '#374151', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                  ♥ Серце
+                </button>
+                {/* Color presets */}
+                {['#1e2d7d','#e11d48','#16a34a','#c8a96e','#7c3aed','#ea580c','#0e7490','#000000'].map(c => (
+                  <button key={c} onClick={() => setMarkColor(c)}
+                    style={{ width:22, height:22, borderRadius:'50%', background:c, border: markColor===c ? '3px solid #1e2d7d' : '2px solid #fff',
+                      cursor:'pointer', boxShadow:'0 0 0 1px #e2e8f0', flexShrink:0 }}/>
+                ))}
+                <input type="color" value={markColor} onChange={e => setMarkColor(e.target.value)}
+                  style={{ width:26, height:26, border:'1px solid #e2e8f0', borderRadius:6, cursor:'pointer', padding:1 }}/>
+              </div>
+
+              {/* Day grid for current month */}
+              {(() => {
+                const { startOffset, daysInMonth } = getMonthDays(year, activeMonth);
+                const cells: React.ReactNode[] = [];
+                // Empty prefix cells
+                for (let i = 0; i < startOffset; i++) {
+                  cells.push(<div key={`e${i}`}/>);
+                }
+                for (let d = 1; d <= daysInMonth; d++) {
+                  const mark = currentMarks.find(m => m.day === d);
+                  cells.push(
+                    <button key={d} onClick={() => toggleMark(d)}
+                      style={{ aspectRatio:'1', borderRadius: mark?.shape === 'heart' ? '2px' : '50%',
+                        border: mark ? 'none' : '1px solid #e2e8f0',
+                        background: mark ? mark.color : '#fff',
+                        color: mark ? '#fff' : '#374151',
+                        fontSize:10, fontWeight: mark ? 700 : 400, cursor:'pointer',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        position:'relative', transition:'all 0.1s' }}>
+                      {mark?.shape === 'heart' ? <span style={{ fontSize:14, lineHeight:1 }}>♥</span> : null}
+                      <span style={{ position: mark?.shape==='heart' ? 'absolute' : 'static', fontSize:9, fontWeight:700 }}>{d}</span>
+                    </button>
+                  );
+                }
+                return (
+                  <div>
+                    {/* Day headers */}
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:3 }}>
+                      {locale.days.map(d => (
+                        <div key={d} style={{ fontSize:8, fontWeight:700, color:'#94a3b8', textAlign:'center' }}>{d}</div>
+                      ))}
+                    </div>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
+                      {cells}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {currentMarks.length > 0 && (
+                <button onClick={() => setMarkedDates(prev => ({ ...prev, [`m${activeMonth}`]: [] }))}
+                  style={{ marginTop:8, fontSize:10, color:'#94a3b8', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>
+                  Очистити всі виділення
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Months nav */}
           <div>
             <label style={{ fontSize:12, fontWeight:700, color:'#374151', display:'block', marginBottom:8 }}>Сторінки</label>
@@ -597,6 +724,7 @@ export default function DeskCalendarConstructor() {
               H={PREVIEW_H}
               isCover={activeMonth === 0}
               coverTitle={coverTitle}
+              markedDates={currentMarks}
             />
           </div>
           {/* Nav arrows */}
@@ -621,7 +749,7 @@ export default function DeskCalendarConstructor() {
             {/* Months */}
             {Array.from({length:12}, (_,i) => (
               <div key={i} onClick={() => setActiveMonth(i+1)} style={{ cursor:'pointer', borderRadius:6, overflow:'hidden', border: activeMonth===i+1 ? '2px solid #1e2d7d' : '1px solid #e2e8f0', boxSizing:'border-box' }}>
-                <MonthCanvas month={i+1} year={year} design={design} lang={lang} photo={photos[i+1]} W={90} H={60}/>
+                <MonthCanvas month={i+1} year={year} design={design} lang={lang} photo={photos[i+1]} W={90} H={60} markedDates={markedDates[`m${i+1}`] || []}/>
                 <div style={{ fontSize:8, textAlign:'center', padding:'2px 0', background:'#fff', color:'#64748b', fontWeight:600 }}>
                   {locale.months[i].slice(0,3)}
                 </div>
