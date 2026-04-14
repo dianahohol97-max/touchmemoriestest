@@ -57,7 +57,7 @@ export default function CityMapConstructor() {
         coordinates: '50.4501° N, 30.5234° E',
 
         // Step 3 defaults
-        mapStyle: 'classic-bw',
+        mapStyle: 'stamen-toner',
         textColor: 'light',
         layout: 'title-bottom',
         border: 'simple-frame',
@@ -410,18 +410,21 @@ function Step2Personalize({ config, setConfig }: { config: CityMapConfig; setCon
 // Step 3: Design
 function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: React.Dispatch<React.SetStateAction<CityMapConfig>> }) {
     const mapStyles = [
-        { id: 'classic-bw',    name: 'Simple',   bg: '#ffffff', roads: '#333333', water: '#c8d8e8', park: '#e0e8d8' },
-        { id: 'smooth-light',  name: 'Modern',   bg: '#f5f5f5', roads: '#888888', water: '#b8cfe0', park: '#d4e4cc' },
-        { id: 'dark-mode',     name: 'Black',    bg: '#1a1a2e', roads: '#e0e0e0', water: '#16213e', park: '#0f3460' },
-        { id: 'color-outdoors',name: 'Blue',     bg: '#ddeeff', roads: '#3366cc', water: '#aaccff', park: '#99cc88' },
-        { id: 'vintage-sepia', name: 'Tender',   bg: '#f9f0e0', roads: '#c8a87a', water: '#d4c4a0', park: '#e0d4b0' },
-        { id: 'blueprint',     name: 'Blueprint',bg: '#1a3a5c', roads: '#ffffff', water: '#0d2540', park: '#1a4a3c' },
-        { id: 'vintage-red',   name: 'Red',      bg: '#fff5f5', roads: '#cc3333', water: '#ffcccc', park: '#ffeeee' },
-        { id: 'forest-green',  name: 'Leaf',     bg: '#f0f5ec', roads: '#4a7c59', water: '#b8d4c8', park: '#c8e0b8' },
-        { id: 'harvest',       name: 'Harvest',  bg: '#fdf0e0', roads: '#c8742a', water: '#e8c898', park: '#d4b870' },
-        { id: 'bayside',       name: 'Bayside',  bg: '#e0f5f5', roads: '#008888', water: '#80d4d4', park: '#b0e8d8' },
-        { id: 'plum',          name: 'Plum',     bg: '#f5e8f5', roads: '#6a1a7a', water: '#d0a8e0', park: '#e0c8e8' },
-        { id: 'paste',         name: 'Paste',    bg: '#fafaf0', roads: '#a0b890', water: '#c8e0d0', park: '#d0e8c0' },
+        // Poster-quality minimal styles (like Etsy bestsellers)
+        { id: 'stamen-toner',  name: 'Toner',    bg: '#ffffff', roads: '#000000', water: '#cccccc', park: '#eeeeee' },
+        { id: 'classic-bw',   name: 'Simple',   bg: '#ffffff', roads: '#222222', water: '#dddddd', park: '#eeeeee' },
+        { id: 'stamen-toner-lite', name: 'Lite', bg: '#ffffff', roads: '#555555', water: '#dddddd', park: '#eeeeee' },
+        { id: 'smooth-light', name: 'Soft',     bg: '#f5f5f0', roads: '#888888', water: '#d0d8e0', park: '#e0e4d8' },
+        // Dark styles
+        { id: 'dark-mode',    name: 'Black',    bg: '#111111', roads: '#ffffff', water: '#1a2030', park: '#1a2018' },
+        { id: 'blueprint',    name: 'Blueprint',bg: '#0d2440', roads: '#ffffff', water: '#061828', park: '#0d2830' },
+        // Warm & color styles
+        { id: 'vintage-sepia',name: 'Sepia',    bg: '#f5ede0', roads: '#8b6040', water: '#d4c4a0', park: '#d8d0b0' },
+        { id: 'harvest',      name: 'Harvest',  bg: '#fdf0e0', roads: '#c8742a', water: '#e8c898', park: '#d4b870' },
+        { id: 'color-outdoors',name:'Blue',     bg: '#ddeeff', roads: '#3366cc', water: '#aaccff', park: '#99cc88' },
+        { id: 'forest-green', name: 'Green',    bg: '#f0f5ec', roads: '#4a7c59', water: '#b8d4c8', park: '#c8e0b8' },
+        { id: 'bayside',      name: 'Bayside',  bg: '#e0f5f5', roads: '#008888', water: '#80d4d4', park: '#b0e8d8' },
+        { id: 'plum',         name: 'Plum',     bg: '#f5e8f5', roads: '#6a1a7a', water: '#d0a8e0', park: '#e0c8e8' },
     ];
 
     const layouts = [

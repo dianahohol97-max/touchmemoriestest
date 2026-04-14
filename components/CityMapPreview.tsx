@@ -68,44 +68,71 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
     // Get tile URL based on map style
     const getTileUrl = () => {
         switch (config.mapStyle) {
+            // Dark styles
             case 'dark-mode':
-            case 'plum':
-            case 'blueprint':
                 return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            case 'blueprint':
+                return 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
+            case 'plum':
+                return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            // Clean B&W minimal — like Etsy bestsellers (CartoCDN Positron no-labels + grayscale filter)
+            case 'classic-bw':
+                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+            // Minimal with labels
             case 'smooth-light':
-            case 'bayside':
-            case 'paste':
                 return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            // Stadia Stamen Toner (pure black-white minimal, classic poster look)
+            case 'stamen-toner':
+                return 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png';
+            case 'stamen-toner-lite':
+                return 'https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png';
+            // Warm styles
+            case 'vintage-sepia':
+            case 'harvest':
+                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+            // Color styles
+            case 'color-outdoors':
+            case 'bayside':
+            case 'forest-green':
+            case 'paste':
+                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
             default:
-                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
         }
     };
 
     // Get CSS filter based on map style
     const getMapFilter = () => {
         switch (config.mapStyle) {
+            // Pure B&W minimal — like reference images (high contrast, clean)
             case 'classic-bw':
-                return 'grayscale(100%) contrast(150%)';
+                return 'grayscale(100%) contrast(170%) brightness(1.05)';
+            case 'stamen-toner':
+                return 'none'; // already B&W
+            case 'stamen-toner-lite':
+                return 'contrast(130%)';
             case 'smooth-light':
-                return 'grayscale(80%) brightness(1.05)';
+                return 'grayscale(100%) contrast(120%) brightness(1.08)';
+            // Dark
             case 'dark-mode':
             case 'plum':
+            case 'blueprint':
                 return 'none';
-            case 'color-outdoors':
-            case 'bayside':
-                return 'saturate(1.2) brightness(1.05)';
+            // Warm sepia
             case 'vintage-sepia':
             case 'harvest':
-                return 'sepia(70%) saturate(0.7) brightness(1.1)';
+                return 'grayscale(100%) sepia(45%) contrast(140%) brightness(1.05)';
+            // Color styles
             case 'vintage-red':
                 return 'sepia(30%) hue-rotate(320deg) saturate(1.5)';
-            case 'blueprint':
-                return 'hue-rotate(200deg) saturate(3) brightness(0.7)';
             case 'forest-green':
             case 'paste':
-                return 'hue-rotate(90deg) saturate(0.6) brightness(1.1)';
+                return 'saturate(0.7) brightness(1.05)';
+            case 'color-outdoors':
+            case 'bayside':
+                return 'saturate(1.1) brightness(1.02)';
             default:
-                return 'none';
+                return 'grayscale(100%) contrast(160%)';
         }
     };
 
