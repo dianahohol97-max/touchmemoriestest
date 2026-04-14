@@ -2980,71 +2980,35 @@ export default function BookLayoutEditor() {
 
 
             {/* ФОРЗАЦ */}
-            {(leftTab as string) === 'endpaper' && hasEndpaper && (() => {
-              const renderEp = (key: 'first' | 'last', label: string) => {
-                const ep = endpaperState[key];
-                return (
-                  <div key={key} style={{ border:'1px solid #e2e8f0', borderRadius:10, padding:'12px', marginBottom:10 }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                      <span style={{ fontSize:12, fontWeight:700, color:'#1e2d7d' }}>{label}</span>
-                      <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer', fontSize:11, color:'#64748b' }}>
-                        <input type="checkbox" checked={ep.enabled} onChange={e=>setEndpaperState(p=>({...p,[key]:{...p[key],enabled:e.target.checked}}))}/>
-                        Друк на форзаці +200₴ (за обидва)
-                      </label>
-                    </div>
-                    {!ep.enabled && (
-                      <div style={{ fontSize:11, color:'#94a3b8', padding:'6px 0' }}>Білий (без друку)</div>
-                    )}
-                    {ep.enabled && (
-                      <>
-                        <div style={{ marginBottom:8 }}>
-                          <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Ілюстрація</div>
-                          <input type="file" accept="image/*" style={{ display:'none' }}
-                            ref={el => { endpaperImageRef.current[key] = el; }}
-                            onChange={e => {
-                              const f = e.target.files?.[0]; if (!f) return;
-                              setEndpaperState(p=>({...p,[key]:{...p[key],imageUrl:URL.createObjectURL(f as Blob)}}));
-                            }}/>
-                          <div style={{ display:'flex', gap:6 }}>
-                            <button onClick={()=>endpaperImageRef.current[key]?.click()}
-                              style={{ flex:1, padding:'7px', border:'1.5px dashed #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:11, fontWeight:600, color:'#1e2d7d' }}>
-                              📎 Завантажити
-                            </button>
-                            {ep.imageUrl && <button onClick={()=>setEndpaperState(p=>({...p,[key]:{...p[key],imageUrl:null}}))}
-                              style={{ padding:'7px 10px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', color:'#ef4444', fontSize:11 }}>✕</button>}
-                          </div>
-                          {ep.imageUrl && <img src={ep.imageUrl} style={{ marginTop:6, width:'100%', maxHeight:70, objectFit:'contain', borderRadius:6, border:'1px solid #e2e8f0' }}/>}
-                        </div>
-                        <div style={{ marginBottom:8 }}>
-                          <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Напис</div>
-                          <textarea value={ep.text} onChange={e=>setEndpaperState(p=>({...p,[key]:{...p[key],text:e.target.value}}))}
-                            placeholder="Напис на форзаці"
-                            style={{ width:'100%', padding:'7px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, resize:'none', height:48, boxSizing:'border-box' }}/>
-                        </div>
-                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                          <span style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Колір тексту</span>
-                          <label style={{ display:'inline-flex', alignItems:'center', gap:5, cursor:'pointer', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:'5px 8px', position:'relative', overflow:'hidden' }}>
-                            <div style={{ width:20, height:20, borderRadius:4, background:ep.textColor, border:'1px solid rgba(0,0,0,0.1)' }}/>
-                            <input type="color" value={ep.textColor} onChange={e=>setEndpaperState(p=>({...p,[key]:{...p[key],textColor:e.target.value}}))}
-                              style={{ position:'absolute', inset:0, opacity:0.01, width:'100%', height:'100%', cursor:'pointer' }}/>
-                          </label>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                );
-              };
-              return (
-                <div>
-                  <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:8, padding:'8px 10px', fontSize:11, color:'#92400e', marginBottom:12 }}>
-                    Форзац — перша та остання сторінка книги. За замовчуванням білі. Друк на форзаці +200₴ (за обидва) (фіксована ціна за обидва)
-                  </div>
-                  {renderEp('first', 'Перший форзац (ліва сторінка)')}
-                  {renderEp('last', 'Останній форзац (права сторінка)')}
+            {(leftTab as string) === 'endpaper' && hasEndpaper && (
+              <div>
+                <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:8, padding:'10px 12px', marginBottom:12, fontSize:11, color:'#92400e', lineHeight:1.5 }}>
+                  Форзац — перша та остання сторінка книги. За замовчуванням білі. Друк на форзаці +{endpaperSurcharge}₴ (фіксована ціна за обидва)
                 </div>
-              );
-            })()}
-
+                <div style={{ fontSize:12, color:'#374151', lineHeight:1.6 }}>
+                  <p style={{ margin:'0 0 8px', fontWeight:700, color:'#1e2d7d' }}>Як редагувати форзаци:</p>
+                  <ol style={{ margin:0, paddingLeft:18, fontSize:11, color:'#64748b' }}>
+                    <li style={{ marginBottom:4 }}>Натисніть на сторінку форзацу у вікні перегляду</li>
+                    <li style={{ marginBottom:4 }}>Змініть макет, додайте фото, текст, стікери — як на звичайній сторінці</li>
+                    <li>Зміни зберігаються автоматично</li>
+                  </ol>
+                </div>
+                <div style={{ marginTop:12, display:'flex', flexDirection:'column', gap:6 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', background:'#f0f3ff', borderRadius:8, fontSize:11 }}>
+                    <span style={{ fontWeight:700, color:'#1e2d7d' }}>Перший форзац</span>
+                    <span style={{ color: endpaperUnlocked.first ? '#16a34a' : '#94a3b8', fontWeight:700 }}>
+                      {endpaperUnlocked.first ? '✓ Активний' : '○ Не активний'}
+                    </span>
+                  </div>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', background:'#f0f3ff', borderRadius:8, fontSize:11 }}>
+                    <span style={{ fontWeight:700, color:'#1e2d7d' }}>Останній форзац</span>
+                    <span style={{ color: endpaperUnlocked.last ? '#16a34a' : '#94a3b8', fontWeight:700 }}>
+                      {endpaperUnlocked.last ? '✓ Активний' : '○ Не активний'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* TEXT */}
             {leftTab === 'stickers' && (() => {
               const STICKER_GROUPS = [
@@ -4198,34 +4162,12 @@ export default function BookLayoutEditor() {
                       );
                     }
 
-                    // UNLOCKED — editable forzats (same as before but with surcharge badge)
-                    return (
-                      <div key={pageRenderKey}
-                        onClick={() => setLeftTab('endpaper' as any)}
-                        style={{ width: pageW, height: cH, position: 'relative', background: '#fff',
-                          borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0',
-                          boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)',
-                          overflow: 'hidden', cursor: 'pointer',
-                          border: leftTab === ('endpaper' as any) ? '2px solid #3b82f6' : 'none' }}>
-                        {ep.imageUrl && <img src={ep.imageUrl} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.85 }} draggable={false}/>}
-                        {ep.text && (
-                          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                            <span style={{ fontSize: 20, color: ep.textColor, textAlign:'center', padding:'0 16px', whiteSpace:'pre-wrap' }}>{ep.text}</span>
-                          </div>
-                        )}
-                        <div style={{ position:'absolute', bottom:6, left:0, right:0, textAlign:'center', fontSize:9, color:'#94a3b8', fontWeight:600, letterSpacing:1, textTransform:'uppercase', pointerEvents:'none' }}>
-                          ФОРЗАЦ {isFirst ? '(перший)' : '(останній)'} · друк +{endpaperSurcharge}₴
-                        </div>
-                        {!ep.imageUrl && !ep.text && (
-                          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                            <span style={{ color:'#e2e8f0', fontSize:9, fontWeight:600, letterSpacing:1, textTransform:'uppercase', writingMode:'vertical-rl' }}>ФОРЗАЦ — тисніть для редагування</span>
-                          </div>
-                        )}
-                      </div>
-                    );
+                    // UNLOCKED — render as full page (normal slots, text, drag-drop)
+                    // Fall through to normal page rendering below (no early return)
                   }
                   const pageDefs = getSlotDefs(page.layout, pageW, cH, slotGap);
                   const pageKey = (si: number) => `${pageIdx}-${si}`;
+                  const isThisEndpaper = isEndpaperPage(pageIdx);
                   return (
                     <div key={pageRenderKey}
                       onPointerDown={() => setActiveSide(side as 0|1)}
@@ -4468,6 +4410,14 @@ export default function BookLayoutEditor() {
                           </div>
                         );
                       })}
+                      {/* Endpaper badge overlay */}
+                      {isThisEndpaper && (
+                        <div style={{ position:'absolute', top:4, left:0, right:0, zIndex:80, display:'flex', justifyContent:'center', pointerEvents:'none' }}>
+                          <span style={{ background:'rgba(30,45,125,0.82)', color:'#fff', fontSize:8, fontWeight:800, padding:'2px 8px', borderRadius:8, letterSpacing:1, textTransform:'uppercase' }}>
+                            ФОРЗАЦ · +{endpaperSurcharge}₴
+                          </span>
+                        </div>
+                      )}
                       {/* Free slots */}
                       <FreeSlotLayer
                         slots={freeSlots[pageIdx] || []}
