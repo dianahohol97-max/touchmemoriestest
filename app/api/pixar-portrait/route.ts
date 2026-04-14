@@ -1,28 +1,14 @@
 import { NextResponse } from 'next/server';
 
-// Replicate API — img2img style transfer for AI Portrait
-// Using flux-1.1-pro with img2img support (correct params for 422 fix)
 export const AI_PORTRAIT_PRICE = 75;
 
-const STYLE_PRESETS: Record<string, { prompt: string }> = {
-  pixar: {
-    prompt: 'portrait in pixar 3d animation style, vibrant colors, smooth 3d render, expressive big eyes, cinematic lighting, high quality disney pixar character',
-  },
-  anime: {
-    prompt: 'portrait in anime illustration style, studio ghibli inspired, soft colors, detailed anime face, beautiful manga artwork, high quality',
-  },
-  cartoon: {
-    prompt: 'portrait as disney animated cartoon character, fun colorful cartoon style, clean lines, bright colors, expressive features',
-  },
-  watercolor: {
-    prompt: 'portrait as beautiful watercolor painting, soft brush strokes, delicate color washes, artistic fine art illustration',
-  },
-  sketch: {
-    prompt: 'portrait as detailed pencil sketch, fine charcoal drawing, black and white, professional fine art sketch',
-  },
-  oilpainting: {
-    prompt: 'portrait as classical oil painting, rich textures, painterly brushstrokes, fine art museum quality portrait',
-  },
+const STYLE_PROMPTS: Record<string, string> = {
+  pixar:      'pixar 3d animated movie character, vibrant colors, smooth 3d render, expressive big eyes, disney pixar studio quality, cinematic lighting',
+  anime:      'anime illustration style, studio ghibli inspired, soft colors, detailed anime face, beautiful manga artwork',
+  cartoon:    'disney animated cartoon character, fun colorful cartoon style, clean bold lines, bright cheerful colors',
+  watercolor: 'beautiful watercolor portrait painting, soft watercolor washes, delicate artistic brush strokes, fine art illustration',
+  sketch:     'detailed pencil sketch portrait, fine charcoal drawing, black and white, professional artistic sketch',
+  oilpainting:'classical oil painting portrait, rich painterly textures, museum quality fine art portrait',
 };
 
 export async function POST(request: Request) {
@@ -39,22 +25,37 @@ export async function POST(request: Request) {
     if (!imageFile) {
       return NextResponse.json({ error: 'Image file required' }, { status: 400 });
     }
-
     if (imageFile.size > 10 * 1024 * 1024) {
       return NextResponse.json({ error: 'Image too large (max 10MB)' }, { status: 400 });
     }
 
-    const preset = STYLE_PRESETS[style] || STYLE_PRESETS.pixar;
+    const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.pixar;
 
-    // Convert file to base64
-    const bytes = await imageFile.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString('base64');
-    const mimeType = imageFile.type || 'image/jpeg';
-    const dataUrl = `data:${mimeType};base64,${base64}`;
+    // Step 1: Upload image to Replicate to get a URL
+    const uploadRes = await fetch('https://api.replicate.com/v1/files', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type': imageFile.type || 'image/jpeg',
+      },
+      body: imageFile,
+    });
 
-    // Use tencentarc/photomaker-style — dedicated portrait style transfer model
-    // This is the correct model for img2img face-preserving style transfer
-    const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+    let imageUrl: string;
+
+    if (uploadRes.ok) {
+      const uploadData = await uploadRes.json();
+      imageUrl = uploadData.urls?.get || uploadData.url;
+    } else {
+      // Fallback: convert to base64 data URL
+      const bytes = await imageFile.arrayBuffer();
+      const base64 = Buffer.from(bytes).toString('base64');
+      imageUrl = `data:${imageFile.type || 'image/jpeg'};base64,${base64}`;
+    }
+
+    // Step 2: Use flux-schnell with image_prompt for style transfer
+    // This is the most reliable model available on Replicate for this use case
+    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiToken}`,
@@ -62,84 +63,48 @@ export async function POST(request: Request) {
         'Prefer': 'wait=60',
       },
       body: JSON.stringify({
-        model: 'tencentarc/photomaker-style',
+        model: 'black-forest-labs/flux-1.1-pro',
         input: {
-          input_image: dataUrl,
-          style_name: style === 'pixar' ? 'Pixar/Disney Character' :
-                      style === 'anime' ? 'Japanese Anime' :
-                      style === 'watercolor' ? 'Digital/Oil Art' :
-                      style === 'sketch' ? 'Neonpunk' :
-                      'Photographic (Default)',
-          prompt: `img ${preset.prompt}`,
-          negative_prompt: 'ugly, deformed, nsfw, low quality, blurry, bad anatomy, watermark, text',
-          num_outputs: 1,
-          guidance_scale: 5,
-          num_inference_steps: 25,
-          style_strength_ratio: 35,
+          prompt: `A portrait of a person in ${stylePrompt} style, maintaining facial features and likeness`,
+          image_prompt: imageUrl,
+          image_prompt_strength: 0.85,
+          aspect_ratio: '1:1',
+          output_format: 'jpg',
+          output_quality: 90,
+          safety_tolerance: 5,
+          width: 1024,
+          height: 1024,
         },
       }),
     });
 
-    if (!createResponse.ok) {
-      const errText = await createResponse.text();
-      console.error('Replicate error:', createResponse.status, errText);
-      // Fallback to flux-1.1-pro img2img
-      return await fallbackToFluxImg2Img(apiToken, dataUrl, preset.prompt);
+    if (!createRes.ok) {
+      const errText = await createRes.text();
+      console.error('Replicate error:', createRes.status, errText.slice(0, 300));
+      return NextResponse.json(
+        { error: `Replicate API error: ${createRes.status}` },
+        { status: createRes.status }
+      );
     }
 
-    const prediction = await createResponse.json();
+    const prediction = await createRes.json();
 
-    if (prediction.status === 'succeeded' && prediction.output?.[0]) {
-      return NextResponse.json({ success: true, url: prediction.output[0], predictionId: prediction.id });
+    if (prediction.status === 'succeeded' && prediction.output) {
+      const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      return NextResponse.json({ success: true, url, predictionId: prediction.id });
     }
 
     return NextResponse.json({
       success: true,
       predictionId: prediction.id,
       status: prediction.status,
-      polling: true,
+      polling: prediction.status === 'processing' || prediction.status === 'starting',
     });
 
   } catch (err: any) {
     console.error('pixar-portrait error:', err);
     return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 });
   }
-}
-
-async function fallbackToFluxImg2Img(apiToken: string, dataUrl: string, prompt: string) {
-  // flux-1.1-pro supports image_prompt for img2img
-  const response = await fetch('https://api.replicate.com/v1/predictions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiToken}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'wait=60',
-    },
-    body: JSON.stringify({
-      model: 'black-forest-labs/flux-1.1-pro',
-      input: {
-        prompt: prompt,
-        image_prompt: dataUrl,
-        image_prompt_strength: 0.85,
-        aspect_ratio: '1:1',
-        output_format: 'jpg',
-        output_quality: 90,
-        safety_tolerance: 5,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Replicate API error: ${response.status} — ${err.slice(0, 200)}`);
-  }
-
-  const prediction = await response.json();
-  if (prediction.status === 'succeeded' && prediction.output) {
-    const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-    return NextResponse.json({ success: true, url, predictionId: prediction.id });
-  }
-  return NextResponse.json({ success: true, predictionId: prediction.id, status: prediction.status, polling: true });
 }
 
 // GET — poll prediction status
@@ -151,20 +116,20 @@ export async function GET(request: Request) {
   const apiToken = process.env.REPLICATE_API_TOKEN;
   if (!apiToken) return NextResponse.json({ error: 'REPLICATE_API_TOKEN not configured' }, { status: 500 });
 
-  const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+  const res = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
     headers: { 'Authorization': `Bearer ${apiToken}` },
   });
 
-  if (!response.ok) return NextResponse.json({ error: 'Failed to get prediction status' }, { status: 500 });
+  if (!res.ok) return NextResponse.json({ error: 'Failed to poll prediction' }, { status: 500 });
 
-  const prediction = await response.json();
+  const prediction = await res.json();
 
   if (prediction.status === 'succeeded' && prediction.output) {
     const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
     return NextResponse.json({ success: true, url, status: 'succeeded' });
-  } else if (prediction.status === 'failed') {
-    return NextResponse.json({ error: prediction.error || 'Failed', status: 'failed' }, { status: 500 });
   }
-
+  if (prediction.status === 'failed') {
+    return NextResponse.json({ error: prediction.error || 'Generation failed', status: 'failed' }, { status: 500 });
+  }
   return NextResponse.json({ status: prediction.status, polling: true });
 }
