@@ -772,7 +772,8 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         const material = selectedOptions['Матеріал обкладинки'];
         if (!material) return null;
         // Hide color swatches for any printed cover variant
-        const isPrintedMaterial = String(material).toLowerCase().includes('друков') || String(material).toLowerCase().includes('printed');
+        const matLower = String(material).toLowerCase();
+        const isPrintedMaterial = matLower.includes('друков') || matLower.includes('printed') || matLower.includes('тверда');
         if (isPrintedMaterial) return null;
         const isVelour = String(material).toLowerCase().includes('велюр');
         const isLeather = String(material).toLowerCase().includes('ткан') || String(material).toLowerCase().includes('fabric');
