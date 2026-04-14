@@ -1382,17 +1382,51 @@ export default function BookLayoutEditor() {
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+    const total = files.length;
+    // Use a stable counter per upload batch to guarantee unique IDs
+    const batchId = Date.now();
+    const results: { idx: number; photo: PhotoData | null }[] = [];
     let done = 0;
-    const newPhotos: PhotoData[] = [];
-    files.forEach((file: File) => {
+
+    const tryCommit = () => {
+      done++;
+      if (done < total) return;
+      // All files processed — commit in original order, skip failures
+      const loaded = results
+        .sort((a, b) => a.idx - b.idx)
+        .map(r => r.photo)
+        .filter(Boolean) as PhotoData[];
+      if (loaded.length > 0) {
+        setPhotos(prev => [...prev, ...loaded]);
+        toast.success(`Завантажено ${loaded.length} фото`);
+      }
+    };
+
+    files.forEach((file: File, idx: number) => {
       const reader = new FileReader();
       reader.onload = ev => {
         const img = new window.Image();
         img.onload = () => {
-          newPhotos.push({ id: 'up-' + Date.now() + '-' + Math.random(), preview: ev.target!.result as string, width: img.width, height: img.height, name: file.name });
-          if (++done === files.length) { setPhotos(prev => [...prev, ...newPhotos]); toast.success(`Завантажено ${files.length} фото`); }
+          // Unique ID: batchId + index (never collides even if Date.now same)
+          const photo: PhotoData = {
+            id: `up-${batchId}-${idx}`,
+            preview: ev.target!.result as string,
+            width: img.width,
+            height: img.height,
+            name: file.name,
+          };
+          results.push({ idx, photo });
+          tryCommit();
+        };
+        img.onerror = () => {
+          results.push({ idx, photo: null });
+          tryCommit();
         };
         img.src = ev.target!.result as string;
+      };
+      reader.onerror = () => {
+        results.push({ idx, photo: null });
+        tryCommit();
       };
       reader.readAsDataURL(file);
     });
