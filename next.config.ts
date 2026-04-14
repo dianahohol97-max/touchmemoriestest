@@ -4,15 +4,8 @@ const nextConfig = {
   experimental: {
     ppr: false,
   },
-  // Required for @imgly/background-removal WASM model files
-  webpack: (config: any, { isServer }: { isServer: boolean }) => {
-    if (!isServer) {
-      config.resolve.fallback = { ...config.resolve.fallback, fs: false };
-    }
-    // Allow WASM files
-    config.experiments = { ...config.experiments, asyncWebAssembly: true, layers: true };
-    return config;
-  },
+  // Required for @imgly/background-removal — Turbopack config (Next.js 16+)
+  turbopack: {},
   images: {
     remotePatterns: [
       {
