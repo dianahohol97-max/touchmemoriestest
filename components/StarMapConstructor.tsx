@@ -9,6 +9,7 @@ import StarMapPreview from './StarMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import ExportProgressModal from './ExportProgressModal';
 import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
+import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 
 interface StarMapConfig {
     // Step 1: Moment
@@ -30,6 +31,7 @@ interface StarMapConfig {
     showMilkyWay?: boolean;
     constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
     backgroundColor: string;
+    skyColor?: string;
     starColor: string;
     textColor: string;
     fontFamily: string;
@@ -65,6 +67,7 @@ export default function StarMapConstructor() {
         // Step 3 defaults
         style: 'classic-dark',
         backgroundColor: '#050a18',
+        skyColor: '#050a18',
         starColor: '#ffffff',
         textColor: '#ffffff',
         fontFamily: 'Georgia',
@@ -314,6 +317,15 @@ export default function StarMapConstructor() {
 
 // Step 1: Moment
 function Step1Moment({ config, setConfig }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>> }) {
+    // Load Google Fonts
+    useEffect(() => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = GOOGLE_FONTS_URL;
+        document.head.appendChild(link);
+        return () => { try { document.head.removeChild(link); } catch {} };
+    }, []);
+
     return (
         <div className="space-y-6">
             <div>
@@ -374,6 +386,15 @@ function Step1Moment({ config, setConfig }: { config: StarMapConfig; setConfig: 
 
 // Step 2: Personalize
 function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>> }) {
+    // Load Google Fonts
+    useEffect(() => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = GOOGLE_FONTS_URL;
+        document.head.appendChild(link);
+        return () => { try { document.head.removeChild(link); } catch {} };
+    }, []);
+
     return (
         <div className="space-y-6">
             <div>
@@ -444,16 +465,16 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
         { id: 'forest-peak',   name: 'Ліс і гори',      bg: '#060d1f', star: '#ffffff', text: '#ffffff', preview: '#060d1f' },
     ];
 
-    const fonts = [
-        'Georgia',
-        'Playfair Display',
-        'Lora',
-        'Montserrat',
-        'Roboto',
-        'Open Sans',
-        'Raleway',
-        'Cormorant Garamond'
-    ];
+    // Full font list from photobook editor (FONT_GROUPS)
+
+    // Load Google Fonts
+    useEffect(() => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = GOOGLE_FONTS_URL;
+        document.head.appendChild(link);
+        return () => { try { document.head.removeChild(link); } catch {} };
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -473,6 +494,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                                 ...config,
                                 style: style.id as any,
                                 backgroundColor: style.bg,
+                                skyColor: style.bg,
                                 starColor: style.star,
                                 textColor: style.text
                             })}
@@ -530,13 +552,22 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
             {/* Color Scheme */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">Кольорова схема</label>
-                <div className="grid grid-cols-3 gap-3">
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
                     <div>
-                        <label className="block text-xs text-gray-600 mb-1">Фон</label>
+                        <label className="block text-xs text-gray-600 mb-1">Фон постера</label>
                         <input
                             type="color"
                             value={config.backgroundColor}
                             onChange={(e) => setConfig({ ...config, backgroundColor: e.target.value })}
+                            className="w-full h-10 border border-gray-300 rounded cursor-pointer"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs text-gray-600 mb-1">Колір неба</label>
+                        <input
+                            type="color"
+                            value={(config as any).skyColor || config.backgroundColor}
+                            onChange={(e) => setConfig({ ...config, skyColor: e.target.value } as any)}
                             className="w-full h-10 border border-gray-300 rounded cursor-pointer"
                         />
                     </div>
@@ -564,17 +595,33 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
             {/* Font Selector */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Шрифт</label>
-                <select
-                    value={config.fontFamily}
-                    onChange={(e) => setConfig({ ...config, fontFamily: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
-                >
-                    {fonts.map((font) => (
-                        <option key={font} value={font} style={{ fontFamily: font }}>
-                            {font}
-                        </option>
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {FONT_GROUPS.map(group => (
+                        <div key={group.group}>
+                            <div style={{ fontSize:10, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>{group.group}</div>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                                {group.fonts.map(font => {
+                                    const isActive = config.fontFamily === font;
+                                    return (
+                                        <button key={font} type="button"
+                                            onClick={() => setConfig({ ...config, fontFamily: font })}
+                                            style={{
+                                                padding:'5px 10px', borderRadius:8, cursor:'pointer', fontSize:12,
+                                                fontFamily: font,
+                                                border: isActive ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                                                background: isActive ? '#f0f3ff' : '#fff',
+                                                color: isActive ? '#1e2d7d' : '#374151',
+                                                fontWeight: isActive ? 700 : 400,
+                                                transition: 'all 0.15s',
+                                            }}>
+                                            {font}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     ))}
-                </select>
+                </div>
             </div>
 
             {/* Elements Toggles */}
@@ -656,6 +703,15 @@ function Step4SizeProduct({ config, setConfig, product }: { config: StarMapConfi
 
         setConfig(prev => ({ ...prev, price: basePrice + modifier }));
     }, [config.size, config.productType]);
+
+    // Load Google Fonts
+    useEffect(() => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = GOOGLE_FONTS_URL;
+        document.head.appendChild(link);
+        return () => { try { document.head.removeChild(link); } catch {} };
+    }, []);
 
     return (
         <div className="space-y-6">

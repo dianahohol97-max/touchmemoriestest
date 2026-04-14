@@ -8,7 +8,7 @@ interface StarMapConfig {
     latitude: number; longitude: number;
     headline: string; subtitle: string; dedication: string;
     style: string;
-    backgroundColor: string; starColor: string; textColor: string; fontFamily: string;
+    backgroundColor: string; skyColor?: string; starColor: string; textColor: string; fontFamily: string;
     size: string; productType: string; price: number;
     showGrid?: boolean; showConstellations?: boolean; showMilkyWay?: boolean;
     constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
@@ -176,8 +176,8 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         }
 
         // Fill inside clip
-        if(!isForest) { ctx.fillStyle=config.backgroundColor; ctx.fillRect(0,0,W,H); }
-        else if(isHeart) { ctx.fillStyle='#030810'; ctx.fillRect(0,0,W,H); }
+        if(!isForest) { ctx.fillStyle=config.skyColor||config.backgroundColor; ctx.fillRect(0,0,W,H); }
+        else if(isHeart) { ctx.fillStyle=config.skyColor||'#030810'; ctx.fillRect(0,0,W,H); }
 
         // Milky Way
         if(config.showMilkyWay!==false) {
