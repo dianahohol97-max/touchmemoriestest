@@ -73,34 +73,31 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
     const lang = (config as any).mapLang || 'local';
 
     const getTileUrl = () => {
-        // OSM standard: always has roads, free, no key required
-        // CartoCDN positron/dark: clean design tiles
+        // CartoCDN: clean minimal tiles, no ugly OSM POI icons, free, no key
         switch (config.mapStyle) {
             case 'dark-mode':
             case 'plum':
-                // CartoCDN dark — reliable
                 return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
             case 'blueprint':
                 return 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
             case 'smooth-light':
-                // CartoCDN positron light with roads and labels
                 return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            // For B&W poster styles: Positron no-labels base + CSS grayscale+contrast
             case 'stamen-toner':
             case 'stamen-toner-lite':
             case 'classic-bw':
-                // OSM standard tile — most reliable, always has roads
-                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+                // Positron nolabels = clean gray roads on white, no POI icons
+                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
             case 'vintage-sepia':
             case 'harvest':
-                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
             case 'color-outdoors':
             case 'bayside':
             case 'forest-green':
             case 'paste':
-                // CartoCDN voyager — colorful with roads
-                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
             default:
-                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
         }
     };
 
@@ -127,16 +124,15 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             case 'classic-bw':
                 return 'grayscale(100%) contrast(170%) brightness(1.05)';
             case 'stamen-toner':
-                // OSM → sharp B&W poster look
-                return 'grayscale(100%) contrast(180%) brightness(1.1) saturate(0)';
+                // CartoCDN light_nolabels → sharp B&W poster
+                return 'grayscale(100%) contrast(250%) brightness(0.95) invert(0)';
             case 'stamen-toner-lite':
-                // OSM → soft gray
-                return 'grayscale(100%) contrast(130%) brightness(1.15) saturate(0)';
+                return 'grayscale(100%) contrast(180%) brightness(1.05)';
             case 'classic-bw':
-                return 'grayscale(100%) contrast(150%) brightness(1.1) saturate(0)';
+                return 'grayscale(100%) contrast(200%) brightness(1.0)';
             case 'vintage-sepia':
             case 'harvest':
-                return 'grayscale(100%) sepia(50%) contrast(130%) brightness(1.05)';
+                return 'grayscale(100%) sepia(60%) contrast(140%) brightness(1.05)';
             case 'smooth-light':
                 return 'grayscale(100%) contrast(120%) brightness(1.08)';
             // Dark
@@ -218,8 +214,8 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                             attributionControl={false}
                         >
                             <TileLayer url={getTileUrl()} />
-                            {/* Label overlay — only for explicitly nolabels CartoCDN tiles */}
-                            {(config.mapStyle === 'blueprint') && (
+                            {/* Label overlay for all nolabels base tiles */}
+                            {config.mapStyle !== 'dark-mode' && config.mapStyle !== 'smooth-light' && config.mapStyle !== 'plum' && (
                                 <TileLayer url={getLabelTileUrl()} />
                             )}
                             {isClient && <MapUpdater lat={config.latitude} lng={config.longitude} zoom={config.zoom} />}
