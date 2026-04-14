@@ -1,5 +1,7 @@
 'use client';
 import { useT } from '@/lib/i18n/context';
+import { useLocale } from '@/lib/i18n/context';
+import { getLocalized } from '@/lib/i18n/localize';
 import { useState, useEffect, Suspense } from 'react';
 import styles from './catalog.module.css';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -47,6 +49,7 @@ function CatalogContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const t = useT();
+    const locale = useLocale();
     const queryCategory = searchParams.get('category') || 'all';
     const queryCollection = searchParams.get('collection');
 
@@ -84,7 +87,7 @@ function CatalogContent() {
             // Fetch categories
             const { data: catData } = await supabase
                 .from('categories')
-                .select('id, name, slug, cover_image, display_style')
+                .select('id, name, slug, cover_image, display_style, translations')
                 .eq('is_active', true)
                 .order('sort_order', { ascending: true });
 
@@ -269,7 +272,7 @@ function CatalogContent() {
                                         }}
                                         className="hover:opacity-90"
                                     >
-                                        {cat.name}
+                                        {getLocalized(cat, locale, 'name')}
                                     </button>
                                 );
                             })}

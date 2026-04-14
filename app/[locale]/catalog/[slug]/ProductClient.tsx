@@ -213,7 +213,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             setIsLoading(true);
             const { data, error } = await supabase
                 .from('products')
-                .select('*, categories(name, slug)')
+                .select('*, categories(name, slug, translations)')
                 .eq('slug', resolvedParams.slug)
                 .eq('is_active', true)
                 .single();
@@ -443,7 +443,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     <span>→</span>
                     {product.categories && (
                         <>
-                            <Link href={`/catalog?category=${product.categories.slug}`} style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{product.categories.name}</Link>
+                            <Link href={`/catalog?category=${product.categories.slug}`} style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{getLocalized(product.categories, locale, 'name')}</Link>
                             <span>→</span>
                         </>
                     )}
