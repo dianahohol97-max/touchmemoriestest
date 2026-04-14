@@ -74,16 +74,16 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
       { text: '8 РЕЧЕЙ, ЗА ЯКІ МИ ТЕБЕ ЛЮБИМО', x: 50, y: 12, fontSize: 28, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
       { text: 'ЗА ТВОЮ СПРАВЖНІСТЬ.', x: 25, y: 28, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
       { text: 'Ти не граєш ролей. Ти — це ти.', x: 25, y: 32, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
-      { text: 'ЗА ТЕПЛО, ЯКЕ ТИ ДАРУЄШ.', x: 75, y: 36, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
-      { text: 'З тобою легко. З тобою затишно.', x: 75, y: 40, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+      { text: 'ЗА ТЕПЛО, ЯКЕ ТИ ДАРУЄШ.', x: 68, y: 36, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
+      { text: 'З тобою легко. З тобою затишно.', x: 68, y: 40, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
       { text: 'ЗА ВМІННЯ СЛУХАТИ.', x: 25, y: 48, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
       { text: 'Не просто чути, а розуміти.', x: 25, y: 52, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
-      { text: 'ЗА СИЛУ, ЯКУ ТИ НЕ ВИСТАВЛЯЄШ.', x: 75, y: 56, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
-      { text: 'Ти тримаєш світ інших.', x: 75, y: 60, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+      { text: 'ЗА СИЛУ, ЯКУ ТИ НЕ ВИСТАВЛЯЄШ.', x: 65, y: 56, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
+      { text: 'Ти тримаєш світ інших.', x: 68, y: 60, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
       { text: 'ЗА ТВОЇ УСМІШКИ.', x: 25, y: 68, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
-      { text: 'ЗА ТВОЮ ЕСТЕТИКУ В ДЕТАЛЯХ.', x: 75, y: 76, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
+      { text: 'ЗА ТВОЮ ЕСТЕТИКУ В ДЕТАЛЯХ.', x: 65, y: 76, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
       { text: 'ЗА ТУРБОТУ В ДЕТАЛЯХ.', x: 25, y: 84, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
-      { text: 'І ЗА ТЕ, ЩО ТИ ПРОСТО Є.', x: 75, y: 92, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
+      { text: 'І ЗА ТЕ, ЩО ТИ ПРОСТО Є.', x: 68, y: 92, fontSize: 11, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
     ],
   },
 
@@ -97,7 +97,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     bgColor: '#ffffff',
     hasPhoto: true,
     texts: [
-      { text: 'FASHION MAGAZINE', x: 88, y: 5, fontSize: 8, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
+      { text: 'FASHION MAGAZINE', x: 72, y: 5, fontSize: 8, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
       { text: 'ТАМ, ДЕ ЛЕГКО', x: 50, y: 10, fontSize: 24, fontFamily: 'Cormorant Garamond', color: '#1a1a1a', bold: false },
       { text: 'МИСТЕЦТВО БУТИ ПОРУЧ', x: 65, y: 40, fontSize: 20, fontFamily: 'Playfair Display', color: '#ffffff', bold: true },
       { text: '[Ім\'я] обирає не гучні історії, а глибокі. Не феєрверки — а тишу, в якій усе зрозуміло.', x: 65, y: 55, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#ffffff', bold: false },
@@ -117,7 +117,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     texts: [
       { text: '[ІМ\'Я] В КОХАННІ: НІЖНІСТЬ І СИЛА, ЩО ЗАЧАРОВУЮТЬ', x: 50, y: 5, fontSize: 18, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
       { text: 'У коханні [Ім\'я] завжди залишається собою — щирою, відкритою і справжньою.', x: 65, y: 22, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
-      { text: 'Кохання — це простір, у якому ти можеш бути собою і щоразу вибирати залишатися.', x: 72, y: 78, fontSize: 12, fontFamily: 'Dancing Script', color: '#8b1a1a', bold: false, italic: true },
+      { text: 'Кохання — це простір, у якому ти можеш бути собою і щоразу вибирати залишатися.', x: 50, y: 78, fontSize: 12, fontFamily: 'Dancing Script', color: '#8b1a1a', bold: false, italic: true },
     ],
   },
 
@@ -153,7 +153,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
       { text: 'Дім — це не координати на карті. Це люди. Їхні голоси.', x: 25, y: 68, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
       { text: '[Ім\'я] не з тих, хто говорить багато, але кожен її жест — про любов.', x: 25, y: 76, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
       { text: 'Для неї сім\'я — це безумовність.', x: 75, y: 68, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
-      { text: 'І попри все, вони завжди на твоїй стороні.', x: 75, y: 80, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
+      { text: 'І попри все, вони завжди на твоїй стороні.', x: 65, y: 80, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
     ],
   },
 
@@ -167,10 +167,10 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     bgColor: '#ffffff',
     hasPhoto: true,
     texts: [
-      { text: 'Серцем назавжди', x: 72, y: 10, fontSize: 28, fontFamily: 'Playfair Display', color: '#8b1a1a', bold: true },
+      { text: 'Серцем назавжди', x: 60, y: 10, fontSize: 28, fontFamily: 'Playfair Display', color: '#8b1a1a', bold: true },
       { text: 'Є дружба для "погуляти" — легка, випадкова. А є така, як у [Ім\'я]. Та, що будується роками.', x: 72, y: 25, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
       { text: '[Ім\'я] вміє дружити чесно. Завжди поруч, коли дійсно треба.', x: 72, y: 45, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
-      { text: 'Такі люди не трапляються часто. Але якщо вже трапились — це назавжди.', x: 72, y: 85, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
+      { text: 'Такі люди не трапляються часто. Але якщо вже трапились — це назавжди.', x: 50, y: 85, fontSize: 10, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
     ],
   },
 
@@ -186,7 +186,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     texts: [
       { text: '«', x: 20, y: 30, fontSize: 72, fontFamily: 'Playfair Display', color: '#c09080', bold: false },
       { text: 'Можливо все, а що не можливо, просто потребує більше часу', x: 50, y: 50, fontSize: 22, fontFamily: 'Dancing Script', color: '#333333', bold: false, italic: true },
-      { text: '»', x: 80, y: 65, fontSize: 72, fontFamily: 'Playfair Display', color: '#c09080', bold: false },
+      { text: '»', x: 70, y: 65, fontSize: 72, fontFamily: 'Playfair Display', color: '#c09080', bold: false },
     ],
   },
 

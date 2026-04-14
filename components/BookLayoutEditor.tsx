@@ -3579,9 +3579,9 @@ export default function BookLayoutEditor() {
                           onPointerDown={e => { e.stopPropagation(); if(!isSel) { setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); setTFontSize(tb.fontSize||28); setTFontFamily(tb.fontFamily||'Open Sans'); setTColor(tb.color||'#000'); setTBold(!!tb.bold); setTItalic(!!tb.italic); startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx); } }}
                           onClick={e => { e.stopPropagation(); if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex:10, padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', minWidth:20, touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${Math.max(5,Math.min(95,tb.x))}%`, top:`${Math.max(3,Math.min(97,tb.y))}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex:10, padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
                           <div contentEditable={isEd} suppressContentEditableWarning onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
-                            style={{ fontSize:tb.fontSize, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', outline:'none', whiteSpace:'nowrap', userSelect: isEd ? 'text' : 'none' }}>
+                            style={{ fontSize:tb.fontSize, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', outline:'none', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:'100%', userSelect: isEd ? 'text' : 'none' }}>
                             {tb.text}
                           </div>
                           {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,spreadPageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
@@ -3937,7 +3937,7 @@ export default function BookLayoutEditor() {
                             onClick={e=>{e.stopPropagation();if(isSel&&!isEd){setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}
-                            style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex:20,cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30,touchAction:'none'}}>
+                            style={{position:'absolute',left:Math.max(5,Math.min(95,tb.x))+'%',top:Math.max(3,Math.min(97,tb.y))+'%',transform:'translate(-50%,-50%)',zIndex:20,cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30,maxWidth:'90%',touchAction:'none'}}>
                             {isEd?(
                               <textarea
                 autoFocus
@@ -3950,7 +3950,7 @@ export default function BookLayoutEditor() {
                 rows={2}
               />
                             ):(
-                              <span style={{fontSize:(tb.fontSize*(zoom/100))+'px',fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre',userSelect:'none',textShadow:'0 1px 2px rgba(0,0,0,0.2)'}}>{tb.text}</span>
+                              <span style={{fontSize:(tb.fontSize*(zoom/100))+'px',fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre-wrap',wordBreak:'break-word',maxWidth:'100%',userSelect:'none',textShadow:'0 1px 2px rgba(0,0,0,0.2)'}}>{tb.text}</span>
                             )}
                             {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,pageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
                           </div>
