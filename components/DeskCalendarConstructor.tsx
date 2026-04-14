@@ -405,9 +405,9 @@ export default function DeskCalendarConstructor() {
   const [design, setDesign] = useState<Design>(DESIGNS[0]);
   const [lang, setLang] = useState<LangCode>('uk');
   const [year, setYear] = useState(2026);
-  const [coverTitle, setCoverTitle] = useState('');
-  const [activeMonth, setActiveMonth] = useState(0); // 0 = cover, 1-12 = months
-  const [photos, setPhotos] = useState<(string | null)[]>(Array(13).fill(null)); // [cover, jan..dec]
+  // no cover page for desk calendar
+  const [activeMonth, setActiveMonth] = useState(1); // 1-12 = months
+  const [photos, setPhotos] = useState<(string | null)[]>(Array(12).fill(null)); // [jan..dec] index 0=Jan..11=Dec
   // markedDates: { [monthKey: string]: MarkedDate[] }  key = "m1".."m12"
   const [markedDates, setMarkedDates] = useState<Record<string, MarkedDate[]>>({});
   const [markShape, setMarkShape] = useState<'circle' | 'heart'>('circle');
@@ -467,13 +467,13 @@ export default function DeskCalendarConstructor() {
       qty: 1,
       image: photos[0] || photos[1] || '',
       options: { 'Дизайн': design.name, 'Мова': lang, 'Рік': String(year) },
-      personalization_note: `Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}, Назва: ${coverTitle}`,
+      personalization_note: `Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`,
     });
     toast.success('✅ Календар додано до кошика!');
     router.push('/cart');
   };
 
-  const currentPhoto = photos[activeMonth];
+  const currentPhoto = photos[activeMonth - 1]; // activeMonth 1-12 → index 0-11
   const locale = LOCALES[lang];
 
   const LANG_OPTIONS: { code: LangCode; label: string; flag: string }[] = [
@@ -556,18 +556,12 @@ export default function DeskCalendarConstructor() {
             </div>
           </div>
 
-          {/* Cover title */}
-          <div>
-            <label style={{ fontSize:12, fontWeight:700, color:'#374151', display:'block', marginBottom:8 }}>Назва на обкладинці</label>
-            <input type="text" value={coverTitle} onChange={e => setCoverTitle(e.target.value)}
-              placeholder={`Наприклад: Наша сім'я ${year}`}
-              style={{ width:'100%', padding:'9px 12px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, boxSizing:'border-box' }}/>
-          </div>
+
 
           {/* Photo for current page */}
           <div>
             <label style={{ fontSize:12, fontWeight:700, color:'#374151', display:'block', marginBottom:8 }}>
-              Фото для: {activeMonth === 0 ? 'Обкладинки' : locale.months[activeMonth - 1]}
+              Фото для: {locale.months[activeMonth - 1]}
             </label>
             <input ref={fileInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleUpload}/>
             {currentPhoto ? (
@@ -585,7 +579,7 @@ export default function DeskCalendarConstructor() {
           </div>
 
           {/* Marked dates UI — only for month pages */}
-          {activeMonth > 0 && (
+          {activeMonth >= 1 && (
             <div>
               <label style={{ fontSize:12, fontWeight:700, color:'#374151', display:'block', marginBottom:8 }}>
                 Виділені дні — {locale.months[activeMonth-1]}
@@ -667,16 +661,10 @@ export default function DeskCalendarConstructor() {
           <div>
             <label style={{ fontSize:12, fontWeight:700, color:'#374151', display:'block', marginBottom:8 }}>Сторінки</label>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:4 }}>
-              <button onClick={() => setActiveMonth(0)}
-                style={{ padding:'6px 4px', border: activeMonth===0 ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
-                  borderRadius:6, background: activeMonth===0 ? '#f0f3ff' : '#fff',
-                  fontSize:9, fontWeight:700, color: activeMonth===0 ? '#1e2d7d' : '#374151', cursor:'pointer', position:'relative' }}>
-                Обкл.
-                {photos[0] && <span style={{ position:'absolute', top:2, right:2, width:5, height:5, borderRadius:'50%', background:'#10b981' }}/>}
-              </button>
+
               {Array.from({length:12}, (_,i) => {
                 const m = i + 1;
-                const hasPhoto = !!photos[m];
+                const hasPhoto = !!photos[m-1];
                 return (
                   <button key={m} onClick={() => setActiveMonth(m)}
                     style={{ padding:'5px 2px', border: activeMonth===m ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
@@ -722,16 +710,15 @@ export default function DeskCalendarConstructor() {
               photo={currentPhoto}
               W={PREVIEW_W}
               H={PREVIEW_H}
-              isCover={activeMonth === 0}
-              coverTitle={coverTitle}
+              isCover={false}
               markedDates={currentMarks}
             />
           </div>
           {/* Nav arrows */}
           <div style={{ display:'flex', justifyContent:'space-between', marginTop:10 }}>
-            <button onClick={() => setActiveMonth(m => Math.max(0, m-1))} disabled={activeMonth===0}
+            <button onClick={() => setActiveMonth(m => Math.max(1, m-1))} disabled={activeMonth===1}
               style={{ padding:'6px 14px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:activeMonth===0?'not-allowed':'pointer', color:activeMonth===0?'#cbd5e1':'#374151', fontWeight:700 }}>‹ Назад</button>
-            <span style={{ fontSize:12, color:'#94a3b8', alignSelf:'center' }}>{activeMonth}/12</span>
+            <span style={{ fontSize:12, color:'#94a3b8', alignSelf:'center' }}>{locale.months[activeMonth-1]}</span>
             <button onClick={() => setActiveMonth(m => Math.min(12, m+1))} disabled={activeMonth===12}
               style={{ padding:'6px 14px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:activeMonth===12?'not-allowed':'pointer', color:activeMonth===12?'#cbd5e1':'#374151', fontWeight:700 }}>Далі ›</button>
           </div>
@@ -740,16 +727,12 @@ export default function DeskCalendarConstructor() {
         {/* Mini strip of all months */}
         <div style={{ width:'100%', maxWidth:700 }}>
           <div style={{ fontSize:11, fontWeight:700, color:'#94a3b8', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Всі сторінки</div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:6 }}>
-            {/* Cover */}
-            <div onClick={() => setActiveMonth(0)} style={{ cursor:'pointer', borderRadius:6, overflow:'hidden', border: activeMonth===0 ? '2px solid #1e2d7d' : '1px solid #e2e8f0', boxSizing:'border-box' }}>
-              <MonthCanvas month={1} year={year} design={design} lang={lang} photo={photos[0]} W={90} H={60} isCover coverTitle={coverTitle}/>
-              <div style={{ fontSize:8, textAlign:'center', padding:'2px 0', background:'#fff', color:'#64748b', fontWeight:600 }}>Обкл.</div>
-            </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:6 }}>
+
             {/* Months */}
             {Array.from({length:12}, (_,i) => (
               <div key={i} onClick={() => setActiveMonth(i+1)} style={{ cursor:'pointer', borderRadius:6, overflow:'hidden', border: activeMonth===i+1 ? '2px solid #1e2d7d' : '1px solid #e2e8f0', boxSizing:'border-box' }}>
-                <MonthCanvas month={i+1} year={year} design={design} lang={lang} photo={photos[i+1]} W={90} H={60} markedDates={markedDates[`m${i+1}`] || []}/>
+                <MonthCanvas month={i+1} year={year} design={design} lang={lang} photo={photos[i]} W={90} H={60} markedDates={markedDates[`m${i+1}`] || []}/>
                 <div style={{ fontSize:8, textAlign:'center', padding:'2px 0', background:'#fff', color:'#64748b', fontWeight:600 }}>
                   {locale.months[i].slice(0,3)}
                 </div>

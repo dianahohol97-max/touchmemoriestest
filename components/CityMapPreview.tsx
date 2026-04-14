@@ -73,33 +73,34 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
     const lang = (config as any).mapLang || 'local';
 
     const getTileUrl = () => {
-        // For toner styles: use no-label base + separate label layer with lang
+        // OSM standard: always has roads, free, no key required
+        // CartoCDN positron/dark: clean design tiles
         switch (config.mapStyle) {
             case 'dark-mode':
+            case 'plum':
+                // CartoCDN dark — reliable
                 return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
             case 'blueprint':
                 return 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
-            case 'plum':
-                return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-            case 'classic-bw':
-                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
             case 'smooth-light':
+                // CartoCDN positron light with roads and labels
                 return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
             case 'stamen-toner':
-                // Rastertiles voyager = clean roads + minimal labels, good poster quality
-                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
             case 'stamen-toner-lite':
-                return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            case 'classic-bw':
+                // OSM standard tile — most reliable, always has roads
+                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
             case 'vintage-sepia':
             case 'harvest':
-                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
             case 'color-outdoors':
             case 'bayside':
             case 'forest-green':
             case 'paste':
-                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
+                // CartoCDN voyager — colorful with roads
+                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
             default:
-                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         }
     };
 
@@ -126,11 +127,16 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             case 'classic-bw':
                 return 'grayscale(100%) contrast(170%) brightness(1.05)';
             case 'stamen-toner':
-                // Voyager → convert to sharp B&W for classic poster look
-                return 'grayscale(100%) contrast(160%) brightness(1.05) saturate(0)';
+                // OSM → sharp B&W poster look
+                return 'grayscale(100%) contrast(180%) brightness(1.1) saturate(0)';
             case 'stamen-toner-lite':
-                // light_all → soft gray poster
-                return 'grayscale(100%) contrast(120%) brightness(1.08)';
+                // OSM → soft gray
+                return 'grayscale(100%) contrast(130%) brightness(1.15) saturate(0)';
+            case 'classic-bw':
+                return 'grayscale(100%) contrast(150%) brightness(1.1) saturate(0)';
+            case 'vintage-sepia':
+            case 'harvest':
+                return 'grayscale(100%) sepia(50%) contrast(130%) brightness(1.05)';
             case 'smooth-light':
                 return 'grayscale(100%) contrast(120%) brightness(1.08)';
             // Dark
@@ -212,8 +218,8 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                             attributionControl={false}
                         >
                             <TileLayer url={getTileUrl()} />
-                            {/* Label overlay — only for nolabels base tiles */}
-                            {(config.mapStyle === 'classic-bw' || config.mapStyle === 'vintage-sepia' || config.mapStyle === 'harvest' || config.mapStyle === 'color-outdoors' || config.mapStyle === 'bayside' || config.mapStyle === 'forest-green' || config.mapStyle === 'paste') && (
+                            {/* Label overlay — only for explicitly nolabels CartoCDN tiles */}
+                            {(config.mapStyle === 'blueprint') && (
                                 <TileLayer url={getLabelTileUrl()} />
                             )}
                             {isClient && <MapUpdater lat={config.latitude} lng={config.longitude} zoom={config.zoom} />}
