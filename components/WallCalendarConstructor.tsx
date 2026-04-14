@@ -72,7 +72,7 @@ function makeSlots(n: number): Slot[] {
 }
 
 // ─── Calendar Grid ─────────────────────────────────────────────────────────────
-function CalendarGrid({ year, month, W, accent }: { year: number; month: number; W: number; accent: string }) {
+function CalendarGrid({ year, month, W, accent, marks = [] }: { year: number; month: number; W: number; accent: string; marks?: {day:number;shape:'circle'|'heart';color:string}[] }) {
     const first = new Date(year, month - 1, 1).getDay();
     const days  = new Date(year, month, 0).getDate();
     const offset = (first + 6) % 7;
@@ -96,14 +96,37 @@ function CalendarGrid({ year, month, W, accent }: { year: number; month: number;
             {cells.map((day, idx) => {
                 if (!day) return null;
                 const col = idx % 7, row = Math.floor(idx / 7);
+                const cx = cw*col+cw/2, cy = hdrH+row*cellH+cellH*0.5;
+                const mark = marks.find(m => m.day === day);
+                const r = cellH * 0.36;
                 return (
-                    <text key={idx} x={cw*col+cw/2} y={hdrH+row*cellH+cellH*0.62}
-                        textAnchor="middle" fontSize={cw*0.28} fontFamily="sans-serif"
-                        fill={col>=5 ? accent : '#222'}>{day}</text>
+                    <g key={idx}>
+                        {mark && mark.shape === 'circle' && (
+                            <circle cx={cx} cy={cy} r={r} fill={mark.color}/>
+                        )}
+                        {mark && mark.shape === 'heart' && (
+                            <path d={heartPath(cx, cy - r*0.08, r)} fill={mark.color}/>
+                        )}
+                        <text x={cx} y={cy + cellH*0.18}
+                            textAnchor="middle" fontSize={cw*0.28} fontFamily="sans-serif"
+                            fill={mark ? '#ffffff' : col>=5 ? accent : '#222'}>{day}</text>
+                    </g>
                 );
             })}
         </svg>
     );
+}
+
+function heartPath(cx: number, cy: number, r: number): string {
+    const s = r / 8;
+    const pts: string[] = [];
+    for (let i = 0; i <= 60; i++) {
+        const t = (i / 60) * Math.PI * 2;
+        const x = cx + s * 16 * Math.pow(Math.sin(t), 3);
+        const y = cy - s * (13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t));
+        pts.push(`${i===0?'M':'L'}${x.toFixed(1)},${y.toFixed(1)}`);
+    }
+    return pts.join(' ') + ' Z';
 }
 
 // ─── Photo slot renderer ────────────────────────────────────────────────────────
@@ -151,38 +174,47 @@ function PhotoSlot({ slot, photo, W, H, onDrop, onCropChange }:
 }
 
 // ─── Month page preview ────────────────────────────────────────────────────────
-function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, activeSlot, setActiveSlot }:
+function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, activeSlot, setActiveSlot, marks = [] }:
     { page: MonthPage; photos: Photo[]; size: 'A4'|'A3'; accent: string;
       onSlotDrop:(i:number,id:string)=>void; onCropChange:(i:number,x:number,y:number,z:number)=>void;
-      activeSlot: number|null; setActiveSlot:(i:number|null)=>void }) {
+      activeSlot: number|null; setActiveSlot:(i:number|null)=>void;
+      marks?: {day:number;shape:'circle'|'heart';color:string}[] }) {
 
     const dims = SIZE_DIMS[size];
     const scale = 480 / dims.h;
     const W = Math.round(dims.w * scale);
     const H = 480;
-    const photoH = Math.round(H * 0.58);
-    const gridH  = H - photoH;
+    const spiralH = Math.round(H * 0.045);
+    const photoH = Math.round((H - spiralH) * 0.56);
+    const gridH  = H - spiralH - photoH;
     const g = 2;
 
+    // All slot positions offset by spiralH
     const slotDefs: {x:number;y:number;w:number;h:number}[] = (() => {
         switch (page.layout) {
-            case '1-full':         return [{x:0,y:0,w:W,h:photoH}];
-            case '1-top':          return [{x:0,y:0,w:W,h:photoH*0.9}];
-            case '2-h':            return [{x:0,y:0,w:W,h:(photoH-g)/2},{x:0,y:(photoH-g)/2+g,w:W,h:(photoH-g)/2}];
-            case '2-v':            return [{x:0,y:0,w:(W-g)/2,h:photoH},{x:(W-g)/2+g,y:0,w:(W-g)/2,h:photoH}];
-            case '3-top1-bot2':    return [{x:0,y:0,w:W,h:photoH*0.55},{x:0,y:photoH*0.55+g,w:(W-g)/2,h:photoH*0.45-g},{x:(W-g)/2+g,y:photoH*0.55+g,w:(W-g)/2,h:photoH*0.45-g}];
-            case '3-left1-right2': return [{x:0,y:0,w:W*0.55,h:photoH},{x:W*0.55+g,y:0,w:W*0.45-g,h:(photoH-g)/2},{x:W*0.55+g,y:(photoH-g)/2+g,w:W*0.45-g,h:(photoH-g)/2}];
-            case '4-grid':         { const hw=(W-g)/2,hh=(photoH-g)/2; return [{x:0,y:0,w:hw,h:hh},{x:hw+g,y:0,w:hw,h:hh},{x:0,y:hh+g,w:hw,h:hh},{x:hw+g,y:hh+g,w:hw,h:hh}]; }
-            case '5-2top3bot':     { const topH=Math.round(photoH*0.55),botH=photoH-topH-g,tw=(W-g)/2,bw=(W-2*g)/3; return [{x:0,y:0,w:tw,h:topH},{x:tw+g,y:0,w:tw,h:topH},{x:0,y:topH+g,w:bw,h:botH},{x:bw+g,y:topH+g,w:bw,h:botH},{x:2*(bw+g),y:topH+g,w:bw,h:botH}]; }
-            case '5-cross':        { const w3=(W-2*g)/3,h3=(photoH-2*g)/3; return [{x:w3+g,y:0,w:w3,h:h3},{x:0,y:h3+g,w:w3,h:h3},{x:w3+g,y:h3+g,w:w3,h:h3},{x:2*(w3+g),y:h3+g,w:w3,h:h3},{x:w3+g,y:2*(h3+g),w:w3,h:h3}]; }
-            case '6-grid':         { const hw=(W-2*g)/3,hh=(photoH-g)/2; return Array.from({length:6},(_,i)=>({x:(i%3)*(hw+g),y:Math.floor(i/3)*(hh+g),w:hw,h:hh})); }
-            case '6-2rows':        { const hw=(W-2*g)/3,hh=(photoH-g)/2; return Array.from({length:6},(_,i)=>({x:(i%3)*(hw+g),y:Math.floor(i/3)*(hh+g),w:hw,h:hh})); }
+            case '1-full':         return [{x:0,y:spiralH,w:W,h:photoH}];
+            case '1-top':          return [{x:0,y:spiralH,w:W,h:photoH*0.9}];
+            case '2-h':            return [{x:0,y:spiralH,w:W,h:(photoH-g)/2},{x:0,y:spiralH+(photoH-g)/2+g,w:W,h:(photoH-g)/2}];
+            case '2-v':            return [{x:0,y:spiralH,w:(W-g)/2,h:photoH},{x:(W-g)/2+g,y:spiralH,w:(W-g)/2,h:photoH}];
+            case '3-top1-bot2':    return [{x:0,y:spiralH,w:W,h:photoH*0.55},{x:0,y:spiralH+photoH*0.55+g,w:(W-g)/2,h:photoH*0.45-g},{x:(W-g)/2+g,y:spiralH+photoH*0.55+g,w:(W-g)/2,h:photoH*0.45-g}];
+            case '3-left1-right2': return [{x:0,y:spiralH,w:W*0.55,h:photoH},{x:W*0.55+g,y:spiralH,w:W*0.45-g,h:(photoH-g)/2},{x:W*0.55+g,y:spiralH+(photoH-g)/2+g,w:W*0.45-g,h:(photoH-g)/2}];
+            case '4-grid':         { const hw=(W-g)/2,hh=(photoH-g)/2; return [{x:0,y:spiralH,w:hw,h:hh},{x:hw+g,y:spiralH,w:hw,h:hh},{x:0,y:spiralH+hh+g,w:hw,h:hh},{x:hw+g,y:spiralH+hh+g,w:hw,h:hh}]; }
+            case '5-2top3bot':     { const topH=Math.round(photoH*0.55),botH=photoH-topH-g,tw=(W-g)/2,bw=(W-2*g)/3; return [{x:0,y:spiralH,w:tw,h:topH},{x:tw+g,y:spiralH,w:tw,h:topH},{x:0,y:spiralH+topH+g,w:bw,h:botH},{x:bw+g,y:spiralH+topH+g,w:bw,h:botH},{x:2*(bw+g),y:spiralH+topH+g,w:bw,h:botH}]; }
+            case '5-cross':        { const w3=(W-2*g)/3,h3=(photoH-2*g)/3; return [{x:w3+g,y:spiralH,w:w3,h:h3},{x:0,y:spiralH+h3+g,w:w3,h:h3},{x:w3+g,y:spiralH+h3+g,w:w3,h:h3},{x:2*(w3+g),y:spiralH+h3+g,w:w3,h:h3},{x:w3+g,y:spiralH+2*(h3+g),w:w3,h:h3}]; }
+            case '6-grid':         { const hw=(W-2*g)/3,hh=(photoH-g)/2; return Array.from({length:6},(_,i)=>({x:(i%3)*(hw+g),y:spiralH+Math.floor(i/3)*(hh+g),w:hw,h:hh})); }
+            case '6-2rows':        { const hw=(W-2*g)/3,hh=(photoH-g)/2; return Array.from({length:6},(_,i)=>({x:(i%3)*(hw+g),y:spiralH+Math.floor(i/3)*(hh+g),w:hw,h:hh})); }
             default:               return [{x:0,y:0,w:W,h:photoH}];
         }
     })();
 
     return (
         <div style={{ width:W, height:H, position:'relative', background:'#fff', boxShadow:'0 4px 24px rgba(0,0,0,0.13)', flexShrink:0 }}>
+            {/* Spring/spiral binding space */}
+            <div style={{ position:'absolute', top:0, left:0, right:0, height:Math.round(H*0.045), background:'#f1f5f9', zIndex:10, borderBottom:'1px solid #e2e8f0', display:'flex', alignItems:'center', justifyContent:'center', gap: Math.round(W/14) }}>
+              {Array.from({length:14}).map((_,i)=>(
+                <div key={i} style={{ width:Math.round(W*0.038), height:Math.round(W*0.038), borderRadius:'50%', border:'1.5px solid #94a3b8', background:'#fff' }}/>
+              ))}
+            </div>
             {/* Photo slots */}
             {slotDefs.map((def,i) => {
                 const slot = page.slots[i] || {photoId:null,cropX:50,cropY:50,zoom:1};
@@ -197,11 +229,12 @@ function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, ac
                 );
             })}
             {/* Calendar grid */}
-            <div style={{ position:'absolute', top:photoH, left:0, width:W, height:gridH, background:'#fff', padding:'4px 8px 2px' }}>
+            <div style={{ position:'absolute', top:spiralH+photoH, left:0, width:W, height:gridH, background:'#fff', padding:'4px 8px 2px' }}>
                 <div style={{ fontSize:11, fontWeight:900, color:accent, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2, textAlign:'center' }}>
                     {MONTHS_UK[page.month-1]} {page.year}
                 </div>
-                <CalendarGrid year={page.year} month={page.month} W={W-16} accent={accent}/>
+                <CalendarGrid year={page.year} month={page.month} W={W-16} accent={accent}
+                    marks={marks}/>
             </div>
         </div>
     );
@@ -221,6 +254,11 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
     const [activeSlot, setActiveSlot]   = useState<number|null>(null);
     const [product, setProduct]     = useState<any>(null);
     const [zoom, setZoom]           = useState(100);
+    // Marked dates per month: { [monthKey]: MarkedDate[] }
+    interface MarkedDate { day: number; shape: 'circle' | 'heart'; color: string; }
+    const [markedDates, setMarkedDates] = useState<Record<string, MarkedDate[]>>({});
+    const [markShape, setMarkShape] = useState<'circle'|'heart'>('circle');
+    const [markColor, setMarkColor] = useState('#1e2d7d');
     const [step, setStep]           = useState<'config'|'editor'>('config');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -298,6 +336,9 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
         <div style={{minHeight:'100vh', fontFamily:'var(--font-primary, sans-serif)'}}>
             <Navigation/>
             <main style={{maxWidth:660, margin:'0 auto', padding:'80px 16px 60px'}}>
+                <a href="/catalog/wall-calendar-2026" style={{display:'inline-flex',alignItems:'center',gap:6,color:'#64748b',textDecoration:'none',fontSize:13,marginBottom:20,opacity:0.8}}>
+                  ← Назад до каталогу
+                </a>
                 <h1 style={{fontSize:28,fontWeight:900,color:'#1e2d7d',marginBottom:6}}>Настінний фотокалендар 2026</h1>
                 <p style={{color:'#64748b',marginBottom:32}}>Обкладинка + 12 місяців зі слотами для фото і календарною сіткою</p>
 
@@ -438,7 +479,8 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                             <MonthPreview
                                 page={curMonth} photos={photos} size={size} accent={accent}
                                 onSlotDrop={onSlotDrop} onCropChange={onCropChange}
-                                activeSlot={activeSlot} setActiveSlot={setActiveSlot}/>
+                                activeSlot={activeSlot} setActiveSlot={setActiveSlot}
+                                marks={(markedDates as any)[`m${curMonth.month}`] || []}/>
                         ) : null}
                     </div>
 
@@ -601,6 +643,63 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                         style={{width:26,height:26,borderRadius:'50%',background:c,border:accent===c?'2px solid #1e2d7d':'1px solid #e2e8f0',cursor:'pointer',boxShadow:accent===c?'0 0 0 2px #fff, 0 0 0 3px #1e2d7d':'none'}}/>
                                 ))}
                             </div>
+
+                            {/* Marked dates */}
+                            <div style={{marginTop:12,height:1,background:'#f1f5f9'}}/>
+                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',margin:'12px 0 6px'}}>Виділення дат</div>
+                            {curMonth && (() => {
+                                const key = `m${curMonth.month}`;
+                                const monthMarks = markedDates[key] || [];
+                                const toggleMark = (day: number) => {
+                                    setMarkedDates(prev => {
+                                        const ex = prev[key] || [];
+                                        const idx = ex.findIndex(m => m.day === day);
+                                        if (idx >= 0) {
+                                            const same = ex[idx].shape === markShape && ex[idx].color === markColor;
+                                            if (same) return {...prev, [key]: ex.filter((_,i)=>i!==idx)};
+                                            return {...prev, [key]: ex.map((m,i)=>i===idx?{...m,shape:markShape,color:markColor}:m)};
+                                        }
+                                        return {...prev, [key]: [...ex, {day, shape:markShape, color:markColor}]};
+                                    });
+                                };
+                                // Get days in month
+                                const fd = new Date(curMonth.year, curMonth.month-1, 1).getDay();
+                                const startOffset = fd === 0 ? 6 : fd - 1;
+                                const daysInMonth = new Date(curMonth.year, curMonth.month, 0).getDate();
+                                return (
+                                    <div>
+                                        <div style={{display:'flex',gap:4,marginBottom:5,flexWrap:'wrap'}}>
+                                            <button onClick={()=>setMarkShape('circle')} style={{padding:'3px 6px',border:markShape==='circle'?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:10,background:markShape==='circle'?'#f0f3ff':'#fff',fontSize:9,fontWeight:700,cursor:'pointer',color:markShape==='circle'?'#1e2d7d':'#374151'}}>⬤ Коло</button>
+                                            <button onClick={()=>setMarkShape('heart')} style={{padding:'3px 6px',border:markShape==='heart'?'2px solid #e11d48':'1px solid #e2e8f0',borderRadius:10,background:markShape==='heart'?'#fff1f2':'#fff',fontSize:9,fontWeight:700,cursor:'pointer',color:markShape==='heart'?'#e11d48':'#374151'}}>♥ Серце</button>
+                                        </div>
+                                        <div style={{display:'flex',gap:3,marginBottom:5,flexWrap:'wrap'}}>
+                                            {['#1e2d7d','#e11d48','#16a34a','#c8a96e','#7c3aed','#ea580c','#000'].map(c=>(
+                                                <button key={c} onClick={()=>setMarkColor(c)} style={{width:16,height:16,borderRadius:'50%',background:c,border:markColor===c?'2.5px solid #1e2d7d':'1.5px solid #fff',cursor:'pointer',boxShadow:'0 0 0 0.5px #e2e8f0'}}/>
+                                            ))}
+                                            <input type="color" value={markColor} onChange={e=>setMarkColor(e.target.value)} style={{width:16,height:16,borderRadius:3,border:'1px solid #e2e8f0',cursor:'pointer',padding:0}}/>
+                                        </div>
+                                        <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:1,marginBottom:2}}>
+                                            {['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].map(d=><div key={d} style={{fontSize:6,fontWeight:700,color:'#94a3b8',textAlign:'center'}}>{d}</div>)}
+                                        </div>
+                                        <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:1}}>
+                                            {Array.from({length:startOffset}).map((_,i)=><div key={`e${i}`}/>)}
+                                            {Array.from({length:daysInMonth},(_,i)=>{
+                                                const day=i+1;
+                                                const mark=monthMarks.find(m=>m.day===day);
+                                                return (
+                                                    <button key={day} onClick={()=>toggleMark(day)}
+                                                        style={{aspectRatio:'1',borderRadius:mark?.shape==='heart'?2:'50%',border:mark?'none':'0.5px solid #e2e8f0',background:mark?mark.color:'#fff',color:mark?'#fff':'#374151',fontSize:7,fontWeight:mark?700:400,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',lineHeight:1}}>
+                                                        {mark?.shape==='heart'&&<span style={{fontSize:8,position:'absolute'}}>♥</span>}
+                                                        <span style={{position:mark?.shape==='heart'?'absolute':'static',fontSize:6}}>{day}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        {monthMarks.length>0&&<button onClick={()=>setMarkedDates(prev=>({...prev,[key]:[]}))} style={{marginTop:4,fontSize:8,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>Очистити</button>}
+                                    </div>
+                                );
+                            })()}
+
                         </>
                     )}
                 </div>
