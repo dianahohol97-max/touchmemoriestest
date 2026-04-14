@@ -258,9 +258,9 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         for(const [ra,dec,mag] of STAR_CATALOG) {
             const pos=P(ra,dec,true); if(!pos) continue;
             // size: bright stars bigger, faint stars still visible (min 0.5px)
-            const size=Math.max(0.5, 3.5-(mag+1.0)*0.35);
-            // alpha: steeper curve, faint stars more visible
-            const alpha=Math.max(0.25, Math.min(1.0, 1.3-mag*0.13));
+            const size=Math.max(0.3, 2.2-(mag+1.0)*0.25);
+            // alpha: good visibility without overwhelming
+            const alpha=Math.max(0.2, Math.min(1.0, 1.1-mag*0.12));
             // Glow only for bright stars on DARK backgrounds
             if(mag<1.5 && !isLight) {
                 const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,size*4);
@@ -352,33 +352,49 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
             ctx.restore();
 
             // Headline — bigger, more prominent
-            let currentY = textZoneTop + textZoneH * 0.3;
+            const textZoneBottom = H - 28*s; // leave room for coords
+            let currentY = textZoneTop + textZoneH * 0.28;
             if(config.headline){
-                ctx.font=`bold ${Math.round(28*s)}px ${config.fontFamily}`;
+                ctx.font=`bold ${Math.round(24*s)}px ${config.fontFamily}`;
                 ctx.globalAlpha=0.95;
-                const mw=W*0.82;
+                const mw=W*0.80;
                 const words=config.headline.split(' ');
                 let line='', lineY=currentY;
                 for(let i=0;i<words.length;i++){
                     const t=line+words[i]+' ';
                     if(ctx.measureText(t).width>mw&&i>0){
                         ctx.fillText(line.trim(),W/2,lineY);
-                        line=words[i]+' '; lineY+=34*s;
+                        line=words[i]+' '; lineY+=28*s;
                     } else line=t;
                 }
                 ctx.fillText(line.trim(),W/2,lineY);
-                currentY = lineY + 26*s;
+                currentY = lineY + 20*s;
             }
 
             // (heart symbol removed)
             currentY += 6*s;
 
-            // Location + date — bigger
-            const loc = config.location || '';
+            // Location + date — truncate long addresses to city/town name only
+            const rawLoc = config.location || '';
+            // Keep only first 1-2 parts of the address (city, country)
+            const locParts = rawLoc.split(',');
+            const loc = locParts.length > 2
+                ? locParts[0].trim() + ', ' + locParts[locParts.length - 1].trim()
+                : rawLoc;
             const ds = config.date ? new Date(config.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'long',year:'numeric'}) : '';
-            ctx.font=`${Math.round(15*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.75;
-            if(loc){ ctx.fillText(loc, W/2, currentY); currentY += 21*s; }
-            if(ds){  ctx.fillText(ds,  W/2, currentY); currentY += 21*s; }
+            ctx.font=`${Math.round(14*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.75;
+            if(loc){
+                // Wrap location if still too long
+                const locMaxW = W * 0.80;
+                if(ctx.measureText(loc).width > locMaxW) {
+                    const shortLoc = locParts[0].trim();
+                    ctx.fillText(shortLoc, W/2, currentY);
+                } else {
+                    ctx.fillText(loc, W/2, currentY);
+                }
+                currentY += 20*s;
+            }
+            if(ds){ ctx.fillText(ds, W/2, currentY); currentY += 20*s; }
             ctx.globalAlpha=1;
 
             // Dedication (italic)
