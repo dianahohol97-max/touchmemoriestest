@@ -54,81 +54,202 @@ interface Layout {
   name: string;
   slots: number;
   preview: React.ReactNode;
-  getSlots: (W: number, H: number, pad: number) => { x: number; y: number; w: number; h: number }[];
+  getSlots: (W: number, H: number, pad: number) => { x: number; y: number; w: number; h: number; clipPath?: string; shape?: 'rect'|'circle'|'heart' }[];
 }
 
 // ── Layouts ───────────────────────────────────────────────────────────────────
 
 const LAYOUTS: Layout[] = [
+  // ── 1 фото ───────────────────────────────────────────
   {
     id: 'single',
     name: '1 фото',
     slots: 1,
-    preview: <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:2, width:'100%', height:'100%' }}><div style={{ background:'#c7d2fe', borderRadius:2 }}/></div>,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#c7d2fe"/></svg>,
     getSlots: (W, H, p) => [{ x:p, y:p, w:W-2*p, h:H-2*p }],
   },
+  {
+    id: 'circle-single',
+    name: '1 коло',
+    slots: 1,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><circle cx="30" cy="38" r="26" fill="#c7d2fe"/></svg>,
+    getSlots: (W, H, p) => [{ x:p, y:p, w:W-2*p, h:H-2*p, shape:'circle' as const }],
+  },
+  {
+    id: 'heart-single',
+    name: '1 серце',
+    slots: 1,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><path d="M30 62 C30 62 5 44 5 26 C5 14 14 8 22 14 C26 16 30 22 30 22 C30 22 34 16 38 14 C46 8 55 14 55 26 C55 44 30 62 30 62Z" fill="#c7d2fe"/></svg>,
+    getSlots: (W, H, p) => [{ x:p, y:p, w:W-2*p, h:H-2*p, shape:'heart' as const }],
+  },
+  // ── 2 фото ───────────────────────────────────────────
   {
     id: 'two-h',
     name: '2 горизонт.',
     slots: 2,
-    preview: <div style={{ display:'grid', gridTemplateRows:'1fr 1fr', gap:2, width:'100%', height:'100%' }}>{[0,1].map(i=><div key={i} style={{ background:'#c7d2fe', borderRadius:2 }}/>)}</div>,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="37" rx="2" fill="#c7d2fe"/><rect x="2" y="41" width="56" height="37" rx="2" fill="#a5b4fc"/></svg>,
     getSlots: (W, H, p) => { const g=4; const h=(H-2*p-g)/2; return [{x:p,y:p,w:W-2*p,h},{x:p,y:p+h+g,w:W-2*p,h}]; },
   },
   {
     id: 'two-v',
     name: '2 вертик.',
     slots: 2,
-    preview: <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:2, width:'100%', height:'100%' }}>{[0,1].map(i=><div key={i} style={{ background:'#c7d2fe', borderRadius:2 }}/>)}</div>,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="27" height="76" rx="2" fill="#c7d2fe"/><rect x="31" y="2" width="27" height="76" rx="2" fill="#a5b4fc"/></svg>,
     getSlots: (W, H, p) => { const g=4; const w=(W-2*p-g)/2; return [{x:p,y:p,w,h:H-2*p},{x:p+w+g,y:p,w,h:H-2*p}]; },
   },
   {
+    id: 'two-uneven',
+    name: '2 нерівних',
+    slots: 2,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="37" height="76" rx="2" fill="#c7d2fe"/><rect x="41" y="2" width="17" height="76" rx="2" fill="#a5b4fc"/></svg>,
+    getSlots: (W, H, p) => { const g=4; const w1=Math.round((W-2*p-g)*0.63); const w2=W-2*p-g-w1; return [{x:p,y:p,w:w1,h:H-2*p},{x:p+w1+g,y:p,w:w2,h:H-2*p}]; },
+  },
+  {
+    id: 'two-circles',
+    name: '2 кола',
+    slots: 2,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><circle cx="18" cy="40" r="14" fill="#c7d2fe"/><circle cx="42" cy="40" r="14" fill="#a5b4fc"/></svg>,
+    getSlots: (W, H, p) => { const g=4; const w=(W-2*p-g)/2; return [{x:p,y:p,w,h:H-2*p,shape:'circle' as const},{x:p+w+g,y:p,w,h:H-2*p,shape:'circle' as const}]; },
+  },
+  // ── 3 фото ───────────────────────────────────────────
+  {
     id: 'three-top',
-    name: '3 (1+2)',
+    name: '3 (великий+2)',
     slots: 3,
-    preview: <div style={{ display:'grid', gridTemplateRows:'1.2fr 1fr', gap:2, width:'100%', height:'100%' }}><div style={{ background:'#c7d2fe', borderRadius:2 }}/><div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:2 }}>{[0,1].map(i=><div key={i} style={{ background:'#a5b4fc', borderRadius:2 }}/>)}</div></div>,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="44" rx="2" fill="#c7d2fe"/><rect x="2" y="48" width="27" height="30" rx="2" fill="#a5b4fc"/><rect x="31" y="48" width="27" height="30" rx="2" fill="#818cf8"/></svg>,
     getSlots: (W, H, p) => { const g=4; const topH=Math.round((H-2*p-g)*0.55); const botH=H-2*p-g-topH; const w=(W-2*p-g)/2; return [{x:p,y:p,w:W-2*p,h:topH},{x:p,y:p+topH+g,w,h:botH},{x:p+w+g,y:p+topH+g,w,h:botH}]; },
   },
   {
     id: 'three-bot',
-    name: '3 (2+1)',
+    name: '3 (2+великий)',
     slots: 3,
-    preview: <div style={{ display:'grid', gridTemplateRows:'1fr 1.2fr', gap:2, width:'100%', height:'100%' }}><div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:2 }}>{[0,1].map(i=><div key={i} style={{ background:'#a5b4fc', borderRadius:2 }}/>)}</div><div style={{ background:'#c7d2fe', borderRadius:2 }}/></div>,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="27" height="30" rx="2" fill="#a5b4fc"/><rect x="31" y="2" width="27" height="30" rx="2" fill="#818cf8"/><rect x="2" y="34" width="56" height="44" rx="2" fill="#c7d2fe"/></svg>,
     getSlots: (W, H, p) => { const g=4; const botH=Math.round((H-2*p-g)*0.55); const topH=H-2*p-g-botH; const w=(W-2*p-g)/2; return [{x:p,y:p,w,h:topH},{x:p+w+g,y:p,w,h:topH},{x:p,y:p+topH+g,w:W-2*p,h:botH}]; },
-  },
-  {
-    id: 'four-grid',
-    name: '4 сітка',
-    slots: 4,
-    preview: <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:2, width:'100%', height:'100%' }}>{[0,1,2,3].map(i=><div key={i} style={{ background:'#c7d2fe', borderRadius:2 }}/>)}</div>,
-    getSlots: (W, H, p) => { const g=4; const w=(W-2*p-g)/2; const h=(H-2*p-g)/2; return [{x:p,y:p,w,h},{x:p+w+g,y:p,w,h},{x:p,y:p+h+g,w,h},{x:p+w+g,y:p+h+g,w,h}]; },
-  },
-  {
-    id: 'four-left',
-    name: '4 (1+3)',
-    slots: 4,
-    preview: <div style={{ display:'grid', gridTemplateColumns:'1.5fr 1fr', gap:2, width:'100%', height:'100%' }}><div style={{ background:'#c7d2fe', borderRadius:2 }}/><div style={{ display:'grid', gridTemplateRows:'1fr 1fr 1fr', gap:2 }}>{[0,1,2].map(i=><div key={i} style={{ background:'#a5b4fc', borderRadius:2 }}/>)}</div></div>,
-    getSlots: (W, H, p) => { const g=4; const leftW=Math.round((W-2*p-g)*0.6); const rightW=W-2*p-g-leftW; const rh=(H-2*p-2*g)/3; return [{x:p,y:p,w:leftW,h:H-2*p},{x:p+leftW+g,y:p,w:rightW,h:rh},{x:p+leftW+g,y:p+rh+g,w:rightW,h:rh},{x:p+leftW+g,y:p+2*(rh+g),w:rightW,h:rh}]; },
-  },
-  {
-    id: 'six-grid',
-    name: '6 сітка',
-    slots: 6,
-    preview: <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gridTemplateRows:'1fr 1fr', gap:2, width:'100%', height:'100%' }}>{[0,1,2,3,4,5].map(i=><div key={i} style={{ background:'#c7d2fe', borderRadius:2 }}/>)}</div>,
-    getSlots: (W, H, p) => { const g=4; const w=(W-2*p-2*g)/3; const h=(H-2*p-g)/2; return Array.from({length:6},(_,i)=>({x:p+(i%3)*(w+g),y:p+Math.floor(i/3)*(h+g),w,h})); },
-  },
-  {
-    id: 'panorama',
-    name: 'Панорама',
-    slots: 1,
-    preview: <div style={{ display:'grid', gridTemplateRows:'1fr', gap:2, width:'100%', height:'100%' }}><div style={{ background:'#c7d2fe', borderRadius:2 }}/></div>,
-    getSlots: (W, H, p) => [{ x:p, y:p, w:W-2*p, h:H-2*p }],
   },
   {
     id: 'triptych',
     name: 'Триптих',
     slots: 3,
-    preview: <div style={{ display:'grid', gridTemplateColumns:'1fr 1.4fr 1fr', gap:2, width:'100%', height:'100%' }}>{[0,1,2].map(i=><div key={i} style={{ background: i===1?'#818cf8':'#c7d2fe', borderRadius:2 }}/>)}</div>,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="15" height="76" rx="2" fill="#a5b4fc"/><rect x="19" y="2" width="22" height="76" rx="2" fill="#c7d2fe"/><rect x="43" y="2" width="15" height="76" rx="2" fill="#a5b4fc"/></svg>,
     getSlots: (W, H, p) => { const g=4; const side=Math.round((W-2*p-2*g)*0.28); const mid=W-2*p-2*g-2*side; return [{x:p,y:p,w:side,h:H-2*p},{x:p+side+g,y:p,w:mid,h:H-2*p},{x:p+side+g+mid+g,y:p,w:side,h:H-2*p}]; },
+  },
+  {
+    id: 'three-circles',
+    name: '3 кола',
+    slots: 3,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><circle cx="12" cy="40" r="9" fill="#a5b4fc"/><circle cx="30" cy="40" r="9" fill="#c7d2fe"/><circle cx="48" cy="40" r="9" fill="#818cf8"/></svg>,
+    getSlots: (W, H, p) => { const g=8; const w=(W-2*p-2*g)/3; return [{x:p,y:p,w,h:H-2*p,shape:'circle' as const},{x:p+w+g,y:p,w,h:H-2*p,shape:'circle' as const},{x:p+2*(w+g),y:p,w,h:H-2*p,shape:'circle' as const}]; },
+  },
+  // ── 4 фото ───────────────────────────────────────────
+  {
+    id: 'four-grid',
+    name: '4 рівна сітка',
+    slots: 4,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="27" height="37" rx="2" fill="#c7d2fe"/><rect x="31" y="2" width="27" height="37" rx="2" fill="#a5b4fc"/><rect x="2" y="41" width="27" height="37" rx="2" fill="#818cf8"/><rect x="31" y="41" width="27" height="37" rx="2" fill="#a5b4fc"/></svg>,
+    getSlots: (W, H, p) => { const g=4; const w=(W-2*p-g)/2; const h=(H-2*p-g)/2; return [{x:p,y:p,w,h},{x:p+w+g,y:p,w,h},{x:p,y:p+h+g,w,h},{x:p+w+g,y:p+h+g,w,h}]; },
+  },
+  {
+    id: 'four-left',
+    name: '4 (велике+3)',
+    slots: 4,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="36" height="76" rx="2" fill="#c7d2fe"/><rect x="40" y="2" width="18" height="23" rx="2" fill="#a5b4fc"/><rect x="40" y="27" width="18" height="23" rx="2" fill="#818cf8"/><rect x="40" y="52" width="18" height="26" rx="2" fill="#a5b4fc"/></svg>,
+    getSlots: (W, H, p) => { const g=4; const leftW=Math.round((W-2*p-g)*0.6); const rightW=W-2*p-g-leftW; const rh=(H-2*p-2*g)/3; return [{x:p,y:p,w:leftW,h:H-2*p},{x:p+leftW+g,y:p,w:rightW,h:rh},{x:p+leftW+g,y:p+rh+g,w:rightW,h:rh},{x:p+leftW+g,y:p+2*(rh+g),w:rightW,h:rh}]; },
+  },
+  {
+    id: 'four-right',
+    name: '4 (3+велике)',
+    slots: 4,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="18" height="23" rx="2" fill="#a5b4fc"/><rect x="2" y="27" width="18" height="23" rx="2" fill="#818cf8"/><rect x="2" y="52" width="18" height="26" rx="2" fill="#a5b4fc"/><rect x="22" y="2" width="36" height="76" rx="2" fill="#c7d2fe"/></svg>,
+    getSlots: (W, H, p) => { const g=4; const rightW=Math.round((W-2*p-g)*0.6); const leftW=W-2*p-g-rightW; const rh=(H-2*p-2*g)/3; return [{x:p,y:p,w:leftW,h:rh},{x:p,y:p+rh+g,w:leftW,h:rh},{x:p,y:p+2*(rh+g),w:leftW,h:rh},{x:p+leftW+g,y:p,w:rightW,h:H-2*p}]; },
+  },
+  {
+    id: 'four-diagonal',
+    name: '4 нерівних',
+    slots: 4,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="36" height="44" rx="2" fill="#c7d2fe"/><rect x="40" y="2" width="18" height="44" rx="2" fill="#a5b4fc"/><rect x="2" y="48" width="18" height="30" rx="2" fill="#818cf8"/><rect x="22" y="48" width="36" height="30" rx="2" fill="#a5b4fc"/></svg>,
+    getSlots: (W, H, p) => { const g=4; const topH=Math.round((H-2*p-g)*0.55); const botH=H-2*p-g-topH; const topW1=Math.round((W-2*p-g)*0.63); const topW2=W-2*p-g-topW1; const botW1=Math.round((W-2*p-g)*0.33); const botW2=W-2*p-g-botW1; return [{x:p,y:p,w:topW1,h:topH},{x:p+topW1+g,y:p,w:topW2,h:topH},{x:p,y:p+topH+g,w:botW1,h:botH},{x:p+botW1+g,y:p+topH+g,w:botW2,h:botH}]; },
+  },
+  {
+    id: 'four-circles',
+    name: '4 кола',
+    slots: 4,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><circle cx="18" cy="25" r="13" fill="#c7d2fe"/><circle cx="42" cy="25" r="13" fill="#a5b4fc"/><circle cx="18" cy="56" r="13" fill="#818cf8"/><circle cx="42" cy="56" r="13" fill="#a5b4fc"/></svg>,
+    getSlots: (W, H, p) => { const g=8; const w=(W-2*p-g)/2; const h=(H-2*p-g)/2; return [{x:p,y:p,w,h,shape:'circle' as const},{x:p+w+g,y:p,w,h,shape:'circle' as const},{x:p,y:p+h+g,w,h,shape:'circle' as const},{x:p+w+g,y:p+h+g,w,h,shape:'circle' as const}]; },
+  },
+  // ── 5 фото ───────────────────────────────────────────
+  {
+    id: 'five-cross',
+    name: '5 хрест',
+    slots: 5,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="30" width="17" height="20" rx="2" fill="#a5b4fc"/><rect x="21" y="2" width="18" height="26" rx="2" fill="#c7d2fe"/><rect x="21" y="30" width="18" height="20" rx="2" fill="#818cf8"/><rect x="21" y="52" width="18" height="26" rx="2" fill="#c7d2fe"/><rect x="41" y="30" width="17" height="20" rx="2" fill="#a5b4fc"/></svg>,
+    getSlots: (W, H, p) => { const g=4; const w3=(W-2*p-2*g)/3; const h3=(H-2*p-2*g)/3; return [{x:p,y:p+h3+g,w:w3,h:h3},{x:p+w3+g,y:p,w:w3,h:h3},{x:p+w3+g,y:p+h3+g,w:w3,h:h3},{x:p+w3+g,y:p+2*(h3+g),w:w3,h:h3},{x:p+2*(w3+g),y:p+h3+g,w:w3,h:h3}]; },
+  },
+  {
+    id: 'five-grid',
+    name: '5 (2+3)',
+    slots: 5,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="27" height="37" rx="2" fill="#c7d2fe"/><rect x="31" y="2" width="27" height="37" rx="2" fill="#a5b4fc"/><rect x="2" y="41" width="17" height="37" rx="2" fill="#818cf8"/><rect x="21" y="41" width="17" height="37" rx="2" fill="#a5b4fc"/><rect x="40" y="41" width="18" height="37" rx="2" fill="#c7d2fe"/></svg>,
+    getSlots: (W, H, p) => { const g=4; const topH=Math.round((H-2*p-g)*0.5); const botH=H-2*p-g-topH; const tw=(W-2*p-g)/2; const bw=(W-2*p-2*g)/3; return [{x:p,y:p,w:tw,h:topH},{x:p+tw+g,y:p,w:tw,h:topH},{x:p,y:p+topH+g,w:bw,h:botH},{x:p+bw+g,y:p+topH+g,w:bw,h:botH},{x:p+2*(bw+g),y:p+topH+g,w:bw,h:botH}]; },
+  },
+  // ── 6 фото ───────────────────────────────────────────
+  {
+    id: 'six-grid',
+    name: '6 рівна сітка',
+    slots: 6,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}>{[0,1,2,3,4,5].map(i=><rect key={i} x={2+(i%3)*20} y={2+Math.floor(i/3)*40} width="18" height="37" rx="2" fill={['#c7d2fe','#a5b4fc','#818cf8'][i%3]}/>)}</svg>,
+    getSlots: (W, H, p) => { const g=4; const w=(W-2*p-2*g)/3; const h=(H-2*p-g)/2; return Array.from({length:6},(_,i)=>({x:p+(i%3)*(w+g),y:p+Math.floor(i/3)*(h+g),w,h})); },
+  },
+  {
+    id: 'six-3rows',
+    name: '6 (3 рядки)',
+    slots: 6,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}>{[0,1,2,3,4,5].map(i=><rect key={i} x={2+(i%2)*31} y={2+Math.floor(i/2)*27} width="27" height="23" rx="2" fill={['#c7d2fe','#a5b4fc'][i%2]}/>)}</svg>,
+    getSlots: (W, H, p) => { const g=4; const w=(W-2*p-g)/2; const h=(H-2*p-2*g)/3; return Array.from({length:6},(_,i)=>({x:p+(i%2)*(w+g),y:p+Math.floor(i/2)*(h+g),w,h})); },
+  },
+  {
+    id: 'six-circles',
+    name: '6 кола',
+    slots: 6,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/>{[0,1,2,3,4,5].map(i=><circle key={i} cx={12+(i%3)*18} cy={22+Math.floor(i/3)*38} r="7" fill={['#c7d2fe','#a5b4fc','#818cf8'][i%3]}/>)}</svg>,
+    getSlots: (W, H, p) => { const g=8; const w=(W-2*p-2*g)/3; const h=(H-2*p-g)/2; return Array.from({length:6},(_,i)=>({x:p+(i%3)*(w+g),y:p+Math.floor(i/3)*(h+g),w,h,shape:'circle' as const})); },
+  },
+  // ── 9 фото ───────────────────────────────────────────
+  {
+    id: 'nine-grid',
+    name: '9 сітка',
+    slots: 9,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}>{Array.from({length:9},(_,i)=><rect key={i} x={2+(i%3)*20} y={2+Math.floor(i/3)*27} width="18" height="23" rx="1" fill={['#c7d2fe','#a5b4fc','#818cf8'][i%3]}/>)}</svg>,
+    getSlots: (W, H, p) => { const g=3; const w=(W-2*p-2*g)/3; const h=(H-2*p-2*g)/3; return Array.from({length:9},(_,i)=>({x:p+(i%3)*(w+g),y:p+Math.floor(i/3)*(h+g),w,h})); },
+  },
+  // ── Фігурні ─────────────────────────────────────────
+  {
+    id: 'heart-collage-4',
+    name: '4 серця',
+    slots: 4,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/>{[{cx:18,cy:28},{cx:42,cy:28},{cx:18,cy:56},{cx:42,cy:56}].map((p2,i)=><path key={i} d={`M${p2.cx} ${p2.cy+10} C${p2.cx} ${p2.cy+10} ${p2.cx-12} ${p2.cy+2} ${p2.cx-12} ${p2.cy-4} C${p2.cx-12} ${p2.cy-10} ${p2.cx-5} ${p2.cy-14} ${p2.cx} ${p2.cy-8} C${p2.cx+5} ${p2.cy-14} ${p2.cx+12} ${p2.cy-10} ${p2.cx+12} ${p2.cy-4} C${p2.cx+12} ${p2.cy+2} ${p2.cx} ${p2.cy+10} ${p2.cx} ${p2.cy+10}Z`} fill="#c7d2fe"/>)}</svg>,
+    getSlots: (W, H, p) => { const g=8; const w=(W-2*p-g)/2; const h=(H-2*p-g)/2; return [{x:p,y:p,w,h,shape:'heart' as const},{x:p+w+g,y:p,w,h,shape:'heart' as const},{x:p,y:p+h+g,w,h,shape:'heart' as const},{x:p+w+g,y:p+h+g,w,h,shape:'heart' as const}]; },
+  },
+  {
+    id: 'heart-collage-2',
+    name: '2 серця',
+    slots: 2,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><path d="M18 58 C18 58 2 44 2 32 C2 22 9 16 16 22 C17 23 18 26 18 26 C18 26 19 23 20 22 C27 16 34 22 34 32 C34 44 18 58 18 58Z" fill="#c7d2fe"/><path d="M42 58 C42 58 26 44 26 32 C26 22 33 16 40 22 C41 23 42 26 42 26 C42 26 43 23 44 22 C51 16 58 22 58 32 C58 44 42 58 42 58Z" fill="#a5b4fc"/></svg>,
+    getSlots: (W, H, p) => { const g=8; const w=(W-2*p-g)/2; return [{x:p,y:p,w,h:H-2*p,shape:'heart' as const},{x:p+w+g,y:p,w,h:H-2*p,shape:'heart' as const}]; },
+  },
+  {
+    id: 'mixed-heart-grid',
+    name: 'Серце+сітка',
+    slots: 5,
+    preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><path d="M30 52 C30 52 8 38 8 24 C8 14 16 8 24 14 C27 16 30 22 30 22 C30 22 33 16 36 14 C44 8 52 14 52 24 C52 38 30 52 30 52Z" fill="#c7d2fe"/><rect x="2" y="56" width="13" height="22" rx="2" fill="#a5b4fc"/><rect x="17" y="56" width="13" height="22" rx="2" fill="#818cf8"/><rect x="32" y="56" width="13" height="22" rx="2" fill="#a5b4fc"/><rect x="47" y="56" width="11" height="22" rx="2" fill="#c7d2fe"/></svg>,
+    getSlots: (W, H, p) => { const g=4; const topH=Math.round((H-2*p-g)*0.62); const botH=H-2*p-g-topH; const bw=(W-2*p-3*g)/4; return [{x:p,y:p,w:W-2*p,h:topH,shape:'heart' as const},{x:p,y:p+topH+g,w:bw,h:botH},{x:p+bw+g,y:p+topH+g,w:bw,h:botH},{x:p+2*(bw+g),y:p+topH+g,w:bw,h:botH},{x:p+3*(bw+g),y:p+topH+g,w:bw,h:botH}]; },
+  },
+  // ── Панорама ─────────────────────────────────────────
+  {
+    id: 'panorama',
+    name: 'Панорама',
+    slots: 1,
+    preview: <svg viewBox="0 0 80 40" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="76" height="36" rx="2" fill="#c7d2fe"/></svg>,
+    getSlots: (W, H, p) => [{ x:p, y:p, w:W-2*p, h:H-2*p }],
   },
 ];
 
@@ -191,17 +312,44 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
     }
 
     // Draw photo slots
+    // Helper: apply shape clip path
+    const applyShapeClip = (ctx: CanvasRenderingContext2D, slot: {x:number;y:number;w:number;h:number;shape?:string}) => {
+      ctx.beginPath();
+      if (slot.shape === 'circle') {
+        const cx = slot.x + slot.w/2, cy = slot.y + slot.h/2;
+        const r = Math.min(slot.w, slot.h) / 2;
+        ctx.arc(cx, cy, r, 0, Math.PI*2);
+      } else if (slot.shape === 'heart') {
+        // Parametric heart centered in slot
+        const cx = slot.x + slot.w/2;
+        const cy = slot.y + slot.h/2 + slot.h*0.05;
+        const scaleX = slot.w * 0.5;
+        const scaleY = slot.h * 0.5 * 0.88;
+        const steps = 100;
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * Math.PI * 2;
+          const x = cx + scaleX * (16 * Math.pow(Math.sin(t), 3)) / 16;
+          const y = cy - scaleY * (13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t)) / 17;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+      } else {
+        ctx.rect(slot.x, slot.y, slot.w, slot.h);
+      }
+    };
+
     const drawPromises = slots.map((slot, i) => {
       const photo = config.photos[i];
       if (!photo?.photoUrl) {
         // Empty slot placeholder
         ctx.save();
+        applyShapeClip(ctx, slot);
         ctx.fillStyle = 'rgba(200,210,255,0.25)';
-        ctx.fillRect(slot.x, slot.y, slot.w, slot.h);
+        ctx.fill();
         ctx.strokeStyle = 'rgba(100,130,220,0.4)';
         ctx.setLineDash([6,4]);
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(slot.x, slot.y, slot.w, slot.h);
+        ctx.stroke();
         ctx.setLineDash([]);
         // Icon
         ctx.fillStyle = 'rgba(100,130,220,0.5)';
@@ -217,8 +365,7 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           ctx.save();
-          ctx.beginPath();
-          ctx.rect(slot.x, slot.y, slot.w, slot.h);
+          applyShapeClip(ctx, slot);
           ctx.clip();
           // Calculate zoom and crop
           const zoom = photo.zoom || 1;
@@ -543,22 +690,38 @@ export default function PosterConstructor() {
             <div>
               <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>Оберіть макет</h3>
               <p style={{ fontSize:12, color:'#94a3b8', marginBottom:16 }}>Як розміщувати фотографії на постері</p>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-                {LAYOUTS.map(l => {
-                  const isActive = config.layoutId === l.id;
-                  return (
-                    <button key={l.id} onClick={() => changeLayout(l.id)}
-                      style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, padding:'10px 8px',
-                        border: isActive ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
-                        borderRadius:10, background: isActive ? '#f0f3ff' : '#fff',
-                        cursor:'pointer', transition:'all 0.15s' }}>
-                      <div style={{ width:'100%', height:60, padding:4 }}>{l.preview}</div>
-                      <span style={{ fontSize:11, fontWeight:700, color: isActive ? '#1e2d7d' : '#374151' }}>{l.name}</span>
-                      <span style={{ fontSize:9, color:'#94a3b8' }}>{l.slots} {l.slots===1?'фото':'фото'}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              {[
+                { label: '1 фото', ids: ['single','circle-single','heart-single'] },
+                { label: '2 фото', ids: ['two-h','two-v','two-uneven','two-circles','two-hearts'] },
+                { label: '3 фото', ids: ['three-top','three-bot','triptych','three-circles'] },
+                { label: '4 фото', ids: ['four-grid','four-left','four-right','four-diagonal','four-circles','heart-collage-4'] },
+                { label: '5–6 фото', ids: ['five-cross','five-grid','six-grid','six-3rows','six-circles'] },
+                { label: '9+ фото', ids: ['nine-grid'] },
+                { label: 'Фігурні', ids: ['heart-collage-2','mixed-heart-grid','panorama'] },
+              ].map(group => {
+                const groupLayouts = LAYOUTS.filter(l => group.ids.includes(l.id));
+                if (!groupLayouts.length) return null;
+                return (
+                  <div key={group.label} style={{ marginBottom:12 }}>
+                    <div style={{ fontSize:9, fontWeight:800, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6 }}>{group.label}</div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
+                      {groupLayouts.map(l => {
+                        const isActive = config.layoutId === l.id;
+                        return (
+                          <button key={l.id} onClick={() => changeLayout(l.id)}
+                            style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'8px 4px',
+                              border: isActive ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                              borderRadius:8, background: isActive ? '#f0f3ff' : '#fff',
+                              cursor:'pointer', transition:'all 0.15s' }}>
+                            <div style={{ width:'100%', height:52, padding:2 }}>{l.preview}</div>
+                            <span style={{ fontSize:9, fontWeight:700, color: isActive ? '#1e2d7d' : '#374151', textAlign:'center', lineHeight:1.2 }}>{l.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
