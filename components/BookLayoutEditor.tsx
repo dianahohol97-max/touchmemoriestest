@@ -77,18 +77,38 @@ interface CoverState {
 type LayoutType =
   // 1 photo
   'p-full' | 'p-center' | 'p-top' | 'p-bottom' | 'p-left' | 'p-right' |
+  'p-1-top-strip' | 'p-1-bottom-strip' | 'p-1-left-wide' | 'p-1-right-wide' |
+  'p-1-polaroid' | 'p-1-portrait' | 'p-1-landscape' | 'p-1-corner-tl' | 'p-1-corner-br' |
   // 2 photos
   'p-2-v' | 'p-2-h' | 'p-2-big-top' | 'p-2-big-bottom' | 'p-2-big-left' | 'p-2-big-right' | 'p-2-diag' |
+  'p-2-overlap' | 'p-2-top-strip' | 'p-2-bottom-strip' | 'p-2-75-25' | 'p-2-25-75' |
+  'p-2-center-pair' | 'p-2-cinema' | 'p-2-frame' |
   // 3 photos
   'p-3-row' | 'p-3-col' | 'p-3-top2' | 'p-3-bot2' | 'p-3-left2' | 'p-3-right2' | 'p-3-hero-top' | 'p-3-hero-left' |
+  'p-3-hero-right' | 'p-3-strip-top' | 'p-3-strip-bot' | 'p-3-diagonal' | 'p-3-mosaic' | 'p-3-featured' | 'p-3-panorama' |
   // 4 photos
   'p-4-grid' | 'p-4-hero-top' | 'p-4-hero-left' | 'p-4-strip-h' | 'p-4-strip-v' | 'p-4-l-shape' |
+  'p-4-mosaic' | 'p-4-top-bottom' | 'p-4-corner' | 'p-4-cinema' | 'p-4-focus' |
+  'p-4-row-top' | 'p-4-hero-bottom' | 'p-4-cross' | 'p-4-uneven' |
   // 5 photos
   'p-5-hero' | 'p-5-grid' | 'p-5-strip' |
+  'p-5-col' | 'p-5-row' | 'p-5-2-3' | 'p-5-3-2' | 'p-5-mosaic' | 'p-5-focus' |
+  'p-5-big-left' | 'p-5-big-right' | 'p-5-cross' | 'p-5-panorama' | 'p-5-diagonal' | 'p-5-corner' |
   // 6 photos
   'p-6-grid' | 'p-6-3x2' | 'p-6-hero' |
-  // 7-9
-  'p-7-grid' | 'p-8-grid' | 'p-9-grid' |
+  'p-6-strip-h' | 'p-6-strip-v' | 'p-6-mosaic' | 'p-6-hero-top' | 'p-6-hero-left' |
+  'p-6-cols' | 'p-6-focus' | 'p-6-2-4' | 'p-6-4-2' | 'p-6-diagonal' | 'p-6-magazine' | 'p-6-uneven' |
+  // 7 photos
+  'p-7-grid' | 'p-7-hero' | 'p-7-3-4' | 'p-7-4-3' | 'p-7-mosaic' | 'p-7-col' |
+  'p-7-big-top' | 'p-7-cols' | 'p-7-strip' | 'p-7-focus' |
+  'p-7-row' | 'p-7-col-full' | 'p-7-panorama' | 'p-7-magazine' | 'p-7-diagonal' |
+  // 8 photos
+  'p-8-grid' | 'p-8-hero' | 'p-8-2x4' | 'p-8-mosaic' | 'p-8-strip-v' | 'p-8-focus' | 'p-8-cols' |
+  'p-8-3-5' | 'p-8-5-3' | 'p-8-corner' | 'p-8-strip-h' | 'p-8-diagonal' | 'p-8-magazine' |
+  'p-8-row' | 'p-8-col' | 'p-8-4-4' | 'p-8-big-top' | 'p-8-big-left' | 'p-8-panorama' | 'p-8-uneven' | 'p-8-cross' |
+  // 9 photos
+  'p-9-grid' | 'p-9-hero' | 'p-9-mosaic' | 'p-9-strip' | 'p-9-focus' |
+  'p-9-cols' | 'p-9-3-3-3' | 'p-9-hero-top' | 'p-9-big-left' | 'p-9-magazine' | 'p-9-diagonal' | 'p-9-4-5' | 'p-9-5-4' | 'p-9-strip-h' |
   // text
   'p-text' | 'p-text-top' | 'p-text-bottom' |
   // SPREAD layouts (180° flat-lay photobooks — double width)
@@ -105,7 +125,12 @@ type LayoutType =
   'sp-9-grid' | 'sp-10-grid' | 'sp-10-hero' | 'sp-12-grid' |
   'sp-1-top-strip' | 'sp-1-bottom-strip' | 'sp-2-75-25' | 'sp-2-25-75' | 'sp-2-cross' |
   'sp-3-uneven' | 'sp-3-steps' | 'sp-3-panorama' | 'sp-4-focus' | 'sp-4-corner' | 'sp-4-cinema' |
-  'sp-5-focus' | 'sp-6-cols' | 'sp-9-hero' | 'sp-15-grid' | 'sp-16-grid';
+  'sp-5-focus' | 'sp-6-cols' | 'sp-9-hero' | 'sp-15-grid' | 'sp-16-grid' |
+  'sp-1-polaroid' | 'sp-1-portrait' | 'sp-1-landscape' | 'sp-1-corner-tl' | 'sp-1-corner-br' |
+  'sp-1-left-strip' | 'sp-1-right-strip' |
+  'sp-2-triptych' | 'sp-2-overlap' | 'sp-2-frame' |
+  'sp-3-magazine' | 'sp-3-focus' | 'sp-3-diagonal' |
+  'sp-4-magazine' | 'sp-4-diagonal' | 'sp-4-uneven';
 
 interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
@@ -152,9 +177,9 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'p-6-3x2',        label: '6 рівно (3×2)',     slots: 6, group: '6 фото' },
   { id: 'p-6-hero',       label: 'Велике + 5',        slots: 6, group: '6 фото' },
   // 7-9 фото
-  { id: 'p-7-grid',       label: '7 сітка',           slots: 7, group: '7–9 фото' },
-  { id: 'p-8-grid',       label: '8 сітка',           slots: 8, group: '7–9 фото' },
-  { id: 'p-9-grid',       label: '9 рівно (3×3)',     slots: 9, group: '7–9 фото' },
+  { id: 'p-7-grid',       label: '7 сітка',           slots: 7, group: '7 фото' },
+  { id: 'p-8-grid',       label: '8 сітка',           slots: 8, group: '8 фото' },
+  { id: 'p-9-grid',       label: '9 рівно (3×3)',     slots: 9, group: '9 фото' },
   // Текст
   { id: 'p-text',         label: 'Тільки текст',      slots: 0, group: 'Текст' },
   { id: 'p-text-top',     label: 'Фото + текст знизу', slots: 1, group: 'Текст' },
@@ -224,6 +249,139 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'sp-9-hero',      label: 'Велике + 8',          slots: 9, group: 'Розворот 5+ фото' },
   { id: 'sp-15-grid',     label: '15 сітка (5×3)',      slots: 15, group: 'Розворот 5+ фото' },
   { id: 'sp-16-grid',     label: '16 сітка (4×4)',      slots: 16, group: 'Розворот 5+ фото' },
+  // 1 фото — додаткові (6→15)
+  { id: 'p-1-top-strip',    label: 'Смуга зверху',        slots: 1, group: '1 фото' },
+  { id: 'p-1-bottom-strip', label: 'Смуга знизу',         slots: 1, group: '1 фото' },
+  { id: 'p-1-left-wide',    label: 'Широке ліворуч',      slots: 1, group: '1 фото' },
+  { id: 'p-1-right-wide',   label: 'Широке праворуч',     slots: 1, group: '1 фото' },
+  { id: 'p-1-polaroid',     label: 'Polaroid',            slots: 1, group: '1 фото' },
+  { id: 'p-1-portrait',     label: 'Портрет по центру',   slots: 1, group: '1 фото' },
+  { id: 'p-1-landscape',    label: 'Пейзаж по центру',    slots: 1, group: '1 фото' },
+  { id: 'p-1-corner-tl',    label: 'Кут ліво-верх',       slots: 1, group: '1 фото' },
+  { id: 'p-1-corner-br',    label: 'Кут право-низ',       slots: 1, group: '1 фото' },
+  // 2 фото — додаткові (7→15)
+  { id: 'p-2-overlap',      label: '2 внахлест',          slots: 2, group: '2 фото' },
+  { id: 'p-2-top-strip',    label: 'Смуга + повне фото',  slots: 2, group: '2 фото' },
+  { id: 'p-2-bottom-strip', label: 'Повне фото + смуга',  slots: 2, group: '2 фото' },
+  { id: 'p-2-75-25',        label: '¾ + ¼',               slots: 2, group: '2 фото' },
+  { id: 'p-2-25-75',        label: '¼ + ¾',               slots: 2, group: '2 фото' },
+  { id: 'p-2-center-pair',  label: '2 по центру',         slots: 2, group: '2 фото' },
+  { id: 'p-2-cinema',       label: 'Кіностиль',           slots: 2, group: '2 фото' },
+  { id: 'p-2-frame',        label: 'Фото у рамці',        slots: 2, group: '2 фото' },
+  // 3 фото — додаткові (8→15)
+  { id: 'p-3-hero-right',   label: 'Велике + 2 ліво',     slots: 3, group: '3 фото' },
+  { id: 'p-3-strip-top',    label: 'Смуга + 2 знизу',     slots: 3, group: '3 фото' },
+  { id: 'p-3-strip-bot',    label: '2 зверху + смуга',    slots: 3, group: '3 фото' },
+  { id: 'p-3-diagonal',     label: '3 по діагоналі',      slots: 3, group: '3 фото' },
+  { id: 'p-3-mosaic',       label: '3 мозаїка',           slots: 3, group: '3 фото' },
+  { id: 'p-3-featured',     label: 'Акцент центр',        slots: 3, group: '3 фото' },
+  { id: 'p-3-panorama',     label: 'Панорама + 2',        slots: 3, group: '3 фото' },
+  // 4 фото — додаткові (6→15)
+  { id: 'p-4-mosaic',       label: '4 мозаїка',           slots: 4, group: '4 фото' },
+  { id: 'p-4-top-bottom',   label: '2 зверху + 2 знизу',  slots: 4, group: '4 фото' },
+  { id: 'p-4-corner',       label: '4 по кутах',          slots: 4, group: '4 фото' },
+  { id: 'p-4-cinema',       label: '4 кінострічка',       slots: 4, group: '4 фото' },
+  { id: 'p-4-focus',        label: '1 велике + 3 малих',  slots: 4, group: '4 фото' },
+  { id: 'p-4-row-top',      label: '3 зверху + велике',   slots: 4, group: '4 фото' },
+  { id: 'p-4-hero-bottom',  label: '3 зверху + велике',   slots: 4, group: '4 фото' },
+  { id: 'p-4-cross',        label: 'Хрест',               slots: 4, group: '4 фото' },
+  { id: 'p-4-uneven',       label: '1 + 3 нерівно',       slots: 4, group: '4 фото' },
+  // 5 фото — додаткові (3→15)
+  { id: 'p-5-col',          label: '5 стовпець',          slots: 5, group: '5 фото' },
+  { id: 'p-5-row',          label: '5 рядок',             slots: 5, group: '5 фото' },
+  { id: 'p-5-2-3',          label: '2 зверху + 3 знизу',  slots: 5, group: '5 фото' },
+  { id: 'p-5-3-2',          label: '3 зверху + 2 знизу',  slots: 5, group: '5 фото' },
+  { id: 'p-5-mosaic',       label: '5 мозаїка',           slots: 5, group: '5 фото' },
+  { id: 'p-5-focus',        label: '1 велике + 4 малих',  slots: 5, group: '5 фото' },
+  { id: 'p-5-big-left',     label: 'Велике ліво + 4',     slots: 5, group: '5 фото' },
+  { id: 'p-5-big-right',    label: '4 + велике право',    slots: 5, group: '5 фото' },
+  { id: 'p-5-cross',        label: '5 хрест',             slots: 5, group: '5 фото' },
+  { id: 'p-5-panorama',     label: 'Панорама + 4',        slots: 5, group: '5 фото' },
+  { id: 'p-5-diagonal',     label: '5 діагональ',         slots: 5, group: '5 фото' },
+  { id: 'p-5-corner',       label: '4 кути + центр',      slots: 5, group: '5 фото' },
+  // 6 фото — додаткові (3→15)
+  { id: 'p-6-strip-h',      label: '6 горизонт смуги',    slots: 6, group: '6 фото' },
+  { id: 'p-6-strip-v',      label: '6 вертик смуги',      slots: 6, group: '6 фото' },
+  { id: 'p-6-mosaic',       label: '6 мозаїка',           slots: 6, group: '6 фото' },
+  { id: 'p-6-hero-top',     label: 'Велике + 5 знизу',    slots: 6, group: '6 фото' },
+  { id: 'p-6-hero-left',    label: 'Велике + 5 право',    slots: 6, group: '6 фото' },
+  { id: 'p-6-cols',         label: '3 стовпці × 2',       slots: 6, group: '6 фото' },
+  { id: 'p-6-focus',        label: '1 велике + 5 малих',  slots: 6, group: '6 фото' },
+  { id: 'p-6-2-4',          label: '2 зверху + 4 знизу',  slots: 6, group: '6 фото' },
+  { id: 'p-6-4-2',          label: '4 зверху + 2 знизу',  slots: 6, group: '6 фото' },
+  { id: 'p-6-diagonal',     label: '6 діагональ',         slots: 6, group: '6 фото' },
+  { id: 'p-6-magazine',     label: 'Журнальний стиль',    slots: 6, group: '6 фото' },
+  { id: 'p-6-uneven',       label: '6 нерівний',          slots: 6, group: '6 фото' },
+  // 7 фото
+  { id: 'p-7-hero',         label: 'Велике + 6',          slots: 7, group: '7 фото' },
+  { id: 'p-7-3-4',          label: '3 зверху + 4 знизу',  slots: 7, group: '7 фото' },
+  { id: 'p-7-4-3',          label: '4 зверху + 3 знизу',  slots: 7, group: '7 фото' },
+  { id: 'p-7-mosaic',       label: '7 мозаїка',           slots: 7, group: '7 фото' },
+  { id: 'p-7-col',          label: '7 стовпець',          slots: 7, group: '7 фото' },
+  { id: 'p-7-big-top',      label: 'Велике зверху + 6',   slots: 7, group: '7 фото' },
+  { id: 'p-7-cols',         label: '7 (4+3 стовпці)',     slots: 7, group: '7 фото' },
+  { id: 'p-7-strip',        label: '7 смуг',              slots: 7, group: '7 фото' },
+  { id: 'p-7-focus',        label: '1 велике + 6 малих',  slots: 7, group: '7 фото' },
+  { id: 'p-7-row',          label: '7 рядок',             slots: 7, group: '7 фото' },
+  { id: 'p-7-col-full',     label: '7 стовпець повний',   slots: 7, group: '7 фото' },
+  { id: 'p-7-panorama',     label: 'Панорама + 6',        slots: 7, group: '7 фото' },
+  { id: 'p-7-magazine',     label: 'Журнальний 7',        slots: 7, group: '7 фото' },
+  { id: 'p-7-diagonal',     label: '7 діагональ',         slots: 7, group: '7 фото' },
+  // 8 фото
+  { id: 'p-8-hero',         label: 'Велике + 7',          slots: 8, group: '8 фото' },
+  { id: 'p-8-2x4',          label: '2 ряди × 4',          slots: 8, group: '8 фото' },
+  { id: 'p-8-mosaic',       label: '8 мозаїка',           slots: 8, group: '8 фото' },
+  { id: 'p-8-strip-v',      label: '8 вертик смуги',      slots: 8, group: '8 фото' },
+  { id: 'p-8-focus',        label: '1 велике + 7 малих',  slots: 8, group: '8 фото' },
+  { id: 'p-8-cols',         label: '8 (4+4 стовпці)',     slots: 8, group: '8 фото' },
+  { id: 'p-8-row',          label: '8 рядок',             slots: 8, group: '8 фото' },
+  { id: 'p-8-col',          label: '8 стовпець',          slots: 8, group: '8 фото' },
+  { id: 'p-8-4-4',          label: '4 зверху + 4 знизу',  slots: 8, group: '8 фото' },
+  { id: 'p-8-big-top',      label: 'Велике зверху + 7',   slots: 8, group: '8 фото' },
+  { id: 'p-8-big-left',     label: 'Велике ліво + 7',     slots: 8, group: '8 фото' },
+  { id: 'p-8-panorama',     label: 'Панорама + 7',        slots: 8, group: '8 фото' },
+  { id: 'p-8-uneven',       label: '8 нерівний',          slots: 8, group: '8 фото' },
+  { id: 'p-8-cross',        label: '8 хрест',             slots: 8, group: '8 фото' },
+  { id: 'p-8-3-5',          label: '3 зверху + 5 знизу',  slots: 8, group: '8 фото' },
+  { id: 'p-8-5-3',          label: '5 зверху + 3 знизу',  slots: 8, group: '8 фото' },
+  { id: 'p-8-magazine',     label: 'Журнальний 8',        slots: 8, group: '8 фото' },
+  { id: 'p-8-strip-h',      label: '8 горизонт смуги',    slots: 8, group: '8 фото' },
+  { id: 'p-8-corner',       label: '1 велике + 7 по краях',slots: 8, group: '8 фото' },
+  { id: 'p-8-diagonal',     label: '8 діагональ',         slots: 8, group: '8 фото' },
+  // 9 фото
+  { id: 'p-9-hero',         label: 'Велике + 8',          slots: 9, group: '9 фото' },
+  { id: 'p-9-mosaic',       label: '9 мозаїка',           slots: 9, group: '9 фото' },
+  { id: 'p-9-strip',        label: '9 смуг',              slots: 9, group: '9 фото' },
+  { id: 'p-9-focus',        label: '1 велике + 8 малих',  slots: 9, group: '9 фото' },
+  { id: 'p-9-cols',         label: '9 (3×3 стовпці)',     slots: 9, group: '9 фото' },
+  { id: 'p-9-3-3-3',       label: '3 рядки по 3',        slots: 9, group: '9 фото' },
+  { id: 'p-9-hero-top',    label: 'Велике зверху + 8',   slots: 9, group: '9 фото' },
+  { id: 'p-9-big-left',    label: 'Велике ліво + 8',     slots: 9, group: '9 фото' },
+  { id: 'p-9-magazine',    label: 'Журнальний 9',        slots: 9, group: '9 фото' },
+  { id: 'p-9-diagonal',    label: '9 діагональ',         slots: 9, group: '9 фото' },
+  { id: 'p-9-4-5',         label: '4 зверху + 5 знизу',  slots: 9, group: '9 фото' },
+  { id: 'p-9-5-4',         label: '5 зверху + 4 знизу',  slots: 9, group: '9 фото' },
+  { id: 'p-9-strip-h',     label: '9 горизонт смуги',    slots: 9, group: '9 фото' },
+  // Розворот 1 фото — додаткові (8→15)
+  { id: 'sp-1-polaroid',       label: 'Polaroid центр',      slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-1-portrait',       label: 'Портрет центр',       slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-1-landscape',      label: 'Пейзаж центр',        slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-1-corner-tl',      label: 'Кут ліво-верх',       slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-1-corner-br',      label: 'Кут право-низ',       slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-1-left-strip',     label: 'Смуга ліворуч',       slots: 1, group: 'Розворот 1 фото' },
+  { id: 'sp-1-right-strip',    label: 'Смуга праворуч',      slots: 1, group: 'Розворот 1 фото' },
+  // Розворот 2 фото — додаткові (12→15)
+  { id: 'sp-2-triptych',       label: 'Триптих центр',       slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-2-overlap',        label: '2 внахлест',          slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-2-frame',          label: '2 у рамках',          slots: 2, group: 'Розворот 2 фото' },
+  // Розворот 3 фото — додаткові (12→15)
+  { id: 'sp-3-magazine',       label: 'Журнальний',          slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-3-focus',          label: '1 велике + 2 смуги',  slots: 3, group: 'Розворот 3 фото' },
+  { id: 'sp-3-diagonal',       label: '3 по діагоналі',      slots: 3, group: 'Розворот 3 фото' },
+  // Розворот 4 фото — додаткові (12→15)
+  { id: 'sp-4-magazine',       label: 'Журнальний',          slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-4-diagonal',       label: '4 по діагоналі',      slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-4-uneven',         label: '4 нерівний',          slots: 4, group: 'Розворот 4 фото' },
 ];
 
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
@@ -387,6 +545,163 @@ function getSlotDefs(layout: LayoutType, W: number, H: number, gap: number = 4):
   if (layout === 'sp-9-hero')      { const bh=H*0.4; const sw=(W-3*g)/4; const sh=(H-bh-2*g)/2; return [S(0,0,0,W,bh), ...Array.from({length:8},(_,ii)=>S(ii+1,(ii%4)*(sw+g),bh+g+Math.floor(ii/4)*(sh+g),sw,sh))]; }
   if (layout === 'sp-15-grid')     { const cw=(W-4*g)/5; const ch=(H-2*g)/3; return Array.from({length:15},(_,ii)=>S(ii,(ii%5)*(cw+g),Math.floor(ii/5)*(ch+g),cw,ch)); }
   if (layout === 'sp-16-grid')     { const cw=(W-3*g)/4; const ch=(H-3*g)/4; return Array.from({length:16},(_,ii)=>S(ii,(ii%4)*(cw+g),Math.floor(ii/4)*(ch+g),cw,ch)); }
+
+  // ── PAGE: 1 фото додаткові ──────────────────────────────────────────
+  if (layout === 'p-1-top-strip')    return [S(0, 0, 0, W, H*0.45)];
+  if (layout === 'p-1-bottom-strip') return [S(0, 0, H*0.55, W, H*0.45)];
+  if (layout === 'p-1-left-wide')    return [S(0, 0, 0, W*0.75, H)];
+  if (layout === 'p-1-right-wide')   return [S(0, W*0.25, 0, W*0.75, H)];
+  if (layout === 'p-1-polaroid')     return [S(0, W*0.06, H*0.06, W*0.88, H*0.75)];
+  if (layout === 'p-1-portrait')     return [S(0, W*0.15, H*0.05, W*0.7, H*0.9)];
+  if (layout === 'p-1-landscape')    return [S(0, W*0.03, H*0.15, W*0.94, H*0.7)];
+  if (layout === 'p-1-corner-tl')    return [S(0, 0, 0, W*0.75, H*0.75)];
+  if (layout === 'p-1-corner-br')    return [S(0, W*0.25, H*0.25, W*0.75, H*0.75)];
+
+  // ── PAGE: 2 фото додаткові ──────────────────────────────────────────
+  if (layout === 'p-2-overlap')      return [S(0, 0, 0, W*0.75, H*0.75), S(1, W*0.25, H*0.25, W*0.75, H*0.75)];
+  if (layout === 'p-2-top-strip')    return [S(0, 0, 0, W, H*0.3), S(1, 0, H*0.3+g, W, H*0.7-g)];
+  if (layout === 'p-2-bottom-strip') return [S(0, 0, 0, W, H*0.7), S(1, 0, H*0.7+g, W, H*0.3-g)];
+  if (layout === 'p-2-75-25')        return [S(0, 0, 0, W*0.75, H), S(1, W*0.75+g, 0, W*0.25-g, H)];
+  if (layout === 'p-2-25-75')        return [S(0, 0, 0, W*0.25, H), S(1, W*0.25+g, 0, W*0.75-g, H)];
+  if (layout === 'p-2-center-pair')  return [S(0, W*0.05, H*0.05, W*0.9, h2*0.9), S(1, W*0.05, H*0.5+g, W*0.9, h2*0.9)];
+  if (layout === 'p-2-cinema')       { const ch=H*0.42; return [S(0, 0, (H-2*ch-g)/2, W, ch), S(1, 0, (H-2*ch-g)/2+ch+g, W, ch)]; }
+  if (layout === 'p-2-frame')        return [S(0, W*0.04, H*0.04, W*0.92, h2-H*0.02), S(1, W*0.04, H*0.5+H*0.02, W*0.92, h2-H*0.04)];
+
+  // ── PAGE: 3 фото додаткові ──────────────────────────────────────────
+  if (layout === 'p-3-hero-right')   return [S(0, W*0.45+g, 0, W*0.55-g, H), S(1, 0, 0, W*0.45, h2), S(2, 0, h2+g, W*0.45, h2)];
+  if (layout === 'p-3-strip-top')    return [S(0, 0, 0, W, H*0.35), S(1, 0, H*0.35+g, w2, H*0.65-g), S(2, w2+g, H*0.35+g, w2, H*0.65-g)];
+  if (layout === 'p-3-strip-bot')    return [S(0, 0, 0, w2, H*0.65), S(1, w2+g, 0, w2, H*0.65), S(2, 0, H*0.65+g, W, H*0.35-g)];
+  if (layout === 'p-3-diagonal')     return [S(0, 0, 0, W*0.6, H*0.5), S(1, W*0.4, H*0.25, W*0.6, H*0.5), S(2, 0, H*0.5+g, W*0.6, H*0.5-g)];
+  if (layout === 'p-3-mosaic')       return [S(0, 0, 0, W*0.6, H*0.6), S(1, W*0.6+g, 0, W*0.4-g, H*0.4-g/2), S(2, 0, H*0.6+g, W, H*0.4-g)];
+  if (layout === 'p-3-featured')     return [S(0, W*0.1, H*0.05, W*0.8, H*0.55), S(1, 0, H*0.6+g, w2, H*0.4-g), S(2, w2+g, H*0.6+g, w2, H*0.4-g)];
+  if (layout === 'p-3-panorama')     return [S(0, 0, 0, W, H*0.5), S(1, 0, H*0.5+g, w2, H*0.5-g), S(2, w2+g, H*0.5+g, w2, H*0.5-g)];
+
+  // ── PAGE: 4 фото додаткові ──────────────────────────────────────────
+  if (layout === 'p-4-mosaic')       return [S(0, 0, 0, W*0.6, H*0.6), S(1, W*0.6+g, 0, W*0.4-g, H*0.4-g/2), S(2, W*0.6+g, H*0.4+g/2, W*0.4-g, H*0.6-g/2), S(3, 0, H*0.6+g, W*0.6, H*0.4-g)];
+  if (layout === 'p-4-top-bottom')   return [S(0, 0, 0, w2, h2), S(1, w2+g, 0, w2, h2), S(2, 0, h2+g, w2, h2), S(3, w2+g, h2+g, w2, h2)];
+  if (layout === 'p-4-corner')       return [S(0, 0, 0, W*0.48, H*0.48), S(1, W*0.52, 0, W*0.48, H*0.48), S(2, 0, H*0.52, W*0.48, H*0.48), S(3, W*0.52, H*0.52, W*0.48, H*0.48)];
+  if (layout === 'p-4-cinema')       { const ch=H*0.45; const cw=(W-3*g)/4; return [S(0,0,(H-ch)/2,cw,ch),S(1,cw+g,(H-ch)/2,cw,ch),S(2,2*(cw+g),(H-ch)/2,cw,ch),S(3,3*(cw+g),(H-ch)/2,cw,ch)]; }
+  if (layout === 'p-4-focus')        return [S(0, 0, 0, W*0.65, H*0.65), S(1, W*0.65+g, 0, W*0.35-g, H*0.42), S(2, W*0.65+g, H*0.42+g, W*0.35-g, H*0.58-g), S(3, 0, H*0.65+g, W*0.65, H*0.35-g)];
+  if (layout === 'p-4-row-top')      return [S(0, 0, 0, w3, H*0.4), S(1, w3+g, 0, w3, H*0.4), S(2, 2*(w3+g), 0, w3, H*0.4), S(3, 0, H*0.4+g, W, H*0.6-g)];
+  if (layout === 'p-4-hero-bottom')  return [S(0, 0, 0, w3, H*0.4), S(1, w3+g, 0, w3, H*0.4), S(2, 2*(w3+g), 0, w3, H*0.4), S(3, 0, H*0.4+g, W, H*0.6-g)];
+  if (layout === 'p-4-cross')        return [S(0, 0, 0, w2, H*0.45), S(1, w2+g, 0, w2, H*0.45), S(2, 0, H*0.55, w2, H*0.45), S(3, w2+g, H*0.55, w2, H*0.45)];
+  if (layout === 'p-4-uneven')       return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h3), S(2, W*0.55+g, h3+g, W*0.45-g, h3), S(3, W*0.55+g, 2*(h3+g), W*0.45-g, h3)];
+
+  // ── PAGE: 5 фото ────────────────────────────────────────────────────
+  if (layout === 'p-5-col')         { const h5=(H-4*g)/5; return Array.from({length:5},(_,i)=>S(i,0,i*(h5+g),W,h5)); }
+  if (layout === 'p-5-row')         { const w5=(W-4*g)/5; return Array.from({length:5},(_,i)=>S(i,i*(w5+g),0,w5,H)); }
+  if (layout === 'p-5-2-3')        return [S(0,0,0,w2,h2), S(1,w2+g,0,w2,h2), S(2,0,h2+g,w3,h2), S(3,w3+g,h2+g,w3,h2), S(4,2*(w3+g),h2+g,w3,h2)];
+  if (layout === 'p-5-3-2')        return [S(0,0,0,w3,h2), S(1,w3+g,0,w3,h2), S(2,2*(w3+g),0,w3,h2), S(3,0,h2+g,w2,h2), S(4,w2+g,h2+g,w2,h2)];
+  if (layout === 'p-5-mosaic')     return [S(0,0,0,W*0.55,H*0.55), S(1,W*0.55+g,0,W*0.45-g,H*0.3), S(2,W*0.55+g,H*0.3+g,W*0.45-g,H*0.25), S(3,0,H*0.55+g,W*0.3,H*0.45-g), S(4,W*0.3+g,H*0.55+g,W*0.7-g,H*0.45-g)];
+  if (layout === 'p-5-focus')      return [S(0,0,0,W*0.6,H*0.6), S(1,W*0.6+g,0,W*0.4-g,h2), S(2,W*0.6+g,h2+g,W*0.4-g,h2), S(3,0,H*0.6+g,w2,H*0.4-g), S(4,w2+g,H*0.6+g,w2,H*0.4-g)];
+  if (layout === 'p-5-big-left')   return [S(0,0,0,W*0.55,H), S(1,W*0.55+g,0,W*0.45-g,h2-g/2), S(2,W*0.55+g,h2+g/2,W*0.45-g,h2-g/2), S(3,0,H*0.55+g,W*0.25,H*0.45-g), S(4,W*0.25+g,H*0.55+g,W*0.3-g,H*0.45-g)];
+  if (layout === 'p-5-big-right')  return [S(0,0,0,W*0.45-g,h2-g/2), S(1,0,h2+g/2,W*0.45-g,h2-g/2), S(2,W*0.45,0,W*0.55,H), S(3,0,H*0.55+g,W*0.25,H*0.45-g), S(4,W*0.25+g,H*0.55+g,W*0.2-g,H*0.45-g)];
+  if (layout === 'p-5-cross')      return [S(0,W*0.3,0,W*0.4,H*0.3), S(1,0,H*0.35,W*0.3,H*0.3), S(2,W*0.35,H*0.35,W*0.3,H*0.3), S(3,W*0.7,H*0.35,W*0.3,H*0.3), S(4,W*0.3,H*0.7,W*0.4,H*0.3)];
+  if (layout === 'p-5-panorama')   { const bh=H*0.35; const sw=(W-3*g)/4; return [S(0,0,0,W,bh), ...[0,1,2,3].map(i=>S(i+1,i*(sw+g),bh+g,sw,H-bh-g))]; }
+  if (layout === 'p-5-diagonal')   return [S(0,0,0,W*0.5,H*0.5), S(1,W*0.5+g,0,W*0.5-g,H*0.35), S(2,W*0.5+g,H*0.35+g,W*0.5-g,H*0.65-g), S(3,0,H*0.5+g,W*0.35,H*0.5-g), S(4,W*0.35+g,H*0.5+g,W*0.65-g,H*0.5-g)];
+  if (layout === 'p-5-corner')     return [S(0,0,0,w2,h2), S(1,w2+g,0,w2,h2), S(2,W*0.25,H*0.25,W*0.5,H*0.5), S(3,0,h2+g,w2,h2), S(4,w2+g,h2+g,w2,h2)];
+
+  // ── PAGE: 6 фото ────────────────────────────────────────────────────
+  if (layout === 'p-6-strip-h')    { const h6=(H-5*g)/6; return Array.from({length:6},(_,i)=>S(i,0,i*(h6+g),W,h6)); }
+  if (layout === 'p-6-strip-v')    { const w6=(W-5*g)/6; return Array.from({length:6},(_,i)=>S(i,i*(w6+g),0,w6,H)); }
+  if (layout === 'p-6-mosaic')     return [S(0,0,0,W*0.5,H*0.5), S(1,W*0.5+g,0,W*0.25-g/2,H*0.35), S(2,W*0.75+g/2,0,W*0.25-g/2,H*0.35), S(3,W*0.5+g,H*0.35+g,W*0.5-g,H*0.65-g), S(4,0,H*0.5+g,W*0.25-g/2,H*0.5-g), S(5,W*0.25+g/2,H*0.5+g,W*0.25-g/2,H*0.5-g)];
+  if (layout === 'p-6-hero-top')   { const bh=H*0.45; const sw=(W-4*g)/5; return [S(0,0,0,W,bh), ...[0,1,2,3,4].map(i=>S(i+1,i*(sw+g),bh+g,sw,H-bh-g))]; }
+  if (layout === 'p-6-hero-left')  return [S(0,0,0,W*0.5,H), S(1,W*0.5+g,0,W*0.5-g,h3-g/2), S(2,W*0.5+g,h3+g/2,W*0.5-g,h3-g/2), S(3,W*0.5+g,2*(h3+g/2),W*0.5-g,h3-g/2), S(4,0,H*0.5+g,(W*0.5-g/2)/2,H*0.5-g), S(5,(W*0.5+g/2)/2,H*0.5+g,(W*0.5-g/2)/2,H*0.5-g)];
+  if (layout === 'p-6-cols')       { const cw=(W-g)/2; const ch=(H-2*g)/3; return Array.from({length:6},(_,i)=>S(i,(i%2)*(cw+g),Math.floor(i/2)*(ch+g),cw,ch)); }
+  if (layout === 'p-6-focus')      { const sw=(W-2*g)/3; const sh=(H-g)/2; return [S(0,0,0,W*0.6,H*0.6), S(1,W*0.6+g,0,W*0.4-g,H*0.3-g/2), S(2,W*0.6+g,H*0.3+g/2,W*0.4-g,H*0.3-g/2), S(3,W*0.6+g,H*0.6+g,W*0.4-g,H*0.4-g), S(4,0,H*0.6+g,sw,H*0.4-g), S(5,sw+g,H*0.6+g,sw,H*0.4-g)]; }
+  if (layout === 'p-6-2-4')        return [S(0,0,0,w2,H*0.35), S(1,w2+g,0,w2,H*0.35), S(2,0,H*0.35+g,w2,H*0.65-g), S(3,w2+g,H*0.35+g,w2,(H*0.65-g-g)/3), S(4,w2+g,H*0.35+g+(H*0.65-g-g)/3+g,w2,(H*0.65-g-g)/3), S(5,w2+g,H*0.35+g+2*((H*0.65-g-g)/3+g),w2,(H*0.65-g-g)/3)];
+  if (layout === 'p-6-4-2')        return [S(0,0,0,w2,H*0.65-g), S(1,w2+g,0,w2,(H*0.65-g-g)/3), S(2,w2+g,(H*0.65-g-g)/3+g,w2,(H*0.65-g-g)/3), S(3,w2+g,2*((H*0.65-g-g)/3+g),w2,(H*0.65-g-g)/3), S(4,0,H*0.65,w2,H*0.35), S(5,w2+g,H*0.65,w2,H*0.35)];
+  if (layout === 'p-6-diagonal')   return [S(0,0,0,W*0.45,H*0.45), S(1,W*0.55,0,W*0.45,H*0.45), S(2,0,H*0.27,W*0.45,H*0.45), S(3,W*0.55,H*0.27,W*0.45,H*0.45), S(4,0,H*0.55,W*0.45,H*0.45), S(5,W*0.55,H*0.55,W*0.45,H*0.45)];
+  if (layout === 'p-6-magazine')   return [S(0,0,0,W*0.65,H*0.5-g/2), S(1,W*0.65+g,0,W*0.35-g,H*0.25-g/2), S(2,W*0.65+g,H*0.25+g/2,W*0.35-g,H*0.25-g/2), S(3,0,H*0.5+g/2,w3,H*0.5-g/2), S(4,w3+g,H*0.5+g/2,w3,H*0.5-g/2), S(5,2*(w3+g),H*0.5+g/2,w3,H*0.5-g/2)];
+  if (layout === 'p-6-uneven')     return [S(0,0,0,W*0.4,H*0.6), S(1,W*0.4+g,0,W*0.6-g,H*0.4-g/2), S(2,W*0.4+g,H*0.4+g/2,W*0.6-g,H*0.6-g/2), S(3,0,H*0.6+g,w3,H*0.4-g), S(4,w3+g,H*0.6+g,w3,H*0.4-g), S(5,2*(w3+g),H*0.6+g,w3,H*0.4-g)];
+
+  // ── PAGE: 7 фото ────────────────────────────────────────────────────
+  if (layout === 'p-7-grid')       { const sw=(W-2*g)/3, sh=(H-2*g)/3; return [[0,1,2].flatMap(col=>[0,1].map(row=>S(col*2+row,col*(sw+g),row*(sh+g),sw,sh))).concat(S(6,0,(sh+g)*2,W,sh))].flat(); }
+  if (layout === 'p-7-hero')       { const bh=H*0.5; const sw=(W-5*g)/6; return [S(0,0,0,W,bh), ...Array.from({length:6},(_,i)=>S(i+1,i*(sw+g),bh+g,sw,H-bh-g))]; }
+  if (layout === 'p-7-3-4')        { const sw=(W-2*g)/3; const sh=(H-g)/2; return [...[0,1,2].map(i=>S(i,i*(sw+g),0,sw,sh)), ...[0,1,2].map(i=>S(i+3,i*(sw+g),sh+g,sw,sh)), S(6,0,0,0,0)].slice(0,7); }
+  if (layout === 'p-7-4-3')        { const sw4=(W-3*g)/4; const sw3=(W-2*g)/3; const sh=h2; return [...Array.from({length:4},(_,i)=>S(i,i*(sw4+g),0,sw4,sh)), ...Array.from({length:3},(_,i)=>S(i+4,i*(sw3+g),sh+g,sw3,sh))]; }
+  if (layout === 'p-7-mosaic')     return [S(0,0,0,W*0.55,H*0.55), S(1,W*0.55+g,0,W*0.45-g,H*0.28-g/2), S(2,W*0.55+g,H*0.28+g/2,W*0.45-g,H*0.28-g/2), S(3,0,H*0.55+g,w3,H*0.45-g), S(4,w3+g,H*0.55+g,w3,H*0.45-g), S(5,2*(w3+g),H*0.55+g,w3,H*0.45-g), S(6,W*0.55+g,H*0.55+g,W*0.45-g,H*0.45-g)];
+  if (layout === 'p-7-col')        { const h7=(H-6*g)/7; return Array.from({length:7},(_,i)=>S(i,0,i*(h7+g),W,h7)); }
+  if (layout === 'p-7-big-top')    { const sw=(W-5*g)/6; const sh=h2; return [S(0,0,0,W,sh), ...Array.from({length:6},(_,i)=>S(i+1,i*(sw+g),sh+g,sw,sh))]; }
+  if (layout === 'p-7-cols')       { const sw4=(W-3*g)/4; const sw3=(W-2*g)/3; const sh=h2; return [...Array.from({length:4},(_,i)=>S(i,i*(sw4+g),0,sw4,sh)), ...Array.from({length:3},(_,i)=>S(i+4,i*(sw3+g),sh+g,sw3,sh))]; }
+  if (layout === 'p-7-strip')      { const w7=(W-6*g)/7; return Array.from({length:7},(_,i)=>S(i,i*(w7+g),0,w7,H)); }
+  if (layout === 'p-7-focus')      return [S(0,0,0,W*0.6,H*0.6), ...Array.from({length:6},(_,i)=>{ const cols=3; const sw=(W-2*g)/3; const sh=H*0.4-g; return i<3 ? S(i+1,i*(sw+g),H*0.6+g,sw,sh) : S(i+1,(i-3)*(sw+g)+(i<3?0:W*0.6+g),0,W*0.4-g,H*0.6/3-g/2); }).slice(0,6)];
+
+  // ── PAGE: 8 фото ────────────────────────────────────────────────────
+  if (layout === 'p-8-grid')       return Array.from({length:8},(_,i)=>S(i,(i%4)*(w4+g),Math.floor(i/4)*(h2+g),w4,h2));
+  if (layout === 'p-8-hero')       { const sw=(W-6*g)/7; const sh=h2; return [S(0,0,0,W,sh), ...Array.from({length:7},(_,i)=>S(i+1,i*(sw+g),sh+g,sw,sh))]; }
+  if (layout === 'p-8-2x4')        return Array.from({length:8},(_,i)=>S(i,(i%4)*(w4+g),Math.floor(i/4)*(h2+g),w4,h2));
+  if (layout === 'p-8-mosaic')     { const sw3=(W-2*g)/3; return [S(0,0,0,W*0.5,h2-g/2), S(1,W*0.5+g,0,W*0.25-g/2,h2-g/2), S(2,W*0.75+g/2,0,W*0.25-g/2,h2-g/2), ...Array.from({length:5},(_,i)=>S(i+3,i*(W/5+g),h2+g/2,W/5-g,h2-g/2))]; }
+  if (layout === 'p-8-strip-v')    { const w8=(W-7*g)/8; return Array.from({length:8},(_,i)=>S(i,i*(w8+g),0,w8,H)); }
+  if (layout === 'p-8-focus')      { const sw=(W-3*g)/4; const sh=(H-g)/2; return [S(0,0,0,W*0.5,H*0.5-g/2), ...Array.from({length:7},(_,i)=>{ if(i<3) return S(i+1,i*(sw+g),H*0.5+g/2,sw,sh); return S(i+1,(i===3?W*0.5+g:((i-4)*(sw+g))),(i===3?0:(i<4?0:H*0.5+g/2)),i===3?W*0.5-g:sw,i===3?H*0.5-g/2:sh); })].slice(0,8); }
+  if (layout === 'p-8-cols')       { const sw=(W-3*g)/4; const sh=(H-g)/2; return Array.from({length:8},(_,i)=>S(i,(i%4)*(sw+g),Math.floor(i/4)*(sh+g),sw,sh)); }
+
+  // ── PAGE: 9 фото ────────────────────────────────────────────────────
+  if (layout === 'p-9-grid')       return Array.from({length:9},(_,i)=>S(i,(i%3)*(w3+g),Math.floor(i/3)*(h3+g),w3,h3));
+  if (layout === 'p-9-hero')       { const sw=(W-7*g)/8; const sh=h2; return [S(0,0,0,W,sh), ...Array.from({length:8},(_,i)=>S(i+1,i*(sw+g),sh+g,sw,sh))]; }
+  if (layout === 'p-9-mosaic')     return [S(0,0,0,W*0.55,H*0.55), ...Array.from({length:8},(_,i)=>{ const cols=4; const sw=(W-3*g)/4; const sh=H*0.45-g; return i<4 ? S(i+1,i*(sw+g),H*0.55+g,sw,sh) : S(i+1,(i-4)*((W*0.45-g)/4+g)+W*0.55+g,0,(W*0.45-g)/4,(H*0.55-g)/4); })];
+  if (layout === 'p-9-strip')      { const w9=(W-8*g)/9; return Array.from({length:9},(_,i)=>S(i,i*(w9+g),0,w9,H)); }
+  if (layout === 'p-9-focus')      { const sw=(W-2*g)/3; const sh=(H-2*g)/3; return [S(0,sw+g,sh+g,sw,sh), ...[ [0,0],[sw+sw+g+g,0],[0,sh+g+sh+g],[sw+sw+g+g,sh+g+sh+g],[0,sh+g],[sw+sw+g+g,sh+g],[sw+g,0],[sw+g,sh+g+sh+g] ].map(([x,y],i)=>S(i+1,x,y,sw,sh))].slice(0,9); }
+
+  // ── SPREAD: 1 фото додаткові ────────────────────────────────────────
+  if (layout === 'sp-1-polaroid')     return [S(0, W*0.1, H*0.08, W*0.8, H*0.72)];
+  if (layout === 'sp-1-portrait')     return [S(0, W*0.25, H*0.05, W*0.5, H*0.9)];
+  if (layout === 'sp-1-landscape')    return [S(0, W*0.04, H*0.15, W*0.92, H*0.7)];
+  if (layout === 'sp-1-corner-tl')    return [S(0, 0, 0, W*0.65, H*0.75)];
+  if (layout === 'sp-1-corner-br')    return [S(0, W*0.35, H*0.25, W*0.65, H*0.75)];
+  if (layout === 'sp-1-left-strip')   return [S(0, 0, 0, W*0.4, H)];
+  if (layout === 'sp-1-right-strip')  return [S(0, W*0.6, 0, W*0.4, H)];
+
+  // ── SPREAD: 2 фото додаткові ────────────────────────────────────────
+  if (layout === 'sp-2-triptych')     return [S(0, W*0.05, H*0.1, W*0.42, H*0.8), S(1, W*0.53, H*0.1, W*0.42, H*0.8)];
+  if (layout === 'sp-2-overlap')      return [S(0, 0, 0, W*0.65, H*0.75), S(1, W*0.35, H*0.25, W*0.65, H*0.75)];
+  if (layout === 'sp-2-frame')        return [S(0, W*0.03, H*0.05, W*0.46, H*0.9), S(1, W*0.51, H*0.05, W*0.46, H*0.9)];
+
+  // ── SPREAD: 3 фото додаткові ────────────────────────────────────────
+  if (layout === 'sp-3-magazine')     return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h2-g/2), S(2, W*0.55+g, h2+g/2, W*0.45-g, h2-g/2)];
+  if (layout === 'sp-3-focus')        return [S(0, 0, 0, W*0.6, H*0.65), S(1, 0, H*0.65+g, W, H*0.2-g/2), S(2, 0, H*0.85+g/2, W, H*0.15-g/2)];
+  if (layout === 'sp-3-diagonal')     return [S(0, 0, 0, W*0.5, H*0.55), S(1, W*0.5+g, 0, W*0.5-g, H*0.45-g/2), S(2, 0, H*0.55+g, W, H*0.45-g)];
+
+  // ── SPREAD: 4 фото додаткові ────────────────────────────────────────
+  if (layout === 'sp-4-magazine')     return [S(0, 0, 0, W*0.6, H*0.6), S(1, W*0.6+g, 0, W*0.4-g, H*0.4-g/2), S(2, W*0.6+g, H*0.4+g/2, W*0.4-g, H*0.6-g/2), S(3, 0, H*0.6+g, W*0.6, H*0.4-g)];
+  if (layout === 'sp-4-diagonal')     return [S(0, 0, 0, W*0.5, H*0.5-g/2), S(1, W*0.5+g, 0, W*0.5-g, H*0.5-g/2), S(2, 0, H*0.5+g/2, W*0.5-g/2, H*0.5-g/2), S(3, W*0.5+g/2, H*0.5+g/2, W*0.5-g/2, H*0.5-g/2)];
+  if (layout === 'sp-4-uneven')       return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h3-g/3), S(2, W*0.55+g, h3+g*2/3, W*0.45-g, h3-g/3), S(3, W*0.55+g, 2*h3+g*4/3, W*0.45-g, h3-g/3)];
+
+  // ── PAGE: 8 фото додаткові ──────────────────────────────────────────
+  if (layout === 'p-8-3-5')        { const sw3=(W-2*g)/3; const sw5=(W-4*g)/5; const sh=h2; return [...Array.from({length:3},(_,i)=>S(i,i*(sw3+g),0,sw3,sh)), ...Array.from({length:5},(_,i)=>S(i+3,i*(sw5+g),sh+g,sw5,sh))]; }
+  if (layout === 'p-8-5-3')        { const sw5=(W-4*g)/5; const sw3=(W-2*g)/3; const sh=h2; return [...Array.from({length:5},(_,i)=>S(i,i*(sw5+g),0,sw5,sh)), ...Array.from({length:3},(_,i)=>S(i+5,i*(sw3+g),sh+g,sw3,sh))]; }
+  if (layout === 'p-8-corner')     return [S(0,W*0.2,H*0.2,W*0.6,H*0.6), S(1,0,0,W*0.18,H*0.18), S(2,W*0.41,0,W*0.18,H*0.18), S(3,W*0.82,0,W*0.18,H*0.18), S(4,0,H*0.41,W*0.18,H*0.18), S(5,W*0.82,H*0.41,W*0.18,H*0.18), S(6,0,H*0.82,W*0.18,H*0.18), S(7,W*0.82,H*0.82,W*0.18,H*0.18)];
+  if (layout === 'p-8-strip-h')    { const h8=(H-7*g)/8; return Array.from({length:8},(_,i)=>S(i,0,i*(h8+g),W,h8)); }
+  if (layout === 'p-8-diagonal')   { const sz=W*0.35; return Array.from({length:8},(_,i)=>S(i,(i%2)*((W-sz-g)/1+g+sz/2-(i%2)*(sz/2+g)),(Math.floor(i/2))*(H/4),sz,H/4-g/2)); }
+  if (layout === 'p-8-magazine')   return [S(0,0,0,W*0.6,H*0.55-g/2), S(1,W*0.6+g,0,W*0.4-g,H*0.27-g/2), S(2,W*0.6+g,H*0.27+g/2,W*0.4-g,H*0.27-g/2), S(3,0,H*0.55+g/2,w4,H*0.45-g), S(4,w4+g,H*0.55+g/2,w4,H*0.45-g), S(5,2*(w4+g),H*0.55+g/2,w4,H*0.45-g), S(6,3*(w4+g),H*0.55+g/2,w4,H*0.45-g), S(7,W*0.6+g,H*0.55+g/2,W*0.4-g,H*0.45-g)];
+
+  // ── PAGE: 9 фото додаткові ──────────────────────────────────────────
+  if (layout === 'p-9-cols')       { const sw=(W-2*g)/3; const sh=(H-2*g)/3; return Array.from({length:9},(_,i)=>S(i,(i%3)*(sw+g),Math.floor(i/3)*(sh+g),sw,sh)); }
+  if (layout === 'p-9-3-3-3')     { const sh=(H-2*g)/3; const sw3=(W-2*g)/3; return Array.from({length:9},(_,i)=>S(i,(i%3)*(sw3+g),Math.floor(i/3)*(sh+g),sw3,sh)); }
+  if (layout === 'p-9-hero-top')  { const sw=(W-7*g)/8; const bh=H*0.35; return [S(0,0,0,W,bh), ...Array.from({length:8},(_,i)=>S(i+1,i*(sw+g),bh+g,sw,H-bh-g))]; }
+  if (layout === 'p-9-big-left')  { const sw=(W-4*g)/5; const sh=(H-1*g)/2; return [S(0,0,0,W*0.4,H), ...Array.from({length:8},(_,i)=>S(i+1,W*0.4+g+(i%4)*(sw*0.6+g),Math.floor(i/4)*(sh+g),sw*0.6,sh))]; }
+  if (layout === 'p-9-magazine')  return [S(0,0,0,W*0.55,H*0.5-g/2), S(1,W*0.55+g,0,W*0.45-g,H*0.25-g/2), S(2,W*0.55+g,H*0.25+g/2,W*0.45-g,H*0.25-g/2), S(3,0,H*0.5+g/2,W*0.55,H*0.5-g/2), S(4,W*0.55+g,H*0.5+g/2,W*0.45-g,H*0.5-g/2), ...Array.from({length:4},(_,i)=>S(i+5,(i%2)*(w2+g),(i<2?0:h2+g)+H*0.5+g/2,w2,h2)).slice(0,4)].slice(0,9);
+  if (layout === 'p-9-diagonal')  { const sz=H*0.33; return Array.from({length:9},(_,i)=>S(i,(i%3)*(W/3),Math.floor(i/3)*(sz),W/3-g,sz-g)); }
+  if (layout === 'p-9-4-5')       { const sw4=(W-3*g)/4; const sw5=(W-4*g)/5; const sh=h2; return [...Array.from({length:4},(_,i)=>S(i,i*(sw4+g),0,sw4,sh)), ...Array.from({length:5},(_,i)=>S(i+4,i*(sw5+g),sh+g,sw5,sh))]; }
+  if (layout === 'p-9-5-4')       { const sw5=(W-4*g)/5; const sw4=(W-3*g)/4; const sh=h2; return [...Array.from({length:5},(_,i)=>S(i,i*(sw5+g),0,sw5,sh)), ...Array.from({length:4},(_,i)=>S(i+5,i*(sw4+g),sh+g,sw4,sh))]; }
+  if (layout === 'p-9-strip-h')   { const h9=(H-8*g)/9; return Array.from({length:9},(_,i)=>S(i,0,i*(h9+g),W,h9)); }
+
+  // ── PAGE: 7 фото додаткові ──────────────────────────────────────────
+  if (layout === 'p-7-row')        { const w7=(W-6*g)/7; return Array.from({length:7},(_,i)=>S(i,i*(w7+g),0,w7,H)); }
+  if (layout === 'p-7-col-full')   { const h7=(H-6*g)/7; return Array.from({length:7},(_,i)=>S(i,0,i*(h7+g),W,h7)); }
+  if (layout === 'p-7-panorama')   { const sw=(W-5*g)/6; return [S(0,0,0,W,H*0.38), ...Array.from({length:6},(_,i)=>S(i+1,i*(sw+g),H*0.38+g,sw,H*0.62-g))]; }
+  if (layout === 'p-7-magazine')   return [S(0,0,0,W*0.6,H*0.5-g/2), S(1,W*0.6+g,0,W*0.4-g,H*0.25-g/2), S(2,W*0.6+g,H*0.25+g/2,W*0.4-g,H*0.25-g/2), S(3,0,H*0.5+g/2,w3,H*0.5-g/2), S(4,w3+g,H*0.5+g/2,w3,H*0.5-g/2), S(5,2*(w3+g),H*0.5+g/2,w2,H*0.25-g/2), S(6,2*(w3+g),H*0.75+g/2,w2,H*0.25-g/2)];
+  if (layout === 'p-7-diagonal')   return Array.from({length:7},(_,i)=>S(i,(i%3)*(W/3+g),(Math.floor(i/3))*(H/3),W/3-g,H/3-g));
+
+  // ── PAGE: 8 фото додаткові ──────────────────────────────────────────
+  if (layout === 'p-8-row')        { const w8=(W-7*g)/8; return Array.from({length:8},(_,i)=>S(i,i*(w8+g),0,w8,H)); }
+  if (layout === 'p-8-col')        { const h8=(H-7*g)/8; return Array.from({length:8},(_,i)=>S(i,0,i*(h8+g),W,h8)); }
+  if (layout === 'p-8-4-4')        { const sw=(W-3*g)/4; const sh=(H-g)/2; return Array.from({length:8},(_,i)=>S(i,(i%4)*(sw+g),Math.floor(i/4)*(sh+g),sw,sh)); }
+  if (layout === 'p-8-big-top')    { const sw=(W-6*g)/7; return [S(0,0,0,W,H*0.4), ...Array.from({length:7},(_,i)=>S(i+1,i*(sw+g),H*0.4+g,sw,H*0.6-g))]; }
+  if (layout === 'p-8-big-left')   { const sh=(H-6*g)/7; return [S(0,0,0,W*0.45,H), ...Array.from({length:7},(_,i)=>S(i+1,W*0.45+g,i*(sh+g),W*0.55-g,sh))]; }
+  if (layout === 'p-8-panorama')   { const sw=(W-6*g)/7; return [S(0,0,0,W,H*0.35), ...Array.from({length:7},(_,i)=>S(i+1,i*(sw+g),H*0.35+g,sw,H*0.65-g))]; }
+  if (layout === 'p-8-uneven')     return [S(0,0,0,W*0.5,H*0.5-g/2), S(1,W*0.5+g,0,W*0.25-g/2,H*0.25-g/2), S(2,W*0.75+g/2,0,W*0.25-g/2,H*0.25-g/2), S(3,W*0.5+g,H*0.25+g/2,W*0.5-g,H*0.25-g/2), S(4,0,H*0.5+g/2,w4,H*0.5-g/2), S(5,w4+g,H*0.5+g/2,w4,H*0.5-g/2), S(6,2*(w4+g),H*0.5+g/2,w4,H*0.5-g/2), S(7,3*(w4+g),H*0.5+g/2,w4,H*0.5-g/2)];
+  if (layout === 'p-8-cross')      return [S(0,W*0.33,0,W*0.34,H*0.33), S(1,0,W*0.33,W*0.33,H*0.34), S(2,W*0.67,W*0.33,W*0.33,H*0.34), S(3,W*0.33,H*0.67,W*0.34,H*0.33), S(4,0,0,W*0.3,H*0.3), S(5,W*0.7,0,W*0.3,H*0.3), S(6,0,H*0.7,W*0.3,H*0.3), S(7,W*0.7,H*0.7,W*0.3,H*0.3)];
 
   return [S(0, 0, 0, W, H)];
 }
@@ -1565,7 +1880,7 @@ export default function BookLayoutEditor() {
                 {/* Layout groups — spread layouts for photobooks, page layouts for magazines */}
                 {(isSpreadMode
                   ? [t('constructor.spread_group_1'), t('constructor.spread_group_2'), t('constructor.spread_group_3'), t('constructor.spread_group_4'), t('constructor.spread_group_5')]
-                  : ['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7–9 фото', 'Текст']
+                  : ['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7 фото', '8 фото', '9 фото', 'Текст']
                 ).map(group => {
                   const gl = LAYOUTS.filter(l => l.group === group);
                   return (
