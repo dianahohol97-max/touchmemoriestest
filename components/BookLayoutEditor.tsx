@@ -3386,7 +3386,7 @@ export default function BookLayoutEditor() {
                                   </div>
                                 ) : null;
                               })()}
-                              <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default', padding: pageGap > 0 ? pageGap : 0, boxSizing:'border-box' }}
+                              <div style={{ width:'100%', height:'100%', overflow: photoEditSlot === key ? 'visible' : 'hidden', position:'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default', padding: pageGap > 0 ? pageGap : 0, boxSizing:'border-box' }}
                                 onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDropTarget(key); }}
                                 onDragLeave={() => setDropTarget(null)}
                                 onDrop={e => {
@@ -3427,20 +3427,21 @@ export default function BookLayoutEditor() {
                                   </div>
                                 )}
                                 {photoEditSlot===key && (
-                                  <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.75)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
-                                    <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'2px 4px',touchAction:'manipulation'}}>−</button>
-                                    <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:28,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
-                                    <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'2px 4px',touchAction:'manipulation'}}>+</button>
-                                    <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
-                                    <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
-                                    <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
-                                    <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)-90+360)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}} title="Повернути -90°">↶</button>
-                                    <span style={{color:'#fff',fontSize:8,fontWeight:600,minWidth:22,textAlign:'center'}}>{slot!.rotation||0}°</span>
-                                    <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)+90)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}} title="Повернути +90°">↷</button>
-                                    <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
-                                    <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✕ фото</button>
-                                    <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
-                                    <button onClick={e=>{e.stopPropagation();setEditSlotKey(editSlotKey===key?null:key);setPhotoEditSlot(null);}} style={{background:'rgba(59,130,246,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✎ Слот</button>
+                                  <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:40,maxWidth:'calc(100% - 4px)'}}>
+                                    <div style={{display:'flex',alignItems:'center',gap:2,flexWrap:'nowrap'}}>
+                                      <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
+                                      <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:30,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
+                                      <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>+</button>
+                                      <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
+                                      <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontSize:12,padding:'2px 3px',touchAction:'manipulation'}}>↺</button>
+                                      <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
+                                      <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)-90+360)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути -90°">↶</button>
+                                      <span style={{color:'rgba(255,255,255,0.7)',fontSize:8,minWidth:18,textAlign:'center'}}>{slot!.rotation||0}°</span>
+                                      <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)+90)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути +90°">↷</button>
+                                      <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
+                                      <button onPointerDown={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}>✕</button>
+                                      <button onPointerDown={e=>{e.stopPropagation();setEditSlotKey(editSlotKey===key?null:key);setPhotoEditSlot(null);}} style={{background:'rgba(59,130,246,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}>✎</button>
+                                    </div>
                                   </div>
                                 )}
                                 {/* Shape selector — visible in crop mode */}
@@ -3837,7 +3838,7 @@ export default function BookLayoutEditor() {
                               }
                             }}
                             style={{ ...s,
-                              overflow: 'hidden',
+                              overflow: photoEditSlot === key ? 'visible' : 'hidden',
                               background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
                               border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none') : '1.5px dashed #c7d2fe'),
                               transition: 'all 0.2s ease',
@@ -3861,7 +3862,7 @@ export default function BookLayoutEditor() {
                                     </div>
                                   ) : null;
                                 })()}
-                                <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
+                                <div style={{ width: '100%', height: '100%', overflow: photoEditSlot === key ? 'visible' : 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img src={photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
@@ -3880,18 +3881,21 @@ export default function BookLayoutEditor() {
                                   )}
                                   <style>{`.zoom-hint{opacity:0!important}div:hover>.zoom-hint{opacity:1!important}`}</style>
                                   {photoEditSlot===key && (
-                                    <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:4,background:'rgba(0,0,0,0.75)',borderRadius:20,padding:'3px 8px',zIndex:40}}>
-                                      <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'2px 4px',touchAction:'manipulation'}}>−</button>
-                                      <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:28,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
-                                      <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:14,padding:'2px 4px',touchAction:'manipulation'}}>+</button>
-                                      <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
-                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'0 2px'}}>↺</button>
-                                      <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
-                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)-90+360)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}} title="Повернути -90°">↶</button>
-                                      <span style={{color:'#fff',fontSize:8,fontWeight:600,minWidth:22,textAlign:'center'}}>{slot!.rotation||0}°</span>
-                                      <button onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)+90)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}} title="Повернути +90°">↷</button>
-                                      <div style={{width:1,height:12,background:'rgba(255,255,255,0.3)',margin:'0 2px'}}/>
-                                      <button onClick={e=>{e.stopPropagation();clearSlot(pageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.8)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10}}>✕ фото</button>
+                                    <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:40,maxWidth:'calc(100% - 4px)'}}>
+                                      {/* Row 1: zoom + rotate + delete */}
+                                      <div style={{display:'flex',alignItems:'center',gap:2,flexWrap:'nowrap'}}>
+                                        <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
+                                        <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:30,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
+                                        <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>+</button>
+                                        <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
+                                        <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontSize:12,padding:'2px 3px',touchAction:'manipulation'}}>↺</button>
+                                        <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
+                                        <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)-90+360)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути -90°">↶</button>
+                                        <span style={{color:'rgba(255,255,255,0.7)',fontSize:8,fontWeight:600,minWidth:18,textAlign:'center'}}>{slot!.rotation||0}°</span>
+                                        <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)+90)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути +90°">↷</button>
+                                        <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
+                                        <button onPointerDown={e=>{e.stopPropagation();clearSlot(pageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}>✕</button>
+                                      </div>
                                     </div>
                                   )}
                                 </div>
