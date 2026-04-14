@@ -1243,20 +1243,9 @@ export default function BookLayoutEditor() {
       const next = prev.map((p, i) => i !== pageIdx ? p : { ...p, layout, slots: layoutSlots, textBlocks: p.textBlocks || [] });
       return next;
     });
-    // Extra photos beyond layout slots → create FreeSlots
+    // Extra photos beyond layout slots → clear freeSlots (extras dropped silently)
     const extras = photoIds.slice(best.slots);
-    if (extras.length > 0) {
-      const newFreeSlots: FreeSlot[] = extras.map((id, ei) => ({
-        id: 'free-' + Date.now() + '-' + ei,
-        x: 10 + (ei % 3) * 30, y: 10 + Math.floor(ei / 3) * 30,
-        w: 35, h: 35,
-        shape: 'rect' as const,
-        photoId: id, cropX: 50, cropY: 50, zoom: 1,
-      }));
-      setFreeSlots(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx] || []), ...newFreeSlots] }));
-    } else {
-      setFreeSlots(prev => { const u = { ...prev }; delete u[pageIdx]; return u; });
-    }
+    setFreeSlots(prev => { const u = { ...prev }; delete u[pageIdx]; return u; });
     setSelectedPhotoIds(new Set());
     setTapSelectedPhotoId(null);
     const placed = Math.min(n, best.slots);
@@ -3272,9 +3261,25 @@ export default function BookLayoutEditor() {
                         setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== firstEmptyIdx ? s2 : { ...s2, photoId }) }));
                         return;
                       }
-                      // All slots filled → adapt layout to include this photo
+                      // All slots filled → adapt layout only if exact match exists
                       const currentPhotos = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
-                      if (currentPhotos.length > 0) { autoCollage([...currentPhotos, photoId], spreadPageIdx); return; }
+                      if (currentPhotos.length > 0) {
+                        const totalNeeded = currentPhotos.length + 1;
+                        const hasExactLayout = LAYOUTS.filter(l => l.id.startsWith('sp-')).some(l => l.slots === totalNeeded);
+                        if (hasExactLayout) {
+                          autoCollage([...currentPhotos, photoId], spreadPageIdx);
+                        } else {
+                          // No exact layout — just add as free slot
+                          pushHistory();
+                          const ph3 = photos.find(p => p.id === photoId);
+                          const ratio3 = ph3 ? ph3.width / ph3.height : 1;
+                          const fh3 = Math.min(cH * 0.35, 120);
+                          const fw3 = Math.round(fh3 * ratio3);
+                          const fs3: FreeSlot = { id: 'free-' + Date.now() + '-s', x: 10, y: 10, w: fw3, h: fh3, shape: 'rect', photoId, cropX: 50, cropY: 50, zoom: 1 };
+                          setFreeSlots(prev => ({ ...prev, [spreadPageIdx]: [...(prev[spreadPageIdx]||[]), fs3] }));
+                        }
+                        return;
+                      }
                       // Empty spread — no slots yet
                       pushHistory();
                       if (spreadPage && spreadPage.slots.length > 0) {
@@ -3767,10 +3772,27 @@ export default function BookLayoutEditor() {
                           }));
                           return;
                         }
-                        // If page has a layout with ALL slots filled → adapt layout to include this photo
+                        // If page has a layout with ALL slots filled → adapt layout only if exact match exists
                         const currentPhotos = (page?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
                         if (currentPhotos.length > 0 && page?.layout) {
-                          autoCollage([...currentPhotos, photoId], pageIdx);
+                          const totalNeeded = currentPhotos.length + 1;
+                          const modeLayouts = LAYOUTS.filter(l => !l.id.startsWith('sp-'));
+                          const hasExactLayout = modeLayouts.some(l => l.slots === totalNeeded);
+                          if (hasExactLayout) {
+                            autoCollage([...currentPhotos, photoId], pageIdx);
+                          } else {
+                            // No exact layout — place as free slot at drop position
+                            pushHistory();
+                            const rect2 = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            const fx = Math.max(10, Math.min(pageW - 80, e.clientX - rect2.left - 40));
+                            const fy = Math.max(10, Math.min(cH - 80, e.clientY - rect2.top - 40));
+                            const ph2 = photos.find(p => p.id === photoId);
+                            const ratio2 = ph2 ? ph2.width / ph2.height : 1;
+                            const fh = Math.min(cH * 0.35, 120);
+                            const fw = Math.round(fh * ratio2);
+                            const fs2: FreeSlot = { id: 'free-' + Date.now() + '-x', x: fx, y: fy, w: fw, h: fh, shape: 'rect', photoId, cropX: 50, cropY: 50, zoom: 1 };
+                            setFreeSlots(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx]||[]), fs2] }));
+                          }
                           return;
                         }
                         // Empty page → create FreeSlot

@@ -84,29 +84,7 @@ export interface PrintedOverlay {
   gradient: string;
 }
 
-export type LayoutType =
-  // 1 photo
-  | 'p-full' | 'p-center' | 'p-top' | 'p-bottom' | 'p-left' | 'p-right'
-  // 2 photos
-  | 'p-2-v' | 'p-2-h' | 'p-2-big-top' | 'p-2-big-bottom' | 'p-2-big-left' | 'p-2-big-right' | 'p-2-diag'
-  // 3 photos
-  | 'p-3-row' | 'p-3-col' | 'p-3-top2' | 'p-3-bot2' | 'p-3-left2' | 'p-3-right2' | 'p-3-hero-top' | 'p-3-hero-left'
-  // 4 photos
-  | 'p-4-grid' | 'p-4-hero-top' | 'p-4-hero-left' | 'p-4-strip-h' | 'p-4-strip-v' | 'p-4-l-shape'
-  // 5 photos
-  | 'p-5-hero' | 'p-5-grid' | 'p-5-strip'
-  // 6 photos
-  | 'p-6-grid' | 'p-6-3x2' | 'p-6-hero'
-  // 7-9
-  | 'p-7-grid' | 'p-8-grid' | 'p-9-grid'
-  // text
-  | 'p-text' | 'p-text-top' | 'p-text-bottom'
-  // SPREAD layouts (180° flat-lay photobooks — double width)
-  | 'sp-full' | 'sp-2-v' | 'sp-2-h' | 'sp-2-big-left' | 'sp-2-big-right' | 'sp-2-big-top' | 'sp-2-big-bottom'
-  | 'sp-3-row' | 'sp-3-col' | 'sp-3-hero-left' | 'sp-3-hero-right' | 'sp-3-hero-top' | 'sp-3-hero-bottom'
-  | 'sp-4-grid' | 'sp-4-hero' | 'sp-4-hero-right' | 'sp-4-top-bottom' | 'sp-4-strip-h'
-  | 'sp-5-grid' | 'sp-5-hero' | 'sp-6-grid'
-  | 'sp-1-left' | 'sp-1-right' | 'sp-1-center' | 'sp-1-left-wide' | 'sp-1-right-wide' | 'sp-2-left-pair' | 'sp-2-right-pair' | 'sp-2-diag' | 'sp-3-l-shape' | 'sp-3-t-shape' | 'sp-3-center' | 'sp-4-strip-v' | 'sp-4-mosaic' | 'sp-4-hero-top' | 'sp-4-hero-bottom' | 'sp-5-quilt' | 'sp-6-hero' | 'sp-7-grid' | 'sp-8-grid' | 'sp-5-strip' | 'sp-6-mosaic' | 'sp-7-hero' | 'sp-8-mosaic' | 'sp-9-grid' | 'sp-10-grid' | 'sp-10-hero' | 'sp-12-grid' | 'sp-1-top-strip' | 'sp-1-bottom-strip' | 'sp-2-75-25' | 'sp-2-25-75' | 'sp-2-cross' | 'sp-3-uneven' | 'sp-3-steps' | 'sp-3-panorama' | 'sp-4-focus' | 'sp-4-corner' | 'sp-4-cinema' | 'sp-5-focus' | 'sp-6-cols' | 'sp-9-hero' | 'sp-15-grid' | 'sp-16-grid';
+export type LayoutType = string;
 
 export interface SlotData {
   photoId: string | null;
