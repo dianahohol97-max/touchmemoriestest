@@ -79,35 +79,21 @@ function projectSky(
 
 // ─── Heart clip path ──────────────────────────────────────────────────────────
 function drawHeart(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number) {
-    // Classic heart shape — two round lobes meeting at a point
+    // Mathematically correct heart using parametric equation
+    // heart: x = 16sin³(t), y = 13cos(t) - 5cos(2t) - 2cos(3t) - cos(4t)
+    // Scaled to fit bounding box of ~s*2 width, ~s*2 height, centered at cx,cy
     ctx.beginPath();
-    const topY = cy - s * 0.35;
-    const botY = cy + s * 0.75;
-    ctx.moveTo(cx, botY); // bottom point
-    // Left side: bottom point → left lobe
-    ctx.bezierCurveTo(
-        cx - s * 0.1, cy + s * 0.2,  // control near bottom
-        cx - s * 1.3, cy - s * 0.1,  // control left
-        cx - s * 0.65, topY           // left lobe top
-    );
-    // Left lobe → top center
-    ctx.bezierCurveTo(
-        cx - s * 0.2, cy - s * 0.8,  // control top-left
-        cx, cy - s * 0.6,            // near center top
-        cx, cy - s * 0.25            // center dip
-    );
-    // Top center → right lobe
-    ctx.bezierCurveTo(
-        cx, cy - s * 0.6,            // near center top
-        cx + s * 0.2, cy - s * 0.8,  // control top-right
-        cx + s * 0.65, topY           // right lobe top
-    );
-    // Right lobe → bottom point
-    ctx.bezierCurveTo(
-        cx + s * 1.3, cy - s * 0.1,  // control right
-        cx + s * 0.1, cy + s * 0.2,  // control near bottom
-        cx, botY                      // back to bottom point
-    );
+    const steps = 200;
+    const scaleX = s * 0.93;
+    const scaleY = s * 0.88;
+    const offsetY = s * 0.08; // shift center slightly up so bottom point aligns
+    for (let i = 0; i <= steps; i++) {
+        const t = (i / steps) * Math.PI * 2;
+        const x = cx + scaleX * (16 * Math.pow(Math.sin(t), 3)) / 16;
+        const y = cy + offsetY - scaleY * (13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t)) / 17;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
     ctx.closePath();
 }
 
@@ -384,10 +370,8 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
                 currentY = lineY + 26*s;
             }
 
-            // Heart symbol
-            ctx.font=`${Math.round(15*s)}px sans-serif`; ctx.globalAlpha=0.55;
-            ctx.fillText('♥', W/2, currentY); ctx.globalAlpha=1;
-            currentY += 22*s;
+            // (heart symbol removed)
+            currentY += 6*s;
 
             // Location + date — bigger
             const loc = config.location || '';
