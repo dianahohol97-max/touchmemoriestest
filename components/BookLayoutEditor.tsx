@@ -1203,6 +1203,31 @@ export default function BookLayoutEditor() {
     setPages(ps);
   }, [config]);
 
+  // ── Designer mode: load existing project canvas_data ──
+  useEffect(() => {
+    if (!designerOrderId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/designer-projects?order_id=${designerOrderId}`);
+        if (!res.ok) return;
+        const { project } = await res.json();
+        if (cancelled || !project?.canvas_data) return;
+        const cd = project.canvas_data;
+        if (cd.pages && Array.isArray(cd.pages) && cd.pages.length > 0) {
+          setPages(cd.pages);
+        }
+        if (cd.coverState) {
+          setCoverState(cd.coverState);
+        }
+        toast.success(`Завантажено макет "${project.title}"${project.revision_notes ? ' — є правки від клієнта' : ''}`);
+      } catch (e) {
+        console.error('Failed to load designer project', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [designerOrderId]);
+
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
   const usedIds = new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean)));
   const _slug = (config?.productSlug || '').toLowerCase();
