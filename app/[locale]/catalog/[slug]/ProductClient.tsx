@@ -29,9 +29,9 @@ const getConstructorUrl = (slug: string): string => {
   // Travel Book → new book constructor
   if (s.includes('travelbook') || s.includes('travel'))
     return `/order/book?product=${slug}`;
-  // Книга побажань (wishbook, guestbook) → new GuestBookConstructorNew
+  // Книга побажань (wishbook, guestbook) → BookLayoutEditor in cover-only mode
   if (s.includes('wishbook') || s.includes('pobazhan') || s.includes('guestbook') || s.includes('knyha-pobazhan') || s.includes('vishbuk'))
-    return '/order/guest-book';
+    return `/order/book?product=${slug}`;
   // Photo albums
   if (s.includes('photoalbum') || s.includes('photoalbom') || s.includes('fotoalbom'))
     return `/order/book?product=${slug}`;
