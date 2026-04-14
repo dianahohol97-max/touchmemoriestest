@@ -231,11 +231,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                 // Initialize default options (first value of each option group)
                 const defaultOptions: Record<string, any> = {};
-                if (data.options && Array.isArray(data.options)) {
+                const isWishbookSlug = (data.slug || '').toLowerCase().includes('wish') ||
+                    (data.slug || '').toLowerCase().includes('guestbook') ||
+                    (data.slug || '').toLowerCase().includes('pobazhan');
+
+                if (data.options && Array.isArray(data.options) && !isWishbookSlug) {
                     data.options.forEach((opt: any) => {
                         const items = opt.options || opt.values;
                         if (items && items.length > 0) {
-                            // Use the value field if available, else index 0
+                            // Use the label field for wishbook to match hardcoded selector values
+                            // For other products use value/index
                             defaultOptions[opt.name] = items[0].value ?? items[0].name ?? 0;
                         }
                     });
