@@ -3223,13 +3223,20 @@ export default function BookLayoutEditor() {
                       let multiIds: string[] = [];
                       try { multiIds = JSON.parse(e.dataTransfer.getData('photoIds') || '[]'); } catch {}
                       if (multiIds.length > 1) { autoCollage(multiIds, spreadPageIdx); return; }
+                      // If spread has empty slots → fill first empty slot (no layout change)
+                      const firstEmptyIdx = (spreadPage?.slots||[]).findIndex(s => !s.photoId);
+                      if (firstEmptyIdx !== -1) {
+                        pushHistory();
+                        setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== firstEmptyIdx ? s2 : { ...s2, photoId }) }));
+                        return;
+                      }
+                      // All slots filled → adapt layout to include this photo
                       const currentPhotos = (spreadPage?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
                       if (currentPhotos.length > 0) { autoCollage([...currentPhotos, photoId], spreadPageIdx); return; }
-                      // Empty spread — place photo in first empty slot, keeping current layout
+                      // Empty spread — no slots yet
                       pushHistory();
-                      const firstEmptyIdx = spreadPage?.slots?.findIndex(s => !s.photoId) ?? 0;
                       if (spreadPage && spreadPage.slots.length > 0) {
-                        setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== firstEmptyIdx ? s2 : { ...s2, photoId }) }));
+                        setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== 0 ? s2 : { ...s2, photoId }) }));
                       } else {
                         // No slots at all (shouldn't happen) — use sp-full fallback
                         setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, layout: 'sp-full' as LayoutType, slots: [{ photoId, cropX: 50, cropY: 50, zoom: 1 }], textBlocks: p.textBlocks || [] }));
@@ -3708,7 +3715,17 @@ export default function BookLayoutEditor() {
                         // Single photo — check if already placed
                         const alreadyInSlot = (page?.slots||[]).some(s => s.photoId === photoId) || (freeSlots[pageIdx]||[]).some(fs => fs.photoId === photoId);
                         if (alreadyInSlot) return;
-                        // If page has a layout with filled slots → adapt layout to include this photo
+                        // If page has empty layout slots → fill first empty slot (no layout change)
+                        const emptySlotIdx = (page?.slots||[]).findIndex(s => !s.photoId);
+                        if (emptySlotIdx !== -1) {
+                          pushHistory();
+                          setPages(prev => prev.map((p, i) => i !== pageIdx ? p : {
+                            ...p,
+                            slots: p.slots.map((s, si) => si === emptySlotIdx ? { ...s, photoId } : s)
+                          }));
+                          return;
+                        }
+                        // If page has a layout with ALL slots filled → adapt layout to include this photo
                         const currentPhotos = (page?.slots||[]).filter(s => s.photoId).map(s => s.photoId!);
                         if (currentPhotos.length > 0 && page?.layout) {
                           autoCollage([...currentPhotos, photoId], pageIdx);
