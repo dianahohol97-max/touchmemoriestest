@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import dynamicImport from 'next/dynamic';
@@ -14,7 +14,17 @@ const BookConstructorConfig = dynamicImport(
 
 function BookOrderContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const productSlug = searchParams.get('product') || 'photobook-velour';
+
+  // Redirect wishbook/guestbook to new constructor
+  const s = productSlug.toLowerCase();
+  if (s.includes('wishbook') || s.includes('guestbook') || s.includes('pobazhan') || s.includes('vishbuk')) {
+    if (typeof window !== 'undefined') {
+      router.replace('/order/guest-book');
+    }
+    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Перенаправлення...</div>;
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#fff' }}>

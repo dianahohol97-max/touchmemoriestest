@@ -128,10 +128,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }:
     if (currentStep === 'form') {
       setCurrentStep('summary');
     } else {
-      sessionStorage.setItem('designerOrderConfig', JSON.stringify({
-        productType: 'guestbook', productName: 'Книга побажань', config, timestamp: Date.now(),
-      }));
-      router.push('/order');
+      router.push('/order/guest-book');
       onClose();
     }
   };
