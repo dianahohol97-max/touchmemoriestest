@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { STAR_CATALOG, CONSTELLATION_LINES, CONSTELLATION_LABELS, CONSTELLATION_LABELS_EN, CONSTELLATION_LABELS_PL, CONSTELLATION_LABELS_RO, CONSTELLATION_LABELS_DE } from '@/lib/astronomy/starCatalog';
+import { STAR_CATALOG, CONSTELLATION_LINES, CONSTELLATION_LABELS, CONSTELLATION_LABELS_EN, CONSTELLATION_LABELS_PL, CONSTELLATION_LABELS_RO, CONSTELLATION_LABELS_DE, NAMED_STARS } from '@/lib/astronomy/starCatalog';
 
 interface StarMapConfig {
     date: string; time: string; location: string;
@@ -12,6 +12,7 @@ interface StarMapConfig {
     size: string; productType: string; price: number;
     showGrid?: boolean; showConstellations?: boolean; showMilkyWay?: boolean;
     constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
+    showStarNames?: boolean;
 }
 
 // ─── Astronomy: RA/Dec → canvas XY ──────────────────────────────────────────
@@ -273,6 +274,26 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
         }
         ctx.globalAlpha=1;
 
+        // Named bright stars
+        if(config.showStarNames !== false) {
+            ctx.save();
+            ctx.font=`${Math.round(7.5*(W/600))}px ${config.fontFamily}`;
+            ctx.fillStyle = config.starColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            const starLang = config.constellationLang || 'uk';
+            for(const [ra, dec, nameUk, nameEn, mag] of NAMED_STARS) {
+                const pos = P(ra, dec, true); if(!pos) continue;
+                const name = (starLang === 'en') ? nameEn : nameUk;
+                const dotSize = Math.max(0.8, 2.4-(mag+1)*0.3);
+                // Only show if star is bright enough to be visible
+                if(mag > 2.5) continue;
+                ctx.globalAlpha = isLight ? 0.55 : 0.65;
+                ctx.fillText(name, pos.x, pos.y - dotSize - 2*(W/600));
+            }
+            ctx.restore();
+        }
+
         const s = W/600;
         // Constellation labels
         if(config.showConstellations!==false) {
@@ -374,26 +395,13 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
             // (heart symbol removed)
             currentY += 6*s;
 
-            // Location + date — truncate long addresses to city/town name only
+            // Location — show only city name (first part before comma)
             const rawLoc = config.location || '';
-            // Keep only first 1-2 parts of the address (city, country)
             const locParts = rawLoc.split(',');
-            const loc = locParts.length > 2
-                ? locParts[0].trim() + ', ' + locParts[locParts.length - 1].trim()
-                : rawLoc;
+            const loc = locParts[0].trim(); // Just city name
             const ds = config.date ? new Date(config.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'long',year:'numeric'}) : '';
             ctx.font=`${Math.round(14*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.75;
-            if(loc){
-                // Wrap location if still too long
-                const locMaxW = W * 0.80;
-                if(ctx.measureText(loc).width > locMaxW) {
-                    const shortLoc = locParts[0].trim();
-                    ctx.fillText(shortLoc, W/2, currentY);
-                } else {
-                    ctx.fillText(loc, W/2, currentY);
-                }
-                currentY += 20*s;
-            }
+            if(loc){ ctx.fillText(loc, W/2, currentY); currentY += 20*s; }
             if(ds){ ctx.fillText(ds, W/2, currentY); currentY += 20*s; }
             ctx.globalAlpha=1;
 

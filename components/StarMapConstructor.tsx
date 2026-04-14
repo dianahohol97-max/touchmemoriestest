@@ -30,6 +30,7 @@ interface StarMapConfig {
     showConstellations?: boolean;
     showMilkyWay?: boolean;
     constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
+    showStarNames?: boolean;
     backgroundColor: string;
     skyColor?: string;
     starColor: string;
@@ -71,6 +72,7 @@ export default function StarMapConstructor() {
         starColor: '#ffffff',
         textColor: '#ffffff',
         fontFamily: 'Georgia',
+        showStarNames: true,
 
         // Step 4 defaults
         size: 'A4 (21×29.7 см)',
@@ -592,35 +594,24 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                 </div>
             </div>
 
-            {/* Font Selector */}
+            {/* Font Selector — dropdown */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Шрифт</label>
-                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <select
+                    value={config.fontFamily}
+                    onChange={(e) => setConfig({ ...config, fontFamily: e.target.value })}
+                    style={{ width:'100%', padding:'10px 14px', border:'1px solid #d1d5db', borderRadius:8, fontSize:14, cursor:'pointer', background:'#fff', color:'#1e2d7d', fontWeight:600 }}
+                >
                     {FONT_GROUPS.map(group => (
-                        <div key={group.group}>
-                            <div style={{ fontSize:10, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>{group.group}</div>
-                            <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
-                                {group.fonts.map(font => {
-                                    const isActive = config.fontFamily === font;
-                                    return (
-                                        <button key={font} type="button"
-                                            onClick={() => setConfig({ ...config, fontFamily: font })}
-                                            style={{
-                                                padding:'5px 10px', borderRadius:8, cursor:'pointer', fontSize:12,
-                                                fontFamily: font,
-                                                border: isActive ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
-                                                background: isActive ? '#f0f3ff' : '#fff',
-                                                color: isActive ? '#1e2d7d' : '#374151',
-                                                fontWeight: isActive ? 700 : 400,
-                                                transition: 'all 0.15s',
-                                            }}>
-                                            {font}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        <optgroup key={group.group} label={group.group}>
+                            {group.fonts.map(font => (
+                                <option key={font} value={font}>{font}</option>
+                            ))}
+                        </optgroup>
                     ))}
+                </select>
+                <div style={{ marginTop:8, padding:'8px 14px', background:'#f0f3ff', borderRadius:8, fontFamily: config.fontFamily, fontSize:20, color:'#1e2d7d', textAlign:'center' }}>
+                    Зоряне небо ✦ Starry Sky
                 </div>
             </div>
 
@@ -631,6 +622,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                     {[
                         { key: 'showConstellations', label: "Лінії сузір'їв", default: true },
                         { key: 'showMilkyWay',      label: 'Чумацький Шлях', default: true },
+                        { key: 'showStarNames',     label: 'Назви яскравих зірок', default: true },
                         { key: 'showGrid',           label: 'Координатна сітка', default: false },
                     ].map(({ key, label }) => {
                         const val = (config as any)[key] !== false;
