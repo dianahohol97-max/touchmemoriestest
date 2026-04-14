@@ -326,7 +326,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
         setVideoUploading(true);
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `videos/${fileName}`;
+        const filePath = `product-videos/${fileName}`;
 
         try {
             const { error: uploadError } = await supabase.storage
@@ -542,21 +542,41 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                                 </span>
                             </div>
 
-                            <div {...getRootProps()} style={{
-                                ...emptyStateStyle,
-                                cursor: 'pointer',
-                                borderColor: isDragActive ? '#263A99' : '#f1f5f9',
-                                backgroundColor: isDragActive ? '#f0f9ff' : '#f8fafc',
-                                border: '2px dashed #e2e8f0',
-                                padding: '24px'
-                            }}>
-                                <input {...getInputProps()} />
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                                    {uploading ? <Loader2 className={styles.animateSpin} size={24} /> : <Upload size={24} color="#cbd5e1" />}
-                                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 600 }}>
-                                        {isDragActive ? 'Скиньте сюди' : 'Завантажити фото'}
-                                    </p>
+                            {/* Photo count progress bar */}
+                            <div style={{ marginBottom: 12 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                    <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Фото: {images.length} / 10</span>
+                                    {images.length >= 10 && <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700 }}>✕ Ліміт досягнуто</span>}
+                                    {images.length > 0 && images.length < 10 && <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>Можна ще {10 - images.length}</span>}
                                 </div>
+                                <div style={{ height: 4, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                                    <div style={{ height: '100%', width: `${(images.length/10)*100}%`, background: images.length >= 10 ? '#ef4444' : images.length >= 7 ? '#f59e0b' : '#10b981', borderRadius: 4, transition: 'width 0.3s' }}/>
+                                </div>
+                            </div>
+                            <div {...getRootProps()} style={{
+                                cursor: images.length >= 10 ? 'not-allowed' : 'pointer',
+                                borderRadius: 10,
+                                borderColor: isDragActive ? '#263A99' : images.length >= 10 ? '#fecaca' : '#e2e8f0',
+                                backgroundColor: isDragActive ? '#f0f9ff' : images.length >= 10 ? '#fef2f2' : '#f8fafc',
+                                border: '2px dashed',
+                                padding: '20px',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                                transition: 'all 0.2s',
+                                pointerEvents: images.length >= 10 ? 'none' : 'auto',
+                            }}>
+                                <input {...getInputProps()} disabled={images.length >= 10} />
+                                {uploading
+                                    ? <><Loader2 className={styles.animateSpin} size={22} color="#263A99"/><p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#263A99' }}>Завантаження...</p></>
+                                    : images.length >= 10
+                                    ? <><ImageIcon size={22} color="#fca5a5"/><p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#ef4444' }}>Ліміт 10 фото досягнуто</p></>
+                                    : <>
+                                        <Upload size={22} color={isDragActive ? '#263A99' : '#94a3b8'}/>
+                                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: isDragActive ? '#263A99' : '#374151' }}>
+                                            {isDragActive ? '📁 Відпустіть для завантаження' : 'Перетягніть фото або натисніть'}
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: 11, color: '#94a3b8' }}>JPG, PNG, WebP · макс. 10MB · до {10 - images.length} фото</p>
+                                    </>
+                                }
                             </div>
 
                             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -592,8 +612,11 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                             </DndContext>
 
                             <div style={{ marginTop: '20px', paddingTop: '24px', borderTop: '1px solid #f1f5f9' }}>
-                                <label style={{ ...labelStyle, marginBottom: '16px' }}>Відео-презентація (з пристрою)</label>
-                                <div style={{ backgroundColor: '#f8fafc', borderRadius: "3px", padding: '20px', border: '1px solid #f1f5f9' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <label style={{ ...labelStyle, margin: 0 }}>Відео-презентація</label>
+                                    <span style={{ fontSize: 11, color: '#94a3b8' }}>MP4 · макс. 200MB</span>
+                                </div>
+                                <div style={{ backgroundColor: '#faf5ff', borderRadius: 10, padding: '16px', border: '1.5px dashed #e9d5ff', transition: 'border-color 0.2s' }}>
                                     {formData.video_url ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                             <div style={{ position: 'relative', width: '120px', aspectRatio: '16/9', borderRadius: "3px", overflow: 'hidden', backgroundColor: 'black' }}>
@@ -639,8 +662,10 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                                                 cursor: 'pointer',
                                                 padding: '12px'
                                             }}>
-                                                {videoUploading ? <Loader2 className="animate-spin" size={20} /> : <Video size={20} color="#cbd5e1" />}
-                                                <span style={{ fontSize: '13px', fontWeight: 600 }}>Обрати відео (макс. 200MB)</span>
+                                                {videoUploading
+                                                    ? <><Loader2 className="animate-spin" size={18} color="#8b5cf6"/><span style={{ fontSize: 13, fontWeight: 700, color: '#8b5cf6' }}>Завантаження відео...</span></>
+                                                    : <><Video size={18} color="#8b5cf6"/><span style={{ fontSize: 13, fontWeight: 700, color: '#8b5cf6' }}>Завантажити відео з комп'ютера</span><span style={{ fontSize: 11, color: '#94a3b8' }}>(MP4, MOV · до 200MB)</span></>
+                                                }
                                             </label>
                                         </div>
                                     )}
