@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import type {
   PhotoData, BookConfig, CoverState, CoverDecoType, Page, TextBlock,
-  KalkaState, EndpaperState, CtxMenu, LeftTab, HistoryEntry, LayoutType,
+  KalkaState, EndpaperState, CtxMenu, LeftTab, HistoryEntry, string,
   StickerData,
 } from './types';
 import type { FreeSlot } from '@/components/FreeSlotLayer';
@@ -159,7 +159,7 @@ interface BookEditorState {
   restoreDraft: () => void;
   saveDraft: () => void;
   addPhotos: (newPhotos: PhotoData[]) => void;
-  changeLayout: (layout: LayoutType, pageW: number, cH: number, forceIdx?: number) => void;
+  changeLayout: (layout: string, pageW: number, cH: number, forceIdx?: number) => void;
   addSpread: () => void;
   removeCurrentSpread: (minPagesLen: number, minSpreads: number) => void;
   addFreeSlot: (pageW: number, cH: number) => void;
@@ -418,8 +418,8 @@ export const useBookEditorStore = create<BookEditorState>((set, get) => ({
       return {
         pages: [
           ...s.pages,
-          { id: newId1, label: `Стор. ${newId1}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] },
-          { id: newId2, label: `Стор. ${newId2}`, layout: 'p-full' as LayoutType, slots: makeSlots(1), textBlocks: [] },
+          { id: newId1, label: `Стор. ${newId1}`, layout: 'p-full' as string, slots: makeSlots(1), textBlocks: [] },
+          { id: newId2, label: `Стор. ${newId2}`, layout: 'p-full' as string, slots: makeSlots(1), textBlocks: [] },
         ],
         currentIdx: newSpreadIdx,
       };

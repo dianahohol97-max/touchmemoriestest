@@ -1,9 +1,8 @@
 'use client';
 
-import type { LayoutType } from '@/lib/editor/types';
 import { getSlotDefs } from '@/lib/editor/slot-defs';
 
-export function LayoutSVG({ layout, active }: { layout: LayoutType; active: boolean }) {
+export function LayoutSVG({ layout, active }: { layout: string; active: boolean }) {
   const isSpread = layout.startsWith('sp-');
   const W = isSpread ? 72 : 36, H = 46;
   const defs = getSlotDefs(layout, W, H);

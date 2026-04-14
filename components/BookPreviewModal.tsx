@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getSlotDefs } from '@/lib/editor/slot-defs';
-import type { LayoutType } from '@/lib/editor/types';
 import { BackgroundLayer, PageBackground, DEFAULT_BG } from './BackgroundLayer';
 import type { Shape } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES } from './FramesLayer';
@@ -24,7 +23,7 @@ interface TextBlock {
 }
 
 interface PageData {
-  id: number; label: string; layout: LayoutType;
+  id: number; label: string; layout: string;
   slots: SlotData[]; textBlocks?: TextBlock[];
 }
 

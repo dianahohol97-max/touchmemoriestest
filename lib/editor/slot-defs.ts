@@ -1,12 +1,11 @@
 import * as React from 'react';
-import type { LayoutType } from './types';
 
 export interface SlotDef {
   i: number;
   s: React.CSSProperties;
 }
 
-export function getSlotDefs(layout: LayoutType, W: number, H: number): SlotDef[] {
+export function getSlotDefs(layout: string, W: number, H: number): SlotDef[] {
   const g = 4;
   const w2 = (W - g) / 2, h2 = (H - g) / 2;
   const w3 = (W - 2 * g) / 3, h3 = (H - 2 * g) / 3;
