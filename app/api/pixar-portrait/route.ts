@@ -139,3 +139,4 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ status: prediction.status, polling: true });
 }
+// REPLICATE_API_TOKEN — add to Vercel env vars, never in code
