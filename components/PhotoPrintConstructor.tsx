@@ -201,9 +201,10 @@ function PhotoPreview({
   const scale = MAX_W / totalW;
   const canvasW = MAX_W;
   const canvasH = Math.round(totalH * scale);
-  // Border in pixels — overlaid on top of photo
+  // Border in pixels — 3mm relative to actual print size
+  // e.g. 10cm wide → scale=32px/cm → 3mm = 0.3cm * 32 = 9.6px ✓
   const borderMmActual = (showBorder || isNonstandard) ? 3 : 0;
-  const borderPx = borderMmActual * scale;
+  const borderPx = Math.round(borderMmActual * scale / 10); // divide by 10: mm → cm, then * scale
   // Keep old variable names for compat
   const borderBottomPx = borderPx;
   const photoAreaW = canvasW;
