@@ -1950,6 +1950,10 @@ export default function BookLayoutEditor() {
                           <button key={tmpl.id} title={tmpl.label}
                             onClick={() => {
                               const pageIdx = getActivePageIdx();
+                              const existingBlocks = pages[pageIdx]?.textBlocks || [];
+                              if (existingBlocks.length > 0) {
+                                if (!window.confirm('Замінити поточний шаблон? Всі текстові блоки на сторінці будуть видалені.')) return;
+                              }
                               pushHistory();
                               const newBlocks = tmpl.texts.map((t, ti) => ({
                                 id: 'ptmpl-' + Date.now() + '-' + ti + '-' + Math.random().toString(36).slice(2,6),
@@ -1959,12 +1963,12 @@ export default function BookLayoutEditor() {
                               }));
                               setPages(prev => prev.map((p, i) => i !== pageIdx ? p : {
                                 ...p,
-                                textBlocks: [...(p.textBlocks || []), ...newBlocks],
+                                textBlocks: newBlocks,
                               }));
                               if (tmpl.bgColor && tmpl.bgColor !== '#ffffff') {
                                 setPageBgs(prev => ({ ...prev, [pageIdx]: { type: 'color' as const, color: tmpl.bgColor!, opacity: 100, imageUrl: null, blur: 0 } }));
                               }
-                              toast.success(`"${tmpl.label}" додано`);
+                              toast.success(`"${tmpl.label}" застосовано`);
                             }}
                             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '7px 4px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>
                             <div style={{ width: '100%', height: 48, borderRadius: 4, background: tmpl.bgColor || '#f8fafc', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#94a3b8', overflow: 'hidden', position: 'relative' }}>
@@ -1985,6 +1989,10 @@ export default function BookLayoutEditor() {
                   <button onClick={() => { const idx = getActivePageIdx(); setPages(prev => prev.map((p, i) => i !== idx ? p : { ...p, slots: makeSlots(LAYOUTS.find(l => l.id === p.layout)?.slots || 0) })); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #fee2e2', borderRadius: 8, background: '#fff7f7', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#ef4444', width: '100%' }}>
                     <RotateCcw size={13} /> Очистити сторінку
+                  </button>
+                  <button onClick={() => { const idx = getActivePageIdx(); if ((pages[idx]?.textBlocks||[]).length === 0) return; pushHistory(); setPages(prev => prev.map((p, i) => i !== idx ? p : { ...p, textBlocks: [] })); toast.success('Всі тексти видалено'); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #fde68a', borderRadius: 8, background: '#fffbeb', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#d97706', width: '100%' }}>
+                    <RotateCcw size={13} /> Видалити всі тексти
                   </button>
                   <button onClick={() => {
                     pushHistory();
