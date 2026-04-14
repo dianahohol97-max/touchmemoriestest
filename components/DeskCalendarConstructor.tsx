@@ -19,10 +19,18 @@ type LangCode = keyof typeof LOCALES;
 interface Design { id:string; name:string; bg:string; headerBg:string; headerText:string; dayNameColor:string; dayColor:string; sundayColor:string; saturdayColor:string; gridLine:string; font:string; accentFont:string; }
 
 const DESIGNS: Design[] = [
-  { id:'white',   name:'Білий',   bg:'#ffffff', headerBg:'#ffffff', headerText:'#1a1a2e', dayNameColor:'#94a3b8', dayColor:'#1a1a2e', sundayColor:'#ef4444', saturdayColor:'#3b82f6', gridLine:'#f1f5f9', font:'Montserrat', accentFont:'Montserrat' },
-  { id:'minimal', name:'Мінімал', bg:'#f8fafc', headerBg:'#1e2d7d', headerText:'#ffffff', dayNameColor:'#94a3b8', dayColor:'#1a1a2e', sundayColor:'#ef4444', saturdayColor:'#3b82f6', gridLine:'#e2e8f0', font:'Montserrat', accentFont:'Montserrat' },
-  { id:'warm',    name:'Теплий',  bg:'#faf7f2', headerBg:'#c8a96e', headerText:'#ffffff', dayNameColor:'#a0845c', dayColor:'#3d2c1e', sundayColor:'#c0392b', saturdayColor:'#7d6149', gridLine:'#ede8df', font:'Lora',       accentFont:'Playfair Display' },
-  { id:'fresh',   name:'Свіжий',  bg:'#f0fdf4', headerBg:'#16a34a', headerText:'#ffffff', dayNameColor:'#4ade80', dayColor:'#14532d', sundayColor:'#dc2626', saturdayColor:'#2563eb', gridLine:'#dcfce7', font:'Nunito',     accentFont:'Nunito' },
+  // Clean white — мінімалістичний, безтрендовий
+  { id:'white',   name:'Білий',   bg:'#ffffff', headerBg:'#ffffff', headerText:'#0f172a', dayNameColor:'#94a3b8', dayColor:'#0f172a', sundayColor:'#e11d48', saturdayColor:'#2563eb', gridLine:'#f1f5f9', font:'Montserrat', accentFont:'Montserrat' },
+  // Slate — темно-сірий акцент, сучасний
+  { id:'minimal', name:'Сучасний', bg:'#f8fafc', headerBg:'#0f172a', headerText:'#f8fafc', dayNameColor:'#64748b', dayColor:'#0f172a', sundayColor:'#e11d48', saturdayColor:'#3b82f6', gridLine:'#e2e8f0', font:'Montserrat', accentFont:'Montserrat' },
+  // Ivory — кремовий, теплий, елегантний
+  { id:'warm',    name:'Елегантний', bg:'#fdfaf5', headerBg:'#fdfaf5', headerText:'#1c1008', dayNameColor:'#b8956a', dayColor:'#1c1008', sundayColor:'#c0392b', saturdayColor:'#6b7280', gridLine:'#ede8df', font:'Lora', accentFont:'Cormorant Garamond' },
+  // Ink — чорний + контраст, editorial стиль
+  { id:'ink',     name:'Ink',     bg:'#0f0f10', headerBg:'#0f0f10', headerText:'#f0f0f0', dayNameColor:'#4b5563', dayColor:'#e2e8f0', sundayColor:'#f87171', saturdayColor:'#60a5fa', gridLine:'#1f2937', font:'Montserrat', accentFont:'Montserrat' },
+  // Sage — приглушений зелений, природній
+  { id:'sage',    name:'Sage',    bg:'#f4f7f4', headerBg:'#3d5a40', headerText:'#ffffff', dayNameColor:'#6b8f6b', dayColor:'#1c2e1c', sundayColor:'#dc2626', saturdayColor:'#2d6a4f', gridLine:'#d8e8d8', font:'Nunito', accentFont:'Nunito' },
+  // Blush — рожево-кремовий, трендовий
+  { id:'blush',   name:'Blush',   bg:'#fdf2f4', headerBg:'#fdf2f4', headerText:'#4a1028', dayNameColor:'#c084a0', dayColor:'#4a1028', sundayColor:'#be123c', saturdayColor:'#9d174d', gridLine:'#fce7eb', font:'Lora', accentFont:'Playfair Display' },
 ];
 
 type CollageId = 'single'|'two-h'|'two-v'|'three'|'four'|'five'|'six'|'seven'|'eight';
@@ -75,7 +83,7 @@ function drawCoverPage(canvas:HTMLCanvasElement,cover:CoverConfig,year:number,W:
     const photoH=Math.round(H*0.58);
     const collage=COLLAGES.find(c=>c.id===cover.collageId)||COLLAGES[0];
     const slots=collage.getSlots(pad,pad,W-2*pad,photoH-pad);
-    slots.forEach((sl,i)=>drawSlot(ctx,sl,cover.photos[i]||null));
+    slots.forEach((sl,i)=>drawSlot(ctx,sl,cover.photos[i]?{url:cover.photos[i]!,zoom:1,cropX:50,cropY:50}:null));
 
     // Text area (bottom ~35%)
     const textY=photoH+Math.round(pad*0.3);
@@ -139,20 +147,33 @@ function rr(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,r:n
 
 function drawHeart(ctx:CanvasRenderingContext2D,cx:number,cy:number,r:number){ctx.save();ctx.translate(cx,cy-r*0.1);const s=r/8;ctx.beginPath();for(let i=0;i<=100;i++){const t=(i/100)*Math.PI*2;const x=s*16*Math.pow(Math.sin(t),3);const y=-s*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();ctx.restore();}
 
-function drawSlot(ctx:CanvasRenderingContext2D,sl:{x:number;y:number;w:number;h:number},photo:string|null){
-  if(!photo){ctx.save();ctx.fillStyle='rgba(200,210,255,0.22)';rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.fill();ctx.strokeStyle='rgba(100,130,220,0.3)';ctx.setLineDash([5,4]);ctx.lineWidth=1;rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(100,130,220,0.35)';ctx.font=`${Math.round(sl.h*0.28)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('📷',sl.x+sl.w/2,sl.y+sl.h/2);ctx.restore();return;}
-  const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{ctx.save();rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.clip();const ia=img.width/img.height,sa=sl.w/sl.h;let dw,dh,dx,dy;if(ia>sa){dh=sl.h;dw=dh*ia;dx=sl.x-(dw-sl.w)/2;dy=sl.y;}else{dw=sl.w;dh=dw/ia;dx=sl.x;dy=sl.y-(dh-sl.h)/2;}ctx.drawImage(img,dx,dy,dw,dh);ctx.restore();};img.src=photo;
+interface DrawSlotOpts { url:string|null; zoom?:number; cropX?:number; cropY?:number; }
+function drawSlot(ctx:CanvasRenderingContext2D,sl:{x:number;y:number;w:number;h:number},p:DrawSlotOpts|null){
+  const photo=p?.url||null;
+  if(!photo){ctx.save();ctx.fillStyle='rgba(200,210,255,0.18)';rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.fill();ctx.strokeStyle='rgba(100,130,220,0.25)';ctx.setLineDash([5,4]);ctx.lineWidth=0.8;rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(100,130,220,0.3)';ctx.font=`${Math.round(sl.h*0.25)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('📷',sl.x+sl.w/2,sl.y+sl.h/2);ctx.restore();return;}
+  const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{
+    ctx.save();rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.clip();
+    const zoom=p?.zoom||1;const cx=(p?.cropX??50)/100;const cy=(p?.cropY??50)/100;
+    const ia=img.width/img.height,sa=sl.w/sl.h;
+    let dw,dh;if(ia>sa){dh=sl.h*zoom;dw=dh*ia;}else{dw=sl.w*zoom;dh=dw/ia;}
+    const dx=sl.x+(sl.w-dw)*cx;const dy=sl.y+(sl.h-dh)*cy;
+    ctx.drawImage(img,dx,dy,dw,dh);ctx.restore();};img.src=photo;
 }
 
-function drawPage(canvas:HTMLCanvasElement,month:number,year:number,design:Design,lang:LangCode,photos:(string|null)[],collageId:CollageId,W:number,H:number,marks:MarkedDate[]){
+function drawPage(canvas:HTMLCanvasElement,month:number,year:number,design:Design,lang:LangCode,photos:{url:string|null;zoom:number;cropX:number;cropY:number}[],collageId:CollageId,W:number,H:number,marks:MarkedDate[]){
   const ctx=canvas.getContext('2d')!;canvas.width=W;canvas.height=H;
   const loc=LOCALES[lang];
   ctx.fillStyle=design.bg;ctx.fillRect(0,0,W,H);
   const pad=Math.round(W*0.055),s=W/280;
   const headerH=Math.round(H*0.085);
-  const isWhite=design.id==='white';
-  if(!isWhite){ctx.fillStyle=design.headerBg;rr(ctx,pad,pad,W-2*pad,headerH,5);ctx.fill();}
-  else{ctx.strokeStyle='#e2e8f0';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(pad,pad+headerH);ctx.lineTo(W-pad,pad+headerH);ctx.stroke();}
+  const noHeaderBar = design.id==='white'||design.id==='warm'||design.id==='blush';
+  if(!noHeaderBar){ctx.fillStyle=design.headerBg;rr(ctx,pad,pad,W-2*pad,headerH,5);ctx.fill();}
+  else{
+    // For designs with bg=header: just a thin bottom border
+    const lineCol = design.id==='ink'?'#2d3748':'#e8e0d8';
+    ctx.strokeStyle=lineCol;ctx.lineWidth=0.7;
+    ctx.beginPath();ctx.moveTo(pad,pad+headerH);ctx.lineTo(W-pad,pad+headerH);ctx.stroke();
+  }
   ctx.fillStyle=design.headerText;
   ctx.font=`800 ${Math.round(headerH*0.44)}px '${design.accentFont}',sans-serif`;
   ctx.textAlign='center';ctx.textBaseline='middle';
@@ -182,7 +203,7 @@ function drawPage(canvas:HTMLCanvasElement,month:number,year:number,design:Desig
   }
 }
 
-function MonthCanvas({month,year,design,lang,photos,collageId,W,H,marks}:{month:number;year:number;design:Design;lang:LangCode;photos:(string|null)[];collageId:CollageId;W:number;H:number;marks?:MarkedDate[]}){
+function MonthCanvas({month,year,design,lang,photos,collageId,W,H,marks}:{month:number;year:number;design:Design;lang:LangCode;photos:{url:string|null;zoom:number;cropX:number;cropY:number}[];collageId:CollageId;W:number;H:number;marks?:MarkedDate[]}){
   const ref=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{const c=ref.current;if(!c)return;drawPage(c,month,year,design,lang,photos,collageId,W,H,marks||[]);},[month,year,design,lang,photos,collageId,W,H,marks]);
   return <canvas ref={ref} width={W} height={H} style={{width:'100%',height:'auto',display:'block',borderRadius:6}}/>;
@@ -195,7 +216,10 @@ export default function DeskCalendarConstructor(){
   const [year,setYear]=useState(2026);
   const [active,setActive]=useState(1);
   const [collageId,setCollageId]=useState<CollageId>('single');
-  const [monthPhotos,setMonthPhotos]=useState<(string|null)[][]>(Array.from({length:12},()=>Array(8).fill(null)));
+  interface PhotoSlot { url:string|null; zoom:number; cropX:number; cropY:number; }
+  const makeSlot=():PhotoSlot=>({url:null,zoom:1,cropX:50,cropY:50});
+  const [monthPhotos,setMonthPhotos]=useState<PhotoSlot[][]>(Array.from({length:12},()=>Array(8).fill(null).map(makeSlot)));
+  const [activeCropSlot,setActiveCropSlot]=useState<{month:number;slot:number}|null>(null);
   const [cover,setCover]=useState<CoverConfig>({...DEFAULT_COVER});
   const [showCover,setShowCover]=useState(false); // 0=cover editor, false=month editor
   const [marks,setMarks]=useState<Record<string,MarkedDate[]>>({});
@@ -207,11 +231,12 @@ export default function DeskCalendarConstructor(){
   const coverBgFileRef=useRef<HTMLInputElement>(null);
   const PW=260,PH=Math.round(260*(21/15));
   useEffect(()=>{const l=document.createElement('link');l.rel='stylesheet';l.href=GOOGLE_FONTS_URL;document.head.appendChild(l);return()=>{try{document.head.removeChild(l);}catch{}};},[]);
-  const handleUpload=(e:React.ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f);const{m,s}=upTarget.current;setMonthPhotos(prev=>{const n=prev.map(x=>[...x]);n[m][s]=url;return n;});if(fileRef.current)fileRef.current.value='';};
+  const handleUpload=(e:React.ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f);const{m,s}=upTarget.current;setMonthPhotos(prev=>{const n=prev.map(x=>x.map(p=>({...p})));n[m][s]={url,zoom:1,cropX:50,cropY:50};return n;});if(fileRef.current)fileRef.current.value='';};
+  const updateSlot=(m:number,s:number,patch:Partial<PhotoSlot>)=>setMonthPhotos(prev=>{const n=prev.map(x=>x.map(p=>({...p})));n[m][s]={...n[m][s],...patch};return n;});
   const openUp=(m:number,s:number)=>{upTarget.current={m,s};fileRef.current?.click();};
-  const handleCoverPhotoUpload=(e:React.ChangeEvent<HTMLInputElement>,slot:number)=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f);setCover(prev=>({...prev,photos:prev.photos.map((p,i)=>i===slot?url:p)}));if(e.target)e.target.value='';};
+  const handleCoverPhotoUpload=(e:React.ChangeEvent<HTMLInputElement>,slot:number)=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f);setCover((prev:CoverConfig)=>({...prev,photos:(prev.photos as (string|null)[]).map((p,i)=>i===slot?url:p)}));if(e.target)e.target.value='';};
   const handleCoverBgUpload=(e:React.ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(!f)return;setCover(prev=>({...prev,bgPhoto:URL.createObjectURL(f)}));if(e.target)e.target.value='';};
-  const removeP=(m:number,s:number)=>setMonthPhotos(prev=>{const n=prev.map(x=>[...x]);n[m][s]=null;return n;});
+  const removeP=(m:number,s:number)=>setMonthPhotos(prev=>{const n=prev.map(x=>x.map(p=>({...p})));n[m][s]=makeSlot();return n;});
   const toggleMark=(day:number)=>{const key=`m${active}`;setMarks(prev=>{const ex=prev[key]||[];const idx=ex.findIndex(m=>m.day===day);if(idx>=0){const same=ex[idx].shape===markShape&&ex[idx].color===markColor;if(same)return{...prev,[key]:ex.filter((_,i)=>i!==idx)};return{...prev,[key]:ex.map((m,i)=>i===idx?{...m,shape:markShape,color:markColor}:m)};}return{...prev,[key]:[...ex,{day,shape:markShape,color:markColor}]};});};
   const loc=LOCALES[lang];
   const collage=COLLAGES.find(c=>c.id===collageId)||COLLAGES[0];
@@ -326,10 +351,10 @@ export default function DeskCalendarConstructor(){
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:`repeat(${COLLAGES.find(c=>c.id===cover.collageId)?.slots||1},1fr)`,gap:4}}>
                   {Array.from({length:COLLAGES.find(c=>c.id===cover.collageId)?.slots||1},(_,si)=>{
-                    const ph=cover.photos[si];
-                    return ph?(
+                    const covPh=cover.photos[si];
+                    return covPh?(
                       <div key={si} style={{position:'relative'}}>
-                        <img src={ph} style={{width:'100%',height:50,objectFit:'cover',borderRadius:5,border:'1.5px solid #e9d5ff'}}/>
+                        <img src={covPh} style={{width:'100%',height:50,objectFit:'cover',borderRadius:5,border:'1.5px solid #e9d5ff'}}/>
                         <button onClick={()=>setCover(p=>({...p,photos:p.photos.map((x,i)=>i===si?null:x)}))} style={{position:'absolute',top:2,right:2,width:14,height:14,borderRadius:'50%',background:'rgba(0,0,0,0.6)',color:'#fff',border:'none',cursor:'pointer',fontSize:9}}>×</button>
                       </div>
                     ):(
@@ -369,14 +394,49 @@ export default function DeskCalendarConstructor(){
             <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleUpload}/>
             <div style={{display:'grid',gridTemplateColumns:`repeat(${collage.slots},1fr)`,gap:5}}>
               {Array.from({length:collage.slots},(_,si)=>{
-                const ph=curPhotos[si];
+                const slotData=curPhotos[si];
+                const ph=slotData?.url||null;
+                const isCropActive=activeCropSlot?.month===active-1&&activeCropSlot?.slot===si;
                 return ph?(
-                  <div key={si} style={{position:'relative'}}>
-                    <img src={ph} style={{width:'100%',height:55,objectFit:'cover',borderRadius:6,border:'1.5px solid #c7d2fe'}}/>
-                    <button onClick={()=>removeP(active-1,si)} style={{position:'absolute',top:2,right:2,width:16,height:16,borderRadius:'50%',background:'rgba(0,0,0,0.6)',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                  <div key={si}>
+                    <div style={{position:'relative',marginBottom:isCropActive?4:0}}>
+                      <img src={ph} style={{width:'100%',height:52,objectFit:'cover',borderRadius:6,border:isCropActive?'2px solid #3b82f6':'1.5px solid #c7d2fe'}}/>
+                      <button onClick={()=>setActiveCropSlot(isCropActive?null:{month:active-1,slot:si})}
+                        style={{position:'absolute',bottom:3,left:3,padding:'1px 5px',borderRadius:4,background:isCropActive?'#3b82f6':'rgba(0,0,0,0.6)',color:'#fff',border:'none',cursor:'pointer',fontSize:8,fontWeight:700}}>
+                        ✂ {isCropActive?'Готово':'Кадр'}
+                      </button>
+                      <button onClick={()=>removeP(active-1,si)} style={{position:'absolute',top:2,right:2,width:15,height:15,borderRadius:'50%',background:'rgba(0,0,0,0.6)',color:'#fff',border:'none',cursor:'pointer',fontSize:9,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                    </div>
+                    {isCropActive&&(
+                      <div style={{background:'#f0f9ff',borderRadius:7,padding:'6px 8px',border:'1px solid #bae6fd',marginBottom:4}}>
+                        <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:4}}>
+                          <span style={{fontSize:9,color:'#0369a1',width:28}}>🔍 Zoom</span>
+                          <input type="range" min={100} max={300} value={Math.round((slotData.zoom)*100)}
+                            onChange={e=>updateSlot(active-1,si,{zoom:+e.target.value/100})}
+                            style={{flex:1,accentColor:'#3b82f6'}}/>
+                          <span style={{fontSize:9,color:'#475569',width:24}}>{Math.round(slotData.zoom*100)}%</span>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:4}}>
+                          <span style={{fontSize:9,color:'#0369a1',width:28}}>↔ X</span>
+                          <input type="range" min={0} max={100} value={slotData.cropX}
+                            onChange={e=>updateSlot(active-1,si,{cropX:+e.target.value})}
+                            style={{flex:1,accentColor:'#3b82f6'}}/>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:5}}>
+                          <span style={{fontSize:9,color:'#0369a1',width:28}}>↕ Y</span>
+                          <input type="range" min={0} max={100} value={slotData.cropY}
+                            onChange={e=>updateSlot(active-1,si,{cropY:+e.target.value})}
+                            style={{flex:1,accentColor:'#3b82f6'}}/>
+                        </div>
+                        <button onClick={()=>updateSlot(active-1,si,{zoom:1,cropX:50,cropY:50})}
+                          style={{marginTop:4,fontSize:8,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>
+                          ↺ Скинути
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ):(
-                  <button key={si} onClick={()=>openUp(active-1,si)} style={{height:55,border:'2px dashed #c7d2fe',borderRadius:6,background:'#f8faff',color:'#1e2d7d',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
+                  <button key={si} onClick={()=>openUp(active-1,si)} style={{height:52,border:'2px dashed #c7d2fe',borderRadius:6,background:'#f8faff',color:'#1e2d7d',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
                     <Upload size={11}/><span style={{fontSize:8,fontWeight:700}}>{collage.slots>1?`Фото ${si+1}`:'Фото'}</span>
                   </button>
                 );
@@ -422,7 +482,7 @@ export default function DeskCalendarConstructor(){
             <span style={{fontSize:12,color:'#64748b'}}>Настільний календар {year}</span>
             <span style={{fontSize:16,fontWeight:800,color:'#1e2d7d'}}>450 ₴</span>
           </div>
-          <button onClick={()=>{addItem({id:`desk-cal-${Date.now()}`,name:`Настільний календар ${year}`,price:450,qty:1,image:monthPhotos.flat().find(p=>p!==null)||'',options:{'Дизайн':design.name,'Мова':lang,'Рік':String(year)},personalization_note:`Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`});toast.success('✅ Календар додано!');router.push('/cart');}} style={{width:'100%',padding:'11px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:8,fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 4px 12px rgba(30,45,125,0.28)'}}>
+          <button onClick={()=>{addItem({id:`desk-cal-${Date.now()}`,name:`Настільний календар ${year}`,price:450,qty:1,image:monthPhotos.flat().find(p=>p.url!==null)?.url||'',options:{'Дизайн':design.name,'Мова':lang,'Рік':String(year)},personalization_note:`Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`});toast.success('✅ Календар додано!');router.push('/cart');}} style={{width:'100%',padding:'11px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:8,fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 4px 12px rgba(30,45,125,0.28)'}}>
             <ShoppingCart size={14}/> Замовити — 450 ₴
           </button>
         </div>
