@@ -1,4 +1,4 @@
-import type { BookConfig, CoverDecoType, CoverState, SlotData, Page, string } from './types';
+import type { BookConfig, CoverDecoType, CoverState, SlotData, Page } from './types';
 import {
   VELOUR_COLORS, LEATHERETTE_COLORS, FABRIC_COLORS,
   PAGE_PROPORTIONS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS,
