@@ -128,7 +128,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }:
     if (currentStep === 'form') {
       setCurrentStep('summary');
     } else {
-      router.push('/order/guest-book');
+      router.push('/order/book?product=guestbook-wedding');
       onClose();
     }
   };

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function ConstructorPage() {
-  redirect('/order/guest-book')
+  redirect('/order/book?product=guestbook-wedding')
 }
