@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Upload, Wand2, X, Download, RefreshCw } from 'lucide-react';
 
 export type PixarStyle = 'pixar' | 'anime' | 'cartoon' | 'watercolor' | 'sketch' | 'oilpainting';
+export const AI_PORTRAIT_PRICE = 75; // UAH surcharge per order
 
 interface StyleOption {
   id: PixarStyle;
@@ -186,7 +187,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
             color:'#fff', border:'none', borderRadius:8, fontWeight:800, fontSize:13,
             cursor: isGenerating ? 'wait' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
           <Wand2 size={14}/>
-          {isGenerating ? `Генерую... ${progress}%` : `✨ Перетворити в ${styleObj.label}`}
+          {isGenerating ? `Генерую... ${progress}%` : `✨ Перетворити в ${styleObj.label} (+${AI_PORTRAIT_PRICE} ₴)`}
         </button>
 
         {/* Progress bar */}
@@ -270,7 +271,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
               display:'flex', alignItems:'center', justifyContent:'center', gap:8,
               boxShadow: sourcePreview && !isGenerating ? '0 4px 20px rgba(124,58,237,0.35)' : 'none' }}>
             {isGenerating ? <RefreshCw size={18} style={{ animation:'spin 1s linear infinite' }}/> : <Wand2 size={18}/>}
-            {isGenerating ? `Генерую... ${progress}%` : `✨ Перетворити в ${styleObj.emoji} ${styleObj.label}`}
+            {isGenerating ? `Генерую... ${progress}%` : `✨ Перетворити в ${styleObj.emoji} ${styleObj.label} (+${AI_PORTRAIT_PRICE} ₴)`}
           </button>
 
           {/* Progress */}
@@ -328,7 +329,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
 
       {/* Info note */}
       <div style={{ background:'#faf5ff', border:'1px solid #e9d5ff', borderRadius:8, padding:'10px 14px', fontSize:11, color:'#7c3aed' }}>
-        💡 <b>AI перетворення:</b> Штучний інтелект зберігає риси обличчя і трансформує стиль зображення. Результат може займати 20–40 секунд.
+        💡 <b>AI перетворення (+75 ₴):</b> Штучний інтелект (FLUX 2 Pro) зберігає риси обличчя і трансформує стиль. Результат ~20–40 секунд.
       </div>
     </div>
   );

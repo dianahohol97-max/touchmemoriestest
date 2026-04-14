@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Upload, Plus, Trash2, Type, ChevronLeft, ChevronRight, ShoppingCart, RotateCcw, Move, AlignCenter, AlignLeft, AlignRight } from 'lucide-react';
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
-import PixarPortraitGenerator from './PixarPortraitGenerator';
+import PixarPortraitGenerator, { AI_PORTRAIT_PRICE } from './PixarPortraitGenerator';
 import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -547,7 +547,8 @@ export default function PosterConstructor() {
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const replaceTargetIdx = useRef<number>(-1);
   const [cropSlotIdx, setCropSlotIdx] = useState<number | null>(null);
-  const [showPixar, setShowPixar] = useState(false); // which photo slot is in crop mode
+  const [showPixar, setShowPixar] = useState(false);
+  const [hasAiPortrait, setHasAiPortrait] = useState(false); // which photo slot is in crop mode
   const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
   const [step, setStep] = useState<'layout' | 'photos' | 'design' | 'text' | 'size'>('layout');
   const [isOrdering, setIsOrdering] = useState(false);
@@ -666,7 +667,7 @@ export default function PosterConstructor() {
       addItem({
         id: `poster-${Date.now()}`,
         name: `Постер ${sizeObj.label}`,
-        price: sizeObj.price,
+        price: sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0),
         qty: 1,
         image: config.photos[0]?.photoUrl || '',
         options: {
@@ -763,7 +764,7 @@ export default function PosterConstructor() {
               <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>Додати фото</h3>
               <p style={{ fontSize:12, color:'#94a3b8', marginBottom:12 }}>Макет "{layout.name}" — {layout.slots} фото</p>
 
-              {config.photos.length < layout.slots && (
+              {config.photos.length < layout.slots && (<>
                 <button onClick={() => fileInputRef.current?.click()}
                   style={{ width:'100%', padding:'14px', border:'2px dashed #c7d2fe', borderRadius:10,
                     background:'#f8faff', color:'#1e2d7d', fontWeight:700, fontSize:13,
@@ -781,12 +782,14 @@ export default function PosterConstructor() {
                     <PixarPortraitGenerator compact onResult={(url) => {
                       const newPhoto = { id: 'ai-'+Date.now(), photoUrl: url, cropX:50, cropY:50, zoom:1, rotation:0 };
                       setConfig(prev => ({ ...prev, photos: [...prev.photos.slice(0, layout.slots-1), newPhoto] }));
+                      setHasAiPortrait(true);
                       setShowPixar(false);
-                      toast.success('🎨 AI портрет додано!');
+                      toast.success('🎨 AI портрет додано! +75 ₴');
                     }}/>
                   </div>
                 )}
-              )}
+              </>)}
+
               <input ref={fileInputRef} type="file" multiple accept="image/*" style={{ display:'none' }} onChange={handleFileSelect} />
 
               {/* Hidden replace input */}
@@ -962,7 +965,7 @@ export default function PosterConstructor() {
                       border: config.size===s.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
                       borderRadius:10, background: config.size===s.id ? '#f0f3ff' : '#fff', cursor:'pointer' }}>
                     <span style={{ fontWeight:700, fontSize:14, color: config.size===s.id ? '#1e2d7d' : '#374151' }}>{s.label}</span>
-                    <span style={{ fontWeight:800, fontSize:16, color: config.size===s.id ? '#1e2d7d' : '#374151' }}>{s.price} ₴</span>
+                    <span style={{ fontWeight:800, fontSize:16, color: config.size===s.id ? '#1e2d7d' : '#374151' }}>{s.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0)} ₴</span>
                   </button>
                 ))}
               </div>
@@ -972,9 +975,15 @@ export default function PosterConstructor() {
                 <div style={{ fontSize:12, color:'#64748b', marginBottom:8 }}>Ваше замовлення:</div>
                 <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
                   <span style={{ fontSize:13, color:'#374151' }}>Постер {sizeObj.label}</span>
-                  <span style={{ fontSize:13, fontWeight:700, color:'#1e2d7d' }}>{sizeObj.price} ₴</span>
+                  <span style={{ fontSize:13, fontWeight:700, color:'#1e2d7d' }}>{sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0)} ₴</span>
                 </div>
                 <div style={{ fontSize:12, color:'#94a3b8' }}>Макет: {layout.name} · {config.photos.length} фото</div>
+                {hasAiPortrait && (
+                  <div style={{ fontSize:11, color:'#7c3aed', fontWeight:700, marginTop:4 }}>
+                    🎨 AI Портрет +{AI_PORTRAIT_PRICE} ₴
+                    <button onClick={() => setHasAiPortrait(false)} style={{ marginLeft:6, background:'none', border:'none', color:'#94a3b8', cursor:'pointer', fontSize:10 }}>✕</button>
+                  </div>
+                )}
               </div>
 
               <button onClick={handleOrder} disabled={isOrdering || config.photos.length === 0}
@@ -983,7 +992,7 @@ export default function PosterConstructor() {
                   border:'none', borderRadius:12, fontWeight:800, fontSize:15, cursor: config.photos.length === 0 ? 'not-allowed' : 'pointer',
                   display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow: config.photos.length > 0 ? '0 4px 20px rgba(30,45,125,0.3)' : 'none' }}>
                 <ShoppingCart size={18}/>
-                {isOrdering ? 'Оформлюємо...' : config.photos.length === 0 ? 'Спочатку додайте фото' : `Замовити за ${sizeObj.price} ₴`}
+                {isOrdering ? 'Оформлюємо...' : config.photos.length === 0 ? 'Спочатку додайте фото' : `Замовити за ${sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0)} ₴`}
               </button>
             </div>
           )}

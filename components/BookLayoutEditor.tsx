@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
-import PixarPortraitGenerator from './PixarPortraitGenerator';
+import PixarPortraitGenerator, { AI_PORTRAIT_PRICE } from './PixarPortraitGenerator';
 import { BookPreviewModal } from './BookPreviewModal';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape, checkPhotoDpi } from './FreeSlotLayer';
 import { haptic, startPointerDrag, useLongPress } from '@/lib/hooks/useMobileInteractions';
@@ -2001,7 +2001,8 @@ export default function BookLayoutEditor() {
   // Add endpaper surcharge for unlocked forzats pages
   // Flat surcharge: 200₴ total regardless of how many endpapers are printed
   const endpaperExtra = (endpaperUnlocked.first || endpaperUnlocked.last) ? endpaperSurcharge : 0;
-  const dynamicPrice = baseDynamicPrice + endpaperExtra;
+  const [hasAiPortrait, setHasAiPortrait] = useState(false);
+  const dynamicPrice = baseDynamicPrice + endpaperExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
   const priceDiff = basePriceDiff + endpaperExtra;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
@@ -2773,7 +2774,8 @@ export default function BookLayoutEditor() {
                     setPhotos(prev => [...prev, newPhoto]);
                     detectFocalPoint(url, newPhoto.id);
                     setLeftTab('photos');
-                    toast.success('🎨 AI портрет додано до фото!');
+                    setHasAiPortrait(true);
+                    toast.success('🎨 AI портрет додано! +75 ₴');
                   }}
                 />
               </div>
