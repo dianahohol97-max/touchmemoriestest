@@ -423,7 +423,7 @@ function makeSlots(n: number): SlotData[] {
 const FONTS = FONT_GROUPS.flatMap(g => g.fonts);
 const COLORS = ['#1e2d7d', '#ffffff', '#000000', '#e63946', '#2a9d8f', '#f4a261', '#264653', '#e9c46a'];
 
-function getSlotDefs(layout: LayoutType, W: number, H: number, gap: number = 4): { i: number; s: React.CSSProperties }[] {
+function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i: number; s: React.CSSProperties }[] {
   const g = gap;
   const w2 = (W - g) / 2, h2 = (H - g) / 2;
   const w3 = (W - 2 * g) / 3, h3 = (H - 2 * g) / 3;
