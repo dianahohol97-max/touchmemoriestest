@@ -4,23 +4,25 @@ export const dynamic = 'force-dynamic';
 
 import { Suspense } from 'react';
 import dynamicImport from 'next/dynamic';
-const GuestBookConstructor = dynamicImport(() => import('@/components/GuestBookConstructor'), { ssr: false });
+import { Navigation } from '@/components/ui/Navigation';
+import { Footer } from '@/components/ui/Footer';
 
-function GuestBookContent() {
-    return <GuestBookConstructor />;
-}
+const GuestBookConstructorNew = dynamicImport(() => import('@/components/GuestBookConstructorNew'), { ssr: false });
 
 export default function GuestBookOrderPage() {
-    return (
+  return (
+    <>
+      <Navigation />
+      <main style={{ minHeight: '100vh', paddingTop: 80 }}>
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e2d7d] mx-auto mb-4"></div>
-                    <p className="text-gray-600">Завантаження конструктора...</p>
-                </div>
-            </div>
+          <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
+            Завантаження конструктора...
+          </div>
         }>
-            <GuestBookContent />
+          <GuestBookConstructorNew />
         </Suspense>
-    );
+      </main>
+      <Footer categories={[]} />
+    </>
+  );
 }
