@@ -1,344 +1,428 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Upload, ShoppingCart, Image as ImageIcon, Type, QrCode, Sparkles } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/cart-store';
-import { toast } from 'sonner';
-import { Upload, ShoppingCart, X, ChevronLeft } from 'lucide-react';
 
-interface PieceOption {
-    label: string;
-    value: string;
-    price: number;
-}
-
-interface PhotoFile {
-    id: string;
-    file: File;
-    preview: string;
-    width: number;
-    height: number;
-}
-
-const STEP_LABELS = ['Деталі', 'Фото', 'Замовлення'];
-
-// Puzzle size info per slug
-const PUZZLE_INFO: Record<string, { label: string; dims: string; ratio: number; desc: string }> = {
-    'puzzle-a4':   { label: 'Пазл A4',          dims: '21×29,7 см', ratio: 210/297, desc: 'Формат A4 (21×29,7 см)' },
-    'puzzle-20x30':{ label: 'Фотопазл 20×30',   dims: '20×30 см',   ratio: 20/30,   desc: 'Класичний формат 20×30 см' },
+// Puzzle formats: A5/A4/A3 in both orientations, piece counts from wolf.ua
+type PuzzleFormat = {
+  id: string;
+  label: string;
+  sheet: 'A5' | 'A4' | 'A3';
+  orientation: 'V' | 'H';
+  widthCm: number;
+  heightCm: number;
+  pieceCounts: number[];
+  basePrice: number;
 };
 
-export default function PuzzleConstructor({ productSlug }: { productSlug: string }) {
-    const { addItem } = useCartStore();
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+const PUZZLE_FORMATS: PuzzleFormat[] = [
+  { id: 'a5-v', label: 'A5 вертикальний',  sheet: 'A5', orientation: 'V', widthCm: 14.8, heightCm: 21.0, pieceCounts: [24, 35, 60],        basePrice: 180 },
+  { id: 'a5-h', label: 'A5 горизонтальний', sheet: 'A5', orientation: 'H', widthCm: 21.0, heightCm: 14.8, pieceCounts: [24, 35, 60],        basePrice: 180 },
+  { id: 'a4-v', label: 'A4 вертикальний',  sheet: 'A4', orientation: 'V', widthCm: 21.0, heightCm: 29.7, pieceCounts: [35, 60, 108, 110],  basePrice: 260 },
+  { id: 'a4-h', label: 'A4 горизонтальний', sheet: 'A4', orientation: 'H', widthCm: 29.7, heightCm: 21.0, pieceCounts: [35, 60, 108, 110],  basePrice: 260 },
+  { id: 'a3-v', label: 'A3 вертикальний',  sheet: 'A3', orientation: 'V', widthCm: 29.7, heightCm: 42.0, pieceCounts: [108, 110, 216],     basePrice: 420 },
+  { id: 'a3-h', label: 'A3 горизонтальний', sheet: 'A3', orientation: 'H', widthCm: 42.0, heightCm: 29.7, pieceCounts: [108, 110, 216],     basePrice: 420 },
+];
 
-    const [step, setStep] = useState(1);
-    const [product, setProduct] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [pieceOptions, setPieceOptions] = useState<PieceOption[]>([]);
-    const [selectedPieces, setSelectedPieces] = useState<PieceOption | null>(null);
-    const [photo, setPhoto] = useState<PhotoFile | null>(null);
-    const [isDragging, setIsDragging] = useState(false);
-    const [qty, setQty] = useState(1);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+const FINISHES = [
+  { id: 'matte',  label: 'Матовий',  priceAdd: 0 },
+  { id: 'glossy', label: 'Глянцевий', priceAdd: 20 },
+];
 
-    const info = PUZZLE_INFO[productSlug] || PUZZLE_INFO['puzzle-20x30'];
+const QR_PRICE = 50;
 
-    useEffect(() => {
-        async function fetchProduct() {
-            const { data } = await supabase
-                .from('products')
-                .select('*')
-                .eq('slug', productSlug)
-                .eq('is_active', true)
-                .single();
-            if (data) {
-                setProduct(data);
-                const opts = (data.options || []);
-                const piecesOpt = opts.find((o: any) => o.name === 'Кількість деталей');
-                if (piecesOpt?.options?.length) {
-                    const mapped = piecesOpt.options.map((o: any) => ({
-                        label: o.label, value: o.value, price: o.price,
-                    }));
-                    setPieceOptions(mapped);
-                    setSelectedPieces(mapped[0]);
-                }
-            }
-            setLoading(false);
+type Mode = 'photo' | 'text' | 'photo-text' | 'qr';
+
+interface PuzzleConfig {
+  formatId: string;
+  pieceCount: number;
+  finish: 'matte' | 'glossy';
+  mode: Mode;
+  photoUrl: string | null;
+  cropX: number;
+  cropY: number;
+  zoom: number;
+  text: string;
+  textColor: string;
+  bgColor: string;
+  fontFamily: string;
+  qrValue: string;
+}
+
+const FONTS = [
+  { id: 'Playfair Display',   label: 'Playfair' },
+  { id: 'Montserrat',         label: 'Montserrat' },
+  { id: 'Dancing Script',     label: 'Dancing' },
+  { id: 'Cormorant Garamond', label: 'Cormorant' },
+  { id: 'Great Vibes',        label: 'Great Vibes' },
+];
+
+const BG_COLORS = ['#ffffff', '#f5ecd7', '#f8e1e1', '#e0f0e8', '#e3e8f5', '#1a1a1a', '#1e2d7d', '#8a4a4a'];
+const TEXT_COLORS = ['#1a1a1a', '#ffffff', '#1e2d7d', '#c09060', '#8a4a4a', '#5a7a3a'];
+
+export default function PuzzleConstructor(_props: { productSlug?: string } = {}) {
+  const router = useRouter();
+  const { addItem } = useCartStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [config, setConfig] = useState<PuzzleConfig>({
+    formatId: 'a4-v',
+    pieceCount: 60,
+    finish: 'matte',
+    mode: 'photo',
+    photoUrl: null,
+    cropX: 50, cropY: 50, zoom: 1,
+    text: 'Ваш текст',
+    textColor: '#1a1a1a',
+    bgColor: '#f5ecd7',
+    fontFamily: 'Playfair Display',
+    qrValue: 'https://touch.memories',
+  });
+
+  const format = PUZZLE_FORMATS.find(f => f.id === config.formatId)!;
+
+  useEffect(() => {
+    if (!format.pieceCounts.includes(config.pieceCount)) {
+      setConfig(c => ({ ...c, pieceCount: format.pieceCounts[1] || format.pieceCounts[0] }));
+    }
+  }, [config.formatId]);
+
+  const update = (patch: Partial<PuzzleConfig>) => setConfig(c => ({ ...c, ...patch }));
+
+  const handleFileUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) { toast.error('Будь ласка, завантажте зображення'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      update({ photoUrl: e.target?.result as string, cropX: 50, cropY: 50, zoom: 1 });
+      toast.success('Фото завантажено');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const qrImageUrl = config.qrValue
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(config.qrValue)}&margin=10`
+    : null;
+
+  const finishData = FINISHES.find(f => f.id === config.finish)!;
+  const totalPrice = format.basePrice + finishData.priceAdd + (config.mode === 'qr' ? QR_PRICE : 0);
+
+  const addToCart = () => {
+    if ((config.mode === 'photo' || config.mode === 'photo-text') && !config.photoUrl) { toast.error('Завантажте фото'); return; }
+    if (config.mode === 'text' && !config.text.trim()) { toast.error('Введіть текст'); return; }
+    if (config.mode === 'qr' && !config.qrValue.trim()) { toast.error('Введіть дані для QR-коду'); return; }
+    addItem({
+      id: `puzzle-${Date.now()}`,
+      name: 'Фотопазл',
+      price: totalPrice,
+      qty: 1,
+      image: config.photoUrl || '',
+      options: {
+        'Формат': format.label,
+        'Деталей': `${config.pieceCount}`,
+        'Покриття': finishData.label,
+        'Тип': config.mode === 'photo' ? 'Фото' : config.mode === 'text' ? 'Текст' : config.mode === 'photo-text' ? 'Фото + текст' : 'QR-код',
+      },
+      personalization_note: `${format.label} · ${config.pieceCount} деталей · ${finishData.label}`,
+    });
+    toast.success('Додано до кошика!');
+    router.push('/cart');
+  };
+
+  // Preview scaling — max 360px on longer dimension
+  const maxPreview = 360;
+  const pScale = Math.min(maxPreview / format.widthCm, maxPreview / format.heightCm);
+  const previewW = format.widthCm * pScale;
+  const previewH = format.heightCm * pScale;
+
+  // Piece grid estimation
+  const pieceCols = Math.max(2, Math.round(Math.sqrt(config.pieceCount * (format.widthCm / format.heightCm))));
+  const pieceRows = Math.max(2, Math.round(config.pieceCount / pieceCols));
+
+  return (
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 20px', fontFamily: 'var(--font-primary, sans-serif)' }}>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d', margin: 0 }}>Конструктор пазлів</h1>
+          <p style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>Фото, текст або QR-код — оберіть формат та деталізацію</p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d' }}>{totalPrice} ₴</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>{format.label} · {config.pieceCount} деталей</div>
+        </div>
+      </div>
+
+      <div className="puzzle-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: 20, alignItems: 'start' }}>
+
+        {/* LEFT: Mode + format + pieces + finish */}
+        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Що на пазлі?</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              {([
+                { id: 'photo' as Mode,      label: 'Фото',        icon: <ImageIcon size={14} /> },
+                { id: 'text' as Mode,       label: 'Текст',       icon: <Type size={14} /> },
+                { id: 'photo-text' as Mode, label: 'Фото+текст',  icon: <Sparkles size={14} /> },
+                { id: 'qr' as Mode,         label: `QR (+${QR_PRICE}₴)`, icon: <QrCode size={14} /> },
+              ]).map(m => (
+                <button key={m.id} onClick={() => update({ mode: m.id })}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '10px 6px', border: config.mode === m.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: config.mode === m.id ? '#f0f3ff' : '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: config.mode === m.id ? '#1e2d7d' : '#475569' }}>
+                  {m.icon} {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Формат</div>
+            <div style={{ display: 'grid', gap: 6 }}>
+              {PUZZLE_FORMATS.map(f => {
+                const isActive = config.formatId === f.id;
+                return (
+                  <button key={f.id} onClick={() => update({ formatId: f.id })}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: isActive ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: isActive ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'left' }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: isActive ? '#1e2d7d' : '#1e293b' }}>{f.label}</div>
+                      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{f.widthCm}×{f.heightCm} см · {f.basePrice}₴</div>
+                    </div>
+                    <div style={{ width: f.orientation === 'V' ? 14 : 22, height: f.orientation === 'V' ? 22 : 14, border: '2px solid ' + (isActive ? '#1e2d7d' : '#cbd5e1'), borderRadius: 2, flexShrink: 0 }} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Деталей</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+              {format.pieceCounts.map(pc => (
+                <button key={pc} onClick={() => update({ pieceCount: pc })}
+                  style={{ padding: '12px 4px', border: config.pieceCount === pc ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: config.pieceCount === pc ? '#f0f3ff' : '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: config.pieceCount === pc ? '#1e2d7d' : '#475569' }}>
+                  {pc}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Покриття</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              {FINISHES.map(f => (
+                <button key={f.id} onClick={() => update({ finish: f.id as 'matte' | 'glossy' })}
+                  style={{ padding: '10px 8px', border: config.finish === f.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: config.finish === f.id ? '#f0f3ff' : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: config.finish === f.id ? '#1e2d7d' : '#475569' }}>
+                  <div>{f.label}</div>
+                  {f.priceAdd > 0 && <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>+{f.priceAdd}₴</div>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* CENTER: Preview */}
+        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 24, minHeight: 500, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Попередній перегляд</div>
+
+          <div style={{ position: 'relative', padding: 20 }}>
+            <div style={{ position: 'absolute', inset: 20, boxShadow: '0 20px 50px rgba(0,0,0,0.15), 0 8px 20px rgba(0,0,0,0.08)', borderRadius: 6 }} />
+
+            <div style={{
+              position: 'relative', width: previewW, height: previewH,
+              background: (config.mode === 'text' || config.mode === 'qr') ? config.bgColor : '#f1f5f9',
+              borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)',
+            }}>
+              {(config.mode === 'photo' || config.mode === 'photo-text') && (
+                config.photoUrl ? (
+                  <img src={config.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${config.cropX}% ${config.cropY}%`, transform: `scale(${config.zoom})` }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', gap: 8 }}>
+                    <ImageIcon size={40} color="#cbd5e1" />
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>Завантажте фото</span>
+                  </div>
+                )
+              )}
+
+              {config.mode === 'photo-text' && config.photoUrl && (
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: '8%', padding: '10px 20px', textAlign: 'center', fontFamily: config.fontFamily + ', serif', fontSize: Math.max(14, previewW * 0.07), color: config.textColor, textShadow: '0 2px 8px rgba(0,0,0,0.6)', fontWeight: 700, wordWrap: 'break-word', lineHeight: 1.2 }}>
+                  {config.text}
+                </div>
+              )}
+
+              {config.mode === 'text' && (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, textAlign: 'center', fontFamily: config.fontFamily + ', serif', fontSize: Math.max(18, previewW * 0.09), color: config.textColor, fontWeight: 700, wordWrap: 'break-word', lineHeight: 1.2 }}>
+                  {config.text}
+                </div>
+              )}
+
+              {config.mode === 'qr' && qrImageUrl && (
+                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8%', gap: 10 }}>
+                  <img src={qrImageUrl} alt="QR" style={{ width: '65%', maxWidth: '65%', objectFit: 'contain', background: '#fff', padding: 6, borderRadius: 4 }} />
+                  {config.text && (
+                    <div style={{ fontSize: Math.max(11, previewW * 0.04), fontFamily: config.fontFamily + ', serif', color: config.textColor, textAlign: 'center', fontWeight: 600, wordWrap: 'break-word' }}>
+                      {config.text}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Jigsaw grid overlay */}
+              <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.45 }}
+                viewBox={`0 0 ${pieceCols * 100} ${pieceRows * 100}`} preserveAspectRatio="none">
+                {Array.from({ length: pieceCols - 1 }).map((_, i) => (
+                  <line key={'v' + i} x1={(i + 1) * 100} y1={0} x2={(i + 1) * 100} y2={pieceRows * 100} stroke="#fff" strokeWidth="2" strokeDasharray="4,4" />
+                ))}
+                {Array.from({ length: pieceRows - 1 }).map((_, i) => (
+                  <line key={'h' + i} x1={0} y1={(i + 1) * 100} x2={pieceCols * 100} y2={(i + 1) * 100} stroke="#fff" strokeWidth="2" strokeDasharray="4,4" />
+                ))}
+              </svg>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>
+            {format.widthCm} × {format.heightCm} см · ~{pieceCols}×{pieceRows} деталей
+          </div>
+        </div>
+
+        {/* RIGHT: Mode controls */}
+        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {(config.mode === 'photo' || config.mode === 'photo-text') && (
+            <>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Фото</div>
+                <button onClick={() => fileInputRef.current?.click()}
+                  style={{ width: '100%', padding: '16px', border: '2px dashed #cbd5e1', borderRadius: 8, background: '#f8fafc', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <Upload size={20} color="#64748b" />
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>{config.photoUrl ? 'Замінити фото' : 'Завантажити фото'}</div>
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*"
+                  onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])} style={{ display: 'none' }} />
+              </div>
+
+              {config.photoUrl && (
+                <>
+                  <div>
+                    <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span>Масштаб</span><span>{config.zoom.toFixed(1)}x</span>
+                    </label>
+                    <input type="range" min="1" max="3" step="0.1" value={config.zoom}
+                      onChange={e => update({ zoom: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span>Позиція X</span><span>{Math.round(config.cropX)}%</span>
+                    </label>
+                    <input type="range" min="0" max="100" value={config.cropX}
+                      onChange={e => update({ cropX: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span>Позиція Y</span><span>{Math.round(config.cropY)}%</span>
+                    </label>
+                    <input type="range" min="0" max="100" value={config.cropY}
+                      onChange={e => update({ cropY: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+                  </div>
+                  <button onClick={() => update({ cropX: 50, cropY: 50, zoom: 1 })}
+                    style={{ padding: '6px', border: '1px solid #e2e8f0', borderRadius: 6, background: '#f8fafc', cursor: 'pointer', fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+                    ↺ Скинути кадрування
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          {(config.mode === 'text' || config.mode === 'photo-text' || config.mode === 'qr') && (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {config.mode === 'qr' ? "Підпис (необов'язково)" : 'Ваш текст'}
+              </div>
+              <textarea value={config.text} onChange={e => update({ text: e.target.value })}
+                placeholder={config.mode === 'qr' ? 'Наприклад: Відскануй мене' : 'Введіть текст...'}
+                rows={3}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} />
+            </div>
+          )}
+
+          {config.mode === 'qr' && (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Дані для QR</div>
+              <input type="text" value={config.qrValue} onChange={e => update({ qrValue: e.target.value })}
+                placeholder="URL, текст, телефон..."
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }} />
+              <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
+                https://site.com, tel:+380..., mailto:...
+              </div>
+            </div>
+          )}
+
+          {(config.mode === 'text' || config.mode === 'photo-text' || config.mode === 'qr') && (
+            <>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>Шрифт</div>
+                <select value={config.fontFamily} onChange={e => update({ fontFamily: e.target.value })}
+                  style={{ width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, background: '#fff' }}>
+                  {FONTS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>Колір тексту</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {TEXT_COLORS.map(c => (
+                    <button key={c} onClick={() => update({ textColor: c })}
+                      style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: config.textColor === c ? '3px solid #1e2d7d' : '1px solid #e2e8f0', cursor: 'pointer' }} />
+                  ))}
+                </div>
+              </div>
+              {(config.mode === 'text' || config.mode === 'qr') && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>Колір фону</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {BG_COLORS.map(c => (
+                      <button key={c} onClick={() => update({ bgColor: c })}
+                        style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: config.bgColor === c ? '3px solid #1e2d7d' : '1px solid #e2e8f0', cursor: 'pointer' }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          <div style={{ borderTop: '1px solid #f1f5f9', marginTop: 'auto', paddingTop: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+              <span style={{ color: '#64748b' }}>Базова ціна:</span>
+              <span style={{ fontWeight: 600 }}>{format.basePrice} ₴</span>
+            </div>
+            {finishData.priceAdd > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                <span style={{ color: '#64748b' }}>Глянець:</span>
+                <span style={{ fontWeight: 600 }}>+{finishData.priceAdd} ₴</span>
+              </div>
+            )}
+            {config.mode === 'qr' && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                <span style={{ color: '#64748b' }}>QR-код:</span>
+                <span style={{ fontWeight: 600 }}>+{QR_PRICE} ₴</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800, color: '#1e2d7d', marginTop: 8, paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
+              <span>Разом:</span><span style={{ fontSize: 18 }}>{totalPrice} ₴</span>
+            </div>
+            <button onClick={addToCart}
+              style={{ width: '100%', marginTop: 12, padding: '12px', border: 'none', borderRadius: 8, background: '#1e2d7d', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <ShoppingCart size={16} /> До кошика
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .puzzle-layout { grid-template-columns: 1fr !important; }
         }
-        fetchProduct();
-    }, [productSlug]);
-
-    const totalPrice = product ? (Number(product.price) + (selectedPieces?.price || 0)) * qty : 0;
-
-    const handleFileSelect = async (files: FileList | null) => {
-        if (!files || files.length === 0) return;
-        const file = files[0];
-        if (!file.type.startsWith('image/')) { toast.error('Оберіть зображення'); return; }
-        const preview = URL.createObjectURL(file);
-        const img = await new Promise<HTMLImageElement>((res, rej) => {
-            const im = new window.Image(); im.onload = () => res(im); im.onerror = rej; im.src = preview;
-        });
-        setPhoto({ id: Date.now().toString(), file, preview, width: img.width, height: img.height });
-    };
-
-    const handleAddToCart = () => {
-        if (!selectedPieces || !photo) return;
-        addItem({
-            id: `puzzle-${Date.now()}`,
-            product_id: product?.id || productSlug,
-            name: `${product?.name || info.label} · ${selectedPieces.label}`,
-            price: totalPrice,
-            qty,
-            image: photo.preview,
-            options: {
-                'Розмір': info.dims,
-                'Кількість деталей': selectedPieces.label,
-            },
-            slug: productSlug,
-            personalization_note: `Файл: ${photo.file.name} (${photo.width}×${photo.height}px)`,
-        });
-        toast.success('Додано до кошика!');
-        setStep(3);
-    };
-
-    if (loading) return (
-        <div className="flex items-center justify-center min-h-64">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#1e2d7d]" />
-        </div>
-    );
-
-    return (
-        <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 16px 60px', fontFamily: 'var(--font-primary, sans-serif)' }}>
-
-            {/* Header */}
-            <div style={{ marginBottom: 32 }}>
-                <h1 style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d', marginBottom: 6 }}>
-                    {product?.name || info.label}
-                </h1>
-                <p style={{ color: '#64748b', fontSize: 15 }}>
-                    {info.desc} · {product?.short_description || 'Пазл з вашою фотографією'}
-                </p>
-            </div>
-
-            {/* Steps */}
-            <div style={{ display: 'flex', gap: 0, marginBottom: 40 }}>
-                {STEP_LABELS.map((label, i) => {
-                    const n = i + 1;
-                    const active = step === n, done = step > n;
-                    return (
-                        <div key={n} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{
-                                    width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    background: done ? '#10b981' : active ? '#1e2d7d' : '#e2e8f0',
-                                    color: done || active ? '#fff' : '#94a3b8', fontSize: 13, fontWeight: 800, flexShrink: 0
-                                }}>{done ? '✓' : n}</div>
-                                <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#1e2d7d' : done ? '#10b981' : '#94a3b8' }}>{label}</span>
-                            </div>
-                            {i < STEP_LABELS.length - 1 && (
-                                <div style={{ flex: 1, height: 2, background: done ? '#10b981' : '#e2e8f0', margin: '0 8px' }} />
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* ── STEP 1: PIECES ── */}
-            {step === 1 && (
-                <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>Оберіть кількість деталей</h2>
-                    <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>
-                        Розмір пазла: <b>{info.dims}</b>. Більше деталей — складніше і цікавіше!
-                    </p>
-
-                    {/* Puzzle format visual */}
-                    <div style={{ display: 'flex', gap: 16, marginBottom: 28, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                        <div style={{
-                            width: Math.round(160 * info.ratio), height: 160,
-                            background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)',
-                            border: '2px solid #93c5fd', borderRadius: 8, display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', flexShrink: 0, position: 'relative', overflow: 'hidden'
-                        }}>
-                            {/* Puzzle piece lines */}
-                            <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.25 }}>
-                                <line x1="33%" y1="0" x2="33%" y2="100%" stroke="#1e2d7d" strokeWidth="1" strokeDasharray="4,4"/>
-                                <line x1="66%" y1="0" x2="66%" y2="100%" stroke="#1e2d7d" strokeWidth="1" strokeDasharray="4,4"/>
-                                <line x1="0" y1="33%" x2="100%" y2="33%" stroke="#1e2d7d" strokeWidth="1" strokeDasharray="4,4"/>
-                                <line x1="0" y1="66%" x2="100%" y2="66%" stroke="#1e2d7d" strokeWidth="1" strokeDasharray="4,4"/>
-                            </svg>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d', zIndex: 1 }}>{info.dims}</span>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.7 }}>
-                                🧩 Матеріал: картон 1.5 мм<br/>
-                                🎨 Друк: повноколірний, глянець<br/>
-                                📦 В комплекті: пазл + коробка з зображенням
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Pieces selector */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 }}>
-                        {pieceOptions.map(opt => {
-                            const isSelected = selectedPieces?.value === opt.value;
-                            const basePrice = product ? Number(product.price) : 0;
-                            return (
-                                <button key={opt.value} onClick={() => setSelectedPieces(opt)}
-                                    style={{
-                                        padding: '20px 16px', border: isSelected ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
-                                        borderRadius: 12, background: isSelected ? '#f0f3ff' : '#fff',
-                                        cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
-                                        boxShadow: isSelected ? '0 0 0 1px #1e2d7d' : 'none'
-                                    }}>
-                                    <div style={{ fontSize: 32, marginBottom: 8 }}>
-                                        {opt.value === '120' ? '🟦' : opt.value === '252' ? '🧩' : '🔷'}
-                                    </div>
-                                    <div style={{ fontSize: 15, fontWeight: 800, color: isSelected ? '#1e2d7d' : '#374151', marginBottom: 4 }}>
-                                        {opt.label}
-                                    </div>
-                                    <div style={{ fontSize: 13, color: '#64748b', marginBottom: 6 }}>
-                                        {opt.value === '120' ? 'Легкий рівень' : opt.value === '252' ? 'Середній рівень' : 'Складний рівень'}
-                                    </div>
-                                    <div style={{ fontSize: 18, fontWeight: 900, color: '#1e2d7d' }}>
-                                        {basePrice + opt.price} ₴
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    <button onClick={() => setStep(2)} disabled={!selectedPieces}
-                        style={{
-                            width: '100%', padding: '16px', background: '#1e2d7d',
-                            color: '#fff', border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 800,
-                            cursor: 'pointer', transition: 'background 0.2s'
-                        }}>
-                        Далі — завантажити фото →
-                    </button>
-                </div>
-            )}
-
-            {/* ── STEP 2: PHOTO ── */}
-            {step === 2 && (
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                        <button onClick={() => setStep(1)}
-                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-                            <ChevronLeft size={16} /> Назад
-                        </button>
-                        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Завантажте фото для пазла</h2>
-                    </div>
-
-                    {/* Tip */}
-                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#92400e' }}>
-                        💡 Рекомендуємо яскраве фото з чіткими деталями. Для формату <b>{info.dims}</b> — мінімум <b>1200×1800 px</b>. Пропорція фото буде збережена.
-                    </div>
-
-                    {/* Drop zone */}
-                    <div
-                        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-                        onDragLeave={() => setIsDragging(false)}
-                        onDrop={e => { e.preventDefault(); setIsDragging(false); handleFileSelect(e.dataTransfer.files); }}
-                        onClick={() => !photo && fileInputRef.current?.click()}
-                        style={{
-                            border: `2px dashed ${isDragging ? '#1e2d7d' : photo ? '#10b981' : '#c7d2fe'}`,
-                            borderRadius: 12, background: isDragging ? '#eff6ff' : photo ? '#f0fdf4' : '#f8faff',
-                            cursor: photo ? 'default' : 'pointer', textAlign: 'center',
-                            transition: 'all 0.2s', marginBottom: 20, overflow: 'hidden',
-                            minHeight: photo ? 0 : 200, display: 'flex', flexDirection: 'column',
-                            alignItems: 'center', justifyContent: 'center'
-                        }}>
-                        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-                            onChange={e => handleFileSelect(e.target.files)} />
-
-                        {photo ? (
-                            <div style={{ position: 'relative', width: '100%' }}>
-                                <img src={photo.preview} alt="preview"
-                                    style={{ maxHeight: 380, maxWidth: '100%', display: 'block', margin: '0 auto', objectFit: 'contain' }} />
-                                <button onClick={e => { e.stopPropagation(); setPhoto(null); }}
-                                    style={{ position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                                    <X size={16} />
-                                </button>
-                                <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11, padding: '4px 8px', borderRadius: 6 }}>
-                                    {photo.width} × {photo.height} px · {photo.file.name}
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <Upload size={40} color="#93c5fd" style={{ marginBottom: 12 }} />
-                                <div style={{ fontSize: 16, fontWeight: 700, color: '#1e2d7d', marginBottom: 6 }}>
-                                    Перетягніть фото або натисніть для вибору
-                                </div>
-                                <div style={{ fontSize: 13, color: '#94a3b8' }}>JPG, PNG · до 50 МБ</div>
-                            </>
-                        )}
-                    </div>
-
-                    {photo && (
-                        <button onClick={() => fileInputRef.current?.click()}
-                            style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, color: '#64748b', fontWeight: 600, marginBottom: 16 }}>
-                            ↺ Обрати інше фото
-                        </button>
-                    )}
-
-                    {/* Qty + price */}
-                    {photo && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: '16px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                            <div>
-                                <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 2 }}>Пазл</div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
-                                    {info.dims} · {selectedPieces?.label}
-                                </div>
-                            </div>
-                            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <button onClick={() => setQty(q => Math.max(1, q - 1))}
-                                        style={{ width: 30, height: 30, border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 16, fontWeight: 700, color: '#1e2d7d' }}>−</button>
-                                    <span style={{ minWidth: 28, textAlign: 'center', fontWeight: 800, fontSize: 15, color: '#1e2d7d' }}>{qty}</span>
-                                    <button onClick={() => setQty(q => q + 1)}
-                                        style={{ width: 30, height: 30, border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 16, fontWeight: 700, color: '#1e2d7d' }}>+</button>
-                                </div>
-                                <div style={{ fontSize: 22, fontWeight: 900, color: '#1e2d7d' }}>{totalPrice} ₴</div>
-                            </div>
-                        </div>
-                    )}
-
-                    <button onClick={handleAddToCart} disabled={!photo}
-                        style={{
-                            width: '100%', padding: '16px', background: photo ? '#1e2d7d' : '#94a3b8',
-                            color: '#fff', border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 800,
-                            cursor: photo ? 'pointer' : 'not-allowed',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'background 0.2s'
-                        }}>
-                        <ShoppingCart size={20} /> Додати до кошика
-                    </button>
-                </div>
-            )}
-
-            {/* ── STEP 3: DONE ── */}
-            {step === 3 && (
-                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                    <div style={{ fontSize: 60, marginBottom: 16 }}>🧩</div>
-                    <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1e2d7d', marginBottom: 8 }}>Додано до кошика!</h2>
-                    <p style={{ color: '#64748b', marginBottom: 32, fontSize: 15 }}>
-                        Пазл <b>{info.dims} · {selectedPieces?.label}</b> чекає на тебе в кошику
-                    </p>
-                    <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-                        <a href="/checkout"
-                            style={{ padding: '14px 32px', background: '#1e2d7d', color: '#fff', borderRadius: 10, fontWeight: 800, fontSize: 15, textDecoration: 'none', display: 'inline-block' }}>
-                            Оформити замовлення →
-                        </a>
-                        <a href="/catalog"
-                            style={{ padding: '14px 32px', background: '#fff', color: '#1e2d7d', border: '2px solid #1e2d7d', borderRadius: 10, fontWeight: 800, fontSize: 15, textDecoration: 'none', display: 'inline-block' }}>
-                            ← Продовжити покупки
-                        </a>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
+      `}</style>
+    </div>
+  );
 }
