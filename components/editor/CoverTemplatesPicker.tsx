@@ -9,13 +9,13 @@ interface CoverTemplatesPickerProps {
 function MiniPreview({ t }: { t: CoverTemplate }) {
   const w = 80, h = 80;
   const ps = t.photoSlot;
-  const slotX = ps.x/100*w, slotY = ps.y/100*h, slotW = ps.w/100*w, slotH = ps.h/100*h;
-  const br = ps.shape === 'circle' ? '50%' : ps.shape === 'rounded' ? '4px' : '0';
+  const slotX = ps ? ps.x/100*w : 0, slotY = ps ? ps.y/100*h : 0, slotW = ps ? ps.w/100*w : 0, slotH = ps ? ps.h/100*h : 0;
+  const br = ps?.shape === 'circle' ? '50%' : ps?.shape === 'rounded' ? '4px' : '0';
 
   return (
     <div style={{ width: w, height: h, background: t.bgColor, position: 'relative', overflow: 'hidden', borderRadius: 4, border: '1px solid #e2e8f0' }}>
       {/* Photo slot placeholder */}
-      <div style={{
+      {ps && <div style={{
         position: 'absolute', left: slotX, top: slotY, width: slotW, height: slotH,
         borderRadius: br, background: '#ddd', border: '0.5px dashed #bbb',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -23,7 +23,7 @@ function MiniPreview({ t }: { t: CoverTemplate }) {
         <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2">
           <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
         </svg>
-      </div>
+      </div>}
       {/* Overlay */}
       {t.overlay && t.overlay.type !== 'none' && (
         <div style={{

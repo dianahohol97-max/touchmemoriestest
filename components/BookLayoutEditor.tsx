@@ -2410,7 +2410,7 @@ export default function BookLayoutEditor() {
                     setCoverState(p => ({
                       ...p,
                       printedBgColor: tmpl.bgColor,
-                      printedPhotoSlot: tmpl.photoSlots ? tmpl.photoSlots[0] : { ...tmpl.photoSlot },
+                      printedPhotoSlot: tmpl.photoSlots ? tmpl.photoSlots[0] : (tmpl.photoSlot ? { ...tmpl.photoSlot } : { x: 0, y: 0, w: 0, h: 0, shape: 'rect' as const }),
                       printedPhotoSlots: tmpl.photoSlots ? tmpl.photoSlots.map(s => ({ ...s, photoId: null, cropX: 50, cropY: 50, zoom: 1 })) : undefined,
                       printedTextBlocks: tmpl.texts.map((t, i) => ({
                         id: 'tmpl-' + Date.now() + '-' + i,

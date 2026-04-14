@@ -7,7 +7,7 @@ export interface CoverTemplate {
   group: string;
   tags?: string[]; // product type filter: 'photobook', 'magazine', 'travelbook', 'journal' — empty = all
   bgColor: string;
-  photoSlot: PhotoSlotDef;          // primary slot (legacy)
+  photoSlot: PhotoSlotDef | null;    // primary slot (legacy); null = no photo
   photoSlots?: PhotoSlotDef[];       // multi-slot override — if set, used instead of photoSlot
   texts: {
     text: string;
@@ -17,6 +17,7 @@ export interface CoverTemplate {
     fontFamily: string;
     color: string;
     bold: boolean;
+    italic?: boolean;
   }[];
   overlay?: { type: 'none' | 'color' | 'gradient'; color: string; opacity: number; gradient: string };
 }
@@ -907,6 +908,206 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     texts: [
       { text: 'Побажання', x: 50, y: 74, fontSize: 30, fontFamily: 'Dancing Script', color: '#c06070', bold: false },
       { text: 'для нас', x: 50, y: 86, fontSize: 20, fontFamily: 'Cormorant Garamond', color: '#a08080', bold: false },
+    ],
+  },
+  // ── Wishbook — trending 2025 designs ──
+  {
+    id: 'wish-mr-mrs',
+    label: 'Mr & Mrs',
+    group: 'Книга побажань — Весільні',
+    tags: ['wishbook'],
+    bgColor: '#f8f4ec',
+    photoSlot: null,
+    texts: [
+      { text: 'Mr', x: 30, y: 38, fontSize: 38, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: false, italic: true },
+      { text: '&', x: 50, y: 50, fontSize: 48, fontFamily: 'Great Vibes', color: '#c09060', bold: false },
+      { text: 'Mrs', x: 70, y: 62, fontSize: 38, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: false, italic: true },
+      { text: 'GUEST BOOK', x: 50, y: 85, fontSize: 11, fontFamily: 'Montserrat', color: '#8a7050', bold: true },
+    ],
+  },
+  {
+    id: 'wish-velour-gold',
+    label: 'Велюр + Золото',
+    group: 'Книга побажань — Весільні',
+    tags: ['wishbook'],
+    bgColor: '#4a1f2a',
+    photoSlot: null,
+    texts: [
+      { text: 'ou', x: 35, y: 40, fontSize: 14, fontFamily: 'Dancing Script', color: '#d4af37', bold: false, italic: true },
+      { text: 'Guest Book', x: 50, y: 50, fontSize: 36, fontFamily: 'Great Vibes', color: '#d4af37', bold: false },
+      { text: '— • —', x: 50, y: 64, fontSize: 16, fontFamily: 'Cormorant Garamond', color: '#d4af37', bold: false },
+      { text: 'Імʼя & Імʼя', x: 50, y: 74, fontSize: 16, fontFamily: 'Cormorant Garamond', color: '#e5c880', bold: false },
+      { text: '2025', x: 50, y: 85, fontSize: 14, fontFamily: 'Montserrat', color: '#d4af37', bold: false },
+    ],
+  },
+  {
+    id: 'wish-botanical',
+    label: 'Ботанічна',
+    group: 'Книга побажань — Весільні',
+    tags: ['wishbook'],
+    bgColor: '#faf6f0',
+    photoSlot: null,
+    texts: [
+      { text: '❀', x: 50, y: 25, fontSize: 36, fontFamily: 'Playfair Display', color: '#8a9a5c', bold: false },
+      { text: 'Our Wedding', x: 50, y: 42, fontSize: 18, fontFamily: 'Montserrat', color: '#8a9a5c', bold: true },
+      { text: 'Guest Book', x: 50, y: 52, fontSize: 32, fontFamily: 'Dancing Script', color: '#5c6a3c', bold: false },
+      { text: 'Імʼя & Імʼя', x: 50, y: 72, fontSize: 16, fontFamily: 'Cormorant Garamond', color: '#6a7a4c', bold: false, italic: true },
+      { text: '15.06.2025', x: 50, y: 82, fontSize: 12, fontFamily: 'Cormorant Garamond', color: '#8a9a6c', bold: false },
+    ],
+  },
+  {
+    id: 'wish-marble',
+    label: 'Мармур',
+    group: 'Книга побажань',
+    tags: ['wishbook'],
+    bgColor: '#f4f4f4',
+    photoSlot: null,
+    texts: [
+      { text: 'GUEST', x: 50, y: 35, fontSize: 42, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
+      { text: 'BOOK', x: 50, y: 50, fontSize: 42, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
+      { text: '— est. 2025 —', x: 50, y: 68, fontSize: 12, fontFamily: 'Cormorant Garamond', color: '#8a8a8a', bold: false, italic: true },
+    ],
+  },
+  {
+    id: 'wish-boho',
+    label: 'Бохо',
+    group: 'Книга побажань',
+    tags: ['wishbook'],
+    bgColor: '#e8d5b7',
+    photoSlot: null,
+    texts: [
+      { text: '~ ~ ~', x: 50, y: 22, fontSize: 20, fontFamily: 'Dancing Script', color: '#8a5a3a', bold: false },
+      { text: 'wishes', x: 50, y: 38, fontSize: 32, fontFamily: 'Dancing Script', color: '#8a5a3a', bold: false },
+      { text: '& MEMORIES', x: 50, y: 52, fontSize: 18, fontFamily: 'Montserrat', color: '#5a3a1a', bold: true },
+      { text: 'book', x: 50, y: 65, fontSize: 22, fontFamily: 'Dancing Script', color: '#8a5a3a', bold: false, italic: true },
+      { text: '• 2025 •', x: 50, y: 85, fontSize: 11, fontFamily: 'Montserrat', color: '#6a4a2a', bold: false },
+    ],
+  },
+  {
+    id: 'wish-minimal-lines',
+    label: 'Мінімал лінії',
+    group: 'Книга побажань',
+    tags: ['wishbook'],
+    bgColor: '#ffffff',
+    photoSlot: null,
+    texts: [
+      { text: '—————————', x: 50, y: 20, fontSize: 12, fontFamily: 'Montserrat', color: '#1a1a1a', bold: false },
+      { text: 'guest', x: 50, y: 40, fontSize: 32, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: false, italic: true },
+      { text: 'book', x: 50, y: 55, fontSize: 32, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: false, italic: true },
+      { text: '—————————', x: 50, y: 72, fontSize: 12, fontFamily: 'Montserrat', color: '#1a1a1a', bold: false },
+      { text: 'Імʼя & Імʼя', x: 50, y: 85, fontSize: 12, fontFamily: 'Montserrat', color: '#1a1a1a', bold: false },
+    ],
+  },
+  {
+    id: 'wish-our-memories',
+    label: 'Our Memories',
+    group: 'Книга побажань',
+    tags: ['wishbook'],
+    bgColor: '#1e3a5f',
+    photoSlot: null,
+    texts: [
+      { text: 'our', x: 50, y: 35, fontSize: 22, fontFamily: 'Dancing Script', color: '#d4af37', bold: false, italic: true },
+      { text: 'MEMORIES', x: 50, y: 50, fontSize: 30, fontFamily: 'Playfair Display', color: '#ffffff', bold: true },
+      { text: '— GUEST BOOK —', x: 50, y: 65, fontSize: 11, fontFamily: 'Montserrat', color: '#d4af37', bold: true },
+      { text: '2025', x: 50, y: 85, fontSize: 14, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
+    ],
+  },
+  {
+    id: 'wish-photo-frame',
+    label: 'Фото в рамці',
+    group: 'Книга побажань',
+    tags: ['wishbook'],
+    bgColor: '#faf6f0',
+    photoSlot: { x: 12, y: 12, w: 76, h: 58, shape: 'rect' },
+    texts: [
+      { text: 'our story', x: 50, y: 76, fontSize: 22, fontFamily: 'Dancing Script', color: '#8a7050', bold: false, italic: true },
+      { text: 'GUEST BOOK', x: 50, y: 88, fontSize: 13, fontFamily: 'Montserrat', color: '#1a1a1a', bold: true },
+    ],
+  },
+  {
+    id: 'wish-circle-photo',
+    label: 'Фото в колі',
+    group: 'Книга побажань',
+    tags: ['wishbook'],
+    bgColor: '#f8f4ec',
+    photoSlot: { x: 22, y: 12, w: 56, h: 56, shape: 'circle' },
+    texts: [
+      { text: 'LOVE', x: 50, y: 74, fontSize: 16, fontFamily: 'Montserrat', color: '#c09060', bold: true },
+      { text: 'Імʼя & Імʼя', x: 50, y: 83, fontSize: 24, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
+      { text: '• 15.06.2025 •', x: 50, y: 92, fontSize: 11, fontFamily: 'Cormorant Garamond', color: '#8a7050', bold: false },
+    ],
+  },
+  {
+    id: 'wish-arch',
+    label: 'Арка',
+    group: 'Книга побажань',
+    tags: ['wishbook'],
+    bgColor: '#e8e0d4',
+    photoSlot: null,
+    texts: [
+      { text: '⌒', x: 50, y: 20, fontSize: 36, fontFamily: 'Playfair Display', color: '#8a6040', bold: false },
+      { text: 'OUR DAY', x: 50, y: 42, fontSize: 16, fontFamily: 'Montserrat', color: '#8a6040', bold: true },
+      { text: 'Guest Book', x: 50, y: 54, fontSize: 32, fontFamily: 'Dancing Script', color: '#6a4030', bold: false },
+      { text: 'Імʼя & Імʼя', x: 50, y: 72, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#6a4030', bold: false, italic: true },
+      { text: '2025', x: 50, y: 85, fontSize: 12, fontFamily: 'Montserrat', color: '#8a6040', bold: false },
+    ],
+  },
+  {
+    id: 'wish-deco-border',
+    label: 'Декоративна рамка',
+    group: 'Книга побажань',
+    tags: ['wishbook'],
+    bgColor: '#1a1a1a',
+    photoSlot: null,
+    texts: [
+      { text: '◆ ◆ ◆', x: 50, y: 18, fontSize: 16, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
+      { text: 'GUEST', x: 50, y: 38, fontSize: 38, fontFamily: 'Playfair Display', color: '#d4af37', bold: true },
+      { text: 'BOOK', x: 50, y: 54, fontSize: 38, fontFamily: 'Playfair Display', color: '#d4af37', bold: true },
+      { text: '◆ ◆ ◆', x: 50, y: 70, fontSize: 16, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
+      { text: '— 2025 —', x: 50, y: 85, fontSize: 12, fontFamily: 'Cormorant Garamond', color: '#d4af37', bold: false, italic: true },
+    ],
+  },
+  {
+    id: 'wish-baby',
+    label: 'Дитяча',
+    group: 'Книга побажань — Дитячі',
+    tags: ['wishbook'],
+    bgColor: '#fde4e4',
+    photoSlot: { x: 22, y: 15, w: 56, h: 40, shape: 'circle' },
+    texts: [
+      { text: '☆', x: 50, y: 63, fontSize: 22, fontFamily: 'Playfair Display', color: '#d68c8c', bold: false },
+      { text: 'Побажання', x: 50, y: 74, fontSize: 26, fontFamily: 'Dancing Script', color: '#8a4a4a', bold: false },
+      { text: 'для малюка', x: 50, y: 84, fontSize: 16, fontFamily: 'Cormorant Garamond', color: '#8a4a4a', bold: false, italic: true },
+    ],
+  },
+  {
+    id: 'wish-birthday',
+    label: 'День народження',
+    group: 'Книга побажань — ДН',
+    tags: ['wishbook'],
+    bgColor: '#faf0e0',
+    photoSlot: null,
+    texts: [
+      { text: '✦ ✦ ✦', x: 50, y: 20, fontSize: 18, fontFamily: 'Playfair Display', color: '#c09060', bold: false },
+      { text: 'HAPPY', x: 50, y: 38, fontSize: 32, fontFamily: 'Playfair Display', color: '#8a6030', bold: true },
+      { text: 'Birthday', x: 50, y: 52, fontSize: 36, fontFamily: 'Dancing Script', color: '#c09060', bold: false },
+      { text: 'GUEST BOOK', x: 50, y: 72, fontSize: 12, fontFamily: 'Montserrat', color: '#8a6030', bold: true },
+      { text: "Ім'я • 2025", x: 50, y: 85, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#8a6030', bold: false, italic: true },
+    ],
+  },
+  {
+    id: 'wish-modern-mono',
+    label: 'Монохром модерн',
+    group: 'Книга побажань',
+    tags: ['wishbook'],
+    bgColor: '#ffffff',
+    photoSlot: null,
+    texts: [
+      { text: '01', x: 15, y: 15, fontSize: 11, fontFamily: 'Montserrat', color: '#c0c0c0', bold: false },
+      { text: 'GUEST', x: 50, y: 35, fontSize: 48, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
+      { text: 'BOOK', x: 50, y: 52, fontSize: 48, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
+      { text: 'СПОГАДИ & ПОБАЖАННЯ', x: 50, y: 75, fontSize: 10, fontFamily: 'Montserrat', color: '#5a5a5a', bold: false },
+      { text: "Ім'я & Ім'я", x: 50, y: 87, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#1a1a1a', bold: false, italic: true },
     ],
   },
 ];
