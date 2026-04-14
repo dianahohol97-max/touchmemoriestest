@@ -8,6 +8,7 @@ import { Footer } from '@/components/ui/Footer';
 import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ProductCard } from '@/components/ui/ProductCard';
+import { SizeVisualizer } from '@/components/ui/SizeVisualizer';
 import { CheckCircle2, Star, Loader2, Image as ImageIcon, Play } from 'lucide-react';
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -573,6 +574,22 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e2d7d' }}>
                                                             {optLabel(opt.name)} {opt.required !== false ? <span style={{color:'#e53e3e'}}>*</span> : null}
                                                         </label>
+                                                        {opt.name === 'Розмір' && (() => {
+                                                            const sizeValues = items.map((it: any) => it.value || it.name || String(it));
+                                                            const prices: Record<string, number> = {};
+                                                            items.forEach((it: any) => {
+                                                                const v = it.value || it.name || String(it);
+                                                                if (it.price) prices[v] = Number(it.price);
+                                                            });
+                                                            return (
+                                                                <SizeVisualizer
+                                                                    sizes={sizeValues}
+                                                                    selected={customProductOptions[opt.name] || null}
+                                                                    onSelect={(size) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: size }))}
+                                                                    prices={prices}
+                                                                />
+                                                            );
+                                                        })()}
                                                         <select
                                                             value={customProductOptions[opt.name] || ''}
                                                             onChange={(e) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: e.target.value }))}

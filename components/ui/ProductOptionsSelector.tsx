@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { SizeVisualizer } from './SizeVisualizer';
 
 type ProductOption = {
   name: string;
@@ -724,6 +725,15 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                 {option.values[0]} (фіксовано)
               </div>
             ) : (
+              <>
+                {option.name === 'Розмір' && (
+                  <SizeVisualizer
+                    sizes={option.values}
+                    selected={selectedValue ?? null}
+                    onSelect={(size) => handleOptionChange(option.name, size)}
+                    prices={option.prices as Record<string, number> | undefined}
+                  />
+                )}
               <select
                 value={selectedValue || ''}
                 onChange={(e) => {
@@ -757,6 +767,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                   );
                 })}
               </select>
+              </>
             )}
             {option.note && (
               <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 5, fontStyle: 'italic' }}>
