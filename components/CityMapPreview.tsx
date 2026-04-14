@@ -86,18 +86,18 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             case 'stamen-toner':
             case 'stamen-toner-lite':
             case 'classic-bw':
-                // Positron nolabels = clean gray roads on white, no POI icons
-                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+                // light_all = roads + labels + no POI icons, CSS makes it B&W
+                return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
             case 'vintage-sepia':
             case 'harvest':
-                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
             case 'color-outdoors':
             case 'bayside':
             case 'forest-green':
             case 'paste':
-                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
             default:
-                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
         }
     };
 
@@ -124,15 +124,15 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             case 'classic-bw':
                 return 'grayscale(100%) contrast(170%) brightness(1.05)';
             case 'stamen-toner':
-                // CartoCDN light_nolabels → sharp B&W poster
-                return 'grayscale(100%) contrast(250%) brightness(0.95) invert(0)';
+                // light_all → B&W high contrast poster
+                return 'grayscale(100%) contrast(160%) brightness(1.05)';
             case 'stamen-toner-lite':
-                return 'grayscale(100%) contrast(180%) brightness(1.05)';
+                return 'grayscale(100%) contrast(120%) brightness(1.1)';
             case 'classic-bw':
-                return 'grayscale(100%) contrast(200%) brightness(1.0)';
+                return 'grayscale(100%) contrast(140%) brightness(1.05)';
             case 'vintage-sepia':
             case 'harvest':
-                return 'grayscale(100%) sepia(60%) contrast(140%) brightness(1.05)';
+                return 'grayscale(100%) sepia(55%) contrast(130%) brightness(1.05)';
             case 'smooth-light':
                 return 'grayscale(100%) contrast(120%) brightness(1.08)';
             // Dark
@@ -214,10 +214,7 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                             attributionControl={false}
                         >
                             <TileLayer url={getTileUrl()} />
-                            {/* Label overlay for all nolabels base tiles */}
-                            {config.mapStyle !== 'dark-mode' && config.mapStyle !== 'smooth-light' && config.mapStyle !== 'plum' && (
-                                <TileLayer url={getLabelTileUrl()} />
-                            )}
+                            {/* No separate label layer needed — light_all includes labels */}
                             {isClient && <MapUpdater lat={config.latitude} lng={config.longitude} zoom={config.zoom} />}
                         </MapContainer>
                     )}
