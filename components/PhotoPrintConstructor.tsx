@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 // ─── Size definitions ─────────────────────────────────────────────────────────
 const STANDARD_SIZES: Record<string, { w: number; h: number; label: string }> = {
+  '9x13': { w: 9, h: 13, label: '9×13 см' },
   '10x15': { w: 10, h: 15, label: '10×15 см' },
   '13x18': { w: 13, h: 18, label: '13×18 см' },
   '15x21': { w: 15, h: 21, label: '15×21 см' },
