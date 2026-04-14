@@ -46,7 +46,7 @@ import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from 
 import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
-interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; }
+interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; }
 interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
@@ -1487,6 +1487,44 @@ export default function BookLayoutEditor() {
     img.src = previewDataUrl;
   };
 
+  // ── Remove background via remove.bg API ──
+  const removePhotoBg = async (photoId: string) => {
+    const photo = photos.find(p => p.id === photoId);
+    if (!photo) return;
+    // Toggle off if already removed
+    if (photo.noBgUrl) {
+      setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, noBgUrl: undefined } : p));
+      toast.success('Фон відновлено');
+      return;
+    }
+    setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, noBgLoading: true } : p));
+    try {
+      // Dynamic import — loads ~40MB WASM model once, then cached
+      const { removeBackground } = await import('@imgly/background-removal');
+      // Convert dataUrl to Blob
+      const res = await fetch(photo.preview);
+      const blob = await res.blob();
+      const resultBlob = await removeBackground(blob, {
+        publicPath: '/_next/static/chunks/',
+        output: { format: 'image/png', quality: 0.9 },
+      });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        setPhotos(prev => prev.map(p => p.id === photoId
+          ? { ...p, noBgUrl: dataUrl, noBgLoading: false }
+          : p
+        ));
+        toast.success('✂️ Фон видалено!');
+      };
+      reader.readAsDataURL(resultBlob);
+    } catch (err: any) {
+      console.error('removePhotoBg error:', err);
+      setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, noBgLoading: false } : p));
+      toast.error('Помилка видалення фону: ' + (err.message || 'спробуйте ще раз'));
+    }
+  };
+
   const autoFill = () => {
     pushHistory();
     let pi = 0;
@@ -2137,7 +2175,7 @@ export default function BookLayoutEditor() {
                         onDragStart={e => { if(used) return; const ids = isSel && selectedPhotoIds.size > 1 ? [...selectedPhotoIds] : [ph.id]; setDragPhotoId(ph.id); e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('photoIds', JSON.stringify(ids)); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }}
                         onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
                         onClick={(e) => { if(used) return; if(e.ctrlKey||e.metaKey){ setSelectedPhotoIds(prev=>{const n=new Set(prev);if(n.has(ph.id))n.delete(ph.id);else n.add(ph.id);return n;}); } else { setSelectedPhotoIds(new Set()); setTapSelectedPhotoId(tapSelectedPhotoId===ph.id?null:ph.id); }}}
-                        style={{ display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', cursor: used ? 'default' : 'pointer', opacity: used ? 0.45 : 1, border: isSel ? '2px solid #7c3aed' : tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : '1px solid #e2e8f0', outline: isSel ? '2px solid rgba(124,58,237,0.3)' : tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none', background: isSel ? '#f5f3ff' : '#fff' }}>
+                        style={{ display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', cursor: used ? 'default' : 'pointer', opacity: used ? 0.45 : 1, border: ph.noBgUrl ? '2px solid #7c3aed' : isSel ? '2px solid #7c3aed' : tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : '1px solid #e2e8f0', outline: isSel ? '2px solid rgba(124,58,237,0.3)' : tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none', background: isSel ? '#f5f3ff' : '#fff' }}>
                         <div style={{ position: 'relative', width: '100%', aspectRatio: String(ratio), maxHeight: 120, overflow: 'hidden' }}>
                           <img src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
                           {used && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✓</div>}
@@ -2146,6 +2184,8 @@ export default function BookLayoutEditor() {
                           <span style={{ position: 'absolute', top: 2, left: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3 }}>{i + 1}</span>
                           {ph.hasFace && <span title="Обличчя знайдено — смарт кадрування" style={{ position:'absolute', bottom:2, right:2, fontSize:10, background:'rgba(0,0,0,0.55)', borderRadius:4, padding:'1px 3px' }}>👤</span>}
                           {ph.focalX !== undefined && !ph.hasFace && <span title="Фокус визначено" style={{ position:'absolute', bottom:2, right:2, fontSize:8, background:'rgba(0,0,0,0.45)', borderRadius:4, padding:'1px 3px', color:'#fff' }}>🎯</span>}
+                          {ph.noBgLoading && <span style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.7)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>⏳</span>}
+                          {ph.noBgUrl && !ph.noBgLoading && <span title="Фон видалено" style={{ position:'absolute', top:2, right:2, background:'rgba(124,58,237,0.9)', color:'#fff', fontSize:9, fontWeight:700, padding:'1px 4px', borderRadius:3 }}>✂ без фону</span>}
                           {/* Low DPI warning — check against full page size */}
                           {(() => {
                             const dpi = checkPhotoDpi(ph.width, ph.height, pageW, cH, pageW, cH, prop.w, prop.h);
@@ -2154,6 +2194,14 @@ export default function BookLayoutEditor() {
                           })()}
                         </div>
                         <div style={{ padding: '3px 4px', fontSize: 9, color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }} title={ph.name}>{displayName}</div>
+                        {/* Quick action: remove bg */}
+                        <button
+                          onClick={e => { e.stopPropagation(); removePhotoBg(ph.id); }}
+                          disabled={!!ph.noBgLoading}
+                          title={ph.noBgUrl ? 'Відновити фон' : 'Видалити фон (remove.bg)'}
+                          style={{ width:'100%', padding:'3px 2px', border:'none', borderTop:'1px solid #f1f5f9', background: ph.noBgUrl ? '#fef3c7' : '#faf5ff', color: ph.noBgUrl ? '#d97706' : '#7c3aed', cursor: ph.noBgLoading ? 'wait' : 'pointer', fontSize:9, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', gap:3 }}>
+                          {ph.noBgLoading ? '⏳' : ph.noBgUrl ? '↩ фон' : '✂ без фону'}
+                        </button>
                       </div>
                     );
                   })}
@@ -3855,7 +3903,7 @@ export default function BookLayoutEditor() {
                                 }}
                                 onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                 onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                <img src={photo.preview} draggable={photoEditSlot !== key}
+                                <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key}
                                   onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
                                   onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
                                   style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:`${slot!.cropX??50}% ${slot!.cropY??50}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>  
@@ -4309,7 +4357,7 @@ export default function BookLayoutEditor() {
                                 <div style={{ width: '100%', height: '100%', overflow: photoEditSlot === key ? 'visible' : 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                  <img src={photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
+                                  <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
                                     style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:`${slot!.cropX??50}% ${slot!.cropY??50}%`, userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
                                   {/* Zoom hint — always visible when zoomed, full controls in crop mode */}
@@ -5045,6 +5093,20 @@ export default function BookLayoutEditor() {
                 style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#1e2d7d', fontWeight:500 }}>
                 ✂️ Режим кадрування
               </button>
+              {(() => {
+                const [pi,si] = ctxMenu.id.split('-').map(Number);
+                const slotPhotoId = pages[pi]?.slots[si]?.photoId;
+                const slotPhoto = slotPhotoId ? photos.find(p=>p.id===slotPhotoId) : null;
+                if (!slotPhoto) return null;
+                const hasNoBg = !!slotPhoto.noBgUrl;
+                const isLoading = !!slotPhoto.noBgLoading;
+                return (
+                  <button onClick={()=>{ haptic.light(); removePhotoBg(slotPhoto.id); closeCtxMenu(); }}
+                    style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background: hasNoBg ? '#fef3c7' : 'transparent', cursor:'pointer', fontSize:14, color: hasNoBg ? '#d97706' : '#7c3aed', fontWeight:500 }}>
+                    {isLoading ? '⏳' : hasNoBg ? '↩️' : '✂️'} {isLoading ? 'Видаляю фон...' : hasNoBg ? 'Відновити фон' : 'Видалити фон (remove.bg)'}
+                  </button>
+                );
+              })()}
             </>}
           </div>
         </div>
@@ -5296,19 +5358,35 @@ export default function BookLayoutEditor() {
                     const isTapped = tapSelectedPhotoId === ph.id;
                     return (
                       <div key={ph.id}
-                        onClick={() => {
-                          if (used) return;
-                          if (isTapped) { setTapSelectedPhotoId(null); return; }
-                          setTapSelectedPhotoId(ph.id);
-                          setMobilePanel(false); // close sheet so canvas is visible
-                        }}
-                        style={{ aspectRatio:'1', borderRadius:8, overflow:'hidden', cursor: used ? 'default' : 'pointer',
-                          border: isTapped ? '3px solid #3b82f6' : '2px solid ' + (used ? '#10b981' : '#e2e8f0'),
-                          opacity: used ? 0.6 : 1, position:'relative' }}>
-                        <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
-                        {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>✓</div>}
-                        {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>👆</div>}
-                        <span style={{ position:'absolute', bottom:2, left:2, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'1px 4px', borderRadius:3 }}>{i+1}</span>
+                        style={{ borderRadius:8, overflow:'hidden', cursor: used ? 'default' : 'pointer',
+                          border: ph.noBgUrl ? '2px solid #7c3aed' : isTapped ? '3px solid #3b82f6' : '2px solid ' + (used ? '#10b981' : '#e2e8f0'),
+                          opacity: used ? 0.6 : 1, position:'relative', display:'flex', flexDirection:'column' }}>
+                        {/* Photo thumbnail */}
+                        <div style={{ aspectRatio:'1', position:'relative', overflow:'hidden' }}
+                          onClick={() => {
+                            if (used) return;
+                            if (isTapped) { setTapSelectedPhotoId(null); return; }
+                            setTapSelectedPhotoId(ph.id);
+                            setMobilePanel(false);
+                          }}>
+                          <img src={ph.noBgUrl || ph.preview} style={{ width:'100%', height:'100%', objectFit: ph.noBgUrl ? 'contain' : 'cover' }} draggable={false}/>
+                          {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>✓</div>}
+                          {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>👆</div>}
+                          {ph.noBgLoading && <div style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.75)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>⏳</div>}
+                          <span style={{ position:'absolute', bottom:2, left:2, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'1px 4px', borderRadius:3 }}>{i+1}</span>
+                          {ph.noBgUrl && <span style={{ position:'absolute', top:2, right:2, background:'rgba(124,58,237,0.9)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 3px', borderRadius:3 }}>✂</span>}
+                        </div>
+                        {/* Remove BG button */}
+                        <button
+                          onClick={e => { e.stopPropagation(); removePhotoBg(ph.id); }}
+                          disabled={!!ph.noBgLoading}
+                          style={{ width:'100%', padding:'4px 2px', border:'none', borderTop:'1px solid #f1f5f9',
+                            background: ph.noBgUrl ? '#fef3c7' : '#faf5ff',
+                            color: ph.noBgUrl ? '#d97706' : '#7c3aed',
+                            cursor: ph.noBgLoading ? 'wait' : 'pointer',
+                            fontSize:9, fontWeight:700, touchAction:'manipulation' }}>
+                          {ph.noBgLoading ? '⏳...' : ph.noBgUrl ? '↩ фон' : '✂ без фону'}
+                        </button>
                       </div>
                     );
                   })}
