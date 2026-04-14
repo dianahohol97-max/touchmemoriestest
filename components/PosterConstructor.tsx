@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Upload, Plus, Trash2, Type, ChevronLeft, ChevronRight, ShoppingCart, RotateCcw, Move, AlignCenter, AlignLeft, AlignRight } from 'lucide-react';
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
+import PixarPortraitGenerator from './PixarPortraitGenerator';
 import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -545,7 +546,8 @@ export default function PosterConstructor() {
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const replaceTargetIdx = useRef<number>(-1);
-  const [cropSlotIdx, setCropSlotIdx] = useState<number | null>(null); // which photo slot is in crop mode
+  const [cropSlotIdx, setCropSlotIdx] = useState<number | null>(null);
+  const [showPixar, setShowPixar] = useState(false); // which photo slot is in crop mode
   const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
   const [step, setStep] = useState<'layout' | 'photos' | 'design' | 'text' | 'size'>('layout');
   const [isOrdering, setIsOrdering] = useState(false);
@@ -765,9 +767,25 @@ export default function PosterConstructor() {
                 <button onClick={() => fileInputRef.current?.click()}
                   style={{ width:'100%', padding:'14px', border:'2px dashed #c7d2fe', borderRadius:10,
                     background:'#f8faff', color:'#1e2d7d', fontWeight:700, fontSize:13,
-                    cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:12 }}>
+                    cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:6 }}>
                   <Upload size={16}/> Завантажити фото ({config.photos.length}/{layout.slots})
                 </button>
+                <button onClick={() => setShowPixar(p => !p)}
+                  style={{ width:'100%', padding:'10px', border:'2px dashed #a855f7', borderRadius:10,
+                    background:'#faf5ff', color:'#7c3aed', fontWeight:700, fontSize:12,
+                    cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:12 }}>
+                  🎨 AI Портрет — Піксар / Аніме / Акварель
+                </button>
+                {showPixar && (
+                  <div style={{ border:'1px solid #e9d5ff', borderRadius:10, padding:12, marginBottom:12, background:'#fdf4ff' }}>
+                    <PixarPortraitGenerator compact onResult={(url) => {
+                      const newPhoto = { id: 'ai-'+Date.now(), photoUrl: url, cropX:50, cropY:50, zoom:1, rotation:0 };
+                      setConfig(prev => ({ ...prev, photos: [...prev.photos.slice(0, layout.slots-1), newPhoto] }));
+                      setShowPixar(false);
+                      toast.success('🎨 AI портрет додано!');
+                    }}/>
+                  </div>
+                )}
               )}
               <input ref={fileInputRef} type="file" multiple accept="image/*" style={{ display:'none' }} onChange={handleFileSelect} />
 

@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
 import { useCartStore } from '@/store/cart-store';
 import { CoverEditor } from './CoverEditor';
+import PixarPortraitGenerator from './PixarPortraitGenerator';
 import { BookPreviewModal } from './BookPreviewModal';
 import { FreeSlot, FreeSlotLayer, FreeSlotControls, SlotShape, checkPhotoDpi } from './FreeSlotLayer';
 import { haptic, startPointerDrag, useLongPress } from '@/lib/hooks/useMobileInteractions';
@@ -2158,6 +2159,11 @@ export default function BookLayoutEditor() {
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #263a99', borderRadius: 10, background: '#f0f3ff', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#1e2d7d', width: '100%' }}>
                   <ImageIcon size={15} /> Завантажити фото
                 </button>
+                {/* AI Portrait button */}
+                <button onClick={() => setLeftTab('pixar' as any)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #a855f7', borderRadius: 10, background: '#faf5ff', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#7c3aed', width: '100%' }}>
+                  🎨 AI Портрет (Піксар / Аніме / Акварель)
+                </button>
                 {/* Add free slot button — only on content pages */}
                 {currentIdx !== 0 && (
                   <button onClick={addFreeSlot}
@@ -2753,6 +2759,26 @@ export default function BookLayoutEditor() {
               </div>
             )}
             {/* BACKGROUND */}
+            {/* PIXAR AI PORTRAIT PANEL */}
+            {(leftTab as string) === 'pixar' && (
+              <div style={{ padding:'0 4px' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                  <span style={{ fontSize:14, fontWeight:800, color:'#7c3aed' }}>🎨 AI Портрет</span>
+                  <button onClick={()=>setLeftTab('photos')} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', fontSize:11 }}>← Назад до фото</button>
+                </div>
+                <PixarPortraitGenerator
+                  compact
+                  onResult={(url) => {
+                    const newPhoto = { id: 'ai-'+Date.now(), preview: url, width: 1024, height: 1024, name: 'AI Portrait' };
+                    setPhotos(prev => [...prev, newPhoto]);
+                    detectFocalPoint(url, newPhoto.id);
+                    setLeftTab('photos');
+                    toast.success('🎨 AI портрет додано до фото!');
+                  }}
+                />
+              </div>
+            )}
+
             {leftTab === 'bg' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
                 {/* On cover page + printed: show color picker for front cover bg */}
