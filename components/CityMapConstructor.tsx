@@ -666,7 +666,7 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
                     {([
                         { code: 'uk', label: '🇺🇦 Укр' },
                         { code: 'en', label: '🇬🇧 Eng' },
-                        { code: 'ru', label: '🇷🇺 Рус' },
+                        
                         { code: 'de', label: '🇩🇪 Deu' },
                         { code: 'fr', label: '🇫🇷 Fra' },
                         { code: 'es', label: '🇪🇸 Esp' },
