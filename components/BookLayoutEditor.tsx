@@ -1005,7 +1005,7 @@ export default function BookLayoutEditor() {
   const isWishbook = _slug.includes('wish') || _slug.includes('guest') || _slug.includes('pobazhan') ||
     (config?.productName || '').toLowerCase().includes('побажань');
   const isMagazine = _slug.includes('magazine') || _slug.includes('journal') || _slug.includes('zhurnal');
-  const magazineTextEnabled = isMagazine && hasTextLayout;
+  const magazineTextEnabled = !isWishbook; // show templates for all products
 
   // Wishbook: force cover-only mode
   useEffect(() => {
@@ -1913,7 +1913,9 @@ export default function BookLayoutEditor() {
                 })}
                 {/* Text templates as layout thumbnails — for magazines */}
                 {!isSpreadMode && magazineTextEnabled && currentIdx !== 0 && (() => {
-                  const textTemplates = PAGE_TEMPLATES.filter(t => t.tags?.includes('magazine'));
+                  // Filter templates by product type
+                  const productTag = isMagazine ? 'magazine' : isWishbook ? 'wishbook' : 'magazine';
+                  const textTemplates = PAGE_TEMPLATES.filter(t => !t.tags || t.tags.includes(productTag) || t.tags.includes('journal'));
                   const groups = [...new Set(textTemplates.map(t => t.group))];
                   return groups.map(group => (
                     <div key={'txt-'+group}>
