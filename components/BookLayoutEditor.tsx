@@ -922,8 +922,22 @@ export default function BookLayoutEditor() {
   const t = useT();
   const [isMobile, setIsMobile] = useState(false);
   const [mobilePanel, setMobilePanel] = useState(false); // bottom sheet open
+  const [mobileLayoutGroup, setMobileLayoutGroup] = useState<string | null>(null); // selected layout group on mobile
+  const [mobilePanelHeight, setMobilePanelHeight] = useState<'half'|'full'>('half'); // bottom sheet size
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => {
+      const w = window.innerWidth;
+      setIsMobile(w < 768);
+      // Auto-fit zoom for mobile
+      if (w < 768) {
+        // Canvas is ~2 pages wide for spread, or 1 page for page mode
+        // Available width = screen width - padding (16px each side)
+        const available = w - 32;
+        const canvasW = 680; // approximate canvas width at 100% zoom
+        const fit = Math.round((available / canvasW) * 100);
+        setZoom(Math.max(28, Math.min(70, fit)));
+      }
+    };
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
@@ -938,7 +952,15 @@ export default function BookLayoutEditor() {
   const [photos, setPhotos] = useState<PhotoData[]>([]);
   const [pages, setPages] = useState<Page[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [zoom, setZoom] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 40 : 70);
+  const [zoom, setZoom] = useState(() => {
+    if (typeof window === 'undefined') return 70;
+    const w = window.innerWidth;
+    if (w < 400) return 28;  // very small phones
+    if (w < 480) return 34;  // small phones
+    if (w < 640) return 42;  // medium phones
+    if (w < 768) return 52;  // large phones / small tablets
+    return 70;               // desktop
+  });
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'>('layouts');
   const [coverState, setCoverState] = useState<CoverState>(() => {
     // Synchronously read config to initialize cover state immediately
@@ -1888,50 +1910,49 @@ export default function BookLayoutEditor() {
 
       {/* TOP BAR */}
       {isMobile ? (
-        /* MOBILE: 2-row compact topbar */
-        <div style={{ background:'#fff', borderBottom:'1px solid #e2e8f0', flexShrink:0 }}>
-          {/* Row 1: Back + title + Cart */}
-          <div style={{ display:'flex', alignItems:'center', padding:'6px 10px', gap:8 }}>
-            <button onClick={()=>{ if(window.confirm('Вийти з редактора?')) router.back(); }}
-              style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', cursor:'pointer', color:'#374151', padding:'4px 6px', borderRadius:6, flexShrink:0 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        /* MOBILE: single compact topbar */
+        <div style={{ background:'#fff', borderBottom:'1px solid #e2e8f0', flexShrink:0, paddingTop:'env(safe-area-inset-top)' }}>
+          <div style={{ display:'flex', alignItems:'center', padding:'8px 10px', gap:8, minHeight:48 }}>
+            {/* Back */}
+            <button onClick={()=>{ if(window.confirm('Вийти?')) router.back(); }}
+              style={{ display:'flex', alignItems:'center', background:'none', border:'none', cursor:'pointer', color:'#374151', padding:'6px', borderRadius:8, flexShrink:0, touchAction:'manipulation' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             </button>
+            {/* Title + spread counter */}
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontWeight:800, fontSize:13, color:'#1e2d7d', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{config.productName || 'Фотокнига'}</div>
-              <div style={{ fontSize:10, color:'#94a3b8' }}>{photos.length} фото • {pages.length} стор.{saveStatus === 'saving' ? <span style={{ color:'#f59e0b', marginLeft:4 }}>● Зберігаю...</span> : saveStatus === 'saved' ? <span style={{ color:'#10b981', marginLeft:4 }}>✓ Збережено</span> : ''}</div>
+              <div style={{ fontWeight:800, fontSize:13, color:'#1e2d7d', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {config.productName || 'Фотокнига'}
+              </div>
+              <div style={{ fontSize:10, color:'#94a3b8', display:'flex', alignItems:'center', gap:4 }}>
+                <span>Розворот {currentIdx}/{Math.ceil((pages.length-1)/2)}</span>
+                <span>·</span>
+                <span>{photos.length} фото</span>
+                {saveStatus==='saving' && <span style={{color:'#f59e0b'}}>● збер...</span>}
+                {saveStatus==='saved' && <span style={{color:'#10b981'}}>✓</span>}
+              </div>
             </div>
-            <div style={{ fontSize:13, fontWeight:800, color:'#1e2d7d', flexShrink:0 }}>{dynamicPrice} ₴</div>
+            {/* Undo */}
+            <button onClick={undo} disabled={history.length===0}
+              style={{ padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', color:history.length===0?'#cbd5e1':'#374151', opacity:history.length===0?0.4:1, flexShrink:0, touchAction:'manipulation' }}>
+              <RotateCcw size={14}/>
+            </button>
+            {/* Preview */}
+            <button onClick={()=>setShowPreview(true)}
+              style={{ padding:'6px 8px', border:'1px solid #c7d2fe', borderRadius:8, background:'#f0f3ff', color:'#1e2d7d', cursor:'pointer', flexShrink:0, touchAction:'manipulation' }}>
+              <Eye size={14}/>
+            </button>
+            {/* Done / Save */}
             {designerOrderId ? (
               <button onClick={()=>saveDesignerProject('save')} disabled={designerSaving}
-                style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background:'#7c3aed', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', flexShrink:0, opacity:designerSaving?0.6:1 }}>
-                💾 Зберегти
+                style={{ padding:'7px 12px', background:'#7c3aed', color:'#fff', border:'none', borderRadius:8, fontWeight:800, fontSize:12, cursor:'pointer', flexShrink:0, opacity:designerSaving?0.6:1, touchAction:'manipulation' }}>
+                Зберегти
               </button>
             ) : (
               <button onClick={addToCart}
-                style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', background:'#16a34a', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', flexShrink:0 }}>
+                style={{ padding:'7px 14px', background:'#16a34a', color:'#fff', border:'none', borderRadius:8, fontWeight:800, fontSize:12, cursor:'pointer', flexShrink:0, touchAction:'manipulation', boxShadow:'0 2px 8px rgba(22,163,74,0.35)' }}>
                 ✓ Готово
               </button>
             )}
-          </div>
-          {/* Row 2: Авто + Undo + Zoom + Preview */}
-          <div style={{ display:'flex', alignItems:'center', padding:'4px 10px 6px', gap:6, borderTop:'1px solid #f1f5f9' }}>
-            <button onClick={autoFill}
-              style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', border:'1px solid #e2e8f0', borderRadius:7, background:'#fff', cursor:'pointer', fontSize:12, fontWeight:600, color:'#1e2d7d' }}>
-              <Wand2 size={12}/> Авто
-            </button>
-            <button onClick={undo} disabled={history.length===0}
-              style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', border:'1px solid #e2e8f0', borderRadius:7, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', fontSize:12, fontWeight:600, color:history.length===0?'#cbd5e1':'#1e2d7d', opacity:history.length===0?0.5:1 }}>
-              <RotateCcw size={12}/> Undo
-            </button>
-            <div style={{ display:'flex', alignItems:'center', gap:4, marginLeft:'auto' }}>
-              <button onClick={()=>setZoom(z=>Math.max(30,z-10))} style={{ padding:'5px 7px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer' }}><ZoomOut size={12}/></button>
-              <span style={{ fontSize:11, fontWeight:700, color:'#475569', minWidth:30, textAlign:'center' }}>{zoom}%</span>
-              <button onClick={()=>setZoom(z=>Math.min(130,z+10))} style={{ padding:'5px 7px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer' }}><ZoomIn size={12}/></button>
-            </div>
-            <button onClick={()=>setShowPreview(true)}
-              style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:7, fontWeight:700, fontSize:12, cursor:'pointer' }}>
-              <Eye size={12}/> Перегляд
-            </button>
           </div>
         </div>
       ) : (
@@ -1957,9 +1978,10 @@ export default function BookLayoutEditor() {
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <button onClick={()=>setShowAutoBuild(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', border:'1px solid #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:13, fontWeight:600, color:'#1e2d7d' }}><Wand2 size={14}/> Магічна збірка</button>
             <button onClick={undo} disabled={history.length===0} title="Скасувати (Ctrl+Z)" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', fontSize:13, fontWeight:600, color:history.length===0?'#cbd5e1':'#1e2d7d', opacity:history.length===0?0.5:1 }}><RotateCcw size={14}/> Undo</button>
-            <button onClick={()=>setZoom(z=>Math.max(30,z-10))} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer' }}><ZoomOut size={14}/></button>
+            <button onPointerDown={()=>setZoom(z=>Math.max(20,z-10))} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomOut size={14}/></button>
             <span style={{ fontSize:12, fontWeight:700, color:'#475569', minWidth:36, textAlign:'center' }}>{zoom}%</span>
-            <button onClick={()=>setZoom(z=>Math.min(130,z+10))} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer' }}><ZoomIn size={14}/></button>
+            <button onPointerDown={()=>setZoom(z=>Math.min(150,z+10))} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomIn size={14}/></button>
+            {isMobile && <button onPointerDown={()=>{ const w=window.innerWidth-32; setZoom(Math.max(20,Math.min(70,Math.round((w/680)*100)))); }} title="По ширині" style={{ padding:'6px 8px', border:'1px solid #c7d2fe', borderRadius:6, background:'#f0f3ff', cursor:'pointer', fontSize:11, fontWeight:800, color:'#1e2d7d', touchAction:'manipulation' }}>↔</button>}
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <div style={{ textAlign:'right', paddingRight:4 }}>
@@ -3238,7 +3260,29 @@ export default function BookLayoutEditor() {
         </div>}
 
         {/* CANVAS */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? '12px 8px 72px 8px' : '24px 32px 140px 32px', background: '#f4f6fb', position:'relative' }}>
+        <div
+          onTouchStart={e => {
+            if (e.touches.length === 2) {
+              const dx = e.touches[0].clientX - e.touches[1].clientX;
+              const dy = e.touches[0].clientY - e.touches[1].clientY;
+              (e.currentTarget as any)._pinchDist = Math.sqrt(dx*dx + dy*dy);
+              (e.currentTarget as any)._pinchZoom = zoom;
+            }
+          }}
+          onTouchMove={e => {
+            if (e.touches.length === 2) {
+              const dx = e.touches[0].clientX - e.touches[1].clientX;
+              const dy = e.touches[0].clientY - e.touches[1].clientY;
+              const dist = Math.sqrt(dx*dx + dy*dy);
+              const startDist = (e.currentTarget as any)._pinchDist;
+              const startZoom = (e.currentTarget as any)._pinchZoom;
+              if (startDist && startZoom) {
+                const newZoom = Math.round(Math.max(20, Math.min(150, startZoom * dist / startDist)));
+                setZoom(newZoom);
+              }
+            }
+          }}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? '12px 8px 140px 8px' : '24px 32px 140px 32px', background: '#f4f6fb', position:'relative', WebkitOverflowScrolling:'touch' as any }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
             {isWishbook ? (
               <span>Обкладинка</span>
@@ -4660,6 +4704,35 @@ export default function BookLayoutEditor() {
         </div>
         }{/* end right panel */}
 
+        {/* MOBILE: mini photo strip directly under canvas */}
+        {isMobile && photos.length > 0 && (
+          <div style={{ position:'absolute', bottom: 60, left:0, right:0, background:'rgba(255,255,255,0.95)', backdropFilter:'blur(8px)', borderTop:'1px solid #f1f5f9', zIndex:40, padding:'6px 8px', display:'flex', gap:6, overflowX:'auto', overflowY:'hidden', WebkitOverflowScrolling:'touch' as any, scrollbarWidth:'none' }}>
+            {photos.filter(p => {
+              const used = pages.some(pg => pg.slots.some(s => s.photoId === p.id)) || Object.values(freeSlots).some(arr => arr.some(fs => fs.photoId === p.id));
+              return !used;
+            }).slice(0, 20).map(ph => {
+              const isTapped = tapSelectedPhotoId === ph.id;
+              return (
+                <div key={ph.id}
+                  onPointerDown={() => { setTapSelectedPhotoId(isTapped ? null : ph.id); setMobilePanel(false); }}
+                  style={{ flexShrink:0, width:56, height:56, borderRadius:8, overflow:'hidden', border: isTapped ? '2.5px solid #3b82f6' : '2px solid transparent', cursor:'pointer', position:'relative', touchAction:'manipulation' }}>
+                  <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                  {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>👆</div>}
+                  {ph.hasFace && <span style={{ position:'absolute', bottom:1, right:1, fontSize:9 }}>👤</span>}
+                </div>
+              );
+            })}
+            {photos.filter(p => {
+              const used = pages.some(pg => pg.slots.some(s => s.photoId === p.id)) || Object.values(freeSlots).some(arr => arr.some(fs => fs.photoId === p.id));
+              return !used;
+            }).length === 0 && (
+              <div style={{ color:'#94a3b8', fontSize:11, padding:'4px 8px', display:'flex', alignItems:'center', gap:6 }}>
+                <span>✓</span> Всі фото розміщено
+              </div>
+            )}
+          </div>
+        )}
+
         {/* PHOTO TIMELINE — desktop only, horizontal strip at bottom (SmartAlbums style) */}
         {!isMobile && (
           <div style={{
@@ -4714,7 +4787,7 @@ export default function BookLayoutEditor() {
                 const used = pages.some(pg => pg.slots.some(s => s.photoId === ph.id)) ||
                   Object.values(freeSlots).some(arr => arr.some(fs => fs.photoId === ph.id));
                 const ratio = ph.width / ph.height;
-                const thumbH = 68;
+                const thumbH = isMobile ? 80 : 68;
                 const thumbW = Math.round(thumbH * ratio);
                 const shortName = ph.name.replace(/\.[^.]+$/, '');
                 const displayName = shortName.length > 10 ? shortName.slice(0, 8) + '..' : shortName;
@@ -4990,24 +5063,47 @@ export default function BookLayoutEditor() {
 
       {/* MOBILE: Bottom Tab Bar */}
       {isMobile && (
-        <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'#fff', borderTop:'1px solid #e2e8f0', display:'flex', zIndex:200, paddingBottom:'env(safe-area-inset-bottom)' }}>
+        <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'rgba(255,255,255,0.97)', backdropFilter:'blur(12px)', borderTop:'1px solid #e2e8f0', display:'flex', zIndex:200, paddingBottom:'env(safe-area-inset-bottom)', boxShadow:'0 -2px 12px rgba(0,0,0,0.06)' }}>
+          {/* Spread navigator arrows — left/right */}
+          <button onClick={() => { if (currentIdx > 0) setCurrentIdx(i => Math.max(0, i - 1)); }}
+            disabled={currentIdx === 0}
+            style={{ padding:'8px 12px', border:'none', background:'transparent', color: currentIdx===0 ? '#d1d5db' : '#1e2d7d', cursor: currentIdx===0 ? 'default' : 'pointer', fontSize:20, fontWeight:700, display:'flex', alignItems:'center', flexShrink:0 }}>‹</button>
+
+          {/* Tool buttons */}
           {[
-            ['layouts', <LayoutGrid key="l" size={18}/>, 'Шаблон'],
-            ['text', <Type key="t" size={18}/>, 'Текст'],
-            ['bg', <span key="bg" style={{fontSize:14,fontWeight:700}}>Фн</span>, 'Фон'],
-            ['shapes', <span key="sh" style={{fontSize:14}}>◻</span>, 'Фігури'],
-            ['stickers', <span key="stk" style={{fontSize:14}}>★</span>, 'Стікери'],
-            ['frames', <span key="fr" style={{fontSize:14}}>⬜</span>, 'Рамки'],
-            ...(hasKalka?[['kalka', <span key="kl" style={{fontSize:12,fontWeight:700}}>КЛ</span>, 'Калька']]:[] as any),
-            ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац']]:[] as any),
-            ...(currentIdx===0?[['cover', <span key="cv" style={{fontSize:14}}>▣</span>, 'Обкл.']]:[] as any),
-          ].map(([id, icon, label]) => (
-            <button key={id as string} onClick={() => { setLeftTab(id as any); setMobilePanel(true); if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1); if (id === 'kalka' && currentIdx !== 1) setCurrentIdx(1); if (id === 'cover') setCurrentIdx(0); }}
-              style={{ flex:1, padding:'8px 2px', border:'none', background: leftTab===id && mobilePanel ? '#1e2d7d' : 'transparent', color: leftTab===id && mobilePanel ? '#fff' : '#64748b', display:'flex', flexDirection:'column', alignItems:'center', gap:2, cursor:'pointer', minWidth:0 }}>
-              {icon as React.ReactNode}
-              <span style={{ fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>{label as string}</span>
-            </button>
-          ))}
+            ['photos', '🖼', 'Фото'],
+            ['layouts', '⊞', 'Шаблон'],
+            ['text', 'Aa', 'Текст'],
+            ['bg', '🎨', 'Фон'],
+            ['stickers', '✨', 'Стікер'],
+            ...(currentIdx===0 ? [['cover', '📖', 'Обкл.']] : [] as any),
+          ].map(([id, icon, label]) => {
+            const active = leftTab===id && mobilePanel;
+            return (
+              <button key={id as string}
+                onClick={() => {
+                  if (active) { setMobilePanel(false); return; }
+                  setLeftTab(id as any);
+                  setMobilePanel(true);
+                  if (id === 'layouts' && currentIdx === 0) setCurrentIdx(1);
+                  if (id === 'cover') setCurrentIdx(0);
+                }}
+                style={{ flex:1, padding:'6px 2px 4px', border:'none',
+                  background: active ? '#1e2d7d' : 'transparent',
+                  color: active ? '#fff' : '#374151',
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:1,
+                  cursor:'pointer', minWidth:0, borderRadius: active ? '8px 8px 0 0' : 0,
+                  margin:'4px 2px 0', transition:'background 0.15s' }}>
+                <span style={{ fontSize:16, lineHeight:1 }}>{icon as string}</span>
+                <span style={{ fontSize:8, fontWeight:700, whiteSpace:'nowrap' }}>{label as string}</span>
+              </button>
+            );
+          })}
+
+          {/* Right arrow */}
+          <button onClick={() => { if (currentIdx < Math.ceil((pages.length - 1) / 2)) setCurrentIdx(i => i + 1); }}
+            disabled={currentIdx >= Math.ceil((pages.length - 1) / 2)}
+            style={{ padding:'8px 12px', border:'none', background:'transparent', color: currentIdx >= Math.ceil((pages.length-1)/2) ? '#d1d5db' : '#1e2d7d', cursor: currentIdx >= Math.ceil((pages.length-1)/2) ? 'default' : 'pointer', fontSize:20, fontWeight:700, display:'flex', alignItems:'center', flexShrink:0 }}>›</button>
         </div>
       )}
 
@@ -5048,28 +5144,58 @@ export default function BookLayoutEditor() {
               }
               (el as any)._swipeStartY = undefined;
             }}
-            style={{ position:'fixed', bottom:0, left:0, right:0, width:'100vw', maxWidth:'100vw', zIndex:300, background:'#fff', borderRadius:'16px 16px 0 0', boxShadow:'0 -8px 32px rgba(0,0,0,0.15)', maxHeight:'40vh', display:'flex', flexDirection:'column', paddingBottom:'calc(56px + env(safe-area-inset-bottom))', overflow:'hidden', boxSizing:'border-box', transition:'transform 0.25s ease-out' }}>
+            style={{ position:'fixed', bottom:0, left:0, right:0, width:'100vw', maxWidth:'100vw', zIndex:300, background:'#fff', borderRadius:'20px 20px 0 0', boxShadow:'0 -8px 40px rgba(0,0,0,0.18)', maxHeight: mobilePanelHeight==='full' ? '92vh' : '68vh', display:'flex', flexDirection:'column', paddingBottom:'calc(60px + env(safe-area-inset-bottom))', overflow:'hidden', boxSizing:'border-box', transition:'transform 0.25s ease-out, max-height 0.25s ease' }}>
             {/* Swipe handle */}
             <div style={{ display:'flex', justifyContent:'center', padding:'8px 0 4px' }}>
               <div style={{ width:36, height:4, borderRadius:2, background:'#d1d5db' }}/>
             </div>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 16px 8px', borderBottom:'1px solid #f1f5f9' }}>
-              <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>{({'photos':t('constructor.tab_photos'),'layouts':t('constructor.tab_layouts'),'text':t('constructor.tab_text'),'bg':t('constructor.tab_bg'),'shapes':t('constructor.tab_shapes'),'stickers':t('constructor.tab_stickers'),'cover':t('constructor.cover'),'frames':t('constructor.tab_frames'),'kalka':t('constructor.tab_kalka'),'endpaper':t('constructor.tab_endpaper')} as Record<string,string>)[leftTab]}</span>
-              <button onClick={()=>setMobilePanel(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:20, lineHeight:1, padding:'0 4px' }}>×</button>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 12px 8px', borderBottom:'1px solid #f1f5f9' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                {mobileLayoutGroup && leftTab === 'layouts' && (
+                  <button onClick={()=>setMobileLayoutGroup(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'#1e2d7d', fontSize:18, lineHeight:1, padding:'0 4px' }}>←</button>
+                )}
+                <span style={{ fontWeight:800, fontSize:13, color:'#1e2d7d' }}>
+                  {mobileLayoutGroup && leftTab === 'layouts' ? mobileLayoutGroup :
+                  ({'photos':t('constructor.tab_photos'),'layouts':t('constructor.tab_layouts'),'text':t('constructor.tab_text'),'bg':t('constructor.tab_bg'),'shapes':t('constructor.tab_shapes'),'stickers':t('constructor.tab_stickers'),'cover':t('constructor.cover'),'frames':t('constructor.tab_frames'),'kalka':t('constructor.tab_kalka'),'endpaper':t('constructor.tab_endpaper'),'options':'Ще'} as Record<string,string>)[leftTab]}
+                </span>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <button onClick={()=>setMobilePanelHeight(h => h==='full'?'half':'full')}
+                  style={{ background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:16, lineHeight:1, padding:'0 6px' }}>
+                  {mobilePanelHeight === 'full' ? '⌄' : '⌃'}
+                </button>
+                <button onClick={()=>setMobilePanel(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#64748b', fontSize:22, lineHeight:1, padding:'0 4px' }}>×</button>
+              </div>
             </div>
           <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'12px 14px', boxSizing:'border-box', width:'100%', minWidth:0 }}>
             {/* Render the same content as desktop left panel */}
-            {leftTab === 'layouts' && (
+            {leftTab === 'layouts' && (() => {
+              const activeIdx = getActivePageIdx();
+              const modeLayouts = LAYOUTS.filter(l => isSpreadMode ? l.id.startsWith('sp-') : !l.id.startsWith('sp-'));
+              const mGroups = [...new Set(modeLayouts.map(l => l.group))];
+              const [mActiveGroup, setMActiveGroup] = React.useState(mGroups[0] || '1 фото');
+              const filteredLayouts = modeLayouts.filter(l => l.group === mActiveGroup);
+              return (
               <>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
-                  {LAYOUTS.filter(l => l.group !== undefined).map(l => {
-                    const activeIdx = getActivePageIdx();
+                {/* Group filter tabs */}
+                <div style={{ display:'flex', gap:4, overflowX:'auto', paddingBottom:8, scrollbarWidth:'none' }}>
+                  {mGroups.map(g => (
+                    <button key={g} onClick={() => setMActiveGroup(g)}
+                      style={{ flexShrink:0, padding:'5px 10px', border: mActiveGroup===g ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                        borderRadius:20, background: mActiveGroup===g ? '#1e2d7d' : '#f8fafc',
+                        color: mActiveGroup===g ? '#fff' : '#374151', fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                      {g}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
+                  {filteredLayouts.map(l => {
                     const active = pages[activeIdx]?.layout === l.id;
                     return (
                       <button key={l.id} onClick={()=>{ changeLayout(l.id, activeIdx); setMobilePanel(false); }}
                         style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'8px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: active?'#1e2d7d':'#fff', cursor:'pointer' }}>
                         <LayoutSVG layout={l.id} active={active}/>
-                        <span style={{ fontSize:9, fontWeight:600, color: active?'#fff':'#374151', textAlign:'center', lineHeight:1.2 }}>{l.label}</span>
+                        <span style={{ fontSize:8, fontWeight:600, color: active?'#fff':'#374151', textAlign:'center', lineHeight:1.2 }}>{l.label}</span>
                       </button>
                     );
                   })}
@@ -5086,9 +5212,16 @@ export default function BookLayoutEditor() {
                   </button>
                 </div>
               </>
-            )}
+              ); })()}
             {leftTab === 'photos' && (
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {/* Tap-to-place hint */}
+                {!tapSelectedPhotoId && (
+                  <div style={{ background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:10, padding:'8px 12px', fontSize:11, color:'#0369a1', display:'flex', gap:8, alignItems:'flex-start' }}>
+                    <span style={{ fontSize:14, flexShrink:0 }}>💡</span>
+                    <span><b>Тап на фото</b> → потім <b>тапніть слот</b> на сторінці щоб вставити</span>
+                  </div>
+                )}
                 <button onClick={()=>document.getElementById('photo-upload-mobile')?.click()} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
                   <ImageIcon size={16}/> Завантажити фото
                 </button>
