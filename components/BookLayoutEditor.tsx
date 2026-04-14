@@ -1406,28 +1406,63 @@ export default function BookLayoutEditor() {
     return { cropX: 50, cropY: 38 }; // slightly above center — better default for portraits
   };
 
-  // Detect focal point (face/subject) for smart cropping
-  const detectFocalPoint = async (previewDataUrl: string, photoId: string) => {
-    try {
-      // Extract base64 from data URL
-      const parts = previewDataUrl.split(',');
-      if (parts.length < 2) return;
-      const mediaType = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-      const base64 = parts[1];
-      // Skip very small base64 (tiny thumbs)
-      if (base64.length < 1000) return;
-      const res = await fetch('/api/constructor/focal-point', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mediaType }),
-      });
-      if (!res.ok) return;
-      const { x, y, hasFace } = await res.json();
-      // Update photo with focal point
-      setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, focalX: x, focalY: y, hasFace } : p));
-    } catch {
-      // Silent fail — fallback to center crop
-    }
+  // Detect focal point using Canvas saliency — FREE, no API, runs in browser ~5ms
+  const detectFocalPoint = (previewDataUrl: string, photoId: string) => {
+    const img = new window.Image();
+    img.onload = () => {
+      try {
+        // Downsample to 64x64 for fast processing
+        const SIZE = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE; canvas.height = SIZE;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, SIZE, SIZE);
+        const data = ctx.getImageData(0, 0, SIZE, SIZE).data;
+
+        // Build saliency map: each pixel's "importance" = deviation from avg color
+        // Also weight center region more (subjects usually centered)
+        const avgR = Array.from({length: SIZE*SIZE}, (_,i) => data[i*4]).reduce((a,b)=>a+b,0) / (SIZE*SIZE);
+        const avgG = Array.from({length: SIZE*SIZE}, (_,i) => data[i*4+1]).reduce((a,b)=>a+b,0) / (SIZE*SIZE);
+        const avgB = Array.from({length: SIZE*SIZE}, (_,i) => data[i*4+2]).reduce((a,b)=>a+b,0) / (SIZE*SIZE);
+
+        let totalWeight = 0, sumX = 0, sumY = 0;
+        for (let py = 0; py < SIZE; py++) {
+          for (let px = 0; px < SIZE; px++) {
+            const idx = (py * SIZE + px) * 4;
+            const r = data[idx], g = data[idx+1], b = data[idx+2];
+            // Color deviation from average (saliency)
+            const colorDev = Math.abs(r - avgR) + Math.abs(g - avgG) + Math.abs(b - avgB);
+            // Edge detection: contrast with neighbors
+            let edge = 0;
+            if (px > 0 && py > 0) {
+              const il = (py * SIZE + px - 1) * 4;
+              const iu = ((py - 1) * SIZE + px) * 4;
+              edge = Math.abs(r - data[il]) + Math.abs(r - data[iu]);
+            }
+            // Center bias: Gaussian-like weight favoring center
+            const cx = (px - SIZE/2) / (SIZE/2);
+            const cy = (py - SIZE/2) / (SIZE/2);
+            const centerBias = Math.exp(-(cx*cx + cy*cy) * 1.5) * 2;
+            // Upper-center bias for portraits (faces tend to be upper-center)
+            const portraitBias = Math.exp(-((cx*cx) + (cy + 0.3)*(cy + 0.3)) * 2.0) * 1.5;
+
+            const weight = (colorDev * 0.4 + edge * 0.3) * (1 + centerBias + portraitBias);
+            totalWeight += weight;
+            sumX += px * weight;
+            sumY += py * weight;
+          }
+        }
+
+        if (totalWeight > 0) {
+          const focalX = Math.round(Math.max(20, Math.min(80, (sumX / totalWeight / SIZE) * 100)));
+          const focalY = Math.round(Math.max(15, Math.min(75, (sumY / totalWeight / SIZE) * 100)));
+          setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, focalX, focalY, hasFace: false } : p));
+        }
+      } catch {
+        // Silent fail
+      }
+    };
+    img.src = previewDataUrl;
   };
 
   const autoFill = () => {
@@ -1603,10 +1638,8 @@ export default function BookLayoutEditor() {
       if (loaded.length > 0) {
         setPhotos(prev => [...prev, ...loaded]);
         toast.success(`Завантажено ${loaded.length} фото`);
-        // Detect focal points in background (non-blocking)
-        loaded.forEach(photo => {
-          detectFocalPoint(photo.preview, photo.id);
-        });
+        // Detect focal points using Canvas saliency (free, instant, browser-side)
+        loaded.forEach(photo => { detectFocalPoint(photo.preview, photo.id); });
       }
     };
 
