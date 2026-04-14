@@ -1527,10 +1527,70 @@ export default function BookLayoutEditor() {
   };
 
   const autoFill = () => {
+    if (photos.length === 0) return;
     pushHistory();
-    let pi = 0;
-    setPages(prev => prev.map(p => ({ ...p, slots: p.slots.map(sl => { if (sl.photoId) return sl; const ph = photos[pi]; if (!ph) return sl; pi++; return { ...sl, photoId: ph.id }; }) })));
-    toast.success(t('constructor.photos_placed'));
+
+    // Collect all unused photos
+    const usedIds = new Set<string>();
+    pages.forEach(p => p.slots.forEach(s => { if (s.photoId) usedIds.add(s.photoId); }));
+    Object.values(freeSlots).forEach(arr => arr.forEach(fs => { if (fs.photoId) usedIds.add(fs.photoId); }));
+    const unused = photos.filter(ph => !usedIds.has(ph.id));
+
+    if (unused.length === 0) {
+      toast.success('Усі фото вже розкладені ✓');
+      return;
+    }
+
+    setPages(prev => {
+      let queue = [...unused];
+      let newPages = prev.map(p => ({
+        ...p,
+        slots: p.slots.map(sl => {
+          if (sl.photoId || queue.length === 0) return sl;
+          const ph = queue.shift()!;
+          return { ...sl, photoId: ph.id, ...getFocalCrop(ph.id) };
+        }),
+      }));
+
+      // Add new spreads until all photos are placed
+      while (queue.length > 0) {
+        // Pick best layout for remaining count (prefer layouts close to queue length)
+        const n = Math.min(queue.length, 6); // max 6 per page
+        const modeLayouts = LAYOUTS.filter(l => isSpreadMode ? l.id.startsWith('sp-') : !l.id.startsWith('sp-'));
+        const exact = modeLayouts.filter(l => l.slots === n);
+        const smaller = modeLayouts.filter(l => l.slots > 0 && l.slots <= n);
+        const pool = exact.length > 0 ? exact : smaller.sort((a,b) => b.slots - a.slots);
+        const best = pool[Math.floor(Math.random() * Math.min(pool.length, 3))]
+          || (isSpreadMode ? LAYOUTS.find(l => l.id === 'sp-full') : LAYOUTS.find(l => l.id === 'p-full'))!;
+
+        // Build slots for this page
+        const newSlots = Array.from({ length: best.slots }, (_, si) => {
+          const ph = queue.shift();
+          return ph
+            ? { photoId: ph.id, ...getFocalCrop(ph.id), zoom: 1 }
+            : { photoId: null, cropX: 50, cropY: 50, zoom: 1 };
+        });
+
+        const newId = newPages.length;
+        newPages = [...newPages, { id: newId, label: `${newId}`, layout: best.id as LayoutType, slots: newSlots, textBlocks: [] }];
+
+        // Ensure even page count (spreads come in pairs)
+        if (newPages.length % 2 === 0) {
+          const pairId = newPages.length;
+          newPages = [...newPages, { id: pairId, label: `${pairId}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }];
+        }
+      }
+
+      // Enforce minimum page count
+      while (newPages.length - 1 < minPageCount) {
+        const padId = newPages.length;
+        newPages = [...newPages, { id: padId, label: `${padId}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }];
+      }
+
+      return newPages;
+    });
+
+    toast.success(`✨ Розкладено ${unused.length} фото на сторінки!`);
   };
 
   // Auto-collage: drop N photos onto a page → pick best layout + assign
