@@ -2931,8 +2931,93 @@ export default function BookLayoutEditor() {
                   ],
                 },
               ];
+              // Custom sticker upload handler
+              const handleCustomSticker = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => {
+                  const url = ev.target!.result as string;
+                  const spi = getActivePageIdx();
+                  const newS = { id:'stk-custom-'+Date.now(), url, emoji:'', x:40, y:40, w:'25%', h:'25%' };
+                  setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
+                  toast.success('Стікер додано', { duration: 1500 });
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+              };
+
+              // Remove background (white/light) from image using Canvas
+              const removeBackground = (url: string, spi: number, stkId: string) => {
+                const img = new window.Image();
+                img.onload = () => {
+                  const canvas = document.createElement('canvas');
+                  canvas.width = img.width;
+                  canvas.height = img.height;
+                  const ctx = canvas.getContext('2d')!;
+                  ctx.drawImage(img, 0, 0);
+                  const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                  const px = data.data;
+                  // Sample background color from corner pixels
+                  const corners = [
+                    [px[0], px[1], px[2]],
+                    [px[(canvas.width-1)*4], px[(canvas.width-1)*4+1], px[(canvas.width-1)*4+2]],
+                    [px[(canvas.height-1)*canvas.width*4], px[(canvas.height-1)*canvas.width*4+1], px[(canvas.height-1)*canvas.width*4+2]],
+                  ];
+                  const avgBg = corners.reduce((a,c)=>[a[0]+c[0],a[1]+c[1],a[2]+c[2]],[0,0,0]).map(v=>v/corners.length);
+                  // Threshold: remove pixels close to background color
+                  const threshold = 40;
+                  for (let i = 0; i < px.length; i += 4) {
+                    const dr = Math.abs(px[i] - avgBg[0]);
+                    const dg = Math.abs(px[i+1] - avgBg[1]);
+                    const db = Math.abs(px[i+2] - avgBg[2]);
+                    if (dr < threshold && dg < threshold && db < threshold) {
+                      px[i+3] = 0; // transparent
+                    }
+                  }
+                  ctx.putImageData(data, 0, 0);
+                  const newUrl = canvas.toDataURL('image/png');
+                  setPageStickers(prev => ({...prev, [spi]: (prev[spi]||[]).map(s => s.id===stkId ? {...s, url:newUrl} : s)}));
+                  toast.success('Фон видалено!', { duration: 2000 });
+                };
+                img.src = url;
+              };
+
               return (
                 <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                  {/* Custom sticker upload */}
+                  <div>
+                    <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>Власні стікери</div>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:700, color:'#1e2d7d' }}>
+                      <span style={{ fontSize:18 }}>📎</span>
+                      Завантажити PNG / стікер
+                      <input type="file" accept="image/*" style={{ display:'none' }} onChange={handleCustomSticker} />
+                    </label>
+                    <div style={{ fontSize:9, color:'#94a3b8', marginTop:4, lineHeight:1.4 }}>
+                      PNG з прозорістю або будь-яке фото. Після додавання можна прибрати фон кнопкою ✂️
+                    </div>
+                    {/* Show custom stickers with remove-bg button */}
+                    {(() => {
+                      const spi = getActivePageIdx();
+                      const custom = (pageStickers[spi]||[]).filter(s => s.id.startsWith('stk-custom-'));
+                      if (!custom.length) return null;
+                      return (
+                        <div style={{ marginTop:8, display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
+                          {custom.map(stk => (
+                            <div key={stk.id} style={{ border:'1px solid #e2e8f0', borderRadius:8, overflow:'hidden', background:'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0 / 10px 10px', position:'relative' }}>
+                              <img src={stk.url} style={{ width:'100%', aspectRatio:'1', objectFit:'contain' }} />
+                              <button
+                                onClick={() => removeBackground(stk.url, spi, stk.id)}
+                                title="Видалити фон"
+                                style={{ position:'absolute', bottom:2, right:2, background:'rgba(0,0,0,0.7)', border:'none', borderRadius:6, color:'#fff', fontSize:10, padding:'2px 5px', cursor:'pointer' }}>
+                                ✂️
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
                   {STICKER_GROUPS.map(grp => (
                     <div key={grp.group}>
                       <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>{grp.group}</div>
@@ -4274,6 +4359,24 @@ export default function BookLayoutEditor() {
                           {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
                           <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(s=>s.id!==stk.id)}));}}
                             style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
+                          {stk.id.startsWith('stk-custom-') && stk.url && (
+                            <button onPointerDown={e=>{e.stopPropagation();}} onClick={e=>{e.stopPropagation();
+                              const img2=new window.Image(); img2.onload=()=>{
+                                const cv=document.createElement('canvas'); cv.width=img2.width; cv.height=img2.height;
+                                const cx2=cv.getContext('2d')!; cx2.drawImage(img2,0,0);
+                                const d=cx2.getImageData(0,0,cv.width,cv.height); const px=d.data;
+                                const corners=[[px[0],px[1],px[2]],[px[(cv.width-1)*4],px[(cv.width-1)*4+1],px[(cv.width-1)*4+2]],[px[(cv.height-1)*cv.width*4],px[(cv.height-1)*cv.width*4+1],px[(cv.height-1)*cv.width*4+2]]];
+                                const bg=corners.reduce((a,c)=>[a[0]+c[0],a[1]+c[1],a[2]+c[2]],[0,0,0]).map(v=>v/3);
+                                const thr=45;
+                                for(let i=0;i<px.length;i+=4){if(Math.abs(px[i]-bg[0])<thr&&Math.abs(px[i+1]-bg[1])<thr&&Math.abs(px[i+2]-bg[2])<thr)px[i+3]=0;}
+                                cx2.putImageData(d,0,0);
+                                setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).map(s=>s.id===stk.id?{...s,url:cv.toDataURL('image/png')}:s)}));
+                                toast.success('Фон видалено!',{duration:1500});
+                              }; img2.src=stk.url;
+                            }}
+                            title="Видалити фон"
+                            style={{ position:'absolute',top:-6,left:-6,width:18,height:18,borderRadius:'50%',background:'#8b5cf6',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>✂</button>
+                          )}
                         </div>
                       ))}
                       {/* Safe zone — 5mm from edge, very subtle, mainly for reference */}
