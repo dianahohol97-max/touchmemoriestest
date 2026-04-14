@@ -86,9 +86,9 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             case 'smooth-light':
                 return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
             case 'stamen-toner':
-                return 'https://tiles.stadiamaps.com/tiles/stamen_toner_background/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
             case 'stamen-toner-lite':
-                return 'https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
             case 'vintage-sepia':
             case 'harvest':
                 return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
@@ -112,9 +112,8 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             return 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
         }
         if (stadiaLangs.has(lang)) {
-            // Stadia Maps supports name:lang via their vector tiles
-            // For raster: use their label tiles — language changes via their API
-            return 'https://tiles.stadiamaps.com/tiles/stamen_toner_labels/{z}/{x}/{y}{r}.png';
+            // CartoCDN label-only tiles (free, no key required)
+            return 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
         }
         return 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
     };
@@ -126,9 +125,9 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
             case 'classic-bw':
                 return 'grayscale(100%) contrast(170%) brightness(1.05)';
             case 'stamen-toner':
-                return 'none'; // already B&W
+                return 'grayscale(100%) contrast(200%) brightness(1.02)';
             case 'stamen-toner-lite':
-                return 'contrast(130%)';
+                return 'grayscale(100%) contrast(150%) brightness(1.05)';
             case 'smooth-light':
                 return 'grayscale(100%) contrast(120%) brightness(1.08)';
             // Dark
