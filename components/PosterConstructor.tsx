@@ -545,6 +545,8 @@ export default function PosterConstructor() {
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const replaceTargetIdx = useRef<number>(-1);
+  const [cropSlotIdx, setCropSlotIdx] = useState<number | null>(null); // which photo slot is in crop mode
+  const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
   const [step, setStep] = useState<'layout' | 'photos' | 'design' | 'text' | 'size'>('layout');
   const [isOrdering, setIsOrdering] = useState(false);
 
@@ -990,8 +992,144 @@ export default function PosterConstructor() {
         <div style={{ fontSize:12, fontWeight:700, color:'#94a3b8', letterSpacing:'0.1em', textTransform:'uppercase' }}>
           Попередній перегляд — {sizeObj.label}
         </div>
-        <div style={{ width:'100%', maxWidth:PREVIEW_W }}>
+        <div style={{ width:'100%', maxWidth:PREVIEW_W, position:'relative' }}>
           <PosterPreview config={config} canvasRef={canvasRef} W={PREVIEW_W} />
+
+          {/* Interactive overlay — text drag + photo crop */}
+          {(() => {
+            const sizeObj2 = SIZES.find(s => s.id === config.size) || SIZES[0];
+            const posterH = PREVIEW_W / sizeObj2.ratio;
+            const slots = layout.getSlots(PREVIEW_W, posterH, config.padding);
+            // Scale factor: canvas renders at PREVIEW_W, overlay div is 100% of container
+            return (
+              <div style={{ position:'absolute', inset:0, borderRadius:8, overflow:'hidden' }}
+                // Click on canvas to deselect crop
+                onClick={() => setCropSlotIdx(null)}
+              >
+                {/* Photo slot crop zones */}
+                {slots.map((slot, i) => {
+                  const photo = config.photos[i];
+                  const isCrop = cropSlotIdx === i;
+                  const scaleX = 100 / PREVIEW_W;
+                  const scaleY = 100 / posterH;
+                  return (
+                    <div key={i}
+                      style={{
+                        position:'absolute',
+                        left: `${slot.x * scaleX}%`,
+                        top: `${slot.y * scaleY}%`,
+                        width: `${slot.w * scaleX}%`,
+                        height: `${slot.h * scaleY}%`,
+                        border: isCrop ? '2px solid #3b82f6' : 'none',
+                        boxSizing:'border-box',
+                        cursor: photo ? (isCrop ? 'grab' : 'pointer') : 'default',
+                        zIndex: isCrop ? 20 : 5,
+                      }}
+                      onClick={e => { e.stopPropagation(); if (photo) setCropSlotIdx(isCrop ? null : i); }}
+                    >
+                      {/* Crop mode toolbar */}
+                      {isCrop && photo && (
+                        <div
+                          style={{
+                            position:'absolute', bottom:'100%', left:'50%', transform:'translateX(-50%)',
+                            background:'rgba(15,23,42,0.92)', borderRadius:10, padding:'6px 10px',
+                            display:'flex', gap:8, alignItems:'center', zIndex:30,
+                            boxShadow:'0 4px 16px rgba(0,0,0,0.35)', whiteSpace:'nowrap', marginBottom:4,
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <span style={{ color:'rgba(255,255,255,0.6)', fontSize:10 }}>Кадрування {i+1}:</span>
+                          {/* Zoom */}
+                          <span style={{ color:'#fff', fontSize:10 }}>🔍</span>
+                          <input type="range" min={100} max={300} value={Math.round((photo.zoom||1)*100)}
+                            onChange={e => updatePhoto(photo.id, { zoom: +e.target.value/100 })}
+                            style={{ width:70, accentColor:'#3b82f6' }}/>
+                          <span style={{ color:'rgba(255,255,255,0.7)', fontSize:10, minWidth:28 }}>{Math.round((photo.zoom||1)*100)}%</span>
+                          {/* Crop X */}
+                          <span style={{ color:'#fff', fontSize:10 }}>↔</span>
+                          <input type="range" min={0} max={100} value={photo.cropX||50}
+                            onChange={e => updatePhoto(photo.id, { cropX: +e.target.value })}
+                            style={{ width:60, accentColor:'#3b82f6' }}/>
+                          {/* Crop Y */}
+                          <span style={{ color:'#fff', fontSize:10 }}>↕</span>
+                          <input type="range" min={0} max={100} value={photo.cropY||50}
+                            onChange={e => updatePhoto(photo.id, { cropY: +e.target.value })}
+                            style={{ width:60, accentColor:'#3b82f6' }}/>
+                          {/* Reset */}
+                          <button onClick={() => updatePhoto(photo.id, { cropX:50, cropY:50, zoom:1 })}
+                            style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:5, padding:'2px 7px', color:'#fff', cursor:'pointer', fontSize:10 }}>↺</button>
+                          <button onClick={() => setCropSlotIdx(null)}
+                            style={{ background:'#3b82f6', border:'none', borderRadius:5, padding:'2px 8px', color:'#fff', cursor:'pointer', fontSize:10, fontWeight:700 }}>Готово</button>
+                        </div>
+                      )}
+                      {/* Hint to click */}
+                      {!isCrop && photo && (
+                        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'flex-end', padding:4, opacity:0, transition:'opacity 0.15s' }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity='1')}
+                          onMouseLeave={e => (e.currentTarget.style.opacity='0')}>
+                          <span style={{ background:'rgba(0,0,0,0.65)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:4 }}>✂ Кадрувати</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Draggable text blocks */}
+                {config.textBlocks.map(tb => {
+                  const isDragging = draggingTextId === tb.id;
+                  return (
+                    <div key={tb.id}
+                      style={{
+                        position:'absolute',
+                        left: `${tb.x}%`,
+                        top: `${tb.y}%`,
+                        transform:'translate(-50%, -50%)',
+                        cursor:'move',
+                        zIndex:25,
+                        padding:'3px 6px',
+                        border: isDragging ? '1.5px solid #3b82f6' : '1.5px dashed rgba(59,130,246,0.5)',
+                        borderRadius:4,
+                        background: isDragging ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.05)',
+                        userSelect:'none',
+                      }}
+                      onPointerDown={e => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const el = e.currentTarget.parentElement!;
+                        const rect = el.getBoundingClientRect();
+                        setDraggingTextId(tb.id);
+                        const onMove = (ev: PointerEvent) => {
+                          const x = Math.max(2, Math.min(98, ((ev.clientX - rect.left) / rect.width) * 100));
+                          const y = Math.max(2, Math.min(98, ((ev.clientY - rect.top) / rect.height) * 100));
+                          updateTextBlock(tb.id, { x, y });
+                        };
+                        const onUp = () => {
+                          setDraggingTextId(null);
+                          window.removeEventListener('pointermove', onMove);
+                          window.removeEventListener('pointerup', onUp);
+                        };
+                        window.addEventListener('pointermove', onMove);
+                        window.addEventListener('pointerup', onUp);
+                      }}
+                    >
+                      <span style={{
+                        fontFamily: tb.fontFamily,
+                        fontSize: Math.max(8, tb.fontSize * (PREVIEW_W / 600) * 0.85),
+                        color: tb.color,
+                        fontWeight: tb.bold ? 700 : 400,
+                        fontStyle: tb.italic ? 'italic' : 'normal',
+                        letterSpacing: tb.letterSpacing,
+                        whiteSpace:'nowrap',
+                        textAlign: tb.align,
+                        display:'block',
+                        pointerEvents:'none',
+                      }}>{tb.text || '...'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
         <div style={{ fontSize:11, color:'#94a3b8', textAlign:'center' }}>
           Друк на щільному папері 200г/м² · Формат {sizeObj.label} · {sizeObj.price} ₴
