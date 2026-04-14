@@ -3,31 +3,22 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import dynamicImport from 'next/dynamic';
-const PhotoPrintConstructor = dynamicImport(() => import('@/components/PhotoPrintConstructor'), { ssr: false });
 
-function PhotomagnetsOrderContent() {
-    const searchParams = useSearchParams();
-    const productSlug = 'photomagnets'; // Always use photomagnets slug
-
-    return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#fff' }}>
-            <Navigation />
-            <main className="py-24">
-                <PhotoPrintConstructor productSlug={productSlug} />
-            </main>
-            <Footer categories={[]} />
-        </div>
-    );
-}
+const MagnetConstructor = dynamicImport(() => import('@/components/MagnetConstructor'), { ssr: false });
 
 export default function PhotomagnetsOrderPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Завантаження...</div>}>
-            <PhotomagnetsOrderContent />
-        </Suspense>
+        <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+            <Navigation />
+            <main style={{ paddingTop: 80 }}>
+                <Suspense fallback={<div style={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Завантаження...</div>}>
+                    <MagnetConstructor />
+                </Suspense>
+            </main>
+            <Footer categories={[]} />
+        </div>
     );
 }
