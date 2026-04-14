@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 
-const DOMAIN = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.ua';
+// Use same domain as sitemap — NEXT_PUBLIC_SITE_URL must be set in Vercel env vars
+const DOMAIN = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -15,6 +16,9 @@ export default function robots(): MetadataRoute.Robots {
           '/checkout',
           '/order/',
           '/editor/',
+          '/constructor/',
+          '/photobooth/',
+          '/account/',
           '/*?*', // block query params duplicates
         ],
       },

@@ -1,6 +1,12 @@
+/**
+ * /api/upload — general-purpose image upload to Supabase Storage.
+ * Previously used local filesystem (BROKEN on Vercel). Now uses Supabase Storage bucket 'uploads'.
+ * Bucket must exist and be set to public in Supabase dashboard.
+ */
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { createClient } from '@supabase/supabase-js';
+
+const BUCKET = 'uploads';
 
 export async function POST(request: Request) {
   try {
@@ -11,43 +17,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const uploadedUrls: string[] = [];
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    
-    // Ensure directory exists
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch (e) {
-      // Directory might already exist, ignore error if it's not fatal
-    }
 
     for (const file of files) {
-      // Validation matching front-end
-      if (file.type !== 'image/jpeg' && file.type !== 'image/png') {
-        return NextResponse.json({ error: 'Only JPG and PNG images are allowed' }, { status: 400 });
+      // Validation
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        return NextResponse.json({ error: 'Only JPG, PNG and WEBP images are allowed' }, { status: 400 });
       }
       if (file.size > 50 * 1024 * 1024) {
         return NextResponse.json({ error: 'File too large (max 50MB)' }, { status: 400 });
       }
 
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const path = `general/${uniqueSuffix}-${safeName}`;
+
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      // Clean up filename to prevent path traversal or weird bugs
-      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const filename = `${uniqueSuffix}-${safeName}`;
-      const filepath = join(uploadDir, filename);
 
-      await writeFile(filepath, buffer);
-      
-      // Return public URL path
-      uploadedUrls.push(`/uploads/${filename}`);
+      const { error } = await supabase.storage.from(BUCKET).upload(path, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+      if (error) {
+        console.error('[Upload] Supabase storage error:', error.message);
+        return NextResponse.json({ error: `Storage upload failed: ${error.message}` }, { status: 500 });
+      }
+
+      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      uploadedUrls.push(urlData.publicUrl);
     }
 
     return NextResponse.json({ success: true, urls: uploadedUrls });
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('[Upload] Unexpected error:', error);
     return NextResponse.json({ error: 'Upload process failed' }, { status: 500 });
   }
 }

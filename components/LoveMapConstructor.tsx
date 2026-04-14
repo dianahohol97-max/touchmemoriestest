@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Heart } from 'lucide-react';
 import LoveMapPreview from './LoveMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 interface LoveMapConfig {
     // Step 1: Locations
@@ -492,7 +493,12 @@ export default function LoveMapConstructor() {
                                 </div>
                             )}
 
-                            {/* Navigation Buttons */}
+                            {/* QR Code Generator */}
+                        <div style={{ marginBottom: 16 }}>
+                          <QRCodeGenerator compact label="Додати QR-код до замовлення" />
+                        </div>
+
+                        {/* Navigation Buttons */}
                             <div className="flex gap-3 mt-6">
                                 {currentStep > 1 && (
                                     <button

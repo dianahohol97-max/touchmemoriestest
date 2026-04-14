@@ -4,25 +4,29 @@ import { createClient } from '@supabase/supabase-js';
 const LOCALES = ['uk', 'en', 'ro', 'pl', 'de'];
 const DOMAIN = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
 
-// Static routes for each locale
-const STATIC_PATHS = [
+// Universal static routes (all locales)
+const UNIVERSAL_PATHS = [
     { path: '', priority: 1.0, freq: 'daily' as const },
     { path: '/catalog', priority: 0.9, freq: 'daily' as const },
     { path: '/blog', priority: 0.8, freq: 'weekly' as const },
-    { path: '/checkout', priority: 0.7, freq: 'monthly' as const },
+    { path: '/faq', priority: 0.5, freq: 'monthly' as const },
+    { path: '/wedding', priority: 0.7, freq: 'monthly' as const },
+];
+
+// Ukrainian-only routes (UA-specific slug paths)
+const UK_ONLY_PATHS = [
     { path: '/kontakty', priority: 0.6, freq: 'monthly' as const },
     { path: '/oplata-i-dostavka', priority: 0.6, freq: 'monthly' as const },
     { path: '/pro-nas', priority: 0.5, freq: 'monthly' as const },
-    { path: '/faq', priority: 0.5, freq: 'monthly' as const },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const entries: MetadataRoute.Sitemap = [];
     const now = new Date();
 
-    // Static pages for all locales
+    // Universal static pages for all locales
     for (const locale of LOCALES) {
-        for (const { path, priority, freq } of STATIC_PATHS) {
+        for (const { path, priority, freq } of UNIVERSAL_PATHS) {
             entries.push({
                 url: `${DOMAIN}/${locale}${path}`,
                 lastModified: now,
@@ -30,6 +34,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                 priority,
             });
         }
+    }
+
+    // Ukrainian-only pages
+    for (const { path, priority, freq } of UK_ONLY_PATHS) {
+        entries.push({
+            url: `${DOMAIN}/uk${path}`,
+            lastModified: now,
+            changeFrequency: freq,
+            priority,
+        });
     }
 
     // Dynamic product pages

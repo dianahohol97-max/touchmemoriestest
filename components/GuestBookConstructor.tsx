@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Type, Image as ImageIcon, QrCode, Layers, Plus } from 'lucide-react';
 import ExportProgressModal from './ExportProgressModal';
 import { uploadOrderFile } from '@/lib/export-utils';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 interface GuestBookConfig {
     // Step 1: Design
@@ -389,6 +390,9 @@ export default function GuestBookConstructor() {
                     config={config}
                     setConfig={setConfig}
                     product={product}
+              {/* QR Code Generator */}
+              <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код на обкладинку" /></div>
+
                     onAddToCart={handleAddToCart}
                     onBack={prevStep}
                 />

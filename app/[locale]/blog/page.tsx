@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -6,12 +7,20 @@ import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { getLocalized } from '@/lib/i18n/localize';
 
-export const metadata = {
-  title: 'Блог — ідеї та натхнення | Touch.Memories',
-  description: 'Поради, ідеї та натхнення для створення ідеальної фотокниги та незабутніх подарунків.',
+const BLOG_META: Record<string, { title: string; description: string }> = {
+  uk: { title: 'Блог — ідеї та натхнення | Touch.Memories', description: 'Поради, ідеї та натхнення для створення ідеальної фотокниги та незабутніх подарунків.' },
+  en: { title: 'Blog — Ideas & Inspiration | Touch.Memories', description: 'Tips, ideas and inspiration for creating the perfect photo book and unforgettable gifts.' },
+  pl: { title: 'Blog — pomysły i inspiracje | Touch.Memories', description: 'Porady, pomysły i inspiracje do tworzenia idealnej fotoksiążki i niezapomnianych prezentów.' },
+  de: { title: 'Blog — Ideen & Inspiration | Touch.Memories', description: 'Tipps, Ideen und Inspiration für das perfekte Fotobuch und unvergessliche Geschenke.' },
+  ro: { title: 'Blog — Idei și Inspirație | Touch.Memories', description: 'Sfaturi, idei și inspirație pentru a crea cartea foto perfectă și cadouri de neuitat.' },
 };
 
-export const dynamic = 'force-dynamic';
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return BLOG_META[locale] || BLOG_META.uk;
+}
+
+// ISR — revalidate every hour (removed force-dynamic to prevent ISR conflict)
 export const revalidate = 3600;
 
 const stripEmoji = (text?: string) => {

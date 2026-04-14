@@ -6,6 +6,7 @@ import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Baby } from 'lucide-react';
 import BirthStatsPreview from './BirthStatsPreview';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 interface BirthStatsConfig {
     // Step 1: Baby Info
@@ -497,7 +498,12 @@ export default function BirthStatsConstructor() {
                                 </div>
                             )}
 
-                            {/* Navigation Buttons */}
+                            {/* QR Code Generator */}
+                        <div style={{ marginBottom: 16 }}>
+                          <QRCodeGenerator compact label="Додати QR-код до замовлення" />
+                        </div>
+
+                        {/* Navigation Buttons */}
                             <div className="flex gap-3 mt-6">
                                 {currentStep > 1 && (
                                     <button

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Calendar as CalendarIcon, Image as ImageIcon, Type, Settings } from 'lucide-react';
 import ExportProgressModal from './ExportProgressModal';
 import { uploadOrderFile } from '@/lib/export-utils';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 interface CalendarConfig {
     productType: 'wall' | 'desk';
@@ -219,6 +220,9 @@ export default function CalendarConstructor({ productType }: CalendarConstructor
                 setPages={setPages}
                 currentPageIndex={currentPageIndex}
                 setCurrentPageIndex={setCurrentPageIndex}
+                {/* QR Code Generator */}
+                <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
+
                 onAddToCart={handleAddToCart}
                 onBack={() => setStep('config')}
             />

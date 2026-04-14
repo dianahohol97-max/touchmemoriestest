@@ -1,6 +1,6 @@
 'use client';
 
-import { Image as ImageIcon, LayoutGrid, Type } from 'lucide-react';
+import { Image as ImageIcon, LayoutGrid, Type, QrCode } from 'lucide-react';
 import { useBookEditorStore } from '@/lib/editor/store';
 import { getProductFlags } from '@/lib/editor/utils';
 import type { LeftTab } from '@/lib/editor/types';
@@ -17,6 +17,7 @@ export function EditorSidebar() {
     ['shapes', <span key="sh" style={{ fontSize: 16, fontWeight: 700 }}>◻</span>, 'Фігури'],
     ['stickers', <span key="stk" style={{ fontSize: 16 }}>★</span>, 'Стікери'],
     ['frames', <span key="fr" style={{ fontSize: 16, fontWeight: 700 }}>⬜</span>, 'Рамки'],
+    ['qr', <QrCode key="qr" size={18} />, 'QR-код'],
     ...(hasKalka ? [['kalka', <span key="kl" style={{ fontSize: 13, fontWeight: 700 }}>КЛ</span>, 'Калька'] as [string, React.ReactNode, string]] : []),
     ...(hasEndpaper ? [['endpaper', <span key="ep" style={{ fontSize: 11, fontWeight: 700 }}>ФЗ</span>, 'Форзац'] as [string, React.ReactNode, string]] : []),
     ...(currentIdx === 0 ? [['cover', <span key="cv" style={{ fontSize: 18 }}>▣</span>, 'Обкладинка'] as [string, React.ReactNode, string]] : []),

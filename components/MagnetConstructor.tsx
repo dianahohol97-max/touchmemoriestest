@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Upload, X, ShoppingCart, Trash2, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/cart-store';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 // Magnet sizes (cm) with aspect ratios
 const MAGNET_SIZES = [
@@ -401,6 +402,9 @@ export default function MagnetConstructor() {
                 Додайте ще {MIN_QUANTITY - magnets.length} магнітів (мін. замовлення {MIN_QUANTITY} шт)
               </div>
             )}
+            {/* QR Code Generator */}
+            <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="Додати QR-код до замовлення" /></div>
+
             <button onClick={handleAddToCart} disabled={magnets.length < MIN_QUANTITY}
               style={{ width: '100%', padding: '12px', border: 'none', borderRadius: 8, background: magnets.length >= MIN_QUANTITY ? '#1e2d7d' : '#e2e8f0', color: magnets.length >= MIN_QUANTITY ? '#fff' : '#94a3b8', fontWeight: 800, fontSize: 14, cursor: magnets.length >= MIN_QUANTITY ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <ShoppingCart size={16} /> До кошика

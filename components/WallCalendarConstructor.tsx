@@ -8,6 +8,7 @@ import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { toast } from 'sonner';
 import { CoverEditor, CoverConfig } from './CoverEditor';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import {
     ChevronLeft, ChevronRight, ShoppingCart,
     Upload, ZoomIn, ZoomOut, Image as ImageIcon
@@ -400,6 +401,9 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:8}}>
                     <span style={{fontSize:15,fontWeight:800,color:'#1e2d7d'}}>{basePrice} ₴</span>
+                        {/* QR Code Generator */}
+                        <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
+
                     <button onClick={addToCart} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 20px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer'}}>
                         <ShoppingCart size={15}/> До кошика
                     </button>

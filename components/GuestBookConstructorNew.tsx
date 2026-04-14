@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Upload, Check } from 'lucide-react';
 import { CoverEditor, CoverConfig, VELOUR_COLORS, LEATHERETTE_COLORS, FABRIC_COLORS } from './CoverEditor';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type BookSize = '20x30' | '30x20' | '23x23';

@@ -8,6 +8,7 @@ import { Upload, Plus, Trash2, Type, ChevronLeft, ChevronRight, ShoppingCart, Ro
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 import PixarPortraitGenerator, { AI_PORTRAIT_PRICE } from './PixarPortraitGenerator';
 import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -527,6 +528,9 @@ function TextBlockEditor({ block, onUpdate, onDelete }: {
         ))}
         <button onClick={() => onUpdate(block.id, { bold: !block.bold })}
           style={{ flex:1, padding:'4px', border: block.bold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: block.bold?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:900, fontSize:12 }}>B</button>
+                  {/* QR Code Generator */}
+                  <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
+
         <button onClick={() => onUpdate(block.id, { italic: !block.italic })}
           style={{ flex:1, padding:'4px', border: block.italic?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: block.italic?'#f0f3ff':'#fff', cursor:'pointer', fontStyle:'italic', fontSize:12 }}>I</button>
       </div>

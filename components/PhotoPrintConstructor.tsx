@@ -6,6 +6,7 @@ import { Upload, X, AlertTriangle, ShoppingCart, ChevronLeft, ChevronRight, Zoom
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 // ─── Size definitions ─────────────────────────────────────────────────────────
 const STANDARD_SIZES: Record<string, { w: number; h: number; label: string }> = {
@@ -850,6 +851,9 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           </div>
 
           {/* Add to cart */}
+          {/* QR Code Generator */}
+          <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
+
           <button onClick={handleAddToCart} disabled={photos.length < 20}
             style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px', background:photos.length < 20?'#94a3b8':'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:16, cursor:photos.length < 20?'not-allowed':'pointer', boxShadow:photos.length < 20?'none':'0 4px 16px rgba(30,45,125,0.3)', transition:'all 0.2s' }}>
             <ShoppingCart size={18} /> {t('photo_print.add_to_cart')}

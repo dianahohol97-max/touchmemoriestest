@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Upload, ShoppingCart } from 'lucide-react';
 import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 const LOCALES = {
   uk: { months:['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'], days:['Пн','Вт','Ср','Чт','Пт','Сб','Нд'] },
@@ -482,6 +483,9 @@ export default function DeskCalendarConstructor(){
             <span style={{fontSize:12,color:'#64748b'}}>Настільний календар {year}</span>
             <span style={{fontSize:16,fontWeight:800,color:'#1e2d7d'}}>450 ₴</span>
           </div>
+          {/* QR Code Generator */}
+          <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
+
           <button onClick={()=>{addItem({id:`desk-cal-${Date.now()}`,name:`Настільний календар ${year}`,price:450,qty:1,image:monthPhotos.flat().find(p=>p.url!==null)?.url||'',options:{'Дизайн':design.name,'Мова':lang,'Рік':String(year)},personalization_note:`Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`});toast.success('✅ Календар додано!');router.push('/cart');}} style={{width:'100%',padding:'11px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:8,fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 4px 12px rgba(30,45,125,0.28)'}}>
             <ShoppingCart size={14}/> Замовити — 450 ₴
           </button>

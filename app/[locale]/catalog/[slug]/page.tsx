@@ -8,8 +8,7 @@ interface Props {
   params: Promise<{ slug: string; locale: string }>;
 }
 
-// Force dynamic rendering so product data is always fresh
-export const dynamic = 'force-dynamic';
+// ISR: revalidate every hour. Remove force-dynamic so ISR caching works.
 export const revalidate = 3600;
 
 export async function generateMetadata(
@@ -21,7 +20,7 @@ export async function generateMetadata(
 
   const { data: product, error } = await supabase
     .from('products')
-    .select('name, short_description, meta_title, meta_description')
+    .select('name, short_description, meta_title, meta_description, cover_image, translations')
     .eq('slug', slug)
     .eq('is_active', true)
     .single();
@@ -32,10 +31,32 @@ export async function generateMetadata(
     };
   }
 
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
+  const title = product.meta_title || `${getLocalized(product, locale || 'uk', 'name')} | Touch.Memories`;
+  const description = product.meta_description || getLocalized(product, locale || 'uk', 'short_description') || 'Touch.Memories';
+  const ogImage = product.cover_image || `${SITE_URL}/og-image.jpg`;
+
   // Use meta_title/meta_description if available, otherwise fallback to name/short_description
   return {
-    title: product.meta_title || `${getLocalized(product, locale || 'uk', 'name')} | Touch.Memories`,
-    description: product.meta_description || getLocalized(product, locale || 'uk', 'short_description') || 'Touch.Memories',
+    title,
+    description,
+    alternates: {
+      canonical: `${SITE_URL}/${locale}/catalog/${slug}`,
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${SITE_URL}/${locale}/catalog/${slug}`,
+      type: 'website',
+      siteName: 'Touch.Memories',
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
+    },
   };
 }
 

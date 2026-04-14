@@ -10,6 +10,7 @@ import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import ExportProgressModal from './ExportProgressModal';
 import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 interface StarMapConfig {
     // Step 1: Moment
@@ -276,6 +277,11 @@ export default function StarMapConstructor() {
                         {currentStep === 4 && (
                             <Step4SizeProduct config={config} setConfig={setConfig} product={product} />
                         )}
+
+                        {/* QR Code Generator */}
+                        <div style={{ marginBottom: 16 }}>
+                          <QRCodeGenerator compact label="Додати QR-код до замовлення" />
+                        </div>
 
                         {/* Navigation Buttons */}
                         <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">

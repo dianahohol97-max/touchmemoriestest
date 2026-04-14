@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import CityMapPreview from './CityMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 interface CityMapConfig {
     // Step 1: Location
@@ -240,6 +241,11 @@ export default function CityMapConstructor() {
                         {currentStep === 4 && (
                             <Step4SizeProduct config={config} setConfig={setConfig} product={product} />
                         )}
+
+                        {/* QR Code Generator */}
+                        <div style={{ marginBottom: 16 }}>
+                          <QRCodeGenerator compact label="Додати QR-код до замовлення" />
+                        </div>
 
                         {/* Navigation Buttons */}
                         <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">

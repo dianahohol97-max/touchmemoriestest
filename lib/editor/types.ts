@@ -162,7 +162,7 @@ export interface CtxMenu {
 export type LeftTab =
   | 'photos' | 'layouts' | 'text' | 'cover' | 'bg'
   | 'shapes' | 'frames' | 'stickers' | 'options'
-  | 'kalka' | 'endpaper';
+  | 'kalka' | 'endpaper' | 'qr';
 
 export type HistoryEntry = {
   pages: Page[];

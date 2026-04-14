@@ -7,6 +7,7 @@ import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import ExportProgressModal from './ExportProgressModal';
 import { exportCanvasAt300DPI, uploadOrderFile, mmToPixels300dpi } from '@/lib/export-utils';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 interface PhotoFile {
     id: string;
@@ -942,6 +943,9 @@ export default function PhotoPuzzleConstructor() {
                                     >
                                         Назад
                                     </button>
+              {/* QR Code Generator */}
+              <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
+
                                     <button
                                         onClick={handleAddToCart}
                                         className="flex-1 bg-[#1e2d7d] text-white py-3 rounded-lg font-medium hover:bg-[#162159] transition-colors flex items-center justify-center gap-2"

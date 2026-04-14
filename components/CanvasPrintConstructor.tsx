@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { Upload, ShoppingCart, X, ChevronLeft } from 'lucide-react';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 interface SizeOption {
     label: string;
@@ -295,6 +296,9 @@ export default function CanvasPrintConstructor() {
                             </div>
                         </div>
                     )}
+
+                    {/* QR Code Generator */}
+                    <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="Додати QR-код до замовлення" /></div>
 
                     <button onClick={handleAddToCart} disabled={!photo}
                         style={{

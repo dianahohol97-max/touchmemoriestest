@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { I18nServerProvider } from '@/lib/i18n/server-provider';
 
-export const dynamic = 'force-dynamic';
+// NOTE: Do NOT use force-dynamic here — it conflicts with generateStaticParams.
+// Child pages (admin, checkout, editor) set force-dynamic themselves as needed.
 
 export type Locale = 'uk' | 'en' | 'ro' | 'pl' | 'de';
 export const LOCALES: Locale[] = ['uk', 'en', 'ro', 'pl', 'de'];
@@ -20,6 +21,14 @@ const META: Record<Locale, { title: string; description: string; locale: string 
     ro: { title: 'Touch.Memories — Cărți Foto, Reviste și Cadouri Foto', description: 'Comandați cărți foto, jurnale de călătorie, calendare și postere. Livrare în România și în toată lumea.', locale: 'ro_RO' },
 };
 
+// OG image — shared across all locales
+const OG_IMAGE = {
+    url: `${SITE_URL}/og-image.jpg`,
+    width: 1200,
+    height: 630,
+    alt: 'Touch.Memories — фотокниги та фотовироби',
+};
+
 export async function generateMetadata({
     params,
 }: {
@@ -28,7 +37,8 @@ export async function generateMetadata({
     const { locale } = await params;
     const alternates: Record<string, string> = {};
     LOCALES.forEach(l => {
-        alternates[l === 'uk' ? 'uk-UA' : l] = `${SITE_URL}/${l}`;
+        // hreflang: use 'uk' for Ukrainian (not 'uk-UA') per Google guidelines
+        alternates[l] = `${SITE_URL}/${l}`;
     });
     alternates['x-default'] = `${SITE_URL}/uk`;
     const m = META[locale] || META.uk;
@@ -43,6 +53,13 @@ export async function generateMetadata({
             url: `${SITE_URL}/${locale}`,
             type: 'website',
             siteName: 'Touch.Memories',
+            images: [OG_IMAGE],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: m.title,
+            description: m.description,
+            images: [OG_IMAGE.url],
         },
     };
 }

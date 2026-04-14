@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode } from 'lucide-react';
+import { QRCodeGenerator } from './ui/QRCodeGenerator';
 import { autoBuild } from '@/lib/editor/auto-build';
 import { AutoBuildModal } from './editor/AutoBuildModal';
 import { FontPicker } from './editor/FontPicker';
@@ -962,7 +963,7 @@ export default function BookLayoutEditor() {
     if (w < 768) return 52;  // large phones / small tablets
     return 70;               // desktop
   });
-  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'>('layouts');
+  const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'|'qr'>('layouts');
   const [coverState, setCoverState] = useState<CoverState>(() => {
     // Synchronously read config to initialize cover state immediately
     try {
@@ -2156,6 +2157,7 @@ export default function BookLayoutEditor() {
               ['shapes', <span key="sh" style={{fontSize:16,fontWeight:700}}>◻</span>, 'Фігури'],
               ['stickers', <span key="stk" style={{fontSize:16}}>★</span>, 'Стікери'],
               ['frames', <span key="fr" style={{fontSize:16,fontWeight:700}}>⬜</span>, 'Рамки'],
+              ['qr', <QrCode key="qr" size={18}/>, 'QR-код'],
               ...(hasKalka?[['kalka', <span key="kl" style={{fontSize:13,fontWeight:700}}>КЛ</span>, 'Калька'] as [string, React.ReactNode, string]]:[]),
               ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац'] as [string, React.ReactNode, string]]:[]),
               ...(currentIdx===0 || isWishbook?[['cover', <span key="cv" style={{fontSize:18}}>▣</span>, 'Обкл.'] as [string, React.ReactNode, string]]:[]),
@@ -2173,7 +2175,7 @@ export default function BookLayoutEditor() {
         {/* CONTENT PANEL — desktop only, mobile uses bottom sheet */}
         {!isMobile && <div style={{ width: 220, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: 800, fontSize: 12, color: '#1e2d7d' }}>
-            {(({'photos':t('constructor.tab_photos'),'layouts':t('constructor.tab_layouts'),'text':t('constructor.tab_text'),'bg':t('constructor.tab_bg'),'shapes':t('constructor.tab_shapes'),'frames':t('constructor.tab_frames'),'stickers':t('constructor.tab_stickers'),'options':t('constructor.tab_options'),'cover':t('constructor.cover')} as Record<string,string>)[leftTab] || leftTab)}
+            {(({'photos':t('constructor.tab_photos'),'layouts':t('constructor.tab_layouts'),'text':t('constructor.tab_text'),'bg':t('constructor.tab_bg'),'shapes':t('constructor.tab_shapes'),'frames':t('constructor.tab_frames'),'stickers':t('constructor.tab_stickers'),'options':t('constructor.tab_options'),'cover':t('constructor.cover'),'qr':'QR-код'} as Record<string,string>)[leftTab] || leftTab)}
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: 10 }}>
 
@@ -3309,6 +3311,11 @@ export default function BookLayoutEditor() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* QR CODE GENERATOR PANEL */}
+            {(leftTab as string) === 'qr' && (
+              <QRCodeGenerator compact={false} label="Генератор QR-коду" />
             )}
 
             {leftTab === 'text' && (

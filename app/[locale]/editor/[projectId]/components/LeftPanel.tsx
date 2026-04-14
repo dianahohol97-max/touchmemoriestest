@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { useEditorStore } from '@/lib/editor-store'
 import { LAYOUTS } from '@/lib/layouts'
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator'
 
 export default function LeftPanel() {
-  const [tab, setTab] = useState<'pages' | 'photos' | 'layouts'>('layouts')
+  const [tab, setTab] = useState<'pages' | 'photos' | 'layouts' | 'qr'>('layouts')
   const { project, currentPageIndex, setCurrentPage, addElement, setPageBackground } = useEditorStore()
 
   const pages = project?.pages ?? []
@@ -15,7 +16,7 @@ export default function LeftPanel() {
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
       {/* Tabs */}
       <div className="flex border-b border-gray-200">
-        {(['layouts', 'pages', 'photos'] as const).map(t => (
+        {(['layouts', 'pages', 'photos', 'qr'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -25,7 +26,7 @@ export default function LeftPanel() {
                 : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            {t === 'layouts' ? 'Шаблони' : t === 'pages' ? 'Сторінки' : 'Фото'}
+            {t === 'layouts' ? 'Шаблони' : t === 'pages' ? 'Стор.' : t === 'photos' ? 'Фото' : 'QR'}
           </button>
         ))}
       </div>
@@ -103,6 +104,11 @@ export default function LeftPanel() {
               </button>
             ))}
           </div>
+        )}
+
+        {/* QR tab */}
+        {tab === 'qr' && (
+          <QRCodeGenerator compact={false} label="Генератор QR-коду" />
         )}
 
         {/* Photos tab */}

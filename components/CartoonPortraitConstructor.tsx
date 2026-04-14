@@ -6,6 +6,7 @@ import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Upload, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import CartoonPortraitPreview from './CartoonPortraitPreview';
+import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
 interface CartoonPortraitConfig {
     // Step 1: Photo Upload
@@ -841,7 +842,12 @@ ${config.addDate ? `Дата: ${new Date().toLocaleDateString('uk-UA')}` : ''}
                                 </div>
                             )}
 
-                            {/* Navigation Buttons */}
+                            {/* QR Code Generator */}
+                        <div style={{ marginBottom: 16 }}>
+                          <QRCodeGenerator compact label="Додати QR-код до замовлення" />
+                        </div>
+
+                        {/* Navigation Buttons */}
                             <div className="flex gap-3 mt-6">
                                 {currentStep > 1 && (
                                     <button
