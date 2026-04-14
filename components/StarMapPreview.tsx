@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { STAR_CATALOG, CONSTELLATION_LINES, CONSTELLATION_LABELS } from '@/lib/astronomy/starCatalog';
+import { STAR_CATALOG, CONSTELLATION_LINES, CONSTELLATION_LABELS, CONSTELLATION_LABELS_EN, CONSTELLATION_LABELS_PL, CONSTELLATION_LABELS_RO, CONSTELLATION_LABELS_DE } from '@/lib/astronomy/starCatalog';
 
 interface StarMapConfig {
     date: string; time: string; location: string;
@@ -11,6 +11,7 @@ interface StarMapConfig {
     backgroundColor: string; starColor: string; textColor: string; fontFamily: string;
     size: string; productType: string; price: number;
     showGrid?: boolean; showConstellations?: boolean; showMilkyWay?: boolean;
+    constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
 }
 
 // ─── Astronomy: RA/Dec → canvas XY ──────────────────────────────────────────
@@ -267,11 +268,13 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
             ctx.restore();
         }
 
-        // Stars
+        // Stars — improved visibility: larger size, better alpha curve
         for(const [ra,dec,mag] of STAR_CATALOG) {
             const pos=P(ra,dec,true); if(!pos) continue;
-            const size=Math.max(0.2, 3.0-(mag+1.5)*0.38);
-            const alpha=Math.max(0.12, Math.min(1.0, 1.2-mag*0.15));
+            // size: bright stars bigger, faint stars still visible (min 0.5px)
+            const size=Math.max(0.5, 3.5-(mag+1.0)*0.35);
+            // alpha: steeper curve, faint stars more visible
+            const alpha=Math.max(0.25, Math.min(1.0, 1.3-mag*0.13));
             // Glow only for bright stars on DARK backgrounds
             if(mag<1.5 && !isLight) {
                 const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,size*4);
@@ -291,7 +294,12 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
             ctx.font=`9px ${config.fontFamily}`;
             ctx.fillStyle=config.textColor; ctx.textAlign='center'; ctx.textBaseline='middle';
             ctx.globalAlpha=isLight?0.35:0.4;
-            for(const [ra,dec,name] of CONSTELLATION_LABELS) {
+            const labelsForLang = config.constellationLang === 'en' ? CONSTELLATION_LABELS_EN
+                : config.constellationLang === 'pl' ? CONSTELLATION_LABELS_PL
+                : config.constellationLang === 'ro' ? CONSTELLATION_LABELS_RO
+                : config.constellationLang === 'de' ? CONSTELLATION_LABELS_DE
+                : CONSTELLATION_LABELS;
+            for(const [ra,dec,name] of labelsForLang) {
                 const pos=P(ra,dec,true); if(!pos) continue;
                 const dx=pos.x-cx, dy=pos.y-cy;
                 if(dx*dx+dy*dy>(R*0.90)*(R*0.90)) continue;

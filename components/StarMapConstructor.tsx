@@ -28,6 +28,7 @@ interface StarMapConfig {
     showGrid?: boolean;
     showConstellations?: boolean;
     showMilkyWay?: boolean;
+    constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
     backgroundColor: string;
     starColor: string;
     textColor: string;
@@ -601,6 +602,36 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                     })}
                 </div>
             </div>
+
+            {/* Constellation language selector */}
+            {(config as any).showConstellations !== false && (
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">Мова назв сузір'їв</label>
+                    <div className="flex flex-wrap gap-2">
+                        {([
+                            { value: 'uk', label: '🇺🇦 Українська' },
+                            { value: 'en', label: '🇬🇧 English' },
+                            { value: 'pl', label: '🇵🇱 Polski' },
+                            { value: 'ro', label: '🇷🇴 Română' },
+                            { value: 'de', label: '🇩🇪 Deutsch' },
+                        ] as const).map(({ value, label }) => {
+                            const current = (config as any).constellationLang || 'uk';
+                            const isActive = current === value;
+                            return (
+                                <button key={value} type="button"
+                                    onClick={() => setConfig({ ...config, constellationLang: value } as any)}
+                                    className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-colors ${
+                                        isActive
+                                            ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
+                                            : 'bg-white text-gray-700 border-gray-200 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
+                                    }`}>
+                                    {label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
