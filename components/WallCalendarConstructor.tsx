@@ -16,7 +16,7 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Photo { id: string; preview: string; width: number; height: number; name: string; }
 interface Slot  { photoId: string | null; cropX: number; cropY: number; zoom: number; }
-type Layout = '1-full'|'1-top'|'2-h'|'2-v'|'3-top1-bot2'|'3-left1-right2'|'4-grid';
+type Layout = '1-full'|'1-top'|'2-h'|'2-v'|'3-top1-bot2'|'3-left1-right2'|'4-grid'|'5-2top3bot'|'5-cross'|'6-grid'|'6-2rows';
 
 interface MonthPage {
     id: string; month: number; year: number;
@@ -33,13 +33,17 @@ const SIZE_DIMS = {
     A3: { w: 297, h: 420, label: 'A3 (29.7×42 см)', px: 480 },
 };
 const LAYOUTS: { id: Layout; label: string; slots: number; icon: string }[] = [
-    { id: '1-full',         label: '1 повне',     slots: 1, icon: '⬜' },
-    { id: '1-top',          label: '1 зверху',    slots: 1, icon: '▬' },
-    { id: '2-h',            label: '2 горизонт.', slots: 2, icon: '▬▬' },
-    { id: '2-v',            label: '2 вертик.',   slots: 2, icon: '▮▮' },
-    { id: '3-top1-bot2',    label: '3 (1+2)',     slots: 3, icon: '⊤⊤' },
-    { id: '3-left1-right2', label: '3 (1|2)',     slots: 3, icon: '⊢⊢' },
-    { id: '4-grid',         label: '4 сітка',     slots: 4, icon: '⊞' },
+    { id: '1-full',         label: '1 повне',      slots: 1, icon: '⬜' },
+    { id: '1-top',          label: '1 зверху',     slots: 1, icon: '▬' },
+    { id: '2-h',            label: '2 горизонт.',  slots: 2, icon: '▬▬' },
+    { id: '2-v',            label: '2 вертик.',    slots: 2, icon: '▮▮' },
+    { id: '3-top1-bot2',    label: '3 (1+2)',      slots: 3, icon: '⊤⊤' },
+    { id: '3-left1-right2', label: '3 (1|2)',      slots: 3, icon: '⊢⊢' },
+    { id: '4-grid',         label: '4 сітка',      slots: 4, icon: '⊞' },
+    { id: '5-2top3bot',     label: '5 (2+3)',      slots: 5, icon: '⊟⊟' },
+    { id: '5-cross',        label: '5 хрест',      slots: 5, icon: '✛' },
+    { id: '6-grid',         label: '6 сітка 3×2',  slots: 6, icon: '▦' },
+    { id: '6-2rows',        label: '6 (2 рядки)',  slots: 6, icon: '≡≡' },
 ];
 const ACCENT_COLORS = [
     '#1e2d7d','#C0392B','#27AE60','#8E44AD','#E67E22','#1ABC9C','#2C3E50','#000000',
@@ -169,6 +173,10 @@ function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, ac
             case '3-top1-bot2':    return [{x:0,y:0,w:W,h:photoH*0.55},{x:0,y:photoH*0.55+g,w:(W-g)/2,h:photoH*0.45-g},{x:(W-g)/2+g,y:photoH*0.55+g,w:(W-g)/2,h:photoH*0.45-g}];
             case '3-left1-right2': return [{x:0,y:0,w:W*0.55,h:photoH},{x:W*0.55+g,y:0,w:W*0.45-g,h:(photoH-g)/2},{x:W*0.55+g,y:(photoH-g)/2+g,w:W*0.45-g,h:(photoH-g)/2}];
             case '4-grid':         { const hw=(W-g)/2,hh=(photoH-g)/2; return [{x:0,y:0,w:hw,h:hh},{x:hw+g,y:0,w:hw,h:hh},{x:0,y:hh+g,w:hw,h:hh},{x:hw+g,y:hh+g,w:hw,h:hh}]; }
+            case '5-2top3bot':     { const topH=Math.round(photoH*0.55),botH=photoH-topH-g,tw=(W-g)/2,bw=(W-2*g)/3; return [{x:0,y:0,w:tw,h:topH},{x:tw+g,y:0,w:tw,h:topH},{x:0,y:topH+g,w:bw,h:botH},{x:bw+g,y:topH+g,w:bw,h:botH},{x:2*(bw+g),y:topH+g,w:bw,h:botH}]; }
+            case '5-cross':        { const w3=(W-2*g)/3,h3=(photoH-2*g)/3; return [{x:w3+g,y:0,w:w3,h:h3},{x:0,y:h3+g,w:w3,h:h3},{x:w3+g,y:h3+g,w:w3,h:h3},{x:2*(w3+g),y:h3+g,w:w3,h:h3},{x:w3+g,y:2*(h3+g),w:w3,h:h3}]; }
+            case '6-grid':         { const hw=(W-2*g)/3,hh=(photoH-g)/2; return Array.from({length:6},(_,i)=>({x:(i%3)*(hw+g),y:Math.floor(i/3)*(hh+g),w:hw,h:hh})); }
+            case '6-2rows':        { const hw=(W-2*g)/3,hh=(photoH-g)/2; return Array.from({length:6},(_,i)=>({x:(i%3)*(hw+g),y:Math.floor(i/3)*(hh+g),w:hw,h:hh})); }
             default:               return [{x:0,y:0,w:W,h:photoH}];
         }
     })();
@@ -445,11 +453,132 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                 {/* Right — tools */}
                 <div style={{width:180,background:'#fff',borderLeft:'1px solid #e2e8f0',padding:12,flexShrink:0,overflowY:'auto'}}>
                     {isCover ? (
-                        /* Cover tools — handled inside CoverEditor, show hint */
-                        <div>
-                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:10}}>Обкладинка</div>
-                            <p style={{fontSize:12,color:'#64748b',lineHeight:1.5}}>
-                                Перетягніть фото на обкладинку. Двічі клікніть на текст щоб редагувати. Використовуйте панель зліва для завантаження фото.
+                        /* Cover tools */
+                        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase'}}>Обкладинка</div>
+
+                            {/* Cover templates */}
+                            <div>
+                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:6}}>Шаблон</div>
+                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+                                    {[
+                                        {id:'photo-full', label:'Фото фон', bg:'#1e2d7d'},
+                                        {id:'split',      label:'Фото + смуга', bg:'#14532d'},
+                                        {id:'frame',      label:'З рамкою', bg:'#3d2c1e'},
+                                        {id:'minimal',    label:'Мінімал', bg:'#f8fafc'},
+                                        {id:'dark',       label:'Темна', bg:'#0a0e1a'},
+                                        {id:'light',      label:'Світла', bg:'#faf7f2'},
+                                    ].map(t => {
+                                        const isSel = (coverConfig.printedBgColor || '#1e2d7d') === t.bg;
+                                        return (
+                                            <button key={t.id}
+                                                onClick={()=>setCoverConfig(prev=>({...prev, printedBgColor: t.bg, printedOverlay:{type:'none',color:'#000',opacity:0,gradient:''}}))}
+                                                style={{padding:'6px 4px',border:isSel?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:7,background:'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                                                <div style={{width:28,height:20,borderRadius:3,background:t.bg}}/>
+                                                <span style={{fontSize:8,fontWeight:700,color:isSel?'#1e2d7d':'#374151'}}>{t.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* BG color */}
+                            <div>
+                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:5}}>Колір фону</div>
+                                <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:4}}>
+                                    {['#1e2d7d','#0a0e1a','#14532d','#3d2c1e','#7c3aed','#be185d','#ffffff','#faf7f2','#1a1a1a','#0369a1'].map(c=>(
+                                        <button key={c} onClick={()=>setCoverConfig(prev=>({...prev,printedBgColor:c}))}
+                                            style={{width:22,height:22,borderRadius:'50%',background:c,border:(coverConfig.printedBgColor||'#1e2d7d')===c?'3px solid #1e2d7d':'1.5px solid #e2e8f0',cursor:'pointer',boxShadow:'0 0 0 0.5px #e2e8f0'}}/>
+                                    ))}
+                                    <input type="color" value={coverConfig.printedBgColor||'#1e2d7d'} onChange={e=>setCoverConfig(prev=>({...prev,printedBgColor:e.target.value}))}
+                                        style={{width:22,height:22,borderRadius:4,border:'1px solid #e2e8f0',cursor:'pointer',padding:1}}/>
+                                </div>
+                            </div>
+
+                            {/* Text */}
+                            <div>
+                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:5}}>Текст</div>
+                                <input type="text"
+                                    value={coverConfig.printedTextBlocks?.[0]?.text || ''}
+                                    onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
+                                        {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,fontSize:22,fontFamily:'Playfair Display',color:'#ffffff',bold:true}),text:e.target.value},
+                                        ...(prev.printedTextBlocks?.slice(1)||[])
+                                    ]}))}
+                                    placeholder="Мій календар 2026"
+                                    style={{width:'100%',padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:7,fontSize:11,boxSizing:'border-box',marginBottom:6}}/>
+                                {/* Font */}
+                                <select
+                                    value={coverConfig.printedTextBlocks?.[0]?.fontFamily||'Playfair Display'}
+                                    onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
+                                        {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,fontSize:22,color:'#ffffff',bold:true}),fontFamily:e.target.value},
+                                        ...(prev.printedTextBlocks?.slice(1)||[])
+                                    ]}))}
+                                    style={{width:'100%',padding:'5px 7px',border:'1px solid #e2e8f0',borderRadius:7,fontSize:10,marginBottom:6,cursor:'pointer'}}>
+                                    {['Playfair Display','Montserrat','Lora','Dancing Script','Cormorant Garamond','EB Garamond','Great Vibes','Raleway','Oswald','Cinzel'].map(f=>(
+                                        <option key={f} value={f}>{f}</option>
+                                    ))}
+                                </select>
+                                {/* Text color */}
+                                <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:5}}>
+                                    <span style={{fontSize:9,color:'#64748b'}}>Колір:</span>
+                                    {['#ffffff','#1a1a1a','#1e2d7d','#c8a96e','#be185d','#4ade80'].map(c=>(
+                                        <button key={c} onClick={()=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
+                                            {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,fontSize:22,fontFamily:'Playfair Display',bold:true}),color:c},
+                                            ...(prev.printedTextBlocks?.slice(1)||[])
+                                        ]}))}
+                                            style={{width:18,height:18,borderRadius:'50%',background:c,border:'1.5px solid #e2e8f0',cursor:'pointer'}}/>
+                                    ))}
+                                    <input type="color"
+                                        value={coverConfig.printedTextBlocks?.[0]?.color||'#ffffff'}
+                                        onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
+                                            {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,fontSize:22,fontFamily:'Playfair Display',bold:true}),color:e.target.value},
+                                            ...(prev.printedTextBlocks?.slice(1)||[])
+                                        ]}))}
+                                        style={{width:18,height:18,borderRadius:4,border:'1px solid #e2e8f0',cursor:'pointer',padding:1}}/>
+                                </div>
+                                {/* Font size */}
+                                <div style={{display:'flex',alignItems:'center',gap:5}}>
+                                    <span style={{fontSize:9,color:'#64748b'}}>Розмір:</span>
+                                    <input type="range" min={12} max={60}
+                                        value={coverConfig.printedTextBlocks?.[0]?.fontSize||22}
+                                        onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
+                                            {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,color:'#ffffff',fontFamily:'Playfair Display',bold:true}),fontSize:+e.target.value},
+                                            ...(prev.printedTextBlocks?.slice(1)||[])
+                                        ]}))}
+                                        style={{flex:1,accentColor:'#1e2d7d'}}/>
+                                    <span style={{fontSize:9,color:'#475569',width:16}}>{coverConfig.printedTextBlocks?.[0]?.fontSize||22}</span>
+                                </div>
+                            </div>
+
+                            {/* Text position */}
+                            <div>
+                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:5}}>Позиція тексту</div>
+                                <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                                    <div style={{display:'flex',alignItems:'center',gap:4}}>
+                                        <span style={{fontSize:9,color:'#64748b',width:16}}>X</span>
+                                        <input type="range" min={10} max={90}
+                                            value={coverConfig.printedTextBlocks?.[0]?.x||50}
+                                            onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
+                                                {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',y:82,fontSize:22,color:'#ffffff',fontFamily:'Playfair Display',bold:true}),x:+e.target.value},
+                                                ...(prev.printedTextBlocks?.slice(1)||[])
+                                            ]}))}
+                                            style={{flex:1,accentColor:'#1e2d7d'}}/>
+                                    </div>
+                                    <div style={{display:'flex',alignItems:'center',gap:4}}>
+                                        <span style={{fontSize:9,color:'#64748b',width:16}}>Y</span>
+                                        <input type="range" min={5} max={95}
+                                            value={coverConfig.printedTextBlocks?.[0]?.y||82}
+                                            onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
+                                                {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,fontSize:22,color:'#ffffff',fontFamily:'Playfair Display',bold:true}),y:+e.target.value},
+                                                ...(prev.printedTextBlocks?.slice(1)||[])
+                                            ]}))}
+                                            style={{flex:1,accentColor:'#1e2d7d'}}/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p style={{fontSize:10,color:'#94a3b8',lineHeight:1.5,marginTop:4}}>
+                                💡 Перетягніть фото на обкладинку зліва
                             </p>
                         </div>
                     ) : (
