@@ -3277,8 +3277,11 @@ export default function BookLayoutEditor() {
                     style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
                   >
                     <BackgroundLayer bg={getCurBg(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
-                    {/* Center spine line */}
-                    <div style={{ position:'absolute', left:'50%', top:0, width:1, height:'100%', background:'rgba(0,0,0,0.06)', zIndex:5, pointerEvents:'none' }}/>
+                    {/* Center spine line — always visible fold indicator */}
+                    <div style={{ position:'absolute', left:'50%', top:0, width:2, height:'100%', zIndex:5, pointerEvents:'none',
+                      background:'linear-gradient(to bottom, rgba(255,255,255,0.0) 0%, rgba(255,255,255,0.55) 10%, rgba(255,255,255,0.55) 90%, rgba(255,255,255,0.0) 100%)',
+                      boxShadow:'0 0 4px 1px rgba(0,0,0,0.3), 1px 0 0 rgba(0,0,0,0.2)'
+                    }}/>
                     {/* Spread layout slots */}
                     {spreadDefs.map(({ i, s }) => {
                       const slot = spreadPage?.slots[i];
@@ -3609,7 +3612,12 @@ export default function BookLayoutEditor() {
               })()
             ) : (
               /* Page mode: left page + right page (magazines, travelbooks) */
-              <>
+              <div style={{ position:'relative', display:'flex' }}>
+                {/* Spine divider — always visible between pages */}
+                <div style={{ position:'absolute', left:'50%', top:0, width:2, height:'100%', zIndex:10, pointerEvents:'none', transform:'translateX(-50%)',
+                  background:'linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 10%, rgba(255,255,255,0.6) 90%, rgba(255,255,255,0) 100%)',
+                  boxShadow:'0 0 4px 2px rgba(0,0,0,0.25)'
+                }}/>
                 {[0, 1].map(side => {
                   const pageIdx = currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + side;
                   const page = pages[pageIdx];
@@ -4107,7 +4115,7 @@ export default function BookLayoutEditor() {
                   );
                 })}
                 {/* Box shadow wrap */}
-              </>
+              </div>
             )}
           </div>
           )}
