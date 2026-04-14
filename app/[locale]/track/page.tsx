@@ -2,16 +2,19 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Package, Truck, CheckCircle2, Clock, MapPin, ExternalLink, ChevronRight, AlertCircle, ShoppingBag } from 'lucide-react';
+import { useT } from '@/lib/i18n/context';
 
-const STATUS_STEPS = [
-    { key: 'pending', label: 'Замовлення прийнято', icon: ShoppingBag },
-    { key: 'confirmed', label: 'Оплачено', icon: CheckCircle2 },
-    { key: 'in_production', label: 'У виробництві', icon: Clock },
-    { key: 'shipped', label: 'Відправлено', icon: Truck },
-    { key: 'delivered', label: 'Доставлено', icon: CheckCircle2 },
+const STATUS_STEP_KEYS = [
+    { key: 'pending',     labelKey: 'order.status_pending',    icon: ShoppingBag },
+    { key: 'confirmed',   labelKey: 'order.status_confirmed',  icon: CheckCircle2 },
+    { key: 'in_production', labelKey: 'order.status_production', icon: Clock },
+    { key: 'shipped',     labelKey: 'order.status_shipped',    icon: Truck },
+    { key: 'delivered',   labelKey: 'order.status_delivered',  icon: CheckCircle2 },
 ];
 
 export default function TrackPage() {
+    const t = useT();
+    const STATUS_STEPS = STATUS_STEP_KEYS.map(s => ({ ...s, label: t(s.labelKey) }));
     const [orderNumber, setOrderNumber] = useState('');
     const [contact, setContact] = useState('');
     const [order, setOrder] = useState<any>(null);

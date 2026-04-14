@@ -386,16 +386,17 @@ export default function GuestBookConstructor() {
             )}
 
             {currentStep === 5 && (
-                <Step5SizeAndProduct
-                    config={config}
-                    setConfig={setConfig}
-                    product={product}
-              {/* QR Code Generator */}
-              <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код на обкладинку" /></div>
-
-                    onAddToCart={handleAddToCart}
-                    onBack={prevStep}
-                />
+                <>
+                    {/* QR Code Generator */}
+                    <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код на обкладинку" /></div>
+                    <Step5SizeAndProduct
+                        config={config}
+                        setConfig={setConfig}
+                        product={product}
+                        onAddToCart={handleAddToCart}
+                        onBack={prevStep}
+                    />
+                </>
             )}
         </div>
     );

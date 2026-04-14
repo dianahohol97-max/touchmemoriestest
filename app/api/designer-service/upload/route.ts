@@ -36,9 +36,13 @@ export async function POST(request: NextRequest) {
     if (uploadError) throw uploadError;
 
     // Get public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = supabaseAdmin.storage
       .from('design-briefs')
       .getPublicUrl(filePath);
+
+    if (!urlData?.publicUrl) {
+      return NextResponse.json({ error: 'Failed to get public URL' }, { status: 500 });
+    }
 
     // Create photo metadata
     const photoMetadata: PhotoMetadata = {
@@ -116,9 +120,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete from storage
+    // Delete from storage (use admin client to bypass RLS)
     const filePath = photoToDelete.url.split('/').slice(-3).join('/'); // Extract path from URL
-    await supabase.storage.from('design-briefs').remove([filePath]);
+    const { error: storageError } = await supabaseAdmin.storage.from('design-briefs').remove([filePath]);
+    if (storageError) {
+      console.error('Storage delete error (non-fatal):', storageError.message);
+      // Continue — still remove from metadata even if file deletion fails
+    }
 
     // Update metadata
     const updatedPhotos = currentPhotos.filter((p) => p.id !== photoId);

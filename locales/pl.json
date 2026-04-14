@@ -345,7 +345,25 @@
     "place_order": "Złóż zamówienie",
     "fill_required": "Proszę wypełnić wszystkie wymagane pola",
     "ready_to_order": "Gotowe do zamówienia",
-    "production_time": "Produkcja:"
+    "production_time": "Produkcja:",
+    "status_pending": "Zamówienie przyjęte",
+    "status_confirmed": "Opłacone",
+    "status_production": "W produkcji",
+    "status_shipped": "Wysłane",
+    "status_delivered": "Dostarczone",
+    "status_paid": "✅ Opłacone",
+    "status_awaiting": "⏳ Oczekuje",
+    "desc_pending": "Oczekiwanie na płatność lub potwierdzenie",
+    "desc_confirmed": "Zamówienie w kolejce do produkcji",
+    "desc_production": "Produkujemy Twoje zamówienie",
+    "desc_shipped": "Przekazane do dostawy",
+    "desc_delivered": "Zamówienie dostarczone",
+    "track_title": "Śledzenie zamówienia",
+    "track_number": "Numer zamówienia",
+    "track_contact": "Telefon lub email",
+    "track_search": "Znajdź zamówienie",
+    "track_searching": "Szukanie...",
+    "track_not_found": "Zamówienie nie znalezione"
   },
   "gift_hint": {
     "title": "Niech wiedzą, czego chcesz 😉",
@@ -557,7 +575,10 @@
     "Кількість примірників": "Liczba egzemplarzy",
     "Матеріал обкладинки": "Materiał okładki",
     "Колір сторінок": "Kolor stron",
-    "Ламінація сторінок": "Laminacja stron"
+    "Ламінація сторінок": "Laminacja stron",
+    "Біла рамочка 3мм": "Biała ramka 3mm",
+    "Вид": "Typ",
+    "Покриття": "Wykończenie"
   },
   "option_value_labels": {
     "Без кальки": "Bez kalki",

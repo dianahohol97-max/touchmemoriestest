@@ -345,7 +345,25 @@
     "place_order": "Bestellung aufgeben",
     "fill_required": "Bitte füllen Sie alle Pflichtfelder aus",
     "ready_to_order": "Bereit zur Bestellung",
-    "production_time": "Produktion:"
+    "production_time": "Produktion:",
+    "status_pending": "Bestellung eingegangen",
+    "status_confirmed": "Bezahlt",
+    "status_production": "In Produktion",
+    "status_shipped": "Versandt",
+    "status_delivered": "Geliefert",
+    "status_paid": "✅ Bezahlt",
+    "status_awaiting": "⏳ Ausstehend",
+    "desc_pending": "Warten auf Zahlung oder Bestätigung",
+    "desc_confirmed": "Bestellung in Produktionswarteschlange",
+    "desc_production": "Wir fertigen Ihre Bestellung",
+    "desc_shipped": "An Lieferung übergeben",
+    "desc_delivered": "Bestellung zugestellt",
+    "track_title": "Bestellung verfolgen",
+    "track_number": "Bestellnummer",
+    "track_contact": "Telefon oder E-Mail",
+    "track_search": "Bestellung suchen",
+    "track_searching": "Suche...",
+    "track_not_found": "Bestellung nicht gefunden"
   },
   "gift_hint": {
     "title": "Lass sie wissen, was du willst 😉",
@@ -557,7 +575,10 @@
     "Кількість примірників": "Anzahl der Exemplare",
     "Матеріал обкладинки": "Einbandmaterial",
     "Колір сторінок": "Seitenfarbe",
-    "Ламінація сторінок": "Seitenlamination"
+    "Ламінація сторінок": "Seitenlamination",
+    "Біла рамочка 3мм": "Weißer Rahmen 3mm",
+    "Вид": "Typ",
+    "Покриття": "Oberfläche"
   },
   "option_value_labels": {
     "Без кальки": "Ohne Transparentpapier",

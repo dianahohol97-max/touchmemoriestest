@@ -11,8 +11,7 @@ export async function GET(request: Request) {
     // 1. Verify cron secret (if vercel cron)
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        // Optional return for testing locally, but secure in prod
-        // return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {

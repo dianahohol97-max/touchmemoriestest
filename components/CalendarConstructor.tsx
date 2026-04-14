@@ -214,15 +214,14 @@ export default function CalendarConstructor({ productType }: CalendarConstructor
     return (
         <>
             <ExportProgressModal open={exporting} current={1} total={pages.length || 13} done={exportDone} label="Збереження конфігурації…" />
+            {/* QR Code Generator */}
+            <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
             <EditorStep
                 config={config}
                 pages={pages}
                 setPages={setPages}
                 currentPageIndex={currentPageIndex}
                 setCurrentPageIndex={setCurrentPageIndex}
-                {/* QR Code Generator */}
-                <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
-
                 onAddToCart={handleAddToCart}
                 onBack={() => setStep('config')}
             />

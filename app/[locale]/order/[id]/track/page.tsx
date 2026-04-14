@@ -8,12 +8,14 @@ import { Footer } from '@/components/ui/Footer';
 import { motion } from 'framer-motion';
 import { Package, Truck, CheckCircle2, Clock, MapPin, ExternalLink } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n/context';
 
 const getSupabase = () => createClient();
 
 export default function TrackOrderPage() {
     const supabase = getSupabase();
     const params = useParams();
+    const t = useT();
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -40,14 +42,14 @@ export default function TrackOrderPage() {
         return () => { supabase.removeChannel(channel); };
     }, [params.id]);
 
-    if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
-    if (!order) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Замовлення не знайдено</div>;
+    if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('ui.loading') || '...'}</div>;
+    if (!order) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('order.track_not_found')}</div>;
 
     const steps = [
-        { status: 'pending', label: 'Прийнято', icon: <Clock size={24} />, desc: 'Очікуємо на оплату або підтвердження' },
-        { status: 'confirmed', label: 'Оплачено', icon: <CheckCircle2 size={24} />, desc: 'Замовлення в черзі на виготовлення' },
-        { status: 'processing', label: 'Виготовляється', icon: <Package size={24} />, desc: 'Ми друкуємо вашу фотокнигу' },
-        { status: 'shipped', label: 'Відправлено', icon: <Truck size={24} />, desc: 'Посилка вже в дорозі до вас' }
+        { status: 'pending',    label: t('order.status_pending'),    icon: <Clock size={24} />,        desc: t('order.desc_pending') },
+        { status: 'confirmed',  label: t('order.status_confirmed'),  icon: <CheckCircle2 size={24} />, desc: t('order.desc_confirmed') },
+        { status: 'processing', label: t('order.status_production'), icon: <Package size={24} />,      desc: t('order.desc_production') },
+        { status: 'shipped',    label: t('order.status_shipped'),    icon: <Truck size={24} />,        desc: t('order.desc_shipped') }
     ];
 
     const currentStepIndex = steps.findIndex(s => s.status === order.order_status) === -1

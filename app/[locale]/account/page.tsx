@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { ShoppingBag, Heart, BookOpen, User, Settings, LogOut, Save, Mail, Phone, Calendar, ChevronRight, Trash2, ExternalLink, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/lib/i18n/context';
 
 type Tab = 'orders' | 'wishlist' | 'projects' | 'profile';
 
@@ -24,6 +25,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> =
 export default function AccountPage() {
     const supabase = createClient();
     const router = useRouter();
+    const t = useT();
     const [tab, setTab] = useState<Tab>('orders');
     const [user, setUser] = useState<any>(null);
     const [customer, setCustomer] = useState<any>(null);
@@ -153,7 +155,7 @@ export default function AccountPage() {
                                                     <div style={{ textAlign: 'right' }}>
                                                         <div style={{ fontWeight: 900, color: '#263A99', fontSize: 18 }}>{o.total} ₴</div>
                                                         <div style={{ fontSize: 11, fontWeight: 700, color: o.payment_status === 'paid' ? '#10b981' : '#f59e0b', textTransform: 'uppercase' }}>
-                                                            {o.payment_status === 'paid' ? '✅ Оплачено' : '⏳ Очікує'}
+                                                            {o.payment_status === 'paid' ? t('order.status_paid') : t('order.status_awaiting')}
                                                         </div>
                                                     </div>
                                                 </div>

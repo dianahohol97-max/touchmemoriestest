@@ -81,10 +81,7 @@ function DyakuiemoContent() {
 
                 {/* Message */}
                 <p style={{ fontSize: 17, color: '#64748b', lineHeight: 1.65, marginBottom: 32 }}>
-                    {isPaid
-                        ? `Дякуємо, ${order?.customer_name?.split(' ')[0] || ''}! Ваша оплата ${order?.total?.toLocaleString('uk-UA')} ₴ успішно прийнята. Ми вже починаємо виготовлення вашого замовлення.`
-                        : 'Ваше замовлення збережено. Якщо оплата пройшла — ми отримали підтвердження і зв\'яжемося з вами найближчим часом.'
-                    }
+                    {isPaid ? t('thankyou.paid_msg') : t('thankyou.pending_msg')}
                 </p>
 
                 {/* Status badge */}
@@ -96,7 +93,7 @@ function DyakuiemoContent() {
                     fontSize: 14, fontWeight: 700, marginBottom: 36
                 }}>
                     {isPaid ? <CheckCircle2 size={16} /> : <Clock size={16} />}
-                    {isPaid ? 'Оплачено' : 'Очікує підтвердження'}
+                    {isPaid ? t('thankyou.status_paid') : t('thankyou.status_pending')}
                 </div>
 
                 {/* What's next */}
@@ -105,13 +102,13 @@ function DyakuiemoContent() {
                     textAlign: 'left', marginBottom: 36, border: '1px solid #e2e8f0'
                 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>
-                        Що далі
+                        {t('thankyou.whats_next')}
                     </div>
                     {[
-                        { icon: '📞', text: 'Менеджер зв\'яжеться з вами протягом 1-2 годин' },
-                        { icon: '🎨', text: 'Ми підготуємо макет та узгодимо деталі' },
-                        { icon: '🖨️', text: 'Виготовлення займає від 3 до 7 робочих днів' },
-                        { icon: '📦', text: 'Відправлення Новою Поштою по всій Україні' },
+                        { icon: '📞', text: t('thankyou.step1') },
+                        { icon: '🎨', text: t('thankyou.step2') },
+                        { icon: '🖨️', text: t('thankyou.step3') },
+                        { icon: '📦', text: t('thankyou.step4') },
                     ].map((step, i) => (
                         <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'flex-start' }}>
                             <span style={{ fontSize: 18 }}>{step.icon}</span>

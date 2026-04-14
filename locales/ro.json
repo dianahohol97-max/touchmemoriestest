@@ -345,7 +345,25 @@
     "place_order": "Plasează comanda",
     "fill_required": "Vă rugăm completați toate câmpurile obligatorii",
     "ready_to_order": "Gata de comandă",
-    "production_time": "Producție:"
+    "production_time": "Producție:",
+    "status_pending": "Comandă primită",
+    "status_confirmed": "Plătit",
+    "status_production": "În producție",
+    "status_shipped": "Expediat",
+    "status_delivered": "Livrat",
+    "status_paid": "✅ Plătit",
+    "status_awaiting": "⏳ În așteptare",
+    "desc_pending": "Așteptăm plata sau confirmarea",
+    "desc_confirmed": "Comanda în coada de producție",
+    "desc_production": "Producem comanda dvs.",
+    "desc_shipped": "Predată livrării",
+    "desc_delivered": "Comandă livrată",
+    "track_title": "Urmărire comandă",
+    "track_number": "Număr comandă",
+    "track_contact": "Telefon sau email",
+    "track_search": "Găsește comanda",
+    "track_searching": "Căutare...",
+    "track_not_found": "Comanda nu a fost găsită"
   },
   "gift_hint": {
     "title": "Spune-le ce îți dorești 😉",
@@ -558,7 +576,9 @@
     "Кількість примірників": "Număr de exemplare",
     "Матеріал обкладинки": "Material copertă",
     "Колір сторінок": "Culoarea paginilor",
-    "Ламінація сторінок": "Laminare pagini"
+    "Ламінація сторінок": "Laminare pagini",
+    "Біла рамочка 3мм": "Bordură albă 3mm",
+    "Вид": "Tip"
   },
   "option_value_labels": {
     "Без кальки": "Fără hârtie calc",

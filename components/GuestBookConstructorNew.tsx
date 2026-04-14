@@ -466,6 +466,9 @@ export default function GuestBookConstructorNew() {
               </div>
             </div>
 
+            {/* QR Code Generator */}
+            <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="Додати QR-код до замовлення" /></div>
+
             <button onClick={handleOrder}
               style={{width:'100%',padding:'13px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:10,fontWeight:800,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 4px 20px rgba(30,45,125,0.3)'}}>
               <ShoppingCart size={17}/> Замовити — {totalPrice} ₴
