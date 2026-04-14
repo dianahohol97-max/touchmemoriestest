@@ -422,20 +422,23 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
 
 function PhotoSlotEditor({
   slot, index, onUpdate, onDelete,
-  slotRect, // normalized slot rect (% of poster)
+  slotRect, hideHeader,
 }: {
   slot: PhotoSlot; index: number;
   onUpdate: (id: string, updates: Partial<PhotoSlot>) => void;
   onDelete: (id: string) => void;
   slotRect: { x: number; y: number; w: number; h: number };
+  hideHeader?: boolean;
 }) {
   return (
-    <div style={{ padding:'10px 12px', background:'#f8fafc', borderRadius:10, border:'1px solid #e2e8f0' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-        <span style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Фото {index+1}</span>
-        <button onClick={() => onDelete(slot.id)} style={{ background:'#fee2e2', border:'none', borderRadius:6, padding:'3px 7px', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}>✕ Видалити</button>
-      </div>
-      <img src={slot.photoUrl} style={{ width:'100%', height:80, objectFit:'cover', borderRadius:6, marginBottom:8 }} />
+    <div style={{ background:'transparent' }}>
+      {!hideHeader && (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+          <span style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Фото {index+1}</span>
+          <button onClick={() => onDelete(slot.id)} style={{ background:'#fee2e2', border:'none', borderRadius:6, padding:'3px 7px', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}>✕ Видалити</button>
+        </div>
+      )}
+      <img src={slot.photoUrl} style={{ width:'100%', height:72, objectFit:'cover', borderRadius:6, marginBottom:8 }} />
       <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <span style={{ fontSize:10, color:'#64748b', width:32 }}>Zoom</span>
@@ -538,6 +541,10 @@ export default function PosterConstructor() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeSlotUpload, setActiveSlotUpload] = useState<number | null>(null);
+  const [dragFromIdx, setDragFromIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const replaceTargetIdx = useRef<number>(-1);
   const [step, setStep] = useState<'layout' | 'photos' | 'design' | 'text' | 'size'>('layout');
   const [isOrdering, setIsOrdering] = useState(false);
 
@@ -587,6 +594,27 @@ export default function PosterConstructor() {
 
   const deletePhoto = (id: string) => {
     setConfig(prev => ({ ...prev, photos: prev.photos.filter(p => p.id !== id) }));
+  };
+
+  // Swap two photos by index
+  const swapPhotos = (fromIdx: number, toIdx: number) => {
+    setConfig(prev => {
+      const photos = [...prev.photos];
+      [photos[fromIdx], photos[toIdx]] = [photos[toIdx], photos[fromIdx]];
+      return { ...prev, photos };
+    });
+  };
+
+  // Replace photo at index with new file
+  const replacePhotoAtIndex = (index: number, file: File) => {
+    const url = URL.createObjectURL(file);
+    setConfig(prev => ({
+      ...prev,
+      photos: prev.photos.map((p, i) => i === index
+        ? { ...p, photoUrl: url, cropX: 50, cropY: 50, zoom: 1 }
+        : p
+      ),
+    }));
   };
 
   // ── Text management ───────────────────────────────────────────────────────
@@ -741,17 +769,68 @@ export default function PosterConstructor() {
               )}
               <input ref={fileInputRef} type="file" multiple accept="image/*" style={{ display:'none' }} onChange={handleFileSelect} />
 
+              {/* Hidden replace input */}
+              <input ref={replaceInputRef} type="file" accept="image/*" style={{ display:'none' }}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file && replaceTargetIdx.current >= 0) {
+                    replacePhotoAtIndex(replaceTargetIdx.current, file);
+                    replaceTargetIdx.current = -1;
+                  }
+                  if (replaceInputRef.current) replaceInputRef.current.value = '';
+                }}
+              />
+
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 {config.photos.map((photo, i) => {
                   const sizeObj2 = SIZES.find(s => s.id === config.size) || SIZES[0];
                   const posterH = PREVIEW_W / sizeObj2.ratio;
                   const slots = layout.getSlots(PREVIEW_W, posterH, config.padding);
                   const sl = slots[i] || slots[0];
+                  const isDragOver = dragOverIdx === i && dragFromIdx !== null && dragFromIdx !== i;
                   return (
-                    <PhotoSlotEditor key={photo.id} slot={photo} index={i}
-                      onUpdate={updatePhoto} onDelete={deletePhoto}
-                      slotRect={{ x: sl.x/PREVIEW_W*100, y: sl.y/posterH*100, w: sl.w/PREVIEW_W*100, h: sl.h/posterH*100 }}
-                    />
+                    <div key={photo.id}
+                      draggable
+                      onDragStart={() => setDragFromIdx(i)}
+                      onDragEnd={() => { setDragFromIdx(null); setDragOverIdx(null); }}
+                      onDragOver={e => { e.preventDefault(); setDragOverIdx(i); }}
+                      onDragLeave={() => setDragOverIdx(null)}
+                      onDrop={e => {
+                        e.preventDefault();
+                        if (dragFromIdx !== null && dragFromIdx !== i) swapPhotos(dragFromIdx, i);
+                        setDragFromIdx(null); setDragOverIdx(null);
+                      }}
+                      style={{
+                        borderRadius:10, border: isDragOver ? '2px dashed #1e2d7d' : '1px solid #e2e8f0',
+                        background: isDragOver ? '#f0f3ff' : '#f8fafc',
+                        transition:'all 0.15s', cursor: dragFromIdx !== null ? 'grabbing' : 'grab',
+                        opacity: dragFromIdx === i ? 0.5 : 1,
+                      }}
+                    >
+                      {/* Drag handle + header */}
+                      <div style={{ display:'flex', alignItems:'center', padding:'8px 12px 0', gap:6 }}>
+                        <span style={{ fontSize:16, color:'#94a3b8', cursor:'grab', userSelect:'none' }}>⠿</span>
+                        <span style={{ fontSize:12, fontWeight:700, color:'#374151', flex:1 }}>Фото {i+1}</span>
+                        {/* Move buttons */}
+                        <button onClick={() => i > 0 && swapPhotos(i, i-1)} disabled={i===0}
+                          style={{ padding:'2px 7px', border:'1px solid #e2e8f0', borderRadius:5, background:'#fff', cursor:i===0?'not-allowed':'pointer', color:i===0?'#cbd5e1':'#374151', fontSize:12 }} title="Вгору">↑</button>
+                        <button onClick={() => i < config.photos.length-1 && swapPhotos(i, i+1)} disabled={i===config.photos.length-1}
+                          style={{ padding:'2px 7px', border:'1px solid #e2e8f0', borderRadius:5, background:'#fff', cursor:i===config.photos.length-1?'not-allowed':'pointer', color:i===config.photos.length-1?'#cbd5e1':'#374151', fontSize:12 }} title="Вниз">↓</button>
+                        {/* Replace button */}
+                        <button onClick={() => { replaceTargetIdx.current = i; replaceInputRef.current?.click(); }}
+                          style={{ padding:'2px 8px', border:'1px solid #c7d2fe', borderRadius:5, background:'#f0f3ff', cursor:'pointer', color:'#1e2d7d', fontSize:10, fontWeight:700 }}>🔄 Замінити</button>
+                        <button onClick={() => deletePhoto(photo.id)}
+                          style={{ padding:'2px 7px', border:'none', borderRadius:5, background:'#fee2e2', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}>✕</button>
+                      </div>
+                      {/* Photo editor */}
+                      <div style={{ padding:'0 12px 10px' }}>
+                        <PhotoSlotEditor slot={photo} index={i}
+                          onUpdate={updatePhoto} onDelete={deletePhoto}
+                          slotRect={{ x: sl.x/PREVIEW_W*100, y: sl.y/posterH*100, w: sl.w/PREVIEW_W*100, h: sl.h/posterH*100 }}
+                          hideHeader
+                        />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
