@@ -82,15 +82,15 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                 return 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
             case 'smooth-light':
                 return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-            // For B&W poster styles: Voyager has stronger road lines that survive grayscale
+            // For B&W poster styles: OSM standard tiles have real visible roads
             case 'stamen-toner':
             case 'stamen-toner-lite':
             case 'classic-bw':
-                // voyager has bolder roads that stay visible after grayscale+contrast
-                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+                // OSM has actual dark road lines that show up after grayscale
+                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
             case 'vintage-sepia':
             case 'harvest':
-                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
             case 'color-outdoors':
             case 'bayside':
             case 'forest-green':
@@ -120,14 +120,14 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
     // Get CSS filter based on map style
     const getMapFilter = () => {
         switch (config.mapStyle) {
-            // Pure B&W minimal — like reference images (high contrast, clean)
+            // Pure B&W minimal — OSM base has dark roads, just needs grayscale
             case 'classic-bw':
-                return 'grayscale(100%) contrast(200%) brightness(0.95)';
+                return 'grayscale(100%) contrast(140%) brightness(1.0)';
             case 'stamen-toner':
-                // voyager → B&W high contrast poster with visible roads
-                return 'grayscale(100%) contrast(210%) brightness(0.95)';
+                // OSM B&W with high contrast for poster look
+                return 'grayscale(100%) contrast(160%) brightness(1.0)';
             case 'stamen-toner-lite':
-                return 'grayscale(100%) contrast(150%) brightness(1.05)';
+                return 'grayscale(100%) contrast(110%) brightness(1.1)';
             case 'vintage-sepia':
             case 'harvest':
                 return 'grayscale(100%) sepia(55%) contrast(130%) brightness(1.05)';
