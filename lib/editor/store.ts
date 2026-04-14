@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import type {
   PhotoData, BookConfig, CoverState, CoverDecoType, Page, TextBlock,
-  KalkaState, EndpaperState, CtxMenu, LeftTab, HistoryEntry, string,
+  KalkaState, EndpaperState, CtxMenu, LeftTab, HistoryEntry,
   StickerData,
 } from './types';
 import type { FreeSlot } from '@/components/FreeSlotLayer';
