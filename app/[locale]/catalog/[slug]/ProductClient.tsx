@@ -125,6 +125,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const t = useT();
     const locale = useLocale();
     const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
+    const optValueLabel = (label: string) => { const k = t('option_value_labels.' + label); return k !== 'option_value_labels.' + label ? k : label; };
     const resolvedParams = React.use(params);
     const router = useRouter();
     const supabase = createBrowserClient(
@@ -596,7 +597,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 const labelHasPrice = /\d+\s*(грн|₴)/.test(label);
                                                                 return (
                                                                     <option key={idx} value={value}>
-                                                                        {label}{price > 0 && !labelHasPrice ? ` (+${price} ₴)` : ''}
+                                                                        {optValueLabel(label)}{price > 0 && !labelHasPrice ? ` (+${price} ₴)` : ''}
                                                                     </option>
                                                                 );
                                                             })}
@@ -654,7 +655,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 const labelHasPrice = /\d+\s*(грн|₴)/.test(String(label));
                                                                 return (
                                                                     <option key={idx} value={value}>
-                                                                        {label}{price > 0 && !labelHasPrice ? ` (+${price} ₴)` : ''}
+                                                                        {optValueLabel(label)}{price > 0 && !labelHasPrice ? ` (+${price} ₴)` : ''}
                                                                     </option>
                                                                 );
                                                             })}
@@ -712,7 +713,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                                 ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
                                                                                 : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
                                                                         }`}>
-                                                                        {label}{price > 0 && !labelHasPrice2 ? ` (+${price} ₴)` : ''}
+                                                                        {optValueLabel(label)}{price > 0 && !labelHasPrice2 ? ` (+${price} ₴)` : ''}
                                                                     </button>
                                                                 );
                                                             })}
