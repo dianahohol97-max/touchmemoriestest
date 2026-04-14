@@ -372,9 +372,14 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               );
             })}
             {/* Text blocks */}
-            {texts.map(tb => (
+            {texts.map(tb => {
+              // Clamp x so text center never goes outside safe zone
+              // With translate(-50%,-50%), safe range is ~10%..90%
+              const safeX = Math.max(10, Math.min(90, tb.x));
+              const safeY = Math.max(5, Math.min(95, tb.y));
+              return (
               <div key={tb.id} onPointerDown={e => startTextDrag(e, tb.id, tb.x, tb.y)}
-                style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)',
+                style={{ position:'absolute', left:`${safeX}%`, top:`${safeY}%`, transform:'translate(-50%,-50%)',
                   cursor:'move', zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'manipulation' }}>
                 <span contentEditable suppressContentEditableWarning
                   onBlur={e=>onChange({printedTextBlocks:texts.map(t=>t.id===tb.id?{...t,text:e.currentTarget.textContent||''}:t)})}
@@ -382,14 +387,14 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   onClick={e=>{e.stopPropagation();(e.target as HTMLElement).focus();}}
                   style={{ color:tb.color||'#fff', fontSize:tb.fontSize+'px', fontFamily:tb.fontFamily+',serif',
                     fontWeight:tb.bold?700:400, outline:'none', cursor:'text', display:'block', whiteSpace:'nowrap',
-                    textShadow:'0 1px 3px rgba(0,0,0,0.5)', minWidth:'40px', maxWidth: canvasW*0.85+'px', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    textShadow:'0 1px 3px rgba(0,0,0,0.5)', minWidth:'40px', maxWidth: canvasW*0.8+'px', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {tb.text}
                 </span>
                 <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
                   onMouseDown={e=>e.stopPropagation()}
                   style={{ position:'absolute',top:-8,right:-8,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>
               </div>
-            ))}
+            );})}
           </>
         );
       })()}
