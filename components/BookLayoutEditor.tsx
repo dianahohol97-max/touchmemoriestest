@@ -46,7 +46,7 @@ import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from 
 import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
-interface PhotoData { id: string; preview: string; width: number; height: number; name: string; }
+interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; }
 interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
@@ -1379,7 +1379,7 @@ export default function BookLayoutEditor() {
       // Create new layout slots, carrying over first N photos
       const newSlots = Array.from({ length: def.slots }, (_, si) => ({
         photoId: layoutPhotos[si] ?? null,
-        cropX: 50, cropY: 50, zoom: 1,
+        ...getFocalCrop(layoutPhotos[si] ?? null), zoom: 1,
       }));
       // Extra photos dropped silently — they remain in the photo strip
       setPages(prev => prev.map((p, i) =>
@@ -1393,6 +1393,40 @@ export default function BookLayoutEditor() {
         i !== targetIdx ? p : { ...p, layout, slots: [], textBlocks: p.textBlocks || [] }
       ));
       setFreeSlots(prev => { const u = { ...prev }; delete u[targetIdx]; return u; });
+    }
+  };
+
+  // Get smart crop position for a photo (uses detected focal point if available)
+  const getFocalCrop = (photoId: string | null) => {
+    if (!photoId) return { cropX: 50, cropY: 50 };
+    const photo = photos.find(p => p.id === photoId);
+    if (photo?.focalX !== undefined && photo?.focalY !== undefined) {
+      return { cropX: photo.focalX, cropY: photo.focalY };
+    }
+    return { cropX: 50, cropY: 38 }; // slightly above center — better default for portraits
+  };
+
+  // Detect focal point (face/subject) for smart cropping
+  const detectFocalPoint = async (previewDataUrl: string, photoId: string) => {
+    try {
+      // Extract base64 from data URL
+      const parts = previewDataUrl.split(',');
+      if (parts.length < 2) return;
+      const mediaType = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const base64 = parts[1];
+      // Skip very small base64 (tiny thumbs)
+      if (base64.length < 1000) return;
+      const res = await fetch('/api/constructor/focal-point', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mediaType }),
+      });
+      if (!res.ok) return;
+      const { x, y, hasFace } = await res.json();
+      // Update photo with focal point
+      setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, focalX: x, focalY: y, hasFace } : p));
+    } catch {
+      // Silent fail — fallback to center crop
     }
   };
 
@@ -1419,7 +1453,7 @@ export default function BookLayoutEditor() {
     const best = pool[Math.floor(Math.random() * pool.length)] || fallback;
     const layout = best.id as LayoutType;
     // Fill layout slots with photos (up to slot count)
-    const layoutSlots = Array.from({ length: best.slots }, (_, si) => ({ photoId: photoIds[si] || null, cropX: 50, cropY: 50, zoom: 1 }));
+    const layoutSlots = Array.from({ length: best.slots }, (_, si) => ({ photoId: photoIds[si] || null, ...getFocalCrop(photoIds[si] || null), zoom: 1 }));
     setPages(prev => {
       const next = prev.map((p, i) => i !== pageIdx ? p : { ...p, layout, slots: layoutSlots, textBlocks: p.textBlocks || [] });
       return next;
@@ -1569,6 +1603,10 @@ export default function BookLayoutEditor() {
       if (loaded.length > 0) {
         setPhotos(prev => [...prev, ...loaded]);
         toast.success(`Завантажено ${loaded.length} фото`);
+        // Detect focal points in background (non-blocking)
+        loaded.forEach(photo => {
+          detectFocalPoint(photo.preview, photo.id);
+        });
       }
     };
 
@@ -2051,6 +2089,8 @@ export default function BookLayoutEditor() {
                           {isSel && <div style={{ position: 'absolute', inset: 0, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#7c3aed', fontWeight: 700 }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
                           {!isSel && tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👆</div>}
                           <span style={{ position: 'absolute', top: 2, left: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3 }}>{i + 1}</span>
+                          {ph.hasFace && <span title="Обличчя знайдено — смарт кадрування" style={{ position:'absolute', bottom:2, right:2, fontSize:10, background:'rgba(0,0,0,0.55)', borderRadius:4, padding:'1px 3px' }}>👤</span>}
+                          {ph.focalX !== undefined && !ph.hasFace && <span title="Фокус визначено" style={{ position:'absolute', bottom:2, right:2, fontSize:8, background:'rgba(0,0,0,0.45)', borderRadius:4, padding:'1px 3px', color:'#fff' }}>🎯</span>}
                           {/* Low DPI warning — check against full page size */}
                           {(() => {
                             const dpi = checkPhotoDpi(ph.width, ph.height, pageW, cH, pageW, cH, prop.w, prop.h);
@@ -3526,7 +3566,7 @@ export default function BookLayoutEditor() {
                       const firstEmptyIdx = (spreadPage?.slots||[]).findIndex(s => !s.photoId);
                       if (firstEmptyIdx !== -1) {
                         pushHistory();
-                        setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== firstEmptyIdx ? s2 : { ...s2, photoId }) }));
+                        setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== firstEmptyIdx ? s2 : { ...s2, photoId, ...getFocalCrop(photoId) }) }));
                         return;
                       }
                       // All slots filled → adapt layout only if exact match exists
@@ -3645,7 +3685,7 @@ export default function BookLayoutEditor() {
                             e.stopPropagation();
                             if (tapSelectedPhotoId) {
                               haptic.success();
-                              setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== i ? s2 : { ...s2, photoId: tapSelectedPhotoId }) }));
+                              setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== i ? s2 : { ...s2, photoId: tapSelectedPhotoId, ...getFocalCrop(tapSelectedPhotoId) }) }));
                               setTapSelectedPhotoId(null);
                             }
                           }}
@@ -4045,7 +4085,7 @@ export default function BookLayoutEditor() {
                           pushHistory();
                           setPages(prev => prev.map((p, i) => i !== pageIdx ? p : {
                             ...p,
-                            slots: p.slots.map((s, si) => si === emptySlotIdx ? { ...s, photoId } : s)
+                            slots: p.slots.map((s, si) => si === emptySlotIdx ? { ...s, photoId, ...getFocalCrop(photoId) } : s)
                           }));
                           return;
                         }
@@ -4125,7 +4165,7 @@ export default function BookLayoutEditor() {
                               e.stopPropagation(); // prevent canvas deselect
                               if (tapSelectedPhotoId) {
                                 haptic.success();
-                                setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== i ? s2 : { ...s2, photoId: tapSelectedPhotoId }) }));
+                                setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== i ? s2 : { ...s2, photoId: tapSelectedPhotoId, ...getFocalCrop(tapSelectedPhotoId) }) }));
                                 setTapSelectedPhotoId(null);
                               }
                             }}
