@@ -9,7 +9,7 @@ import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { SizeVisualizer } from '@/components/ui/SizeVisualizer';
-import { CheckCircle2, Star, Loader2, Image as ImageIcon, Play } from 'lucide-react';
+import { CheckCircle2, Star, Loader2, Image as ImageIcon, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import React from 'react'
@@ -317,6 +317,24 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         ? product.images
         : [];
 
+    // Gallery navigation
+    const allMedia = [...thumbnails, ...(product.video_url ? [product.video_url] : [])];
+    const currentMediaIdx = mainVideo
+        ? allMedia.indexOf(product.video_url)
+        : allMedia.indexOf(mainImage);
+    const goNext = () => {
+        const next = (currentMediaIdx + 1) % allMedia.length;
+        const url = allMedia[next];
+        if (url === product.video_url) { setMainVideo(url); setMainImage(''); }
+        else { setMainImage(url); setMainVideo(''); }
+    };
+    const goPrev = () => {
+        const prev = (currentMediaIdx - 1 + allMedia.length) % allMedia.length;
+        const url = allMedia[prev];
+        if (url === product.video_url) { setMainVideo(url); setMainImage(''); }
+        else { setMainImage(url); setMainVideo(''); }
+    };
+
     const isPhotobook = product.slug?.includes('photobook');
 
     // Calculate final price — priority: photobook table > dynamicPrice > generic modifiers
@@ -471,76 +489,95 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 {/* Two Column Layout */}
                 <div className={styles.productLayout} style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) minmax(300px, 450px)', gap: '60px', marginBottom: '80px' }}>
 
-                    {/* Left Column: Images */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div className={styles.mainImageContainer} style={{ position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {mainVideo ? (
-                                <video
-                                    src={mainVideo}
-                                    controls
-                                    autoPlay
-                                    muted
-                                    playsInline
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                />
-                            ) : mainImage ? (
-                                <Image
-                                    src={mainImage}
-                                    alt={getLocalized(product, locale, "name")}
-                                    fill
-                                    style={{ objectFit: 'cover' }}
-                                />
-                            ) : (
-                                <ImageIcon size={64} className="text-slate-300" />
-                            )}
-                        </div>
-                        {(thumbnails.length > 1 || product.video_url) && (
-                            <div className={`${styles.thumbnailContainer} ${styles.customScrollbar}`} style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
+                    {/* Left Column: Images — vertical thumbnails + main photo */}
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        {/* Vertical thumbnail strip */}
+                        {allMedia.length > 1 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
                                 {thumbnails.map((src: string, idx: number) => (
                                     <button
                                         key={idx}
-                                        onClick={() => {
-                                            setMainImage(src);
-                                            setMainVideo('');
-                                        }}
+                                        onClick={() => { setMainImage(src); setMainVideo(''); }}
                                         style={{
-                                            position: 'relative',
-                                            width: '80px',
-                                            height: '80px',
-                                            borderRadius: "3px",
-                                            overflow: 'hidden',
-                                            border: mainImage === src && !mainVideo ? '2px solid var(--primary)' : '2px solid transparent',
-                                            cursor: 'pointer',
-                                            flexShrink: 0,
-                                            backgroundColor: '#f8f9fa'
+                                            position: 'relative', width: 72, height: 72,
+                                            borderRadius: 8, overflow: 'hidden', flexShrink: 0,
+                                            border: mainImage === src && !mainVideo
+                                                ? '2.5px solid #1e2d7d'
+                                                : '2px solid #e2e8f0',
+                                            cursor: 'pointer', background: '#f8fafc',
+                                            padding: 0, transition: 'border-color 0.15s',
                                         }}
                                     >
-                                        <Image src={src} alt={`${getLocalized(product, locale, "name")} thumbnail ${idx}`} fill style={{ objectFit: 'cover' }} />
+                                        <Image src={src} alt={`фото ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
                                     </button>
                                 ))}
                                 {product.video_url && (
                                     <button
-                                        onClick={() => setMainVideo(product.video_url)}
+                                        onClick={() => { setMainVideo(product.video_url); setMainImage(''); }}
                                         style={{
-                                            position: 'relative',
-                                            width: '80px',
-                                            height: '80px',
-                                            borderRadius: "3px",
-                                            overflow: 'hidden',
-                                            border: mainVideo === product.video_url ? '2px solid var(--primary)' : '2px solid transparent',
-                                            cursor: 'pointer',
-                                            flexShrink: 0,
-                                            backgroundColor: 'black'
+                                            position: 'relative', width: 72, height: 72,
+                                            borderRadius: 8, overflow: 'hidden', flexShrink: 0,
+                                            border: mainVideo ? '2.5px solid #1e2d7d' : '2px solid #e2e8f0',
+                                            cursor: 'pointer', background: '#000', padding: 0,
                                         }}
                                     >
                                         <video src={product.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
                                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Play size={20} color="white" />
+                                            <Play size={18} color="white" />
                                         </div>
                                     </button>
                                 )}
                             </div>
                         )}
+
+                        {/* Main image with arrows */}
+                        <div className={styles.mainImageContainer} style={{ position: 'relative', flex: 1, aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {mainVideo ? (
+                                <video src={mainVideo} controls autoPlay muted playsInline
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            ) : mainImage ? (
+                                <Image src={mainImage} alt={getLocalized(product, locale, 'name')} fill
+                                    style={{ objectFit: 'cover' }} />
+                            ) : (
+                                <ImageIcon size={64} className="text-slate-300" />
+                            )}
+
+                            {/* Arrow navigation */}
+                            {allMedia.length > 1 && (<>
+                                <button onClick={goPrev}
+                                    style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                                        width: 36, height: 36, borderRadius: '50%', border: 'none',
+                                        background: 'rgba(255,255,255,0.9)', cursor: 'pointer', display: 'flex',
+                                        alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 2 }}>
+                                    <ChevronLeft size={20} color="#374151" />
+                                </button>
+                                <button onClick={goNext}
+                                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                                        width: 36, height: 36, borderRadius: '50%', border: 'none',
+                                        background: 'rgba(255,255,255,0.9)', cursor: 'pointer', display: 'flex',
+                                        alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 2 }}>
+                                    <ChevronRight size={20} color="#374151" />
+                                </button>
+                                {/* Dot indicator */}
+                                <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
+                                    display: 'flex', gap: 5, zIndex: 2 }}>
+                                    {allMedia.map((_: string, i: number) => (
+                                        <div key={i} style={{
+                                            width: currentMediaIdx === i ? 18 : 6,
+                                            height: 6, borderRadius: 3,
+                                            background: currentMediaIdx === i ? '#1e2d7d' : 'rgba(255,255,255,0.7)',
+                                            transition: 'all 0.2s', cursor: 'pointer',
+                                        }} onClick={() => {
+                                            const url = allMedia[i];
+                                            if (url === product.video_url) { setMainVideo(url); setMainImage(''); }
+                                            else { setMainImage(url); setMainVideo(''); }
+                                        }} />
+                                    ))}
+                                </div>
+                            </>)}
+                        </div>
                     </div>
 
                     {/* Right Column: Details */}
