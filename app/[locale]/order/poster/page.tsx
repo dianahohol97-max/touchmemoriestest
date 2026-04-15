@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import { Suspense } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import dynamicImport from 'next/dynamic';
@@ -22,7 +23,9 @@ export default function PosterOrderPage() {
           </div>
         </div>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-          <PosterConstructor />
+          <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Завантаження...</div>}>
+            <PosterConstructor />
+          </Suspense>
         </div>
       </main>
       <Footer categories={[]} />

@@ -78,9 +78,20 @@ const getConstructorUrl = (slug: string): string => {
 };
 
 const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, product: any): string => {
-  // Posters → use getConstructorUrl which has the full poster mapping
+  // Posters → pass selected size to constructor
   if (slug.includes('poster')) {
-    return getConstructorUrl(slug);
+    const base = getConstructorUrl(slug);
+    const params = new URLSearchParams();
+    // Pass selected size if available
+    const selectedSize = product?.options?.find((o: any) => o.name === 'Розмір')
+      ?.options?.find((o: any) => o.value === selectedOptions['Розмір'])?.label || selectedOptions['Розмір'];
+    if (selectedSize) params.set('size', String(selectedOptions['Розмір'] || selectedSize));
+    // Pass other selected options
+    const otherOpts = Object.entries(selectedOptions)
+      .filter(([k]) => k !== 'Розмір')
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
+    const query = params.toString() + (otherOpts.length ? '&' + otherOpts.join('&') : '');
+    return query ? `${base}?${query}` : base;
   }
 
   // For photoprint and photomagnet products, build order URL with selected options
@@ -567,8 +578,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 />
                             ) : (
                                 <>
-                                    {/* Photoprint: render options from DB only (skip hardcoded ProductOptionsSelector) */}
-                                    {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('поляроїд') || product.slug?.includes('полароїд')) ? (
+                                    {/* Photoprint + Poster: render options from DB */}
+                                    {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('поляроїд') || product.slug?.includes('полароїд') || product.slug?.includes('poster')) ? (
                                         <>
                                         {product.options && Array.isArray(product.options) && product.options
                                             .filter((opt: any) => opt.options?.length > 0 || opt.values?.length > 0)

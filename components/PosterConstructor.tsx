@@ -1,4 +1,5 @@
 'use client';
+import { useSearchParams } from 'next/navigation';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useCartStore } from '@/store/cart-store';
@@ -557,6 +558,17 @@ export default function PosterConstructor() {
   const [step, setStep] = useState<'layout' | 'photos' | 'design' | 'text' | 'size'>('layout');
   const [isOrdering, setIsOrdering] = useState(false);
 
+  const searchParams = useSearchParams();
+  const initialSize = (() => {
+    const s = (searchParams?.get('size') || 'a4').toLowerCase().replace(/[×x ]/g, 'x').replace('cm','').trim();
+    // Map common aliases
+    if (s === 'a3' || s === 'a3') return 'a3';
+    if (s === '30x40' || s === '30×40') return '30x40';
+    if (s === '40x50' || s === '40×50') return '40x50';
+    if (s === '50x70' || s === '50×70') return '50x70';
+    return 'a4'; // default
+  })();
+
   const [config, setConfig] = useState<PosterConfig>({
     photos: [],
     layoutId: 'single',
@@ -565,7 +577,7 @@ export default function PosterConstructor() {
     frameColor: '#1a1a1a',
     padding: 20,
     textBlocks: [],
-    size: 'a4',
+    size: initialSize as PosterConfig['size'],
   });
 
   const layout = LAYOUTS.find(l => l.id === config.layoutId) || LAYOUTS[0];
