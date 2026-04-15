@@ -483,10 +483,17 @@ export default function PhotoPrintsPage() {
                   }}
                   className="hover:border-blue-400"
                 >
-                  <span>{'label' in option ? option.label : `${option.size} см`}</span>
+                  {'label' in option ? (
+                    <>
+                      <span>{option.label}</span>
+                      <span style={{ fontSize: '12px', color: isSelected ? '#3b82f6' : '#64748b', fontWeight: 500 }}>{option.size} см</span>
+                    </>
+                  ) : (
+                    <span>{option.size} см</span>
+                  )}
                   <span style={{ fontSize: '12px', color: '#64748b' }}>{option.price} ₴/шт</span>
                   {'multiple' in option && option.multiple && (
-                    <span style={{ fontSize: '10px', color: '#94a3b8' }}>кратно {option.multiple}</span>
+                    <span style={{ fontSize: '11px', color: isSelected ? '#2563eb' : '#94a3b8', fontWeight: 600 }}>кратно {option.multiple} шт</span>
                   )}
                 </button>
               );
