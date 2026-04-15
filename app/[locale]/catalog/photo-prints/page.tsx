@@ -75,8 +75,8 @@ const SIZES = {
     { size: '10×10', price: 8, multiple: 6 },
   ],
   polaroid: [
-    { size: '7.6×10.1', price: 7.5, label: 'Класичний Polaroid' },
-    { size: '8.6×5.4', price: 7.5, label: 'Міні Polaroid' },
+    { size: '7.6×10.1', price: 7.5, label: 'Класичний Polaroid', multiple: 8 },
+    { size: '8.6×5.4', price: 7.5, label: 'Міні Polaroid', multiple: 10 },
   ],
 };
 
@@ -182,6 +182,18 @@ export default function PhotoPrintsPage() {
 
   // Calculate totals
   const totalQuantity = photos.reduce((sum, p) => sum + p.quantity, 0);
+
+  // Multiple validation (nonstandard + polaroid only)
+  const currentSizeOption = (SIZES[printType] as any[]).find((s: any) => s.size === printSize);
+  const requiredMultiple: number | null =
+    (printType === 'nonstandard' || printType === 'polaroid') && currentSizeOption?.multiple
+      ? currentSizeOption.multiple
+      : null;
+  const multipleRemainder = requiredMultiple && totalQuantity > 0 ? totalQuantity % requiredMultiple : 0;
+  const isMultipleInvalid = requiredMultiple !== null && totalQuantity > 0 && multipleRemainder !== 0;
+  const toRemove = multipleRemainder;
+  const toAdd = requiredMultiple ? requiredMultiple - multipleRemainder : 0;
+
   let subtotal = totalQuantity * pricePerPrint;
   if (photoRetouching && retouchChoice === 'specify') subtotal += retouchCount * 7;
   const totalPrice = urgentProduction ? Math.round(subtotal * 1.3) : subtotal;
@@ -239,6 +251,7 @@ export default function PhotoPrintsPage() {
 
   const handleCheckoutClick = () => {
     if (photos.length === 0) return;
+    if (isMultipleInvalid) return;
     setShowModal(true);
   };
 
@@ -610,6 +623,20 @@ export default function PhotoPrintsPage() {
             </p>
           </div>
 
+          {photos.length > 0 && isMultipleInvalid && (
+            <div style={{ marginTop: '16px', padding: '14px 18px', background: '#fff7ed', border: '1.5px solid #fdba74', borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#92400e', marginBottom: 4 }}>
+                  Кількість фото ({totalQuantity} шт) не кратна {requiredMultiple}
+                </div>
+                <div style={{ fontSize: 13, color: '#78350f' }}>
+                  Видаліть <strong>{toRemove} фото</strong> (буде {totalQuantity - toRemove} шт)&nbsp;&nbsp;або&nbsp;&nbsp;додайте <strong>{toAdd} фото</strong> (буде {totalQuantity + toAdd} шт)
+                </div>
+              </div>
+            </div>
+          )}
+
           {photos.length > 0 && (
             <div style={{ marginTop: '24px' }}>
               <p style={{ fontSize: '14px', fontWeight: 600, color: '#263A99', marginBottom: '12px' }}>
@@ -830,26 +857,33 @@ export default function PhotoPrintsPage() {
 
         {/* STEP 8: Action Button */}
         {!showContactForm && (
-          <button
-            onClick={handleCheckoutClick}
-            disabled={photos.length === 0}
-            style={{
-              width: '100%',
-              padding: '18px',
-              backgroundColor: photos.length > 0 ? '#2563eb' : '#cbd5e1',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '18px',
-              fontWeight: 700,
-              cursor: photos.length > 0 ? 'pointer' : 'not-allowed',
-              transition: 'all 0.2s',
-              marginBottom: '16px'
-            }}
-            className={photos.length > 0 ? 'hover:bg-blue-700' : ''}
-          >
-            Перейти до оформлення →
-          </button>
+          <>
+            {isMultipleInvalid && photos.length > 0 && (
+              <div style={{ marginBottom: 12, padding: '12px 16px', background: '#fff7ed', border: '1.5px solid #fdba74', borderRadius: 10, fontSize: 13, color: '#92400e', fontWeight: 600, textAlign: 'center' }}>
+                ⚠️ Виправте кількість фото (має бути кратна {requiredMultiple}) перед оформленням
+              </div>
+            )}
+            <button
+              onClick={handleCheckoutClick}
+              disabled={photos.length === 0 || isMultipleInvalid}
+              style={{
+                width: '100%',
+                padding: '18px',
+                backgroundColor: photos.length > 0 && !isMultipleInvalid ? '#2563eb' : '#cbd5e1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '18px',
+                fontWeight: 700,
+                cursor: photos.length > 0 && !isMultipleInvalid ? 'pointer' : 'not-allowed',
+                transition: 'all 0.2s',
+                marginBottom: '16px'
+              }}
+              className={photos.length > 0 && !isMultipleInvalid ? 'hover:bg-blue-700' : ''}
+            >
+              Перейти до оформлення →
+            </button>
+          </>
         )}
 
         {/* STEP 9: Contact Form (shown after modal) */}
