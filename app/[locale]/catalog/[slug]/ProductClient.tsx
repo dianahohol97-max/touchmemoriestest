@@ -503,13 +503,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 </div>
 
                 {/* Two Column Layout */}
-                <div className={styles.productLayout} style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) minmax(300px, 450px)', gap: '60px', marginBottom: '80px' }}>
+                <div className={styles.productLayout} style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(280px, 420px)', gap: '40px', marginBottom: '80px', alignItems: 'start' }}>
 
                     {/* Left Column: Images — vertical thumbnails + main photo */}
                     <div style={{ display: 'flex', gap: 12 }}>
                         {/* Vertical thumbnail strip */}
                         {allMedia.length > 1 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, maxHeight: 480, overflowY: 'auto', scrollbarWidth: 'none' }}>
                                 {thumbnails.map((src: string, idx: number) => (
                                     <button
                                         key={idx}
@@ -547,7 +547,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         )}
 
                         {/* Main image with arrows */}
-                        <div className={styles.mainImageContainer} style={{ position: 'relative', flex: 1, aspectRatio: '4/3', borderRadius: 12, overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className={styles.mainImageContainer} style={{ position: 'relative', flex: 1, aspectRatio: '1/1', maxHeight: 480, borderRadius: 12, overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {mainVideo ? (
                                 <video src={mainVideo} controls autoPlay muted playsInline
                                     style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
