@@ -2117,7 +2117,7 @@ export default function BookLayoutEditor() {
             <div>
               <div style={{ fontWeight:800, fontSize:15, color:'#1e2d7d' }}>{config.productName || 'Фотокнига'}</div>
               <div style={{ fontSize:11, color:'#64748b' }}>
-                Редактор • {photos.length} фото • {pages.length} сторінок
+                Редактор • {photos.length} фото • {isWishbook ? '32 сторінки (фіксовано)' : `${pages.length} сторінок`}
                 {_slug.includes('travel') ? ' • 20×30 см' : (_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')) ? ' • A4' : config?.selectedSize ? ` • ${config.selectedSize} см` : ''}
                 {saveStatus === 'saving' && <span style={{ color:'#f59e0b', marginLeft:6, fontSize:10 }}> Зберігаю...</span>}
                 {saveStatus === 'saved' && <span style={{ color:'#10b981', marginLeft:6, fontSize:10 }}> Збережено</span>}
@@ -3583,8 +3583,8 @@ export default function BookLayoutEditor() {
                     <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: backBg, borderRight: '2px solid rgba(0,0,0,0.12)' }}
                       onDragOver={e=>{e.preventDefault();}}
                       onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}>
-                      {/* Back cover photo slot */}
-                      {isPrinted && (
+                      {/* Back cover photo slot — hidden for wishbook/guestbook */}
+                      {isPrinted && !isWishbook && (
                         <div
                           onPointerDown={e => { if (!backPhoto) return; startBackSlotDrag(e, 'move'); }}
                           onDragOver={e=>{e.preventDefault();}}
