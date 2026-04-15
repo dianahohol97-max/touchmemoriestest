@@ -7,25 +7,21 @@ export async function GET() {
     try {
         const supabase = await createClient();
 
-        // Get authenticated user
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-
         if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const userId = user.id;
-
-        // Fetch their orders
-        const { data: orders, error: ordersError } = await supabase
+        // Fetch orders by both user id and email (handles both registration flows)
+        const { data: orders, error } = await supabase
             .from('orders')
-            .select('*')
-            .eq('customer_id', userId)
+            .select('id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,tracking_number')
+            .or(`customer_id.eq.${user.id},customer_email.eq.${user.email}`)
             .order('created_at', { ascending: false });
 
-        if (ordersError) throw ordersError;
+        if (error) throw error;
 
-        return NextResponse.json({ orders });
+        return NextResponse.json({ orders: orders || [] });
 
     } catch (error: any) {
         console.error('Error fetching account orders:', error);
