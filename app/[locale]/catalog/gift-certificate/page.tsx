@@ -36,6 +36,13 @@ export default function GiftCertificatePage() {
   // State
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [certificateCode] = useState<string>(() => {
+    // Generate preview code — real code assigned by DB on purchase
+    const year = new Date().getFullYear();
+    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `TM-${year}-${rand}`;
+  });
+
   const [config, setConfig] = useState<CertificateConfig>({
     type: 'money',
     amount: 500,
@@ -122,12 +129,14 @@ export default function GiftCertificatePage() {
       quantity: 1,
       image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80',
       options: {
+        'Номер': certificateCode,
         'Тип сертифікату': config.type === 'money' ? `На суму ${config.amount} ₴` : `На продукт: ${config.productName}`,
         'Формат': config.format === 'electronic' ? 'Електронний (PDF)' : 'Друкований',
         'Отримувач': config.recipientName || config.recipientEmail,
         'Термін дії': validUntil,
       },
       metadata: {
+        certificateCode,
         certificateType: config.type,
         amount: config.type === 'money' ? config.amount : undefined,
         productId: config.type === 'product' ? config.productId : undefined,
@@ -497,6 +506,18 @@ export default function GiftCertificatePage() {
                       {validUntil}
                     </span>
                   </div>
+                </div>
+
+                {/* Certificate code */}
+                <div style={{
+                  position: 'absolute', bottom: 28, left: 0, right: 0,
+                  textAlign: 'center', zIndex: 2,
+                }}>
+                  <span style={{
+                    fontFamily: 'monospace', fontSize: 10,
+                    color: 'rgba(255,255,255,0.55)',
+                    letterSpacing: '0.15em',
+                  }}>№ {certificateCode}</span>
                 </div>
 
                 {/* Footer: Instagram + TOUCH.MEMORIES */}
