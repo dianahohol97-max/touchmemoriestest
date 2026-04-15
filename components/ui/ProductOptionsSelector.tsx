@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { SizeVisualizer } from './SizeVisualizer';
+import { useT } from '@/lib/i18n/context';
 
 type ProductOption = {
   name: string;
@@ -512,6 +513,10 @@ interface ProductOptionsSelectorProps {
 }
 
 export function ProductOptionsSelector({ slug, selectedOptions, onChange }: ProductOptionsSelectorProps) {
+  const t = useT();
+  const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
+  const optValueLabel = (val: string | number) => { const k = t('option_value_labels.' + String(val)); return k !== 'option_value_labels.' + String(val) ? k : String(val); };
+
   const productType = detectProductType(slug);
   const s = slug?.toLowerCase() || '';
   const isVelourProduct = s.includes('velour') || s.includes('velyur');
@@ -723,7 +728,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
               marginBottom: '8px',
               color: '#1e2d7d'
             }}>
-              {option.name}
+              {optLabel(option.name)}
               {option.required && <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>}
             </label>
 
@@ -794,13 +799,13 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                 }}
               >
                 <option value="" disabled>
-                  Оберіть {option.name.toLowerCase()}
+                  {t('product_page.choose_option')} {optLabel(option.name).toLowerCase()}
                 </option>
                 {option.values.map((value, valIdx) => {
                   const price = option.prices?.[value as string];
                   return (
                     <option key={valIdx} value={value}>
-                      {value}{price ? ` — ${price} ₴` : ''}
+                      {optValueLabel(value)}{price ? ` — ${price} ₴` : ''}
                     </option>
                   );
                 })}
@@ -827,14 +832,15 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         const isVelour = String(material).toLowerCase().includes('велюр');
         const isLeather = String(material).toLowerCase().includes('ткан') || String(material).toLowerCase().includes('fabric');
         const colors = isVelour ? VELOUR_COLORS : isLeather ? FABRIC_COLORS_WB : LEATHERETTE_COLORS_WB;
-        const colorLabel = isVelour ? 'Колір велюру' : isLeather ? 'Колір тканини' : 'Колір шкірзамінника';
+        const colorLabel = isVelour ? optLabel('Колір велюру') : isLeather ? optLabel('Колір тканини') : optLabel('Колір шкірзамінника');
+        const colorLabelKey = isVelour ? 'Колір велюру' : isLeather ? 'Колір тканини' : 'Колір шкірзамінника';
         const current = selectedWishbookColor;
         return (
           <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
               {colorLabel}:{' '}
               <span style={{ fontWeight: 400, color: '#64748b' }}>
-                {current?.name ?? 'оберіть колір'}
+                {current ? optValueLabel(current.name) : t('product_page.choose_color')}
               </span>
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>

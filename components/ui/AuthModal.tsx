@@ -67,9 +67,14 @@ export function AuthModal({ isOpen, onClose, onSuccess, message }: AuthModalProp
         setGoogleLoading(true);
         // Store a flag so after OAuth redirect we call the callback
         sessionStorage.setItem('authModalPendingCallback', '1');
+        // Always redirect to the canonical production URL to avoid 404s on
+        // Vercel preview deployments (window.location.href would capture the
+        // ephemeral preview URL which gets deleted after new deploys).
+        const canonicalOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+        const redirectTo = `${canonicalOrigin}${window.location.pathname}`;
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: window.location.href },
+            options: { redirectTo },
         });
         if (error) { setError(translateError(error.message)); setGoogleLoading(false); }
     };

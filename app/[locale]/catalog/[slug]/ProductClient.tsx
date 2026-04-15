@@ -597,7 +597,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         </h1>
                         {product.short_description && (
                             <p style={{ fontSize: '16px', color: '#666', lineHeight: 1.6, marginBottom: '24px' }}>
-                                {product.short_description}
+                                {getLocalized(product, locale, 'short_description')}
                             </p>
                         )}
 
@@ -716,7 +716,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 return (
                                                     <div key={opt.name}>
                                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e2d7d' }}>
-                                                            {opt.name}
+                                                            {optLabel(opt.name)}
                                                         </label>
                                                         <select
                                                             value={customProductOptions[opt.name] || ''}
