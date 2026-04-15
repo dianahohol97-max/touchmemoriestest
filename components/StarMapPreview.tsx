@@ -460,20 +460,31 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
     const aspectRatio = aspectMap[config.size] || '3/4';
 
     return (
+        // Outer flex wrapper caps the visible area to viewport height.
+        // The inner poster keeps its aspect ratio and is shrunk to fit.
         <div
-          className="rounded-xl shadow-2xl overflow-hidden mx-auto"
           style={{
-            backgroundColor: config.backgroundColor,
-            // Cap height to viewport so the entire poster fits and isn't cropped
-            // when used inside a sticky container. Width follows from aspectRatio.
             maxHeight: 'calc(100vh - 200px)',
-            // Width derived from aspect ratio: portrait 3/4 → maxWidth = maxHeight * 0.75
-            // Use aspect-ratio CSS to auto-size, but also clamp width.
-            maxWidth: '100%',
-            aspectRatio,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
           }}
         >
-            <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%', aspectRatio, overflow: 'hidden' }}>
+            <div
+              ref={containerRef}
+              className="rounded-xl shadow-2xl overflow-hidden"
+              style={{
+                backgroundColor: config.backgroundColor,
+                // The poster sizes itself by aspect ratio.
+                // height:100% + aspectRatio gives correct width when constrained by parent maxHeight.
+                // width:100% + aspectRatio gives correct height when constrained by column width.
+                // We let it grow to whichever constraint binds first.
+                height: '100%',
+                aspectRatio,
+                maxWidth: '100%',
+                position: 'relative',
+              }}
+            >
                 <canvas
                     ref={canvasRef}
                     style={{
