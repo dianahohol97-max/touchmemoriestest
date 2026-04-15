@@ -289,9 +289,17 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const lamination = searchParams.get('lamination');
         const cover = searchParams.get('cover');
         const decoration = searchParams.get('decoration');
+        const decorationVariant = searchParams.get('decoration_variant');
+        const coverColorParam = searchParams.get('cover_color');
+        const pageColor = searchParams.get('page_color');
         const textLayout = searchParams.get('text_layout');
-        // Also read Ukrainian param names from catalog URL
+        // Also read Ukrainian param names from catalog URL (legacy support)
         const coverFromCatalog = searchParams.get('Матеріал обкладинки') || searchParams.get('Матеріал+обкладинки');
+        const colorFromCatalog = searchParams.get('Колір велюру') || searchParams.get('Колір+велюру')
+            || searchParams.get('Колір тканини') || searchParams.get('Колір+тканини')
+            || searchParams.get('Колір шкірзаміннику') || searchParams.get('Колір+шкірзаміннику');
+        const decorationFromCatalog = searchParams.get('Тип оздоблення') || searchParams.get('Тип+оздоблення')
+            || searchParams.get('Тип оздоблення обкладинки') || searchParams.get('Тип+оздоблення+обкладинки');
 
         const pt = getProductType();
         if (!pages && pt !== 'wishbook') return; // Need at least pages to pre-fill (except wishbook)
@@ -339,17 +347,42 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Lamination (printed cover only)
         if (lamination) setSelectedLamination(lamination);
 
-        // Decoration
-        if (decoration) setSelectedDecorationType(decoration);
+        // Decoration type + variant (from URL or Ukrainian catalog name)
+        const decorationValue = decoration || decorationFromCatalog;
+        if (decorationValue) {
+            // Map Ukrainian decoration labels to internal IDs (used by editor)
+            const decorationMap: Record<string, string> = {
+                'Без оздоблення': 'none',
+                'Акрил': 'acryl',
+                'Фотовставка': 'photovstavka',
+                'Метал': 'metal',
+                'Металева вставка': 'metal',
+                'Флекс': 'flex',
+                'Гравірування': 'graviruvannya',
+            };
+            setSelectedDecorationType(decorationMap[decorationValue] || decorationValue);
+        }
+        if (decorationVariant) setSelectedDecorationVariant(decorationVariant);
 
-        // Auto-set default cover color if not already set
-        if (!selectedCoverColor) {
+        // Cover color from URL (catalog passes "Колір велюру=Попелясто-бежевий")
+        const coverColorFromUrl = coverColorParam || colorFromCatalog;
+        if (coverColorFromUrl) {
+            setSelectedCoverColor(coverColorFromUrl);
+        } else if (!selectedCoverColor) {
+            // Fallback: slug-based default if nothing in URL
             const sl = productSlug.toLowerCase();
             if (sl.includes('velour') || sl.includes('velyur')) setSelectedCoverColor('Бежевий');
             else if (sl.includes('leather')) setSelectedCoverColor('Бежевий');
             else if (sl.includes('fabric') || sl.includes('tkanina')) setSelectedCoverColor('Бежевий/пісочний');
             // Друкована doesn't need color
         }
+
+        // Page color (wishbook only)
+        if (pageColor) {
+            // No setter for page color in this component — stored in editor state
+            // Pass through via URL → editor will read it
+        }
+
         setAutoAdvance(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loading, product, photobookSizes.length]);
