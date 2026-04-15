@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { goToConstructor } from '@/lib/constructorRouting';
 import { getProductSEO } from '@/lib/seoContent';
 import { useAuthModal } from '@/lib/auth-modal-context';
+import { lookupPrice } from '@/lib/editor/pricing';
 
 const COVER_TYPES = [
   {
@@ -44,22 +45,7 @@ const SIZES = [
   { value: '30×30', orientation: '' },
 ];
 
-const BASE_PRICES = {
-  printed: {
-    '20×20': 800,
-    '25×25': 950,
-    '20×30': 1115,
-    '30×20': 1115,
-    '30×30': 1275,
-  },
-  premium: {
-    '20×20': 950,
-    '25×25': 1100,
-    '20×30': 1450,
-    '30×20': 1450,
-    '30×30': 1650,
-  }
-};
+// Prices are looked up dynamically from lib/editor/pricing.ts (same table as the constructor).
 
 export default function PhotobookPage() {
   const router = useRouter();
@@ -106,9 +92,9 @@ export default function PhotobookPage() {
     return false;
   };
 
-  // Calculate prices
-  const priceTable = coverType === 'printed' ? BASE_PRICES.printed : BASE_PRICES.premium;
-  const basePrice = priceTable[size as keyof typeof priceTable] || 0;
+  // Calculate prices — same pricing table as the constructor, updates live with pages/size/cover
+  const coverTypeLabel = COVER_TYPES.find(c => c.key === coverType)?.name || '';
+  const basePrice = lookupPrice(coverTypeLabel, size, pages, 0);
 
   let subtotal = basePrice * copies;
   if (photoRetouching && retouchChoice === 'specify') subtotal += retouchCount * 7;

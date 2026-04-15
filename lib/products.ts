@@ -371,6 +371,7 @@ export const PHOTO_PRINTS: PhotoPrintsProduct = {
     { size: '15×20 cm', price: 23, notes: 'white frame 3mm OPTIONAL' },
     { size: '20×30 cm', price: 44, notes: 'white frame 3mm OPTIONAL' }
   ],
+  // NOTE: photo-prints catalog page uses sizes: 9×13=8₴, 10×15=8₴, 13×18=18₴, 15×20=23₴, 20×30=44₴
   nonStandardSizes: [
     { size: '5×7.5 cm', price: 7.5, multipleOf: 12, notes: 'white frame 3mm MANDATORY' },
     { size: '6×9 cm', price: 7.5, multipleOf: 10, notes: 'white frame 3mm MANDATORY' },
@@ -427,10 +428,8 @@ export const PUZZLES: PuzzleProduct = {
   productionTime: '3–5 business days',
   description: 'Upload one photo — printed across the full puzzle.',
   options: [
-    { size: 'A4', pieces: 120, price: 290 },
-    { size: 'A3', pieces: 252, price: 390 },
-    { size: '30×40 cm', pieces: 252, price: 420 },
-    { size: '40×60 cm', pieces: 500, price: 590 }
+    { size: '15×21 cm', pieces: 110, price: 249 },
+    { size: '20×30 cm', pieces: 216, price: 349 }
   ]
 };
 
@@ -440,7 +439,7 @@ export const CALENDARS: CalendarProduct = {
   productionTime: '2–4 business days',
   optionalExtra: 'date circling (обведення дати) +10 UAH',
   options: [
-    { type: 'Desk calendar on stand (На підставці)', details: '12 photo cards 10×15 cm on wooden easel', price: '299 UAH (with easel) / 249 UAH (calendar only)' },
+    { type: 'Desk calendar on stand (На підставці)', details: '12 photo cards 10×15 cm on wooden easel', price: 325 },
     { type: 'Wall flip calendar A3', details: '13 pages, fits 12–26 photos, 6 cover options', price: 840 },
     { type: 'Wall flip calendar A4', details: '13 pages, fits 12–26 photos, 6 cover options', price: 740 }
   ]

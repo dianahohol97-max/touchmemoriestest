@@ -63,9 +63,9 @@ const SIZES = {
   standard: [
     { size: '9×13', price: 8 },
     { size: '10×15', price: 8 },
-    { size: '13×15', price: 8 },
-    { size: '15×20', price: 8 },
-    { size: '20×30', price: 8 },
+    { size: '13×18', price: 18 },
+    { size: '15×20', price: 23 },
+    { size: '20×30', price: 44 },
   ],
   nonstandard: [
     { size: '5×7.5', price: 7.5, multiple: 12 },
