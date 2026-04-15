@@ -23,11 +23,15 @@ export const FABRIC_COLORS: Record<string, string> = {
 };
 
 // Decoration variants per size
+// Synchronized with ProductOptionsSelector.VELOUR_COLORS (B-01..B-14).
+// Both files MUST stay in sync — when adding/changing a velour color, update both.
+// Future: extract to lib/cover-colors.ts as single source of truth.
 export const VELOUR_COLORS: Record<string, string> = {
-  'Молочний':'#F0EAD6','Бежевий':'#D9C8B0','Таупе':'#A89880','Рожевий':'#E8B4B8',
-  'Бордо':'#7A2838','Сірий перловий':'#9A9898','Лаванда':'#B8A8C8','Синій':'#1A2040',
-  'Графітовий':'#3A3038','Бірюзовий':'#1A9090','Марсала':'#6E2840','Блакитно-сірий':'#607080',
-  'Темно-зелений':'#1E3028','Жовтий':'#D4A020',
+  'Кремовий':'#F2EDE3', 'Бежевий':'#C4A882', 'Попелясто-бежевий':'#A8978A',
+  'Рожевий':'#E8BDB5', 'Бордо':'#8B1A3A', 'Сірий':'#9A9EA8',
+  'Ліловий':'#C5B5C8', 'Темно-синій':'#1A2545', 'Антрацит':'#4A4E58',
+  'Бірюзовий':'#28A8B8', 'Пурпуровий':'#9B3585', 'Сталево-синій':'#7A9BB5',
+  'Смарагдовий':'#1A4530', 'Гірчичний':'#E8C050',
 };
 
 export const ACRYLIC_VARIANTS: Record<string, string[]> = {

@@ -487,6 +487,48 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         }
 
         // ==============================
+        // WISHBOOK PRICING (cover material × size, table-based)
+        // ==============================
+        if (productType === 'wishbook') {
+            // Same price table as ProductOptionsSelector.WISHBOOK_PRICES — kept
+            // in sync manually. Format: { material: { size: priceUAH } }
+            const WISHBOOK_PRICES: Record<string, Record<string, number>> = {
+                'Друкована':       { '23×23': 559, '30×20': 599, '20×30': 559, '23x23': 559, '30x20': 599, '20x30': 559 },
+                'Друкована тверда':{ '23×23': 559, '30×20': 599, '20×30': 559, '23x23': 559, '30x20': 599, '20x30': 559 },
+                'Тканина':         { '23×23': 999, '30×20': 1059, '20×30': 1059, '23x23': 999, '30x20': 1059, '20x30': 1059 },
+                'Із тканини':      { '23×23': 999, '30×20': 1059, '20×30': 1059, '23x23': 999, '30x20': 1059, '20x30': 1059 },
+                'Велюр':           { '23×23': 999, '30×20': 1059, '20×30': 1059, '23x23': 999, '30x20': 1059, '20x30': 1059 },
+                'Велюрова':        { '23×23': 999, '30×20': 1059, '20×30': 1059, '23x23': 999, '30x20': 1059, '20x30': 1059 },
+                'Шкірзамінник':    { '23×23': 1099, '30×20': 1159, '20×30': 1159, '23x23': 1099, '30x20': 1159, '20x30': 1159 },
+            };
+
+            const sizeKey = selectedSize || '30×20';
+            const coverKey = selectedCoverType || 'Велюр';
+            let total = WISHBOOK_PRICES[coverKey]?.[sizeKey];
+
+            // Fallback: try without ×/x normalization
+            if (!total) {
+                const altSize = sizeKey.replace(/×/g, 'x');
+                total = WISHBOOK_PRICES[coverKey]?.[altSize];
+            }
+            if (!total) total = product.price || 559;
+
+            // Add decoration surcharge from decoration_variants table if applicable
+            if (selectedDecorationType !== 'none' && selectedDecorationVariant) {
+                const decVariant = decorationVariants.find(
+                    (dv: any) => dv.decoration_type?.name === selectedDecorationType &&
+                    dv.variant_name === selectedDecorationVariant &&
+                    dv.cover_type?.name === selectedCoverType &&
+                    dv.size?.name === selectedSize
+                );
+                if (decVariant) total += Number(decVariant.surcharge) || 0;
+            }
+
+            const copiesNum = parseInt(selectedCopies) || 1;
+            return total * copiesNum;
+        }
+
+        // ==============================
         // NON-PHOTOBOOK PRICING (travel book, etc)
         // ==============================
         let total = product.price || 0;
