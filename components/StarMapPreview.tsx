@@ -183,8 +183,12 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
         if(!isForest) { ctx.fillStyle=config.skyColor||config.backgroundColor; ctx.fillRect(0,0,W,H); }
         else if(isHeart) { ctx.fillStyle=config.skyColor||'#030810'; ctx.fillRect(0,0,W,H); }
 
-        // Milky Way — galactic plane, drawn as multiple soft layers for cloud-like glow
+        // Milky Way — galactic plane, rendered as scattered tiny stars
+        // for a natural, dust-like appearance (stars + dim cloud halo, not
+        // smooth stripes). Uses a deterministic pseudo-random distribution
+        // so the look stays stable across re-renders.
         if(config.showMilkyWay!==false) {
+            // Galactic plane spline — same as before, used to project a band.
             const mw: [number,number][] = [
                 [0,-5],[0.5,-15],[1,-25],[1.5,-35],[2,-43],[2.5,-48],[3,-51],[3.5,-52],
                 [4,-50],[4.5,-45],[5,-37],[5.5,-28],[6,-18],[6.5,-8],[7,2],[7.5,12],
@@ -194,38 +198,63 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
                 [19,-21],[19.5,-9],[20,3],[20.5,13],[21,20],[21.5,24],[22,25],
                 [22.5,22],[23,15],[23.5,7],[24,-2]
             ];
-            const pts = mw.map(([ra,dec])=>P(ra,dec,true)).filter(Boolean) as {x:number;y:number}[];
-            if(pts.length>4) {
-                // Draw 3 layers: wide soft outer halo + medium glow + dense narrow core
-                // Each layer uses round caps/joins for a smooth cloud-like band.
-                const layers = [
-                    { width: R*0.42, alpha: 0.04 }, // wide diffuse halo
-                    { width: R*0.26, alpha: 0.06 }, // medium glow
-                    { width: R*0.13, alpha: 0.10 }, // dense bright core
-                ];
-                ctx.save();
-                ctx.strokeStyle = config.starColor;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                for (const layer of layers) {
-                    ctx.globalAlpha = layer.alpha;
-                    ctx.lineWidth = layer.width;
-                    ctx.beginPath();
-                    ctx.moveTo(pts[0].x, pts[0].y);
-                    for (let i = 1; i < pts.length; i++) {
-                        const dx = pts[i].x - pts[i-1].x;
-                        const dy = pts[i].y - pts[i-1].y;
-                        // skip wrap-around jumps (e.g., when band passes the edge of the visible sky)
-                        if (dx*dx + dy*dy > (R*0.3)*(R*0.3)) {
-                            ctx.moveTo(pts[i].x, pts[i].y);
-                            continue;
-                        }
-                        ctx.lineTo(pts[i].x, pts[i].y);
+            // Linear interpolation helper for the band spline (RA → Dec).
+            // RA is in hours [0..24]; Dec in degrees.
+            const decAtRA = (ra: number): number => {
+                const r = ((ra % 24) + 24) % 24;
+                for (let i = 0; i < mw.length - 1; i++) {
+                    const [r0, d0] = mw[i];
+                    const [r1, d1] = mw[i + 1];
+                    if (r >= r0 && r <= r1) {
+                        const t = (r - r0) / (r1 - r0);
+                        return d0 + (d1 - d0) * t;
                     }
-                    ctx.stroke();
                 }
-                ctx.restore();
+                return mw[0][1];
+            };
+            // Deterministic PRNG — Mulberry32 — so the dust pattern is stable
+            // across re-renders for the same map (no flicker on style changes).
+            let seed = 0x9E3779B9;
+            const rand = () => {
+                seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+                let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+            ctx.save();
+            ctx.fillStyle = config.starColor;
+            // Scatter ~1800 dust stars along the galactic plane.
+            // Density falls off with distance from band centerline (gaussian).
+            // Brightness varies so we get a natural starfield, not a flat haze.
+            const N = 1800;
+            const bandHalfWidth = 18; // degrees of dec spread either side of plane
+            for (let i = 0; i < N; i++) {
+                const ra = rand() * 24;
+                // Gaussian-like offset (sum of two uniforms gives triangular,
+                // close enough to gaussian for visual purposes).
+                const offset = (rand() + rand() - 1) * bandHalfWidth;
+                const dec = decAtRA(ra) + offset;
+                if (dec < -85 || dec > 85) continue;
+                const pos = P(ra, dec, true);
+                if (!pos) continue;
+                // Dot inside the visible map circle only.
+                const dx0 = pos.x - cx, dy0 = pos.y - cy;
+                if (dx0*dx0 + dy0*dy0 > R*R) continue;
+                // Brightness: brighter near plane, dimmer at the edges.
+                // Some random spark variation for a natural starfield feel.
+                const distNorm = Math.abs(offset) / bandHalfWidth;
+                const baseAlpha = (1 - distNorm) * 0.55 + 0.05;
+                const sparkle = 0.5 + rand() * 0.7;
+                ctx.globalAlpha = Math.min(0.85, baseAlpha * sparkle);
+                // Tiny dot — most are sub-pixel, a few brighter ones stand out.
+                const dotSize = rand() < 0.02
+                    ? 1.4 * (W / 600)        // rare brighter star
+                    : 0.55 * (W / 600);      // typical dust grain
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, dotSize, 0, Math.PI * 2);
+                ctx.fill();
             }
+            ctx.restore();
         }
 
         // Coord grid (RA/Dec grid)
