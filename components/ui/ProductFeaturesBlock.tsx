@@ -134,7 +134,7 @@ function PhotobookCoversSection() {
               background: activeCover === c.id ? '#1e2d7d' : '#f1f5f9',
               color: activeCover === c.id ? '#fff' : '#374151',
               transition: 'all 0.2s', boxShadow: activeCover === c.id ? '0 4px 12px rgba(30,45,125,0.25)' : 'none' }}>
-            {c.emoji} {c.label}
+            {c.label}
           </button>
         ))}
       </div>
@@ -158,7 +158,6 @@ function PhotobookCoversSection() {
                 alt={activeLamination} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <div style={{ textAlign: 'center', padding: 40 }}>
-                <div style={{ fontSize: 64, marginBottom: 12 }}>{cover.emoji}</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', marginBottom: 4 }}>{cover.label}</div>
                 <div style={{ fontSize: 13, color: '#94a3b8' }}>Приклад буде після завантаження фото</div>
               </div>
@@ -184,7 +183,7 @@ function PhotobookCoversSection() {
         {/* Right — options */}
         <div>
           <h3 style={{ fontSize: 22, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>
-            {cover.emoji} {cover.label}
+            {cover.label}
           </h3>
           <p style={{ fontSize: 15, color: '#475569', lineHeight: 1.7, marginBottom: 28 }}>
             {cover.description}
@@ -227,7 +226,6 @@ function PhotobookCoversSection() {
                     style={{ padding: '16px', borderRadius: 10, border: activeLamination === l.id ? '2.5px solid #1e2d7d' : '1.5px solid #e2e8f0',
                       cursor: 'pointer', background: activeLamination === l.id ? '#f0f3ff' : '#fff',
                       transition: 'all 0.15s', textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, marginBottom: 6 }}>{l.id === 'glossy' ? '' : ''}</div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: activeLamination === l.id ? '#1e2d7d' : '#374151' }}>
                       {l.label}
                     </div>
@@ -305,7 +303,7 @@ function JournalCoversSection() {
               background: activeTab === tab ? '#1e2d7d' : '#fff',
               color: activeTab === tab ? '#fff' : '#374151',
               transition: 'all 0.2s' }}>
-            {tab === 'soft' ? " М'яка" : ' Тверда'}
+            {tab === 'soft' ? "М'яка" : 'Тверда'}
           </button>
         ))}
       </div>
@@ -337,7 +335,6 @@ function JournalCoversSection() {
                 background: 'rgba(0,0,0,0.3)', borderRadius: '2px 0 0 2px' }}/>
               {/* Content */}
               <div style={{ textAlign: 'center', color: '#fff', padding: '0 20px' }}>
-                <div style={{ fontSize: 36, marginBottom: 8 }}></div>
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', opacity: 0.9 }}>
                   ФОТОЖУРНАЛ
                 </div>
@@ -359,14 +356,13 @@ function JournalCoversSection() {
         {/* Right — features */}
         <div>
           <h3 style={{ fontSize: 22, fontWeight: 800, color: '#1e2d7d', marginBottom: 6 }}>
-            {active.emoji} {active.label}
+            {active.label}
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 20 }}>
             {active.features.map((f, i) => (
               <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start',
                 padding: '14px 16px', background: '#fff', borderRadius: 10,
                 border: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: 22, flexShrink: 0, lineHeight: 1 }}>{f.icon}</div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#1e2d7d', marginBottom: 3 }}>{f.title}</div>
                   <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>{f.text}</div>
