@@ -1269,8 +1269,9 @@ export default function BookLayoutEditor() {
     (config?.productName || '').toLowerCase().includes('тревел') ||
     (config?.productName || '').toLowerCase().includes('побажань');
 
-  // Wishbook: only cover, no internal pages
-  const isWishbook = _slug.includes('wish') || _slug.includes('guest') || _slug.includes('pobazhan') ||
+  // Wishbook + scrapbook share cover-only flow with fixed page count
+  const isScrapbook = _slug.includes('scrapbook');
+  const isWishbook = _slug.includes('wish') || _slug.includes('guest') || _slug.includes('pobazhan') || isScrapbook ||
     (config?.productName || '').toLowerCase().includes('побажань');
   const isMagazine = _slug.includes('magazine') || _slug.includes('journal') || _slug.includes('zhurnal');
   const magazineTextEnabled = !isWishbook; // show templates for all products
@@ -2451,8 +2452,8 @@ export default function BookLayoutEditor() {
             {/* COVER */}
             {leftTab === 'cover' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                {/* COVER TEMPLATES PICKER */}
-                {isPrinted && (
+                {/* COVER TEMPLATES PICKER — hidden for scrapbook (album для вклейки фото) */}
+                {isPrinted && !isScrapbook && (
                   <CoverTemplatesPicker productType={isWishbook?'wishbook':_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')?'magazine':_slug.includes('travelbook')?'travelbook':'photobook'} onApply={(tmpl: CoverTemplate) => {
                     pushHistory();
                     setCoverState(p => ({

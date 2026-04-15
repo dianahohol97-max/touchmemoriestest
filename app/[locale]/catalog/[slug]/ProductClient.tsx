@@ -35,6 +35,10 @@ const getConstructorUrl = (slug: string): string => {
   // Книга побажань (wishbook, guestbook) → BookLayoutEditor in cover-only mode
   if (s.includes('wishbook') || s.includes('pobazhan') || s.includes('guestbook') || s.includes('knyha-pobazhan') || s.includes('vishbuk'))
     return `/order/book?product=${slug}`;
+  // Альбоми для вклейки фото (scrapbook) — same flow as wishbook (cover-only,
+  // fixed page count) but without cover templates (handled in BookLayoutEditor)
+  if (s.includes('scrapbook'))
+    return `/order/book?product=${slug}`;
   // Photo albums
   if (s.includes('photoalbum') || s.includes('photoalbom') || s.includes('fotoalbom'))
     return `/order/book?product=${slug}`;

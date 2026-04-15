@@ -498,8 +498,8 @@ function detectProductType(slug: string): string | null {
     return 'travelbook';
   }
 
-  // Книга побажань
-  if (s.includes('wish') || s.includes('pobazhan') || s.includes('kniga') || s.includes('guestbook')) {
+  // Книга побажань + Альбом для вклейки фото (scrapbook) — same options structure
+  if (s.includes('wish') || s.includes('pobazhan') || s.includes('kniga') || s.includes('guestbook') || s.includes('scrapbook')) {
     return 'wishbook';
   }
 

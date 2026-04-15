@@ -516,6 +516,10 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (productSlug.includes('photobook')) return 'photobook';
         if (productSlug.includes('magazine') || productSlug.includes('journal') || productSlug.includes('zhurnal') || productSlug.includes('fotozhurnal')) return 'magazine';
         if (productSlug.includes('travel')) return 'travelbook';
+        // scrapbook (альбоми для вклейки фото) shares wishbook flow — fixed pages, no
+        // page count selector, simple cover material picker. The only difference is
+        // handled downstream: BookLayoutEditor hides cover templates for scrapbook.
+        if (productSlug.includes('scrapbook')) return 'wishbook';
         if (productSlug.includes('wish') || productSlug.includes('guest') || productSlug.includes('pobazhan')) return 'wishbook';
         return '';
     };
