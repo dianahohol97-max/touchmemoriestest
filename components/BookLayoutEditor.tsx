@@ -2174,14 +2174,14 @@ export default function BookLayoutEditor() {
             const allTabs: [string, React.ReactNode, string, boolean?][] = [
               ...(!isWishbook ? [['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'] as [string, React.ReactNode, string]] : []),
               ['text', <Type key="t" size={20}/>, 'Текст', isMagazine && !hasTextLayout],
-              ['bg', <span key="bg" style={{fontSize:16,fontWeight:700}}>Фн</span>, 'Фон'],
-              ['shapes', <span key="sh" style={{fontSize:16,fontWeight:700}}></span>, 'Фігури'],
-              ['stickers', <span key="stk" style={{fontSize:16}}></span>, 'Стікери'],
-              ['frames', <span key="fr" style={{fontSize:16,fontWeight:700}}></span>, 'Рамки'],
+              ['bg', <Palette key="bg" size={20}/>, 'Фон'],
+              ['shapes', <Square key="sh" size={20}/>, 'Фігури'],
+              ['stickers', <Sticker key="stk" size={20}/>, 'Стікери'],
+              ['frames', <Frame key="fr" size={20}/>, 'Рамки'],
               ['qr', <QrCode key="qr" size={18}/>, 'QR-код'],
               ...(hasKalka?[['kalka', <span key="kl" style={{fontSize:13,fontWeight:700}}>КЛ</span>, 'Калька'] as [string, React.ReactNode, string]]:[]),
               ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац'] as [string, React.ReactNode, string]]:[]),
-              ...(currentIdx===0 || isWishbook?[['cover', <span key="cv" style={{fontSize:18}}></span>, 'Обкл.'] as [string, React.ReactNode, string]]:[]),
+              ...(currentIdx===0 || isWishbook?[['cover', <BookOpen key="cv" size={20}/>, 'Обкл.'] as [string, React.ReactNode, string]]:[]),
             ];
             return allTabs;
           })() as [string, React.ReactNode, string, boolean?][]).map(([id, icon, label, disabled]) => (
