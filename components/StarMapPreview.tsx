@@ -308,13 +308,51 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
             ctx.restore();
         }
 
-        // Stars — improved visibility: larger size, better alpha curve
+        // Background dust — adds depth and feel of a real night sky.
+        // Uses deterministic PRNG so the dust doesn't flicker across re-renders.
+        // Skipped on light backgrounds (looks dirty against beige).
+        if (!isLight) {
+            // Deterministic PRNG (same Mulberry32 pattern as Milky Way) — different seed
+            let dustSeed = 0xDEADBEEF;
+            const dustRand = () => {
+                dustSeed |= 0; dustSeed = (dustSeed + 0x6D2B79F5) | 0;
+                let t = Math.imul(dustSeed ^ (dustSeed >>> 15), 1 | dustSeed);
+                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+            const dustCount = isFull ? 800 : 500;
+            ctx.save();
+            ctx.fillStyle = config.starColor;
+            for (let i = 0; i < dustCount; i++) {
+                let dx, dy;
+                if (isFull) {
+                    dx = dustRand() * W;
+                    dy = dustRand() * H;
+                } else {
+                    // Random point in disc
+                    const angle = dustRand() * Math.PI * 2;
+                    const r = Math.sqrt(dustRand()) * R * 0.98;
+                    dx = cx + Math.cos(angle) * r;
+                    dy = cy + Math.sin(angle) * r;
+                }
+                const sz = dustRand() < 0.85 ? 0.35 : 0.7; // mostly tiny, few slightly bigger
+                const a = 0.15 + dustRand() * 0.35;        // 0.15..0.50
+                ctx.globalAlpha = a;
+                ctx.beginPath();
+                ctx.arc(dx, dy, sz, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+            ctx.globalAlpha = 1;
+        }
+
+        // Stars — improved visibility: larger size, better alpha curve, brighter for faint stars
         for(const [ra,dec,mag] of STAR_CATALOG) {
             const pos=P(ra,dec,true); if(!pos) continue;
-            // size: bright stars bigger, faint stars still visible (min 0.5px)
-            const size=Math.max(0.3, 2.2-(mag+1.0)*0.25);
-            // alpha: good visibility without overwhelming
-            const alpha=Math.max(0.2, Math.min(1.0, 1.1-mag*0.12));
+            // size: bright stars bigger, faint stars still visible (min 0.4px)
+            const size=Math.max(0.4, 2.6-(mag+1.0)*0.25);
+            // alpha: boosted curve so dim stars (mag 5-7) are clearly visible
+            const alpha=Math.max(0.35, Math.min(1.0, 1.2-mag*0.10));
             // Glow only for bright stars on DARK backgrounds
             if(mag<1.5 && !isLight) {
                 const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,size*4);

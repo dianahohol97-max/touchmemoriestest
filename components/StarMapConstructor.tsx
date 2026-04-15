@@ -545,7 +545,6 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
         { id: 'full-bleed',    name: 'На весь постер',  bg: '#030810', star: '#ffffff', text: '#ffffff', preview: '#030810' },
         { id: 'heart-dark',    name: 'Серце темне',     bg: '#050a18', star: '#ffffff', text: '#ffffff', preview: '#050a18' },
         { id: 'heart-light',   name: 'Серце світле',    bg: '#f5f5f0', star: '#0a0e1a', text: '#0a0e1a', preview: '#f5f5f0' },
-        { id: 'forest-peak',   name: 'Ліс і гори',      bg: '#060d1f', star: '#ffffff', text: '#ffffff', preview: '#060d1f' },
     ];
 
     // Full font list from photobook editor (FONT_GROUPS)
@@ -632,45 +631,45 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                 </div>
             </div>
 
-            {/* Color Scheme */}
+            {/* Color Scheme — large swatches with label underneath */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">{t('starmap.color_scheme_label')}</label>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
-                    <div>
-                        <label className="block text-xs text-gray-600 mb-1">{t('starmap.background_color_label')}</label>
+                    <div className="flex flex-col items-stretch">
                         <input
                             type="color"
                             value={config.backgroundColor}
                             onChange={(e) => setConfig({ ...config, backgroundColor: e.target.value })}
-                            className="w-full h-10 border border-gray-300 rounded cursor-pointer"
+                            className="w-full h-16 border border-gray-300 rounded cursor-pointer"
                         />
+                        <label className="block text-xs text-gray-600 mt-2 text-center">{t('starmap.background_color_label')}</label>
                     </div>
-                    <div>
-                        <label className="block text-xs text-gray-600 mb-1">{t('starmap.sky_color_label')}</label>
+                    <div className="flex flex-col items-stretch">
                         <input
                             type="color"
                             value={(config as any).skyColor || config.backgroundColor}
                             onChange={(e) => setConfig({ ...config, skyColor: e.target.value } as any)}
-                            className="w-full h-10 border border-gray-300 rounded cursor-pointer"
+                            className="w-full h-16 border border-gray-300 rounded cursor-pointer"
                         />
+                        <label className="block text-xs text-gray-600 mt-2 text-center">{t('starmap.sky_color_label')}</label>
                     </div>
-                    <div>
-                        <label className="block text-xs text-gray-600 mb-1">{t('starmap.stars_color_label')}</label>
+                    <div className="flex flex-col items-stretch">
                         <input
                             type="color"
                             value={config.starColor}
                             onChange={(e) => setConfig({ ...config, starColor: e.target.value })}
-                            className="w-full h-10 border border-gray-300 rounded cursor-pointer"
+                            className="w-full h-16 border border-gray-300 rounded cursor-pointer"
                         />
+                        <label className="block text-xs text-gray-600 mt-2 text-center">{t('starmap.stars_color_label')}</label>
                     </div>
-                    <div>
-                        <label className="block text-xs text-gray-600 mb-1">{t('starmap.text_label')}</label>
+                    <div className="flex flex-col items-stretch">
                         <input
                             type="color"
                             value={config.textColor}
                             onChange={(e) => setConfig({ ...config, textColor: e.target.value })}
-                            className="w-full h-10 border border-gray-300 rounded cursor-pointer"
+                            className="w-full h-16 border border-gray-300 rounded cursor-pointer"
                         />
+                        <label className="block text-xs text-gray-600 mt-2 text-center">{t('starmap.text_label')}</label>
                     </div>
                 </div>
             </div>
