@@ -342,6 +342,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         product.slug?.includes('leatherette') || product.slug?.includes('tkanina') || 
         product.slug?.includes('shkir') || product.slug?.includes('printed') ||
         (product.categories?.slug || '').includes('photobook');
+    const isJournalSlug = product.slug?.includes('magazine') || product.slug?.includes('journal') || 
+        product.slug?.includes('zhurnal') || product.slug?.includes('fotozhurnal') ||
+        (product.categories?.slug || '').includes('zhurnal');
 
     // Calculate final price — priority: photobook table > dynamicPrice > generic modifiers
     let finalPrice = product.price || 0;
@@ -1381,10 +1384,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 </div>
 
                 {/* Features + Covers Block */}
-                {(product.features?.length > 0 || isPhotobookProduct) && (
+                {(product.features?.length > 0 || isPhotobookProduct || isJournalSlug) && (
                     <ProductFeaturesBlock
                         features={product.features || []}
                         isPhotobook={isPhotobookProduct}
+                        isJournal={isJournalSlug}
                     />
                 )}
 

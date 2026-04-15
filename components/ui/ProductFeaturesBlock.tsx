@@ -232,18 +232,152 @@ function PhotobookCoversSection() {
   );
 }
 
+
+// ── Journal cover comparison ─────────────────────────────────────────────────
+
+function JournalCoversSection() {
+  const [activeTab, setActiveTab] = useState<'soft' | 'hard'>('soft');
+
+  const covers = {
+    soft: {
+      label: "М'яка обкладинка",
+      emoji: "📔",
+      color: '#f0f3ff',
+      border: '#1e2d7d',
+      features: [
+        { icon: '⚖️', title: 'Легша та тонша', text: 'Обкладинка з картону 300г, ламінована. Зручно брати з собою в дорогу.' },
+        { icon: '💰', title: 'Доступніша ціна', text: 'Відмінний вибір для великих тиражів — весільних газет, корпоративних журналів.' },
+        { icon: '📐', title: 'Формат А4', text: 'Стандартний журнальний формат. Ламінація: глянцева або матова.' },
+        { icon: '🔗', title: 'Скоба або клей', text: 'До 44 сторінок — скоба, понад 44 — термоклей. Лежить рівно.' },
+      ],
+      badgeText: 'Глянцева або матова ламінація',
+      bgGradient: 'linear-gradient(135deg, #f0f3ff 0%, #e8ecff 100%)',
+    },
+    hard: {
+      label: 'Тверда обкладинка',
+      emoji: '📕',
+      color: '#f0fdf4',
+      border: '#15803d',
+      features: [
+        { icon: '💪', title: 'Міцна та довговічна', text: 'Обкладинка з твердого картону, покрита друкованою або тканинною поверхнею.' },
+        { icon: '✨', title: 'Преміальний вигляд', text: 'Ідеальна для фотожурналів, портфоліо, корпоративних видань що мають зберігатись роками.' },
+        { icon: '📏', title: 'Будь-який формат', text: 'А5, А4, А3 та нестандарт. Тримає форму без деформацій.' },
+        { icon: '📖', title: 'Книжкова палітурка', text: 'Сшита нитками або на термоклей. Сторінки не випадають, лежить рівно.' },
+      ],
+      badgeText: 'Преміальна серія',
+      bgGradient: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+    },
+  };
+
+  const active = covers[activeTab];
+
+  return (
+    <div style={{ marginTop: 64, marginBottom: 32 }}>
+      <h2 style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d', marginBottom: 8, textAlign: 'center' }}>
+        М'яка vs Тверда обкладинка
+      </h2>
+      <p style={{ textAlign: 'center', color: '#64748b', fontSize: 15, marginBottom: 32 }}>
+        Оберіть тип обкладинки щоб дізнатись більше
+      </p>
+
+      {/* Toggle */}
+      <div style={{ display: 'flex', gap: 0, justifyContent: 'center', marginBottom: 32,
+        border: '1.5px solid #e2e8f0', borderRadius: 12, width: 'fit-content', margin: '0 auto 32px', overflow: 'hidden' }}>
+        {(['soft', 'hard'] as const).map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)}
+            style={{ padding: '12px 32px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14,
+              background: activeTab === tab ? '#1e2d7d' : '#fff',
+              color: activeTab === tab ? '#fff' : '#374151',
+              transition: 'all 0.2s' }}>
+            {tab === 'soft' ? "📔 М'яка" : '📕 Тверда'}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'start',
+        maxWidth: 1000, margin: '0 auto' }}>
+
+        {/* Left — visual mockup */}
+        <div style={{ borderRadius: 16, padding: 40, background: active.bgGradient,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          minHeight: 320, position: 'relative' }}>
+          {/* Book mockup */}
+          <div style={{ position: 'relative', width: 180 }}>
+            {/* Cover */}
+            <div style={{
+              width: 160, height: 220, borderRadius: activeTab === 'hard' ? '2px 10px 10px 2px' : '2px 6px 6px 2px',
+              background: activeTab === 'hard'
+                ? 'linear-gradient(135deg, #1e2d7d, #3b4fc5)'
+                : 'linear-gradient(135deg, #475569, #64748b)',
+              boxShadow: activeTab === 'hard'
+                ? '4px 4px 20px rgba(30,45,125,0.4), -2px 0 6px rgba(0,0,0,0.2)'
+                : '3px 3px 15px rgba(0,0,0,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative', overflow: 'hidden',
+            }}>
+              {/* Spine */}
+              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: activeTab === 'hard' ? 16 : 8,
+                background: 'rgba(0,0,0,0.3)', borderRadius: '2px 0 0 2px' }}/>
+              {/* Content */}
+              <div style={{ textAlign: 'center', color: '#fff', padding: '0 20px' }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', opacity: 0.9 }}>
+                  ФОТОЖУРНАЛ
+                </div>
+              </div>
+              {/* Pages edge */}
+              <div style={{ position: 'absolute', right: -6, top: 4, bottom: 4,
+                width: 6, background: 'linear-gradient(to right, #e2e8f0, #fff)',
+                borderRadius: '0 2px 2px 0' }}/>
+            </div>
+          </div>
+          {/* Badge */}
+          <div style={{ marginTop: 20, padding: '6px 16px', background: 'rgba(255,255,255,0.9)',
+            borderRadius: 20, fontSize: 12, fontWeight: 700, color: '#374151',
+            border: `1.5px solid ${active.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            {active.badgeText}
+          </div>
+        </div>
+
+        {/* Right — features */}
+        <div>
+          <h3 style={{ fontSize: 22, fontWeight: 800, color: '#1e2d7d', marginBottom: 6 }}>
+            {active.emoji} {active.label}
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 20 }}>
+            {active.features.map((f, i) => (
+              <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start',
+                padding: '14px 16px', background: '#fff', borderRadius: 10,
+                border: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: 22, flexShrink: 0, lineHeight: 1 }}>{f.icon}</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#1e2d7d', marginBottom: 3 }}>{f.title}</div>
+                  <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>{f.text}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Features grid ────────────────────────────────────────────────────────────
 
 interface ProductFeaturesBlockProps {
   features?: Feature[];
   isPhotobook?: boolean;
+  isJournal?: boolean;
 }
 
-export function ProductFeaturesBlock({ features, isPhotobook }: ProductFeaturesBlockProps) {
+export function ProductFeaturesBlock({ features, isPhotobook, isJournal }: ProductFeaturesBlockProps) {
   const hasFeatures = features && features.length > 0;
   const showCovers = isPhotobook;
+  const showJournalCovers = isJournal;
 
-  if (!hasFeatures && !showCovers) return null;
+  if (!hasFeatures && !showCovers && !showJournalCovers) return null;
 
   return (
     <div style={{ paddingTop: 64, paddingBottom: 32 }}>
@@ -296,6 +430,9 @@ export function ProductFeaturesBlock({ features, isPhotobook }: ProductFeaturesB
 
       {/* Photobook covers section */}
       {showCovers && <PhotobookCoversSection />}
+
+      {/* Journal cover comparison */}
+      {showJournalCovers && <JournalCoversSection />}
     </div>
   );
 }
