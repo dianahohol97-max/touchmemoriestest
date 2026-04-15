@@ -185,19 +185,25 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                     }} />
                 )}
 
-                {/* MAP AREA — fills top part */}
+                {/* MAP AREA */}
                 <div style={{
                     position: 'absolute',
-                    top: 0,
+                    // Position depends on layout
+                    top: config.layout === 'title-top' ? `${textAreaPct}%` : 0,
                     left: 0,
                     right: 0,
-                    height: config.layout === 'no-text' ? '100%' : `${mapHeightPct}%`,
+                    height:
+                        config.layout === 'no-text' || config.layout === 'modern' ? '100%'
+                        : `${mapHeightPct}%`,
                     overflow: 'hidden',
                     filter: getMapFilter(config.mapStyle),
                     // Clip shapes
-                    clipPath: config.layout === 'circle'
-                        ? 'circle(42% at 50% 48%)'
+                    clipPath:
+                        config.layout === 'circle' ? 'circle(42% at 50% 48%)'
+                        : config.layout === 'heart' ? 'path("M 50,90 C 20,65 0,40 0,25 C 0,10 12,0 25,0 C 35,0 45,5 50,15 C 55,5 65,0 75,0 C 88,0 100,10 100,25 C 100,40 80,65 50,90 Z")'
                         : 'none',
+                    // For heart, scale the path to fit the box
+                    ...(config.layout === 'heart' ? { clipPath: 'polygon(50% 100%, 0% 38%, 7% 18%, 25% 8%, 50% 22%, 75% 8%, 93% 18%, 100% 38%)' } : {}),
                 }}>
                     {isClient ? (
                         <MapContainer
@@ -225,11 +231,15 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                     )}
                 </div>
 
-                {/* TEXT AREA — bottom band like Etsy example */}
-                {config.layout !== 'no-text' && (
+                {/* TEXT AREA — top OR bottom band depending on layout.
+                    Hidden for no-text and modern (modern uses its own overlay below). */}
+                {config.layout !== 'no-text' && config.layout !== 'modern' && (
                     <div style={{
                         position: 'absolute',
-                        bottom: 0, left: 0, right: 0,
+                        // top-band for title-top, bottom-band for everything else
+                        top: config.layout === 'title-top' ? 0 : 'auto',
+                        bottom: config.layout === 'title-top' ? 'auto' : 0,
+                        left: 0, right: 0,
                         height: `${textAreaPct}%`,
                         background: textBg,
                         display: 'flex',
@@ -238,8 +248,9 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                         justifyContent: 'center',
                         padding: '6px 16px',
                         zIndex: 20,
-                        // Thin separator line at top of text area
-                        borderTop: `0.5px solid ${tc.secondary}22`,
+                        // Separator line on the side that touches the map
+                        borderTop: config.layout === 'title-top' ? 'none' : `0.5px solid ${tc.secondary}22`,
+                        borderBottom: config.layout === 'title-top' ? `0.5px solid ${tc.secondary}22` : 'none',
                     }}>
                         {/* City name — large, bold, spaced */}
                         <div style={{
