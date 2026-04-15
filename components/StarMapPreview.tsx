@@ -183,7 +183,7 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
         if(!isForest) { ctx.fillStyle=config.skyColor||config.backgroundColor; ctx.fillRect(0,0,W,H); }
         else if(isHeart) { ctx.fillStyle=config.skyColor||'#030810'; ctx.fillRect(0,0,W,H); }
 
-        // Milky Way
+        // Milky Way — galactic plane, drawn as multiple soft layers for cloud-like glow
         if(config.showMilkyWay!==false) {
             const mw: [number,number][] = [
                 [0,-5],[0.5,-15],[1,-25],[1.5,-35],[2,-43],[2.5,-48],[3,-51],[3.5,-52],
@@ -196,15 +196,35 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
             ];
             const pts = mw.map(([ra,dec])=>P(ra,dec,true)).filter(Boolean) as {x:number;y:number}[];
             if(pts.length>4) {
-                ctx.save(); ctx.globalAlpha=0.07;
-                ctx.strokeStyle=config.starColor; ctx.lineWidth=22; ctx.lineCap='round'; ctx.lineJoin='round';
-                ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
-                for(let i=1;i<pts.length;i++) {
-                    const dx=pts[i].x-pts[i-1].x, dy=pts[i].y-pts[i-1].y;
-                    if(dx*dx+dy*dy>(R*0.3)*(R*0.3)){ ctx.moveTo(pts[i].x,pts[i].y); continue; }
-                    ctx.lineTo(pts[i].x,pts[i].y);
+                // Draw 3 layers: wide soft outer halo + medium glow + dense narrow core
+                // Each layer uses round caps/joins for a smooth cloud-like band.
+                const layers = [
+                    { width: R*0.42, alpha: 0.04 }, // wide diffuse halo
+                    { width: R*0.26, alpha: 0.06 }, // medium glow
+                    { width: R*0.13, alpha: 0.10 }, // dense bright core
+                ];
+                ctx.save();
+                ctx.strokeStyle = config.starColor;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                for (const layer of layers) {
+                    ctx.globalAlpha = layer.alpha;
+                    ctx.lineWidth = layer.width;
+                    ctx.beginPath();
+                    ctx.moveTo(pts[0].x, pts[0].y);
+                    for (let i = 1; i < pts.length; i++) {
+                        const dx = pts[i].x - pts[i-1].x;
+                        const dy = pts[i].y - pts[i-1].y;
+                        // skip wrap-around jumps (e.g., when band passes the edge of the visible sky)
+                        if (dx*dx + dy*dy > (R*0.3)*(R*0.3)) {
+                            ctx.moveTo(pts[i].x, pts[i].y);
+                            continue;
+                        }
+                        ctx.lineTo(pts[i].x, pts[i].y);
+                    }
+                    ctx.stroke();
                 }
-                ctx.stroke(); ctx.restore();
+                ctx.restore();
             }
         }
 
