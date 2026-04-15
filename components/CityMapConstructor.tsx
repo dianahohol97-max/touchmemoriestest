@@ -61,7 +61,7 @@ export default function CityMapConstructor() {
         location: 'Київ, Україна',
         latitude: 50.4501,
         longitude: 30.5234,
-        zoom: 12,
+        zoom: 14,
         hasValidLocation: true,
 
         // Step 2 defaults

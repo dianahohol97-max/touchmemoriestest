@@ -68,13 +68,13 @@ const getTileUrl = (style: string) => {
         case 'vintage-sepia':
         case 'harvest':
             return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-        // For B&W poster styles: CartoCDN light_nolabels + grayscale gives cleanest lines
+        // For B&W poster styles: light_nolabels = clean roads/parks/water
+        // without district labels (matches Etsy poster style — text goes below map)
         case 'stamen-toner':
         case 'classic-bw':
         case 'stamen-toner-lite':
         default:
-            // CartoCDN light_all — has roads, parks, water, no POI icons, clean for posters
-            return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
     }
 };
 
@@ -82,8 +82,8 @@ const getMapFilter = (style: string) => {
     switch (style) {
         case 'stamen-toner':
         case 'classic-bw':
-            // High contrast B&W — makes roads very dark, parks light grey
-            return 'grayscale(100%) contrast(180%) brightness(0.92)';
+            // Etsy-style B&W: pure white background, dark crisp roads
+            return 'grayscale(100%) contrast(220%) brightness(1.05)';
         case 'stamen-toner-lite':
             return 'grayscale(100%) contrast(130%) brightness(1.05)';
         case 'smooth-light':
