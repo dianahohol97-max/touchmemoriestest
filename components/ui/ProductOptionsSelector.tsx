@@ -55,6 +55,7 @@ const WISHBOOK_PRICES: Record<string, Record<string, number>> = {
   'Друкована тверда': { '23x23': 559, '30x20': 599, '20x30': 559 },
   'З тканини': { '23x23': 999, '30x20': 1059, '20x30': 1059 },
   'Велюрова': { '23x23': 999, '30x20': 1059, '20x30': 1059 },
+  'Шкірзамінник': { '23x23': 1099, '30x20': 1159, '20x30': 1159 },
 };
 
 const PHOTOPRINT_STANDARD_PRICES: Record<string, number> = {
@@ -357,7 +358,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
   wishbook: [
     {
       name: 'Матеріал обкладинки',
-      values: ['Друкована тверда', 'З тканини', 'Велюрова'],
+      values: ['Друкована тверда', 'З тканини', 'Велюрова', 'Шкірзамінник'],
       required: true
     },
     {
