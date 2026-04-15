@@ -58,8 +58,8 @@ export function SizeVisualizer({ sizes, selected, onSelect, prices, productCateg
 
   // Find the largest dimension across all sizes for proportional scaling
   const maxDim = Math.max(...parsed.map(p => Math.max(p.data!.w, p.data!.h)));
-  // Max visual box size in px (fits in card without overflow)
-  const maxPx = 84;
+  // Max visual box size in px — smaller so more items fit in one row
+  const maxPx = 64;
   const scale = maxPx / maxDim;
 
   // Style differs by category: books get thick border, prints thin, posters neutral
@@ -71,7 +71,16 @@ export function SizeVisualizer({ sizes, selected, onSelect, prices, productCateg
 
   return (
     <div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, padding: '10px 0 4px' }}>
+      <div style={{
+        display: 'flex',
+        flexWrap: 'nowrap',
+        gap: 10,
+        padding: '10px 0 8px',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+      }}>
         {parsed.map(({ raw, data }) => {
           const d = data!;
           const w = d.w * scale;
@@ -93,7 +102,7 @@ export function SizeVisualizer({ sizes, selected, onSelect, prices, productCateg
                 border: 'none',
                 padding: 4,
                 cursor: 'pointer',
-                minWidth: maxPx + 16,
+                minWidth: maxPx + 8,
                 outline: 'none',
               }}
             >
