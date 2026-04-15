@@ -664,64 +664,6 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
                 </select>
             </div>
 
-            {/* Map language — city/street names on map tiles */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.map_lang_label')}</label>
-                <select
-                    value={(config as any).mapLang || 'uk'}
-                    onChange={(e) => setConfig({ ...config, mapLang: e.target.value } as any)}
-                    style={{
-                        width:'100%', padding:'10px 14px', border:'1px solid #d1d5db',
-                        borderRadius:8, fontSize:14, cursor:'pointer', background:'#fff',
-                        color:'#1e2d7d', fontWeight:600,
-                    }}
-                >
-                    <option value="uk">Українська</option>
-                    <option value="en">English</option>
-                    <option value="de">Deutsch</option>
-                    <option value="fr">Français</option>
-                    <option value="es">Español</option>
-                    <option value="it">Italiano</option>
-                    <option value="pl">Polski</option>
-                    <option value="pt">Português</option>
-                    <option value="ro">Română</option>
-                    <option value="nl">Nederlands</option>
-                    <option value="cs">Čeština</option>
-                    <option value="sk">Slovenčina</option>
-                    <option value="hu">Magyar</option>
-                    <option value="tr">Türkçe</option>
-                    <option value="ar">العربية</option>
-                    <option value="zh">中文</option>
-                    <option value="ja">日本語</option>
-                    <option value="ko">한국어</option>
-                    <option value="he">עברית</option>
-                    <option value="fa">فارسی</option>
-                    <option value="sv">Svenska</option>
-                    <option value="fi">Suomi</option>
-                    <option value="no">Norsk</option>
-                    <option value="da">Dansk</option>
-                    <option value="el">Ελληνικά</option>
-                    <option value="bg">Български</option>
-                    <option value="hr">Hrvatski</option>
-                    <option value="sr">Српски</option>
-                    <option value="lt">Lietuvių</option>
-                    <option value="lv">Latviešu</option>
-                    <option value="et">Eesti</option>
-                    <option value="ka">ქართული</option>
-                    <option value="hy">Հայերեն</option>
-                    <option value="az">Azərbaycan</option>
-                    <option value="kk">Қазақша</option>
-                    <option value="be">Беларуская</option>
-                    <option value="vi">Tiếng Việt</option>
-                    <option value="th">ไทย</option>
-                    <option value="id">Bahasa Indonesia</option>
-                    <option value="ms">Bahasa Melayu</option>
-                </select>
-                <p style={{ fontSize:10, color:'#94a3b8', marginTop:6 }}>
-                    * Написи на карті залежать від даних OpenStreetMap — деякі міста можуть мати обмежений переклад
-                </p>
-            </div>
-
             {/* Text Color Override */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.text_color_label')}</label>

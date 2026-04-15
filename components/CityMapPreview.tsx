@@ -57,24 +57,27 @@ const getTileUrl = (style: string) => {
     switch (style) {
         case 'dark-mode':
         case 'plum':
-            return 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}{r}.png';
+            return 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}{r}.png';
         case 'blueprint':
             return 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}{r}.png';
         case 'color-outdoors':
         case 'bayside':
         case 'forest-green':
+            // OSM has labels in local language only — limitation noted to user
             return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
         case 'smooth-light':
         case 'vintage-sepia':
         case 'harvest':
-            return 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}{r}.png';
+            return 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}{r}.png';
         // For B&W poster styles: light_nolabels = clean roads/parks/water
         // without district labels (matches Etsy poster style — text goes below map)
         case 'stamen-toner':
         case 'classic-bw':
         case 'stamen-toner-lite':
         default:
-            return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+            // Default: CartoCDN light_nolabels = clean B&W with NO text
+            // (no language issues — text only comes from user's title field)
+            return 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}{r}.png';
     }
 };
 
@@ -106,12 +109,19 @@ const getMapFilter = (style: string) => {
     }
 };
 
-// Text color for each style
+// Text color for each style — used as default if user hasn't overridden
 const getTextColor = (style: string) => {
     if (['dark-mode', 'plum', 'blueprint'].includes(style)) return { primary: '#ffffff', secondary: '#cccccc', coords: '#aaaaaa' };
     if (['vintage-sepia', 'harvest'].includes(style)) return { primary: '#4a2c10', secondary: '#7a5030', coords: '#8a6040' };
     if (['forest-green'].includes(style)) return { primary: '#1a3a1a', secondary: '#2a5a2a', coords: '#4a6a4a' };
     return { primary: '#111111', secondary: '#333333', coords: '#666666' };
+};
+
+// User's text color override (Темний / Світлий)
+const getTextColorOverride = (override: 'light' | 'dark' | undefined) => {
+    if (override === 'dark') return { primary: '#ffffff', secondary: '#cccccc', coords: '#aaaaaa' };
+    if (override === 'light') return { primary: '#111111', secondary: '#333333', coords: '#666666' };
+    return null;
 };
 
 // Background for text band
@@ -122,12 +132,20 @@ const getTextBg = (style: string) => {
     return '#ffffff';
 };
 
+// Background override based on text color choice (so dark text = light bg, light text = dark bg)
+const getTextBgOverride = (override: 'light' | 'dark' | undefined) => {
+    if (override === 'dark') return '#0a0a0a';
+    if (override === 'light') return '#ffffff';
+    return null;
+};
+
 export default function CityMapPreview({ config, setConfig }: CityMapPreviewProps) {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => { setIsClient(true); }, []);
 
-    const tc = getTextColor(config.mapStyle);
-    const textBg = getTextBg(config.mapStyle);
+    // textColor: 'light' = dark text on light bg (default), 'dark' = light text on dark bg
+    const tc = getTextColorOverride(config.textColor) || getTextColor(config.mapStyle);
+    const textBg = getTextBgOverride(config.textColor) || getTextBg(config.mapStyle);
     const isLandscape = config.orientation === 'landscape';
 
     // Poster aspect ratio
