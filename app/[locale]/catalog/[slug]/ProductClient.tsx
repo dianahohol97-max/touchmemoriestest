@@ -9,6 +9,7 @@ import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { SizeVisualizer } from '@/components/ui/SizeVisualizer';
+import { ProductFeaturesBlock } from '@/components/ui/ProductFeaturesBlock';
 import { CheckCircle2, Star, Loader2, Image as ImageIcon, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -336,6 +337,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     };
 
     const isPhotobook = product.slug?.includes('photobook');
+    const isPhotobookProduct = isPhotobook || product.slug?.includes('fotokniga') || 
+        product.slug?.includes('velyur') || product.slug?.includes('velour') || 
+        product.slug?.includes('leatherette') || product.slug?.includes('tkanina') || 
+        product.slug?.includes('shkir') || product.slug?.includes('printed') ||
+        (product.categories?.slug || '').includes('photobook');
 
     // Calculate final price — priority: photobook table > dynamicPrice > generic modifiers
     let finalPrice = product.price || 0;
@@ -1367,6 +1373,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         )}
                     </div>
                 </div>
+
+                {/* Features + Covers Block */}
+                {(product.features?.length > 0 || isPhotobookProduct) && (
+                    <ProductFeaturesBlock
+                        features={product.features || []}
+                        isPhotobook={isPhotobookProduct}
+                    />
+                )}
 
                 {/* Related Products */}
                 {relatedProducts.length > 0 && (
