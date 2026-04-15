@@ -11,6 +11,16 @@ import { Footer } from '@/components/ui/Footer';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { ChevronDown, Loader2 } from 'lucide-react';
 
+// Categories that have subcategory filtering
+// key: category slug, value: subcategory definitions
+const SUBCATEGORIES: Record<string, { label: string; match: string }[]> = {
+    'photoalbomy-faylikovi': [
+        { label: 'на 200 фото', match: '200' },
+        { label: 'на 500 фото', match: '500' },
+        { label: 'на 800 фото', match: '800' },
+    ],
+};
+
 const getUkrainianPlural = (count: number, one: string, few: string, many: string) => {
     const n = Math.abs(count) % 100;
     const n1 = n % 10;
@@ -52,6 +62,7 @@ function CatalogContent() {
     const locale = useLocale();
     const queryCategory = searchParams.get('category') || 'all';
     const queryCollection = searchParams.get('collection');
+    const querySubcategory = searchParams.get('subcategory') || null;
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -64,6 +75,7 @@ function CatalogContent() {
     const [isLoading, setIsLoading] = useState(true);
 
     const [selectedCategory, setSelectedCategory] = useState(queryCategory);
+    const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(querySubcategory);
     const [sortBy, setSortBy] = useState('popular');
     const [hasPendingOrder, setHasPendingOrder] = useState(false);
 
@@ -77,8 +89,13 @@ function CatalogContent() {
         // Sync state with URL if it changes externally
         if (queryCategory !== selectedCategory) {
             setSelectedCategory(queryCategory);
+            setSelectedSubcategory(null); // reset subcategory when main category changes
         }
     }, [queryCategory]);
+
+    useEffect(() => {
+        setSelectedSubcategory(querySubcategory);
+    }, [querySubcategory]);
 
     useEffect(() => {
         const fetchCatalogData = async () => {
@@ -140,8 +157,14 @@ function CatalogContent() {
         if (queryCollection && collectionProducts.length > 0) {
             return collectionProducts.includes(p.id);
         }
-        // Otherwise filter by category as usual
-        return selectedCategory === 'all' ? true : p.categories?.slug === selectedCategory;
+        // Filter by category
+        const categoryMatch = selectedCategory === 'all' ? true : p.categories?.slug === selectedCategory;
+        if (!categoryMatch) return false;
+        // Filter by subcategory (matches product name)
+        if (selectedSubcategory && SUBCATEGORIES[selectedCategory]) {
+            return p.name.includes(selectedSubcategory);
+        }
+        return true;
     });
 
     // Sort products
@@ -263,6 +286,60 @@ function CatalogContent() {
                                 );
                             })}
                         </div>
+
+                        {/* Subcategory Chips — shown only for categories that have them */}
+                        {SUBCATEGORIES[selectedCategory] && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                <button
+                                    onClick={() => {
+                                        setSelectedSubcategory(null);
+                                        router.push(`/catalog?category=${selectedCategory}`);
+                                    }}
+                                    style={{
+                                        padding: '6px 16px',
+                                        border: selectedSubcategory === null ? '2px solid #263A99' : '1.5px solid #e2e8f0',
+                                        backgroundColor: selectedSubcategory === null ? '#263A99' : 'white',
+                                        color: selectedSubcategory === null ? 'white' : '#475569',
+                                        fontSize: '13px',
+                                        fontWeight: selectedSubcategory === null ? 700 : 500,
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        transition: 'all 0.15s ease',
+                                        borderRadius: '999px',
+                                        boxShadow: selectedSubcategory === null ? '0 2px 8px rgba(38,58,153,0.2)' : 'none',
+                                    }}
+                                >
+                                    Всі
+                                </button>
+                                {SUBCATEGORIES[selectedCategory].map((sub) => {
+                                    const isActive = selectedSubcategory === sub.match;
+                                    return (
+                                        <button
+                                            key={sub.match}
+                                            onClick={() => {
+                                                setSelectedSubcategory(sub.match);
+                                                router.push(`/catalog?category=${selectedCategory}&subcategory=${sub.match}`);
+                                            }}
+                                            style={{
+                                                padding: '6px 16px',
+                                                border: isActive ? '2px solid #263A99' : '1.5px solid #e2e8f0',
+                                                backgroundColor: isActive ? '#263A99' : 'white',
+                                                color: isActive ? 'white' : '#475569',
+                                                fontSize: '13px',
+                                                fontWeight: isActive ? 700 : 500,
+                                                cursor: 'pointer',
+                                                whiteSpace: 'nowrap',
+                                                transition: 'all 0.15s ease',
+                                                borderRadius: '999px',
+                                                boxShadow: isActive ? '0 2px 8px rgba(38,58,153,0.2)' : 'none',
+                                            }}
+                                        >
+                                            {sub.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
 
                         {/* Results Count & Sort */}
                         <div className={styles.controlsBar} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
