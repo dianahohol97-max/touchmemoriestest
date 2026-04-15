@@ -732,6 +732,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                     selected={selectedValue ?? null}
                     onSelect={(size) => handleOptionChange(option.name, size)}
                     prices={option.prices as Record<string, number> | undefined}
+                    wrap={option.values.length > 5}
                   />
                 )}
               {option.name !== 'Розмір' && <select

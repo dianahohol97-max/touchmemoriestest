@@ -14,6 +14,7 @@ interface SizeVisualizerProps {
   onSelect: (size: string) => void;
   prices?: Record<string, number>;
   productCategory?: 'paper' | 'book' | 'magnet' | 'print' | 'puzzle' | 'poster' | 'generic';
+  wrap?: boolean; // allow wrapping to multiple rows
 }
 
 // Parse size string into width × height cm
@@ -48,7 +49,7 @@ function parseSize(s: string | number): { w: number; h: number; label: string } 
   return null;
 }
 
-export function SizeVisualizer({ sizes, selected, onSelect, prices, productCategory = 'generic' }: SizeVisualizerProps) {
+export function SizeVisualizer({ sizes, selected, onSelect, prices, productCategory = 'generic', wrap = false }: SizeVisualizerProps) {
   // Parse all sizes and find max dimensions for consistent scaling
   const parsed = sizes
     .map(s => ({ raw: String(s), data: parseSize(s) }))

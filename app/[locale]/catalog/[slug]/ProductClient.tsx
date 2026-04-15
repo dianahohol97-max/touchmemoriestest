@@ -653,6 +653,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                     selected={customProductOptions[opt.name] || null}
                                                                     onSelect={(size) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: size }))}
                                                                     prices={prices}
+                                                                    wrap={sizeValues.length > 5}
                                                                 />
                                                             );
                                                         })()}
