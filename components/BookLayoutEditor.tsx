@@ -1136,10 +1136,14 @@ export default function BookLayoutEditor() {
 
   useEffect(() => {
     const cfg = sessionStorage.getItem('bookConstructorConfig');
-    if (cfg) setConfig(JSON.parse(cfg));
-    else { toast.error(t('constructor.config_not_found')); router.push('/order/book'); }
+    if (cfg) {
+      try { setConfig(JSON.parse(cfg)); } catch { router.push('/order/book'); }
+    } else {
+      try { toast.error(t('constructor.config_not_found')); } catch {}
+      router.push('/order/book');
+    }
     const ph = sessionStorage.getItem('bookConstructorPhotos');
-    if (ph) setPhotos(JSON.parse(ph));
+    if (ph) { try { setPhotos(JSON.parse(ph)); } catch {} }
     // Restore editor draft if user navigated back
     const draft = sessionStorage.getItem('bookEditorDraft');
     if (draft) {
