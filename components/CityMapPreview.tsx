@@ -82,16 +82,16 @@ const getMapFilter = (style: string) => {
     switch (style) {
         case 'stamen-toner':
         case 'classic-bw':
-            // Etsy-style B&W: pure white background, dark crisp roads
-            return 'grayscale(100%) contrast(220%) brightness(1.05)';
+            // Etsy-style B&W: pure white background, very dark crisp roads
+            return 'grayscale(100%) contrast(300%) brightness(1.15)';
         case 'stamen-toner-lite':
-            return 'grayscale(100%) contrast(130%) brightness(1.05)';
+            return 'grayscale(100%) contrast(160%) brightness(1.1)';
         case 'smooth-light':
-            return 'grayscale(100%) contrast(115%) brightness(1.08)';
+            return 'grayscale(100%) contrast(140%) brightness(1.1)';
         case 'vintage-sepia':
-            return 'grayscale(60%) sepia(50%) contrast(115%) brightness(1.05)';
+            return 'grayscale(60%) sepia(50%) contrast(140%) brightness(1.05)';
         case 'harvest':
-            return 'grayscale(30%) sepia(40%) hue-rotate(10deg) saturate(1.4) contrast(120%)';
+            return 'grayscale(30%) sepia(40%) hue-rotate(10deg) saturate(1.4) contrast(140%)';
         case 'dark-mode':
         case 'plum':
         case 'blueprint':
@@ -101,7 +101,8 @@ const getMapFilter = (style: string) => {
         case 'bayside':
             return 'hue-rotate(180deg) saturate(0.9) brightness(1.0)';
         default:
-            return 'grayscale(100%) contrast(160%) brightness(0.95)';
+            // Default = Etsy B&W: pure white bg + thick black roads
+            return 'grayscale(100%) contrast(300%) brightness(1.15)';
     }
 };
 

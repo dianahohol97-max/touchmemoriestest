@@ -8,7 +8,6 @@ import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import CityMapPreview from './CityMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
-import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
 
 interface CityMapConfig {
@@ -252,11 +251,6 @@ export default function CityMapConstructor() {
                         {currentStep === 4 && (
                             <Step4SizeProduct config={config} setConfig={setConfig} product={product} />
                         )}
-
-                        {/* QR Code Generator */}
-                        <div style={{ marginBottom: 16 }}>
-                          <QRCodeGenerator compact label={t('citymap.add_qr_code')} />
-                        </div>
 
                         {/* Navigation Buttons */}
                         <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">
