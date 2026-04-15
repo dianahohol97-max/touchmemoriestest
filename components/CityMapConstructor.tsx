@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
@@ -41,6 +42,7 @@ interface CityMapConfig {
 
 export default function CityMapConstructor() {
     const t = useT();
+    const router = useRouter();
     const { addItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
@@ -188,16 +190,26 @@ export default function CityMapConstructor() {
             <div className="bg-white border-b border-gray-200 sticky top-20 z-10">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-[#1e2d7d]">{t('citymap.main_title')}</h1>
-                            <p className="text-sm text-gray-600 mt-1">
-                                Крок {currentStep} з 4: {
-                                    currentStep === 1 ? 'Локація' :
-                                    currentStep === 2 ? 'Персоналізація' :
-                                    currentStep === 3 ? 'Дизайн' :
-                                    'Розмір та продукт'
-                                }
-                            </p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => router.back()}
+                                title="Назад до каталогу"
+                                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-[#1e2d7d] hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                                Назад
+                            </button>
+                            <div>
+                                <h1 className="text-2xl font-bold text-[#1e2d7d]">{t('citymap.main_title')}</h1>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Крок {currentStep} з 4: {
+                                        currentStep === 1 ? 'Локація' :
+                                        currentStep === 2 ? 'Персоналізація' :
+                                        currentStep === 3 ? 'Дизайн' :
+                                        'Розмір та продукт'
+                                    }
+                                </p>
+                            </div>
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="text-right">

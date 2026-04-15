@@ -156,12 +156,12 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
         if(isForest) drawForest(ctx,W,H);
         else { ctx.fillStyle=config.backgroundColor; ctx.fillRect(0,0,W,H); }
 
-        // Map geometry
-        const mapH = isFull ? H : Math.round(H*0.60);
+        // Map geometry — give more room to the sky circle (was 60%, now 68%)
+        const mapH = isFull ? H : Math.round(H*0.68);
         const cx=W/2, cy = isFull ? H/2 : mapH/2;
         const R = isHeart
             ? Math.min(W,mapH)*0.46
-            : Math.min(W/2-20, mapH/2-20)*0.96;
+            : Math.min(W/2-12, mapH/2-12)*0.99;
 
         // Compute LST (RA of zenith in degrees)
         const jd = getJD(config.date, config.time);

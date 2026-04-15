@@ -85,11 +85,11 @@ export default function StarMapConstructor() {
         subtitle: '',
         dedication: '',
 
-        // Step 3 defaults — light minimal as default style (cleaner, more modern)
+        // Step 3 defaults — white poster + dark sky (classic Etsy night-sky look)
         style: 'light-minimal',
-        backgroundColor: '#f5f5f0',
-        skyColor: '#f5f5f0',
-        starColor: '#0a0e1a',
+        backgroundColor: '#ffffff',
+        skyColor: '#0a0e1a',
+        starColor: '#ffffff',
         textColor: '#0a0e1a',
         fontFamily: 'Georgia',
         showStarNames: true,
