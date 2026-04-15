@@ -167,15 +167,6 @@ export function SizeVisualizer({ sizes, selected, onSelect, prices, productCateg
               }}>
                 {raw}
               </div>
-              {price !== undefined && (
-                <div style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: isActive ? '#1e2d7d' : '#94a3b8',
-                }}>
-                  {price} ₴
-                </div>
-              )}
             </button>
           );
         })}

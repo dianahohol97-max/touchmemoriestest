@@ -3682,7 +3682,7 @@ export default function BookLayoutEditor() {
                           selectedId={selectedShapeId}
                           onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
                         />
-                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH}/>
+                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH} interactive={leftTab === 'frames'} onChange={f => setPageFrames(prev=>({...prev,[0]:f}))}/>
                         {(pageStickers[0]||[]).map(stk => (
                           <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
                             onPointerDown={e => {
@@ -3758,7 +3758,7 @@ export default function BookLayoutEditor() {
                           selectedId={selectedShapeId}
                           onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
                         />
-                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH}/>
+                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH} interactive={leftTab === 'frames'} onChange={f => setPageFrames(prev=>({...prev,[0]:f}))}/>
                         {(pageStickers[0]||[]).map(stk => (
                           <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
                             onPointerDown={e => {
@@ -4207,7 +4207,7 @@ export default function BookLayoutEditor() {
                     {/* Shapes on spread */}
                     <ShapesLayer shapes={getCurShapes(spreadPageIdx)} canvasW={spreadW} canvasH={cH} onChange={newShapes => setPageShapes(prev=>({...prev,[spreadPageIdx]:newShapes}))}/>
                     {/* Frames on spread */}
-                    <FrameLayer frame={getCurFrame(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
+                    <FrameLayer frame={getCurFrame(spreadPageIdx)} canvasW={spreadW} canvasH={cH} interactive={leftTab === 'frames'} onChange={f => setPageFrames(prev=>({...prev,[spreadPageIdx]:f}))}/>
                     {/* Stickers on spread */}
                     {(pageStickers[spreadPageIdx] || []).map(st => (
                       <div key={st.id} style={{ position:'absolute', left:st.x, top:st.y, width:st.w, height:st.h, cursor:'move', zIndex:12, touchAction:'none', fontSize:typeof st.w==='number'?st.w*0.8:32 }}
@@ -4661,7 +4661,7 @@ export default function BookLayoutEditor() {
                         ) : null;
                       })()}
                       {/* Frame layer */}
-                      <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH}/>
+                      <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH} interactive={leftTab === 'frames'} onChange={f => setPageFrames(prev=>({...prev,[pageIdx]:f}))}/>
                       {/* Sticker layer */}
                       {(pageStickers[pageIdx]||[]).map(stk => (
                         <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}

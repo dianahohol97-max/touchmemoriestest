@@ -175,9 +175,14 @@ interface FrameLayerProps {
   frame: FrameConfig;
   canvasW: number;
   canvasH: number;
+  onChange?: (frame: FrameConfig) => void;
+  interactive?: boolean;
 }
 
-export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
+export function FrameLayer({ frame, canvasW, canvasH, onChange, interactive }: FrameLayerProps) {
+  const [hover, setHover] = React.useState(false);
+  const [dragging, setDragging] = React.useState(false);
+
   if (!frame.frameId) return null;
 
   // Auto-migrate: old default was scale:1 (fullscreen), new default is 0.6
@@ -190,17 +195,98 @@ export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
   const cx = (canvasW - fw) / 2 + xOff;
   const cy = (canvasH - fh) / 2 + yOff;
 
+  const isInteractive = !!(interactive && onChange);
+
   const wrapStyle: React.CSSProperties = {
     position: 'absolute', left: cx, top: cy, width: fw, height: fh,
-    zIndex: frame.zIndex ?? 35, pointerEvents: 'none', overflow: 'visible',
+    zIndex: frame.zIndex ?? 35,
+    pointerEvents: isInteractive ? 'auto' : 'none',
+    overflow: 'visible',
     opacity: frame.opacity / 100,
+    cursor: isInteractive ? (dragging ? 'grabbing' : 'grab') : 'default',
   };
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    if (!isInteractive || !onChange) return;
+    if ((e.target as HTMLElement).dataset?.resizeHandle) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(true);
+    const startX = e.clientX, startY = e.clientY;
+    const startFx = frame.x ?? 0, startFy = frame.y ?? 0;
+    const onMove = (ev: MouseEvent) => {
+      onChange({ ...frame, x: startFx + (ev.clientX - startX), y: startFy + (ev.clientY - startY) });
+    };
+    const onUp = () => {
+      setDragging(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleResizeStart = (corner: 'tl'|'tr'|'bl'|'br') => (e: React.MouseEvent) => {
+    if (!isInteractive || !onChange) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX, startY = e.clientY;
+    const startScale = scale;
+    const sign = corner === 'br' ? 1 : corner === 'tl' ? -1 : corner === 'tr' ? 1 : -1;
+    const onMove = (ev: MouseEvent) => {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      const delta = (corner === 'br' || corner === 'tl')
+        ? (dx + dy) / 2
+        : corner === 'tr' ? (dx - dy) / 2 : (-dx + dy) / 2;
+      const scaleDelta = (delta / baseDim) * sign;
+      const newScale = Math.max(0.1, Math.min(2, startScale + scaleDelta));
+      onChange({ ...frame, scale: newScale });
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleSize = 12;
+  const handleStyle = (corner: 'tl'|'tr'|'bl'|'br'): React.CSSProperties => ({
+    position: 'absolute',
+    width: handleSize, height: handleSize,
+    background: '#fff',
+    border: '2px solid #1e2d7d',
+    borderRadius: '50%',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+    zIndex: 10,
+    pointerEvents: 'auto',
+    [corner.includes('t') ? 'top' : 'bottom']: -handleSize / 2,
+    [corner.includes('l') ? 'left' : 'right']: -handleSize / 2,
+    cursor: corner === 'tl' || corner === 'br' ? 'nwse-resize' : 'nesw-resize',
+  });
+
+  const showHandles = isInteractive && (hover || dragging);
+  const outlineStyle: React.CSSProperties = showHandles ? { outline: '1.5px dashed #1e2d7d', outlineOffset: 2 } : {};
 
   const pngDef = PNG_FRAMES.find(f => f.id === frame.frameId);
   if (pngDef) {
     return (
-      <div style={wrapStyle}>
-        <img src={pngDef.src} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block' }} />
+      <div
+        style={{ ...wrapStyle, ...outlineStyle }}
+        onMouseEnter={() => isInteractive && setHover(true)}
+        onMouseLeave={() => !dragging && setHover(false)}
+        onMouseDown={handleDragStart}
+      >
+        <img src={pngDef.src} alt="" draggable={false} style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', pointerEvents:'none' }} />
+        {showHandles && (
+          <>
+            <div data-resize-handle="tl" style={handleStyle('tl')} onMouseDown={handleResizeStart('tl')} />
+            <div data-resize-handle="tr" style={handleStyle('tr')} onMouseDown={handleResizeStart('tr')} />
+            <div data-resize-handle="bl" style={handleStyle('bl')} onMouseDown={handleResizeStart('bl')} />
+            <div data-resize-handle="br" style={handleStyle('br')} onMouseDown={handleResizeStart('br')} />
+          </>
+        )}
       </div>
     );
   }
@@ -209,9 +295,22 @@ export function FrameLayer({ frame, canvasW, canvasH }: FrameLayerProps) {
   if (!def) return null;
   const svgContent = def.render(fw, fh, frame.color, 100);
   return (
-    <div style={wrapStyle}>
-      <svg width={fw} height={fh} style={{ display:'block' }}
+    <div
+      style={{ ...wrapStyle, ...outlineStyle }}
+      onMouseEnter={() => isInteractive && setHover(true)}
+      onMouseLeave={() => !dragging && setHover(false)}
+      onMouseDown={handleDragStart}
+    >
+      <svg width={fw} height={fh} style={{ display:'block', pointerEvents:'none' }}
         dangerouslySetInnerHTML={{ __html: svgContent }} />
+      {showHandles && (
+        <>
+          <div data-resize-handle="tl" style={handleStyle('tl')} onMouseDown={handleResizeStart('tl')} />
+          <div data-resize-handle="tr" style={handleStyle('tr')} onMouseDown={handleResizeStart('tr')} />
+          <div data-resize-handle="bl" style={handleStyle('bl')} onMouseDown={handleResizeStart('bl')} />
+          <div data-resize-handle="br" style={handleStyle('br')} onMouseDown={handleResizeStart('br')} />
+        </>
+      )}
     </div>
   );
 }
@@ -242,7 +341,7 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
             <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>{activeLabel}</span>
             <button onClick={()=>onChange({...frame,frameId:null})}
               style={{ padding:'3px 10px', border:'1px solid #fee2e2', borderRadius:6, background:'#fff7f7', cursor:'pointer', fontWeight:600, fontSize:10, color:'#ef4444' }}>
-              \u2715 Прибрати
+              ✕ Прибрати
             </button>
           </div>
           <div style={{ display:'flex', gap:8 }}>
@@ -277,7 +376,7 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
           <div style={{ display:'flex', gap:8, marginTop:6 }}>
             <div style={{ flex:1 }}>
               <div style={{ display:'flex', justifyContent:'space-between' }}>
-                <span style={{ fontSize:10, color:'#64748b' }}>\u2190 \u2192</span>
+                <span style={{ fontSize:10, color:'#64748b' }}>← →</span>
                 <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{frame.x??0}px</span>
               </div>
               <input type="range" min={-300} max={300} value={frame.x??0}
@@ -286,7 +385,7 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
             </div>
             <div style={{ flex:1 }}>
               <div style={{ display:'flex', justifyContent:'space-between' }}>
-                <span style={{ fontSize:10, color:'#64748b' }}>\u2191 \u2193</span>
+                <span style={{ fontSize:10, color:'#64748b' }}>↑ ↓</span>
                 <span style={{ fontSize:10, fontWeight:700, color:'#1e2d7d' }}>{frame.y??0}px</span>
               </div>
               <input type="range" min={-300} max={300} value={frame.y??0}
@@ -296,18 +395,18 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
           </div>
           <button onClick={()=>onChange({...frame, scale:0.6, x:0, y:0, zIndex:35})}
             style={{ marginTop:6, width:'100%', padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b' }}>
-            \u21ba Скинути позицію
+            ↺ Скинути позицію
           </button>
           {/* Z-index layer control */}
           <div style={{ display:'flex', gap:4, marginTop:6 }}>
             <button onClick={()=>onChange({...frame, zIndex: Math.max(1, (frame.zIndex??35)-5)})}
               style={{ flex:1, padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b', fontWeight:600 }}>
-              \u2193 Назад
+              ↓ Назад
             </button>
             <span style={{ display:'flex', alignItems:'center', fontSize:10, fontWeight:700, color:'#1e2d7d', minWidth:30, justifyContent:'center' }}>{frame.zIndex??35}</span>
             <button onClick={()=>onChange({...frame, zIndex: Math.min(99, (frame.zIndex??35)+5)})}
               style={{ flex:1, padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:10, color:'#64748b', fontWeight:600 }}>
-              \u2191 Вперед
+              ↑ Вперед
             </button>
           </div>
         </div>

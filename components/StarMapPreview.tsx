@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { STAR_CATALOG, CONSTELLATION_LINES, CONSTELLATION_LABELS, CONSTELLATION_LABELS_EN, CONSTELLATION_LABELS_PL, CONSTELLATION_LABELS_RO, CONSTELLATION_LABELS_DE, NAMED_STARS } from '@/lib/astronomy/starCatalog';
 
 interface StarMapConfig {
@@ -13,6 +13,8 @@ interface StarMapConfig {
     showGrid?: boolean; showConstellations?: boolean; showMilkyWay?: boolean;
     constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
     showStarNames?: boolean;
+    qrUrl?: string; qrValue?: string;
+    qrX?: number; qrY?: number; qrSize?: number; qrBgColor?: string;
 }
 
 //  Astronomy: RA/Dec → canvas XY 
@@ -122,8 +124,9 @@ function drawForest(ctx: CanvasRenderingContext2D, W: number, H: number) {
 }
 
 //  Main 
-export default function StarMapPreview({ config }: { config: StarMapConfig }) {
+export default function StarMapPreview({ config, onConfigChange }: { config: StarMapConfig; onConfigChange?: (cfg: StarMapConfig) => void }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current; if(!canvas) return;
@@ -286,8 +289,6 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
                 const pos = P(ra, dec, true); if(!pos) continue;
                 const name = (starLang === 'en') ? nameEn : nameUk;
                 const dotSize = Math.max(0.8, 2.4-(mag+1)*0.3);
-                // Only show if star is bright enough to be visible
-                if(mag > 2.5) continue;
                 ctx.globalAlpha = isLight ? 0.55 : 0.65;
                 ctx.fillText(name, pos.x, pos.y - dotSize - 2*(W/600));
             }
@@ -440,7 +441,7 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
 
     return (
         <div className="rounded-xl shadow-2xl overflow-hidden" style={{backgroundColor: config.backgroundColor}}>
-            <div style={{ position: 'relative', width: '100%', aspectRatio, overflow: 'hidden' }}>
+            <div ref={containerRef} style={{ position: 'relative', width: '100%', aspectRatio, overflow: 'hidden' }}>
                 <canvas
                     ref={canvasRef}
                     style={{
@@ -449,7 +450,106 @@ export default function StarMapPreview({ config }: { config: StarMapConfig }) {
                         display:'block',
                     }}
                 />
+                {config.qrUrl && (
+                    <QrOverlay
+                        config={config}
+                        containerRef={containerRef}
+                        onConfigChange={onConfigChange}
+                    />
+                )}
             </div>
+        </div>
+    );
+}
+
+function QrOverlay({
+    config,
+    containerRef,
+    onConfigChange,
+}: {
+    config: StarMapConfig;
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    onConfigChange?: (cfg: StarMapConfig) => void;
+}) {
+    const [hover, setHover] = useState(false);
+    const [dragging, setDragging] = useState(false);
+
+    const qrX = config.qrX ?? 50;
+    const qrY = config.qrY ?? 90;
+    const qrSize = config.qrSize ?? 12;
+    const qrBg = config.qrBgColor || '#ffffff';
+
+    const handleDragStart = (e: React.MouseEvent) => {
+        if (!onConfigChange || !containerRef.current) return;
+        if ((e.target as HTMLElement).dataset?.qrHandle) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(true);
+        const rect = containerRef.current.getBoundingClientRect();
+        const startX = e.clientX, startY = e.clientY;
+        const startQrX = qrX, startQrY = qrY;
+        const onMove = (ev: MouseEvent) => {
+            const dxPct = ((ev.clientX - startX) / rect.width) * 100;
+            const dyPct = ((ev.clientY - startY) / rect.height) * 100;
+            onConfigChange({ ...config, qrX: Math.max(0, Math.min(100, startQrX + dxPct)), qrY: Math.max(0, Math.min(100, startQrY + dyPct)) });
+        };
+        const onUp = () => { setDragging(false); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+    };
+
+    const handleResizeStart = (corner: 'tl'|'tr'|'bl'|'br') => (e: React.MouseEvent) => {
+        if (!onConfigChange || !containerRef.current) return;
+        e.preventDefault(); e.stopPropagation();
+        const rect = containerRef.current.getBoundingClientRect();
+        const startX = e.clientX, startY = e.clientY;
+        const startSize = qrSize;
+        const sign = corner === 'br' ? 1 : corner === 'tl' ? -1 : corner === 'tr' ? 1 : -1;
+        const onMove = (ev: MouseEvent) => {
+            const dx = ev.clientX - startX, dy = ev.clientY - startY;
+            const delta = (corner === 'br' || corner === 'tl') ? (dx+dy)/2 : corner === 'tr' ? (dx-dy)/2 : (-dx+dy)/2;
+            const deltaPct = (delta / rect.width) * 100 * sign;
+            onConfigChange({ ...config, qrSize: Math.max(5, Math.min(40, startSize + deltaPct)) });
+        };
+        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+    };
+
+    const showHandles = !!onConfigChange && (hover || dragging);
+    const handleSize = 12;
+    const handleStyle = (corner: 'tl'|'tr'|'bl'|'br'): React.CSSProperties => ({
+        position: 'absolute', width: handleSize, height: handleSize,
+        background: '#fff', border: '2px solid #1e2d7d', borderRadius: '50%',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.3)', zIndex: 10, pointerEvents: 'auto',
+        [corner.includes('t') ? 'top' : 'bottom']: -handleSize/2,
+        [corner.includes('l') ? 'left' : 'right']: -handleSize/2,
+        cursor: corner === 'tl' || corner === 'br' ? 'nwse-resize' : 'nesw-resize',
+    });
+
+    return (
+        <div
+            style={{
+                position: 'absolute', left: `${qrX}%`, top: `${qrY}%`, width: `${qrSize}%`,
+                aspectRatio: '1 / 1', transform: 'translate(-50%, -50%)',
+                background: qrBg, padding: qrBg === 'transparent' ? 0 : '4%', borderRadius: 4,
+                cursor: onConfigChange ? (dragging ? 'grabbing' : 'grab') : 'default',
+                outline: showHandles ? '1.5px dashed #1e2d7d' : 'none', outlineOffset: 2,
+                userSelect: 'none', zIndex: 5,
+            }}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => !dragging && setHover(false)}
+            onMouseDown={handleDragStart}
+        >
+            <img src={config.qrUrl} alt="QR" draggable={false} style={{ width:'100%', height:'100%', display:'block', pointerEvents:'none' }} />
+            {showHandles && (
+                <>
+                    <div data-qr-handle="tl" style={handleStyle('tl')} onMouseDown={handleResizeStart('tl')} />
+                    <div data-qr-handle="tr" style={handleStyle('tr')} onMouseDown={handleResizeStart('tr')} />
+                    <div data-qr-handle="bl" style={handleStyle('bl')} onMouseDown={handleResizeStart('bl')} />
+                    <div data-qr-handle="br" style={handleStyle('br')} onMouseDown={handleResizeStart('br')} />
+                </>
+            )}
         </div>
     );
 }

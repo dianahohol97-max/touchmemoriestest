@@ -44,6 +44,14 @@ interface StarMapConfig {
     size: string;
     productType: string;
     price: number;
+
+    // QR Code (optional, +50 ₴ when added)
+    qrUrl?: string;
+    qrValue?: string;
+    qrX?: number;
+    qrY?: number;
+    qrSize?: number;
+    qrBgColor?: string;
 }
 
 export default function StarMapConstructor() {
@@ -87,7 +95,13 @@ export default function StarMapConstructor() {
         // Step 4 defaults
         size: initialStarMapSize,
         productType: 'Постер',
-        price: 0
+        price: 0,
+
+        // QR defaults
+        qrX: 50,
+        qrY: 90,
+        qrSize: 12,
+        qrBgColor: '#ffffff'
     });
 
     const supabase = createBrowserClient(
@@ -115,6 +129,18 @@ export default function StarMapConstructor() {
         }
         fetchProduct();
     }, [supabase]);
+
+    // Price calculation: base price by size + QR surcharge
+    useEffect(() => {
+        const sizes: Record<string, number> = {
+            'A4 (21×29.7 см)': 350,
+            'A3 (29.7×42 см)': 450,
+            '30×40 см': 450,
+        };
+        const basePrice = sizes[config.size] ?? 450;
+        const qrSurcharge = config.qrUrl ? 50 : 0;
+        setConfig(prev => ({ ...prev, price: basePrice + qrSurcharge }));
+    }, [config.size, config.qrUrl]);
 
     // Update subtitle when date/time/location changes
     useEffect(() => {
@@ -195,7 +221,7 @@ export default function StarMapConstructor() {
     };
 
     const nextStep = () => {
-        if (currentStep < 4) setCurrentStep(currentStep + 1);
+        if (currentStep < 3) setCurrentStep(currentStep + 1);
     };
 
     const prevStep = () => {
@@ -220,11 +246,10 @@ export default function StarMapConstructor() {
                         <div>
                             <h1 className="text-2xl font-bold text-[#1e2d7d]">{t('starmap.product_name')}</h1>
                             <p className="text-sm text-gray-600 mt-1">
-                                Крок {currentStep} з 4: {
+                                Крок {currentStep} з 3: {
                                     currentStep === 1 ? 'Момент' :
                                     currentStep === 2 ? 'Персоналізація' :
-                                    currentStep === 3 ? 'Дизайн' :
-                                    'Розмір та продукт'
+                                    'Дизайн'
                                 }
                             </p>
                         </div>
@@ -249,7 +274,6 @@ export default function StarMapConstructor() {
                             { n: 1, label: 'Момент' },
                             { n: 2, label: 'Текст' },
                             { n: 3, label: 'Дизайн' },
-                            { n: 4, label: 'Розмір' },
                         ].map(({ n, label }) => (
                             <button
                                 key={n}
@@ -283,13 +307,48 @@ export default function StarMapConstructor() {
                         {currentStep === 3 && (
                             <Step3Design config={config} setConfig={setConfig} />
                         )}
-                        {currentStep === 4 && (
-                            <Step4SizeProduct config={config} setConfig={setConfig} product={product} />
-                        )}
 
-                        {/* QR Code Generator */}
+                        {/* QR Code Generator — wired to config (adds +50 ₴ when enabled) */}
                         <div style={{ marginBottom: 16 }}>
-                          <QRCodeGenerator compact label="Додати QR-код до замовлення" />
+                          <QRCodeGenerator
+                            compact
+                            label="Додати QR-код до замовлення (+50 ₴)"
+                            defaultValue={config.qrValue || ''}
+                            onQRUrlChange={(url) => {
+                              setConfig(prev => ({ ...prev, qrUrl: url, qrValue: url ? prev.qrValue : '' }));
+                            }}
+                          />
+                          {config.qrUrl && (
+                            <div style={{ marginTop: 10, padding: 12, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: '#1e2d7d' }}>QR на макеті</div>
+                              <div>
+                                <div style={{ display:'flex', justifyContent:'space-between', fontSize: 11, color:'#64748b', marginBottom: 4 }}>
+                                  <span>Розмір</span><span>{config.qrSize ?? 12}%</span>
+                                </div>
+                                <input type="range" min={5} max={40} value={config.qrSize ?? 12}
+                                  onChange={e => setConfig(p => ({ ...p, qrSize: +e.target.value }))}
+                                  style={{ width:'100%', accentColor:'#1e2d7d' }}/>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 11, color:'#64748b', marginBottom: 4 }}>Колір фону QR</div>
+                                <div style={{ display:'flex', gap: 8, alignItems:'center' }}>
+                                  <input type="color" value={config.qrBgColor || '#ffffff'}
+                                    onChange={e => setConfig(p => ({ ...p, qrBgColor: e.target.value }))}
+                                    style={{ width: 40, height: 32, padding: 2, border:'1px solid #e2e8f0', borderRadius: 6, cursor:'pointer' }}/>
+                                  <button type="button" onClick={() => setConfig(p => ({ ...p, qrBgColor: 'transparent' }))}
+                                    style={{ padding:'6px 10px', fontSize: 11, fontWeight: 600, border:'1px solid #e2e8f0', borderRadius: 6, background:'#fff', cursor:'pointer', color:'#64748b' }}>
+                                    Прозорий
+                                  </button>
+                                  <span style={{ fontSize: 10, color:'#94a3b8' }}>Тягни QR на макеті щоб посунути</span>
+                                </div>
+                              </div>
+                              <button type="button"
+                                onClick={() => setConfig(p => ({ ...p, qrUrl: undefined, qrValue: undefined }))}
+                                style={{ alignSelf:'flex-start', padding:'4px 10px', fontSize: 10, fontWeight: 600, border:'1px solid #fee2e2', borderRadius: 6, background:'#fff7f7', color:'#ef4444', cursor:'pointer' }}>
+                                ✕ Прибрати QR (-50 ₴)
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         {/* Navigation Buttons */}
@@ -302,7 +361,7 @@ export default function StarMapConstructor() {
                                 <ChevronLeft className="w-5 h-5" />
                                 Назад
                             </button>
-                            {currentStep < 4 ? (
+                            {currentStep < 3 ? (
                                 <button
                                     onClick={nextStep}
                                     className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#1e2d7d] text-white rounded-lg hover:bg-[#263a99] transition-colors"
@@ -324,7 +383,7 @@ export default function StarMapConstructor() {
 
                     {/* Right: Preview */}
                     <div className="lg:sticky lg:top-24 lg:self-start" ref={previewAreaRef}>
-                        <StarMapPreview config={config} />
+                        <StarMapPreview config={config} onConfigChange={(cfg) => setConfig(cfg as StarMapConfig)} />
                     </div>
                 </div>
             </div>
@@ -640,7 +699,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                     {[
                         { key: 'showConstellations', label: "Лінії сузір'їв", default: true },
                         { key: 'showMilkyWay',      label: 'Чумацький Шлях', default: true },
-                        { key: 'showStarNames',     label: 'Назви яскравих зірок', default: true },
+                        { key: 'showStarNames',     label: 'Назви зірок', default: true },
                         { key: 'showGrid',           label: 'Координатна сітка', default: false },
                     ].map(({ key, label }) => {
                         const val = (config as any)[key] !== false;
