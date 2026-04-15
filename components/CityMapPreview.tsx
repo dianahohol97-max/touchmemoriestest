@@ -31,26 +31,20 @@ interface CityMapPreviewProps {
     setConfig: React.Dispatch<React.SetStateAction<CityMapConfig>>;
 }
 
-// Dynamically import MapContainer to avoid SSR issues
 const MapContainer = dynamic(
     () => import('react-leaflet').then((mod) => mod.MapContainer),
     { ssr: false }
 );
-
 const TileLayer = dynamic(
     () => import('react-leaflet').then((mod) => mod.TileLayer),
     { ssr: false }
 );
-
-// Syncs map center/zoom when config changes (Leaflet doesn't react to prop changes)
 const MapUpdater = dynamic(
     () => import('react-leaflet').then((mod) => {
         const { useMap } = mod;
         function Updater({ lat, lng, zoom }: { lat: number; lng: number; zoom: number }) {
             const map = useMap();
-            useEffect(() => {
-                map.setView([lat, lng], zoom, { animate: true });
-            }, [lat, lng, zoom]);
+            useEffect(() => { map.setView([lat, lng], zoom, { animate: true }); }, [lat, lng, zoom]);
             return null;
         }
         return Updater;
@@ -58,209 +52,267 @@ const MapUpdater = dynamic(
     { ssr: false }
 );
 
+// Tile URL — CartoCDN light gives cleanest poster-quality output
+const getTileUrl = (style: string) => {
+    switch (style) {
+        case 'dark-mode':
+        case 'plum':
+            return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        case 'blueprint':
+            return 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
+        case 'color-outdoors':
+        case 'bayside':
+        case 'forest-green':
+            return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+        case 'smooth-light':
+        case 'vintage-sepia':
+        case 'harvest':
+            return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+        // For B&W poster styles: CartoCDN light_nolabels + grayscale gives cleanest lines
+        case 'stamen-toner':
+        case 'classic-bw':
+        case 'stamen-toner-lite':
+        default:
+            // CartoCDN light_all — has roads, parks, water, no POI icons, clean for posters
+            return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    }
+};
+
+const getMapFilter = (style: string) => {
+    switch (style) {
+        case 'stamen-toner':
+        case 'classic-bw':
+            // High contrast B&W — makes roads very dark, parks light grey
+            return 'grayscale(100%) contrast(180%) brightness(0.92)';
+        case 'stamen-toner-lite':
+            return 'grayscale(100%) contrast(130%) brightness(1.05)';
+        case 'smooth-light':
+            return 'grayscale(100%) contrast(115%) brightness(1.08)';
+        case 'vintage-sepia':
+            return 'grayscale(60%) sepia(50%) contrast(115%) brightness(1.05)';
+        case 'harvest':
+            return 'grayscale(30%) sepia(40%) hue-rotate(10deg) saturate(1.4) contrast(120%)';
+        case 'dark-mode':
+        case 'plum':
+        case 'blueprint':
+            return 'none';
+        case 'forest-green':
+            return 'hue-rotate(90deg) saturate(0.8) brightness(0.95)';
+        case 'bayside':
+            return 'hue-rotate(180deg) saturate(0.9) brightness(1.0)';
+        default:
+            return 'grayscale(100%) contrast(160%) brightness(0.95)';
+    }
+};
+
+// Text color for each style
+const getTextColor = (style: string) => {
+    if (['dark-mode', 'plum', 'blueprint'].includes(style)) return { primary: '#ffffff', secondary: '#cccccc', coords: '#aaaaaa' };
+    if (['vintage-sepia', 'harvest'].includes(style)) return { primary: '#4a2c10', secondary: '#7a5030', coords: '#8a6040' };
+    if (['forest-green'].includes(style)) return { primary: '#1a3a1a', secondary: '#2a5a2a', coords: '#4a6a4a' };
+    return { primary: '#111111', secondary: '#333333', coords: '#666666' };
+};
+
+// Background for text band
+const getTextBg = (style: string) => {
+    if (['dark-mode', 'plum', 'blueprint'].includes(style)) return '#0a0a0a';
+    if (['vintage-sepia', 'harvest'].includes(style)) return '#f9f0e0';
+    if (['forest-green', 'bayside'].includes(style)) return '#f5f8f2';
+    return '#ffffff';
+};
+
 export default function CityMapPreview({ config, setConfig }: CityMapPreviewProps) {
     const [isClient, setIsClient] = useState(false);
-    const mapRef = useRef<any>(null);
+    useEffect(() => { setIsClient(true); }, []);
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
+    const tc = getTextColor(config.mapStyle);
+    const textBg = getTextBg(config.mapStyle);
+    const isLandscape = config.orientation === 'landscape';
 
-    // Get tile URL based on map style
-    // Language → CartoCDN uses OSM data, language shown depends on OSM name: tags
-    // For client-side lang: we append a labels overlay tile with lang param via MapTiler (free)
-    // Or use Stadia/CartoCDN + lang label overlay from openstreetmap.org
-    const lang = (config as any).mapLang || 'local';
+    // Poster aspect ratio
+    const posterRatio = isLandscape ? '4/3' : '3/4';
 
-    const getTileUrl = () => {
-        // CartoCDN: clean minimal tiles, no ugly OSM POI icons, free, no key
-        switch (config.mapStyle) {
-            case 'dark-mode':
-            case 'plum':
-                return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-            case 'blueprint':
-                return 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
-            case 'smooth-light':
-                return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-            // For B&W poster styles: OSM standard tiles have real visible roads
-            case 'stamen-toner':
-            case 'stamen-toner-lite':
-            case 'classic-bw':
-                // OSM has actual dark road lines that show up after grayscale
-                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-            case 'vintage-sepia':
-            case 'harvest':
-                return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-            case 'color-outdoors':
-            case 'bayside':
-            case 'forest-green':
-            case 'paste':
-                return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-            default:
-                return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-        }
-    };
+    // Text area height — 22% like the Etsy example
+    const textAreaPct = config.layout === 'no-text' ? 0 : 22;
+    const mapHeightPct = 100 - textAreaPct;
 
-    // Label tile with language support via MapTiler (free tier, 100k tiles/month)
-    // Falls back to local language if lang not available
-    const getLabelTileUrl = () => {
-        // CartoCDN does not support lang param natively
-        // Use Stadia Maps language tiles for supported languages
-        const stadiaLangs = new Set(['en','de','fr','es','it','pl','pt','ru','zh','ja','ko','ar','tr','nl','cs','sk','hu','fi','sv','no','da','el','bg','hr','sr','he','uk','ro','lt','lv','et']);
-        if (lang === 'local') {
-            return 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
-        }
-        if (stadiaLangs.has(lang)) {
-            // CartoCDN label-only tiles (free, no key required)
-            return 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
-        }
-        return 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
-    };
+    const cityName = config.title || config.location.split(',')[0].toUpperCase() || 'YOUR CITY';
+    const countryName = config.subtitle || (config.location.split(',').slice(1).join(',').trim()) || 'Ukraine';
 
-    // Get CSS filter based on map style
-    const getMapFilter = () => {
-        switch (config.mapStyle) {
-            // Pure B&W minimal — OSM base has dark roads, just needs grayscale
-            case 'classic-bw':
-                return 'grayscale(100%) contrast(140%) brightness(1.0)';
-            case 'stamen-toner':
-                // OSM B&W with high contrast for poster look
-                return 'grayscale(100%) contrast(160%) brightness(1.0)';
-            case 'stamen-toner-lite':
-                return 'grayscale(100%) contrast(110%) brightness(1.1)';
-            case 'vintage-sepia':
-            case 'harvest':
-                return 'grayscale(100%) sepia(55%) contrast(130%) brightness(1.05)';
-            case 'smooth-light':
-                return 'grayscale(100%) contrast(120%) brightness(1.08)';
-            // Dark
-            case 'dark-mode':
-            case 'plum':
-            case 'blueprint':
-                return 'none';
-            // Warm sepia
-            case 'vintage-sepia':
-            case 'harvest':
-                return 'grayscale(100%) sepia(45%) contrast(140%) brightness(1.05)';
-            // Color styles
-            case 'vintage-red':
-                return 'sepia(30%) hue-rotate(320deg) saturate(1.5)';
-            case 'forest-green':
-            case 'paste':
-                return 'saturate(0.7) brightness(1.05)';
-            case 'color-outdoors':
-            case 'bayside':
-                return 'saturate(1.1) brightness(1.02)';
-            default:
-                return 'grayscale(100%) contrast(160%)';
-        }
-    };
+    // Decorative divider lines like the Etsy example
+    const DividerLines = () => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}>
+            <div style={{ flex: 1, height: 1, background: tc.secondary, opacity: 0.4 }} />
+            <div style={{ flex: 1, height: 1, background: tc.secondary, opacity: 0.4 }} />
+        </div>
+    );
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Попередній перегляд</h3>
+        <div style={{ background: '#e5e5e5', padding: 16, borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                Попередній перегляд
+            </div>
 
-            {/* Poster Preview — constrained height */}
-            <div style={{ maxHeight: '70vh', aspectRatio: config.orientation === 'portrait' ? '3/4' : '4/3', position:'relative', overflow:'hidden' }}
-                className="bg-gray-200 rounded-lg">
-                {/* Border */}
-                {config.border === 'simple-frame' && (
-                    <div className="absolute inset-0 border-8 border-black pointer-events-none z-20" />
+            {/* Poster frame — like the Etsy image: white background + black border */}
+            <div style={{
+                width: '100%',
+                maxWidth: isLandscape ? 480 : 320,
+                aspectRatio: posterRatio,
+                position: 'relative',
+                background: textBg,
+                // Outer shadow simulating photo frame
+                boxShadow: '0 8px 32px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2)',
+                borderRadius: 2,
+                overflow: 'hidden',
+            }}>
+                {/* Black border frame (like in example) */}
+                {config.border !== 'no-border' && (
+                    <div style={{
+                        position: 'absolute', inset: 0, zIndex: 30, pointerEvents: 'none',
+                        border: config.border === 'white-mat'
+                            ? '10px solid #ffffff'
+                            : '8px solid #111111',
+                        boxSizing: 'border-box',
+                    }} />
                 )}
+                {/* Inner white mat for white-mat style */}
                 {config.border === 'white-mat' && (
-                    <>
-                        <div className="absolute inset-0 border-8 border-black pointer-events-none z-20" />
-                        <div className="absolute inset-2 border-12 border-white pointer-events-none z-20" />
-                    </>
+                    <div style={{
+                        position: 'absolute', inset: 10, zIndex: 29, pointerEvents: 'none',
+                        border: '6px solid #111111',
+                        boxSizing: 'border-box',
+                    }} />
                 )}
 
-                {/* ── title-top layout: title above map ── */}
-                {config.layout === 'title-top' && (
-                    <div style={{ position:'absolute', top:0, left:0, right:0, height:'22%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'8px 16px', background:'#fff', zIndex:10 }}>
-                        <div style={{ fontFamily: config.fontFamily, fontWeight:900, fontSize:'clamp(14px,3.5vw,32px)', letterSpacing:'0.12em', textTransform:'uppercase', color: config.textColor === 'light' ? '#1a1a1a' : '#1a1a1a', textAlign:'center', lineHeight:1.1 }}>
-                            {config.title || 'ВАШЕ МІСТО'}
-                        </div>
-                        {config.subtitle && (
-                            <div style={{ fontFamily: config.fontFamily, fontSize:'clamp(8px,1.5vw,13px)', letterSpacing:'0.2em', textTransform:'uppercase', color:'#666', marginTop:4 }}>
-                                {config.subtitle}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Map Container */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        top: config.layout === 'title-top' ? '22%' : 0,
-                        bottom: (config.layout === 'title-bottom' || config.layout === 'circle' || config.layout === 'heart') ? '25%' : 0,
-                        left: 0, right: 0,
-                        filter: getMapFilter(),
-                        clipPath:
-                            config.layout === 'circle' ? 'circle(38% at 50% 50%)' :
-                            config.layout === 'heart' ? 'path("M 50,75 C 50,75 5,45 5,25 C 5,10 18,5 30,15 C 38,20 50,28 50,28 C 50,28 62,20 70,15 C 82,5 95,10 95,25 C 95,45 50,75 50,75 Z")' :
-                            'none'
-                    }}
-                >
-                    {isClient && (
+                {/* MAP AREA — fills top part */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: config.layout === 'no-text' ? '100%' : `${mapHeightPct}%`,
+                    overflow: 'hidden',
+                    filter: getMapFilter(config.mapStyle),
+                    // Clip shapes
+                    clipPath: config.layout === 'circle'
+                        ? 'circle(42% at 50% 48%)'
+                        : 'none',
+                }}>
+                    {isClient ? (
                         <MapContainer
-                            ref={mapRef}
                             center={[config.latitude, config.longitude]}
                             zoom={config.zoom}
                             style={{ height: '100%', width: '100%' }}
                             zoomControl={false}
                             attributionControl={false}
+                            scrollWheelZoom={false}
+                            dragging={false}
+                            doubleClickZoom={false}
+                            keyboard={false}
                         >
-                            <TileLayer url={getTileUrl()} />
-                            {/* No separate label layer needed — light_all includes labels */}
-                            {isClient && <MapUpdater lat={config.latitude} lng={config.longitude} zoom={config.zoom} />}
+                            <TileLayer url={getTileUrl(config.mapStyle)} />
+                            <MapUpdater lat={config.latitude} lng={config.longitude} zoom={config.zoom} />
                         </MapContainer>
+                    ) : (
+                        <div style={{ width: '100%', height: '100%', background: '#e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ color: '#999', fontSize: 12 }}>Завантаження карти...</span>
+                        </div>
                     )}
                 </div>
 
-                {/* ── title-bottom / circle / heart text area ── */}
-                {(config.layout === 'title-bottom' || config.layout === 'circle' || config.layout === 'heart') && (
-                    <div style={{ position:'absolute', bottom:0, left:0, right:0, height:'25%', background:'#fff', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'6px 12px', zIndex:10 }}>
-                        <div style={{ fontFamily: config.fontFamily, fontWeight:900, fontSize:'clamp(13px,3vw,28px)', letterSpacing:'0.15em', textTransform:'uppercase', color:'#1a1a1a', textAlign:'center', lineHeight:1.1 }}>
-                            {config.title || 'ВАШЕ МІСТО'}
+                {/* TEXT AREA — bottom band like Etsy example */}
+                {config.layout !== 'no-text' && (
+                    <div style={{
+                        position: 'absolute',
+                        bottom: 0, left: 0, right: 0,
+                        height: `${textAreaPct}%`,
+                        background: textBg,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '6px 16px',
+                        zIndex: 20,
+                        // Thin separator line at top of text area
+                        borderTop: `0.5px solid ${tc.secondary}22`,
+                    }}>
+                        {/* City name — large, bold, spaced */}
+                        <div style={{
+                            fontFamily: config.fontFamily || 'serif',
+                            fontSize: 'clamp(11px, 3.5vw, 28px)',
+                            fontWeight: 900,
+                            letterSpacing: '0.18em',
+                            textTransform: 'uppercase',
+                            color: tc.primary,
+                            textAlign: 'center',
+                            lineHeight: 1,
+                            marginBottom: 3,
+                        }}>
+                            {cityName}
                         </div>
-                        {config.subtitle && (
-                            <div style={{ fontFamily: config.fontFamily, fontSize:'clamp(7px,1.2vw,11px)', letterSpacing:'0.22em', textTransform:'uppercase', color:'#666', marginTop:3, textAlign:'center' }}>
-                                {config.subtitle}
+
+                        {/* Decorative lines flanking country */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '70%', marginBottom: 3 }}>
+                            <div style={{ flex: 1, height: '0.5px', background: tc.secondary }} />
+                            <div style={{
+                                fontFamily: config.fontFamily || 'serif',
+                                fontSize: 'clamp(7px, 1.4vw, 11px)',
+                                letterSpacing: '0.22em',
+                                textTransform: 'uppercase',
+                                color: tc.secondary,
+                                whiteSpace: 'nowrap',
+                            }}>
+                                {countryName}
                             </div>
-                        )}
+                            <div style={{ flex: 1, height: '0.5px', background: tc.secondary }} />
+                        </div>
+
+                        {/* Coordinates — monospace small */}
                         {config.coordinates && (
-                            <div style={{ fontFamily:'monospace', fontSize:'clamp(6px,1vw,9px)', color:'#999', marginTop:4, letterSpacing:'0.05em' }}>
+                            <div style={{
+                                fontFamily: 'monospace',
+                                fontSize: 'clamp(6px, 1vw, 8px)',
+                                color: tc.coords,
+                                letterSpacing: '0.06em',
+                                textAlign: 'center',
+                            }}>
                                 {config.coordinates}
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* ── modern layout: overlay text ── */}
+                {/* MODERN layout — text overlay on map */}
                 {config.layout === 'modern' && (
-                    <div style={{ position:'absolute', bottom:16, left:12, background:'rgba(255,255,255,0.92)', padding:'10px 14px', borderRadius:8, maxWidth:'60%', zIndex:10 }}>
-                        {config.title && <div style={{ fontFamily: config.fontFamily, fontWeight:900, fontSize:'clamp(12px,2.5vw,22px)', letterSpacing:'0.1em', textTransform:'uppercase', color:'#1a1a1a' }}>{config.title}</div>}
-                        {config.subtitle && <div style={{ fontFamily: config.fontFamily, fontSize:'clamp(7px,1.2vw,11px)', letterSpacing:'0.15em', textTransform:'uppercase', color:'#555', marginTop:3 }}>{config.subtitle}</div>}
-                        <div style={{ fontFamily:'monospace', fontSize:'clamp(6px,0.9vw,9px)', color:'#888', marginTop:4 }}>{config.coordinates}</div>
-                    </div>
-                )}
-
-                {/* ── title-top: coords at bottom ── */}
-                {config.layout === 'title-top' && (
-                    <div style={{ position:'absolute', bottom:8, left:0, right:0, textAlign:'center', zIndex:10 }}>
-                        <span style={{ fontFamily:'monospace', fontSize:'clamp(6px,0.9vw,9px)', color: '#999' }}>{config.coordinates}</span>
+                    <div style={{
+                        position: 'absolute', inset: 0, zIndex: 25,
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'flex-end',
+                        padding: '0 0 12%',
+                    }}>
+                        <div style={{
+                            background: 'rgba(255,255,255,0.92)',
+                            backdropFilter: 'blur(4px)',
+                            padding: '10px 20px',
+                            borderRadius: 2,
+                            textAlign: 'center',
+                            border: '0.5px solid rgba(0,0,0,0.12)',
+                        }}>
+                            <div style={{ fontFamily: config.fontFamily, fontWeight: 900, fontSize: 'clamp(12px, 3vw, 22px)', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#111' }}>
+                                {cityName}
+                            </div>
+                            <div style={{ height: '0.5px', background: '#333', margin: '3px 0' }} />
+                            <div style={{ fontFamily: 'monospace', fontSize: 'clamp(6px, 1vw, 9px)', color: '#666', letterSpacing: '0.08em' }}>
+                                {config.coordinates}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
 
-            <div className="mt-4 text-center">
-                <p className="text-sm text-gray-600">
-                    {config.size} • {config.productType} • {config.price} ₴
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                    {config.mapStyle.replace('-', ' ')} • {config.layout}
-                </p>
+            {/* Info below poster */}
+            <div style={{ marginTop: 10, textAlign: 'center', color: '#64748b', fontSize: 11 }}>
+                {config.size} · {config.price} ₴
             </div>
         </div>
     );
