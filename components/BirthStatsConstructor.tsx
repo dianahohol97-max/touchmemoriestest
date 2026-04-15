@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Baby } from 'lucide-react';
 import BirthStatsPreview from './BirthStatsPreview';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 interface BirthStatsConfig {
     // Step 1: Baby Info
@@ -31,7 +32,9 @@ interface BirthStatsConfig {
 }
 
 export default function BirthStatsConstructor() {
-    const { addItem } = useCartStore();
+    
+    const t = useT();
+const { addItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -183,7 +186,7 @@ export default function BirthStatsConstructor() {
 
         addItem({
             id: `birth-stats-${Date.now()}`,
-            name: 'Метрика народження',
+            name: t('birthstats.header_title'),
             price: totalPrice,
             qty: 1,
             image: product?.image_url || '/placeholder-poster.jpg',
@@ -203,7 +206,7 @@ export default function BirthStatsConstructor() {
             `.trim()
         });
 
-        toast.success('Метрику народження додано до кошика!');
+        toast.success(t('birthstats.birthstats_added'));
     };
 
     const nextStep = () => {
@@ -270,9 +273,9 @@ export default function BirthStatsConstructor() {
                     </div>
                     <div className="flex justify-center mt-2">
                         <p className="text-sm text-gray-600">
-                            {currentStep === 1 && 'Крок 1: Дані про дитину'}
-                            {currentStep === 2 && 'Крок 2: Дизайн'}
-                            {currentStep === 3 && 'Крок 3: Розмір і тип'}
+                            {currentStep === 1 && t('birthstats.step_1')}
+                            {currentStep === 2 && t('birthstats.step_2')}
+                            {currentStep === 3 && t('birthstats.step_3')}
                         </p>
                     </div>
                 </div>

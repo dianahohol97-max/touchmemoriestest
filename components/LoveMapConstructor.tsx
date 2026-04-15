@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, ShoppingCart, Heart } from 'lucide-react';
 import LoveMapPreview from './LoveMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 interface LoveMapConfig {
     // Step 1: Locations
@@ -38,6 +39,7 @@ interface LoveMapConfig {
 }
 
 export default function LoveMapConstructor() {
+    const t = useT();
     const { addItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
@@ -149,7 +151,7 @@ export default function LoveMapConstructor() {
 
     const handleAddToCart = () => {
         if (!config.hasValidLocations) {
-            toast.error('Будь ласка, оберіть обидві локації');
+            toast.error(t('lovemap.error_locations_required'));
             return;
         }
 
@@ -178,12 +180,12 @@ export default function LoveMapConstructor() {
             `.trim()
         });
 
-        toast.success('Карту кохання додано до кошика!');
+        toast.success(t('lovemap.add_to_cart_success'));
     };
 
     const nextStep = () => {
         if (currentStep === 1 && !config.hasValidLocations) {
-            toast.error('Будь ласка, оберіть обидві локації');
+            toast.error(t('lovemap.error_locations_required'));
             return;
         }
         if (currentStep < 4) setCurrentStep(currentStep + 1);
@@ -198,7 +200,7 @@ export default function LoveMapConstructor() {
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600">Завантаження конструктора...</p>
+                    <p className="text-gray-600">{t('lovemap.loading')}</p>
                 </div>
             </div>
         );
@@ -282,7 +284,7 @@ export default function LoveMapConstructor() {
                                                     hasValidLocations: !!(lat && lon && config.latitude2)
                                                 });
                                             }}
-                                            placeholder="Київ, Україна"
+                                            placeholder={t('lovemap.location1_placeholder')}
                                         />
                                     </div>
 
@@ -302,7 +304,7 @@ export default function LoveMapConstructor() {
                                                     hasValidLocations: !!(lat && lon && config.latitude1)
                                                 });
                                             }}
-                                            placeholder="Львів, Україна"
+                                            placeholder={t('lovemap.location2_placeholder')}
                                         />
                                     </div>
 
@@ -315,7 +317,7 @@ export default function LoveMapConstructor() {
                             {/* STEP 2: PERSONALIZE */}
                             {currentStep === 2 && (
                                 <div className="space-y-6">
-                                    <h3 className="text-xl font-bold text-gray-900">Персоналізація</h3>
+                                    <h3 className="text-xl font-bold text-gray-900">{t('lovemap.personalization_title')}</h3>
 
                                     {/* Names */}
                                     <div>
@@ -328,7 +330,7 @@ export default function LoveMapConstructor() {
                                             value={config.names}
                                             onChange={(e) => setConfig({ ...config, names: e.target.value })}
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            placeholder="Анна & Давид"
+                                            placeholder={t('lovemap.names_placeholder')}
                                         />
                                         <p className="text-xs text-gray-500 mt-1">
                                             {config.names.length}/25 символів
@@ -359,7 +361,7 @@ export default function LoveMapConstructor() {
                                             value={config.subtitle}
                                             onChange={(e) => setConfig({ ...config, subtitle: e.target.value })}
                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            placeholder="Де ми зустрілись і де одружились"
+                                            placeholder={t('lovemap.subtitle_placeholder')}
                                         />
                                         <p className="text-xs text-gray-500 mt-1">
                                             {config.subtitle.length}/32 символи
@@ -371,7 +373,7 @@ export default function LoveMapConstructor() {
                             {/* STEP 3: DESIGN */}
                             {currentStep === 3 && (
                                 <div className="space-y-6">
-                                    <h3 className="text-xl font-bold text-gray-900">Дизайн</h3>
+                                    <h3 className="text-xl font-bold text-gray-900">{t('lovemap.design_title')}</h3>
 
                                     {/* Color Scheme */}
                                     <div>
@@ -429,7 +431,7 @@ export default function LoveMapConstructor() {
                             {/* STEP 4: SIZE & PRODUCT */}
                             {currentStep === 4 && (
                                 <div className="space-y-6">
-                                    <h3 className="text-xl font-bold text-gray-900">Розмір і тип продукту</h3>
+                                    <h3 className="text-xl font-bold text-gray-900">{t('lovemap.size_product_title')}</h3>
 
                                     {/* Size Selection */}
                                     <div>
@@ -486,7 +488,7 @@ export default function LoveMapConstructor() {
                                     {/* Total Price */}
                                     <div className="pt-4 border-t border-gray-200">
                                         <div className="flex justify-between items-center text-lg font-bold">
-                                            <span>Загальна вартість:</span>
+                                            <span>{t('lovemap.total_price_label')}</span>
                                             <span className="text-blue-600">{calculatePrice()} ₴</span>
                                         </div>
                                     </div>
@@ -495,7 +497,7 @@ export default function LoveMapConstructor() {
 
                             {/* QR Code Generator */}
                         <div style={{ marginBottom: 16 }}>
-                          <QRCodeGenerator compact label="Додати QR-код до замовлення" />
+                          <QRCodeGenerator compact label={t('lovemap.add_qr_code')} />
                         </div>
 
                         {/* Navigation Buttons */}
@@ -533,7 +535,7 @@ export default function LoveMapConstructor() {
                     {/* Right Panel - Preview */}
                     <div className="lg:col-span-2 order-1 lg:order-2">
                         <div className="bg-white rounded-lg shadow-lg p-8 sticky top-24">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Попередній перегляд</h3>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('lovemap.preview_title')}</h3>
                             <LoveMapPreview config={config} />
                         </div>
                     </div>

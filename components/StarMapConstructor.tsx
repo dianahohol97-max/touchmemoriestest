@@ -12,6 +12,7 @@ import ExportProgressModal from './ExportProgressModal';
 import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 interface StarMapConfig {
     // Step 1: Moment
@@ -46,6 +47,7 @@ interface StarMapConfig {
 }
 
 export default function StarMapConstructor() {
+    const t = useT();
     const { addItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
@@ -132,7 +134,7 @@ export default function StarMapConstructor() {
 
     const handleAddToCart = async () => {
         if (!product) {
-            toast.error('Продукт не знайдено');
+            toast.error(t('starmap.product_not_found'));
             return;
         }
 
@@ -189,7 +191,7 @@ export default function StarMapConstructor() {
             personalization_note: `Заголовок: ${config.headline}\nПідзаголовок: ${config.subtitle}\nДедикація: ${config.dedication}`
         });
 
-        toast.success('Постер додано до кошика');
+        toast.success(t('starmap.add_to_cart_success'));
     };
 
     const nextStep = () => {
@@ -203,7 +205,7 @@ export default function StarMapConstructor() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-24">
-                <div className="text-gray-500">Завантаження...</div>
+                <div className="text-gray-500">{t('starmap.loading')}</div>
             </div>
         );
     }
@@ -216,7 +218,7 @@ export default function StarMapConstructor() {
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold text-[#1e2d7d]">Постер зоряного неба</h1>
+                            <h1 className="text-2xl font-bold text-[#1e2d7d]">{t('starmap.product_name')}</h1>
                             <p className="text-sm text-gray-600 mt-1">
                                 Крок {currentStep} з 4: {
                                     currentStep === 1 ? 'Момент' :
@@ -228,7 +230,7 @@ export default function StarMapConstructor() {
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="text-right">
-                                <div className="text-sm text-gray-600">Вартість:</div>
+                                <div className="text-sm text-gray-600">{t('starmap.cost_label')}</div>
                                 <div className="text-2xl font-bold text-[#1e2d7d]">{config.price} ₴</div>
                             </div>
                             <button
@@ -332,6 +334,7 @@ export default function StarMapConstructor() {
 
 // Step 1: Moment
 function Step1Moment({ config, setConfig }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>> }) {
+    const t = useT();
     // Load Google Fonts
     useEffect(() => {
         const link = document.createElement('link');
@@ -344,8 +347,8 @@ function Step1Moment({ config, setConfig }: { config: StarMapConfig; setConfig: 
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Оберіть момент</h2>
-                <p className="text-gray-600 text-sm">Вкажіть дату, час та місце для вашого зоряного неба</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('starmap.select_moment')}</h2>
+                <p className="text-gray-600 text-sm">{t('starmap.moment_desc')}</p>
             </div>
 
             {/* Date Picker */}
@@ -391,9 +394,9 @@ function Step1Moment({ config, setConfig }: { config: StarMapConfig; setConfig: 
                             longitude: lon || config.longitude
                         });
                     }}
-                    placeholder="Київ, Україна"
+                    placeholder={t('starmap.default_location')}
                 />
-                <p className="text-xs text-gray-500 mt-1">Почніть вводити адресу для автодоповнення</p>
+                <p className="text-xs text-gray-500 mt-1">{t('starmap.location_placeholder')}</p>
             </div>
         </div>
     );
@@ -401,6 +404,7 @@ function Step1Moment({ config, setConfig }: { config: StarMapConfig; setConfig: 
 
 // Step 2: Personalize
 function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>> }) {
+    const t = useT();
     // Load Google Fonts
     useEffect(() => {
         const link = document.createElement('link');
@@ -413,8 +417,8 @@ function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setCon
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Персоналізація</h2>
-                <p className="text-gray-600 text-sm">Додайте особистий текст до вашого постера</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('starmap.personalization_title')}</h2>
+                <p className="text-gray-600 text-sm">{t('starmap.personalization_desc')}</p>
             </div>
 
             {/* Headline */}
@@ -426,7 +430,7 @@ function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setCon
                     type="text"
                     value={config.headline}
                     onChange={(e) => setConfig({ ...config, headline: e.target.value })}
-                    placeholder="Ніч, коли ми зустрілись"
+                    placeholder={t('starmap.sky_name')}
                     maxLength={50}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
                 />
@@ -442,7 +446,7 @@ function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setCon
                     type="text"
                     value={config.subtitle}
                     onChange={(e) => setConfig({ ...config, subtitle: e.target.value })}
-                    placeholder="15 грудня 2018, Київ"
+                    placeholder={t('starmap.example_date')}
                     maxLength={60}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
                 />
@@ -457,7 +461,7 @@ function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setCon
                 <textarea
                     value={config.dedication}
                     onChange={(e) => setConfig({ ...config, dedication: e.target.value })}
-                    placeholder="Додайте особливе послання... Підтримуються емодзі ❤️"
+                    placeholder={t('starmap.dedication_placeholder')}
                     maxLength={200}
                     rows={4}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent resize-none"
@@ -470,6 +474,7 @@ function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setCon
 
 // Step 3: Design
 function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>> }) {
+    const t = useT();
     const styles = [
         { id: 'classic-dark',  name: 'Чорний класик',   bg: '#050a18', star: '#ffffff', text: '#ffffff', preview: '#050a18' },
         { id: 'light-minimal', name: 'Білий мінімалізм', bg: '#f5f5f0', star: '#0a0e1a', text: '#0a0e1a', preview: '#f5f5f0' },
@@ -494,13 +499,13 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-1">Дизайн постера</h2>
-                <p className="text-gray-500 text-sm">Стиль та кольорова схема</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">{t('starmap.design_title')}</h2>
+                <p className="text-gray-500 text-sm">{t('starmap.design_subtitle')}</p>
             </div>
 
             {/* Style Selector */}
             <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Стиль</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">{t('starmap.style_label')}</label>
                 <div className="grid grid-cols-2 gap-2">
                     {styles.map((style) => (
                         <button
@@ -566,10 +571,10 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
 
             {/* Color Scheme */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Кольорова схема</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('starmap.color_scheme_label')}</label>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
                     <div>
-                        <label className="block text-xs text-gray-600 mb-1">Фон постера</label>
+                        <label className="block text-xs text-gray-600 mb-1">{t('starmap.background_color_label')}</label>
                         <input
                             type="color"
                             value={config.backgroundColor}
@@ -578,7 +583,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-gray-600 mb-1">Колір неба</label>
+                        <label className="block text-xs text-gray-600 mb-1">{t('starmap.sky_color_label')}</label>
                         <input
                             type="color"
                             value={(config as any).skyColor || config.backgroundColor}
@@ -587,7 +592,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-gray-600 mb-1">Зірки</label>
+                        <label className="block text-xs text-gray-600 mb-1">{t('starmap.stars_color_label')}</label>
                         <input
                             type="color"
                             value={config.starColor}
@@ -596,7 +601,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                         />
                     </div>
                     <div>
-                        <label className="block text-xs text-gray-600 mb-1">Текст</label>
+                        <label className="block text-xs text-gray-600 mb-1">{t('starmap.text_label')}</label>
                         <input
                             type="color"
                             value={config.textColor}
@@ -609,7 +614,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
 
             {/* Font Selector — dropdown */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Шрифт</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('starmap.font_label')}</label>
                 <select
                     value={config.fontFamily}
                     onChange={(e) => setConfig({ ...config, fontFamily: e.target.value })}
@@ -630,7 +635,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
 
             {/* Elements Toggles */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Елементи карти</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('starmap.map_elements_label')}</label>
                 <div className="flex flex-col gap-2">
                     {[
                         { key: 'showConstellations', label: "Лінії сузір'їв", default: true },
@@ -658,7 +663,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
             {/* Constellation language selector */}
             {(config as any).showConstellations !== false && (
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Мова назв сузір'їв</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">{t('starmap.constellation_lang_label')}</label>
                     <div className="flex flex-wrap gap-2">
                         {([
                             { value: 'uk', label: '🇺🇦 Українська' },
@@ -690,6 +695,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
 
 // Step 4: Size & Product
 function Step4SizeProduct({ config, setConfig, product }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>>; product: any }) {
+    const t = useT();
     const sizes = [
         { name: 'A4 (21×29.7 см)', price: 350 },
         { name: 'A3 (29.7×42 см)', price: 450 },
@@ -721,13 +727,13 @@ function Step4SizeProduct({ config, setConfig, product }: { config: StarMapConfi
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-1">Розмір та продукт</h2>
-                <p className="text-gray-500 text-sm">Оберіть формат постера</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">{t('starmap.size_product_title')}</h2>
+                <p className="text-gray-500 text-sm">{t('starmap.size_format_label')}</p>
             </div>
 
             {/* Size Selector */}
             <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Розмір</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">{t('starmap.size_label')}</label>
                 <div className="grid grid-cols-2 gap-2">
                     {sizes.map((size) => {
                         const isA4 = size.name.includes('A4');
@@ -768,7 +774,7 @@ function Step4SizeProduct({ config, setConfig, product }: { config: StarMapConfi
                                     <div>
                                         <div className={`text-sm font-bold ${isSelected ? 'text-[#1e2d7d]' : 'text-gray-900'}`}>
                                             {size.name}
-                                            {(isA4||isA3) && <span className="ml-1.5 text-xs font-normal px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Популярний</span>}
+                                            {(isA4||isA3) && <span className="ml-1.5 text-xs font-normal px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{t('starmap.popular_badge')}</span>}
                                         </div>
                                         <div className={`text-sm font-semibold mt-0.5 ${isSelected ? 'text-[#1e2d7d]' : 'text-gray-500'}`}>{size.price} ₴</div>
                                     </div>

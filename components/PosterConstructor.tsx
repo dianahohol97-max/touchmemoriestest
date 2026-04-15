@@ -10,6 +10,7 @@ import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 import PixarPortraitGenerator, { AI_PORTRAIT_PRICE } from './PixarPortraitGenerator';
 import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -474,6 +475,7 @@ function TextBlockEditor({ block, onUpdate, onDelete }: {
   onUpdate: (id: string, updates: Partial<TextBlock>) => void;
   onDelete: (id: string) => void;
 }) {
+  const t = useT();
   return (
     <div style={{ padding:'10px 12px', background:'#f8fafc', borderRadius:10, border:'1px solid #e2e8f0' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
@@ -483,7 +485,7 @@ function TextBlockEditor({ block, onUpdate, onDelete }: {
       <input type="text" value={block.text}
         onChange={e => onUpdate(block.id, { text: e.target.value })}
         style={{ width:'100%', padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:7, fontSize:13, marginBottom:8, boxSizing:'border-box' }}
-        placeholder="Текст напису..." />
+        placeholder={t('poster.text_placeholder')} />
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:6 }}>
         {/* Font */}
         <select value={block.fontFamily} onChange={e => onUpdate(block.id, { fontFamily: e.target.value })}
@@ -542,6 +544,7 @@ function TextBlockEditor({ block, onUpdate, onDelete }: {
 // ── Main Constructor ──────────────────────────────────────────────────────────
 
 export default function PosterConstructor() {
+    const t = useT();
   const router = useRouter();
   const { addItem } = useCartStore();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -667,7 +670,7 @@ export default function PosterConstructor() {
 
   // ── Order ────────────────────────────────────────────────────────────────
   const handleOrder = async () => {
-    if (config.photos.length === 0) { toast.error('Додайте хоча б одне фото'); return; }
+    if (config.photos.length === 0) { toast.error(t('poster.add_photo_first')); return; }
     setIsOrdering(true);
     try {
       let fileUrl = '';
@@ -737,7 +740,7 @@ export default function PosterConstructor() {
           {/* ── STEP 1: Layout ── */}
           {step === 'layout' && (
             <div>
-              <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>Оберіть макет</h3>
+              <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>{t('poster.select_layout')}</h3>
               <p style={{ fontSize:12, color:'#94a3b8', marginBottom:16 }}>Як розміщувати фотографії на постері</p>
               {[
                 { label: '1 фото', ids: ['single','circle-single','heart-single'] },
@@ -852,9 +855,9 @@ export default function PosterConstructor() {
                         <span style={{ fontSize:12, fontWeight:700, color:'#374151', flex:1 }}>Фото {i+1}</span>
                         {/* Move buttons */}
                         <button onClick={() => i > 0 && swapPhotos(i, i-1)} disabled={i===0}
-                          style={{ padding:'2px 7px', border:'1px solid #e2e8f0', borderRadius:5, background:'#fff', cursor:i===0?'not-allowed':'pointer', color:i===0?'#cbd5e1':'#374151', fontSize:12 }} title="Вгору">↑</button>
+                          style={{ padding:'2px 7px', border:'1px solid #e2e8f0', borderRadius:5, background:'#fff', cursor:i===0?'not-allowed':'pointer', color:i===0?'#cbd5e1':'#374151', fontSize:12 }} title={t('poster.up')}>↑</button>
                         <button onClick={() => i < config.photos.length-1 && swapPhotos(i, i+1)} disabled={i===config.photos.length-1}
-                          style={{ padding:'2px 7px', border:'1px solid #e2e8f0', borderRadius:5, background:'#fff', cursor:i===config.photos.length-1?'not-allowed':'pointer', color:i===config.photos.length-1?'#cbd5e1':'#374151', fontSize:12 }} title="Вниз">↓</button>
+                          style={{ padding:'2px 7px', border:'1px solid #e2e8f0', borderRadius:5, background:'#fff', cursor:i===config.photos.length-1?'not-allowed':'pointer', color:i===config.photos.length-1?'#cbd5e1':'#374151', fontSize:12 }} title={t('poster.down')}>↓</button>
                         {/* Replace button */}
                         <button onClick={() => { replaceTargetIdx.current = i; replaceInputRef.current?.click(); }}
                           style={{ padding:'2px 8px', border:'1px solid #c7d2fe', borderRadius:5, background:'#f0f3ff', cursor:'pointer', color:'#1e2d7d', fontSize:10, fontWeight:700 }}>🔄 Замінити</button>
@@ -903,7 +906,7 @@ export default function PosterConstructor() {
 
               {/* Frame style */}
               <div>
-                <label style={{ display:'block', fontSize:12, fontWeight:700, color:'#374151', marginBottom:8 }}>Рамка</label>
+                <label style={{ display:'block', fontSize:12, fontWeight:700, color:'#374151', marginBottom:8 }}>{t('poster.frame')}</label>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
                   {FRAME_STYLES.map(f => (
                     <button key={f.id} onClick={() => setConfig(p => ({ ...p, frameStyle: f.id as any }))}

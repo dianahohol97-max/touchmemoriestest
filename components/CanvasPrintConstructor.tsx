@@ -6,6 +6,7 @@ import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { Upload, ShoppingCart, X, ChevronLeft } from 'lucide-react';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 interface SizeOption {
     label: string;
@@ -24,6 +25,7 @@ interface PhotoFile {
 const STEP_LABELS = ['Розмір', 'Фото', 'Замовлення'];
 
 export default function CanvasPrintConstructor() {
+    const t = useT();
     const { addItem } = useCartStore();
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -90,7 +92,7 @@ export default function CanvasPrintConstructor() {
             slug: 'druk-na-polotni',
             personalization_note: `Файл: ${photo.file.name} (${photo.width}×${photo.height}px)`,
         });
-        toast.success('Додано до кошика!');
+        toast.success(t('canvasprint.added_to_cart'));
         setStep(3);
     };
 
@@ -152,7 +154,7 @@ export default function CanvasPrintConstructor() {
             {/* ── STEP 1: SIZE ── */}
             {step === 1 && (
                 <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', marginBottom: 20 }}>Оберіть розмір полотна</h2>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', marginBottom: 20 }}>{t('canvasprint.select_size')}</h2>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 32 }}>
                         {sizeOptions.map(opt => {
@@ -191,7 +193,7 @@ export default function CanvasPrintConstructor() {
                     {selectedSize && (
                         <div style={{ background: '#f0f3ff', border: '1px solid #c7d2fe', borderRadius: 10, padding: '14px 20px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
-                                <div style={{ fontSize: 13, color: '#64748b' }}>Обраний розмір</div>
+                                <div style={{ fontSize: 13, color: '#64748b' }}>{t('canvasprint.selected_size')}</div>
                                 <div style={{ fontSize: 16, fontWeight: 800, color: '#1e2d7d' }}>{selectedSize.label}</div>
                             </div>
                             <div style={{ fontSize: 22, fontWeight: 900, color: '#1e2d7d' }}>{selectedSize.price} ₴</div>
@@ -217,7 +219,7 @@ export default function CanvasPrintConstructor() {
                             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, color: '#64748b', fontWeight: 600 }}>
                             <ChevronLeft size={16} /> Назад
                         </button>
-                        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Завантажте фото</h2>
+                        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>{t('canvasprint.upload_photo')}</h2>
                     </div>
 
                     {/* Recommendations */}
@@ -266,7 +268,7 @@ export default function CanvasPrintConstructor() {
                                 <div style={{ fontSize: 16, fontWeight: 700, color: '#1e2d7d', marginBottom: 6 }}>
                                     Перетягніть фото або натисніть для вибору
                                 </div>
-                                <div style={{ fontSize: 13, color: '#94a3b8' }}>JPG, PNG, TIFF · до 100 МБ</div>
+                                <div style={{ fontSize: 13, color: '#94a3b8' }}>{t('canvasprint.file_types')}</div>
                             </>
                         )}
                     </div>
@@ -283,7 +285,7 @@ export default function CanvasPrintConstructor() {
                     {/* Quantity + price */}
                     {photo && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: '16px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Кількість:</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>{t('canvasprint.quantity')}</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <button onClick={() => setQty(q => Math.max(1, q - 1))}
                                     style={{ width: 32, height: 32, border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 16, fontWeight: 700, color: '#1e2d7d' }}>−</button>
@@ -298,7 +300,7 @@ export default function CanvasPrintConstructor() {
                     )}
 
                     {/* QR Code Generator */}
-                    <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="Додати QR-код до замовлення" /></div>
+                    <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label={t('canvasprint.add_qr')} /></div>
 
                     <button onClick={handleAddToCart} disabled={!photo}
                         style={{
@@ -315,7 +317,7 @@ export default function CanvasPrintConstructor() {
             {step === 3 && (
                 <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                     <div style={{ fontSize: 60, marginBottom: 16 }}>🎨</div>
-                    <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1e2d7d', marginBottom: 8 }}>Додано до кошика!</h2>
+                    <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1e2d7d', marginBottom: 8 }}>{t('canvasprint.added_to_cart')}</h2>
                     <p style={{ color: '#64748b', marginBottom: 32, fontSize: 15 }}>
                         Полотно <b>{selectedSize?.label}</b> чекає на тебе в кошику
                     </p>

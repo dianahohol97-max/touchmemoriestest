@@ -6,6 +6,7 @@ import { Upload, X, ShoppingCart, Trash2, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/cart-store';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 // Magnet sizes (cm) with aspect ratios
 const MAGNET_SIZES = [
@@ -35,7 +36,9 @@ const BASE_PRICE = 215; // minimum order
 const MIN_QUANTITY = 6;
 
 export default function MagnetConstructor() {
-  const router = useRouter();
+  
+    const t = useT();
+const router = useRouter();
   const { addItem } = useCartStore();
   const [magnets, setMagnets] = useState<Magnet[]>([]);
   const [activeMagnetId, setActiveMagnetId] = useState<string | null>(null);
@@ -48,7 +51,7 @@ export default function MagnetConstructor() {
   const handleFiles = async (files: FileList | File[]) => {
     const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
     if (fileArray.length === 0) {
-      toast.error('Будь ласка, завантажте зображення');
+      toast.error(t('magnet.image_error'));
       return;
     }
 
@@ -74,7 +77,7 @@ export default function MagnetConstructor() {
     if (!activeMagnetId && newMagnets.length > 0) {
       setActiveMagnetId(newMagnets[0].id);
     }
-    toast.success(`Додано ${newMagnets.length} ${newMagnets.length === 1 ? 'магніт' : 'магнітів'}`);
+    toast.success(`Додано ${newMagnets.length} ${newMagnets.length === 1 ? 'магніт' : t('magnet.added_multiple')}`);
   };
 
   const removeMagnet = (id: string) => {
@@ -114,7 +117,7 @@ export default function MagnetConstructor() {
       options: { 'Кількість': `${magnets.length} шт`, 'Розміри': [...new Set(sizes)].join(', ') },
       personalization_note: `${magnets.length} магнітів`,
     });
-    toast.success('Додано до кошика!');
+    toast.success(t('magnet.magnets_added'));
     router.push('/cart');
   };
 

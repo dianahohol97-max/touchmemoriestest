@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Upload, ShoppingCart } from 'lucide-react';
 import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 const LOCALES = {
   uk: { months:['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'], days:['Пн','Вт','Ср','Чт','Пт','Сб','Нд'] },
@@ -211,6 +212,7 @@ function MonthCanvas({month,year,design,lang,photos,collageId,W,H,marks}:{month:
 }
 
 export default function DeskCalendarConstructor(){
+    const t = useT();
   const router=useRouter();const {addItem}=useCartStore();
   const [design,setDesign]=useState<Design>(DESIGNS[0]);
   const [lang,setLang]=useState<LangCode>('uk');
@@ -222,7 +224,7 @@ export default function DeskCalendarConstructor(){
   const [monthPhotos,setMonthPhotos]=useState<PhotoSlot[][]>(Array.from({length:12},()=>Array(8).fill(null).map(makeSlot)));
   const [activeCropSlot,setActiveCropSlot]=useState<{month:number;slot:number}|null>(null);
   const [cover,setCover]=useState<CoverConfig>({...DEFAULT_COVER});
-  // Cover removed from desk calendar
+  const [showCover,setShowCover]=useState(false);
   const [marks,setMarks]=useState<Record<string,MarkedDate[]>>({});
   const [markShape,setMarkShape]=useState<'circle'|'heart'>('circle');
   const [markColor,setMarkColor]=useState('#1e2d7d');
@@ -249,14 +251,14 @@ export default function DeskCalendarConstructor(){
       {/* LEFT */}
       <div style={{width:310,flexShrink:0,background:'#fff',borderRight:'1px solid #e2e8f0',display:'flex',flexDirection:'column',overflowY:'auto'}}>
         <div style={{padding:'14px 14px 12px',borderBottom:'1px solid #f1f5f9'}}>
-          <h2 style={{fontSize:15,fontWeight:800,color:'#1e2d7d',margin:0}}>Настільний календар</h2>
-          <p style={{fontSize:10,color:'#94a3b8',margin:'3px 0 0'}}>12 місяців · вертикальний</p>
+          <h2 style={{fontSize:15,fontWeight:800,color:'#1e2d7d',margin:0}}>{t('deskcal.title')}</h2>
+          <p style={{fontSize:10,color:'#94a3b8',margin:'3px 0 0'}}>{t('deskcal.subtitle')}</p>
         </div>
         <div style={{flex:1,padding:13,display:'flex',flexDirection:'column',gap:14}}>
 
           {/* Design */}
           <div>
-            <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>Дизайн</label>
+            <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>{t('deskcal.design_label')}</label>
             {DESIGNS.map(d=>(
               <button key={d.id} onClick={()=>setDesign(d)} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 9px',width:'100%',border:design.id===d.id?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:8,background:design.id===d.id?'#f0f3ff':'#fff',cursor:'pointer',marginBottom:4}}>
                 <div style={{width:34,height:24,borderRadius:3,overflow:'hidden',flexShrink:0,border:'1px solid #e2e8f0'}}>
@@ -276,7 +278,7 @@ export default function DeskCalendarConstructor(){
 
           {/* Collage */}
           <div>
-            <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>Фото-слот</label>
+            <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>{t('deskcal.collage_label')}</label>
             <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:4,gridTemplateRows:'auto auto'}}>
               {COLLAGES.map(c=>(
                 <button key={c.id} onClick={()=>setCollageId(c.id)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'5px 3px',border:collageId===c.id?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:6,background:collageId===c.id?'#f0f3ff':'#fff',cursor:'pointer'}}>
@@ -289,7 +291,7 @@ export default function DeskCalendarConstructor(){
 
           {/* Language */}
           <div>
-            <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>Мова</label>
+            <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>{t('deskcal.language_label')}</label>
             <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
               {LANGS.map(l=><button key={l.code} onClick={()=>setLang(l.code)} style={{padding:'4px 7px',borderRadius:14,border:lang===l.code?'2px solid #1e2d7d':'1px solid #e2e8f0',background:lang===l.code?'#1e2d7d':'#fff',color:lang===l.code?'#fff':'#374151',fontSize:10,fontWeight:700,cursor:'pointer'}}>{l.flag} {l.label}</button>)}
             </div>
@@ -297,11 +299,96 @@ export default function DeskCalendarConstructor(){
 
           {/* Year */}
           <div>
-            <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>Рік</label>
+            <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>{t('deskcal.year_label')}</label>
             <div style={{display:'flex',gap:4}}>
               {[2025,2026,2027].map(y=><button key={y} onClick={()=>setYear(y)} style={{flex:1,padding:'6px',border:year===y?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:7,background:year===y?'#f0f3ff':'#fff',color:year===y?'#1e2d7d':'#374151',fontWeight:700,fontSize:12,cursor:'pointer'}}>{y}</button>)}
             </div>
           </div>
+
+          {/* ── COVER EDITOR ── */}
+          {showCover && (
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              <div style={{fontSize:12,fontWeight:800,color:'#7c3aed'}}>{t('deskcal.cover_editor_title')}</div>
+
+              {/* BG Color */}
+              <div>
+                <label style={{fontSize:10,fontWeight:700,color:'#374151',display:'block',marginBottom:5}}>{t('deskcal.cover_bg_color')}</label>
+                <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:4}}>
+                  {['#1e2d7d','#0a0e1a','#ffffff','#f5f0e8','#14532d','#3d2c1e','#7c3aed','#be185d','#1d4ed8','#475569'].map(c=>(
+                    <button key={c} onClick={()=>setCover(p=>({...p,bgColor:c}))} style={{width:22,height:22,borderRadius:'50%',background:c,border:cover.bgColor===c?'3px solid #1e2d7d':'2px solid #fff',cursor:'pointer',boxShadow:'0 0 0 1px #e2e8f0',flexShrink:0}}/>
+                  ))}
+                  <input type="color" value={cover.bgColor} onChange={e=>setCover(p=>({...p,bgColor:e.target.value}))} style={{width:22,height:22,border:'1px solid #e2e8f0',borderRadius:5,cursor:'pointer',padding:1}}/>
+                </div>
+              </div>
+
+              {/* BG photo */}
+              <div>
+                <label style={{fontSize:10,fontWeight:700,color:'#374151',display:'block',marginBottom:5}}>{t('deskcal.cover_bg_photo')}</label>
+                <input ref={coverBgFileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleCoverBgUpload}/>
+                {cover.bgPhoto ? (
+                  <div style={{position:'relative'}}>
+                    <img src={cover.bgPhoto} style={{width:'100%',height:50,objectFit:'cover',borderRadius:6,border:'1.5px solid #c7d2fe'}}/>
+                    <button onClick={()=>setCover(p=>({...p,bgPhoto:null}))} style={{position:'absolute',top:2,right:2,width:16,height:16,borderRadius:'50%',background:'rgba(0,0,0,0.6)',color:'#fff',border:'none',cursor:'pointer',fontSize:10}}>×</button>
+                    <div style={{marginTop:4,display:'flex',alignItems:'center',gap:6}}>
+                      <span style={{fontSize:9,color:'#64748b'}}>{t('deskcal.cover_photo_opacity')}</span>
+                      <input type="range" min={0.1} max={1} step={0.05} value={cover.photoOpacity} onChange={e=>setCover(p=>({...p,photoOpacity:+e.target.value}))} style={{flex:1,accentColor:'#7c3aed'}}/>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={()=>coverBgFileRef.current?.click()} style={{width:'100%',padding:'8px',border:'2px dashed #c7d2fe',borderRadius:6,background:'#f8faff',color:'#1e2d7d',cursor:'pointer',fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+                    <Upload size={11}/> Додати фото-фон
+                  </button>
+                )}
+              </div>
+
+              {/* Photo collage on cover */}
+              <div>
+                <label style={{fontSize:10,fontWeight:700,color:'#374151',display:'block',marginBottom:5}}>{t('deskcal.cover_collage_label')}</label>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:3,marginBottom:6}}>
+                  {COLLAGES.map(c=>(
+                    <button key={c.id} onClick={()=>setCover(p=>({...p,collageId:c.id}))} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 2px',border:cover.collageId===c.id?'2px solid #7c3aed':'1px solid #e2e8f0',borderRadius:5,background:cover.collageId===c.id?'#faf5ff':'#fff',cursor:'pointer'}}>
+                      <div style={{width:'100%',height:24,padding:2}}>{c.preview}</div>
+                      <span style={{fontSize:6,fontWeight:700,color:cover.collageId===c.id?'#7c3aed':'#374151',textAlign:'center'}}>{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:`repeat(${COLLAGES.find(c=>c.id===cover.collageId)?.slots||1},1fr)`,gap:4}}>
+                  {Array.from({length:COLLAGES.find(c=>c.id===cover.collageId)?.slots||1},(_,si)=>{
+                    const covPh=cover.photos[si];
+                    return covPh?(
+                      <div key={si} style={{position:'relative'}}>
+                        <img src={covPh} style={{width:'100%',height:50,objectFit:'cover',borderRadius:5,border:'1.5px solid #e9d5ff'}}/>
+                        <button onClick={()=>setCover(p=>({...p,photos:p.photos.map((x,i)=>i===si?null:x)}))} style={{position:'absolute',top:2,right:2,width:14,height:14,borderRadius:'50%',background:'rgba(0,0,0,0.6)',color:'#fff',border:'none',cursor:'pointer',fontSize:9}}>×</button>
+                      </div>
+                    ):(
+                      <label key={si} style={{height:50,border:'2px dashed #e9d5ff',borderRadius:5,background:'#fdf4ff',color:'#7c3aed',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:1}}>
+                        <Upload size={10}/>
+                        <span style={{fontSize:7,fontWeight:700}}>{(COLLAGES.find(c=>c.id===cover.collageId)?.slots||1)>1?`Фото ${si+1}`:'Фото'}</span>
+                        <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>handleCoverPhotoUpload(e,si)}/>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Title text */}
+              <div>
+                <label style={{fontSize:10,fontWeight:700,color:'#374151',display:'block',marginBottom:5}}>{t('deskcal.cover_title_label')}</label>
+                <input type="text" value={cover.titleText} onChange={e=>setCover(p=>({...p,titleText:e.target.value}))} placeholder={`Наша сім'я ${year}`} style={{width:'100%',padding:'7px 10px',border:'1px solid #e2e8f0',borderRadius:7,fontSize:12,boxSizing:'border-box',marginBottom:5}}/>
+                <div style={{display:'flex',gap:5,alignItems:'center'}}>
+                  <input type="color" value={cover.titleColor} onChange={e=>setCover(p=>({...p,titleColor:e.target.value}))} style={{width:24,height:24,border:'1px solid #e2e8f0',borderRadius:5,cursor:'pointer',padding:1}}/>
+                  <input type="range" min={14} max={50} value={cover.titleSize} onChange={e=>setCover(p=>({...p,titleSize:+e.target.value}))} style={{flex:1,accentColor:'#7c3aed'}}/>
+                  <span style={{fontSize:9,color:'#94a3b8',width:20}}>{cover.titleSize}px</span>
+                </div>
+              </div>
+
+              {/* Subtitle */}
+              <div>
+                <label style={{fontSize:10,fontWeight:700,color:'#374151',display:'block',marginBottom:5}}>{t('deskcal.cover_subtitle_label')}</label>
+                <input type="text" value={cover.subtitleText} onChange={e=>setCover(p=>({...p,subtitleText:e.target.value}))} placeholder={`Січень — Грудень ${year}`} style={{width:'100%',padding:'7px 10px',border:'1px solid #e2e8f0',borderRadius:7,fontSize:12,boxSizing:'border-box'}}/>
+              </div>
+            </div>
+          )}
 
           {/* ── MONTH EDITOR ── */}
           <>
@@ -326,20 +413,20 @@ export default function DeskCalendarConstructor(){
                     {isCropActive&&(
                       <div style={{background:'#f0f9ff',borderRadius:7,padding:'6px 8px',border:'1px solid #bae6fd',marginBottom:4}}>
                         <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:4}}>
-                          <span style={{fontSize:9,color:'#0369a1',width:28}}>🔍 Zoom</span>
+                          <span style={{fontSize:9,color:'#0369a1',width:28}}>{t('deskcal.zoom_label')}</span>
                           <input type="range" min={100} max={300} value={Math.round((slotData.zoom)*100)}
                             onChange={e=>updateSlot(active-1,si,{zoom:+e.target.value/100})}
                             style={{flex:1,accentColor:'#3b82f6'}}/>
                           <span style={{fontSize:9,color:'#475569',width:24}}>{Math.round(slotData.zoom*100)}%</span>
                         </div>
                         <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:4}}>
-                          <span style={{fontSize:9,color:'#0369a1',width:28}}>↔ X</span>
+                          <span style={{fontSize:9,color:'#0369a1',width:28}}>{t('deskcal.x_label')}</span>
                           <input type="range" min={0} max={100} value={slotData.cropX}
                             onChange={e=>updateSlot(active-1,si,{cropX:+e.target.value})}
                             style={{flex:1,accentColor:'#3b82f6'}}/>
                         </div>
                         <div style={{display:'flex',alignItems:'center',gap:5}}>
-                          <span style={{fontSize:9,color:'#0369a1',width:28}}>↕ Y</span>
+                          <span style={{fontSize:9,color:'#0369a1',width:28}}>{t('deskcal.y_label')}</span>
                           <input type="range" min={0} max={100} value={slotData.cropY}
                             onChange={e=>updateSlot(active-1,si,{cropY:+e.target.value})}
                             style={{flex:1,accentColor:'#3b82f6'}}/>
@@ -365,7 +452,7 @@ export default function DeskCalendarConstructor(){
             <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>Виділені дні — {loc.months[active-1]}</label>
             <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
               <button onClick={()=>setMarkShape('circle')} style={{padding:'3px 7px',border:markShape==='circle'?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:12,background:markShape==='circle'?'#f0f3ff':'#fff',color:markShape==='circle'?'#1e2d7d':'#374151',fontSize:10,fontWeight:700,cursor:'pointer'}}>⬤ Коло</button>
-              <button onClick={()=>setMarkShape('heart')} style={{padding:'3px 7px',border:markShape==='heart'?'2px solid #e11d48':'1px solid #e2e8f0',borderRadius:12,background:markShape==='heart'?'#fff1f2':'#fff',color:markShape==='heart'?'#e11d48':'#374151',fontSize:10,fontWeight:700,cursor:'pointer'}}>♥ Серце</button>
+              <button onClick={()=>setMarkShape('heart')} style={{padding:'3px 7px',border:markShape==='heart'?'2px solid #e11d48':'1px solid #e2e8f0',borderRadius:12,background:markShape==='heart'?'#fff1f2':'#fff',color:markShape==='heart'?'#e11d48':'#374151',fontSize:10,fontWeight:700,cursor:'pointer'}}>{t('deskcal.heart_mark')}</button>
               {['#1e2d7d','#e11d48','#16a34a','#c8a96e','#7c3aed','#ea580c','#000'].map(c=><button key={c} onClick={()=>setMarkColor(c)} style={{width:18,height:18,borderRadius:'50%',background:c,border:markColor===c?'3px solid #1e2d7d':'2px solid #fff',cursor:'pointer',boxShadow:'0 0 0 1px #e2e8f0',flexShrink:0}}/>)}
               <input type="color" value={markColor} onChange={e=>setMarkColor(e.target.value)} style={{width:22,height:22,border:'1px solid #e2e8f0',borderRadius:5,cursor:'pointer',padding:1}}/>
             </div>
@@ -376,14 +463,16 @@ export default function DeskCalendarConstructor(){
               for(let d=1;d<=daysInMonth;d++){const mark=curMarks.find(m=>m.day===d);cells.push(<button key={d} onClick={()=>toggleMark(d)} style={{aspectRatio:'1',borderRadius:mark?.shape==='heart'?3:'50%',border:mark?'none':'1px solid #e2e8f0',background:mark?mark.color:'#fff',color:mark?'#fff':'#374151',fontSize:8,fontWeight:mark?700:400,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>{mark?.shape==='heart'&&<span style={{fontSize:10,lineHeight:1,position:'absolute'}}>♥</span>}<span style={{position:mark?.shape==='heart'?'absolute':'static',fontSize:7,fontWeight:700}}>{d}</span></button>);}
               return(<div><div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2,marginBottom:2}}>{loc.days.map(d=><div key={d} style={{fontSize:7,fontWeight:700,color:'#94a3b8',textAlign:'center'}}>{d}</div>)}</div><div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2}}>{cells}</div></div>);
             })()}
-            {curMarks.length>0&&<button onClick={()=>setMarks(prev=>({...prev,[`m${active}`]:[]}))} style={{marginTop:5,fontSize:9,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>Очистити</button>}
+            {curMarks.length>0&&<button onClick={()=>setMarks(prev=>({...prev,[`m${active}`]:[]}))} style={{marginTop:5,fontSize:9,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>{t('deskcal.clear_marks')}</button>}
           </div>
           </>
 
           {/* Month nav */}
           <div>
-            <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>Місяці</label>
-
+            <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>{t('deskcal.pages_label')}</label>
+            <button onClick={()=>setShowCover(true)} style={{width:'100%',padding:'6px',border:showCover?'2px solid #7c3aed':'1px solid #e2e8f0',borderRadius:7,background:showCover?'#faf5ff':'#fff',color:showCover?'#7c3aed':'#374151',fontWeight:700,fontSize:11,cursor:'pointer',marginBottom:6}}>
+              🎨 Обкладинка
+            </button>
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:3}}>
               {Array.from({length:12},(_,i)=>{const m=i+1;const hp=monthPhotos[i].some(p=>p!==null);return(<button key={m} onClick={()=>{setActive(m);}} style={{padding:'5px 2px',border:active===m?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:5,background:active===m?'#f0f3ff':'#fff',fontSize:9,fontWeight:600,color:active===m?'#1e2d7d':'#374151',cursor:'pointer',position:'relative'}}>{loc.months[i].slice(0,3)}{hp&&<span style={{position:'absolute',top:1,right:1,width:4,height:4,borderRadius:'50%',background:'#10b981'}}/>}</button>);})}
             </div>
@@ -393,13 +482,13 @@ export default function DeskCalendarConstructor(){
 
         <div style={{padding:13,borderTop:'1px solid #f1f5f9'}}>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:7}}>
-            <span style={{fontSize:12,color:'#64748b'}}>Настільний календар {year}</span>
-            <span style={{fontSize:16,fontWeight:800,color:'#1e2d7d'}}>450 ₴</span>
+            <span style={{fontSize:12,color:'#64748b'}}>{t('deskcal.price_label')}</span>
+            <span style={{fontSize:16,fontWeight:800,color:'#1e2d7d'}}>{t('deskcal.price_amount')}</span>
           </div>
           {/* QR Code Generator */}
           <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
 
-          <button onClick={()=>{addItem({id:`desk-cal-${Date.now()}`,name:`Настільний календар ${year}`,price:450,qty:1,image:monthPhotos.flat().find(p=>p.url!==null)?.url||'',options:{'Дизайн':design.name,'Мова':lang,'Рік':String(year)},personalization_note:`Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`});toast.success('✅ Календар додано!');router.push('/cart');}} style={{width:'100%',padding:'11px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:8,fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 4px 12px rgba(30,45,125,0.28)'}}>
+          <button onClick={()=>{addItem({id:`desk-cal-${Date.now()}`,name:`Настільний календар ${year}`,price:450,qty:1,image:monthPhotos.flat().find(p=>p.url!==null)?.url||'',options:{'Дизайн':design.name,'Мова':lang,'Рік':String(year)},personalization_note:`Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`});toast.success(t('deskcal.order_success'));router.push('/cart');}} style={{width:'100%',padding:'11px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:8,fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 4px 12px rgba(30,45,125,0.28)'}}>
             <ShoppingCart size={14}/> Замовити — 450 ₴
           </button>
         </div>
@@ -422,8 +511,13 @@ export default function DeskCalendarConstructor(){
         </div>
 
         <div style={{width:'100%',maxWidth:660}}>
-          <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:7}}>Всі місяці</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:5}}>
+          <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:7}}>{t('deskcal.all_pages_label')}</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:5}}>
+            {/* Cover thumbnail */}
+            <div onClick={()=>setShowCover(true)} style={{cursor:'pointer',borderRadius:5,overflow:'hidden',border:showCover?'2px solid #7c3aed':'1px solid #e2e8f0',boxSizing:'border-box'}}>
+              <CoverCanvas cover={cover} year={year} W={100} H={Math.round(100*(21/15))}/>
+              <div style={{fontSize:7,textAlign:'center',padding:'2px 0',background:'#fff',color:'#64748b',fontWeight:600}}>{t('deskcal.cover_short')}</div>
+            </div>
             {Array.from({length:12},(_,i)=>(
               <div key={i} onClick={()=>setActive(i+1)} style={{cursor:'pointer',borderRadius:5,overflow:'hidden',border:active===i+1?'2px solid #1e2d7d':'1px solid #e2e8f0',boxSizing:'border-box'}}>
                 <MonthCanvas month={i+1} year={year} design={design} lang={lang} photos={monthPhotos[i]} collageId={collageId} W={100} H={Math.round(100*(21/15))} marks={marks[`m${i+1}`]||[]}/>

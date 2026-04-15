@@ -5,6 +5,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Upload, Check } from 'lucide-react';
+import { useT } from '@/lib/i18n/context';
 import { CoverEditor, CoverConfig, VELOUR_COLORS, LEATHERETTE_COLORS, FABRIC_COLORS } from './CoverEditor';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
@@ -87,6 +88,7 @@ const DEFAULT_COVER: CoverConfig = {
 // ── Page preview ───────────────────────────────────────────────────────────────
 function PagePreview({ pageColor, interiorType, prompts, W, H }:
   { pageColor:PageColor; interiorType:InteriorType; prompts:PromptItem[]; W:number; H:number }) {
+  const t = useT();
   const ref = useRef<HTMLCanvasElement>(null);
   const c = PAGE_COLORS.find(p=>p.id===pageColor)!;
   useEffect(()=>{
@@ -125,6 +127,7 @@ function PagePreview({ pageColor, interiorType, prompts, W, H }:
 // ── Cover canvas preview ───────────────────────────────────────────────────────
 function CoverPreview({ cover, photos, W, H }:
   { cover:CoverConfig; photos:{id:string;preview:string}[]; W:number; H:number }) {
+  const t = useT();
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
     const canvas = ref.current; if(!canvas) return;
@@ -173,6 +176,7 @@ function CoverPreview({ cover, photos, W, H }:
 
 // ── Main constructor ───────────────────────────────────────────────────────────
 export default function GuestBookConstructorNew() {
+  const t = useT();
   const router = useRouter();
   const { addItem } = useCartStore();
   const [step, setStep] = useState(0); // 0=cover, 1=pages, 2=size
@@ -224,7 +228,7 @@ export default function GuestBookConstructorNew() {
       },
       personalization_note:`Текст: ${cover.decoText||cover.printedTextBlocks?.[0]?.text||''}`,
     });
-    toast.success('✅ Книгу побажань додано до кошика!');
+    toast.success(t('guestbooknew.successMessage'));
     router.push('/cart');
   };
 
@@ -236,10 +240,10 @@ export default function GuestBookConstructorNew() {
           <ChevronLeft size={14}/> Назад
         </a>
         <span style={{color:'#e2e8f0'}}>|</span>
-        <h1 style={{fontSize:16,fontWeight:800,color:'#1e2d7d',margin:0}}>Конструктор книги побажань</h1>
+        <h1 style={{fontSize:16,fontWeight:800,color:'#1e2d7d',margin:0}}>{t('guestbooknew.title')}</h1>
         <div style={{marginLeft:'auto',fontSize:18,fontWeight:900,color:'#1e2d7d'}}>{totalPrice} ₴</div>
         {step===2&&<button onClick={handleOrder} style={{display:'flex',alignItems:'center',gap:6,padding:'9px 18px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:9,fontWeight:800,fontSize:13,cursor:'pointer',boxShadow:'0 4px 16px rgba(30,45,125,0.25)'}}>
-          <ShoppingCart size={15}/> Замовити
+          <ShoppingCart size={15}/> {t('guestbooknew.order')}
         </button>}
       </div>
 
@@ -264,14 +268,14 @@ export default function GuestBookConstructorNew() {
           {/* STEP 0: Cover */}
           {step===0&&(<>
             <div>
-              <h3 style={{fontSize:14,fontWeight:800,color:'#1e2d7d',margin:'0 0 4px'}}>Матеріал обкладинки</h3>
+              <h3 style={{fontSize:14,fontWeight:800,color:'#1e2d7d',margin:'0 0 4px'}}>{t('guestbooknew.coverMaterial')}</h3>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7}}>
                 {(['velour','leatherette','fabric','printed'] as CoverMaterial[]).map(mat=>(
                   <button key={mat} onClick={()=>setCover(prev=>({...prev,coverMaterial:mat,coverColorName:MAT_COLORS[mat][0]?.name||''}))}
                     style={{padding:'10px 8px',border:cover.coverMaterial===mat?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:10,background:cover.coverMaterial===mat?'#f0f3ff':'#fff',cursor:'pointer',textAlign:'left'}}>
                     <div style={{fontSize:12,fontWeight:700,color:cover.coverMaterial===mat?'#1e2d7d':'#374151'}}>{MAT_LABELS[mat]}</div>
-                    <div style={{fontSize:10,color:'#94a3b8'}}>{mat==='velour'?'Оксамитова фактура':mat==='leatherette'?'Класична шкіра':mat==='fabric'?'М\'яка текстура':'Повнокольоровий друк'}</div>
-                    {mat==='printed'&&<div style={{fontSize:9,color:'#10b981',fontWeight:700,marginTop:2}}>−200 ₴</div>}
+                    <div style={{fontSize:10,color:'#94a3b8'}}>{mat==='velour'?t('guestbooknew.velourDesc'):mat==='leatherette'?t('guestbooknew.leatheretteDesc'):mat==='fabric'?t('guestbooknew.fabricDesc'):t('guestbooknew.printedDesc')}</div>
+                    {mat==='printed'&&<div style={{fontSize:9,color:'#10b981',fontWeight:700,marginTop:2}}>{t('guestbooknew.printedDiscount')}</div>}
                   </button>
                 ))}
               </div>
@@ -281,7 +285,7 @@ export default function GuestBookConstructorNew() {
             {cover.coverMaterial!=='printed'&&(
               <div>
                 <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>
-                  Колір {cover.coverMaterial==='velour'?'велюру':cover.coverMaterial==='leatherette'?'шкірзаму':'тканини'}
+                  {cover.coverMaterial==='velour'?t('guestbooknew.coverColorVelour'):cover.coverMaterial==='leatherette'?t('guestbooknew.coverColorLeatherette'):t('guestbooknew.coverColorFabric')}
                 </h4>
                 <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:5}}>
                   {MAT_COLORS[cover.coverMaterial as CoverMaterial].map(({name,hex})=>(
@@ -291,14 +295,14 @@ export default function GuestBookConstructorNew() {
                         cursor:'pointer',boxShadow:'0 0 0 0.5px #ddd'}}/>
                   ))}
                 </div>
-                <div style={{fontSize:11,color:'#64748b'}}>Обрано: <b>{cover.coverColorName}</b></div>
+                <div style={{fontSize:11,color:'#64748b'}}>{t('guestbooknew.selected')} <b>{cover.coverColorName}</b></div>
               </div>
             )}
 
             {/* Printed: photo upload + bg color */}
             {cover.coverMaterial==='printed'&&(
               <div>
-                <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>Фото для обкладинки</h4>
+                <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>{t('guestbooknew.photoForCover')}</h4>
                 <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handlePhotoUpload}/>
                 {photos.length>0&&(
                   <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:5,marginBottom:8}}>
@@ -313,7 +317,7 @@ export default function GuestBookConstructorNew() {
                 )}
                 <button onClick={()=>fileRef.current?.click()}
                   style={{width:'100%',padding:'9px',border:'2px dashed #c7d2fe',borderRadius:8,background:'#f8faff',color:'#1e2d7d',fontWeight:700,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>
-                  <Upload size={13}/> Завантажити фото
+                  <Upload size={13}/> {t('guestbooknew.uploadPhoto')}
                 </button>
                 <div style={{marginTop:10}}>
                   <div style={{fontSize:11,fontWeight:700,color:'#374151',marginBottom:6}}>Колір фону</div>
@@ -331,7 +335,7 @@ export default function GuestBookConstructorNew() {
 
             {/* Text on cover */}
             <div>
-              <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>Текст на обкладинці</h4>
+              <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>{t('guestbooknew.coverText')}</h4>
               <input type="text"
                 value={cover.coverMaterial==='printed'?(cover.printedTextBlocks?.[0]?.text||''):(cover.decoText||'')}
                 onChange={e=>{
@@ -344,7 +348,7 @@ export default function GuestBookConstructorNew() {
                     setCover(prev=>({...prev,decoText:e.target.value}));
                   }
                 }}
-                placeholder="Книга побажань"
+                placeholder={t('guestbooknew.book')}
                 style={{width:'100%',padding:'9px 11px',border:'1px solid #e2e8f0',borderRadius:8,fontSize:13,boxSizing:'border-box',marginBottom:6}}/>
               <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
                 {['Книга побажань','Наше весілля','Guest Book','Mr & Mrs','З Днем Народження!'].map(s=>(
@@ -360,7 +364,7 @@ export default function GuestBookConstructorNew() {
 
             {/* Decoration */}
             <div>
-              <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>Декор</h4>
+              <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>{t('guestbooknew.decoration')}</h4>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:5}}>
                 {DECO_TYPES.map(d=>(
                   <button key={d.id} onClick={()=>setCover(prev=>({...prev,decoType:d.id as any}))}
@@ -375,7 +379,7 @@ export default function GuestBookConstructorNew() {
           {/* STEP 1: Pages */}
           {step===1&&(<>
             <div>
-              <h3 style={{fontSize:14,fontWeight:800,color:'#1e2d7d',margin:'0 0 4px'}}>Тип сторінок</h3>
+              <h3 style={{fontSize:14,fontWeight:800,color:'#1e2d7d',margin:'0 0 4px'}}>{t('guestbooknew.pageTypes')}</h3>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
                 {INTERIOR_TYPES.map(t=>(
                   <button key={t.id} onClick={()=>setInteriorType(t.id)}
@@ -404,7 +408,7 @@ export default function GuestBookConstructorNew() {
             )}
 
             <div>
-              <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>Колір сторінок</h4>
+              <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>{t('guestbooknew.pageColor')}</h4>
               <div style={{display:'flex',gap:8}}>
                 {PAGE_COLORS.map(c=>(
                   <button key={c.id} onClick={()=>setPageColor(c.id)}
@@ -417,7 +421,7 @@ export default function GuestBookConstructorNew() {
             </div>
 
             <div>
-              <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>Кількість сторінок</h4>
+              <h4 style={{fontSize:12,fontWeight:700,color:'#374151',margin:'0 0 8px'}}>{t('guestbooknew.pageCount')}</h4>
               <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
                 {PAGE_COUNTS.map(n=>(
                   <button key={n} onClick={()=>setPageCount(n)}
@@ -433,14 +437,14 @@ export default function GuestBookConstructorNew() {
           {/* STEP 2: Size + order */}
           {step===2&&(<>
             <div>
-              <h3 style={{fontSize:14,fontWeight:800,color:'#1e2d7d',margin:'0 0 12px'}}>Розмір</h3>
+              <h3 style={{fontSize:14,fontWeight:800,color:'#1e2d7d',margin:'0 0 12px'}}>{t('guestbooknew.size')}</h3>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {SIZES.map(s=>(
                   <button key={s.id} onClick={()=>setSize(s.id)}
                     style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',border:size===s.id?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:10,background:size===s.id?'#f0f3ff':'#fff',cursor:'pointer'}}>
                     <div style={{textAlign:'left'}}>
                       <div style={{fontSize:14,fontWeight:700,color:size===s.id?'#1e2d7d':'#374151'}}>{s.label}</div>
-                      <div style={{fontSize:10,color:'#94a3b8'}}>{s.id==='30x20'?'Горизонтальна':s.id==='23x23'?'Квадратна':'Вертикальна'}</div>
+                      <div style={{fontSize:10,color:'#94a3b8'}}>{s.id==='30x20'?t('guestbooknew.horizontal'):s.id==='23x23'?t('guestbooknew.square'):t('guestbooknew.vertical')}</div>
                     </div>
                     <span style={{fontSize:15,fontWeight:800,color:size===s.id?'#1e2d7d':'#374151'}}>{s.price} ₴</span>
                   </button>
@@ -449,29 +453,29 @@ export default function GuestBookConstructorNew() {
             </div>
 
             <div style={{background:'#f0f3ff',borderRadius:12,padding:14}}>
-              <div style={{fontSize:12,color:'#64748b',marginBottom:6}}>Ваше замовлення:</div>
+              <div style={{fontSize:12,color:'#64748b',marginBottom:6}}>{t('guestbooknew.yourOrder')}</div>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
-                <span style={{fontSize:13,color:'#374151'}}>Книга побажань {sizeObj.label}</span>
+                <span style={{fontSize:13,color:'#374151'}}>{t('guestbooknew.book')} {sizeObj.label}</span>
                 <span style={{fontSize:13,fontWeight:700,color:'#1e2d7d'}}>{sizeObj.price} ₴</span>
               </div>
               {cover.coverMaterial==='printed'&&(
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
-                  <span style={{fontSize:12,color:'#64748b'}}>Друкована обкладинка</span>
-                  <span style={{fontSize:12,color:'#10b981',fontWeight:700}}>−200 ₴</span>
+                  <span style={{fontSize:12,color:'#64748b'}}>{t('guestbooknew.printedCover')}</span>
+                  <span style={{fontSize:12,color:'#10b981',fontWeight:700}}>{t('guestbooknew.printedDiscount')}</span>
                 </div>
               )}
               <div style={{borderTop:'1px solid #c7d2fe',marginTop:8,paddingTop:8,display:'flex',justifyContent:'space-between'}}>
-                <span style={{fontWeight:700}}>Разом</span>
+                <span style={{fontWeight:700}}>{t('guestbooknew.total')}</span>
                 <span style={{fontSize:18,fontWeight:800,color:'#1e2d7d'}}>{totalPrice} ₴</span>
               </div>
             </div>
 
             {/* QR Code Generator */}
-            <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="Додати QR-код до замовлення" /></div>
+            <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label={t('guestbooknew.addQRCode')} /></div>
 
             <button onClick={handleOrder}
               style={{width:'100%',padding:'13px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:10,fontWeight:800,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 4px 20px rgba(30,45,125,0.3)'}}>
-              <ShoppingCart size={17}/> Замовити — {totalPrice} ₴
+              <ShoppingCart size={17}/> {t('guestbooknew.order')} — {totalPrice} ₴
             </button>
           </>)}
 
@@ -491,7 +495,7 @@ export default function GuestBookConstructorNew() {
         {/* ── Right: Preview ── */}
         <div style={{flex:1,background:'#f4f6fb',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:'32px 24px',overflowY:'auto',gap:20}}>
           <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase'}}>
-            {step===0?'Обкладинка':step===1?'Внутрішня сторінка':'Книга побажань'} — {sizeObj.label}
+            {step===0?t('guestbooknew.coverPreview'):step===1?t('guestbooknew.pagePreview'):t('guestbooknew.bookPreview')} — {sizeObj.label}
           </div>
 
           {step===0&&(
@@ -518,7 +522,7 @@ export default function GuestBookConstructorNew() {
 
           {step===2&&(<>
             <div style={{width:'100%',maxWidth:PW+20}}>
-              <div style={{fontSize:11,color:'#94a3b8',marginBottom:5,textAlign:'center'}}>Обкладинка</div>
+              <div style={{fontSize:11,color:'#94a3b8',marginBottom:5,textAlign:'center'}}>{t('guestbooknew.coverPreview')}</div>
               <div style={{boxShadow:'0 6px 28px rgba(0,0,0,0.15)',borderRadius:8,overflow:'hidden'}}>
                 <CoverPreview cover={cover} photos={photos} W={PW} H={PH}/>
               </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Upload, ShoppingCart, Image as ImageIcon, Type, QrCode, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/cart-store';
+import { useT } from '@/lib/i18n/context';
 
 // Puzzle formats: A5/A4/A3 in both orientations, piece counts from wolf.ua
 type PuzzleFormat = {
@@ -64,6 +65,7 @@ const BG_COLORS = ['#ffffff', '#f5ecd7', '#f8e1e1', '#e0f0e8', '#e3e8f5', '#1a1a
 const TEXT_COLORS = ['#1a1a1a', '#ffffff', '#1e2d7d', '#c09060', '#8a4a4a', '#5a7a3a'];
 
 export default function PuzzleConstructor(_props: { productSlug?: string } = {}) {
+  const t = useT();
   const router = useRouter();
   const { addItem } = useCartStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,7 +99,7 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
     const reader = new FileReader();
     reader.onload = (e) => {
       update({ photoUrl: e.target?.result as string, cropX: 50, cropY: 50, zoom: 1 });
-      toast.success('Фото завантажено');
+      toast.success(t('puzzle.uploadPhoto'));
     };
     reader.readAsDataURL(file);
   };
@@ -110,9 +112,9 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
   const totalPrice = format.basePrice + finishData.priceAdd + (config.mode === 'qr' ? QR_PRICE : 0);
 
   const addToCart = () => {
-    if ((config.mode === 'photo' || config.mode === 'photo-text') && !config.photoUrl) { toast.error('Завантажте фото'); return; }
-    if (config.mode === 'text' && !config.text.trim()) { toast.error('Введіть текст'); return; }
-    if (config.mode === 'qr' && !config.qrValue.trim()) { toast.error('Введіть дані для QR-коду'); return; }
+    if ((config.mode === 'photo' || config.mode === 'photo-text') && !config.photoUrl) { toast.error(t('puzzle.uploadPhoto')); return; }
+    if (config.mode === 'text' && !config.text.trim()) { toast.error(t('puzzle.textPlaceholder')); return; }
+    if (config.mode === 'qr' && !config.qrValue.trim()) { toast.error(t('puzzle.qrPlaceholder')); return; }
     addItem({
       id: `puzzle-${Date.now()}`,
       name: 'Фотопазл',
@@ -127,7 +129,7 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
       },
       personalization_note: `${format.label} · ${config.pieceCount} деталей · ${finishData.label}`,
     });
-    toast.success('Додано до кошика!');
+    toast.success(t('puzzle.addToCart'));
     router.push('/cart');
   };
 
@@ -146,8 +148,8 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d', margin: 0 }}>Конструктор пазлів</h1>
-          <p style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>Фото, текст або QR-код — оберіть формат та деталізацію</p>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d', margin: 0 }}>{t('puzzle.title')}</h1>
+          <p style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>{t('puzzle.subtitle')}</p>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d' }}>{totalPrice} ₴</div>
@@ -161,12 +163,12 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
         <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Що на пазлі?</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('puzzle.what')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
               {([
-                { id: 'photo' as Mode,      label: 'Фото',        icon: <ImageIcon size={14} /> },
-                { id: 'text' as Mode,       label: 'Текст',       icon: <Type size={14} /> },
-                { id: 'photo-text' as Mode, label: 'Фото+текст',  icon: <Sparkles size={14} /> },
+                { id: 'photo' as Mode,      label: t('puzzle.photo'),        icon: <ImageIcon size={14} /> },
+                { id: 'text' as Mode,       label: t('puzzle.text'),       icon: <Type size={14} /> },
+                { id: 'photo-text' as Mode, label: t('puzzle.photoText'),  icon: <Sparkles size={14} /> },
                 { id: 'qr' as Mode,         label: `QR (+${QR_PRICE}₴)`, icon: <QrCode size={14} /> },
               ]).map(m => (
                 <button key={m.id} onClick={() => update({ mode: m.id })}
@@ -178,7 +180,7 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
           </div>
 
           <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Формат</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('puzzle.format')}</div>
             <div style={{ display: 'grid', gap: 6 }}>
               {PUZZLE_FORMATS.map(f => {
                 const isActive = config.formatId === f.id;
@@ -197,7 +199,7 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
           </div>
 
           <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Деталей</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('puzzle.pieces')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
               {format.pieceCounts.map(pc => (
                 <button key={pc} onClick={() => update({ pieceCount: pc })}
@@ -209,15 +211,18 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
           </div>
 
           <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Покриття</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('puzzle.finish')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-              {FINISHES.map(f => (
-                <button key={f.id} onClick={() => update({ finish: f.id as 'matte' | 'glossy' })}
-                  style={{ padding: '10px 8px', border: config.finish === f.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: config.finish === f.id ? '#f0f3ff' : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: config.finish === f.id ? '#1e2d7d' : '#475569' }}>
-                  <div>{f.label}</div>
-                  {f.priceAdd > 0 && <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>+{f.priceAdd}₴</div>}
-                </button>
-              ))}
+              {FINISHES.map(f => {
+                const finishLabel = f.id === 'matte' ? t('puzzle.matte') : t('puzzle.glossy');
+                return (
+                  <button key={f.id} onClick={() => update({ finish: f.id as 'matte' | 'glossy' })}
+                    style={{ padding: '10px 8px', border: config.finish === f.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: config.finish === f.id ? '#f0f3ff' : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: config.finish === f.id ? '#1e2d7d' : '#475569' }}>
+                    <div>{finishLabel}</div>
+                    {f.priceAdd > 0 && <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>+{f.priceAdd}₴</div>}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -240,7 +245,7 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
                 ) : (
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', gap: 8 }}>
                     <ImageIcon size={40} color="#cbd5e1" />
-                    <span style={{ fontSize: 12, fontWeight: 600 }}>Завантажте фото</span>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{t('puzzle.uploadPhoto')}</span>
                   </div>
                 )
               )}
@@ -292,11 +297,11 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
           {(config.mode === 'photo' || config.mode === 'photo-text') && (
             <>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Фото</div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('puzzle.uploadPhoto')}</div>
                 <button onClick={() => fileInputRef.current?.click()}
                   style={{ width: '100%', padding: '16px', border: '2px dashed #cbd5e1', borderRadius: 8, background: '#f8fafc', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                   <Upload size={20} color="#64748b" />
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>{config.photoUrl ? 'Замінити фото' : 'Завантажити фото'}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>{config.photoUrl ? t('puzzle.replacePhoto') : t('puzzle.uploadPhoto')}</div>
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*"
                   onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])} style={{ display: 'none' }} />
@@ -306,28 +311,28 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
                 <>
                   <div>
                     <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span>Масштаб</span><span>{config.zoom.toFixed(1)}x</span>
+                      <span>{t('puzzle.zoom')}</span><span>{config.zoom.toFixed(1)}x</span>
                     </label>
                     <input type="range" min="1" max="3" step="0.1" value={config.zoom}
                       onChange={e => update({ zoom: parseFloat(e.target.value) })} style={{ width: '100%' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span>Позиція X</span><span>{Math.round(config.cropX)}%</span>
+                      <span>{t('puzzle.positionX')}</span><span>{Math.round(config.cropX)}%</span>
                     </label>
                     <input type="range" min="0" max="100" value={config.cropX}
                       onChange={e => update({ cropX: parseFloat(e.target.value) })} style={{ width: '100%' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span>Позиція Y</span><span>{Math.round(config.cropY)}%</span>
+                      <span>{t('puzzle.positionY')}</span><span>{Math.round(config.cropY)}%</span>
                     </label>
                     <input type="range" min="0" max="100" value={config.cropY}
                       onChange={e => update({ cropY: parseFloat(e.target.value) })} style={{ width: '100%' }} />
                   </div>
                   <button onClick={() => update({ cropX: 50, cropY: 50, zoom: 1 })}
                     style={{ padding: '6px', border: '1px solid #e2e8f0', borderRadius: 6, background: '#f8fafc', cursor: 'pointer', fontSize: 11, color: '#64748b', fontWeight: 600 }}>
-                    ↺ Скинути кадрування
+                    ↺ {t('puzzle.reset')}
                   </button>
                 </>
               )}
@@ -337,10 +342,10 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
           {(config.mode === 'text' || config.mode === 'photo-text' || config.mode === 'qr') && (
             <div>
               <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {config.mode === 'qr' ? "Підпис (необов'язково)" : 'Ваш текст'}
+                {config.mode === 'qr' ? t('puzzle.caption') : t('puzzle.yourText')}
               </div>
               <textarea value={config.text} onChange={e => update({ text: e.target.value })}
-                placeholder={config.mode === 'qr' ? 'Наприклад: Відскануй мене' : 'Введіть текст...'}
+                placeholder={config.mode === 'qr' ? t('puzzle.qrCaption') : t('puzzle.textPlaceholder')}
                 rows={3}
                 style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} />
             </div>
@@ -348,12 +353,12 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
 
           {config.mode === 'qr' && (
             <div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Дані для QR</div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('puzzle.qrData')}</div>
               <input type="text" value={config.qrValue} onChange={e => update({ qrValue: e.target.value })}
-                placeholder="URL, текст, телефон..."
+                placeholder={t('puzzle.qrPlaceholder')}
                 style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }} />
               <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
-                https://site.com, tel:+380..., mailto:...
+                {t('puzzle.qrExamples')}
               </div>
             </div>
           )}
@@ -361,14 +366,14 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
           {(config.mode === 'text' || config.mode === 'photo-text' || config.mode === 'qr') && (
             <>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>Шрифт</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>{t('puzzle.font')}</div>
                 <select value={config.fontFamily} onChange={e => update({ fontFamily: e.target.value })}
                   style={{ width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, background: '#fff' }}>
                   {FONTS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
                 </select>
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>Колір тексту</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>{t('puzzle.textColor')}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {TEXT_COLORS.map(c => (
                     <button key={c} onClick={() => update({ textColor: c })}
@@ -378,7 +383,7 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
               </div>
               {(config.mode === 'text' || config.mode === 'qr') && (
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>Колір фону</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>{t('puzzle.backgroundColor')}</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {BG_COLORS.map(c => (
                       <button key={c} onClick={() => update({ bgColor: c })}
@@ -392,27 +397,27 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
 
           <div style={{ borderTop: '1px solid #f1f5f9', marginTop: 'auto', paddingTop: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-              <span style={{ color: '#64748b' }}>Базова ціна:</span>
+              <span style={{ color: '#64748b' }}>{t('puzzle.basePrice')}</span>
               <span style={{ fontWeight: 600 }}>{format.basePrice} ₴</span>
             </div>
             {finishData.priceAdd > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                <span style={{ color: '#64748b' }}>Глянець:</span>
+                <span style={{ color: '#64748b' }}>{t('puzzle.glossPrice')}</span>
                 <span style={{ fontWeight: 600 }}>+{finishData.priceAdd} ₴</span>
               </div>
             )}
             {config.mode === 'qr' && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                <span style={{ color: '#64748b' }}>QR-код:</span>
+                <span style={{ color: '#64748b' }}>{t('puzzle.qrPrice')}</span>
                 <span style={{ fontWeight: 600 }}>+{QR_PRICE} ₴</span>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800, color: '#1e2d7d', marginTop: 8, paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
-              <span>Разом:</span><span style={{ fontSize: 18 }}>{totalPrice} ₴</span>
+              <span>{t('puzzle.total')}</span><span style={{ fontSize: 18 }}>{totalPrice} ₴</span>
             </div>
             <button onClick={addToCart}
               style={{ width: '100%', marginTop: 12, padding: '12px', border: 'none', borderRadius: 8, background: '#1e2d7d', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <ShoppingCart size={16} /> До кошика
+              <ShoppingCart size={16} /> {t('puzzle.addToCart')}
             </button>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Type, Image as ImageIcon, QrCode, Layers, Plus } from 'lucide-react';
+import { useT } from '@/lib/i18n/context';
 import ExportProgressModal from './ExportProgressModal';
 import { uploadOrderFile } from '@/lib/export-utils';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
@@ -89,6 +90,7 @@ const DESIGN_TEMPLATES = [
 ];
 
 export default function GuestBookConstructor() {
+    const t = useT();
     const { addItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
@@ -221,12 +223,12 @@ export default function GuestBookConstructor() {
 
     const handleAddToCart = async () => {
         if (!product) {
-            toast.error('Продукт не знайдено');
+            toast.error(t('guestbook.notFound'));
             return;
         }
 
         if (!config.template) {
-            toast.error('Будь ласка, оберіть дизайн');
+            toast.error(t('guestbook.selectDesign'));
             return;
         }
 
@@ -279,7 +281,7 @@ export default function GuestBookConstructor() {
             personalization_note: `Гостьова книга з ${config.pageCount} сторінками, дизайн: ${config.template}`
         });
 
-        toast.success('Книга побажань додана до кошика');
+        toast.success(t('guestbook.success'));
     };
 
     const nextStep = () => {
@@ -293,7 +295,7 @@ export default function GuestBookConstructor() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-24">
-                <div className="text-gray-500">Завантаження...</div>
+                <div className="text-gray-500">{t('guestbook.loading')}</div>
             </div>
         );
     }
@@ -306,20 +308,20 @@ export default function GuestBookConstructor() {
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold text-[#1e2d7d]">Книга побажань</h1>
+                            <h1 className="text-2xl font-bold text-[#1e2d7d]">{t('guestbook.title')}</h1>
                             <p className="text-sm text-gray-600 mt-1">
-                                Крок {currentStep} з 5: {
-                                    currentStep === 1 ? 'Оберіть дизайн' :
-                                    currentStep === 2 ? 'Налаштуйте обкладинку' :
-                                    currentStep === 3 ? 'Задня обкладинка' :
-                                    currentStep === 4 ? 'Внутрішні сторінки' :
-                                    'Розмір та замовлення'
+                                {t('guestbook.step').replace('{step}', String(currentStep))} {
+                                    currentStep === 1 ? t('guestbook.step1') :
+                                    currentStep === 2 ? t('guestbook.step2') :
+                                    currentStep === 3 ? t('guestbook.backCover') :
+                                    currentStep === 4 ? t('guestbook.step4') :
+                                    t('guestbook.step5')
                                 }
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="text-right">
-                                <div className="text-sm text-gray-600">Вартість:</div>
+                                <div className="text-sm text-gray-600">{t('guestbook.cost')}</div>
                                 <div className="text-2xl font-bold text-[#1e2d7d]">{config.price} ₴</div>
                             </div>
                             <button
@@ -328,7 +330,7 @@ export default function GuestBookConstructor() {
                                 className="flex items-center gap-2 px-6 py-3 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <ShoppingCart className="w-5 h-5" />
-                                Додати в кошик
+                                {t('guestbook.addToCart')}
                             </button>
                         </div>
                     </div>
@@ -412,6 +414,7 @@ function Step1DesignSelection({
     selectedTemplate: string;
     onSelectTemplate: (id: string) => void;
 }) {
+    const t = useT();
     const [themeFilter, setThemeFilter] = useState<string>('');
     const [styleFilter, setStyleFilter] = useState<string>('');
     const [colorFilter, setColorFilter] = useState<string>('');
@@ -428,50 +431,50 @@ function Step1DesignSelection({
             <div className="max-w-7xl mx-auto">
                 {/* Filters */}
                 <div className="bg-white rounded-lg shadow p-6 mb-6">
-                    <h3 className="text-lg font-semibold mb-4">Фільтри</h3>
+                    <h3 className="text-lg font-semibold mb-4">{t('guestbook.filters')}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Тема</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{t('guestbook.theme')}</label>
                             <select
                                 value={themeFilter}
                                 onChange={(e) => setThemeFilter(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                             >
-                                <option value="">Всі теми</option>
-                                <option value="wedding">Весілля</option>
-                                <option value="birthday">День народження</option>
+                                <option value="">{t('guestbook.allThemes')}</option>
+                                <option value="wedding">{t('guestbook.wedding')}</option>
+                                <option value="birthday">{t('guestbook.birthday')}</option>
                                 <option value="baby-shower">Baby Shower</option>
-                                <option value="universal">Універсальний</option>
+                                <option value="universal">{t('guestbook.universal')}</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Стиль</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{t('guestbook.style')}</label>
                             <select
                                 value={styleFilter}
                                 onChange={(e) => setStyleFilter(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                             >
-                                <option value="">Всі стилі</option>
-                                <option value="floral">Флоральний</option>
-                                <option value="minimal">Мінімалізм</option>
-                                <option value="typographic">Типографічний</option>
-                                <option value="illustrated">Ілюстрований</option>
+                                <option value="">{t('guestbook.allStyles')}</option>
+                                <option value="floral">{t('guestbook.floral')}</option>
+                                <option value="minimal">{t('guestbook.minimal')}</option>
+                                <option value="typographic">{t('guestbook.typographic')}</option>
+                                <option value="illustrated">{t('guestbook.illustrated')}</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Колір</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{t('guestbook.color')}</label>
                             <select
                                 value={colorFilter}
                                 onChange={(e) => setColorFilter(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                             >
-                                <option value="">Всі кольори</option>
-                                <option value="зелений">Зелений</option>
-                                <option value="рожевий">Рожевий</option>
-                                <option value="білий">Білий</option>
-                                <option value="синій">Синій</option>
-                                <option value="золотий">Золотий</option>
-                                <option value="чорний">Чорний</option>
+                                <option value="">{t('guestbook.allColors')}</option>
+                                <option value="зелений">{t('guestbook.green')}</option>
+                                <option value="рожевий">{t('guestbook.pink')}</option>
+                                <option value="білий">{t('guestbook.white')}</option>
+                                <option value="синій">{t('guestbook.blue')}</option>
+                                <option value="золотий">{t('guestbook.gold')}</option>
+                                <option value="чорний">{t('guestbook.black')}</option>
                             </select>
                         </div>
                     </div>
@@ -521,13 +524,14 @@ function Step2CoverCustomization({
     onNext: () => void;
     onBack: () => void;
 }) {
+    const t = useT();
     const cover = coverType === 'front' ? config.frontCover : config.backCover;
     const [selectedElement, setSelectedElement] = useState<string | null>(null);
 
     const addText = () => {
         const newText: TextElement = {
             id: `text_${Date.now()}`,
-            content: 'Новий текст',
+            content: t('guestbook.newText'),
             x: 200,
             y: 200,
             fontSize: 24,
@@ -555,7 +559,7 @@ function Step2CoverCustomization({
                 {/* Preview */}
                 <div className="bg-white rounded-lg shadow-lg p-8">
                     <h3 className="text-lg font-semibold mb-4">
-                        {coverType === 'front' ? 'Передня обкладинка' : 'Задня обкладинка'}
+                        {coverType === 'front' ? t('guestbook.frontCover') : t('guestbook.backCover')}
                     </h3>
                     <div className="aspect-[3/4] bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-lg relative overflow-hidden">
                         {/* Render texts */}
@@ -588,22 +592,22 @@ function Step2CoverCustomization({
                 {/* Tools */}
                 <div className="space-y-4">
                     <div className="bg-white rounded-lg shadow-lg p-6">
-                        <h3 className="text-lg font-semibold mb-4">Додати елемент</h3>
+                        <h3 className="text-lg font-semibold mb-4">{t('guestbook.addElement')}</h3>
                         <div className="space-y-2">
                             <button
                                 onClick={addText}
                                 className="w-full flex items-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                             >
                                 <Type className="w-5 h-5" />
-                                Додати текст
+                                {t('guestbook.addText')}
                             </button>
                             <button className="w-full flex items-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
                                 <ImageIcon className="w-5 h-5" />
-                                Додати зображення
+                                {t('guestbook.addImage')}
                             </button>
                             <button className="w-full flex items-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
                                 <QrCode className="w-5 h-5" />
-                                Додати QR-код
+                                {t('guestbook.addQRCode')}
                             </button>
                         </div>
                     </div>
@@ -631,13 +635,13 @@ function Step2CoverCustomization({
                             className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                         >
                             <ChevronLeft className="w-5 h-5" />
-                            Назад
+                            {t('guestbook.back')}
                         </button>
                         <button
                             onClick={onNext}
                             className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#1e2d7d] text-white rounded-lg hover:bg-[#263a99] transition-colors"
                         >
-                            Далі
+                            {t('guestbook.next')}
                             <ChevronRight className="w-5 h-5" />
                         </button>
                     </div>
@@ -654,14 +658,15 @@ function TextPropertiesPanel({
     text: TextElement;
     onChange: (text: TextElement) => void;
 }) {
+    const t = useT();
     const fonts = ['Georgia', 'Playfair Display', 'Lora', 'Montserrat', 'Roboto', 'Open Sans', 'Raleway', 'Cormorant Garamond'];
 
     return (
         <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Властивості тексту</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('guestbook.textProperties')}</h3>
             <div className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Текст</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('guestbook.text')}</label>
                     <input
                         type="text"
                         value={text.content}
@@ -670,7 +675,7 @@ function TextPropertiesPanel({
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Шрифт</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('guestbook.font')}</label>
                     <select
                         value={text.fontFamily}
                         onChange={(e) => onChange({ ...text, fontFamily: e.target.value })}
@@ -682,7 +687,7 @@ function TextPropertiesPanel({
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Розмір</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('guestbook.size')}</label>
                     <input
                         type="number"
                         value={text.fontSize}
@@ -718,13 +723,14 @@ function Step4InteriorOptions({
     onNext: () => void;
     onBack: () => void;
 }) {
+    const t = useT();
     const pageCountOptions = [48, 64, 96];
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">
             <div className="bg-white rounded-lg shadow-lg p-8 space-y-8">
                 <div>
-                    <label className="block text-lg font-semibold text-gray-900 mb-4">Тип сторінок</label>
+                    <label className="block text-lg font-semibold text-gray-900 mb-4">{t('guestbook.pageType')}</label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <button
                             onClick={() => setConfig({ ...config, interiorType: 'blank' })}
@@ -734,8 +740,8 @@ function Step4InteriorOptions({
                                     : 'border-gray-200 hover:border-gray-300'
                             }`}
                         >
-                            <h4 className="font-semibold text-gray-900 mb-2">Чисті</h4>
-                            <p className="text-sm text-gray-600">Порожні сторінки для вільного письма</p>
+                            <h4 className="font-semibold text-gray-900 mb-2">{t('guestbook.blank')}</h4>
+                            <p className="text-sm text-gray-600">{t('guestbook.blankDesc')}</p>
                         </button>
                         <button
                             onClick={() => setConfig({ ...config, interiorType: 'lined' })}
@@ -745,8 +751,8 @@ function Step4InteriorOptions({
                                     : 'border-gray-200 hover:border-gray-300'
                             }`}
                         >
-                            <h4 className="font-semibold text-gray-900 mb-2">З лініями</h4>
-                            <p className="text-sm text-gray-600">З горизонтальними лініями для письма</p>
+                            <h4 className="font-semibold text-gray-900 mb-2">{t('guestbook.lined')}</h4>
+                            <p className="text-sm text-gray-600">{t('guestbook.linedDesc')}</p>
                         </button>
                         <button
                             onClick={() => setConfig({ ...config, interiorType: 'prompted' })}
@@ -756,14 +762,14 @@ function Step4InteriorOptions({
                                     : 'border-gray-200 hover:border-gray-300'
                             }`}
                         >
-                            <h4 className="font-semibold text-gray-900 mb-2">З підказками</h4>
-                            <p className="text-sm text-gray-600">З питаннями та підказками</p>
+                            <h4 className="font-semibold text-gray-900 mb-2">{t('guestbook.prompted')}</h4>
+                            <p className="text-sm text-gray-600">{t('guestbook.promptedDesc')}</p>
                         </button>
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-lg font-semibold text-gray-900 mb-4">Кількість сторінок</label>
+                    <label className="block text-lg font-semibold text-gray-900 mb-4">{t('guestbook.pageCount')}</label>
                     <div className="grid grid-cols-3 gap-4">
                         {pageCountOptions.map((count) => (
                             <button
@@ -776,7 +782,7 @@ function Step4InteriorOptions({
                                 }`}
                             >
                                 <div className="text-2xl font-bold text-gray-900">{count}</div>
-                                <div className="text-sm text-gray-600 mt-1">сторінок</div>
+                                <div className="text-sm text-gray-600 mt-1">{t('guestbook.pages')}</div>
                             </button>
                         ))}
                     </div>
@@ -788,13 +794,13 @@ function Step4InteriorOptions({
                         className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                         <ChevronLeft className="w-5 h-5" />
-                        Назад
+                        {t('guestbook.back')}
                     </button>
                     <button
                         onClick={onNext}
                         className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#1e2d7d] text-white rounded-lg hover:bg-[#263a99] transition-colors"
                     >
-                        Далі
+                        {t('guestbook.next')}
                         <ChevronRight className="w-5 h-5" />
                     </button>
                 </div>
@@ -817,6 +823,7 @@ function Step5SizeAndProduct({
     onAddToCart: () => void;
     onBack: () => void;
 }) {
+    const t = useT();
     const sizes = ['20×20 см', '25×25 см', '30×30 см'];
 
     useEffect(() => {
@@ -829,7 +836,7 @@ function Step5SizeAndProduct({
         <div className="container mx-auto px-4 py-8 max-w-4xl">
             <div className="bg-white rounded-lg shadow-lg p-8 space-y-8">
                 <div>
-                    <label className="block text-lg font-semibold text-gray-900 mb-4">Оберіть розмір</label>
+                    <label className="block text-lg font-semibold text-gray-900 mb-4">{t('guestbook.selectSize')}</label>
                     <div className="grid grid-cols-3 gap-4">
                         {sizes.map((size) => (
                             <button
@@ -849,7 +856,7 @@ function Step5SizeAndProduct({
 
                 <div className="bg-gray-50 p-6 rounded-lg">
                     <div className="flex items-center justify-between">
-                        <div className="text-lg font-semibold text-gray-900">Загальна вартість:</div>
+                        <div className="text-lg font-semibold text-gray-900">{t('guestbook.totalCost')}</div>
                         <div className="text-3xl font-bold text-[#1e2d7d]">{config.price} ₴</div>
                     </div>
                 </div>
@@ -860,14 +867,14 @@ function Step5SizeAndProduct({
                         className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                         <ChevronLeft className="w-5 h-5" />
-                        Назад
+                        {t('guestbook.back')}
                     </button>
                     <button
                         onClick={onAddToCart}
                         className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#1e2d7d] text-white rounded-lg hover:bg-[#263a99] transition-colors text-lg font-semibold"
                     >
                         <ShoppingCart className="w-5 h-5" />
-                        Додати в кошик
+                        {t('guestbook.addToCart')}
                     </button>
                 </div>
             </div>

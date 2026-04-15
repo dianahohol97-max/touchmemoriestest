@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Type } from 'lucide-react';
 import MonogramPreview from './MonogramPreview';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 interface MonogramConfig {
     // Step 1: Letter Selection
@@ -28,7 +29,9 @@ interface MonogramConfig {
 }
 
 export default function MonogramConstructor() {
-    const { addItem } = useCartStore();
+    
+    const t = useT();
+const { addItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -87,7 +90,7 @@ export default function MonogramConstructor() {
     // Style presets
     const stylePresets = {
         'botanical': {
-            name: 'Ботанічна літера',
+            name: t('monogram.botanical'),
             bg: '#ffffff',
             letter: '#2c5f2d',
             accent: '#97bc62',
@@ -168,7 +171,7 @@ export default function MonogramConstructor() {
 
         addItem({
             id: `monogram-${Date.now()}`,
-            name: 'Постер з ініціалом',
+            name: t('monogram.header_title'),
             price: totalPrice,
             qty: 1,
             image: product?.image_url || '/placeholder-poster.jpg',
@@ -176,7 +179,7 @@ export default function MonogramConstructor() {
                 'Розмір': config.size,
                 'Тип продукту': config.productType,
                 'Літера': config.letter,
-                'Мова': config.language === 'uk' ? 'Українська' : 'English',
+                'Мова': config.language === 'uk' ? t('monogram.ukrainian') : t('monogram.english'),
                 'Стиль': stylePresets[config.style].name,
                 'Шрифт': config.fontFamily
             },
@@ -187,7 +190,7 @@ export default function MonogramConstructor() {
             `.trim()
         });
 
-        toast.success('Постер з ініціалом додано до кошика!');
+        toast.success(t('monogram.monogram_added'));
     };
 
     const nextStep = () => {
@@ -250,9 +253,9 @@ export default function MonogramConstructor() {
                     </div>
                     <div className="flex justify-center mt-2">
                         <p className="text-sm text-gray-600">
-                            {currentStep === 1 && 'Крок 1: Вибір літери'}
-                            {currentStep === 2 && 'Крок 2: Стиль і персоналізація'}
-                            {currentStep === 3 && 'Крок 3: Розмір і тип'}
+                            {currentStep === 1 && t('monogram.step_1')}
+                            {currentStep === 2 && t('monogram.step_2')}
+                            {currentStep === 3 && t('monogram.step_3')}
                         </p>
                     </div>
                 </div>

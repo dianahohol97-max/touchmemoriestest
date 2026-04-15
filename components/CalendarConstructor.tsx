@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, ShoppingCart, Calendar as CalendarIcon, Imag
 import ExportProgressModal from './ExportProgressModal';
 import { uploadOrderFile } from '@/lib/export-utils';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 interface CalendarConfig {
     productType: 'wall' | 'desk';
@@ -44,6 +45,7 @@ interface CalendarConstructorProps {
 }
 
 export default function CalendarConstructor({ productType }: CalendarConstructorProps) {
+    const t = useT();
     const { addItem } = useCartStore();
     const [step, setStep] = useState<'config' | 'editor'>('config');
     const [product, setProduct] = useState<any>(null);
@@ -123,7 +125,7 @@ export default function CalendarConstructor({ productType }: CalendarConstructor
 
     const handleCreateCalendar = () => {
         if (!config.template || !config.size) {
-            toast.error('Будь ласка, оберіть шаблон та розмір');
+            toast.error(t('calendar.error_select_template_size'));
             return;
         }
         setStep('editor');
@@ -131,7 +133,7 @@ export default function CalendarConstructor({ productType }: CalendarConstructor
 
     const handleAddToCart = async () => {
         if (!product) {
-            toast.error('Продукт не знайдено');
+            toast.error(t('calendar.error_product_not_found'));
             return;
         }
 
@@ -186,13 +188,13 @@ export default function CalendarConstructor({ productType }: CalendarConstructor
             personalization_note: `Календар на ${config.year} рік, починаючи з ${getMonthName(config.startingMonth, config.language)}`
         });
 
-        toast.success('Календар додано до кошика');
+        toast.success(t('calendar.product_added'));
     };
 
     if (loading) {
         return (
             <div className="flex items-center justify-center py-24">
-                <div className="text-gray-500">Завантаження...</div>
+                <div className="text-gray-500">{t('calendar.loading')}</div>
             </div>
         );
     }
@@ -241,6 +243,7 @@ function ConfigurationStep({
     productType: 'wall' | 'desk';
     onCreateCalendar: () => void;
 }) {
+    const t = useT();
     const templates = productType === 'wall'
         ? ['classic', 'modern', 'minimal', 'vintage', 'colorful', 'nature', 'urban', 'family', 'travel', 'business']
         : ['classic', 'modern', 'minimal', 'elegant', 'bright', 'wood', 'professional', 'photo'];
@@ -263,9 +266,9 @@ function ConfigurationStep({
             <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div className="container mx-auto px-4 py-4">
                     <h1 className="text-2xl font-bold text-[#1e2d7d]">
-                        {productType === 'wall' ? 'Настінний календар' : 'Настільний календар'}
+                        {productType === 'wall' ? t('calendar.month_type_wall') : t('calendar.month_type_desk')}
                     </h1>
-                    <p className="text-sm text-gray-600 mt-1">Крок 1: Конфігурація календаря</p>
+                    <p className="text-sm text-gray-600 mt-1">{t('calendar.step1_title')}</p>
                 </div>
             </div>
 
@@ -274,7 +277,7 @@ function ConfigurationStep({
                     {/* Template Selection */}
                     <div>
                         <label className="block text-lg font-semibold text-gray-900 mb-4">
-                            Оберіть шаблон <span className="text-red-500">*</span>
+                            {t('calendar.select_template')} <span className="text-red-500">*</span>
                         </label>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             {templates.map((template) => {
@@ -333,7 +336,7 @@ function ConfigurationStep({
                     {/* Size Selection */}
                     <div>
                         <label className="block text-lg font-semibold text-gray-900 mb-4">
-                            Розмір <span className="text-red-500">*</span>
+                            {t('calendar.select_size')} <span className="text-red-500">*</span>
                         </label>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {sizes.map((size) => (
@@ -355,7 +358,7 @@ function ConfigurationStep({
                     {/* Starting Month */}
                     <div>
                         <label className="block text-lg font-semibold text-gray-900 mb-4">
-                            Початковий місяць <span className="text-red-500">*</span>
+                            {t('calendar.select_starting_month')} <span className="text-red-500">*</span>
                         </label>
                         <select
                             value={config.startingMonth}
@@ -373,7 +376,7 @@ function ConfigurationStep({
                     {/* Language */}
                     <div>
                         <label className="block text-lg font-semibold text-gray-900 mb-4">
-                            Мова календарної сітки
+                            {t('calendar.calendar_grid_language')}
                         </label>
                         <div className="grid grid-cols-2 gap-4">
                             <button
@@ -384,7 +387,7 @@ function ConfigurationStep({
                                         : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
-                                <div className="text-sm font-semibold text-gray-900">Українська</div>
+                                <div className="text-sm font-semibold text-gray-900">{t('calendar.ukrainian')}</div>
                             </button>
                             <button
                                 onClick={() => setConfig({ ...config, language: 'en' })}
@@ -394,7 +397,7 @@ function ConfigurationStep({
                                         : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
-                                <div className="text-sm font-semibold text-gray-900">English</div>
+                                <div className="text-sm font-semibold text-gray-900">{t('calendar.english')}</div>
                             </button>
                         </div>
                     </div>
@@ -402,7 +405,7 @@ function ConfigurationStep({
                     {/* Year */}
                     <div>
                         <label className="block text-lg font-semibold text-gray-900 mb-4">
-                            Рік календаря <span className="text-red-500">*</span>
+                            {t('calendar.select_year')} <span className="text-red-500">*</span>
                         </label>
                         <div className="grid grid-cols-2 gap-4">
                             <button
@@ -431,7 +434,7 @@ function ConfigurationStep({
                     {/* Price Display */}
                     <div className="bg-gray-50 p-6 rounded-lg">
                         <div className="flex items-center justify-between">
-                            <div className="text-lg font-semibold text-gray-900">Вартість:</div>
+                            <div className="text-lg font-semibold text-gray-900">{t('calendar.cost')}</div>
                             <div className="text-3xl font-bold text-[#1e2d7d]">{config.price} ₴</div>
                         </div>
                     </div>
@@ -441,7 +444,7 @@ function ConfigurationStep({
                         onClick={onCreateCalendar}
                         className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-[#1e2d7d] text-white rounded-lg font-semibold text-lg hover:bg-[#263a99] transition-colors"
                     >
-                        Створити календар
+                        {t('calendar.create_calendar_button')}
                         <ChevronRight className="w-6 h-6" />
                     </button>
                 </div>
@@ -468,16 +471,17 @@ function EditorStep({
     onAddToCart: () => void;
     onBack: () => void;
 }) {
+    const t = useT();
     const currentPage = pages[currentPageIndex];
 
     if (!currentPage) {
-        return <div className="flex items-center justify-center py-24">Завантаження...</div>;
+        return <div className="flex items-center justify-center py-24">{t('calendar.loading')}</div>;
     }
 
     const getPageLabel = (page: CalendarPage) => {
-        if (page.type === 'cover') return 'Обкладинка';
+        if (page.type === 'cover') return t('calendar.cover');
         if (page.month) return getMonthName(page.month, config.language);
-        return 'Сторінка';
+        return t('calendar.page');
     };
 
     return (
@@ -491,11 +495,11 @@ function EditorStep({
                             className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
                         >
                             <ChevronLeft className="w-5 h-5" />
-                            Назад
+                            {t('calendar.back')}
                         </button>
                         <div>
                             <h1 className="text-lg font-bold text-white">
-                                {config.productType === 'wall' ? 'Настінний календар' : 'Настільний календар'} {config.year}
+                                {config.productType === 'wall' ? t('calendar.month_type_wall') : t('calendar.month_type_desk')} {config.year}
                             </h1>
                             <p className="text-sm text-gray-400">{getPageLabel(currentPage)}</p>
                         </div>
@@ -505,7 +509,7 @@ function EditorStep({
                         className="flex items-center gap-2 px-6 py-3 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] transition-colors"
                     >
                         <ShoppingCart className="w-5 h-5" />
-                        Замовити ({config.price} ₴)
+                        {t('calendar.order_button')} — {config.price} ₴
                     </button>
                 </div>
             </div>
@@ -515,10 +519,10 @@ function EditorStep({
                 {/* Left Sidebar - Tools */}
                 <div className="w-64 bg-gray-800 border-r border-gray-700 p-4 overflow-y-auto">
                     <div className="space-y-4">
-                        <EditorTool icon={<ImageIcon className="w-5 h-5" />} title="Зображення" />
-                        <EditorTool icon={<Type className="w-5 h-5" />} title="Текст" />
-                        <EditorTool icon={<CalendarIcon className="w-5 h-5" />} title="Шаблон" />
-                        <EditorTool icon={<Settings className="w-5 h-5" />} title="Налаштування" />
+                        <EditorTool icon={<ImageIcon className="w-5 h-5" />} title={t('calendar.image_tool')} />
+                        <EditorTool icon={<Type className="w-5 h-5" />} title={t('calendar.text_tool')} />
+                        <EditorTool icon={<CalendarIcon className="w-5 h-5" />} title={t('calendar.template_tool')} />
+                        <EditorTool icon={<Settings className="w-5 h-5" />} title={t('calendar.settings_tool')} />
                     </div>
                 </div>
 
@@ -531,9 +535,9 @@ function EditorStep({
 
                 {/* Right Sidebar - Properties */}
                 <div className="w-64 bg-gray-800 border-l border-gray-700 p-4 overflow-y-auto">
-                    <h3 className="text-sm font-semibold text-gray-400 mb-4">ВЛАСТИВОСТІ</h3>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-4">{t('calendar.properties')}</h3>
                     <div className="text-sm text-gray-500">
-                        Оберіть елемент для редагування
+                        {t('calendar.select_element')}
                     </div>
                 </div>
             </div>
@@ -591,13 +595,14 @@ function EditorTool({ icon, title }: { icon: React.ReactNode; title: string }) {
 }
 
 function PageCanvas({ page, config }: { page: CalendarPage; config: CalendarConfig }) {
+    const t = useT();
     if (page.type === 'cover') {
         return (
             <div className="w-full h-full flex items-center justify-center bg-gray-100">
                 <div className="text-center">
                     <CalendarIcon className="w-24 h-24 mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-2xl font-bold text-gray-700">Обкладинка</h3>
-                    <p className="text-gray-500 mt-2">Додайте фото або текст</p>
+                    <h3 className="text-2xl font-bold text-gray-700">{t('calendar.cover')}</h3>
+                    <p className="text-gray-500 mt-2">{t('calendar.add_photo_text')}</p>
                 </div>
             </div>
         );

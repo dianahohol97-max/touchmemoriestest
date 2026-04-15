@@ -5,6 +5,7 @@ import { Upload, X, Check, AlertTriangle, ShoppingCart, ZoomIn, ZoomOut, RotateC
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
+import { useT } from '@/lib/i18n/context';
 import ExportProgressModal from './ExportProgressModal';
 import { exportCanvasAt300DPI, uploadOrderFile, mmToPixels300dpi } from '@/lib/export-utils';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
@@ -39,6 +40,7 @@ interface LayoutType {
 }
 
 export default function PhotoPuzzleConstructor() {
+    const t = useT();
     const { addItem } = useCartStore();
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -139,7 +141,7 @@ export default function PhotoPuzzleConstructor() {
             if (!file.type.startsWith('image/')) continue;
 
             if (photos.length + newPhotos.length >= 9) {
-                toast.error('Максимум 9 фото для колажу');
+                toast.error(t('photopuzzle.maxPhotoError'));
                 break;
             }
 
@@ -174,7 +176,7 @@ export default function PhotoPuzzleConstructor() {
 
         setPhotos(prev => [...prev, ...newPhotos]);
         if (newPhotos.length > 0) {
-            toast.success(`Завантажено ${newPhotos.length} фото`);
+            toast.success(t('photopuzzle.successUpload') + ` ${newPhotos.length} ` + t('photopuzzle.photo'));
             setSelectedPhotoId(newPhotos[0].id);
         }
     };
@@ -222,11 +224,11 @@ export default function PhotoPuzzleConstructor() {
         const acceptableHeight = Math.round(puzzleHeightInches * 150);
 
         if (photo.width >= optimalWidth && photo.height >= optimalHeight) {
-            return { status: 'excellent', message: 'Якість зображення відмінна' };
+            return { status: 'excellent', message: t('photopuzzle.excellentQuality') };
         } else if (photo.width >= acceptableWidth && photo.height >= acceptableHeight) {
-            return { status: 'acceptable', message: 'Якість зображення прийнятна' };
+            return { status: 'acceptable', message: t('photopuzzle.acceptableQuality') };
         } else {
-            return { status: 'poor', message: 'Увага: якість зображення може бути недостатньою для цього розміру пазла' };
+            return { status: 'poor', message: t('photopuzzle.poorQuality') };
         }
     }
 
@@ -464,7 +466,7 @@ export default function PhotoPuzzleConstructor() {
 
     async function handleAddToCart() {
         if (!product || !selectedSize || photos.length === 0) {
-            toast.error('Виберіть розмір та завантажте фото');
+            toast.error(t('photopuzzle.selectSizeAndUpload'));
             return;
         }
 
@@ -519,7 +521,7 @@ export default function PhotoPuzzleConstructor() {
             personalization_note: `Пазл ${selectedSize.pieces} шт, ${selectedSize.width}×${selectedSize.height} см. Фото: ${photos.length} шт.`
         });
 
-        toast.success('Пазл додано в кошик');
+        toast.success(t('photopuzzle.success'));
     }
 
     if (loading) {
@@ -527,7 +529,7 @@ export default function PhotoPuzzleConstructor() {
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e2d7d] mx-auto mb-4"></div>
-                    <p className="text-gray-600">Завантаження конструктора...</p>
+                    <p className="text-gray-600">{t('photopuzzle.loading')}</p>
                 </div>
             </div>
         );
@@ -542,14 +544,14 @@ export default function PhotoPuzzleConstructor() {
             <div className="max-w-7xl mx-auto px-4">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Конструктор фотопазлів</h1>
-                    <p className="text-gray-600">Створіть унікальний пазл зі своїх фото</p>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('photopuzzle.title')}</h1>
+                    <p className="text-gray-600">{t('photopuzzle.subtitle')}</p>
                 </div>
 
                 {/* Progress bar */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Крок {currentStep} з 4</span>
+                        <span className="text-sm font-medium text-gray-700">{t('photopuzzle.step')} {currentStep} з 4</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
@@ -575,7 +577,7 @@ export default function PhotoPuzzleConstructor() {
                             <div className="bg-white rounded-lg shadow-sm p-6">
                                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                                     <Grid3x3 className="w-5 h-5" />
-                                    Виберіть розмір пазла
+                                    {t('photopuzzle.selectSize')}
                                 </h2>
 
                                 <div className="space-y-3">
@@ -595,13 +597,13 @@ export default function PhotoPuzzleConstructor() {
                                             >
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div>
-                                                        <div className="font-semibold text-lg">{puzzleSize.pieces} елементів</div>
-                                                        <div className="text-sm text-gray-600">{puzzleSize.width}×{puzzleSize.height} см</div>
+                                                        <div className="font-semibold text-lg">{puzzleSize.pieces} {t('photopuzzle.pieces')}</div>
+                                                        <div className="text-sm text-gray-600">{puzzleSize.width}×{puzzleSize.height} {t('photopuzzle.dimensions')}</div>
                                                     </div>
                                                     {isSelected && <Check className="w-5 h-5 text-[#1e2d7d]" />}
                                                 </div>
                                                 <div className="text-sm text-gray-500">
-                                                    Складність: {puzzleSize.pieces < 200 ? 'Легка' : puzzleSize.pieces < 500 ? 'Середня' : 'Висока'}
+                                                    {t('photopuzzle.difficulty')} {puzzleSize.pieces < 200 ? t('photopuzzle.easy') : puzzleSize.pieces < 500 ? t('photopuzzle.medium') : t('photopuzzle.hard')}
                                                 </div>
                                             </button>
                                         );
@@ -611,7 +613,7 @@ export default function PhotoPuzzleConstructor() {
                                 <button
                                     onClick={() => {
                                         if (selectedSize) setCurrentStep(2);
-                                        else toast.error('Виберіть розмір пазла');
+                                        else toast.error(t('photopuzzle.selectSize'));
                                     }}
                                     className="w-full mt-6 bg-[#1e2d7d] text-white py-3 rounded-lg font-medium hover:bg-[#162159] transition-colors"
                                 >
@@ -625,7 +627,7 @@ export default function PhotoPuzzleConstructor() {
                             <div className="bg-white rounded-lg shadow-sm p-6">
                                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                                     <ImageIcon className="w-5 h-5" />
-                                    Завантажте фото
+                                    {t('photopuzzle.uploadPhotosHere')}
                                 </h2>
 
                                 {/* Upload zone */}
@@ -638,13 +640,13 @@ export default function PhotoPuzzleConstructor() {
                                     }`}
                                 >
                                     <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                                    <p className="text-gray-700 mb-2">Перетягніть фото сюди</p>
-                                    <p className="text-sm text-gray-500 mb-4">або просто перетягніть фото сюди</p>
+                                    <p className="text-gray-700 mb-2">{t('photopuzzle.dragPhotosHere')}</p>
+                                    <p className="text-sm text-gray-500 mb-4">{t('photopuzzle.orClick')}</p>
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                                     >
-                                        Мої пристрої
+                                        {t('photopuzzle.myDevices')}
                                     </button>
                                     <input
                                         ref={fileInputRef}
@@ -654,7 +656,7 @@ export default function PhotoPuzzleConstructor() {
                                         onChange={(e) => handleFileSelect(e.target.files)}
                                         className="hidden"
                                     />
-                                    <p className="text-xs text-gray-500 mt-3">До 9 фото для колажу</p>
+                                    <p className="text-xs text-gray-500 mt-3">{t('photopuzzle.maxPhotos')}</p>
                                 </div>
 
                                 {/* Photo thumbnails */}
@@ -662,7 +664,7 @@ export default function PhotoPuzzleConstructor() {
                                     <div className="mt-4">
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="text-sm font-medium text-gray-700">
-                                                Завантажено: {photos.length} {photos.length === 1 ? 'фото' : 'фото'}
+                                                {t('photopuzzle.uploaded')} {photos.length} {t('photopuzzle.photo')}
                                             </span>
                                         </div>
                                         <div className="grid grid-cols-3 gap-2">
@@ -714,7 +716,7 @@ export default function PhotoPuzzleConstructor() {
                                 {/* Layout selector (if multiple photos) */}
                                 {photos.length > 1 && (
                                     <div className="mt-6">
-                                        <h3 className="text-sm font-medium text-gray-700 mb-3">Виберіть макет</h3>
+                                        <h3 className="text-sm font-medium text-gray-700 mb-3">{t('photopuzzle.selectLayout')}</h3>
                                         <div className="space-y-2">
                                             {LAYOUTS.filter(layout => layout.cells <= photos.length).map((layout) => (
                                                 <button
@@ -746,7 +748,7 @@ export default function PhotoPuzzleConstructor() {
                                     <button
                                         onClick={() => {
                                             if (photos.length > 0) setCurrentStep(3);
-                                            else toast.error('Завантажте хоча б одне фото');
+                                            else toast.error(t('photopuzzle.uploadAtLeastOne'));
                                         }}
                                         className="flex-1 bg-[#1e2d7d] text-white py-3 rounded-lg font-medium hover:bg-[#162159] transition-colors"
                                     >
@@ -764,7 +766,7 @@ export default function PhotoPuzzleConstructor() {
                                 {/* Photo selector */}
                                 {photos.length > 1 && (
                                     <div className="mb-4">
-                                        <label className="text-sm font-medium text-gray-700 mb-2 block">Виберіть фото для редагування</label>
+                                        <label className="text-sm font-medium text-gray-700 mb-2 block">{t('photopuzzle.selectPhotoToEdit')}</label>
                                         <div className="grid grid-cols-4 gap-2">
                                             {photos.map((photo) => (
                                                 <button
@@ -785,7 +787,7 @@ export default function PhotoPuzzleConstructor() {
                                     <div className="space-y-4">
                                         {/* Zoom controls */}
                                         <div>
-                                            <label className="text-sm font-medium text-gray-700 mb-2 block">Масштаб</label>
+                                            <label className="text-sm font-medium text-gray-700 mb-2 block">{t('photopuzzle.zoom')}</label>
                                             <div className="flex items-center gap-3">
                                                 <button
                                                     onClick={() => handleZoomChange(selectedPhoto.id, -0.1)}
@@ -814,7 +816,7 @@ export default function PhotoPuzzleConstructor() {
 
                                         {/* Position controls */}
                                         <div>
-                                            <label className="text-sm font-medium text-gray-700 mb-2 block">Позиція X</label>
+                                            <label className="text-sm font-medium text-gray-700 mb-2 block">{t('photopuzzle.positionX')}</label>
                                             <input
                                                 type="range"
                                                 min="-200"
@@ -827,7 +829,7 @@ export default function PhotoPuzzleConstructor() {
                                         </div>
 
                                         <div>
-                                            <label className="text-sm font-medium text-gray-700 mb-2 block">Позиція Y</label>
+                                            <label className="text-sm font-medium text-gray-700 mb-2 block">{t('photopuzzle.positionY')}</label>
                                             <input
                                                 type="range"
                                                 min="-200"
@@ -841,14 +843,14 @@ export default function PhotoPuzzleConstructor() {
 
                                         {/* Transform controls */}
                                         <div>
-                                            <label className="text-sm font-medium text-gray-700 mb-2 block">Трансформація</label>
+                                            <label className="text-sm font-medium text-gray-700 mb-2 block">{t('photopuzzle.transform')}</label>
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={() => handleRotate(selectedPhoto.id)}
                                                     className="flex-1 p-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2"
                                                 >
                                                     <RotateCw className="w-4 h-4" />
-                                                    <span className="text-sm">Повернути</span>
+                                                    <span className="text-sm">{t('photopuzzle.rotate')}</span>
                                                 </button>
                                                 <button
                                                     onClick={() => handleFlipH(selectedPhoto.id)}
@@ -889,34 +891,34 @@ export default function PhotoPuzzleConstructor() {
                         {/* Step 4: Preview & Add to cart */}
                         {currentStep === 4 && (
                             <div className="bg-white rounded-lg shadow-sm p-6">
-                                <h2 className="text-xl font-semibold mb-4">Підсумок замовлення</h2>
+                                <h2 className="text-xl font-semibold mb-4">{t('photopuzzle.summary')}</h2>
 
                                 {/* Puzzle info */}
                                 {selectedSize && (
                                     <div className="space-y-3 mb-6">
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Розмір:</span>
+                                            <span className="text-gray-600">{t('photopuzzle.size')}:</span>
                                             <span className="font-medium">{selectedSize.name}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Елементів:</span>
+                                            <span className="text-gray-600">{t('photopuzzle.count')}:</span>
                                             <span className="font-medium">{selectedSize.pieces} шт</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Фізичний розмір:</span>
+                                            <span className="text-gray-600">{t('photopuzzle.physicalSize')}:</span>
                                             <span className="font-medium">{selectedSize.width}×{selectedSize.height} см</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Тип:</span>
-                                            <span className="font-medium">{layoutType === 'single' ? 'Одне фото' : 'Колаж'}</span>
+                                            <span className="text-gray-600">{t('photopuzzle.type')}:</span>
+                                            <span className="font-medium">{layoutType === 'single' ? t('photopuzzle.singlePhoto') : t('photopuzzle.collage')}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Кількість фото:</span>
+                                            <span className="text-gray-600">{t('photopuzzle.photoCount')}:</span>
                                             <span className="font-medium">{photos.length}</span>
                                         </div>
                                         <div className="border-t pt-3 mt-3">
                                             <div className="flex justify-between items-baseline">
-                                                <span className="font-semibold">Ціна:</span>
+                                                <span className="font-semibold">{t('photopuzzle.price')}:</span>
                                                 <span className="text-2xl font-bold text-[#1e2d7d]">{calculatePrice()} ₴</span>
                                             </div>
                                         </div>
@@ -931,7 +933,7 @@ export default function PhotoPuzzleConstructor() {
                                     >
                                         {showPuzzleLines ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                                         <span className="text-sm font-medium">
-                                            {showPuzzleLines ? 'Приховати лінії пазла' : 'Показати лінії пазла'}
+                                            {showPuzzleLines ? t('photopuzzle.hideLines') : t('photopuzzle.showLines')}
                                         </span>
                                     </button>
                                 </div>
@@ -951,7 +953,7 @@ export default function PhotoPuzzleConstructor() {
                                         className="flex-1 bg-[#1e2d7d] text-white py-3 rounded-lg font-medium hover:bg-[#162159] transition-colors flex items-center justify-center gap-2"
                                     >
                                         <ShoppingCart className="w-4 h-4" />
-                                        Додати в кошик
+                                        {t('photopuzzle.addToCart')}
                                     </button>
                                 </div>
                             </div>
@@ -961,11 +963,11 @@ export default function PhotoPuzzleConstructor() {
                     {/* Preview panel */}
                     <div className="lg:col-span-8">
                         <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
-                            <h2 className="text-xl font-semibold mb-4">Попередній перегляд</h2>
+                            <h2 className="text-xl font-semibold mb-4">{t('photopuzzle.previewText')}</h2>
 
                             {selectedSize && (
                                 <div className="mb-3 text-sm text-gray-600">
-                                    {selectedSize.pieces} елементів, {selectedSize.width}×{selectedSize.height} см
+                                    {selectedSize.pieces} {t('photopuzzle.pieces')}, {selectedSize.width}×{selectedSize.height} {t('photopuzzle.dimensions')}
                                 </div>
                             )}
 
@@ -974,7 +976,7 @@ export default function PhotoPuzzleConstructor() {
                                     <div className="absolute inset-0 flex items-center justify-center text-gray-400">
                                         <div className="text-center">
                                             <ImageIcon className="w-16 h-16 mx-auto mb-2 opacity-50" />
-                                            <p>Завантажте фото для попереднього перегляду</p>
+                                            <p>{t('photopuzzle.previewEmpty')}</p>
                                         </div>
                                     </div>
                                 ) : (

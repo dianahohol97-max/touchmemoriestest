@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Upload, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import CartoonPortraitPreview from './CartoonPortraitPreview';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 interface CartoonPortraitConfig {
     // Step 1: Photo Upload
@@ -44,7 +45,9 @@ interface CartoonPortraitConfig {
 }
 
 export default function CartoonPortraitConstructor() {
-    const { addItem } = useCartStore();
+    
+    const t = useT();
+const { addItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -197,13 +200,13 @@ export default function CartoonPortraitConstructor() {
 
         // Check file type
         if (!file.type.startsWith('image/')) {
-            toast.error('Будь ласка, завантажте файл зображення');
+            toast.error(t('cartoon.file_error'));
             return;
         }
 
         // Check file size (max 10MB)
         if (file.size > 10 * 1024 * 1024) {
-            toast.error('Файл занадто великий. Максимальний розмір: 10MB');
+            toast.error(t('cartoon.file_too_large'));
             return;
         }
 
@@ -338,7 +341,7 @@ export default function CartoonPortraitConstructor() {
 
         addItem({
             id: `cartoon-portrait-${Date.now()}`,
-            name: 'Портрет у стилі мультфільму',
+            name: t('cartoon.header_title'),
             price: totalPrice,
             qty: 1,
             image: config.generatedPortrait,
@@ -430,11 +433,11 @@ ${config.addDate ? `Дата: ${new Date().toLocaleDateString('uk-UA')}` : ''}
                     </div>
                     <div className="flex justify-center mt-2">
                         <p className="text-sm text-gray-600">
-                            {currentStep === 1 && 'Крок 1: Завантаження фото'}
-                            {currentStep === 2 && 'Крок 2: Вибір стилю'}
-                            {currentStep === 3 && 'Крок 3: Фон'}
-                            {currentStep === 4 && 'Крок 4: Текст і деталі'}
-                            {currentStep === 5 && 'Крок 5: Розмір і тип'}
+                            {currentStep === 1 && t('cartoon.step_1')}
+                            {currentStep === 2 && t('cartoon.step_2')}
+                            {currentStep === 3 && t('cartoon.step_3')}
+                            {currentStep === 4 && t('cartoon.step_4')}
+                            {currentStep === 5 && t('cartoon.step_5')}
                         </p>
                     </div>
                 </div>

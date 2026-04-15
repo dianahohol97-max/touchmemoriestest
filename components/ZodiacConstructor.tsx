@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart, Star } from 'lucide-react';
 import ZodiacPreview from './ZodiacPreview';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 interface ZodiacConfig {
     // Step 1: Zodiac Selection
@@ -33,14 +34,16 @@ interface ZodiacConfig {
 }
 
 export default function ZodiacConstructor() {
-    const { addItem } = useCartStore();
+    
+    const t = useT();
+const { addItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     const [config, setConfig] = useState<ZodiacConfig>({
         // Step 1 defaults
-        zodiacSign: 'Лев',
+        zodiacSign: t('zodiac.leo'),
         zodiacSymbol: '♌',
         autoDetect: false,
         birthDate: '',
@@ -58,7 +61,7 @@ export default function ZodiacConstructor() {
 
         // Step 4 defaults
         size: '30×40 см',
-        productType: 'Постер',
+        productType: t('zodiac.poster'),
         price: 0
     });
 
@@ -90,11 +93,11 @@ export default function ZodiacConstructor() {
 
     // Zodiac signs with symbols
     const zodiacSigns = [
-        { name: 'Овен', symbol: '♈', dates: '21.03 - 19.04', element: 'Вогонь' },
+        { name: t('zodiac.aries'), symbol: '♈', dates: '21.03 - 19.04', element: 'Вогонь' },
         { name: 'Телець', symbol: '♉', dates: '20.04 - 20.05', element: 'Земля' },
         { name: 'Близнюки', symbol: '♊', dates: '21.05 - 20.06', element: 'Повітря' },
         { name: 'Рак', symbol: '♋', dates: '21.06 - 22.07', element: 'Вода' },
-        { name: 'Лев', symbol: '♌', dates: '23.07 - 22.08', element: 'Вогонь' },
+        { name: t('zodiac.leo'), symbol: '♌', dates: '23.07 - 22.08', element: 'Вогонь' },
         { name: 'Діва', symbol: '♍', dates: '23.08 - 22.09', element: 'Земля' },
         { name: 'Терези', symbol: '♎', dates: '23.09 - 22.10', element: 'Повітря' },
         { name: 'Скорпіон', symbol: '♏', dates: '23.10 - 21.11', element: 'Вода' },
@@ -110,11 +113,11 @@ export default function ZodiacConstructor() {
         const month = date.getMonth() + 1;
         const day = date.getDate();
 
-        if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return { name: 'Овен', symbol: '♈' };
+        if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return { name: t('zodiac.aries'), symbol: '♈' };
         if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return { name: 'Телець', symbol: '♉' };
         if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return { name: 'Близнюки', symbol: '♊' };
         if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return { name: 'Рак', symbol: '♋' };
-        if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return { name: 'Лев', symbol: '♌' };
+        if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return { name: t('zodiac.leo'), symbol: '♌' };
         if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return { name: 'Діва', symbol: '♍' };
         if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return { name: 'Терези', symbol: '♎' };
         if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return { name: 'Скорпіон', symbol: '♏' };
@@ -181,7 +184,7 @@ export default function ZodiacConstructor() {
     ];
 
     const productTypes = [
-        { label: 'Постер', price: 0 },
+        { label: t('zodiac.poster'), price: 0 },
         { label: 'В рамці', price: 300 },
         { label: 'Метал', price: 500 }
     ];
@@ -219,7 +222,7 @@ export default function ZodiacConstructor() {
 
         addItem({
             id: `zodiac-${Date.now()}`,
-            name: 'Постер знаку зодіаку',
+            name: t('zodiac.header_title'),
             price: totalPrice,
             qty: 1,
             image: product?.image_url || '/placeholder-poster.jpg',
@@ -301,10 +304,10 @@ export default function ZodiacConstructor() {
                     </div>
                     <div className="flex justify-center mt-2">
                         <p className="text-sm text-gray-600">
-                            {currentStep === 1 && 'Крок 1: Вибір знаку'}
-                            {currentStep === 2 && 'Крок 2: Персоналізація'}
-                            {currentStep === 3 && 'Крок 3: Дизайн'}
-                            {currentStep === 4 && 'Крок 4: Розмір і тип'}
+                            {currentStep === 1 && t('zodiac.step_1')}
+                            {currentStep === 2 && t('zodiac.step_2')}
+                            {currentStep === 3 && t('zodiac.step_3')}
+                            {currentStep === 4 && t('zodiac.step_4')}
                         </p>
                     </div>
                 </div>

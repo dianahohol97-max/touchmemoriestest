@@ -9,6 +9,7 @@ import CityMapPreview from './CityMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
+import { useT } from '@/lib/i18n/context';
 
 interface CityMapConfig {
     // Step 1: Location
@@ -40,6 +41,7 @@ interface CityMapConfig {
 }
 
 export default function CityMapConstructor() {
+    const t = useT();
     const { addItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
@@ -130,12 +132,12 @@ export default function CityMapConstructor() {
 
     const handleAddToCart = () => {
         if (!product) {
-            toast.error('Продукт не знайдено');
+            toast.error(t('citymap.product_not_found'));
             return;
         }
 
         if (!config.hasValidLocation) {
-            toast.error('Будь ласка, оберіть локацію');
+            toast.error(t('citymap.location_select_reminder'));
             return;
         }
 
@@ -158,12 +160,12 @@ export default function CityMapConstructor() {
             personalization_note: `Заголовок: ${config.title}\nПідзаголовок: ${config.subtitle}\nНотатка: ${config.textNote}\nКоординати: ${config.coordinates}`
         });
 
-        toast.success('Постер додано до кошика');
+        toast.success(t('citymap.add_to_cart_success'));
     };
 
     const nextStep = () => {
         if (currentStep === 1 && !config.hasValidLocation) {
-            toast.error('Будь ласка, оберіть локацію');
+            toast.error(t('citymap.location_select_reminder'));
             return;
         }
         if (currentStep < 4) setCurrentStep(currentStep + 1);
@@ -176,7 +178,7 @@ export default function CityMapConstructor() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-24">
-                <div className="text-gray-500">Завантаження...</div>
+                <div className="text-gray-500">{t('citymap.loading')}</div>
             </div>
         );
     }
@@ -188,7 +190,7 @@ export default function CityMapConstructor() {
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold text-[#1e2d7d]">Постер мапи міста</h1>
+                            <h1 className="text-2xl font-bold text-[#1e2d7d]">{t('citymap.main_title')}</h1>
                             <p className="text-sm text-gray-600 mt-1">
                                 Крок {currentStep} з 4: {
                                     currentStep === 1 ? 'Локація' :
@@ -200,7 +202,7 @@ export default function CityMapConstructor() {
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="text-right">
-                                <div className="text-sm text-gray-600">Вартість:</div>
+                                <div className="text-sm text-gray-600">{t('citymap.cost_label')}</div>
                                 <div className="text-2xl font-bold text-[#1e2d7d]">{config.price} ₴</div>
                             </div>
                             <button
@@ -253,7 +255,7 @@ export default function CityMapConstructor() {
 
                         {/* QR Code Generator */}
                         <div style={{ marginBottom: 16 }}>
-                          <QRCodeGenerator compact label="Додати QR-код до замовлення" />
+                          <QRCodeGenerator compact label={t('citymap.add_qr_code')} />
                         </div>
 
                         {/* Navigation Buttons */}
@@ -284,11 +286,12 @@ export default function CityMapConstructor() {
 
 // Step 1: Location
 function Step1Location({ config, setConfig }: { config: CityMapConfig; setConfig: React.Dispatch<React.SetStateAction<CityMapConfig>> }) {
+    const t = useT();
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Оберіть локацію</h2>
-                <p className="text-gray-600 text-sm">Знайдіть своє улюблене місто або локацію</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('citymap.location_header')}</h2>
+                <p className="text-gray-600 text-sm">{t('citymap.main_desc')}</p>
             </div>
 
             {/* Location Search */}
@@ -321,7 +324,7 @@ function Step1Location({ config, setConfig }: { config: CityMapConfig; setConfig
                             });
                         }
                     }}
-                    placeholder="Почніть вводити назву міста..."
+                    placeholder={t('citymap.location_placeholder')}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                     Після вибору ви можете налаштувати вигляд на карті
@@ -342,15 +345,15 @@ function Step1Location({ config, setConfig }: { config: CityMapConfig; setConfig
                     className="w-full"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Віддалений</span>
+                    <span>{t('citymap.zoom_far')}</span>
                     <span>Zoom: {config.zoom}</span>
-                    <span>Близький</span>
+                    <span>{t('citymap.zoom_close')}</span>
                 </div>
             </div>
 
             {/* Coordinates Display */}
             <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-xs font-medium text-gray-600 mb-1">Координати (автоматично):</div>
+                <div className="text-xs font-medium text-gray-600 mb-1">{t('citymap.coordinates_label')}</div>
                 <div className="text-sm font-mono text-gray-900">{config.coordinates}</div>
             </div>
 
@@ -367,11 +370,12 @@ function Step1Location({ config, setConfig }: { config: CityMapConfig; setConfig
 
 // Step 2: Personalize
 function Step2Personalize({ config, setConfig }: { config: CityMapConfig; setConfig: React.Dispatch<React.SetStateAction<CityMapConfig>> }) {
+    const t = useT();
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Персоналізація</h2>
-                <p className="text-gray-600 text-sm">Додайте текст до вашого постера</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('citymap.personalization_title')}</h2>
+                <p className="text-gray-600 text-sm">{t('citymap.note_placeholder')}</p>
             </div>
 
             {/* Title */}
@@ -383,7 +387,7 @@ function Step2Personalize({ config, setConfig }: { config: CityMapConfig; setCon
                     type="text"
                     value={config.title}
                     onChange={(e) => setConfig({ ...config, title: e.target.value })}
-                    placeholder="Київ"
+                    placeholder={t('citymap.location_city_name')}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
                 />
             </div>
@@ -397,7 +401,7 @@ function Step2Personalize({ config, setConfig }: { config: CityMapConfig; setCon
                     type="text"
                     value={config.subtitle}
                     onChange={(e) => setConfig({ ...config, subtitle: e.target.value })}
-                    placeholder="Україна"
+                    placeholder={t('citymap.location_country')}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
                 />
             </div>
@@ -418,7 +422,7 @@ function Step2Personalize({ config, setConfig }: { config: CityMapConfig; setCon
 
             {/* Coordinates Display */}
             <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-xs font-medium text-gray-600 mb-1">Координати (автоматично):</div>
+                <div className="text-xs font-medium text-gray-600 mb-1">{t('citymap.coordinates_label')}</div>
                 <div className="text-sm font-mono text-gray-900">{config.coordinates}</div>
             </div>
         </div>
@@ -427,6 +431,7 @@ function Step2Personalize({ config, setConfig }: { config: CityMapConfig; setCon
 
 // Step 3: Design
 function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: React.Dispatch<React.SetStateAction<CityMapConfig>> }) {
+    const t = useT();
     const mapStyles = [
         // Poster-quality minimal styles (like Etsy bestsellers)
         { id: 'stamen-toner',  name: 'Toner',    bg: '#ffffff', roads: '#000000', water: '#cccccc', park: '#eeeeee' },
@@ -474,13 +479,13 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Дизайн</h2>
-                <p className="text-gray-600 text-sm">Оберіть стиль та макет</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('citymap.design_title')}</h2>
+                <p className="text-gray-600 text-sm">{t('citymap.design_subtitle')}</p>
             </div>
 
             {/* Map Style — circular swatches */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Стиль карти</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.map_style_label')}</label>
                 <div className="grid grid-cols-4 gap-4">
                     {mapStyles.map((style) => (
                         <button
@@ -524,7 +529,7 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
 
             {/* Layout — visual mini previews */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Макет</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.layout_label')}</label>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
                     {layouts.map((layout) => {
                         const isActive = config.layout === layout.id;
@@ -598,7 +603,7 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
 
             {/* Border */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Рамка</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.border_label')}</label>
                 <div className="grid grid-cols-3 gap-2">
                     {borders.map((border) => (
                         <button
@@ -618,7 +623,7 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
 
             {/* Orientation */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Орієнтація</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.orientation_label')}</label>
                 <div className="grid grid-cols-2 gap-3">
                     <button
                         onClick={() => setConfig({ ...config, orientation: 'portrait' })}
@@ -628,7 +633,7 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
                                 : 'border-gray-200 hover:border-gray-300'
                         }`}
                     >
-                        <div className="text-sm font-semibold text-gray-900">Вертикальна</div>
+                        <div className="text-sm font-semibold text-gray-900">{t('citymap.orientation_portrait')}</div>
                     </button>
                     <button
                         onClick={() => setConfig({ ...config, orientation: 'landscape' })}
@@ -638,14 +643,14 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
                                 : 'border-gray-200 hover:border-gray-300'
                         }`}
                     >
-                        <div className="text-sm font-semibold text-gray-900">Горизонтальна</div>
+                        <div className="text-sm font-semibold text-gray-900">{t('citymap.orientation_landscape')}</div>
                     </button>
                 </div>
             </div>
 
             {/* Font — grouped visual picker */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Шрифт надпису</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.font_label')}</label>
                 <div style={{ display:'flex', flexDirection:'column', gap:8, maxHeight:280, overflowY:'auto', paddingRight:4 }}>
                     {FONT_GROUPS.map(group => (
                         <div key={group.group}>
@@ -676,7 +681,7 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
 
             {/* Map language — city/street names on map tiles */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Мова надписів на карті</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.map_lang_label')}</label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
                     {([
                         { code: 'uk', label: '🇺🇦 Укр' },
@@ -743,7 +748,7 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
 
             {/* Text Color Override */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Колір тексту</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.text_color_label')}</label>
                 <div className="grid grid-cols-2 gap-3">
                     <button
                         onClick={() => setConfig({ ...config, textColor: 'light' })}
@@ -753,8 +758,8 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
                                 : 'border-gray-200 hover:border-gray-300'
                         }`}
                     >
-                        <div className="text-sm font-semibold text-gray-900">Темний текст</div>
-                        <div className="text-xs text-gray-500">На світлому фоні</div>
+                        <div className="text-sm font-semibold text-gray-900">{t('citymap.text_color_dark')}</div>
+                        <div className="text-xs text-gray-500">{t('citymap.map_style_light')}</div>
                     </button>
                     <button
                         onClick={() => setConfig({ ...config, textColor: 'dark' })}
@@ -764,8 +769,8 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
                                 : 'border-gray-200 hover:border-gray-300'
                         }`}
                     >
-                        <div className="text-sm font-semibold text-gray-900">Світлий текст</div>
-                        <div className="text-xs text-gray-500">На темному фоні</div>
+                        <div className="text-sm font-semibold text-gray-900">{t('citymap.text_color_light')}</div>
+                        <div className="text-xs text-gray-500">{t('citymap.map_style_dark')}</div>
                     </button>
                 </div>
             </div>
@@ -775,6 +780,7 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
 
 // Step 4: Size & Product
 function Step4SizeProduct({ config, setConfig, product }: { config: CityMapConfig; setConfig: React.Dispatch<React.SetStateAction<CityMapConfig>>; product: any }) {
+    const t = useT();
     const sizes = [
         { name: '30×40 см', price: 450 },
         { name: '50×70 см', price: 750 },
@@ -801,12 +807,12 @@ function Step4SizeProduct({ config, setConfig, product }: { config: CityMapConfi
         <div className="space-y-6">
             <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Розмір та продукт</h2>
-                <p className="text-gray-600 text-sm">Оберіть розмір та тип продукту</p>
+                <p className="text-gray-600 text-sm">{t('citymap.size_product_title')}</p>
             </div>
 
             {/* Size Selector */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Розмір</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.size_label')}</label>
                 <div className="grid grid-cols-3 gap-3">
                     {sizes.map((size) => (
                         <button
@@ -827,7 +833,7 @@ function Step4SizeProduct({ config, setConfig, product }: { config: CityMapConfi
 
             {/* Product Type Selector */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Тип продукту</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.product_type_label')}</label>
                 <div className="space-y-3">
                     {productTypes.map((type) => (
                         <button

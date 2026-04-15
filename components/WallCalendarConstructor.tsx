@@ -13,6 +13,7 @@ import {
     ChevronLeft, ChevronRight, ShoppingCart,
     Upload, ZoomIn, ZoomOut, Image as ImageIcon
 } from 'lucide-react';
+import { useT } from '@/lib/i18n/context';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Photo { id: string; preview: string; width: number; height: number; name: string; }
@@ -134,6 +135,7 @@ function heartPath(cx: number, cy: number, r: number): string {
 function PhotoSlot({ slot, photo, W, H, onDrop, onCropChange }:
     { slot: Slot; photo: Photo|null; W: number; H: number;
       onDrop:(id:string)=>void; onCropChange:(x:number,y:number,z:number)=>void }) {
+    const t = useT();
     const drag = useRef<{sx:number;sy:number;cx:number;cy:number}|null>(null);
     const handleMD = (e: React.PointerEvent) => {
         if (!photo) return; e.preventDefault();
@@ -167,7 +169,7 @@ function PhotoSlot({ slot, photo, W, H, onDrop, onCropChange }:
             ) : (
                 <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:'1.5px dashed #d1d5db', color:'#cbd5e1', gap:4 }}>
                     <ImageIcon size={18} color="#d1d5db"/>
-                    <span style={{ fontSize:9, fontWeight:600 }}>Перетягніть фото</span>
+                    <span style={{ fontSize:9, fontWeight:600 }}>{t('wallcal.drag_photo_hint')}</span>
                 </div>
             )}
         </div>
@@ -243,6 +245,7 @@ function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, ac
 
 // ─── Main constructor ──────────────────────────────────────────────────────────
 export default function WallCalendarConstructor({ initialSize='A4' }: { initialSize?: string }) {
+    const t = useT();
     const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     const { addItem } = useCartStore();
 
@@ -306,7 +309,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
             if (s.photoId||pi>=photos.length) return s;
             return {...s,photoId:photos[pi++].id};
         })})));
-        toast.success('Фото розставлені автоматично');
+        toast.success(t('wallcal.photos_auto_filled'));
     };
 
     const addToCart = () => {
@@ -320,7 +323,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
             options:{'Розмір':SIZE_DIMS[size].label},
             slug:'wall-calendar-2026',
         });
-        toast.success('Календар додано до кошика!');
+        toast.success(t('wallcal.calendar_added_to_cart'));
     };
 
     const isCover = currentIdx === 0;
@@ -340,8 +343,8 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                 <a href="/catalog/wall-calendar-2026" style={{display:'inline-flex',alignItems:'center',gap:6,color:'#64748b',textDecoration:'none',fontSize:13,marginBottom:20,opacity:0.8}}>
                   ← Назад до каталогу
                 </a>
-                <h1 style={{fontSize:28,fontWeight:900,color:'#1e2d7d',marginBottom:6}}>Настінний фотокалендар 2026</h1>
-                <p style={{color:'#64748b',marginBottom:32}}>Обкладинка + 12 місяців зі слотами для фото і календарною сіткою</p>
+                <h1 style={{fontSize:28,fontWeight:900,color:'#1e2d7d',marginBottom:6}}>{t('wallcal.title')}</h1>
+                <p style={{color:'#64748b',marginBottom:32}}>{t('wallcal.description')}</p>
 
                 <div style={{marginBottom:28}}>
                     <div style={{fontWeight:700,fontSize:14,color:'#374151',marginBottom:12}}>Розмір <span style={{color:'#ef4444'}}>*</span></div>
@@ -360,7 +363,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
 
                 <div style={{marginBottom:32}}>
                     <div style={{fontWeight:700,fontSize:14,color:'#374151',marginBottom:12}}>
-                        Акцентний колір <span style={{fontSize:12,color:'#94a3b8',fontWeight:400}}>— вихідні та назви місяців</span>
+                        Акцентний колір <span style={{fontSize:12,color:'#94a3b8',fontWeight:400}}>{t('wallcal.accent_color_desc')}</span>
                     </div>
                     <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
                         {ACCENT_COLORS.map(c=>(
@@ -371,7 +374,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                 </div>
 
                 <div style={{background:'#f0f9ff',border:'1px solid #bae6fd',borderRadius:10,padding:'14px 18px',marginBottom:28,fontSize:13,color:'#0369a1'}}>
-                    📅 <b>13 сторінок:</b> обкладинка (повний редактор — фото, текст, шрифт, кольори) + 12 місяців (Січень–Грудень 2026) зі слотами для фото і сіткою.
+                    📅 <b>{t('wallcal.info_pages')}</b> обкладинка (повний редактор — фото, текст, шрифт, кольори) + 12 місяців (Січень–Грудень 2026) зі слотами для фото і сіткою.
                 </div>
 
                 <button onClick={startEditor} style={{width:'100%',padding:16,background:'#1e2d7d',color:'#fff',border:'none',borderRadius:10,fontSize:16,fontWeight:800,cursor:'pointer'}}>
@@ -391,11 +394,11 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
                     <button onClick={()=>setStep('config')} style={{background:'none',border:'none',cursor:'pointer',color:'#374151',display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 8px',borderRadius:6}}>
                         <ChevronLeft size={20}/>
-                        <span style={{fontSize:9,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em'}}>НАЗАД</span>
+                        <span style={{fontSize:9,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em'}}>{t('wallcal.back_button')}</span>
                     </button>
                     <div style={{width:1,height:32,background:'#e2e8f0'}}/>
                     <div>
-                        <div style={{fontWeight:800,fontSize:14,color:'#1e2d7d'}}>Настінний календар 2026 · {size}</div>
+                        <div style={{fontWeight:800,fontSize:14,color:'#1e2d7d'}}>{t('wallcal.editor_title')}</div>
                         <div style={{fontSize:11,color:'#94a3b8'}}>{photos.length} фото · 13 сторінок</div>
                     </div>
                 </div>
@@ -430,7 +433,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                 <img src={p.preview} style={{width:'100%',height:64,objectFit:'cover',display:'block'}}/>
                             </div>
                         ))}
-                        {photos.length===0 && <p style={{fontSize:11,color:'#94a3b8',textAlign:'center',padding:'20px 8px'}}>Додайте фото щоб почати</p>}
+                        {photos.length===0 && <p style={{fontSize:11,color:'#94a3b8',textAlign:'center',padding:'20px 8px'}}>{t('wallcal.add_photos_to_start')}</p>}
                     </div>
                 </div>
 
@@ -536,11 +539,11 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                     {isCover ? (
                         /* Cover tools */
                         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                            <div style={{fontSize:11,fontWeight:800,color:'#1e2d7d',letterSpacing:'0.08em',textTransform:'uppercase',padding:'6px 8px',background:'#f0f3ff',borderRadius:6,textAlign:'center'}}>✏️ Редактор обкладинки</div>
+                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase'}}>{t('wallcal.cover_editor_label')}</div>
 
                             {/* Cover templates */}
                             <div>
-                                <div style={{fontSize:10,fontWeight:800,color:'#374151',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.05em'}}>Шаблон</div>
+                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:6}}>{t('wallcal.template_label')}</div>
                                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
                                     {[
                                         {id:'photo-full', label:'Фото фон', bg:'#1e2d7d'},
@@ -565,7 +568,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
 
                             {/* BG color */}
                             <div>
-                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:5}}>Колір фону</div>
+                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:5}}>{t('wallcal.bg_color_label')}</div>
                                 <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:4}}>
                                     {['#1e2d7d','#0a0e1a','#14532d','#3d2c1e','#7c3aed','#be185d','#ffffff','#faf7f2','#1a1a1a','#0369a1'].map(c=>(
                                         <button key={c} onClick={()=>setCoverConfig(prev=>({...prev,printedBgColor:c}))}
@@ -578,14 +581,14 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
 
                             {/* Text */}
                             <div>
-                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:5}}>Текст</div>
+                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:5}}>{t('wallcal.text_label')}</div>
                                 <input type="text"
                                     value={coverConfig.printedTextBlocks?.[0]?.text || ''}
                                     onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
                                         {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,fontSize:22,fontFamily:'Playfair Display',color:'#ffffff',bold:true}),text:e.target.value},
                                         ...(prev.printedTextBlocks?.slice(1)||[])
                                     ]}))}
-                                    placeholder="Мій календар 2026"
+                                    placeholder={t('wallcal.text_placeholder')}
                                     style={{width:'100%',padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:7,fontSize:11,boxSizing:'border-box',marginBottom:6}}/>
                                 {/* Font */}
                                 <select
@@ -601,7 +604,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                 </select>
                                 {/* Text color */}
                                 <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:5}}>
-                                    <span style={{fontSize:9,color:'#64748b'}}>Колір:</span>
+                                    <span style={{fontSize:9,color:'#64748b'}}>{t('wallcal.text_color_label')}</span>
                                     {['#ffffff','#1a1a1a','#1e2d7d','#c8a96e','#be185d','#4ade80'].map(c=>(
                                         <button key={c} onClick={()=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
                                             {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,fontSize:22,fontFamily:'Playfair Display',bold:true}),color:c},
@@ -619,7 +622,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                 </div>
                                 {/* Font size */}
                                 <div style={{display:'flex',alignItems:'center',gap:5}}>
-                                    <span style={{fontSize:9,color:'#64748b'}}>Розмір:</span>
+                                    <span style={{fontSize:9,color:'#64748b'}}>{t('wallcal.font_size_label')}</span>
                                     <input type="range" min={12} max={60}
                                         value={coverConfig.printedTextBlocks?.[0]?.fontSize||22}
                                         onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
@@ -633,7 +636,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
 
                             {/* Text position */}
                             <div>
-                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:5}}>Позиція тексту</div>
+                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:5}}>{t('wallcal.text_position_label')}</div>
                                 <div style={{display:'flex',flexDirection:'column',gap:4}}>
                                     <div style={{display:'flex',alignItems:'center',gap:4}}>
                                         <span style={{fontSize:9,color:'#64748b',width:16}}>X</span>
@@ -665,7 +668,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                     ) : (
                         /* Month tools */
                         <>
-                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:10}}>Шаблон фото</div>
+                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:10}}>{t('wallcal.photo_template_label')}</div>
                             <div style={{display:'grid',gap:5}}>
                                 {LAYOUTS.map(l=>(
                                     <button key={l.id} onClick={()=>setLayout(l.id)}
@@ -675,7 +678,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                 ))}
                             </div>
                             <div style={{marginTop:16,height:1,background:'#f1f5f9'}}/>
-                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',margin:'12px 0 8px'}}>Акцент</div>
+                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',margin:'12px 0 8px'}}>{t('wallcal.accent_label')}</div>
                             <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
                                 {ACCENT_COLORS.map(c=>(
                                     <button key={c} onClick={()=>setAccent(c)} title={c}
@@ -685,7 +688,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
 
                             {/* Marked dates */}
                             <div style={{marginTop:12,height:1,background:'#f1f5f9'}}/>
-                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',margin:'12px 0 6px'}}>Виділення дат</div>
+                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',margin:'12px 0 6px'}}>{t('wallcal.marked_dates_label')}</div>
                             {curMonth && (() => {
                                 const key = `m${curMonth.month}`;
                                 const monthMarks = markedDates[key] || [];
@@ -708,8 +711,8 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                 return (
                                     <div>
                                         <div style={{display:'flex',gap:4,marginBottom:5,flexWrap:'wrap'}}>
-                                            <button onClick={()=>setMarkShape('circle')} style={{padding:'3px 6px',border:markShape==='circle'?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:10,background:markShape==='circle'?'#f0f3ff':'#fff',fontSize:9,fontWeight:700,cursor:'pointer',color:markShape==='circle'?'#1e2d7d':'#374151'}}>⬤ Коло</button>
-                                            <button onClick={()=>setMarkShape('heart')} style={{padding:'3px 6px',border:markShape==='heart'?'2px solid #e11d48':'1px solid #e2e8f0',borderRadius:10,background:markShape==='heart'?'#fff1f2':'#fff',fontSize:9,fontWeight:700,cursor:'pointer',color:markShape==='heart'?'#e11d48':'#374151'}}>♥ Серце</button>
+                                            <button onClick={()=>setMarkShape('circle')} style={{padding:'3px 6px',border:markShape==='circle'?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:10,background:markShape==='circle'?'#f0f3ff':'#fff',fontSize:9,fontWeight:700,cursor:'pointer',color:markShape==='circle'?'#1e2d7d':'#374151'}}>{t('wallcal.circle_mark')}</button>
+                                            <button onClick={()=>setMarkShape('heart')} style={{padding:'3px 6px',border:markShape==='heart'?'2px solid #e11d48':'1px solid #e2e8f0',borderRadius:10,background:markShape==='heart'?'#fff1f2':'#fff',fontSize:9,fontWeight:700,cursor:'pointer',color:markShape==='heart'?'#e11d48':'#374151'}}>{t('wallcal.heart_mark')}</button>
                                         </div>
                                         <div style={{display:'flex',gap:3,marginBottom:5,flexWrap:'wrap'}}>
                                             {['#1e2d7d','#e11d48','#16a34a','#c8a96e','#7c3aed','#ea580c','#000'].map(c=>(
@@ -734,7 +737,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                                 );
                                             })}
                                         </div>
-                                        {monthMarks.length>0&&<button onClick={()=>setMarkedDates(prev=>({...prev,[key]:[]}))} style={{marginTop:4,fontSize:8,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>Очистити</button>}
+                                        {monthMarks.length>0&&<button onClick={()=>setMarkedDates(prev=>({...prev,[key]:[]}))} style={{marginTop:4,fontSize:8,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>{t('wallcal.clear_marks')}</button>}
                                     </div>
                                 );
                             })()}
