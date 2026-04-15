@@ -428,8 +428,22 @@ export const PUZZLES: PuzzleProduct = {
   productionTime: '3–5 business days',
   description: 'Upload one photo — printed across the full puzzle.',
   options: [
-    { size: '15×21 cm', pieces: 110, price: 249 },
-    { size: '20×30 cm', pieces: 216, price: 349 }
+    { size: '15×21 cm (A5)',    pieces: 35,  price: 249 },
+    { size: '15×21 cm (A5)',    pieces: 60,  price: 249 },
+    { size: '15×21 cm (A5)',    pieces: 110, price: 249 },
+    { size: '21×15 cm (A5)',    pieces: 35,  price: 249 },
+    { size: '21×15 cm (A5)',    pieces: 60,  price: 249 },
+    { size: '21×15 cm (A5)',    pieces: 110, price: 249 },
+    { size: '20×30 cm (A4)',    pieces: 60,  price: 349 },
+    { size: '20×30 cm (A4)',    pieces: 110, price: 349 },
+    { size: '20×30 cm (A4)',    pieces: 216, price: 349 },
+    { size: '30×20 cm (A4)',    pieces: 60,  price: 349 },
+    { size: '30×20 cm (A4)',    pieces: 110, price: 349 },
+    { size: '30×20 cm (A4)',    pieces: 216, price: 349 },
+    { size: '29.7×42 cm (A3)', pieces: 108, price: 499 },
+    { size: '29.7×42 cm (A3)', pieces: 216, price: 499 },
+    { size: '42×29.7 cm (A3)', pieces: 108, price: 499 },
+    { size: '42×29.7 cm (A3)', pieces: 216, price: 499 },
   ]
 };
 

@@ -20,10 +20,12 @@ type PuzzleFormat = {
 };
 
 const PUZZLE_FORMATS: PuzzleFormat[] = [
-  { id: 's-v', label: '15×21 см (вертикальний)',  sheet: 'A5', orientation: 'V', widthCm: 15, heightCm: 21, pieceCounts: [35, 60, 110],    basePrice: 249 },
-  { id: 's-h', label: '21×15 см (горизонтальний)', sheet: 'A5', orientation: 'H', widthCm: 21, heightCm: 15, pieceCounts: [35, 60, 110],    basePrice: 249 },
-  { id: 'm-v', label: '20×30 см (вертикальний)',  sheet: 'A4', orientation: 'V', widthCm: 20, heightCm: 30, pieceCounts: [60, 110, 216],    basePrice: 349 },
-  { id: 'm-h', label: '30×20 см (горизонтальний)', sheet: 'A4', orientation: 'H', widthCm: 30, heightCm: 20, pieceCounts: [60, 110, 216],    basePrice: 349 },
+  { id: 's-v', label: '15×21 см (вертикальний)',   sheet: 'A5', orientation: 'V', widthCm: 15,   heightCm: 21,   pieceCounts: [35, 60, 110],  basePrice: 249 },
+  { id: 's-h', label: '21×15 см (горизонтальний)', sheet: 'A5', orientation: 'H', widthCm: 21,   heightCm: 15,   pieceCounts: [35, 60, 110],  basePrice: 249 },
+  { id: 'm-v', label: '20×30 см (вертикальний)',   sheet: 'A4', orientation: 'V', widthCm: 20,   heightCm: 30,   pieceCounts: [60, 110, 216], basePrice: 349 },
+  { id: 'm-h', label: '30×20 см (горизонтальний)', sheet: 'A4', orientation: 'H', widthCm: 30,   heightCm: 20,   pieceCounts: [60, 110, 216], basePrice: 349 },
+  { id: 'l-v', label: '30×42 см (вертикальний)',   sheet: 'A3', orientation: 'V', widthCm: 29.7, heightCm: 42,   pieceCounts: [108, 216],     basePrice: 499 },
+  { id: 'l-h', label: '42×30 см (горизонтальний)', sheet: 'A3', orientation: 'H', widthCm: 42,   heightCm: 29.7, pieceCounts: [108, 216],     basePrice: 499 },
 ];
 
 const FINISHES = [
