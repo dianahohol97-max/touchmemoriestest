@@ -1,4 +1,5 @@
 'use client';
+import { SizeVisualizer } from './SizeVisualizer';
 import { useState, useMemo } from 'react';
 import { Check } from 'lucide-react';
 
@@ -97,37 +98,27 @@ export function PhotobookOptions({ product, onPriceChange, onOptionsChange }: Ph
                     }}>
                         Розмір
                     </label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                        {variants.map((variant, index) => {
-                            const isSelected = selectedSizeIndex === index;
+                    <div>
+                        {(() => {
+                            const sizes = variants.map(v => v.name);
+                            const prices: Record<string, number> = {};
+                            variants.forEach(v => { prices[v.name] = v.price; });
+                            const selected = variants[selectedSizeIndex]?.name || null;
                             return (
-                                <button
-                                    key={index}
-                                    onClick={() => handleSizeChange(index)}
-                                    style={{
-                                        padding: '12px 16px',
-                                        borderRadius: '3px',
-                                        border: isSelected ? '2px solid #263A99' : '1px solid #e2e8f0',
-                                        background: isSelected ? '#f8fafc' : 'white',
-                                        color: isSelected ? '#263A99' : '#475569',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        fontSize: '14px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px'
+                                <SizeVisualizer
+                                    sizes={sizes}
+                                    selected={selected}
+                                    onSelect={(size) => {
+                                        const idx = variants.findIndex(v => v.name === size);
+                                        if (idx >= 0) handleSizeChange(idx);
                                     }}
-                                    className="hover:border-primary/50"
-                                >
-                                    {variant.name}
-                                    {variant.price !== product.price && (
-                                        <span style={{ opacity: 0.7, fontSize: '13px', fontWeight: 500 }}>
-                                            {variant.price} ₴
-                                        </span>
-                                    )}
-                                </button>
+                                    prices={prices}
+                                />
                             );
+                        })()}
+                        {/* hidden for map compatibility */}
+                        {variants.map((variant, index) => {
+                            return null;
                         })}
                     </div>
                 </div>

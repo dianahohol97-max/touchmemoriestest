@@ -734,7 +734,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                     prices={option.prices as Record<string, number> | undefined}
                   />
                 )}
-              <select
+              {option.name !== 'Розмір' && <select
                 value={selectedValue || ''}
                 onChange={(e) => {
                   const val = option.values.includes(Number(e.target.value))
@@ -766,7 +766,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                     </option>
                   );
                 })}
-              </select>
+              </select>}
               </>
             )}
             {option.note && (

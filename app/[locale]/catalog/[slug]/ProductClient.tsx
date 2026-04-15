@@ -606,7 +606,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 />
                                                             );
                                                         })()}
-                                                        <select
+                                                        {opt.name !== 'Розмір' && <select
                                                             value={customProductOptions[opt.name] || ''}
                                                             onChange={(e) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: e.target.value }))}
                                                             style={{
@@ -631,7 +631,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                     </option>
                                                                 );
                                                             })}
-                                                        </select>
+                                                        </select>}
                                                     </div>
                                                 );
                                             })}
