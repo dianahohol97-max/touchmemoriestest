@@ -1346,16 +1346,22 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         )}
 
                         {activeTab === 'specs' && product.specs && product.specs.length > 0 && (
-                            <table style={{ width: '100%', maxWidth: '700px', borderCollapse: 'collapse' }}>
-                                <tbody>
-                                    {product.specs.map((spec: any, idx: number) => (
-                                        <tr key={idx} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                            <td style={{ padding: '16px 0', color: '#64748b', width: '50%' }}>{spec.key}</td>
-                                            <td style={{ padding: '16px 0', fontWeight: 600, color: '#263A99' }}>{spec.value}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            <div style={{ maxWidth: 600 }}>
+                                {product.specs.map((spec: any, idx: number) => (
+                                    <div key={idx} style={{
+                                        display: 'flex', alignItems: 'baseline', gap: 16,
+                                        padding: '14px 0',
+                                        borderBottom: idx < product.specs.length - 1 ? '1px solid #f1f5f9' : 'none'
+                                    }}>
+                                        <div style={{ minWidth: 160, fontSize: 14, color: '#64748b', fontWeight: 500, flexShrink: 0 }}>
+                                            {spec.label || spec.key || spec.name}
+                                        </div>
+                                        <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#1e2d7d' }}>
+                                            {spec.value}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         )}
 
                         {activeTab === 'reviews' && (
