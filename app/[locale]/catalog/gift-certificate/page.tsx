@@ -396,33 +396,128 @@ export default function GiftCertificatePage() {
             <div className="bg-white rounded-2xl p-8 shadow-lg border border-stone-100">
               <h2 className="text-xl font-bold text-stone-900 mb-6">Попередній перегляд</h2>
 
-              <div className="aspect-[3/2] rounded-xl bg-gradient-to-br from-amber-50 via-white to-orange-50 border-2 border-amber-200 p-8 flex flex-col justify-between">
-                <div>
-                  <div className="text-sm uppercase tracking-widest text-amber-600 mb-2">Touch.Memories</div>
-                  <h3 className="text-2xl font-bold text-stone-900 mb-4">Подарунковий сертифікат</h3>
-
-                  {config.type === 'money' && config.amount > 0 && (
-                    <div className="text-4xl font-bold text-amber-600 mb-2">{config.amount} ₴</div>
-                  )}
-
-                  {config.type === 'product' && config.productName && (
-                    <div className="mb-2">
-                      <div className="text-sm text-stone-500">Продукт:</div>
-                      <div className="text-lg font-semibold text-stone-900">{config.productName}</div>
-                      <div className="text-2xl font-bold text-amber-600">{config.productPrice} ₴</div>
-                    </div>
-                  )}
+              {/* Certificate — exact Canva design replica */}
+              <div style={{
+                aspectRatio: '3/2',
+                background: '#263A99',
+                borderRadius: 12,
+                position: 'relative',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '24px',
+              }}>
+                {/* White semicircle + gift icon at top center */}
+                <div style={{
+                  position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)',
+                  width: 80, height: 44, background: '#fff', borderRadius: '0 0 50px 50px',
+                  display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                  paddingBottom: 6, zIndex: 3,
+                }}>
+                  {/* Gift box icon */}
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#263A99" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="13" width="24" height="16" rx="1"/>
+                    <rect x="2" y="8" width="28" height="5" rx="1"/>
+                    <line x1="16" y1="8" x2="16" y2="29"/>
+                    <path d="M16 8C16 8 12 4 9 5C7 5.5 6 8 8 9C10 10 16 8 16 8Z"/>
+                    <path d="M16 8C16 8 20 4 23 5C25 5.5 26 8 24 9C22 10 16 8 16 8Z"/>
+                  </svg>
                 </div>
 
-                <div className="border-t border-amber-200 pt-4">
-                  {config.recipientName && (
-                    <div className="text-sm text-stone-600 mb-1">
-                      Для: <span className="font-semibold text-stone-900">{config.recipientName}</span>
-                    </div>
-                  )}
-                  <div className="text-xs text-stone-500">
-                    Дійсний до: {validUntil}
+                {/* Inner white border frame */}
+                <div style={{
+                  position: 'absolute', inset: 14, border: '1px solid rgba(255,255,255,0.5)',
+                  borderRadius: 6, pointerEvents: 'none', zIndex: 2,
+                }}/>
+
+                {/* GIFT text */}
+                <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', marginTop: 8 }}>
+                  {/* Big GIFT with certificate script overlay */}
+                  <div style={{ position: 'relative', display: 'inline-block', lineHeight: 1 }}>
+                    <span style={{
+                      fontFamily: 'Georgia, "Times New Roman", serif',
+                      fontSize: 'clamp(48px, 10vw, 72px)',
+                      fontWeight: 900,
+                      color: '#ffffff',
+                      letterSpacing: '0.05em',
+                      display: 'block',
+                    }}>GIFT</span>
+                    <span style={{
+                      position: 'absolute',
+                      top: '28%', left: '50%', transform: 'translateX(-50%)',
+                      fontFamily: 'Georgia, cursive',
+                      fontSize: 'clamp(14px, 3vw, 20px)',
+                      fontStyle: 'italic',
+                      color: '#ffffff',
+                      opacity: 0.9,
+                      whiteSpace: 'nowrap',
+                      fontWeight: 400,
+                    }}>certificate</span>
                   </div>
+
+                  {/* НА ... ГРН */}
+                  <div style={{
+                    marginTop: 16,
+                    color: '#ffffff',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    letterSpacing: '0.15em',
+                    textTransform: 'uppercase',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}>
+                    <span>НА</span>
+                    {config.type === 'money' && config.amount > 0 ? (
+                      <span style={{ borderBottom: '1px solid rgba(255,255,255,0.6)', minWidth: 80, textAlign: 'center', paddingBottom: 1 }}>
+                        {config.amount}
+                      </span>
+                    ) : config.type === 'product' && config.productPrice > 0 ? (
+                      <span style={{ borderBottom: '1px solid rgba(255,255,255,0.6)', minWidth: 80, textAlign: 'center', paddingBottom: 1 }}>
+                        {config.productPrice}
+                      </span>
+                    ) : (
+                      <span style={{ borderBottom: '1px dotted rgba(255,255,255,0.5)', minWidth: 120, display: 'inline-block' }}>&nbsp;</span>
+                    )}
+                    <span>ГРН</span>
+                  </div>
+
+                  {/* ДІЙСНИЙ ДО */}
+                  <div style={{
+                    marginTop: 8,
+                    color: '#ffffff',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: '0.15em',
+                    textTransform: 'uppercase',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}>
+                    <span>ДІЙСНИЙ ДО</span>
+                    <span style={{ borderBottom: '1px dotted rgba(255,255,255,0.5)', minWidth: 90, display: 'inline-block', textAlign: 'center' }}>
+                      {validUntil}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Footer: Instagram + TOUCH.MEMORIES */}
+                <div style={{
+                  position: 'absolute', bottom: 10, left: 0, right: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  zIndex: 2,
+                }}>
+                  {/* Instagram icon */}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5"/>
+                    <circle cx="12" cy="12" r="4"/>
+                    <circle cx="17.5" cy="6.5" r="0.5" fill="rgba(255,255,255,0.7)"/>
+                  </svg>
+                  <span style={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 10,
+                    letterSpacing: '0.25em',
+                    textTransform: 'uppercase',
+                    fontWeight: 500,
+                  }}>TOUCH.MEMORIES</span>
                 </div>
               </div>
 
