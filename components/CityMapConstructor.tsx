@@ -642,99 +642,81 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
                 </div>
             </div>
 
-            {/* Font — grouped visual picker */}
+            {/* Font — dropdown with groups */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.font_label')}</label>
-                <div style={{ display:'flex', flexDirection:'column', gap:8, maxHeight:280, overflowY:'auto', paddingRight:4 }}>
+                <select
+                    value={config.fontFamily}
+                    onChange={(e) => setConfig({ ...config, fontFamily: e.target.value })}
+                    style={{
+                        width:'100%', padding:'10px 14px', border:'1px solid #d1d5db',
+                        borderRadius:8, fontSize:14, cursor:'pointer', background:'#fff',
+                        color:'#1e2d7d', fontWeight:600, fontFamily: config.fontFamily,
+                    }}
+                >
                     {FONT_GROUPS.map(group => (
-                        <div key={group.group}>
-                            <div style={{ fontSize:9, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>{group.group}</div>
-                            <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
-                                {group.fonts.map(font => {
-                                    const isActive = config.fontFamily === font;
-                                    return (
-                                        <button key={font} type="button"
-                                            onClick={() => setConfig({ ...config, fontFamily: font })}
-                                            style={{
-                                                padding:'4px 9px', borderRadius:7, cursor:'pointer', fontSize:12,
-                                                fontFamily: font,
-                                                border: isActive ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
-                                                background: isActive ? '#f0f3ff' : '#fff',
-                                                color: isActive ? '#1e2d7d' : '#374151',
-                                                fontWeight: isActive ? 700 : 400,
-                                            }}>
-                                            {font}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        <optgroup key={group.group} label={group.group}>
+                            {group.fonts.map(font => (
+                                <option key={font} value={font} style={{ fontFamily: font }}>{font}</option>
+                            ))}
+                        </optgroup>
                     ))}
-                </div>
+                </select>
             </div>
 
             {/* Map language — city/street names on map tiles */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">{t('citymap.map_lang_label')}</label>
-                <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
-                    {([
-                        { code: 'uk', label: ' Укр' },
-                        { code: 'en', label: ' Eng' },
-                        
-                        { code: 'de', label: ' Deu' },
-                        { code: 'fr', label: ' Fra' },
-                        { code: 'es', label: ' Esp' },
-                        { code: 'it', label: ' Ita' },
-                        { code: 'pl', label: ' Pol' },
-                        { code: 'pt', label: ' Por' },
-                        { code: 'ro', label: ' Rom' },
-                        { code: 'nl', label: ' Nld' },
-                        { code: 'cs', label: ' Ces' },
-                        { code: 'sk', label: ' Slk' },
-                        { code: 'hu', label: ' Hun' },
-                        { code: 'tr', label: ' Tur' },
-                        { code: 'ar', label: ' Ara' },
-                        { code: 'zh', label: ' Zho' },
-                        { code: 'ja', label: ' Jpn' },
-                        { code: 'ko', label: ' Kor' },
-                        { code: 'he', label: ' Heb' },
-                        { code: 'fa', label: ' Per' },
-                        { code: 'sv', label: ' Swe' },
-                        { code: 'fi', label: ' Fin' },
-                        { code: 'no', label: ' Nor' },
-                        { code: 'da', label: ' Dan' },
-                        { code: 'el', label: ' Ell' },
-                        { code: 'bg', label: ' Bul' },
-                        { code: 'hr', label: ' Hrv' },
-                        { code: 'sr', label: ' Srp' },
-                        { code: 'lt', label: ' Lit' },
-                        { code: 'lv', label: ' Lav' },
-                        { code: 'et', label: ' Est' },
-                        { code: 'ka', label: ' Geo' },
-                        { code: 'hy', label: ' Arm' },
-                        { code: 'az', label: ' Aze' },
-                        { code: 'kk', label: ' Kaz' },
-                        { code: 'be', label: ' Bel' },
-                        { code: 'vi', label: ' Vie' },
-                        { code: 'th', label: ' Tha' },
-                        { code: 'id', label: ' Ind' },
-                        { code: 'ms', label: ' Msa' },
-                    ] as const).map(({ code, label }) => {
-                        const isActive = ((config as any).mapLang || 'uk') === code;
-                        return (
-                            <button key={code} type="button"
-                                onClick={() => setConfig({ ...config, mapLang: code } as any)}
-                                style={{
-                                    padding:'4px 8px', borderRadius:7, cursor:'pointer', fontSize:11, fontWeight: isActive ? 700 : 400,
-                                    border: isActive ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
-                                    background: isActive ? '#f0f3ff' : '#fff',
-                                    color: isActive ? '#1e2d7d' : '#374151',
-                                }}>
-                                {label}
-                            </button>
-                        );
-                    })}
-                </div>
+                <select
+                    value={(config as any).mapLang || 'uk'}
+                    onChange={(e) => setConfig({ ...config, mapLang: e.target.value } as any)}
+                    style={{
+                        width:'100%', padding:'10px 14px', border:'1px solid #d1d5db',
+                        borderRadius:8, fontSize:14, cursor:'pointer', background:'#fff',
+                        color:'#1e2d7d', fontWeight:600,
+                    }}
+                >
+                    <option value="uk">Українська</option>
+                    <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                    <option value="fr">Français</option>
+                    <option value="es">Español</option>
+                    <option value="it">Italiano</option>
+                    <option value="pl">Polski</option>
+                    <option value="pt">Português</option>
+                    <option value="ro">Română</option>
+                    <option value="nl">Nederlands</option>
+                    <option value="cs">Čeština</option>
+                    <option value="sk">Slovenčina</option>
+                    <option value="hu">Magyar</option>
+                    <option value="tr">Türkçe</option>
+                    <option value="ar">العربية</option>
+                    <option value="zh">中文</option>
+                    <option value="ja">日本語</option>
+                    <option value="ko">한국어</option>
+                    <option value="he">עברית</option>
+                    <option value="fa">فارسی</option>
+                    <option value="sv">Svenska</option>
+                    <option value="fi">Suomi</option>
+                    <option value="no">Norsk</option>
+                    <option value="da">Dansk</option>
+                    <option value="el">Ελληνικά</option>
+                    <option value="bg">Български</option>
+                    <option value="hr">Hrvatski</option>
+                    <option value="sr">Српски</option>
+                    <option value="lt">Lietuvių</option>
+                    <option value="lv">Latviešu</option>
+                    <option value="et">Eesti</option>
+                    <option value="ka">ქართული</option>
+                    <option value="hy">Հայերեն</option>
+                    <option value="az">Azərbaycan</option>
+                    <option value="kk">Қазақша</option>
+                    <option value="be">Беларуская</option>
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="th">ไทย</option>
+                    <option value="id">Bahasa Indonesia</option>
+                    <option value="ms">Bahasa Melayu</option>
+                </select>
                 <p style={{ fontSize:10, color:'#94a3b8', marginTop:6 }}>
                     * Написи на карті залежать від даних OpenStreetMap — деякі міста можуть мати обмежений переклад
                 </p>
