@@ -1,4 +1,5 @@
 'use client';
+import { useSearchParams } from 'next/navigation';
 
 import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -53,6 +54,12 @@ export default function StarMapConstructor() {
     const [exportDone, setExportDone] = useState(false);
     const previewAreaRef = useRef<HTMLDivElement>(null);
 
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const urlSize = searchParams?.get('size')?.toUpperCase() || '';
+    const initialStarMapSize = urlSize.includes('A3') ? 'A3 (29.7×42 см)'
+        : urlSize.includes('30') ? '30×40 см'
+        : 'A4 (21×29.7 см)';
+
     const [config, setConfig] = useState<StarMapConfig>({
         // Step 1 defaults
         date: new Date().toISOString().split('T')[0],
@@ -76,7 +83,7 @@ export default function StarMapConstructor() {
         showStarNames: true,
 
         // Step 4 defaults
-        size: 'A4 (21×29.7 см)',
+        size: initialStarMapSize,
         productType: 'Постер',
         price: 0
     });

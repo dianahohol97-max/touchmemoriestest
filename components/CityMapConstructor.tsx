@@ -45,6 +45,15 @@ export default function CityMapConstructor() {
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
+    const initialCityMapSize = (() => {
+        if (typeof window === 'undefined') return '30×40 см';
+        const s = new URLSearchParams(window.location.search).get('size')?.toUpperCase() || '';
+        if (s.includes('A4') || s === 'A4') return 'A4 (21×29.7 см)';
+        if (s.includes('A3') || s === 'A3') return 'A3 (29.7×42 см)';
+        if (s.includes('50') || s.includes('50X70')) return '50×70 см';
+        return '30×40 см';
+    })();
+
     const [config, setConfig] = useState<CityMapConfig>({
         // Step 1 defaults - Kyiv
         location: 'Київ, Україна',
@@ -69,7 +78,7 @@ export default function CityMapConstructor() {
         mapLang: 'uk',
 
         // Step 4 defaults
-        size: '30×40 см',
+        size: initialCityMapSize,
         productType: 'Постер',
         price: 0
     });
