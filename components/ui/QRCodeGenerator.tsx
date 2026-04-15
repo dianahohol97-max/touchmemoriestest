@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { QrCode, Download, Copy, Check, RefreshCw } from 'lucide-react';
 
 interface QRCodeGeneratorProps {
@@ -57,8 +57,15 @@ export function QRCodeGenerator({
     const v = inputValue.trim();
     if (!v) return;
     setValue(v);
+    // Build qrUrl from the *new* value, not the stale state.
+    const newQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(v)}&color=${fg}&bgcolor=${bg}&margin=10&qzone=1&format=png`;
+    if (onQRUrlChange) onQRUrlChange(newQrUrl);
+  }, [inputValue, size, fg, bg, onQRUrlChange]);
+
+  // Keep parent in sync if value/size/colors change
+  useEffect(() => {
     if (onQRUrlChange) onQRUrlChange(qrUrl);
-  }, [inputValue, qrUrl, onQRUrlChange]);
+  }, [qrUrl, onQRUrlChange]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleGenerate();
