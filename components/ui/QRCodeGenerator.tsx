@@ -50,7 +50,7 @@ export function QRCodeGenerator({
   const { fg, bg } = QR_COLORS[colorPreset];
 
   const qrUrl = value.trim()
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(value.trim())}&color=${fg}&bgcolor=${bg}&margin=10&qzone=1&format=png`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(value.trim())}&color=${fg}&bgcolor=${bg}&qzone=1&format=png`
     : '';
 
   const handleGenerate = useCallback(() => {
@@ -58,7 +58,7 @@ export function QRCodeGenerator({
     if (!v) return;
     setValue(v);
     // Build qrUrl from the *new* value, not the stale state.
-    const newQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(v)}&color=${fg}&bgcolor=${bg}&margin=10&qzone=1&format=png`;
+    const newQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(v)}&color=${fg}&bgcolor=${bg}&qzone=1&format=png`;
     if (onQRUrlChange) onQRUrlChange(newQrUrl);
   }, [inputValue, size, fg, bg, onQRUrlChange]);
 

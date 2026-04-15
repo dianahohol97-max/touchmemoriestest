@@ -31,6 +31,7 @@ interface StarMapConfig {
     style: 'classic-dark' | 'light-minimal' | 'circular' | 'full-bleed' | 'with-horizon' | 'heart-dark' | 'heart-light' | 'forest-peak';
     showGrid?: boolean;
     showConstellations?: boolean;
+    showConstellationNames?: boolean;
     showMilkyWay?: boolean;
     constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
     showStarNames?: boolean;
@@ -697,10 +698,11 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                 <label className="block text-sm font-medium text-gray-700 mb-3">{t('starmap.map_elements_label')}</label>
                 <div className="flex flex-col gap-2">
                     {[
-                        { key: 'showConstellations', label: "Лінії сузір'їв", default: true },
-                        { key: 'showMilkyWay',      label: 'Чумацький Шлях', default: true },
-                        { key: 'showStarNames',     label: 'Назви зірок', default: true },
-                        { key: 'showGrid',           label: 'Координатна сітка', default: false },
+                        { key: 'showConstellations',     label: "Лінії сузір'їв", default: true },
+                        { key: 'showConstellationNames', label: "Назви сузір'їв", default: true },
+                        { key: 'showMilkyWay',           label: 'Чумацький Шлях', default: true },
+                        { key: 'showStarNames',          label: 'Назви зірок', default: true },
+                        { key: 'showGrid',               label: 'Координатна сітка', default: false },
                     ].map(({ key, label }) => {
                         const val = (config as any)[key] !== false;
                         return (
@@ -720,7 +722,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
             </div>
 
             {/* Constellation language selector */}
-            {(config as any).showConstellations !== false && (
+            {((config as any).showConstellations !== false || (config as any).showConstellationNames !== false) && (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">{t('starmap.constellation_lang_label')}</label>
                     <div className="flex flex-wrap gap-2">

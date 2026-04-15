@@ -10,7 +10,7 @@ interface StarMapConfig {
     style: string;
     backgroundColor: string; skyColor?: string; starColor: string; textColor: string; fontFamily: string;
     size: string; productType: string; price: number;
-    showGrid?: boolean; showConstellations?: boolean; showMilkyWay?: boolean;
+    showGrid?: boolean; showConstellations?: boolean; showConstellationNames?: boolean; showMilkyWay?: boolean;
     constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
     showStarNames?: boolean;
     qrUrl?: string; qrValue?: string;
@@ -316,8 +316,8 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
         }
 
         const s = W/600;
-        // Constellation labels
-        if(config.showConstellations!==false) {
+        // Constellation labels — separate toggle from lines (showConstellations)
+        if(config.showConstellationNames!==false) {
             ctx.save();
             ctx.font=`9px ${config.fontFamily}`;
             ctx.fillStyle=config.textColor; ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -564,7 +564,11 @@ function QrOverlay({
             style={{
                 position: 'absolute', left: `${qrX}%`, top: `${qrY}%`, width: `${qrSize}%`,
                 aspectRatio: '1 / 1', transform: 'translate(-50%, -50%)',
-                background: qrBg, padding: qrBg === 'transparent' ? 0 : '4%', borderRadius: 4,
+                background: qrBg,
+                // The QR code image already has a built-in white quiet zone (margin/qzone params).
+                // Keep our own padding minimal so the wrapper doesn't dwarf the actual QR.
+                padding: 0,
+                borderRadius: 4,
                 cursor: onConfigChange ? (dragging ? 'grabbing' : 'grab') : 'default',
                 outline: showHandles ? '1.5px dashed #1e2d7d' : 'none', outlineOffset: 2,
                 userSelect: 'none', zIndex: 5,
