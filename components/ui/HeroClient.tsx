@@ -37,13 +37,14 @@ interface HeroClientProps {
 // Exact reference image — photobook on wooden table
 const REFERENCE_BG = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAi6aUgQKQ9hSFhflZSGt68udg-k8aOkxZO9iYck0N6AeNbVuvpGYFq9TP1xG4LwI3jR1PLlGYTs1FvlfnrlEn94z5bAGwGRmnyf7uLwe0uj4o0AosWr_8bEhrJLN_UANMkWGowF755IUoZk8LQt6tj4VdxfAdhPWhef_cqqUq65-Sh34vOTUmHtyHBZEzh_MRZrYHLHusTjEIqt9WaZiw_cRCMafyN14MBI8XLJ8EgWkL90uMWITtKCm1RIjpzGs3uLe4cH2oP4Ow';
 
-// Exact 6 pills from reference with correct category URLs
+// Hero pills — categories NOT in the main nav header (to avoid duplication)
+// Main nav: Постери, Календарі, Книга побажань, Пазли, Фотомагніти, Випускні книги
 const REFERENCE_PILLS = [
   { id: '1', text: 'Фотокнига', url: '/catalog?category=photobooks' },
-  { id: '2', text: 'Глянцевий журнал', url: '/catalog/personalized-glossy-magazine' },
-  { id: '3', text: 'Журнал з твердою обкладинкою', url: '/catalog/fotozhurnal-tverd-obkladynka' },
-  { id: '4', text: 'Тревелбук', url: '/catalog/travelbook-20x30' },
-  { id: '5', text: 'Книга побажань', url: '/catalog?category=guestbooks' },
+  { id: '2', text: 'Журнал', url: '/catalog?category=hlyantsevi-zhurnaly' },
+  { id: '3', text: 'Тревелбук', url: '/catalog?category=travelbooks' },
+  { id: '4', text: 'Фотодрук', url: '/catalog?category=prints' },
+  { id: '5', text: 'Випускні книги', url: '/catalog?category=graduation-books' },
   { id: '6', text: 'Фотоальбоми', url: '/catalog?category=photoalbomy-failykovi' },
 ];
 
@@ -51,13 +52,13 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
   const { content } = useTheme();
   const t = useT();
 
-  // Category pills — localized
+  // Category pills — localized; complement main nav (don't duplicate header items)
   const pills = [
     { id: '1', text: t('hero.pill_photobook'), url: '/catalog?category=photobooks' },
-    { id: '2', text: t('hero.pill_magazine'), url: '/catalog/personalized-glossy-magazine' },
-    { id: '3', text: t('hero.pill_magazine_hard'), url: '/catalog/fotozhurnal-tverd-obkladynka' },
-    { id: '4', text: t('hero.pill_travelbook'), url: '/catalog/travelbook-20x30' },
-    { id: '5', text: t('hero.pill_guestbook'), url: '/catalog?category=guestbooks' },
+    { id: '2', text: t('hero.pill_magazine'), url: '/catalog?category=hlyantsevi-zhurnaly' },
+    { id: '3', text: t('hero.pill_travelbook'), url: '/catalog?category=travelbooks' },
+    { id: '4', text: t('hero.pill_prints'), url: '/catalog?category=prints' },
+    { id: '5', text: t('hero.pill_graduation'), url: '/catalog?category=graduation-books' },
     { id: '6', text: t('hero.pill_albums'), url: '/catalog?category=photoalbomy-failykovi' },
   ];
 

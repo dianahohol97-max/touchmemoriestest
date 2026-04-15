@@ -81,7 +81,9 @@ export function Navigation() {
             }
 
             // Fetch other categories
-            const mainCategorySlugs = ['photobooks', 'hlyantsevi-zhurnaly', 'travelbooks', 'prints', 'certificates', 'posters', 'calendars', 'guestbooks', 'puzzles'];
+            // These slugs are in main nav already — exclude them from "Інші товари" dropdown.
+            // photobooks/journals/travelbooks/prints are now IN "Інші товари" (removed from main nav).
+            const mainCategorySlugs = ['photomagnets', 'certificates', 'posters', 'calendars', 'guestbooks', 'puzzles', 'graduation-books'];
             const { data } = await supabase
                 .from('categories')
                 .select('*')
