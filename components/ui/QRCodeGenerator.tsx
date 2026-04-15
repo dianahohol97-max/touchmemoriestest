@@ -233,19 +233,19 @@ export function QRCodeGenerator({
       </div>
 
       {/* Preview + Actions */}
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <div style={{ flexShrink: 0 }}>
           {qrUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={qrUrl}
               alt="QR code"
-              style={{ width: 160, height: 160, border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', padding: 4 }}
+              style={{ width: 120, height: 120, border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', padding: 4 }}
             />
           ) : (
-            <div style={{ width: 160, height: 160, background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <QrCode size={28} color="#94a3b8" />
-              <span style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', padding: '0 8px' }}>Введіть URL і натисніть «Генерувати»</span>
+            <div style={{ width: 120, height: 120, background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 6 }}>
+              <QrCode size={24} color="#94a3b8" />
+              <span style={{ fontSize: 9, color: '#94a3b8', textAlign: 'center', lineHeight: 1.2 }}>Введіть URL вище</span>
             </div>
           )}
         </div>
