@@ -201,26 +201,52 @@ export default function BookPhotoUpload() {
             return;
         }
 
-        // Convert photos to base64 so they survive page navigation
-        // (blob URLs are revoked on unmount and would be invalid in the editor)
-        Promise.all(photos.map(p => new Promise<{ id: string; preview: string; width: number; height: number; name: string; size: number }>((resolve) => {
+        // Convert photos to base64 — compress large images to stay within sessionStorage quota (~5MB)
+        const compressImage = (file: File): Promise<string> => new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onload = (e) => resolve({
-                id: p.id,
-                preview: e.target?.result as string, // base64 data URL — survives navigation
-                width: p.width,
-                height: p.height,
-                name: p.file.name,
-                size: p.file.size
-            });
-            reader.readAsDataURL(p.file);
-        }))).then(photosData => {
-            sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(photosData));
+            reader.onload = (e) => {
+                const img = new window.Image();
+                img.onload = () => {
+                    // If image is large, compress to max 1200px while keeping aspect ratio
+                    const MAX = 1200;
+                    let { width, height } = img;
+                    if (width > MAX || height > MAX) {
+                        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+                        else { width = Math.round(width * MAX / height); height = MAX; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width; canvas.height = height;
+                    canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.82));
+                };
+                img.src = e.target?.result as string;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        Promise.all(photos.map(p => compressImage(p.file).then(preview => ({
+            id: p.id,
+            preview,
+            width: p.width,
+            height: p.height,
+            name: p.file.name,
+            size: p.file.size,
+        })))).then(photosData => {
+            try {
+                sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(photosData));
+            } catch (e) {
+                // sessionStorage quota exceeded — store without compression as last resort
+                console.warn('sessionStorage quota, storing minimal data', e);
+                const minimal = photosData.map(p => ({ ...p, preview: p.preview.substring(0, 50000) }));
+                try { sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(minimal)); } catch {}
+            }
             navigatingForward.current = true;
-            // Navigate to layout editor (Phase 3) — preserve all URL params
             const currentParams = new URLSearchParams(window.location.search);
             currentParams.set('product', config?.productSlug || '');
             router.push(`/editor/book/layout?${currentParams.toString()}`);
+        }).catch(err => {
+            console.error('handleContinue error:', err);
+            toast.error('Помилка при переході в редактор. Спробуйте ще раз.');
         });
     };
 
