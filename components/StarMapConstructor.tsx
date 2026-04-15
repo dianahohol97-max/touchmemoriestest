@@ -1,5 +1,5 @@
 'use client';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -57,6 +57,7 @@ interface StarMapConfig {
 
 export default function StarMapConstructor() {
     const t = useT();
+    const router = useRouter();
     const { addItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
@@ -84,12 +85,12 @@ export default function StarMapConstructor() {
         subtitle: '',
         dedication: '',
 
-        // Step 3 defaults
-        style: 'classic-dark',
-        backgroundColor: '#050a18',
-        skyColor: '#050a18',
-        starColor: '#ffffff',
-        textColor: '#ffffff',
+        // Step 3 defaults — light minimal as default style (cleaner, more modern)
+        style: 'light-minimal',
+        backgroundColor: '#f5f5f0',
+        skyColor: '#f5f5f0',
+        starColor: '#0a0e1a',
+        textColor: '#0a0e1a',
         fontFamily: 'Georgia',
         showStarNames: true,
 
@@ -244,15 +245,25 @@ export default function StarMapConstructor() {
             <div className="bg-white border-b border-gray-200 sticky top-20 z-10">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-[#1e2d7d]">{t('starmap.product_name')}</h1>
-                            <p className="text-sm text-gray-600 mt-1">
-                                Крок {currentStep} з 3: {
-                                    currentStep === 1 ? 'Момент' :
-                                    currentStep === 2 ? 'Персоналізація' :
-                                    'Дизайн'
-                                }
-                            </p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => router.back()}
+                                title="Назад до каталогу"
+                                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-[#1e2d7d] hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                                Назад
+                            </button>
+                            <div>
+                                <h1 className="text-2xl font-bold text-[#1e2d7d]">{t('starmap.product_name')}</h1>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Крок {currentStep} з 3: {
+                                        currentStep === 1 ? 'Момент' :
+                                        currentStep === 2 ? 'Персоналізація' :
+                                        'Дизайн'
+                                    }
+                                </p>
+                            </div>
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="text-right">
