@@ -489,28 +489,17 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
     const aspectRatio = aspectMap[config.size] || '3/4';
 
     return (
-        // Outer flex wrapper caps the visible area to viewport height.
-        // The inner poster keeps its aspect ratio and is shrunk to fit.
-        <div
-          style={{
-            maxHeight: 'calc(100vh - 200px)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-          }}
-        >
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
             <div
               ref={containerRef}
               className="rounded-xl shadow-2xl overflow-hidden"
               style={{
                 backgroundColor: config.backgroundColor,
-                // The poster sizes itself by aspect ratio.
-                // height:100% + aspectRatio gives correct width when constrained by parent maxHeight.
-                // width:100% + aspectRatio gives correct height when constrained by column width.
-                // We let it grow to whichever constraint binds first.
-                height: '100%',
+                width: '100%',
+                // Cap width so portrait posters (3/4) fit in typical viewports
+                // ~500px wide × 4/3 = ~667px tall, leaves room above + below
+                maxWidth: 500,
                 aspectRatio,
-                maxWidth: '100%',
                 position: 'relative',
               }}
             >
