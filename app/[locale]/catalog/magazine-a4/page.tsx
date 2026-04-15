@@ -7,6 +7,7 @@ import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { goToConstructor } from '@/lib/constructorRouting';
 import { getProductSEO } from '@/lib/seoContent';
+import { useAuthModal } from '@/lib/auth-modal-context';
 
 const PAGE_PRICES: Record<number, number> = {
   8: 425, 12: 475, 16: 625, 20: 775, 24: 925, 28: 1075,
@@ -18,6 +19,7 @@ const PAGE_OPTIONS = [8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80,
 
 export default function MagazineA4Page() {
   const router = useRouter();
+  const { requireAuth } = useAuthModal();
   const productInfo = getProductSEO('magazine')!;
 
   // Basic options
@@ -67,20 +69,15 @@ export default function MagazineA4Page() {
   const totalPrice = urgentProduction ? Math.round(subtotal * 1.3) : subtotal;
 
   const handleConstructor = () => {
-    // Use routing system to navigate to constructor
     const url = goToConstructor({
       productType: 'magazine',
-      format: 'A4',
-      pages,
-      coverType: 'М\'яка',
-      totalPrice: basePrice
+      format: 'A4', pages, coverType: 'М\'яка', totalPrice: basePrice
     });
-
-    router.push(url);
+    requireAuth(() => router.push(url), 'Щоб відкрити конструктор та зберегти ваш дизайн — увійдіть в акаунт');
   };
 
   const handleDesigner = () => {
-    router.push('/order');
+    requireAuth(() => router.push('/order'), 'Щоб замовити з дизайнером — увійдіть в акаунт');
   };
 
   return (

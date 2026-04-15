@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { I18nServerProvider } from '@/lib/i18n/server-provider';
+import { AuthModalProvider } from '@/lib/auth-modal-context';
 
 // NOTE: Do NOT use force-dynamic here — it conflicts with generateStaticParams.
 // Child pages (admin, checkout, editor) set force-dynamic themselves as needed.
@@ -76,9 +77,11 @@ export default async function LocaleLayout({
 
     return (
         <I18nServerProvider locale={locale}>
-            <div lang={locale}>
-                {children}
-            </div>
+            <AuthModalProvider>
+                <div lang={locale}>
+                    {children}
+                </div>
+            </AuthModalProvider>
         </I18nServerProvider>
     );
 }

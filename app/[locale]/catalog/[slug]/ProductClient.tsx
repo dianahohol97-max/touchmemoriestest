@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
 import { ProductOptionsSelector, areAllRequiredOptionsFilled } from '@/components/ui/ProductOptionsSelector';
 import GuestBookConfigModal from '@/components/GuestBookConfigModal';
+import { useAuthModal } from '@/lib/auth-modal-context';
 
 const getConstructorUrl = (slug: string): string => {
   const s = slug.toLowerCase();
@@ -215,6 +216,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const [giftHintSending, setGiftHintSending] = useState(false);
     const [giftHintSent, setGiftHintSent] = useState(false);
     const { addItem } = useCartStore();
+    const { requireAuth } = useAuthModal();
 
     // Helper: is this product a wishbook/guestbook?
     const isWishbookProduct = (slug: string) => {
@@ -832,24 +834,28 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         {/* Special CTA for photoprint, poster, and photomagnet products */}
                         {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('полароїд') || product.slug?.includes('поляроїд') || product.slug?.includes('poster') || product.slug?.includes('magnet') || product.slug?.includes('polotni') || product.slug?.includes('canvas') || product.slug?.includes('puzzle') || product.slug?.includes('pazl')) ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
-                                <Link
-                                    href={getOrderUrl(product.slug, selectedOptions, product)}
+                                <button
+                                    onClick={() => requireAuth(
+                                        () => router.push(getOrderUrl(product.slug, selectedOptions, product)),
+                                        'Щоб створити замовлення та зберегти дизайн — увійдіть в акаунт'
+                                    )}
                                     className="rounded-md hover:bg-[#1a2966]"
                                     style={{
                                         width: '100%',
                                         padding: '18px',
                                         backgroundColor: '#263a99',
                                         color: 'white',
-                                        textDecoration: 'none',
+                                        border: 'none',
                                         fontSize: '16px',
                                         fontWeight: 700,
                                         textAlign: 'center',
                                         transition: 'background-color 0.2s',
-                                        display: 'block'
+                                        display: 'block',
+                                        cursor: 'pointer',
                                     }}
                                 >
                                     {t('product.order_now_arrow')}
-                                </Link>
+                                </button>
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
                                     Завантажте фото та оформіть замовлення за 3 кроки
                                 </p>
@@ -872,11 +878,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 )}
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
                                     <div className={styles.flexResponsive} style={{ display: 'flex', gap: '12px' }}>
-                                        <Link
-                                            href={(() => {
+                                        <button
+                                            onClick={() => {
                                                 const slug = product.slug || resolvedParams.slug;
                                                 const base = getConstructorUrl(slug);
-                                                // Append selected options as English-key query params
+                                                let constructorUrl = base;
                                                 if (base.includes('/order/book') && Object.keys(customProductOptions).length > 0) {
                                                     const keyMap: Record<string, string> = {
                                                         'Розмір': 'size',
@@ -894,33 +900,36 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                             url.searchParams.set(keyMap[key] || key, String(val));
                                                         }
                                                     });
-                                                    return url.pathname + '?' + url.searchParams.toString();
+                                                    constructorUrl = url.pathname + '?' + url.searchParams.toString();
                                                 }
-                                                return base;
-                                            })()}
+                                                requireAuth(() => router.push(constructorUrl), 'Щоб відкрити редактор та зберегти ваш дизайн — увійдіть в акаунт');
+                                            }}
                                             style={{
                                                 flex: 1,
                                                 padding: '18px',
                                                 backgroundColor: '#263a99',
                                                 color: 'white',
-                                                textDecoration: 'none',
+                                                border: 'none',
                                                 fontSize: '16px',
                                                 fontWeight: 700,
                                                 textAlign: 'center',
                                                 transition: 'background-color 0.2s',
-                                                opacity: 1,
-                                                pointerEvents: 'auto',
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                justifyContent: 'center'
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                borderRadius: '6px',
                                             }}
-                                            className="hover:bg-[#1a2966] rounded-md"
+                                            className="hover:bg-[#1a2966]"
                                         >
                                             Відкрити редактор
-                                        </Link>
+                                        </button>
                                         {isWishbookProduct(product.slug || resolvedParams.slug) ? (
                                             <button
-                                                onClick={() => setGuestbookModalOpen(true)}
+                                                onClick={() => requireAuth(
+                                                    () => setGuestbookModalOpen(true),
+                                                    'Щоб замовити з дизайнером — увійдіть в акаунт'
+                                                )}
                                                 style={{
                                                     flex: 1,
                                                     padding: '18px',
@@ -939,24 +948,28 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 {t('product_page.order_with_designer')}
                                             </button>
                                         ) : (
-                                        <Link
-                                            href="/order"
+                                        <button
+                                            onClick={() => requireAuth(
+                                                () => router.push('/order'),
+                                                'Щоб замовити з дизайнером — увійдіть в акаунт'
+                                            )}
                                             style={{
                                                 flex: 1,
                                                 padding: '18px',
                                                 backgroundColor: 'white',
                                                 color: '#263a99',
-                                                textDecoration: 'none',
                                                 border: '2px solid #263a99',
                                                 fontSize: '16px',
                                                 fontWeight: 700,
                                                 textAlign: 'center',
-                                                transition: 'background-color 0.2s'
+                                                transition: 'background-color 0.2s',
+                                                cursor: 'pointer',
+                                                borderRadius: '6px',
                                             }}
-                                            className="hover:bg-[#f0f3ff] rounded-md"
+                                            className="hover:bg-[#f0f3ff]"
                                         >
                                             {t('product_page.order_with_designer')}
-                                        </Link>
+                                        </button>
                                         )}
                                     </div>
                                     <p style={{ fontSize: '14px', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
@@ -1104,28 +1117,29 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 </button>
                                 {/* Show "Order with designer" button for products with options (TravelBook, magazines, etc.) */}
                                 {(product.options && Array.isArray(product.options) && product.options.length > 0) && (
-                                    <Link
-                                        href="https://t.me/touchmemories"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    <button
+                                        onClick={() => requireAuth(
+                                            () => window.open('https://t.me/touchmemories', '_blank'),
+                                            'Щоб замовити з дизайнером — увійдіть в акаунт'
+                                        )}
                                         style={{
                                             width: '100%',
                                             padding: '18px',
                                             backgroundColor: 'white',
                                             color: 'var(--primary)',
-                                            textDecoration: 'none',
                                             border: '2px solid var(--primary)',
                                             borderRadius: "3px",
                                             fontSize: '16px',
                                             fontWeight: 700,
                                             textAlign: 'center',
                                             transition: 'background-color 0.2s',
-                                            display: 'block'
+                                            display: 'block',
+                                            cursor: 'pointer',
                                         }}
                                         className="hover:bg-blue-50"
                                     >
                                         {t('product.order_with_designer')}
-                                    </Link>
+                                    </button>
                                 )}
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
                                     {(product.options && Array.isArray(product.options) && product.options.length > 0)

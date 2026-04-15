@@ -7,6 +7,7 @@ import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { goToConstructor } from '@/lib/constructorRouting';
 import { getProductSEO } from '@/lib/seoContent';
+import { useAuthModal } from '@/lib/auth-modal-context';
 
 const COVER_TYPES = [
   {
@@ -62,6 +63,7 @@ const BASE_PRICES = {
 
 export default function PhotobookPage() {
   const router = useRouter();
+  const { requireAuth } = useAuthModal();
   const productInfo = getProductSEO('photobook')!;
 
   // Basic options
@@ -116,22 +118,15 @@ export default function PhotobookPage() {
 
   const handleConstructor = () => {
     const coverTypeLabel = COVER_TYPES.find(c => c.key === coverType)?.name || '';
-
-    // Use routing system to navigate to constructor
     const url = goToConstructor({
       productType: 'photobook',
-      coverType,
-      coverTypeLabel,
-      format: size,
-      pages,
-      totalPrice: basePrice
+      coverType, coverTypeLabel, format: size, pages, totalPrice: basePrice
     });
-
-    router.push(url);
+    requireAuth(() => router.push(url), 'Щоб відкрити конструктор та зберегти ваш дизайн — увійдіть в акаунт');
   };
 
   const handleDesigner = () => {
-    router.push('/order');
+    requireAuth(() => router.push('/order'), 'Щоб замовити з дизайнером — увійдіть в акаунт');
   };
 
   return (
