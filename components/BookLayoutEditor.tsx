@@ -2608,9 +2608,19 @@ export default function BookLayoutEditor() {
                         Фото для вставки — перетягніть на рамку
                       </div>
                       {photos.length === 0 ? (
-                        <div style={{ fontSize:10, color:'#94a3b8', padding:'8px', background:'#f8fafc', borderRadius:6, textAlign:'center' }}>
-                          Спочатку завантажте фото у вкладці Зображення
-                        </div>
+                        isWishbook ? (
+                          <div>
+                            <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleUpload} style={{ display:'none' }} />
+                            <button onClick={() => fileRef.current?.click()}
+                              style={{ width:'100%', padding:'8px', fontSize:10, fontWeight:700, color:'#1e2d7d', background:'#f0f3ff', border:'2px dashed #c7d2fe', borderRadius:6, cursor:'pointer' }}>
+                              📷 Завантажити фото
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize:10, color:'#94a3b8', padding:'8px', background:'#f8fafc', borderRadius:6, textAlign:'center' }}>
+                            Спочатку завантажте фото у вкладці Зображення
+                          </div>
+                        )
                       ) : (
                         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
                           {photos.slice(0,9).map(ph => (
@@ -5252,12 +5262,12 @@ export default function BookLayoutEditor() {
           {/* Tool buttons row */}
           <div style={{ display:'flex', alignItems:'stretch' }}>
             {([
-              ['photos', '🖼', 'Фото'],
-              ['layouts', '⊞', 'Макет'],
+              ...(!isWishbook ? [['photos', '🖼', 'Фото']] : []),
+              ...(!isWishbook ? [['layouts', '⊞', 'Макет']] : []),
               ['text', 'Aa', 'Текст'],
               ['bg', '🎨', 'Фон'],
               ['stickers', '⭐', 'Стікер'],
-              ...(currentIdx===0 ? [['cover', '🖊', 'Обкл.']] : [['frames', '▭', 'Рамки']]) as any,
+              ...(currentIdx===0 || isWishbook ? [['cover', '🖊', 'Обкл.']] : [['frames', '▭', 'Рамки']]) as any,
             ] as [string,string,string][]).map(([id, icon, label]) => {
               const active = leftTab===id && mobilePanel;
               return (
