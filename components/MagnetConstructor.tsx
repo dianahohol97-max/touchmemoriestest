@@ -10,13 +10,13 @@ import { useT } from '@/lib/i18n/context';
 
 // Magnet sizes (cm) with aspect ratios
 const MAGNET_SIZES = [
-  { id: '5x7.5',     w: 5,   h: 7.5,  label: '5×7.5',      type: 'rect',     price: 25 },
-  { id: '6x9',       w: 6,   h: 9,    label: '6×9',        type: 'rect',     price: 30 },
-  { id: '7.5x10',    w: 7.5, h: 10,   label: '7.5×10',     type: 'rect',     price: 35 },
-  { id: '9x9',       w: 9,   h: 9,    label: '9×9',        type: 'square',   price: 40 },
-  { id: '10x10',     w: 10,  h: 10,   label: '10×10',      type: 'square',   price: 45 },
-  { id: 'polaroid-v', w: 7.6, h: 10.1, label: 'Polaroid 7.6×10.1', type: 'polaroid', price: 35 },
-  { id: 'polaroid-h', w: 8.6, h: 5.4,  label: 'Polaroid 8.6×5.4',  type: 'polaroid-h', price: 30 },
+  { id: '5x7.5',     w: 5,   h: 7.5,  label: '5×7.5',      type: 'rect',       price: 25, multiple: 12 },
+  { id: '6x9',       w: 6,   h: 9,    label: '6×9',         type: 'rect',       price: 30, multiple: 10 },
+  { id: '7.5x10',    w: 7.5, h: 10,   label: '7.5×10',      type: 'rect',       price: 35, multiple: 8  },
+  { id: '9x9',       w: 9,   h: 9,    label: '9×9',         type: 'square',     price: 40, multiple: 6  },
+  { id: '10x10',     w: 10,  h: 10,   label: '10×10',       type: 'square',     price: 45, multiple: 6  },
+  { id: 'polaroid-v', w: 7.6, h: 10.1, label: 'Polaroid 7.6×10.1', type: 'polaroid',   price: 35, multiple: 8  },
+  { id: 'polaroid-h', w: 8.6, h: 5.4,  label: 'Polaroid 8.6×5.4',  type: 'polaroid-h', price: 30, multiple: 10 },
 ] as const;
 
 type MagnetSize = typeof MAGNET_SIZES[number];
@@ -102,9 +102,34 @@ const router = useRouter();
     return sum + (size?.price || 0);
   }, 0));
 
+  // Per-size multiple validation
+  const sizeCountMap: Record<string, number> = {};
+  magnets.forEach(m => { sizeCountMap[m.sizeId] = (sizeCountMap[m.sizeId] || 0) + 1; });
+  const multipleErrors: { sizeId: string; label: string; count: number; multiple: number; toRemove: number; toAdd: number }[] = [];
+  Object.entries(sizeCountMap).forEach(([sizeId, count]) => {
+    const sizeObj = MAGNET_SIZES.find(s => s.id === sizeId);
+    if (!sizeObj) return;
+    const remainder = count % sizeObj.multiple;
+    if (remainder !== 0) {
+      multipleErrors.push({
+        sizeId,
+        label: sizeObj.label,
+        count,
+        multiple: sizeObj.multiple,
+        toRemove: remainder,
+        toAdd: sizeObj.multiple - remainder,
+      });
+    }
+  });
+  const hasMultipleErrors = multipleErrors.length > 0;
+
   const handleAddToCart = () => {
     if (magnets.length < MIN_QUANTITY) {
       toast.error(`Мінімум ${MIN_QUANTITY} магнітів в замовленні`);
+      return;
+    }
+    if (hasMultipleErrors) {
+      toast.error('Виправте кількість магнітів (має бути кратна вказаному числу)');
       return;
     }
     const sizes = magnets.map(m => MAGNET_SIZES.find(s => s.id === m.sizeId)?.label).filter(Boolean);
@@ -322,8 +347,8 @@ const router = useRouter();
               {MAGNET_SIZES.map(s => (
                 <button key={s.id} onClick={() => setDefaultSizeId(s.id)}
                   style={{ padding: '8px 6px', border: defaultSizeId === s.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: defaultSizeId === s.id ? '#f0f3ff' : '#fff', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: defaultSizeId === s.id ? '#1e2d7d' : '#475569', textAlign: 'left' }}>
-                  <div>{s.label}</div>
-                  <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{s.price} ₴</div>
+                  <div>{s.label} см</div>
+                  <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 1 }}>{s.price} ₴ · кратно {s.multiple} шт</div>
                 </button>
               ))}
             </div>
@@ -340,7 +365,7 @@ const router = useRouter();
                 <select value={activeMagnet.sizeId} onChange={e => updateMagnet(activeMagnet.id, { sizeId: e.target.value })}
                   style={{ width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, background: '#fff' }}>
                   {MAGNET_SIZES.map(s => (
-                    <option key={s.id} value={s.id}>{s.label} — {s.price} ₴</option>
+                    <option key={s.id} value={s.id}>{s.label} см — {s.price} ₴ (кратно {s.multiple} шт)</option>
                   ))}
                 </select>
               </div>
@@ -405,11 +430,25 @@ const router = useRouter();
                 Додайте ще {MIN_QUANTITY - magnets.length} магнітів (мін. замовлення {MIN_QUANTITY} шт)
               </div>
             )}
+            {hasMultipleErrors && magnets.length >= MIN_QUANTITY && (
+              <div style={{ background: '#fff7ed', border: '1.5px solid #fdba74', borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
+                {multipleErrors.map(err => (
+                  <div key={err.sizeId} style={{ marginBottom: multipleErrors.length > 1 ? 8 : 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e' }}>
+                      ⚠️ {err.label} см — {err.count} шт, має бути кратно {err.multiple}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#78350f', marginTop: 2 }}>
+                      Видаліть <b>{err.toRemove}</b> або додайте <b>{err.toAdd}</b> магніт{err.toAdd > 1 ? 'и' : ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {/* QR Code Generator */}
             <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="Додати QR-код до замовлення" /></div>
 
-            <button onClick={handleAddToCart} disabled={magnets.length < MIN_QUANTITY}
-              style={{ width: '100%', padding: '12px', border: 'none', borderRadius: 8, background: magnets.length >= MIN_QUANTITY ? '#1e2d7d' : '#e2e8f0', color: magnets.length >= MIN_QUANTITY ? '#fff' : '#94a3b8', fontWeight: 800, fontSize: 14, cursor: magnets.length >= MIN_QUANTITY ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <button onClick={handleAddToCart} disabled={magnets.length < MIN_QUANTITY || hasMultipleErrors}
+              style={{ width: '100%', padding: '12px', border: 'none', borderRadius: 8, background: magnets.length >= MIN_QUANTITY && !hasMultipleErrors ? '#1e2d7d' : '#e2e8f0', color: magnets.length >= MIN_QUANTITY && !hasMultipleErrors ? '#fff' : '#94a3b8', fontWeight: 800, fontSize: 14, cursor: magnets.length >= MIN_QUANTITY && !hasMultipleErrors ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <ShoppingCart size={16} /> До кошика
             </button>
           </div>
