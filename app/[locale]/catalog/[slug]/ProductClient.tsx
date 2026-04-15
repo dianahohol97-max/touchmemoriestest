@@ -257,9 +257,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     data.options.forEach((opt: any) => {
                         const items = opt.options || opt.values;
                         if (items && items.length > 0) {
-                            // Use the label field for wishbook to match hardcoded selector values
-                            // For other products use value/index
-                            defaultOptions[opt.name] = items[0].value ?? items[0].name ?? 0;
+                            const s = (data.slug || '').toLowerCase();
+                            const isPhotoprint = s.includes('photoprint') || s.includes('polaroid');
+                            // For photoprint: auto-select first value for non-size options
+                            if (isPhotoprint && opt.name !== 'Розмір') {
+                                defaultOptions[opt.name] = items[0].value ?? items[0].name ?? 0;
+                            } else if (!isPhotoprint) {
+                                defaultOptions[opt.name] = items[0].value ?? items[0].name ?? 0;
+                            }
                         }
                     });
                 }
@@ -671,7 +676,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 fontWeight: customProductOptions[opt.name] ? 700 : 400,
                                                             }}
                                                         >
-                                                            <option value="">{t('product_page.choose_option')} {opt.name.toLowerCase()}</option>
+                                                            {opt.required !== false && <option value="" disabled>{t('product_page.choose_option')} {opt.name.toLowerCase()}</option>}
                                                             {items.map((item: any, idx: number) => {
                                                                 const label = item.label || item.name || String(item);
                                                                 const value = item.value || item.name || String(item);
