@@ -209,6 +209,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const [personalizationNote, setPersonalizationNote] = useState('');
     const [showPersonalizationInput, setShowPersonalizationInput] = useState(false);
     const [guestbookModalOpen, setGuestbookModalOpen] = useState(false);
+    const [showGiftHint, setShowGiftHint] = useState(false);
+    const [giftHintForm, setGiftHintForm] = useState({ senderName: '', recipientName: '', recipientEmail: '', message: '' });
+    const [giftHintSending, setGiftHintSending] = useState(false);
+    const [giftHintSent, setGiftHintSent] = useState(false);
     const { addItem } = useCartStore();
 
     // Helper: is this product a wishbook/guestbook?
@@ -1082,6 +1086,120 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         : t('product_page.quick_order')
                                     }
                                 </p>
+                            </div>
+                        )}
+
+                        {/* 🎁 Gift Hint + Certificate buttons */}
+                        <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+                            <button
+                                onClick={() => setShowGiftHint(true)}
+                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                                    padding: '12px 16px', borderRadius: 10, border: '1.5px solid #e2e8f0',
+                                    background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#374151',
+                                    transition: 'all 0.15s' }}
+                                onMouseOver={e => (e.currentTarget.style.background = '#fdf4ff', e.currentTarget.style.borderColor = '#e879f9')}
+                                onMouseOut={e => (e.currentTarget.style.background = '#fff', e.currentTarget.style.borderColor = '#e2e8f0')}
+                            >
+                                🎁 Натякнути на подарунок
+                            </button>
+                            <Link
+                                href="/catalog/gift-certificate"
+                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                                    padding: '12px 16px', borderRadius: 10, border: '1.5px solid #e2e8f0',
+                                    background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#374151',
+                                    textDecoration: 'none', transition: 'all 0.15s' }}
+                                onMouseOver={(e: any) => (e.currentTarget.style.background = '#fefce8', e.currentTarget.style.borderColor = '#facc15')}
+                                onMouseOut={(e: any) => (e.currentTarget.style.background = '#fff', e.currentTarget.style.borderColor = '#e2e8f0')}
+                            >
+                                🏷️ Придбати сертифікат
+                            </Link>
+                        </div>
+
+                        {/* Gift Hint Modal */}
+                        {showGiftHint && (
+                            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+                                onClick={e => e.target === e.currentTarget && setShowGiftHint(false)}>
+                                <div style={{ background: '#fff', borderRadius: 16, padding: 32, maxWidth: 460, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                                    {giftHintSent ? (
+                                        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                                            <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+                                            <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>Натяк відправлено!</h3>
+                                            <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>Отримувач отримає листа з посиланням на цей товар</p>
+                                            <button onClick={() => { setShowGiftHint(false); setGiftHintSent(false); setGiftHintForm({ senderName: '', recipientName: '', recipientEmail: '', message: '' }); }}
+                                                style={{ padding: '12px 32px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                                                Закрити
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>🎁 Натякнути на подарунок</h3>
+                                                <button onClick={() => setShowGiftHint(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94a3b8' }}>×</button>
+                                            </div>
+                                            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>
+                                                Відправимо листа людині, яку хочете порадувати, з посиланням на цей товар 💜
+                                            </p>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                                <input
+                                                    placeholder="Ваше ім'я"
+                                                    value={giftHintForm.senderName}
+                                                    onChange={e => setGiftHintForm(p => ({ ...p, senderName: e.target.value }))}
+                                                    style={{ padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14, outline: 'none' }}
+                                                />
+                                                <input
+                                                    placeholder="Ім'я отримувача"
+                                                    value={giftHintForm.recipientName}
+                                                    onChange={e => setGiftHintForm(p => ({ ...p, recipientName: e.target.value }))}
+                                                    style={{ padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14, outline: 'none' }}
+                                                />
+                                                <input
+                                                    type="email"
+                                                    placeholder="Email отримувача *"
+                                                    value={giftHintForm.recipientEmail}
+                                                    onChange={e => setGiftHintForm(p => ({ ...p, recipientEmail: e.target.value }))}
+                                                    style={{ padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14, outline: 'none' }}
+                                                />
+                                                <textarea
+                                                    placeholder="Особисте повідомлення (необов'язково)"
+                                                    value={giftHintForm.message}
+                                                    onChange={e => setGiftHintForm(p => ({ ...p, message: e.target.value }))}
+                                                    rows={3}
+                                                    style={{ padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit' }}
+                                                />
+                                                <button
+                                                    disabled={!giftHintForm.recipientEmail || giftHintSending}
+                                                    onClick={async () => {
+                                                        if (!giftHintForm.recipientEmail) return;
+                                                        setGiftHintSending(true);
+                                                        try {
+                                                            const res = await fetch('/api/gift-hint', {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({
+                                                                    product_id: product.id,
+                                                                    sender_name: giftHintForm.senderName,
+                                                                    recipient_name: giftHintForm.recipientName,
+                                                                    recipient_email: giftHintForm.recipientEmail,
+                                                                    message: giftHintForm.message,
+                                                                }),
+                                                            });
+                                                            if (res.ok) { setGiftHintSent(true); }
+                                                            else { toast.error('Помилка. Спробуйте пізніше.'); }
+                                                        } catch { toast.error('Помилка мережі'); }
+                                                        finally { setGiftHintSending(false); }
+                                                    }}
+                                                    style={{ padding: '13px', background: giftHintForm.recipientEmail ? '#1e2d7d' : '#e2e8f0',
+                                                        color: giftHintForm.recipientEmail ? '#fff' : '#94a3b8',
+                                                        border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14,
+                                                        cursor: giftHintForm.recipientEmail ? 'pointer' : 'not-allowed',
+                                                        transition: 'all 0.15s' }}
+                                                >
+                                                    {giftHintSending ? 'Відправляємо...' : '💌 Відправити натяк'}
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         )}
 
