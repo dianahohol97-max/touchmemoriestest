@@ -11,76 +11,119 @@ const STYLE_PROMPTS: Record<string, string> = {
   oilpainting:'classical oil painting portrait, rich textures, old masters style, museum quality',
 };
 
+// HuggingFace Inference API — primary (free tier ~1000 req/day)
+async function generateWithHuggingFace(prompt: string): Promise<{ success: boolean; url?: string; error?: string; status?: number }> {
+  const hfToken = process.env.HUGGINGFACE_API_TOKEN;
+  if (!hfToken) return { success: false, error: 'HF token not configured', status: 500 };
+
+  const model = 'stabilityai/stable-diffusion-xl-base-1.0';
+  const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${hfToken}`,
+      'Content-Type': 'application/json',
+      'x-wait-for-model': 'true',
+    },
+    body: JSON.stringify({
+      inputs: prompt,
+      parameters: { num_inference_steps: 28, guidance_scale: 7.5 },
+      options: { wait_for_model: true },
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error('HF error:', res.status, errText.slice(0, 300));
+    return { success: false, error: `HF ${res.status}: ${errText.slice(0, 200)}`, status: res.status };
+  }
+
+  const imageBuffer = await res.arrayBuffer();
+  if (imageBuffer.byteLength < 1000) {
+    return { success: false, error: 'HF returned empty image', status: 500 };
+  }
+  const base64 = Buffer.from(imageBuffer).toString('base64');
+  const dataUrl = `data:image/jpeg;base64,${base64}`;
+  return { success: true, url: dataUrl };
+}
+
+// Replicate fallback
+async function generateWithReplicate(dataUrl: string, prompt: string): Promise<any> {
+  const apiToken = process.env.REPLICATE_API_TOKEN;
+  if (!apiToken) return { success: false, error: 'Replicate token not configured', status: 500 };
+
+  const fluxRes = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json', 'Prefer': 'wait=60' },
+    body: JSON.stringify({
+      model: 'black-forest-labs/flux-dev',
+      input: { image: dataUrl, prompt, strength: 0.75, num_inference_steps: 28, guidance: 3.5, output_format: 'jpg', output_quality: 90 },
+    }),
+  });
+
+  if (fluxRes.ok) {
+    const prediction = await fluxRes.json();
+    if (prediction.status === 'succeeded' && prediction.output) {
+      const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      return { success: true, url, predictionId: prediction.id };
+    }
+    return { success: true, predictionId: prediction.id, status: prediction.status, polling: true };
+  }
+
+  const sdxlRes = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json', 'Prefer': 'wait=60' },
+    body: JSON.stringify({
+      model: 'lucataco/sdxl-img2img',
+      input: { image: dataUrl, prompt, strength: 0.7, num_inference_steps: 30, guidance_scale: 7.5 },
+    }),
+  });
+
+  if (!sdxlRes.ok) {
+    const err = await sdxlRes.text();
+    return { success: false, error: `Replicate failed: ${sdxlRes.status} ${err.slice(0, 200)}`, status: sdxlRes.status };
+  }
+
+  const prediction = await sdxlRes.json();
+  if (prediction.status === 'succeeded' && prediction.output) {
+    const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+    return { success: true, url, predictionId: prediction.id };
+  }
+  return { success: true, predictionId: prediction.id, status: prediction.status, polling: true };
+}
+
 export async function POST(request: Request) {
   try {
-    const apiToken = process.env.REPLICATE_API_TOKEN;
-    if (!apiToken) {
-      return NextResponse.json({ error: 'REPLICATE_API_TOKEN not configured' }, { status: 500 });
-    }
-
     const formData = await request.formData();
     const imageFile = formData.get('image') as File | null;
     const style = (formData.get('style') as string) || 'pixar';
+    const provider = (formData.get('provider') as string) || 'auto';
 
-    if (!imageFile) {
-      return NextResponse.json({ error: 'Image file required' }, { status: 400 });
-    }
-    if (imageFile.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Image too large (max 10MB)' }, { status: 400 });
-    }
+    if (!imageFile) return NextResponse.json({ error: 'Image file required' }, { status: 400 });
+    if (imageFile.size > 10 * 1024 * 1024) return NextResponse.json({ error: 'Image too large (max 10MB)' }, { status: 400 });
 
     const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.pixar;
-
-    // Convert to base64
     const bytes = await imageFile.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
     const mimeType = imageFile.type || 'image/jpeg';
     const dataUrl = `data:${mimeType};base64,${base64}`;
 
-    // Use flux-dev which correctly supports image (img2img) parameter
-    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'wait=60',
-      },
-      body: JSON.stringify({
-        model: 'black-forest-labs/flux-dev',
-        input: {
-          image: dataUrl,        // flux-dev accepts base64 image for img2img
-          prompt: stylePrompt,
-          strength: 0.75,        // how much to change: 0=same, 1=ignore original
-          num_inference_steps: 28,
-          guidance: 3.5,
-          output_format: 'jpg',
-          output_quality: 90,
-        },
-      }),
-    });
-
-    if (!createRes.ok) {
-      const errText = await createRes.text();
-      console.error('Replicate flux-dev error:', createRes.status, errText.slice(0, 400));
-
-      // Fallback: try sdxl-img2img
-      return await fallbackSdxl(apiToken, dataUrl, stylePrompt);
+    // Try HuggingFace first (free), fall back to Replicate on failure
+    if (provider === 'auto' || provider === 'hf') {
+      const hfResult = await generateWithHuggingFace(stylePrompt);
+      if (hfResult.success) {
+        return NextResponse.json({ success: true, url: hfResult.url, provider: 'hf' });
+      }
+      console.warn('HF failed, falling back to Replicate:', hfResult.error);
+      if (provider === 'hf') {
+        return NextResponse.json({ error: hfResult.error || 'HF generation failed' }, { status: hfResult.status || 500 });
+      }
     }
 
-    const prediction = await createRes.json();
-    console.log('flux-dev prediction:', prediction.id, prediction.status);
-
-    if (prediction.status === 'succeeded' && prediction.output) {
-      const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-      return NextResponse.json({ success: true, url, predictionId: prediction.id });
+    const result = await generateWithReplicate(dataUrl, stylePrompt);
+    if (!result.success) {
+      return NextResponse.json({ error: result.error || 'AI generation failed on all providers' }, { status: result.status || 500 });
     }
-
-    return NextResponse.json({
-      success: true,
-      predictionId: prediction.id,
-      status: prediction.status,
-      polling: true,
-    });
+    return NextResponse.json({ ...result, provider: 'replicate' });
 
   } catch (err: any) {
     console.error('pixar-portrait error:', err);
@@ -88,44 +131,7 @@ export async function POST(request: Request) {
   }
 }
 
-async function fallbackSdxl(apiToken: string, dataUrl: string, prompt: string) {
-  console.log('Falling back to lucataco/sdxl-img2img');
-  const res = await fetch('https://api.replicate.com/v1/predictions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiToken}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'wait=60',
-    },
-    body: JSON.stringify({
-      model: 'lucataco/sdxl-img2img',
-      input: {
-        image: dataUrl,
-        prompt: prompt,
-        strength: 0.7,
-        num_inference_steps: 30,
-        guidance_scale: 7.5,
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    return NextResponse.json(
-      { error: `AI generation failed: ${res.status}` },
-      { status: res.status }
-    );
-  }
-
-  const prediction = await res.json();
-  if (prediction.status === 'succeeded' && prediction.output) {
-    const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-    return NextResponse.json({ success: true, url, predictionId: prediction.id });
-  }
-  return NextResponse.json({ success: true, predictionId: prediction.id, status: prediction.status, polling: true });
-}
-
-// GET — poll prediction status
+// GET — poll Replicate prediction (HF returns image immediately, no polling)
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const predictionId = searchParams.get('id');
