@@ -625,16 +625,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Pass through any URL params from catalog page (like text_layout)
         const textLayout = searchParams.get('text_layout');
         if (textLayout) params.set('text_layout', textLayout);
-        // Wishbook/guestbook — skip photo upload, go straight to cover editor + cart
+        // Wishbook/guestbook — skip photo upload, go straight to full cover editor (same as photobook editor, cover-only mode)
         if (pt === 'wishbook') {
-            const wbParams = new URLSearchParams();
-            if (selectedSize) wbParams.set('size', selectedSize);
-            if (selectedCoverType) wbParams.set('cover', selectedCoverType);
-            if (selectedCoverColor) wbParams.set('cover_color', selectedCoverColor);
-            if (selectedLamination) wbParams.set('lamination', selectedLamination);
-            if (selectedDecorationType && selectedDecorationType !== 'none') wbParams.set('decoration', selectedDecorationType);
-            if (selectedDecorationVariant) wbParams.set('decoration_variant', selectedDecorationVariant);
-            router.push(`/order/wishbook?${wbParams.toString()}`);
+            router.push(`/editor/book/layout?${params.toString()}`);
             return;
         }
 
