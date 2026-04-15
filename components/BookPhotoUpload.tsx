@@ -193,35 +193,45 @@ export default function BookPhotoUpload() {
         return { ok: true, message: t('photo_upload.quality_ok') };
     };
 
+    const navigatingForward = useRef(false);
+
     const handleContinue = () => {
         if (photos.length === 0) {
             toast.error(t('photo_upload.add_photo_first'));
             return;
         }
 
-        // Store photos data in sessionStorage (URLs and metadata)
-        const photosData = photos.map(p => ({
-            id: p.id,
-            preview: p.preview,
-            width: p.width,
-            height: p.height,
-            name: p.file.name,
-            size: p.file.size
-        }));
-
-        sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(photosData));
-
-        // Navigate to layout editor (Phase 3) — preserve all URL params
-        const currentParams = new URLSearchParams(window.location.search);
-        currentParams.set('product', config?.productSlug || '');
-        router.push(`/editor/book/layout?${currentParams.toString()}`);
+        // Convert photos to base64 so they survive page navigation
+        // (blob URLs are revoked on unmount and would be invalid in the editor)
+        Promise.all(photos.map(p => new Promise<{ id: string; preview: string; width: number; height: number; name: string; size: number }>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve({
+                id: p.id,
+                preview: e.target?.result as string, // base64 data URL — survives navigation
+                width: p.width,
+                height: p.height,
+                name: p.file.name,
+                size: p.file.size
+            });
+            reader.readAsDataURL(p.file);
+        }))).then(photosData => {
+            sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(photosData));
+            navigatingForward.current = true;
+            // Navigate to layout editor (Phase 3) — preserve all URL params
+            const currentParams = new URLSearchParams(window.location.search);
+            currentParams.set('product', config?.productSlug || '');
+            router.push(`/editor/book/layout?${currentParams.toString()}`);
+        });
     };
 
-    // Cleanup on unmount
+    // Cleanup blob URLs only when navigating back (not forward to editor)
     useEffect(() => {
         return () => {
-            photos.forEach(photo => URL.revokeObjectURL(photo.preview));
+            if (!navigatingForward.current) {
+                photos.forEach(photo => URL.revokeObjectURL(photo.preview));
+            }
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     if (!config) {

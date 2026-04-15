@@ -1186,7 +1186,7 @@ export default function BookLayoutEditor() {
     if (draft) {
       try { const d = JSON.parse(draft); if (d.pages?.length) return; } catch {}
     }
-    const m = config.selectedPageCount.match(/(\d+)/);
+    const m = (config.selectedPageCount ?? '').match(/(\d+)/);
     const total = m ? parseInt(m[0]) : 20;
     const hasKalka = !!(config.enableKalka) && (config.productSlug || '').toLowerCase().includes('photobook');
     const isPhotobook = (config.productSlug || '').toLowerCase().includes('photobook') || (config.productSlug || '').toLowerCase().includes('fotoknig') || (config.productName || '').toLowerCase().includes('фотокниг');
