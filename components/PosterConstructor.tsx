@@ -12,7 +12,7 @@ import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+//  Types 
 
 interface PhotoSlot {
   id: string;
@@ -61,10 +61,10 @@ interface Layout {
   getSlots: (W: number, H: number, pad: number) => { x: number; y: number; w: number; h: number; clipPath?: string; shape?: 'rect'|'circle'|'heart' }[];
 }
 
-// ── Layouts ───────────────────────────────────────────────────────────────────
+//  Layouts 
 
 const LAYOUTS: Layout[] = [
-  // ── 1 фото ───────────────────────────────────────────
+  //  1 фото 
   {
     id: 'single',
     name: '1 фото',
@@ -86,7 +86,7 @@ const LAYOUTS: Layout[] = [
     preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><path d="M30 62 C30 62 5 44 5 26 C5 14 14 8 22 14 C26 16 30 22 30 22 C30 22 34 16 38 14 C46 8 55 14 55 26 C55 44 30 62 30 62Z" fill="#c7d2fe"/></svg>,
     getSlots: (W, H, p) => [{ x:p, y:p, w:W-2*p, h:H-2*p, shape:'heart' as const }],
   },
-  // ── 2 фото ───────────────────────────────────────────
+  //  2 фото 
   {
     id: 'two-h',
     name: '2 горизонт.',
@@ -115,7 +115,7 @@ const LAYOUTS: Layout[] = [
     preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><circle cx="18" cy="40" r="14" fill="#c7d2fe"/><circle cx="42" cy="40" r="14" fill="#a5b4fc"/></svg>,
     getSlots: (W, H, p) => { const g=4; const w=(W-2*p-g)/2; return [{x:p,y:p,w,h:H-2*p,shape:'circle' as const},{x:p+w+g,y:p,w,h:H-2*p,shape:'circle' as const}]; },
   },
-  // ── 3 фото ───────────────────────────────────────────
+  //  3 фото 
   {
     id: 'three-top',
     name: '3 (великий+2)',
@@ -144,7 +144,7 @@ const LAYOUTS: Layout[] = [
     preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><circle cx="12" cy="40" r="9" fill="#a5b4fc"/><circle cx="30" cy="40" r="9" fill="#c7d2fe"/><circle cx="48" cy="40" r="9" fill="#818cf8"/></svg>,
     getSlots: (W, H, p) => { const g=8; const w=(W-2*p-2*g)/3; return [{x:p,y:p,w,h:H-2*p,shape:'circle' as const},{x:p+w+g,y:p,w,h:H-2*p,shape:'circle' as const},{x:p+2*(w+g),y:p,w,h:H-2*p,shape:'circle' as const}]; },
   },
-  // ── 4 фото ───────────────────────────────────────────
+  //  4 фото 
   {
     id: 'four-grid',
     name: '4 рівна сітка',
@@ -180,7 +180,7 @@ const LAYOUTS: Layout[] = [
     preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><circle cx="18" cy="25" r="13" fill="#c7d2fe"/><circle cx="42" cy="25" r="13" fill="#a5b4fc"/><circle cx="18" cy="56" r="13" fill="#818cf8"/><circle cx="42" cy="56" r="13" fill="#a5b4fc"/></svg>,
     getSlots: (W, H, p) => { const g=8; const w=(W-2*p-g)/2; const h=(H-2*p-g)/2; return [{x:p,y:p,w,h,shape:'circle' as const},{x:p+w+g,y:p,w,h,shape:'circle' as const},{x:p,y:p+h+g,w,h,shape:'circle' as const},{x:p+w+g,y:p+h+g,w,h,shape:'circle' as const}]; },
   },
-  // ── 5 фото ───────────────────────────────────────────
+  //  5 фото 
   {
     id: 'five-cross',
     name: '5 хрест',
@@ -195,7 +195,7 @@ const LAYOUTS: Layout[] = [
     preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="27" height="37" rx="2" fill="#c7d2fe"/><rect x="31" y="2" width="27" height="37" rx="2" fill="#a5b4fc"/><rect x="2" y="41" width="17" height="37" rx="2" fill="#818cf8"/><rect x="21" y="41" width="17" height="37" rx="2" fill="#a5b4fc"/><rect x="40" y="41" width="18" height="37" rx="2" fill="#c7d2fe"/></svg>,
     getSlots: (W, H, p) => { const g=4; const topH=Math.round((H-2*p-g)*0.5); const botH=H-2*p-g-topH; const tw=(W-2*p-g)/2; const bw=(W-2*p-2*g)/3; return [{x:p,y:p,w:tw,h:topH},{x:p+tw+g,y:p,w:tw,h:topH},{x:p,y:p+topH+g,w:bw,h:botH},{x:p+bw+g,y:p+topH+g,w:bw,h:botH},{x:p+2*(bw+g),y:p+topH+g,w:bw,h:botH}]; },
   },
-  // ── 6 фото ───────────────────────────────────────────
+  //  6 фото 
   {
     id: 'six-grid',
     name: '6 рівна сітка',
@@ -217,7 +217,7 @@ const LAYOUTS: Layout[] = [
     preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/>{[0,1,2,3,4,5].map(i=><circle key={i} cx={12+(i%3)*18} cy={22+Math.floor(i/3)*38} r="7" fill={['#c7d2fe','#a5b4fc','#818cf8'][i%3]}/>)}</svg>,
     getSlots: (W, H, p) => { const g=8; const w=(W-2*p-2*g)/3; const h=(H-2*p-g)/2; return Array.from({length:6},(_,i)=>({x:p+(i%3)*(w+g),y:p+Math.floor(i/3)*(h+g),w,h,shape:'circle' as const})); },
   },
-  // ── 9 фото ───────────────────────────────────────────
+  //  9 фото 
   {
     id: 'nine-grid',
     name: '9 сітка',
@@ -225,7 +225,7 @@ const LAYOUTS: Layout[] = [
     preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}>{Array.from({length:9},(_,i)=><rect key={i} x={2+(i%3)*20} y={2+Math.floor(i/3)*27} width="18" height="23" rx="1" fill={['#c7d2fe','#a5b4fc','#818cf8'][i%3]}/>)}</svg>,
     getSlots: (W, H, p) => { const g=3; const w=(W-2*p-2*g)/3; const h=(H-2*p-2*g)/3; return Array.from({length:9},(_,i)=>({x:p+(i%3)*(w+g),y:p+Math.floor(i/3)*(h+g),w,h})); },
   },
-  // ── Фігурні ─────────────────────────────────────────
+  //  Фігурні 
   {
     id: 'heart-collage-4',
     name: '4 серця',
@@ -247,7 +247,7 @@ const LAYOUTS: Layout[] = [
     preview: <svg viewBox="0 0 60 80" style={{width:'100%',height:'100%'}}><rect x="2" y="2" width="56" height="76" rx="2" fill="#f0f3ff"/><path d="M30 52 C30 52 8 38 8 24 C8 14 16 8 24 14 C27 16 30 22 30 22 C30 22 33 16 36 14 C44 8 52 14 52 24 C52 38 30 52 30 52Z" fill="#c7d2fe"/><rect x="2" y="56" width="13" height="22" rx="2" fill="#a5b4fc"/><rect x="17" y="56" width="13" height="22" rx="2" fill="#818cf8"/><rect x="32" y="56" width="13" height="22" rx="2" fill="#a5b4fc"/><rect x="47" y="56" width="11" height="22" rx="2" fill="#c7d2fe"/></svg>,
     getSlots: (W, H, p) => { const g=4; const topH=Math.round((H-2*p-g)*0.62); const botH=H-2*p-g-topH; const bw=(W-2*p-3*g)/4; return [{x:p,y:p,w:W-2*p,h:topH,shape:'heart' as const},{x:p,y:p+topH+g,w:bw,h:botH},{x:p+bw+g,y:p+topH+g,w:bw,h:botH},{x:p+2*(bw+g),y:p+topH+g,w:bw,h:botH},{x:p+3*(bw+g),y:p+topH+g,w:bw,h:botH}]; },
   },
-  // ── Панорама ─────────────────────────────────────────
+  //  Панорама 
   {
     id: 'panorama',
     name: 'Панорама',
@@ -257,7 +257,7 @@ const LAYOUTS: Layout[] = [
   },
 ];
 
-// ── Size definitions ──────────────────────────────────────────────────────────
+//  Size definitions 
 
 const SIZES = [
   { id: 'a4',    label: 'A4 (21×30)',  price: 350, ratio: 21/30  },
@@ -277,7 +277,7 @@ const FRAME_STYLES = [
 
 const BG_PRESETS = ['#ffffff','#f8f4f0','#f0f3ff','#0a0e1a','#1e2d7d','#111111','#fef3c7','#fce7f3','#f0fdf4','#f5f0e8','#1a1a2e','#e8e0d8'];
 
-// ── Helper: Poster Canvas ────────────────────────────────────────────────────
+//  Helper: Poster Canvas 
 
 function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasRef: React.RefObject<HTMLCanvasElement | null>; W: number }) {
   const sizeObj = SIZES.find(s => s.id === config.size) || SIZES[0];
@@ -360,7 +360,7 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
         ctx.font = `${Math.round(slot.w*0.15)}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('📷', slot.x + slot.w/2, slot.y + slot.h/2);
+        ctx.fillText('', slot.x + slot.w/2, slot.y + slot.h/2);
         ctx.restore();
         return Promise.resolve();
       }
@@ -422,7 +422,7 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
   );
 }
 
-// ── Slot Photo Editor (crop/zoom) ─────────────────────────────────────────────
+//  Slot Photo Editor (crop/zoom) 
 
 function PhotoSlotEditor({
   slot, index, onUpdate, onDelete,
@@ -439,7 +439,7 @@ function PhotoSlotEditor({
       {!hideHeader && (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
           <span style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Фото {index+1}</span>
-          <button onClick={() => onDelete(slot.id)} style={{ background:'#fee2e2', border:'none', borderRadius:6, padding:'3px 7px', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}>✕ Видалити</button>
+          <button onClick={() => onDelete(slot.id)} style={{ background:'#fee2e2', border:'none', borderRadius:6, padding:'3px 7px', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}> Видалити</button>
         </div>
       )}
       <img src={slot.photoUrl} style={{ width:'100%', height:72, objectFit:'cover', borderRadius:6, marginBottom:8 }} />
@@ -468,7 +468,7 @@ function PhotoSlotEditor({
   );
 }
 
-// ── Text Block Editor ─────────────────────────────────────────────────────────
+//  Text Block Editor 
 
 function TextBlockEditor({ block, onUpdate, onDelete }: {
   block: TextBlock;
@@ -480,7 +480,7 @@ function TextBlockEditor({ block, onUpdate, onDelete }: {
     <div style={{ padding:'10px 12px', background:'#f8fafc', borderRadius:10, border:'1px solid #e2e8f0' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
         <span style={{ fontSize:11, color:'#94a3b8', fontFamily: block.fontFamily }}>{block.text.slice(0,20) || 'Новий текст'}</span>
-        <button onClick={() => onDelete(block.id)} style={{ background:'#fee2e2', border:'none', borderRadius:6, padding:'3px 7px', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}>✕</button>
+        <button onClick={() => onDelete(block.id)} style={{ background:'#fee2e2', border:'none', borderRadius:6, padding:'3px 7px', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}></button>
       </div>
       <input type="text" value={block.text}
         onChange={e => onUpdate(block.id, { text: e.target.value })}
@@ -526,7 +526,7 @@ function TextBlockEditor({ block, onUpdate, onDelete }: {
         {(['left','center','right'] as const).map(a => (
           <button key={a} onClick={() => onUpdate(block.id, { align: a })}
             style={{ flex:1, padding:'4px', border: block.align===a ? '2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: block.align===a?'#f0f3ff':'#fff', cursor:'pointer', fontSize:14 }}>
-            {a==='left'?'⬅':a==='center'?'⬆':'➡'}
+            {a==='left'?'':a==='center'?'':''}
           </button>
         ))}
         <button onClick={() => onUpdate(block.id, { bold: !block.bold })}
@@ -541,7 +541,7 @@ function TextBlockEditor({ block, onUpdate, onDelete }: {
   );
 }
 
-// ── Main Constructor ──────────────────────────────────────────────────────────
+//  Main Constructor 
 
 export default function PosterConstructor() {
     const t = useT();
@@ -595,7 +595,7 @@ export default function PosterConstructor() {
     return () => { try { document.head.removeChild(link); } catch {} };
   }, []);
 
-  // ── Photo management ──────────────────────────────────────────────────────
+  //  Photo management 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -641,7 +641,7 @@ export default function PosterConstructor() {
     }));
   };
 
-  // ── Text management ───────────────────────────────────────────────────────
+  //  Text management 
   const addTextBlock = () => {
     setConfig(prev => ({ ...prev, textBlocks: [...prev.textBlocks, {
       id: `txt-${Date.now()}`, text: 'Ваш текст', x: 50, y: 90,
@@ -658,7 +658,7 @@ export default function PosterConstructor() {
     setConfig(prev => ({ ...prev, textBlocks: prev.textBlocks.filter(t => t.id !== id) }));
   };
 
-  // ── Layout change ─────────────────────────────────────────────────────────
+  //  Layout change 
   const changeLayout = (layoutId: string) => {
     const newLayout = LAYOUTS.find(l => l.id === layoutId)!;
     setConfig(prev => ({
@@ -668,7 +668,7 @@ export default function PosterConstructor() {
     }));
   };
 
-  // ── Order ────────────────────────────────────────────────────────────────
+  //  Order 
   const handleOrder = async () => {
     if (config.photos.length === 0) { toast.error(t('poster.add_photo_first')); return; }
     setIsOrdering(true);
@@ -696,7 +696,7 @@ export default function PosterConstructor() {
         },
         personalization_note: fileUrl ? `Файл: ${fileUrl}` : `Макет: ${layout.name}`,
       });
-      toast.success('✅ Постер додано до кошика!');
+      toast.success(' Постер додано до кошика!');
       router.push('/cart');
     } catch (err) {
       toast.error('Помилка при оформленні');
@@ -705,10 +705,10 @@ export default function PosterConstructor() {
     }
   };
 
-  // ── Preview width ─────────────────────────────────────────────────────────
+  //  Preview width 
   const PREVIEW_W = 480;
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  //  Render 
   const steps = [
     { id: 'layout', label: '1. Макет' },
     { id: 'photos', label: '2. Фото' },
@@ -719,7 +719,7 @@ export default function PosterConstructor() {
 
   return (
     <div style={{ display:'flex', gap:0, minHeight:'80vh', fontFamily:'var(--font-primary, sans-serif)' }}>
-      {/* ── LEFT: Steps + Controls ── */}
+      {/*  LEFT: Steps + Controls  */}
       <div style={{ width:360, flexShrink:0, background:'#fff', borderRight:'1px solid #e2e8f0', display:'flex', flexDirection:'column' }}>
         {/* Step tabs */}
         <div style={{ display:'flex', borderBottom:'1px solid #e2e8f0', overflowX:'auto' }}>
@@ -737,7 +737,7 @@ export default function PosterConstructor() {
         {/* Step content */}
         <div style={{ flex:1, overflowY:'auto', padding:16 }}>
 
-          {/* ── STEP 1: Layout ── */}
+          {/*  STEP 1: Layout  */}
           {step === 'layout' && (
             <div>
               <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>{t('poster.select_layout')}</h3>
@@ -777,7 +777,7 @@ export default function PosterConstructor() {
             </div>
           )}
 
-          {/* ── STEP 2: Photos ── */}
+          {/*  STEP 2: Photos  */}
           {step === 'photos' && (
             <div>
               <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>Додати фото</h3>
@@ -794,7 +794,7 @@ export default function PosterConstructor() {
                   style={{ width:'100%', padding:'10px', border:'2px dashed #a855f7', borderRadius:10,
                     background:'#faf5ff', color:'#7c3aed', fontWeight:700, fontSize:12,
                     cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:12 }}>
-                  🎨 AI Портрет — Піксар / Аніме / Акварель
+                   AI Портрет — Піксар / Аніме / Акварель
                 </button>
                 {showPixar && (
                   <div style={{ border:'1px solid #e9d5ff', borderRadius:10, padding:12, marginBottom:12, background:'#fdf4ff' }}>
@@ -803,7 +803,7 @@ export default function PosterConstructor() {
                       setConfig(prev => ({ ...prev, photos: [...prev.photos.slice(0, layout.slots-1), newPhoto] }));
                       setHasAiPortrait(true);
                       setShowPixar(false);
-                      toast.success('🎨 AI портрет додано! +75 ₴');
+                      toast.success(' AI портрет додано! +75 ₴');
                     }}/>
                   </div>
                 )}
@@ -851,7 +851,7 @@ export default function PosterConstructor() {
                     >
                       {/* Drag handle + header */}
                       <div style={{ display:'flex', alignItems:'center', padding:'8px 12px 0', gap:6 }}>
-                        <span style={{ fontSize:16, color:'#94a3b8', cursor:'grab', userSelect:'none' }}>⠿</span>
+                        <span style={{ fontSize:16, color:'#94a3b8', cursor:'grab', userSelect:'none' }}></span>
                         <span style={{ fontSize:12, fontWeight:700, color:'#374151', flex:1 }}>Фото {i+1}</span>
                         {/* Move buttons */}
                         <button onClick={() => i > 0 && swapPhotos(i, i-1)} disabled={i===0}
@@ -860,9 +860,9 @@ export default function PosterConstructor() {
                           style={{ padding:'2px 7px', border:'1px solid #e2e8f0', borderRadius:5, background:'#fff', cursor:i===config.photos.length-1?'not-allowed':'pointer', color:i===config.photos.length-1?'#cbd5e1':'#374151', fontSize:12 }} title={t('poster.down')}>↓</button>
                         {/* Replace button */}
                         <button onClick={() => { replaceTargetIdx.current = i; replaceInputRef.current?.click(); }}
-                          style={{ padding:'2px 8px', border:'1px solid #c7d2fe', borderRadius:5, background:'#f0f3ff', cursor:'pointer', color:'#1e2d7d', fontSize:10, fontWeight:700 }}>🔄 Замінити</button>
+                          style={{ padding:'2px 8px', border:'1px solid #c7d2fe', borderRadius:5, background:'#f0f3ff', cursor:'pointer', color:'#1e2d7d', fontSize:10, fontWeight:700 }}> Замінити</button>
                         <button onClick={() => deletePhoto(photo.id)}
-                          style={{ padding:'2px 7px', border:'none', borderRadius:5, background:'#fee2e2', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}>✕</button>
+                          style={{ padding:'2px 7px', border:'none', borderRadius:5, background:'#fee2e2', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}></button>
                       </div>
                       {/* Photo editor */}
                       <div style={{ padding:'0 12px 10px' }}>
@@ -879,14 +879,14 @@ export default function PosterConstructor() {
 
               {config.photos.length === 0 && (
                 <div style={{ textAlign:'center', padding:'32px 16px', color:'#94a3b8' }}>
-                  <div style={{ fontSize:32, marginBottom:8 }}>📷</div>
+                  <div style={{ fontSize:32, marginBottom:8 }}></div>
                   <div style={{ fontSize:13 }}>Натисніть кнопку вище щоб додати фото</div>
                 </div>
               )}
             </div>
           )}
 
-          {/* ── STEP 3: Design ── */}
+          {/*  STEP 3: Design  */}
           {step === 'design' && (
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
               <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', margin:0 }}>Дизайн</h3>
@@ -946,7 +946,7 @@ export default function PosterConstructor() {
             </div>
           )}
 
-          {/* ── STEP 4: Text ── */}
+          {/*  STEP 4: Text  */}
           {step === 'text' && (
             <div>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
@@ -959,7 +959,7 @@ export default function PosterConstructor() {
 
               {config.textBlocks.length === 0 ? (
                 <div style={{ textAlign:'center', padding:'32px 16px', color:'#94a3b8' }}>
-                  <div style={{ fontSize:32, marginBottom:8 }}>✍️</div>
+                  <div style={{ fontSize:32, marginBottom:8 }}></div>
                   <div style={{ fontSize:13 }}>Натисніть "Додати" щоб додати напис</div>
                 </div>
               ) : (
@@ -972,7 +972,7 @@ export default function PosterConstructor() {
             </div>
           )}
 
-          {/* ── STEP 5: Size ── */}
+          {/*  STEP 5: Size  */}
           {step === 'size' && (
             <div>
               <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>Розмір постера</h3>
@@ -999,8 +999,8 @@ export default function PosterConstructor() {
                 <div style={{ fontSize:12, color:'#94a3b8' }}>Макет: {layout.name} · {config.photos.length} фото</div>
                 {hasAiPortrait && (
                   <div style={{ fontSize:11, color:'#7c3aed', fontWeight:700, marginTop:4 }}>
-                    🎨 AI Портрет +{AI_PORTRAIT_PRICE} ₴
-                    <button onClick={() => setHasAiPortrait(false)} style={{ marginLeft:6, background:'none', border:'none', color:'#94a3b8', cursor:'pointer', fontSize:10 }}>✕</button>
+                     AI Портрет +{AI_PORTRAIT_PRICE} ₴
+                    <button onClick={() => setHasAiPortrait(false)} style={{ marginLeft:6, background:'none', border:'none', color:'#94a3b8', cursor:'pointer', fontSize:10 }}></button>
                   </div>
                 )}
               </div>
@@ -1033,7 +1033,7 @@ export default function PosterConstructor() {
         </div>
       </div>
 
-      {/* ── RIGHT: Live Preview ── */}
+      {/*  RIGHT: Live Preview  */}
       <div style={{ flex:1, background:'#f4f6fb', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', padding:'32px 24px', gap:16, minWidth:0 }}>
         <div style={{ fontSize:12, fontWeight:700, color:'#94a3b8', letterSpacing:'0.1em', textTransform:'uppercase' }}>
           Попередній перегляд — {sizeObj.label}
@@ -1086,7 +1086,7 @@ export default function PosterConstructor() {
                         >
                           <span style={{ color:'rgba(255,255,255,0.6)', fontSize:10 }}>Кадрування {i+1}:</span>
                           {/* Zoom */}
-                          <span style={{ color:'#fff', fontSize:10 }}>🔍</span>
+                          <span style={{ color:'#fff', fontSize:10 }}></span>
                           <input type="range" min={100} max={300} value={Math.round((photo.zoom||1)*100)}
                             onChange={e => updatePhoto(photo.id, { zoom: +e.target.value/100 })}
                             style={{ width:70, accentColor:'#3b82f6' }}/>
@@ -1113,7 +1113,7 @@ export default function PosterConstructor() {
                         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'flex-end', padding:4, opacity:0, transition:'opacity 0.15s' }}
                           onMouseEnter={e => (e.currentTarget.style.opacity='1')}
                           onMouseLeave={e => (e.currentTarget.style.opacity='0')}>
-                          <span style={{ background:'rgba(0,0,0,0.65)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:4 }}>✂ Кадрувати</span>
+                          <span style={{ background:'rgba(0,0,0,0.65)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:4 }}> Кадрувати</span>
                         </div>
                       )}
                     </div>

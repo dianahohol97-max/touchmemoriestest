@@ -15,7 +15,7 @@ interface StarMapConfig {
     showStarNames?: boolean;
 }
 
-// ─── Astronomy: RA/Dec → canvas XY ──────────────────────────────────────────
+//  Astronomy: RA/Dec → canvas XY 
 // We use a gnomonic (tangent plane) projection centered on the sky overhead
 // Center = (LST hours → RA degrees, latitude → Dec)
 // This gives a natural "looking up" view of the whole sky
@@ -78,7 +78,7 @@ function projectSky(
     };
 }
 
-// ─── Heart clip path ──────────────────────────────────────────────────────────
+//  Heart clip path 
 function drawHeart(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number) {
     // Mathematically correct heart using parametric equation
     // heart: x = 16sin³(t), y = 13cos(t) - 5cos(2t) - 2cos(3t) - cos(4t)
@@ -98,7 +98,7 @@ function drawHeart(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: num
     ctx.closePath();
 }
 
-// ─── Forest background ────────────────────────────────────────────────────────
+//  Forest background 
 function drawForest(ctx: CanvasRenderingContext2D, W: number, H: number) {
     const sky=ctx.createLinearGradient(0,0,0,H*0.7);
     sky.addColorStop(0,'#030810'); sky.addColorStop(0.6,'#0a1a30'); sky.addColorStop(1,'#143550');
@@ -121,7 +121,7 @@ function drawForest(ctx: CanvasRenderingContext2D, W: number, H: number) {
     ctx.fillStyle='#040d1c'; ctx.fillRect(0,H*0.66,W,H*0.34);
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+//  Main 
 export default function StarMapPreview({ config }: { config: StarMapConfig }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 

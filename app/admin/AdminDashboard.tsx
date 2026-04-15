@@ -251,7 +251,7 @@ function AdminDashboardContent() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
                 <div>
-                    <h1 style={{ fontSize: '36px', fontWeight: 900, marginBottom: '8px', letterSpacing: '-0.02em' }}>Аналітика Бізнесу 📈</h1>
+                    <h1 style={{ fontSize: '36px', fontWeight: 900, marginBottom: '8px', letterSpacing: '-0.02em' }}>Аналітика Бізнесу </h1>
                     <p style={{ color: '#64748b', fontSize: '16px' }}>Повний огляд вашої діяльності за обраний період.</p>
                 </div>
                 <div style={periodSwitcher}>
@@ -481,7 +481,7 @@ function AdminDashboardContent() {
             <div style={bottomGrid}>
                 {/* Alerts Section */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Автоматичні Попередження ⚠️</h2>
+                    <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Автоматичні Попередження </h2>
                     {Array.isArray(alerts) && alerts.length > 0 ? (
                         alerts.map((alert, i) => (
                             <motion.div
@@ -503,7 +503,7 @@ function AdminDashboardContent() {
                         ))
                     ) : (
                         <div style={{ padding: '40px', textAlign: 'center', backgroundColor: '#ecfdf5', borderRadius: "3px", border: '1px solid #d1fae5' }}>
-                            <p style={{ color: '#065f46', fontWeight: 700, margin: 0 }}>Всі показники в нормі ✅</p>
+                            <p style={{ color: '#065f46', fontWeight: 700, margin: 0 }}>Всі показники в нормі </p>
                         </div>
                     )}
                 </div>
@@ -511,7 +511,7 @@ function AdminDashboardContent() {
                 {/* Real-time Orders Table */}
                 <div style={ordersSection}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Останні Замовлення 📦</h2>
+                        <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Останні Замовлення </h2>
                         <Link href="/admin/orders" style={viewAllBtn}>Дивитись всі</Link>
                     </div>
                     <div style={{ overflowX: 'auto' }}>

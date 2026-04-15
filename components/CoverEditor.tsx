@@ -331,7 +331,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   </div>}
               {photo && <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()} title={t('constructor.remove_photo')}>×</button>}
               {/* Delete slot entirely */}
-              <button onClick={()=>onChange({printedPhotoSlot:null, photoId:null} as any)} style={{ position:'absolute',top: photo ? 28 : 4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(239,68,68,0.75)',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()} title={t('constructor.delete_slot')}>🗑</button>
+              <button onClick={()=>onChange({printedPhotoSlot:null, photoId:null} as any)} style={{ position:'absolute',top: photo ? 28 : 4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(239,68,68,0.75)',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()} title={t('constructor.delete_slot')}></button>
             </div>
             {/* Resize handles */}
             {(['nw','ne','se','sw'] as const).map(dir => {
@@ -364,7 +364,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   {photo
                     ? <img src={photo.preview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} draggable={false}/>
                     : <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:2 }}>
-                        <span style={{ fontSize:12, color:'rgba(148,163,184,0.8)' }}>📷</span>
+                        <span style={{ fontSize:12, color:'rgba(148,163,184,0.8)' }}></span>
                       </div>
                   }
                   {photo && <button onClick={e=>{e.stopPropagation();const slots=(config.printedPhotoSlots||[]).map((s,i)=>i===si+1?{...s,photoId:null}:s);onChange({printedPhotoSlots:slots} as any);}} style={{ position:'absolute',top:2,right:2,width:16,height:16,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>}

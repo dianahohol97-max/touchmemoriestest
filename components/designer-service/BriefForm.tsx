@@ -19,14 +19,14 @@ interface BriefFormProps {
 }
 
 const occasions: { value: DesignOccasion; label: string; icon: string; description: string }[] = [
-  { value: 'wedding', label: 'Весілля', icon: '💒', description: 'Ваш особливий день' },
-  { value: 'birthday', label: 'День народження', icon: '🎂', description: 'Святкування життя' },
-  { value: 'travel', label: 'Подорож', icon: '✈️', description: 'Спогади з мандрівок' },
-  { value: 'family', label: 'Сімейний альбом', icon: '👨‍👩‍👧‍👦', description: 'Наша родина' },
-  { value: 'baby', label: 'Дитяча', icon: '👶', description: 'Перший рік життя' },
-  { value: 'graduation', label: 'Випускний', icon: '🎓', description: 'Досягнення' },
-  { value: 'corporate', label: 'Корпоратив', icon: '🏢', description: 'Команда і події' },
-  { value: 'other', label: 'Інше', icon: '📖', description: 'Унікальна подія' },
+  { value: 'wedding', label: 'Весілля', icon: '', description: 'Ваш особливий день' },
+  { value: 'birthday', label: 'День народження', icon: '', description: 'Святкування життя' },
+  { value: 'travel', label: 'Подорож', icon: '', description: 'Спогади з мандрівок' },
+  { value: 'family', label: 'Сімейний альбом', icon: '', description: 'Наша родина' },
+  { value: 'baby', label: 'Дитяча', icon: '', description: 'Перший рік життя' },
+  { value: 'graduation', label: 'Випускний', icon: '', description: 'Досягнення' },
+  { value: 'corporate', label: 'Корпоратив', icon: '', description: 'Команда і події' },
+  { value: 'other', label: 'Інше', icon: '', description: 'Унікальна подія' },
 ];
 
 const styles: { value: StylePreference; label: string; description: string; preview: string }[] = [
@@ -34,31 +34,31 @@ const styles: { value: StylePreference; label: string; description: string; prev
     value: 'minimal',
     label: 'Мінімалістичний',
     description: 'Чистий, простий, багато білого простору',
-    preview: '🤍',
+    preview: '',
   },
   {
     value: 'bright',
     label: 'Яскравий',
     description: 'Насичені кольори, енергійний, веселий',
-    preview: '🌈',
+    preview: '',
   },
   {
     value: 'classic',
     label: 'Класичний',
     description: 'Елегантний, витончений, традиційний',
-    preview: '🎨',
+    preview: '',
   },
   {
     value: 'romantic',
     label: 'Романтичний',
     description: "Ніжний, м'який, пастельні відтінки",
-    preview: '💕',
+    preview: '',
   },
   {
     value: 'kids',
     label: 'Дитячий',
     description: 'Яскравий, веселий, ігровий',
-    preview: '🎈',
+    preview: '',
   },
 ];
 

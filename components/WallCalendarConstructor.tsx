@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useT } from '@/lib/i18n/context';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+//  Types 
 interface Photo { id: string; preview: string; width: number; height: number; name: string; }
 interface Slot  { photoId: string | null; cropX: number; cropY: number; zoom: number; }
 type Layout = '1-full'|'1-top'|'2-h'|'2-v'|'3-top1-bot2'|'3-left1-right2'|'4-grid'|'5-2top3bot'|'5-cross'|'6-grid'|'6-2rows';
@@ -26,7 +26,7 @@ interface MonthPage {
 }
 type Page = { id: 'cover'; type: 'cover' } | MonthPage;
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+//  Constants 
 const MONTHS_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
                    'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 const DAYS_UK   = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
@@ -35,16 +35,16 @@ const SIZE_DIMS = {
     A3: { w: 297, h: 420, label: 'A3 (29.7×42 см)', px: 480 },
 };
 const LAYOUTS: { id: Layout; label: string; slots: number; icon: string }[] = [
-    { id: '1-full',         label: '1 повне',      slots: 1, icon: '⬜' },
-    { id: '1-top',          label: '1 зверху',     slots: 1, icon: '▬' },
-    { id: '2-h',            label: '2 горизонт.',  slots: 2, icon: '▬▬' },
-    { id: '2-v',            label: '2 вертик.',    slots: 2, icon: '▮▮' },
+    { id: '1-full',         label: '1 повне',      slots: 1, icon: '' },
+    { id: '1-top',          label: '1 зверху',     slots: 1, icon: '' },
+    { id: '2-h',            label: '2 горизонт.',  slots: 2, icon: '' },
+    { id: '2-v',            label: '2 вертик.',    slots: 2, icon: '' },
     { id: '3-top1-bot2',    label: '3 (1+2)',      slots: 3, icon: '⊤⊤' },
     { id: '3-left1-right2', label: '3 (1|2)',      slots: 3, icon: '⊢⊢' },
     { id: '4-grid',         label: '4 сітка',      slots: 4, icon: '⊞' },
     { id: '5-2top3bot',     label: '5 (2+3)',      slots: 5, icon: '⊟⊟' },
-    { id: '5-cross',        label: '5 хрест',      slots: 5, icon: '✛' },
-    { id: '6-grid',         label: '6 сітка 3×2',  slots: 6, icon: '▦' },
+    { id: '5-cross',        label: '5 хрест',      slots: 5, icon: '' },
+    { id: '6-grid',         label: '6 сітка 3×2',  slots: 6, icon: '' },
     { id: '6-2rows',        label: '6 (2 рядки)',  slots: 6, icon: '≡≡' },
 ];
 const ACCENT_COLORS = [
@@ -73,7 +73,7 @@ function makeSlots(n: number): Slot[] {
     return Array.from({ length: n }, () => ({ photoId: null, cropX: 50, cropY: 50, zoom: 1 }));
 }
 
-// ─── Calendar Grid ─────────────────────────────────────────────────────────────
+//  Calendar Grid 
 function CalendarGrid({ year, month, W, accent, marks = [] }: { year: number; month: number; W: number; accent: string; marks?: {day:number;shape:'circle'|'heart';color:string}[] }) {
     const first = new Date(year, month - 1, 1).getDay();
     const days  = new Date(year, month, 0).getDate();
@@ -131,7 +131,7 @@ function heartPath(cx: number, cy: number, r: number): string {
     return pts.join(' ') + ' Z';
 }
 
-// ─── Photo slot renderer ────────────────────────────────────────────────────────
+//  Photo slot renderer 
 function PhotoSlot({ slot, photo, W, H, onDrop, onCropChange }:
     { slot: Slot; photo: Photo|null; W: number; H: number;
       onDrop:(id:string)=>void; onCropChange:(x:number,y:number,z:number)=>void }) {
@@ -176,7 +176,7 @@ function PhotoSlot({ slot, photo, W, H, onDrop, onCropChange }:
     );
 }
 
-// ─── Month page preview ────────────────────────────────────────────────────────
+//  Month page preview 
 function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, activeSlot, setActiveSlot, marks = [] }:
     { page: MonthPage; photos: Photo[]; size: 'A4'|'A3'; accent: string;
       onSlotDrop:(i:number,id:string)=>void; onCropChange:(i:number,x:number,y:number,z:number)=>void;
@@ -243,7 +243,7 @@ function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, ac
     );
 }
 
-// ─── Main constructor ──────────────────────────────────────────────────────────
+//  Main constructor 
 export default function WallCalendarConstructor({ initialSize='A4' }: { initialSize?: string }) {
     const t = useT();
     const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -335,7 +335,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
     const coverW = Math.round(SIZE_DIMS[size].w * 480 / SIZE_DIMS[size].h);
     const coverH = 480;
 
-    // ── CONFIG ────────────────────────────────────────────────────────────────
+    //  CONFIG 
     if (step==='config') return (
         <div style={{minHeight:'100vh', fontFamily:'var(--font-primary, sans-serif)'}}>
             <Navigation/>
@@ -374,7 +374,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                 </div>
 
                 <div style={{background:'#f0f9ff',border:'1px solid #bae6fd',borderRadius:10,padding:'14px 18px',marginBottom:28,fontSize:13,color:'#0369a1'}}>
-                    📅 <b>{t('wallcal.info_pages')}</b> обкладинка (повний редактор — фото, текст, шрифт, кольори) + 12 місяців (Січень–Грудень 2026) зі слотами для фото і сіткою.
+                     <b>{t('wallcal.info_pages')}</b> обкладинка (повний редактор — фото, текст, шрифт, кольори) + 12 місяців (Січень–Грудень 2026) зі слотами для фото і сіткою.
                 </div>
 
                 <button onClick={startEditor} style={{width:'100%',padding:16,background:'#1e2d7d',color:'#fff',border:'none',borderRadius:10,fontSize:16,fontWeight:800,cursor:'pointer'}}>
@@ -385,7 +385,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
         </div>
     );
 
-    // ── EDITOR ────────────────────────────────────────────────────────────────
+    //  EDITOR 
     return (
         <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'#f4f6fb',fontFamily:'var(--font-primary, sans-serif)'}}>
 
@@ -662,7 +662,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                             </div>
 
                             <p style={{fontSize:10,color:'#94a3b8',lineHeight:1.5,marginTop:4}}>
-                                💡 Перетягніть фото на обкладинку зліва
+                                 Перетягніть фото на обкладинку зліва
                             </p>
                         </div>
                     ) : (
@@ -731,7 +731,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                                 return (
                                                     <button key={day} onClick={()=>toggleMark(day)}
                                                         style={{aspectRatio:'1',borderRadius:mark?.shape==='heart'?2:'50%',border:mark?'none':'0.5px solid #e2e8f0',background:mark?mark.color:'#fff',color:mark?'#fff':'#374151',fontSize:7,fontWeight:mark?700:400,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',lineHeight:1}}>
-                                                        {mark?.shape==='heart'&&<span style={{fontSize:8,position:'absolute'}}>♥</span>}
+                                                        {mark?.shape==='heart'&&<span style={{fontSize:8,position:'absolute'}}></span>}
                                                         <span style={{position:mark?.shape==='heart'?'absolute':'static',fontSize:6}}>{day}</span>
                                                     </button>
                                                 );

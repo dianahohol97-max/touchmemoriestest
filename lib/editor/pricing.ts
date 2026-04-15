@@ -1,4 +1,4 @@
-// ── Photobook Pricing ────────────────────────────────────────────────────────
+//  Photobook Pricing 
 // TODO: Move to Supabase table for dynamic pricing without deploys
 
 import { normalizeSizeKey } from './utils';

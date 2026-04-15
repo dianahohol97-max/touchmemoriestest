@@ -335,7 +335,7 @@ export default function PhotoPrintsPage() {
         <Navigation />
         <main style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '600px', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ backgroundColor: '#f0fdf4', border: '2px solid #86efac', borderRadius: '16px', padding: '48px 32px', textAlign: 'center' }}>
-            <div style={{ fontSize: '64px', marginBottom: '16px' }}>✅</div>
+            <div style={{ fontSize: '64px', marginBottom: '16px' }}></div>
             <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#166534', marginBottom: '12px' }}>
               Замовлення прийнято!
             </h1>
@@ -586,7 +586,7 @@ export default function PhotoPrintsPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
-            📸 Відкрити редактор фото →
+             Відкрити редактор фото →
           </button>
         </div>
 
@@ -630,7 +630,7 @@ export default function PhotoPrintsPage() {
 
           {photos.length > 0 && isMultipleInvalid && (
             <div style={{ marginTop: '16px', padding: '14px 18px', background: '#fff7ed', border: '1.5px solid #fdba74', borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
+              <span style={{ fontSize: 20, flexShrink: 0 }}></span>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#92400e', marginBottom: 4 }}>
                   Кількість фото ({totalQuantity} шт) не кратна {requiredMultiple}
@@ -840,7 +840,7 @@ export default function PhotoPrintsPage() {
           <>
             {isMultipleInvalid && photos.length > 0 && (
               <div style={{ marginBottom: 12, padding: '12px 16px', background: '#fff7ed', border: '1.5px solid #fdba74', borderRadius: 10, fontSize: 13, color: '#92400e', fontWeight: 600, textAlign: 'center' }}>
-                ⚠️ Виправте кількість фото (має бути кратна {requiredMultiple}) перед оформленням
+                 Виправте кількість фото (має бути кратна {requiredMultiple}) перед оформленням
               </div>
             )}
             <button

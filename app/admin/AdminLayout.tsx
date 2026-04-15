@@ -156,7 +156,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
 
     return (
         <>
-            {/* ─── Mobile top bar ─── */}
+            {/*  Mobile top bar  */}
             <div style={{
                 display: 'none',
                 position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
@@ -173,7 +173,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                 </button>
             </div>
 
-            {/* ─── Mobile overlay ─── */}
+            {/*  Mobile overlay  */}
             {mobileOpen && (
                 <div
                     onClick={() => setMobileOpen(false)}
@@ -185,7 +185,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                 />
             )}
 
-            {/* ─── Desktop + Mobile sidebar ─── */}
+            {/*  Desktop + Mobile sidebar  */}
             <aside
                 className={`tm-admin-sidebar${mobileOpen ? ' tm-admin-sidebar--open' : ''}`}
                 style={{
@@ -205,7 +205,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                 <SidebarContent />
             </aside>
 
-            {/* ─── Main content ─── */}
+            {/*  Main content  */}
             <main className="tm-admin-main" style={{
                 marginLeft: '320px', flex: 1,
                 padding: '40px 60px', overflowY: 'auto', height: '100vh',
@@ -213,7 +213,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                 {children}
             </main>
 
-            {/* ─── Responsive styles ─── */}
+            {/*  Responsive styles  */}
             <style>{`
                 @media (max-width: 768px) {
                     .tm-admin-topbar { display: flex !important; }

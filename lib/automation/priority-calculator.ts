@@ -85,7 +85,7 @@ export function getPriorityBadge(item: ProductionQueueItem): {
     return {
       label: 'Ручний пріоритет',
       color: '#8b5cf6', // purple
-      icon: '📌',
+      icon: '',
     };
   }
 
@@ -97,25 +97,25 @@ export function getPriorityBadge(item: ProductionQueueItem): {
     return {
       label: 'Критичний',
       color: '#ef4444', // red
-      icon: '🔥',
+      icon: '',
     };
   } else if (daysUntil <= 1) {
     return {
       label: 'Терміново',
       color: '#f59e0b', // amber
-      icon: '⚡',
+      icon: '',
     };
   } else if (item.has_express_tag) {
     return {
       label: 'Експрес',
       color: '#263A99', // blue
-      icon: '⚡',
+      icon: '',
     };
   } else if (item.is_vip_customer) {
     return {
       label: 'VIP',
       color: '#eab308', // yellow
-      icon: '⭐',
+      icon: '',
     };
   } else {
     return {

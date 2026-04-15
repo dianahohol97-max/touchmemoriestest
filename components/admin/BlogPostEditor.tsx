@@ -85,7 +85,7 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                     keywords: data.keywords || p.keywords,
                     og_title: data.meta_title || p.og_title
                 }));
-                toast.success('SEO-дані заповнено автоматично ✓');
+                toast.success('SEO-дані заповнено автоматично ');
             } else if (action === 'generate_expert') {
                 setForm(p => ({ ...p, content: data.result + '\n\n' + p.content }));
                 toast.success('Вступний абзац додано');
@@ -152,10 +152,10 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
 
         if (type === 'cover' && uploadedUrls.length > 0) {
             setForm(p => ({ ...p, cover_image: uploadedUrls[0] }));
-            toast.success('Обкладинку оновлено ✓');
+            toast.success('Обкладинку оновлено ');
         } else if (type === 'article' && uploadedUrls.length > 0) {
             setArticleMedia(p => [...p, ...uploadedUrls]);
-            toast.success(`Завантажено ${uploadedUrls.length} зображень ✓`);
+            toast.success(`Завантажено ${uploadedUrls.length} зображень `);
         }
 
         setUploading(null);

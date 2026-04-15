@@ -197,7 +197,7 @@ export default function ProductionKanbanPage() {
         <div style={{ padding: '32px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
-                    <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>Виробництво 🏭</h1>
+                    <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>Виробництво </h1>
                     <p style={{ color: '#64748b' }}>Kanban дошка для відстеження друку</p>
                 </div>
 

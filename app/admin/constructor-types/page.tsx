@@ -80,7 +80,7 @@ export default function ConstructorTypesPage() {
                             border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '24px',
                             boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
                         }}>
-                            <div style={{ fontSize: '32px' }}>{type.icon || '📦'}</div>
+                            <div style={{ fontSize: '32px' }}>{type.icon || ''}</div>
                             <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{type.name}</h3>

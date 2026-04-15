@@ -770,7 +770,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                             color: isActive ? (isUrgent ? '#d97706' : '#1e2d7d') : '#374151',
                             fontWeight: isActive ? 700 : 500, fontSize: 13, transition: 'all 0.15s',
                             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                          <span style={{ fontSize: 18 }}>{isUrgent ? '⚡' : '📦'}</span>
+                          <span style={{ fontSize: 18 }}>{isUrgent ? '' : ''}</span>
                           <span>{v}</span>
                         </button>
                       );
@@ -814,7 +814,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
             )}
             {option.note && (
               <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 5, fontStyle: 'italic' }}>
-                ℹ️ {option.note}
+                ℹ {option.note}
               </p>
             )}
           </div>

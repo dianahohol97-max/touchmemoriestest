@@ -388,7 +388,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
       {/* Error State */}
       {state === 'error' && error && (
         <div className="photobooth-error">
-          <div className="error-icon">⚠️</div>
+          <div className="error-icon"></div>
           <h3>Oops! Something went wrong</h3>
           <p>{error.message}</p>
           <button onClick={initializeCamera} className="btn-retry">
@@ -401,7 +401,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
       {state === 'idle' && (
         <div className="photobooth-start">
           <div className="start-content">
-            <div className="camera-icon">📸</div>
+            <div className="camera-icon"></div>
             <h2>Онлайн Фотобудка</h2>
             <p>Оберіть формат та створіть {config.capture.numberOfPhotos} фотографії</p>
             <button
@@ -420,7 +420,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
                   checked={soundEnabled}
                   onChange={(e) => setSoundEnabled(e.target.checked)}
                 />
-                <span>Звуки {soundEnabled ? '🔊' : '🔇'}</span>
+                <span>Звуки {soundEnabled ? '' : ''}</span>
               </label>
             </div>
           </div>
@@ -441,7 +441,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
                 }}
                 className="btn-format"
               >
-                <div className="format-icon">📱</div>
+                <div className="format-icon"></div>
                 <span>Портрет</span>
                 <small>Вертикальний</small>
               </button>
@@ -453,7 +453,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
                 }}
                 className="btn-format"
               >
-                <div className="format-icon">🖼️</div>
+                <div className="format-icon"></div>
                 <span>Ландшафт</span>
                 <small>Горизонтальний</small>
               </button>
@@ -465,7 +465,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
                 }}
                 className="btn-format"
               >
-                <div className="format-icon">⬜</div>
+                <div className="format-icon"></div>
                 <span>Квадрат</span>
                 <small>1:1</small>
               </button>
@@ -491,7 +491,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
                 }}
                 className="btn-source"
               >
-                <div className="source-icon">📷</div>
+                <div className="source-icon"></div>
                 <span>Зробити фото</span>
                 <small>Використати камеру</small>
               </button>
@@ -503,7 +503,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
                 }}
                 className="btn-source"
               >
-                <div className="source-icon">📂</div>
+                <div className="source-icon"></div>
                 <span>Завантажити</span>
                 <small>Вибрати з галереї</small>
               </button>
@@ -519,7 +519,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
       {state === 'upload-ready' && (
         <div className="photobooth-upload">
           <div className="upload-content">
-            <div className="upload-icon">📂</div>
+            <div className="upload-icon"></div>
             <h2>Завантажте фотографії</h2>
             <p>
               Виберіть до {config.capture.numberOfPhotos} фотографій
@@ -612,7 +612,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
             {state === 'camera-ready' && (
               <>
                 <button onClick={toggleCamera} className="btn-toggle-camera" title="Переключити камеру">
-                  🔄
+                  
                 </button>
                 <button onClick={startCapture} className="btn-capture">
                   Почати зйомку
@@ -632,10 +632,10 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
           </div>
           <div className="review-controls">
             <button onClick={retakeLastPhoto} className="btn-retake">
-              🔁 Переробити
+               Переробити
             </button>
             <button onClick={keepPhoto} className="btn-keep">
-              ✓ Залишити
+               Залишити
             </button>
           </div>
           <p className="review-hint">Автоматично продовжиться через 3 секунди...</p>
@@ -653,20 +653,20 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
       {/* Preview */}
       {state === 'preview' && generatedImage && (
         <div className="photobooth-preview">
-          <h3>Ваші фото готові! 🎉</h3>
+          <h3>Ваші фото готові! </h3>
           <div className="preview-container">
             <img src={generatedImage} alt="Generated photobooth layout" className="preview-image" />
           </div>
 
           <div className="preview-controls">
             <button onClick={() => downloadImage('png')} className="btn-download">
-              ⬇️ Завантажити PNG
+               Завантажити PNG
             </button>
             <button onClick={() => downloadImage('jpg')} className="btn-download">
-              ⬇️ Завантажити JPG
+               Завантажити JPG
             </button>
             <button onClick={reset} className="btn-secondary">
-              📸 Нові фото
+               Нові фото
             </button>
           </div>
         </div>

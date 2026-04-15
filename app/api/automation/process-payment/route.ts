@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     const customAttrs = order.custom_attributes as any;
     const pageCount = customAttrs?.page_count || 0;
-    const hasExpressTag = customAttrs?.tags?.includes('⚡ Відправити швидше') || false;
+    const hasExpressTag = customAttrs?.tags?.includes(' Відправити швидше') || false;
     const isVipCustomer = (order.customer as any)?.[0]?.is_vip || false;
 
     // Get active orders count for queue load calculation

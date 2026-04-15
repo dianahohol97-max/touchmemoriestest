@@ -135,7 +135,7 @@ function WishbookCoverEditorContent() {
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Text — FIRST (primary for wishbook) */}
             <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, marginBottom: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 10 }}>✏️ Текст на обкладинці</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 10 }}> Текст на обкладинці</div>
               <input value={coverState.decoText || ''}
                 onChange={e => setCoverState(prev => ({ ...prev, decoText: e.target.value }))}
                 placeholder="Наприклад: Наше весілля · 2025"
@@ -150,8 +150,8 @@ function WishbookCoverEditorContent() {
                   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
                 }}
                 style={{ fontSize: 13, fontWeight: 700, color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>📸 Додати фото на обкладинку <span style={{ fontSize: 11, fontWeight: 400, color: '#94a3b8' }}>(необов'язково)</span></span>
-                <span style={{ fontSize: 16, color: '#94a3b8' }}>▾</span>
+                <span> Додати фото на обкладинку <span style={{ fontSize: 11, fontWeight: 400, color: '#94a3b8' }}>(необов'язково)</span></span>
+                <span style={{ fontSize: 16, color: '#94a3b8' }}></span>
               </div>
               <div id="wishbook-photo-section" style={{ display: 'none', marginTop: 12 }}>
                 {photos.length === 0 ? (

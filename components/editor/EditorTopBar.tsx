@@ -53,12 +53,12 @@ export function EditorTopBar({ onAddToCart, onSaveDesigner }: EditorTopBarProps)
           {designerOrderId ? (
             <button onClick={() => onSaveDesigner?.('save')} disabled={designerSaving}
               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: 'pointer', flexShrink: 0, opacity: designerSaving ? 0.6 : 1 }}>
-              💾 Зберегти
+               Зберегти
             </button>
           ) : (
             <button onClick={onAddToCart}
               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>
-              ✓ Готово
+               Готово
             </button>
           )}
         </div>
@@ -127,15 +127,15 @@ export function EditorTopBar({ onAddToCart, onSaveDesigner }: EditorTopBarProps)
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => onSaveDesigner?.('save')} disabled={designerSaving}
               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: designerSaving ? 0.6 : 1 }}>
-              💾 Зберегти макет
+               Зберегти макет
             </button>
             <button onClick={() => onSaveDesigner?.('send_for_review')} disabled={designerSaving}
               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', background: '#0891b2', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: designerSaving ? 0.6 : 1 }}>
-              ✉️ Надіслати на узгодження
+               Надіслати на узгодження
             </button>
           </div>
         ) : (
-          <button onClick={onAddToCart} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(22,163,74,0.35)' }}>✓ Зберегти та замовити</button>
+          <button onClick={onAddToCart} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(22,163,74,0.35)' }}> Зберегти та замовити</button>
         )}
       </div>
     </div>

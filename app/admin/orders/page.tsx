@@ -302,7 +302,7 @@ export default function OrdersPage() {
                                     </div>
                                     {order.delivery_status && order.tracking_number && (
                                         <div style={{ ...statusBadgeStyle, backgroundColor: getDeliveryStatusColor(order.delivery_status).bg, color: getDeliveryStatusColor(order.delivery_status).text, border: 'none', marginTop: '6px', fontSize: '10px' }}>
-                                            🚚 {order.delivery_status}
+                                             {order.delivery_status}
                                         </div>
                                     )}
                                     {order.order_tag_assignments?.length > 0 && (

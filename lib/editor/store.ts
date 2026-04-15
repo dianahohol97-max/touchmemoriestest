@@ -19,7 +19,7 @@ import {
 import { LAYOUTS } from './constants';
 import { haptic } from '@/lib/hooks/useMobileInteractions';
 
-// ── Default cover state ──────────────────────────────────────────────────────
+//  Default cover state 
 
 const DEFAULT_COVER_STATE: CoverState = {
   decoType: 'none',
@@ -34,7 +34,7 @@ const DEFAULT_COVER_STATE: CoverState = {
   extraTexts: [],
 };
 
-// ── Store interface ──────────────────────────────────────────────────────────
+//  Store interface 
 
 interface BookEditorState {
   // Core data
@@ -103,11 +103,11 @@ interface BookEditorState {
   // History (undo)
   history: HistoryEntry[];
 
-  // ── Computed helpers ──
+  //  Computed helpers 
   getActivePageIdx: () => number;
   getEffectiveCoverColor: () => string;
 
-  // ── Actions ──
+  //  Actions 
   setConfig: (config: BookConfig) => void;
   setPhotos: (photos: PhotoData[] | ((prev: PhotoData[]) => PhotoData[])) => void;
   setPages: (pages: Page[] | ((prev: Page[]) => Page[])) => void;
@@ -152,7 +152,7 @@ interface BookEditorState {
   setCrossDragPos: (pos: { x: number; y: number } | null) => void;
   setDesignerSaving: (v: boolean) => void;
 
-  // ── Complex actions ──
+  //  Complex actions 
   pushHistory: () => void;
   undo: () => void;
   initFromConfig: (config: BookConfig) => void;
@@ -170,13 +170,13 @@ interface BookEditorState {
   autoFill: () => void;
 }
 
-// ── Helper: apply a setter that can be value or function ──────────────────────
+//  Helper: apply a setter that can be value or function 
 
 function applyUpdate<T>(current: T, update: T | ((prev: T) => T)): T {
   return typeof update === 'function' ? (update as (prev: T) => T)(current) : update;
 }
 
-// ── Store ────────────────────────────────────────────────────────────────────
+//  Store 
 
 export const useBookEditorStore = create<BookEditorState>((set, get) => ({
   // Core data
@@ -248,7 +248,7 @@ export const useBookEditorStore = create<BookEditorState>((set, get) => ({
   // History
   history: [],
 
-  // ── Computed ──
+  //  Computed 
   getActivePageIdx: () => {
     const { currentIdx, activeSide } = get();
     return _getActivePageIdx(currentIdx, activeSide);
@@ -259,7 +259,7 @@ export const useBookEditorStore = create<BookEditorState>((set, get) => ({
     return coverColorOverride ?? (config?.selectedCoverColor || '');
   },
 
-  // ── Simple setters ──
+  //  Simple setters 
   setConfig: (config) => set({ config }),
   setPhotos: (update) => set(s => ({ photos: applyUpdate(s.photos, update) })),
   setPages: (update) => set(s => ({ pages: applyUpdate(s.pages, update) })),
@@ -304,7 +304,7 @@ export const useBookEditorStore = create<BookEditorState>((set, get) => ({
   setCrossDragPos: (pos) => set({ crossDragPos: pos }),
   setDesignerSaving: (v) => set({ designerSaving: v }),
 
-  // ── Complex actions ──
+  //  Complex actions 
 
   pushHistory: () => set(s => ({
     history: [

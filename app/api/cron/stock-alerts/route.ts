@@ -47,9 +47,9 @@ export async function GET(request: Request) {
                 await resend.emails.send({
                     from: 'TouchMemories Alerts <hello@touchmemories.ua>',
                     to: ['admin@touchmemories.ua'], // Replace with actual admin email
-                    subject: `🚨 Товар закінчився: ${product.name}`,
+                    subject: ` Товар закінчився: ${product.name}`,
                     html: `
-                        <h2>🔴 Увага: Товар повністю закінчився</h2>
+                        <h2> Увага: Товар повністю закінчився</h2>
                         <p><strong>${product.name}</strong> більше немає на складі (Залишок: ${product.stock_available}).</p>
                         <p>Товар був автоматично знятий з публікації, щоб уникнути замовлень, які неможливо виконати.</p>
                         <br/>
@@ -80,9 +80,9 @@ export async function GET(request: Request) {
                     await resend.emails.send({
                         from: 'TouchMemories Alerts <hello@touchmemories.ua>',
                         to: ['admin@touchmemories.ua'], // Replace with actual admin email
-                        subject: `⚠️ Низький залишок: ${product.name}`,
+                        subject: ` Низький залишок: ${product.name}`,
                         html: `
-                            <h2>⚠️ Мало товару на складі</h2>
+                            <h2> Мало товару на складі</h2>
                             <p><strong>${product.name}</strong> закінчується.</p>
                             <p>Залишилось: <strong>${product.stock_available} шт.</strong> (Очікуваний поріг: ${product.low_stock_threshold} шт.)</p>
                             <br/>

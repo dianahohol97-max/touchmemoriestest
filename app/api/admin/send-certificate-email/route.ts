@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     <p style="color:rgba(255,255,255,0.8);margin:8px 0 0;font-size:14px">Подарунковий сертифікат</p>
   </div>
   <div style="padding:40px 32px">
-    ${recipient_name ? `<p style="font-size:18px;font-weight:700;color:#374151;margin:0 0 8px">Вітаємо, ${recipient_name}! 🎉</p>` : ''}
+    ${recipient_name ? `<p style="font-size:18px;font-weight:700;color:#374151;margin:0 0 8px">Вітаємо, ${recipient_name}! </p>` : ''}
     ${sender_name ? `<p style="color:#64748b;margin:0 0 24px;font-size:14px">Від: <strong>${sender_name}</strong></p>` : ''}
     ${message ? `<div style="background:#f0f4ff;border-left:4px solid #263A99;padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:24px;font-style:italic;color:#374151">"${message}"</div>` : ''}
     
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
     <div style="background:#f8fafc;border-radius:8px;padding:16px;margin-bottom:24px">
       <p style="margin:0;font-size:13px;color:#64748b">
-        📅 Дійсний до: <strong style="color:#374151">${expiryStr}</strong>
+         Дійсний до: <strong style="color:#374151">${expiryStr}</strong>
       </p>
     </div>
 
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         body: JSON.stringify({
             sender: { name: 'Touch.Memories', email: 'hello@touchmemories.com.ua' },
             to: [{ email: recipient_email, name: recipient_name || '' }],
-            subject: `🎁 Ваш подарунковий сертифікат Touch.Memories на ${amount} грн`,
+            subject: ` Ваш подарунковий сертифікат Touch.Memories на ${amount} грн`,
             htmlContent: html
         })
     });

@@ -8,7 +8,7 @@ import { Upload, Trash2, ChevronLeft, ChevronRight, CheckCircle, Image as ImageI
 import { toast } from 'sonner';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 
-// ─── Types ──────────────────────────────────────────────────────
+//  Types 
 
 interface UploadedPhoto {
     id: string;
@@ -19,7 +19,7 @@ interface UploadedPhoto {
     storagePath?: string;
 }
 
-// ─── Step Labels ────────────────────────────────────────────────
+//  Step Labels 
 
 const STEPS = [
     'Завантаження фото',
@@ -29,7 +29,7 @@ const STEPS = [
     'Підтвердження',
 ];
 
-// ─── Main Component ─────────────────────────────────────────────
+//  Main Component 
 
 export default function DesignerOrderFlow() {
     const searchParams = useSearchParams();
@@ -82,7 +82,7 @@ export default function DesignerOrderFlow() {
     const [submitting, setSubmitting] = useState(false);
     const [orderComplete, setOrderComplete] = useState(false);
 
-    // ─── Photo Upload ─────────────────────────────────────────────
+    //  Photo Upload 
 
     const handleFiles = useCallback((files: FileList | File[]) => {
         const accepted = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
@@ -154,7 +154,7 @@ export default function DesignerOrderFlow() {
         return paths;
     };
 
-    // ─── Submit Order ─────────────────────────────────────────────
+    //  Submit Order 
 
     const submitOrder = async () => {
         setSubmitting(true);
@@ -217,7 +217,7 @@ export default function DesignerOrderFlow() {
         }
     };
 
-    // ─── Validation ───────────────────────────────────────────────
+    //  Validation 
 
     const canGoNext = (): boolean => {
         switch (step) {
@@ -236,7 +236,7 @@ export default function DesignerOrderFlow() {
         }
     };
 
-    // ─── Success Screen ───────────────────────────────────────────
+    //  Success Screen 
 
     if (orderComplete) {
         return (
@@ -266,7 +266,7 @@ export default function DesignerOrderFlow() {
         );
     }
 
-    // ─── Render ───────────────────────────────────────────────────
+    //  Render 
 
     return (
         <>
@@ -294,7 +294,7 @@ export default function DesignerOrderFlow() {
 
                     <div className="bg-white rounded-xl border border-gray-200 p-8">
 
-                        {/* ═══ STEP 1: Photo Upload ═══ */}
+                        {/*  STEP 1: Photo Upload  */}
                         {step === 1 && (
                             <div className="space-y-6">
                                 <div>
@@ -337,7 +337,7 @@ export default function DesignerOrderFlow() {
                             </div>
                         )}
 
-                        {/* ═══ STEP 2: Comments ═══ */}
+                        {/*  STEP 2: Comments  */}
                         {step === 2 && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-bold text-[#1e2d7d]">Побажання до замовлення</h2>
@@ -356,7 +356,7 @@ export default function DesignerOrderFlow() {
                             </div>
                         )}
 
-                        {/* ═══ STEP 3: Contact Info ═══ */}
+                        {/*  STEP 3: Contact Info  */}
                         {step === 3 && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-bold text-[#1e2d7d]">Контактні дані</h2>
@@ -405,7 +405,7 @@ export default function DesignerOrderFlow() {
                             </div>
                         )}
 
-                        {/* ═══ STEP 4: Delivery ═══ */}
+                        {/*  STEP 4: Delivery  */}
                         {step === 4 && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-bold text-[#1e2d7d]">Доставка</h2>
@@ -444,7 +444,7 @@ export default function DesignerOrderFlow() {
                             </div>
                         )}
 
-                        {/* ═══ STEP 5: Confirmation ═══ */}
+                        {/*  STEP 5: Confirmation  */}
                         {step === 5 && !showAddMorePrompt && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-bold text-[#1e2d7d]">Підтвердження замовлення</h2>

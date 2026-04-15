@@ -165,7 +165,7 @@ const router = useRouter();
 
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 300px', gap: 20, alignItems: 'start' }}>
 
-        {/* ── LEFT: Gallery + upload ── */}
+        {/*  LEFT: Gallery + upload  */}
         <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, position: 'sticky', top: 20, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#1e2d7d' }}>Мої магніти ({magnets.length})</div>
@@ -217,7 +217,7 @@ const router = useRouter();
           )}
         </div>
 
-        {/* ── CENTER: Preview ── */}
+        {/*  CENTER: Preview  */}
         <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 24, minHeight: 500 }}>
           {activeMagnet ? (() => {
             const size = MAGNET_SIZES.find(s => s.id === activeMagnet.sizeId)!;
@@ -337,7 +337,7 @@ const router = useRouter();
           )}
         </div>
 
-        {/* ── RIGHT: Controls ── */}
+        {/*  RIGHT: Controls  */}
         <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, position: 'sticky', top: 20, maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
 
           {/* Default size for new uploads */}
@@ -435,7 +435,7 @@ const router = useRouter();
                 {multipleErrors.map(err => (
                   <div key={err.sizeId} style={{ marginBottom: multipleErrors.length > 1 ? 8 : 0 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e' }}>
-                      ⚠️ {err.label} см — {err.count} шт, має бути кратно {err.multiple}
+                       {err.label} см — {err.count} шт, має бути кратно {err.multiple}
                     </div>
                     <div style={{ fontSize: 10, color: '#78350f', marginTop: 2 }}>
                       Видаліть <b>{err.toRemove}</b> або додайте <b>{err.toAdd}</b> магніт{err.toAdd > 1 ? 'и' : ''}

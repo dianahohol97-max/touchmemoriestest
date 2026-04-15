@@ -70,7 +70,7 @@ export default function CanvasArea() {
               />
             ) : el.type === 'photo' ? (
               <div className="w-full h-full bg-gray-200 flex items-center justify-center border-2 border-dashed border-gray-300">
-                <span className="text-gray-400 text-xs">📷 Фото</span>
+                <span className="text-gray-400 text-xs"> Фото</span>
               </div>
             ) : el.type === 'text' ? (
               <div
@@ -94,7 +94,7 @@ export default function CanvasArea() {
         {(!currentPage?.elements || currentPage.elements.length === 0) && (
           <div className="absolute inset-0 flex items-center justify-center text-gray-300">
             <div className="text-center">
-              <div className="text-5xl mb-2">🖼</div>
+              <div className="text-5xl mb-2"></div>
               <p className="text-sm">Виберіть шаблон або перетягніть фото</p>
             </div>
           </div>

@@ -77,7 +77,7 @@ export default function LeftPanel() {
                   className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-gray-600 hover:bg-[#f0f2f8] hover:border-[#1e2d7d] transition-colors text-center"
                 >
                   <div className="w-full aspect-square bg-gray-200 rounded mb-1 flex items-center justify-center text-lg">
-                    {layout.thumbnail ?? '□'}
+                    {layout.thumbnail ?? ''}
                   </div>
                   {layout.name}
                 </button>
@@ -99,7 +99,7 @@ export default function LeftPanel() {
                     : 'border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                {page.pageNumber === 0 ? '📖 Обкладинка' : `Сторінка ${page.pageNumber}`}
+                {page.pageNumber === 0 ? ' Обкладинка' : `Сторінка ${page.pageNumber}`}
                 <span className="text-gray-400 ml-1">({page.elements?.length ?? 0} ел.)</span>
               </button>
             ))}

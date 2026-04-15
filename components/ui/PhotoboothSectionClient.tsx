@@ -31,19 +31,19 @@ export const PhotoboothSectionClient: React.FC<PhotoboothSectionClientProps> = (
     const [showPhotobooth, setShowPhotobooth] = useState(false);
 
     // Content with fallbacks
-    const badge = sectionContent?.metadata?.badge || '📸 Новинка';
+    const badge = sectionContent?.metadata?.badge || ' Новинка';
     const title = sectionContent?.heading || 'Онлайн Фотобудка';
     const subtitle = sectionContent?.subheading ||
         'Створіть унікальні фото-спогади прямо зараз! Зробіть серію знімків і отримай готовий макет для друку.';
     const ctaText = sectionContent?.cta_text || 'Спробувати фотобудку';
     const helpText = sectionContent?.metadata?.help_text ||
-        '💡 Як це працює: натисни кнопку → дозволь доступ до камери → посміхнись перед об\'єктивом → отримай готові фото!';
+        ' Як це працює: натисни кнопку → дозволь доступ до камери → посміхнись перед об\'єктивом → отримай готові фото!';
 
     const features = sectionContent?.metadata?.features || [
-        { icon: '📱', title: 'Просто у браузері', description: 'Без встановлення додатків' },
-        { icon: '⚡', title: 'Миттєвий результат', description: 'Готовий макет за секунди' },
-        { icon: '🎨', title: 'Професійна якість', description: '300 DPI для друку' },
-        { icon: '💾', title: 'Збережіть або надрукуй', description: 'PNG або JPG формат' }
+        { icon: '', title: 'Просто у браузері', description: 'Без встановлення додатків' },
+        { icon: '', title: 'Миттєвий результат', description: 'Готовий макет за секунди' },
+        { icon: '', title: 'Професійна якість', description: '300 DPI для друку' },
+        { icon: '', title: 'Збережіть або надрукуй', description: 'PNG або JPG формат' }
     ];
 
     const layouts = sectionContent?.metadata?.layouts || [
@@ -71,7 +71,7 @@ export const PhotoboothSectionClient: React.FC<PhotoboothSectionClientProps> = (
                     className={styles.closeButton}
                     aria-label="Закрити фотобудку"
                 >
-                    ✕
+                    
                 </button>
                 <PhotoboothEmbed
                     initialConfig={{
@@ -122,7 +122,7 @@ export const PhotoboothSectionClient: React.FC<PhotoboothSectionClientProps> = (
                             onClick={() => setShowPhotobooth(true)}
                             className={styles.launchButton}
                         >
-                            <span className={styles.buttonIcon}>📸</span>
+                            <span className={styles.buttonIcon}></span>
                             {ctaText}
                             <span className={styles.buttonArrow}>→</span>
                         </button>
@@ -135,17 +135,17 @@ export const PhotoboothSectionClient: React.FC<PhotoboothSectionClientProps> = (
                             <div className={styles.phone}>
                                 <div className={styles.phoneScreen}>
                                     <div className={styles.previewLayout}>
-                                        <div className={styles.previewPhoto}>📷</div>
-                                        <div className={styles.previewPhoto}>📷</div>
-                                        <div className={styles.previewPhoto}>📷</div>
+                                        <div className={styles.previewPhoto}></div>
+                                        <div className={styles.previewPhoto}></div>
+                                        <div className={styles.previewPhoto}></div>
                                     </div>
                                     <div className={styles.previewText}>Готовий макет</div>
                                 </div>
                             </div>
                             <div className={styles.floatingElements}>
-                                <div className={`${styles.floatingElement} ${styles.float1}`}>✨</div>
-                                <div className={`${styles.floatingElement} ${styles.float2}`}>🎉</div>
-                                <div className={`${styles.floatingElement} ${styles.float3}`}>💫</div>
+                                <div className={`${styles.floatingElement} ${styles.float1}`}></div>
+                                <div className={`${styles.floatingElement} ${styles.float2}`}></div>
+                                <div className={`${styles.floatingElement} ${styles.float3}`}></div>
                             </div>
                         </div>
                     </div>

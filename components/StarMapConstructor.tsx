@@ -546,7 +546,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                                 {/* Shape indicator */}
                                 {style.id.includes('heart') ? (
                                     <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontSize:22,opacity:0.4}}>
-                                        {style.bg.includes('f5') ? '🤍' : '🖤'}
+                                        {style.bg.includes('f5') ? '' : ''}
                                     </div>
                                 ) : style.id === 'full-bleed' ? null : (
                                     <div style={{
@@ -558,7 +558,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                                 )}
                                 {/* Checkmark */}
                                 {config.style === style.id && (
-                                    <div style={{ position:'absolute',top:6,right:6,width:18,height:18,borderRadius:'50%',background:'#1e2d7d',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'#fff' }}>✓</div>
+                                    <div style={{ position:'absolute',top:6,right:6,width:18,height:18,borderRadius:'50%',background:'#1e2d7d',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'#fff' }}></div>
                                 )}
                             </div>
                             <div className={`px-2 py-1.5 text-xs font-semibold ${config.style === style.id ? 'text-[#1e2d7d] bg-[#f0f3ff]' : 'text-gray-700 bg-white'}`}>
@@ -629,7 +629,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                     ))}
                 </select>
                 <div style={{ marginTop:8, padding:'8px 14px', background:'#f0f3ff', borderRadius:8, fontFamily: config.fontFamily, fontSize:20, color:'#1e2d7d', textAlign:'center' }}>
-                    Зоряне небо ✦ Starry Sky
+                    Зоряне небо  Starry Sky
                 </div>
             </div>
 
@@ -666,11 +666,11 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                     <label className="block text-sm font-medium text-gray-700 mb-3">{t('starmap.constellation_lang_label')}</label>
                     <div className="flex flex-wrap gap-2">
                         {([
-                            { value: 'uk', label: '🇺🇦 Українська' },
-                            { value: 'en', label: '🇬🇧 English' },
-                            { value: 'pl', label: '🇵🇱 Polski' },
-                            { value: 'ro', label: '🇷🇴 Română' },
-                            { value: 'de', label: '🇩🇪 Deutsch' },
+                            { value: 'uk', label: ' Українська' },
+                            { value: 'en', label: ' English' },
+                            { value: 'pl', label: ' Polski' },
+                            { value: 'ro', label: ' Română' },
+                            { value: 'de', label: ' Deutsch' },
                         ] as const).map(({ value, label }) => {
                             const current = (config as any).constellationLang || 'uk';
                             const isActive = current === value;

@@ -186,7 +186,7 @@ export default function CustomAttributeManager({
                                 )}
                                 {getAttributePriceInfo(attr) && (
                                     <div style={priceInfoStyle}>
-                                        💰 {getAttributePriceInfo(attr)}
+                                         {getAttributePriceInfo(attr)}
                                     </div>
                                 )}
                             </div>

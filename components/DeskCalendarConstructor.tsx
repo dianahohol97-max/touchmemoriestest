@@ -52,7 +52,7 @@ const COLLAGES: CollageLayout[] = [
 
 interface MarkedDate { day:number; shape:'circle'|'heart'; color:string; }
 
-// ── Cover config ───────────────────────────────────────────────────────────────
+//  Cover config 
 interface CoverConfig {
   bgColor: string;
   bgPhoto: string|null;
@@ -152,7 +152,7 @@ function drawHeart(ctx:CanvasRenderingContext2D,cx:number,cy:number,r:number){ct
 interface DrawSlotOpts { url:string|null; zoom?:number; cropX?:number; cropY?:number; }
 function drawSlot(ctx:CanvasRenderingContext2D,sl:{x:number;y:number;w:number;h:number},p:DrawSlotOpts|null){
   const photo=p?.url||null;
-  if(!photo){ctx.save();ctx.fillStyle='rgba(200,210,255,0.18)';rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.fill();ctx.strokeStyle='rgba(100,130,220,0.25)';ctx.setLineDash([5,4]);ctx.lineWidth=0.8;rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(100,130,220,0.3)';ctx.font=`${Math.round(sl.h*0.25)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('📷',sl.x+sl.w/2,sl.y+sl.h/2);ctx.restore();return;}
+  if(!photo){ctx.save();ctx.fillStyle='rgba(200,210,255,0.18)';rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.fill();ctx.strokeStyle='rgba(100,130,220,0.25)';ctx.setLineDash([5,4]);ctx.lineWidth=0.8;rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(100,130,220,0.3)';ctx.font=`${Math.round(sl.h*0.25)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('',sl.x+sl.w/2,sl.y+sl.h/2);ctx.restore();return;}
   const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{
     ctx.save();rr(ctx,sl.x,sl.y,sl.w,sl.h,4);ctx.clip();
     const zoom=p?.zoom||1;const cx=(p?.cropX??50)/100;const cy=(p?.cropY??50)/100;
@@ -245,7 +245,7 @@ export default function DeskCalendarConstructor(){
   const collage=COLLAGES.find(c=>c.id===collageId)||COLLAGES[0];
   const curPhotos=monthPhotos[active-1];
   const curMarks=marks[`m${active}`]||[];
-  const LANGS=[{code:'uk'as LangCode,flag:'🇺🇦',label:'Укр'},{code:'en'as LangCode,flag:'🇬🇧',label:'Eng'},{code:'de'as LangCode,flag:'🇩🇪',label:'Deu'},{code:'pl'as LangCode,flag:'🇵🇱',label:'Pol'},{code:'ro'as LangCode,flag:'🇷🇴',label:'Rom'}];
+  const LANGS=[{code:'uk'as LangCode,flag:'',label:'Укр'},{code:'en'as LangCode,flag:'',label:'Eng'},{code:'de'as LangCode,flag:'',label:'Deu'},{code:'pl'as LangCode,flag:'',label:'Pol'},{code:'ro'as LangCode,flag:'',label:'Rom'}];
   return(
     <div style={{display:'flex',minHeight:'80vh',fontFamily:'var(--font-primary,sans-serif)'}}>
       {/* LEFT */}
@@ -271,7 +271,7 @@ export default function DeskCalendarConstructor(){
                   <div style={{fontSize:12,fontWeight:700,color:design.id===d.id?'#1e2d7d':'#374151'}}>{d.name}</div>
                   <div style={{fontSize:9,color:'#94a3b8',fontFamily:d.font}}>{d.font}</div>
                 </div>
-                {design.id===d.id&&<span style={{marginLeft:'auto',color:'#1e2d7d',fontSize:14}}>✓</span>}
+                {design.id===d.id&&<span style={{marginLeft:'auto',color:'#1e2d7d',fontSize:14}}></span>}
               </button>
             ))}
           </div>
@@ -305,7 +305,7 @@ export default function DeskCalendarConstructor(){
             </div>
           </div>
 
-          {/* ── COVER EDITOR ── */}
+          {/*  COVER EDITOR  */}
           {showCover && (
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
               <div style={{fontSize:12,fontWeight:800,color:'#7c3aed'}}>{t('deskcal.cover_editor_title')}</div>
@@ -390,7 +390,7 @@ export default function DeskCalendarConstructor(){
             </div>
           )}
 
-          {/* ── MONTH EDITOR ── */}
+          {/*  MONTH EDITOR  */}
           <>
           <div>
             <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>Фото — {loc.months[active-1]}</label>
@@ -406,7 +406,7 @@ export default function DeskCalendarConstructor(){
                       <img src={ph} style={{width:'100%',height:52,objectFit:'cover',borderRadius:6,border:isCropActive?'2px solid #3b82f6':'1.5px solid #c7d2fe'}}/>
                       <button onClick={()=>setActiveCropSlot(isCropActive?null:{month:active-1,slot:si})}
                         style={{position:'absolute',bottom:3,left:3,padding:'1px 5px',borderRadius:4,background:isCropActive?'#3b82f6':'rgba(0,0,0,0.6)',color:'#fff',border:'none',cursor:'pointer',fontSize:8,fontWeight:700}}>
-                        ✂ {isCropActive?'Готово':'Кадр'}
+                         {isCropActive?'Готово':'Кадр'}
                       </button>
                       <button onClick={()=>removeP(active-1,si)} style={{position:'absolute',top:2,right:2,width:15,height:15,borderRadius:'50%',background:'rgba(0,0,0,0.6)',color:'#fff',border:'none',cursor:'pointer',fontSize:9,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
                     </div>
@@ -451,7 +451,7 @@ export default function DeskCalendarConstructor(){
           <div>
             <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>Виділені дні — {loc.months[active-1]}</label>
             <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
-              <button onClick={()=>setMarkShape('circle')} style={{padding:'3px 7px',border:markShape==='circle'?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:12,background:markShape==='circle'?'#f0f3ff':'#fff',color:markShape==='circle'?'#1e2d7d':'#374151',fontSize:10,fontWeight:700,cursor:'pointer'}}>⬤ Коло</button>
+              <button onClick={()=>setMarkShape('circle')} style={{padding:'3px 7px',border:markShape==='circle'?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:12,background:markShape==='circle'?'#f0f3ff':'#fff',color:markShape==='circle'?'#1e2d7d':'#374151',fontSize:10,fontWeight:700,cursor:'pointer'}}> Коло</button>
               <button onClick={()=>setMarkShape('heart')} style={{padding:'3px 7px',border:markShape==='heart'?'2px solid #e11d48':'1px solid #e2e8f0',borderRadius:12,background:markShape==='heart'?'#fff1f2':'#fff',color:markShape==='heart'?'#e11d48':'#374151',fontSize:10,fontWeight:700,cursor:'pointer'}}>{t('deskcal.heart_mark')}</button>
               {['#1e2d7d','#e11d48','#16a34a','#c8a96e','#7c3aed','#ea580c','#000'].map(c=><button key={c} onClick={()=>setMarkColor(c)} style={{width:18,height:18,borderRadius:'50%',background:c,border:markColor===c?'3px solid #1e2d7d':'2px solid #fff',cursor:'pointer',boxShadow:'0 0 0 1px #e2e8f0',flexShrink:0}}/>)}
               <input type="color" value={markColor} onChange={e=>setMarkColor(e.target.value)} style={{width:22,height:22,border:'1px solid #e2e8f0',borderRadius:5,cursor:'pointer',padding:1}}/>
@@ -460,7 +460,7 @@ export default function DeskCalendarConstructor(){
               const {startOffset,daysInMonth}=getMonthDays(year,active);
               const cells:React.ReactNode[]=[];
               for(let i=0;i<startOffset;i++)cells.push(<div key={`e${i}`}/>);
-              for(let d=1;d<=daysInMonth;d++){const mark=curMarks.find(m=>m.day===d);cells.push(<button key={d} onClick={()=>toggleMark(d)} style={{aspectRatio:'1',borderRadius:mark?.shape==='heart'?3:'50%',border:mark?'none':'1px solid #e2e8f0',background:mark?mark.color:'#fff',color:mark?'#fff':'#374151',fontSize:8,fontWeight:mark?700:400,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>{mark?.shape==='heart'&&<span style={{fontSize:10,lineHeight:1,position:'absolute'}}>♥</span>}<span style={{position:mark?.shape==='heart'?'absolute':'static',fontSize:7,fontWeight:700}}>{d}</span></button>);}
+              for(let d=1;d<=daysInMonth;d++){const mark=curMarks.find(m=>m.day===d);cells.push(<button key={d} onClick={()=>toggleMark(d)} style={{aspectRatio:'1',borderRadius:mark?.shape==='heart'?3:'50%',border:mark?'none':'1px solid #e2e8f0',background:mark?mark.color:'#fff',color:mark?'#fff':'#374151',fontSize:8,fontWeight:mark?700:400,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>{mark?.shape==='heart'&&<span style={{fontSize:10,lineHeight:1,position:'absolute'}}></span>}<span style={{position:mark?.shape==='heart'?'absolute':'static',fontSize:7,fontWeight:700}}>{d}</span></button>);}
               return(<div><div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2,marginBottom:2}}>{loc.days.map(d=><div key={d} style={{fontSize:7,fontWeight:700,color:'#94a3b8',textAlign:'center'}}>{d}</div>)}</div><div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2}}>{cells}</div></div>);
             })()}
             {curMarks.length>0&&<button onClick={()=>setMarks(prev=>({...prev,[`m${active}`]:[]}))} style={{marginTop:5,fontSize:9,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>{t('deskcal.clear_marks')}</button>}
@@ -471,7 +471,7 @@ export default function DeskCalendarConstructor(){
           <div>
             <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>{t('deskcal.pages_label')}</label>
             <button onClick={()=>setShowCover(true)} style={{width:'100%',padding:'6px',border:showCover?'2px solid #7c3aed':'1px solid #e2e8f0',borderRadius:7,background:showCover?'#faf5ff':'#fff',color:showCover?'#7c3aed':'#374151',fontWeight:700,fontSize:11,cursor:'pointer',marginBottom:6}}>
-              🎨 Обкладинка
+               Обкладинка
             </button>
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:3}}>
               {Array.from({length:12},(_,i)=>{const m=i+1;const hp=monthPhotos[i].some(p=>p!==null);return(<button key={m} onClick={()=>{setActive(m);}} style={{padding:'5px 2px',border:active===m?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:5,background:active===m?'#f0f3ff':'#fff',fontSize:9,fontWeight:600,color:active===m?'#1e2d7d':'#374151',cursor:'pointer',position:'relative'}}>{loc.months[i].slice(0,3)}{hp&&<span style={{position:'absolute',top:1,right:1,width:4,height:4,borderRadius:'50%',background:'#10b981'}}/>}</button>);})}

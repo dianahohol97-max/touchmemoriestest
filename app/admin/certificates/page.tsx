@@ -344,7 +344,7 @@ export default function CertificatesAdminPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-sm text-stone-600">
-                          {cert.certificate_type === 'money' ? '💵 Грошовий' : '🎁 Продукт'}
+                          {cert.certificate_type === 'money' ? ' Грошовий' : ' Продукт'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -362,7 +362,7 @@ export default function CertificatesAdminPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-sm text-stone-600">
-                          {cert.format === 'electronic' ? '📧 Email' : '📦 Друк'}
+                          {cert.format === 'electronic' ? ' Email' : ' Друк'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -693,7 +693,7 @@ export default function CertificatesAdminPage() {
                   onChange={e => setNewCert(p => ({...p, sendEmail: e.target.checked}))}
                   style={{ width: '16px', height: '16px', accentColor: '#1e2d7d' }} />
                 <label htmlFor="sendEmailCheck" style={{ fontSize: '14px', fontWeight: 600, color: '#1e40af', cursor: 'pointer' }}>
-                  ✉ Відправити сертифікат на email після створення
+                   Відправити сертифікат на email після створення
                 </label>
               </div>
             )}
@@ -701,7 +701,7 @@ export default function CertificatesAdminPage() {
               <button onClick={() => setShowCreateModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50">Скасувати</button>
               <button onClick={handleCreateCert} disabled={savingCert}
                 className="flex-1 px-4 py-2 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] disabled:opacity-50">
-                {savingCert ? 'Збереження...' : (newCert.sendEmail ? '✉ Створити та відправити' : 'Створити')}
+                {savingCert ? 'Збереження...' : (newCert.sendEmail ? ' Створити та відправити' : 'Створити')}
               </button>
             </div>
           </div>

@@ -90,7 +90,7 @@ export default function MonogramPreview({ config }: MonogramPreviewProps) {
             ctx.globalAlpha = 0.5;
             const drawStar = (x: number, y: number, size: number) => {
                 ctx.font = `${size}px serif`;
-                ctx.fillText('★', x, y);
+                ctx.fillText('', x, y);
             };
             drawStar(80, 150, 32);
             drawStar(canvas.width - 100, 200, 28);

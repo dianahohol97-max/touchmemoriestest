@@ -23,12 +23,12 @@ export default function WelcomeEmail({
     promoCode = 'WELCOME10',
     appUrl = 'https://touchmemories.ua'
 }: WelcomeEmailProps) {
-    const greeting = firstName ? `Привіт, ${firstName}! 👋` : 'Привіт! 👋';
+    const greeting = firstName ? `Привіт, ${firstName}! ` : 'Привіт! ';
 
     return (
         <Html>
             <Head />
-            <Preview>Раді вітати вас в TouchMemories! Ваш подарунок всередині 🎁</Preview>
+            <Preview>Раді вітати вас в TouchMemories! Ваш подарунок всередині </Preview>
             <Tailwind>
                 <Body className="bg-[#fffbeb] font-sans text-[#263A99] m-0 p-0">
                     <Container className="bg-white mx-auto my-[40px] max-w-[600px] overflow-hidden shadow-sm border border-[#fef3c7]">
@@ -74,15 +74,15 @@ export default function WelcomeEmail({
                                 </Text>
 
                                 <div className="mb-[16px]">
-                                    <Text className="m-0 font-bold text-[#263A99]">1. Оберіть формат 📏</Text>
+                                    <Text className="m-0 font-bold text-[#263A99]">1. Оберіть формат </Text>
                                     <Text className="m-0 text-[#64748b] text-[14px]">Від компактного insta-формату до великих сімейних альбомів.</Text>
                                 </div>
                                 <div className="mb-[16px]">
-                                    <Text className="m-0 font-bold text-[#263A99]">2. Завантажте фото 📸</Text>
+                                    <Text className="m-0 font-bold text-[#263A99]">2. Завантажте фото </Text>
                                     <Text className="m-0 text-[#64748b] text-[14px]">Використовуйте наш зручний онлайн-конструктор прямо в браузері.</Text>
                                 </div>
                                 <div>
-                                    <Text className="m-0 font-bold text-[#263A99]">3. Отримайте шедевр 🚚</Text>
+                                    <Text className="m-0 font-bold text-[#263A99]">3. Отримайте шедевр </Text>
                                     <Text className="m-0 text-[#64748b] text-[14px]">Ми надрукуємо і відправимо вашу книгу в подарунковій упаковці.</Text>
                                 </div>
                             </Section>

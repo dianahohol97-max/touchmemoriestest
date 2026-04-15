@@ -216,14 +216,14 @@ export function getStyleDetails(style: string) {
  */
 export function getOccasionDetails(occasion: string) {
   const occasions = {
-    wedding: { name: 'Весілля', icon: '💒', emoji: '💍' },
-    birthday: { name: 'День народження', icon: '🎂', emoji: '🎉' },
-    travel: { name: 'Подорож', icon: '✈️', emoji: '🌍' },
-    family: { name: 'Сімейний альбом', icon: '👨‍👩‍👧‍👦', emoji: '❤️' },
-    baby: { name: 'Дитяча', icon: '👶', emoji: '🍼' },
-    graduation: { name: 'Випускний', icon: '🎓', emoji: '📚' },
-    corporate: { name: 'Корпоратив', icon: '🏢', emoji: '💼' },
-    other: { name: 'Інше', icon: '📖', emoji: '✨' },
+    wedding: { name: 'Весілля', icon: '', emoji: '' },
+    birthday: { name: 'День народження', icon: '', emoji: '' },
+    travel: { name: 'Подорож', icon: '', emoji: '' },
+    family: { name: 'Сімейний альбом', icon: '', emoji: '' },
+    baby: { name: 'Дитяча', icon: '', emoji: '' },
+    graduation: { name: 'Випускний', icon: '', emoji: '' },
+    corporate: { name: 'Корпоратив', icon: '', emoji: '' },
+    other: { name: 'Інше', icon: '', emoji: '' },
   };
 
   return occasions[occasion as keyof typeof occasions] || occasions.other;

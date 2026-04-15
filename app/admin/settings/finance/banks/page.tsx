@@ -275,8 +275,8 @@ export default function BankAccountsPage() {
                                         value={formData.region}
                                         onChange={e => setFormData({ ...formData, region: e.target.value })}
                                     >
-                                        <option value="ua">🇺🇦 Україна</option>
-                                        <option value="international">🌍 Міжнародний</option>
+                                        <option value="ua"> Україна</option>
+                                        <option value="international"> Міжнародний</option>
                                     </select>
                                 </div>
                             </div>

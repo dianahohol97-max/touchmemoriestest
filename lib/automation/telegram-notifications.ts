@@ -83,10 +83,10 @@ export async function notifyDesignerNewOrder(params: {
   deadline: string;
   isExpress: boolean;
 }): Promise<{ success: boolean; error?: string }> {
-  const expressTag = params.isExpress ? '⚡ *ЕКСПРЕС* ' : '';
+  const expressTag = params.isExpress ? ' *ЕКСПРЕС* ' : '';
 
   const message = `
-${expressTag}🎨 *Нове замовлення призначено вам!*
+${expressTag} *Нове замовлення призначено вам!*
 
 *Замовлення:* #${params.orderNumber}
 *Клієнт:* ${params.customerName}
@@ -96,7 +96,7 @@ ${expressTag}🎨 *Нове замовлення призначено вам!*
 
 Деталі: [Переглянути замовлення](https://touchmemories.com/admin/orders/${params.orderId})
 
-Успішної роботи! 💙
+Успішної роботи! 
   `.trim();
 
   return sendTelegramMessage({
@@ -116,7 +116,7 @@ export async function notifyDesignerDeadlineApproaching(params: {
   deadline: string;
   daysRemaining: number;
 }): Promise<{ success: boolean; error?: string }> {
-  const urgencyEmoji = params.daysRemaining <= 1 ? '🔥🔥🔥' : '⚠️';
+  const urgencyEmoji = params.daysRemaining <= 1 ? '' : '';
 
   const message = `
 ${urgencyEmoji} *Наближається дедлайн!*
@@ -146,7 +146,7 @@ export async function notifyDesignerOverdue(params: {
   daysOverdue: number;
 }): Promise<{ success: boolean; error?: string }> {
   const message = `
-🚨 *ПРОСТРОЧЕНО!*
+ *ПРОСТРОЧЕНО!*
 
 *Замовлення:* #${params.orderNumber}
 *Дедлайн був:* ${params.deadline}
@@ -176,16 +176,16 @@ export async function sendDesignerDailyDigest(params: {
   thisWeekDeadlines: number;
 }): Promise<{ success: boolean; error?: string }> {
   const message = `
-☀️ *Доброго ранку, ${params.designerName}!*
+ *Доброго ранку, ${params.designerName}!*
 
-📊 Ваша робоча панель на сьогодні:
+ Ваша робоча панель на сьогодні:
 
 • Активних замовлень: *${params.activeOrders}*
 • Всього сторінок: *${params.totalPages}*
 • Дедлайн сьогодні: *${params.todayDeadlines}*
 • Дедлайн цього тижня: *${params.thisWeekDeadlines}*
 
-Продуктивного дня! 💪
+Продуктивного дня! 
   `.trim();
 
   return sendTelegramMessage({

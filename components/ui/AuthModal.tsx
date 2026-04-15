@@ -123,7 +123,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, message }: AuthModalProp
                 {/* Context message */}
                 {message && (
                     <div style={{ background: '#eff3ff', border: '1px solid #c7d2fe', borderRadius: 10, padding: '12px 14px', marginBottom: 20, fontSize: 13, color: '#263a99', fontWeight: 600, lineHeight: 1.5 }}>
-                        🔒 {message}
+                         {message}
                     </div>
                 )}
 
@@ -234,7 +234,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, message }: AuthModalProp
     );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+//  Helpers 
 
 function InputField({ label, type, value, onChange, placeholder, icon, suffix, required }: {
     label: string; type: string; value: string; onChange: (v: string) => void;

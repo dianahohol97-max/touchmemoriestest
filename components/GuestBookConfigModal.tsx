@@ -225,7 +225,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }:
                         <span className="text-xs text-gray-600 text-center leading-tight max-w-[52px]">{color.name}</span>
                         {isSelected && (
                           <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#1e2d7d] rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs">✓</span>
+                            <span className="text-white text-xs"></span>
                           </div>
                         )}
                       </button>
@@ -316,7 +316,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }:
                         <span className="text-xs text-gray-600">{color.name}</span>
                         {isSelected && (
                           <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#1e2d7d] rounded-full flex items-center justify-center">
-                            <span className="text-white text-[10px]">✓</span>
+                            <span className="text-white text-[10px]"></span>
                           </div>
                         )}
                       </button>
@@ -343,9 +343,9 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }:
                 <div className="bg-[#f0f3ff] rounded-xl p-4 border border-[#c7d2fe]">
                   <p className="text-xs font-semibold text-[#1e2d7d] mb-2">Обрано на сторінці товару:</p>
                   <div className="space-y-1">
-                    {prefilledFields.has('size') && <p className="text-sm text-gray-700">📐 Розмір: <b>{config.size}</b></p>}
-                    {prefilledFields.has('pageColor') && <p className="text-sm text-gray-700">📄 Колір сторінок: <b>{config.pageColor}</b></p>}
-                    {prefilledFields.has('coverType') && <p className="text-sm text-gray-700">📚 Вид обкладинки: <b>{config.coverType}</b></p>}
+                    {prefilledFields.has('size') && <p className="text-sm text-gray-700"> Розмір: <b>{config.size}</b></p>}
+                    {prefilledFields.has('pageColor') && <p className="text-sm text-gray-700"> Колір сторінок: <b>{config.pageColor}</b></p>}
+                    {prefilledFields.has('coverType') && <p className="text-sm text-gray-700"> Вид обкладинки: <b>{config.coverType}</b></p>}
                   </div>
                 </div>
               )}

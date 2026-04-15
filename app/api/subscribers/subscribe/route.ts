@@ -89,13 +89,13 @@ export async function POST(request: Request) {
 
             await sendEmail({
                 to: email,
-                subject: 'Раді вітати вас в TouchMemories! Ваш подарунок всередині 🎁',
+                subject: 'Раді вітати вас в TouchMemories! Ваш подарунок всередині ',
                 html: htmlMessage,
                 unsubscribeToken: subData?.unsubscribe_token
             });
         }
 
-        return NextResponse.json({ success: true, message: 'Дякуємо! Промокод надіслано на вашу пошту 💛' });
+        return NextResponse.json({ success: true, message: 'Дякуємо! Промокод надіслано на вашу пошту ' });
 
     } catch (err: any) {
         console.error('Subscribe Error:', err);

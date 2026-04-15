@@ -10,7 +10,7 @@ const DPI = 300
 const SCREEN_DPI = 96
 export const SCALE = DPI / SCREEN_DPI // 3.125
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+//  Types 
 
 export interface OrderFileRecord {
   order_id: string
@@ -26,7 +26,7 @@ export interface OrderFileRecord {
 
 export type ProgressCallback = (current: number, total: number, label?: string) => void
 
-// ─── Canvas Export ─────────────────────────────────────────────────────────────
+//  Canvas Export 
 
 /**
  * Exports a canvas element at 300 DPI by scaling it up 3.125×.
@@ -79,7 +79,7 @@ export function mmToPixels300dpi(mm: number): number {
   return Math.round((mm / 25.4) * DPI)
 }
 
-// ─── Supabase Storage Upload ───────────────────────────────────────────────────
+//  Supabase Storage Upload 
 
 /**
  * Uploads a Blob to Supabase Storage.
@@ -103,7 +103,7 @@ export async function uploadOrderFile(
   return { url: data.publicUrl, size: blob.size }
 }
 
-// ─── DB Record Creation ────────────────────────────────────────────────────────
+//  DB Record Creation 
 
 /**
  * Inserts a record into the order_files table.
@@ -124,7 +124,7 @@ export async function createOrderFileRecords(records: OrderFileRecord[]): Promis
   if (error) throw new Error(`order_files bulk insert failed: ${error.message}`)
 }
 
-// ─── High-Level Helpers ────────────────────────────────────────────────────────
+//  High-Level Helpers 
 
 /**
  * Export a single canvas and upload it, reporting progress.

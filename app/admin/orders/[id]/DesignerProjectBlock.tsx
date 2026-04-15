@@ -136,10 +136,10 @@ export default function DesignerProjectBlock({ order }: Props) {
           <div style={{ background: '#f8fafc', borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 13 }}>
             <div style={{ fontWeight: 700, color: '#1e2d7d', marginBottom: 4 }}>{project.title}</div>
             <div style={{ color: '#64748b', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {project.format && <span>📐 {project.format}</span>}
-              {project.cover_type && <span>📖 {project.cover_type}</span>}
-              {project.page_count > 0 && <span>📄 {project.page_count} стор.</span>}
-              <span>🕐 {new Date(project.updated_at).toLocaleDateString('uk-UA')}</span>
+              {project.format && <span> {project.format}</span>}
+              {project.cover_type && <span> {project.cover_type}</span>}
+              {project.page_count > 0 && <span> {project.page_count} стор.</span>}
+              <span> {new Date(project.updated_at).toLocaleDateString('uk-UA')}</span>
             </div>
           </div>
 
@@ -151,7 +151,7 @@ export default function DesignerProjectBlock({ order }: Props) {
           {/* Revision notes */}
           {project.revision_notes && (
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13 }}>
-              <div style={{ fontWeight: 700, color: '#92400e', marginBottom: 4 }}>💬 Правки від клієнта:</div>
+              <div style={{ fontWeight: 700, color: '#92400e', marginBottom: 4 }}> Правки від клієнта:</div>
               <div style={{ color: '#92400e' }}>{project.revision_notes}</div>
             </div>
           )}

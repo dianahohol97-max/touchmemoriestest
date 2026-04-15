@@ -199,7 +199,7 @@ export default function CreateOrderPage() {
                                     style={{ ...selectStyle, width: '100px', flexShrink: 0 }}
                                     disabled
                                 >
-                                    <option>🇺🇦 +380</option>
+                                    <option> +380</option>
                                 </select>
                                 <input
                                     required
@@ -319,7 +319,7 @@ export default function CreateOrderPage() {
                                                         if (catProducts.length === 0) return null;
                                                         return (
                                                             <div key={cat.id}>
-                                                                <div style={categoryHeaderStyle}>── {cat.name} ──</div>
+                                                                <div style={categoryHeaderStyle}> {cat.name} </div>
                                                                 {catProducts.map(p => (
                                                                     <div
                                                                         key={p.id}
@@ -493,7 +493,7 @@ export default function CreateOrderPage() {
                         </div>
                     </div>
 
-                {/* ── Payment Section ──────────────────────────────────────────── */}
+                {/*  Payment Section  */}
                 <div style={cardStyle}>
                     <h2 style={cardTitleStyle}>Оплата</h2>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -506,9 +506,9 @@ export default function CreateOrderPage() {
                                 style={inputStyle}
                             >
                                 <option value="pending">⏳ Очікує оплати</option>
-                                <option value="partial">🔶 Часткова оплата</option>
-                                <option value="paid">✅ Оплачено повністю</option>
-                                <option value="refunded">↩️ Повернення</option>
+                                <option value="partial"> Часткова оплата</option>
+                                <option value="paid"> Оплачено повністю</option>
+                                <option value="refunded">↩ Повернення</option>
                             </select>
                         </div>
 
@@ -559,9 +559,9 @@ export default function CreateOrderPage() {
                     {/* Summary hint */}
                     {paymentStatus !== 'pending' && (
                         <div style={{ marginTop: 16, padding: '10px 16px', background: paymentStatus === 'paid' ? '#f0fdf4' : '#fffbeb', borderRadius: 4, border: `1px solid ${paymentStatus === 'paid' ? '#bbf7d0' : '#fde68a'}`, fontSize: 13, color: paymentStatus === 'paid' ? '#166534' : '#92400e', display: 'flex', alignItems: 'center', gap: 8 }}>
-                            {paymentStatus === 'paid' && `✅ Замовлення буде позначено як повністю оплачене на суму ${total} ₴`}
-                            {paymentStatus === 'partial' && `🔶 Часткова оплата: ${paidAmount} ₴ з ${total} ₴. Залишок: ${total - paidAmount} ₴`}
-                            {paymentStatus === 'refunded' && '↩️ Замовлення буде позначено як повернення'}
+                            {paymentStatus === 'paid' && ` Замовлення буде позначено як повністю оплачене на суму ${total} ₴`}
+                            {paymentStatus === 'partial' && ` Часткова оплата: ${paidAmount} ₴ з ${total} ₴. Залишок: ${total - paidAmount} ₴`}
+                            {paymentStatus === 'refunded' && '↩ Замовлення буде позначено як повернення'}
                         </div>
                     )}
                 </div>

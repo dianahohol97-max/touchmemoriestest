@@ -1,4 +1,4 @@
-// ── Book Editor Types ────────────────────────────────────────────────────────
+//  Book Editor Types 
 
 export interface PhotoData {
   id: string;

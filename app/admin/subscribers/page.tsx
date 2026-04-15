@@ -19,12 +19,12 @@ interface Campaign {
 }
 
 const TEMPLATES = [
-    { id: 't1', name: '🎁 Акція / знижка', subject: '🎁 Спеціальна пропозиція від Touch.Memories',
-      body: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a"><h2 style="color:#1e2d7d">Привіт! 👋</h2><p>У нас для тебе особлива пропозиція:</p><div style="background:#f0f3ff;border-left:4px solid #1e2d7d;padding:16px;border-radius:8px;margin:16px 0"><strong>🔥 Знижка 20% на всі фотокниги до кінця тижня!</strong></div><p>Скористайся промокодом: <strong style="color:#1e2d7d">MEMORIES20</strong></p><a href="https://touchmemories1.vercel.app/catalog" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1e2d7d;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Перейти до каталогу →</a></div>` },
-    { id: 't2', name: '📸 Новий продукт', subject: '✨ Новинка в Touch.Memories!',
-      body: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a"><h2 style="color:#1e2d7d">Новинка вже тут! ✨</h2><p>Ми додали новий продукт, який тебе точно здивує.</p><p><strong>[Назва продукту]</strong> — [короткий опис]</p><a href="https://touchmemories1.vercel.app/catalog" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1e2d7d;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Дізнатись більше →</a></div>` },
-    { id: 't3', name: '💌 Просто привітання', subject: '💌 Touch.Memories вітає тебе!',
-      body: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a"><h2 style="color:#1e2d7d">Привіт від Touch.Memories! 💙</h2><p>Дякуємо, що ти з нами. Ми постійно вдосконалюємо наш сервіс і раді бачити тебе серед наших підписників.</p><p>Якщо маєш питання або побажання — просто відповідай на цей лист 🙂</p></div>` },
+    { id: 't1', name: ' Акція / знижка', subject: ' Спеціальна пропозиція від Touch.Memories',
+      body: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a"><h2 style="color:#1e2d7d">Привіт! </h2><p>У нас для тебе особлива пропозиція:</p><div style="background:#f0f3ff;border-left:4px solid #1e2d7d;padding:16px;border-radius:8px;margin:16px 0"><strong> Знижка 20% на всі фотокниги до кінця тижня!</strong></div><p>Скористайся промокодом: <strong style="color:#1e2d7d">MEMORIES20</strong></p><a href="https://touchmemories1.vercel.app/catalog" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1e2d7d;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Перейти до каталогу →</a></div>` },
+    { id: 't2', name: ' Новий продукт', subject: ' Новинка в Touch.Memories!',
+      body: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a"><h2 style="color:#1e2d7d">Новинка вже тут! </h2><p>Ми додали новий продукт, який тебе точно здивує.</p><p><strong>[Назва продукту]</strong> — [короткий опис]</p><a href="https://touchmemories1.vercel.app/catalog" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1e2d7d;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Дізнатись більше →</a></div>` },
+    { id: 't3', name: ' Просто привітання', subject: ' Touch.Memories вітає тебе!',
+      body: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a"><h2 style="color:#1e2d7d">Привіт від Touch.Memories! </h2><p>Дякуємо, що ти з нами. Ми постійно вдосконалюємо наш сервіс і раді бачити тебе серед наших підписників.</p><p>Якщо маєш питання або побажання — просто відповідай на цей лист </p></div>` },
 ];
 
 const statusColor = (s: string) => s === 'sent' ? '#16a34a' : s === 'sending' ? '#d97706' : s === 'failed' ? '#dc2626' : '#6b7280';
@@ -90,7 +90,7 @@ export default function SubscribersPage() {
             });
             const json = await res.json();
             if (!res.ok) { toast.error(json.error || 'Помилка'); return; }
-            toast.success(`✅ Надіслано ${json.sent} з ${json.total}${json.failed > 0 ? `, помилок: ${json.failed}` : ''}`);
+            toast.success(` Надіслано ${json.sent} з ${json.total}${json.failed > 0 ? `, помилок: ${json.failed}` : ''}`);
             setSubject(''); setBodyHtml('');
             setActiveTab('history'); fetchCampaigns();
         } catch (e: any) { toast.error(e.message); }
@@ -318,8 +318,8 @@ export default function SubscribersPage() {
                                     </div>
                                     {(c.sent_count>0||c.failed_count>0)&&(
                                         <div style={{ display:'flex', gap:10, marginTop:7 }}>
-                                            <span style={{ fontSize:11, color:'#16a34a', fontWeight:600 }}>✓ {c.sent_count}</span>
-                                            {c.failed_count>0&&<span style={{ fontSize:11, color:'#dc2626', fontWeight:600 }}>✗ {c.failed_count}</span>}
+                                            <span style={{ fontSize:11, color:'#16a34a', fontWeight:600 }}> {c.sent_count}</span>
+                                            {c.failed_count>0&&<span style={{ fontSize:11, color:'#dc2626', fontWeight:600 }}> {c.failed_count}</span>}
                                             <span style={{ fontSize:11, color:'#9ca3af' }}>з {c.recipients_count}</span>
                                         </div>
                                     )}

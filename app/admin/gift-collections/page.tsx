@@ -255,7 +255,7 @@ export default function GiftCollectionsAdminPage() {
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3 flex-1">
-                                            <span className="text-2xl">{collection.emoji || '🎁'}</span>
+                                            <span className="text-2xl">{collection.emoji || ''}</span>
                                             <div className="flex-1">
                                                 <div className="font-bold text-stone-900">
                                                     {collection.label_uk}
@@ -474,7 +474,7 @@ export default function GiftCollectionsAdminPage() {
                                             </div>
                                             {isSelected && (
                                                 <div className="w-6 h-6 bg-[#263a99] text-white rounded-full flex items-center justify-center flex-shrink-0">
-                                                    ✓
+                                                    
                                                 </div>
                                             )}
                                         </div>

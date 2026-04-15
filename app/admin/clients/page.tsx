@@ -72,13 +72,13 @@ const getLoyaltyDiscount = (tier: string): number => {
 const getLoyaltyBadge = (tier: string): { emoji: string; color: string; bgColor: string } => {
     switch (tier) {
         case 'Преміум':
-            return { emoji: '💎', color: '#7c3aed', bgColor: '#f3e8ff' };
+            return { emoji: '', color: '#7c3aed', bgColor: '#f3e8ff' };
         case 'VIP':
-            return { emoji: '🥇', color: '#f59e0b', bgColor: '#fef3c7' };
+            return { emoji: '', color: '#f59e0b', bgColor: '#fef3c7' };
         case 'Постійний':
-            return { emoji: '🥈', color: '#6366f1', bgColor: '#e0e7ff' };
+            return { emoji: '', color: '#6366f1', bgColor: '#e0e7ff' };
         default:
-            return { emoji: '🥉', color: '#94a3b8', bgColor: '#f1f5f9' };
+            return { emoji: '', color: '#94a3b8', bgColor: '#f1f5f9' };
     }
 };
 
@@ -344,7 +344,7 @@ export default function ClientsPage() {
                     .replace(/{payment_link}/g, '');
             } else {
                 // Fallback message
-                message = `${customer.name}, вітаємо з Днем народження! 🎉 Даруємо знижку 15% на всі товари. Код: BIRTHDAY15. TouchMemories`;
+                message = `${customer.name}, вітаємо з Днем народження!  Даруємо знижку 15% на всі товари. Код: BIRTHDAY15. TouchMemories`;
             }
 
             // TODO: Implement actual SMS sending via TurboSMS
@@ -526,7 +526,7 @@ export default function ClientsPage() {
                                                             }}
                                                             title="День народження скоро!"
                                                         >
-                                                            🎂
+                                                            
                                                         </span>
                                                     )}
                                                     {(() => {

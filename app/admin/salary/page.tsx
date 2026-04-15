@@ -106,7 +106,7 @@ export default function SalaryPage() {
             {/* Header Area */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: 950, letterSpacing: '-0.02em', marginBottom: '8px' }}>Розрахунок Зарплат 💸</h1>
+                    <h1 style={{ fontSize: '32px', fontWeight: 950, letterSpacing: '-0.02em', marginBottom: '8px' }}>Розрахунок Зарплат </h1>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '15px' }}>
                         <Clock size={16} />
                         <span>Керування виплатами та бонусами команди</span>

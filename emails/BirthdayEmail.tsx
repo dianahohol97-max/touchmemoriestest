@@ -31,7 +31,7 @@ export default function BirthdayEmail({
     return (
         <Html>
             <Head />
-            <Preview>З Днем Народження! Ваш особливий подарунок всередині 🎂</Preview>
+            <Preview>З Днем Народження! Ваш особливий подарунок всередині </Preview>
             <Tailwind>
                 <Body className="bg-[#f6f9fc] font-sans text-[#263A99] m-0 p-0">
                     <Container className="bg-white mx-auto my-[40px] max-w-[600px] rounded-[3px] overflow-hidden shadow-sm border border-[#e2e8f0]">
@@ -39,7 +39,7 @@ export default function BirthdayEmail({
                         {/* Header Banner - Purple / Pink Gradient */}
                         <Section className="bg-gradient-to-r from-[#9333ea] to-[#ec4899] py-[40px] text-center">
                             <Text className="text-white text-[32px] font-bold m-0 tracking-tight">
-                                З Днем Народження! 🎂
+                                З Днем Народження! 
                             </Text>
                         </Section>
 
@@ -85,7 +85,7 @@ export default function BirthdayEmail({
 
                             <Text className="text-[15px] leading-[24px] text-[#64748b] mt-[40px] border-t border-[#f1f5f9] pt-[24px]">
                                 Теплі обійми,<br />
-                                Команда TouchMemories ✨
+                                Команда TouchMemories 
                             </Text>
                         </Section>
                     </Container>

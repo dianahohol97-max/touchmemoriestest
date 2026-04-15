@@ -53,7 +53,7 @@ export default function PrintProfilesPage() {
         <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Профілі друку 🖨️</h1>
+                    <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Профілі друку </h1>
                     <p style={{ color: '#64748b' }}>Налаштуйте технічні параметри для генерації файлів під різні типи продукції</p>
                 </div>
                 <button
@@ -117,7 +117,7 @@ export default function PrintProfilesPage() {
                                 </div>
                                 {profile.products && (
                                     <div style={{ fontSize: '12px', color: '#263A99', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        📦 {profile.products.name}
+                                         {profile.products.name}
                                     </div>
                                 )}
                             </div>

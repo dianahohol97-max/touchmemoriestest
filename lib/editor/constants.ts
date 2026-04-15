@@ -1,6 +1,6 @@
 import type { LayoutDef } from './types';
 
-// ── Layout definitions ───────────────────────────────────────────────────────
+//  Layout definitions 
 
 export const LAYOUTS: LayoutDef[] = [
   // 1 фото
@@ -52,7 +52,7 @@ export const LAYOUTS: LayoutDef[] = [
   { id: 'p-text-bottom',  label: 'Текст + фото знизу', slots: 1, group: 'Текст' },
 ];
 
-// ── Page proportions ─────────────────────────────────────────────────────────
+//  Page proportions 
 
 export const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
   '20x20': { w: 200, h: 200 }, '20×20': { w: 200, h: 200 },
@@ -66,7 +66,7 @@ export const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
   'travelbook': { w: 300, h: 200 },
 };
 
-// ── Color maps (single source of truth) ──────────────────────────────────────
+//  Color maps (single source of truth) 
 
 export const VELOUR_COLORS: Record<string, string> = {
   'Молочний':'#F0EAD6','Бежевий':'#D9C8B0','Таупе':'#A89880','Рожевий':'#E8B4B8',
@@ -91,7 +91,7 @@ export const FABRIC_COLORS: Record<string, string> = {
   'Сірий/графітовий':'#586058','Червоний яскравий':'#C02030','Оливковий/зелений':'#A0A020',
 };
 
-// ── Decoration variants ──────────────────────────────────────────────────────
+//  Decoration variants 
 
 export const ACRYLIC_VARIANTS: Record<string, string[]> = {
   '20x20':['100×100 мм','Ø145 мм'],
@@ -127,14 +127,14 @@ export const METAL_COLORS = [
   { label:'Срібний', value:'silver', color:'#C0C0C0' },
 ];
 
-// ── Text colors palette ──────────────────────────────────────────────────────
+//  Text colors palette 
 
 export const TEXT_COLORS = [
   '#1e2d7d','#000000','#ffffff','#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899',
   '#6b7280','#92400e','#065f46','#1e3a5f','#7c2d12','#4c1d95',
 ];
 
-// ── Font groups ──────────────────────────────────────────────────────────────
+//  Font groups 
 
 export const CYRILLIC_DECORATIVE_FONTS = [
   { label:'Marck Script', value:'Marck Script', style:'cursive' },
@@ -219,7 +219,7 @@ export const GOOGLE_FONTS_URL = (() => {
   return `https://fonts.googleapis.com/css2?${families}&subset=cyrillic,cyrillic-ext,latin&display=swap`;
 })();
 
-// ── Printed cover background presets ─────────────────────────────────────────
+//  Printed cover background presets 
 
 export const PRINTED_BG_PRESETS = [
   '#ffffff','#f1f5f9','#0a0e1a','#050a18','#1e2d7d','#263a99',

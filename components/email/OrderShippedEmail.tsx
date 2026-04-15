@@ -39,7 +39,7 @@ export const OrderShippedEmail = ({
     return (
         <Html>
             <Head />
-            <Preview>🚚 Ваше замовлення №{orderNumber} рушає до вас!</Preview>
+            <Preview> Ваше замовлення №{orderNumber} рушає до вас!</Preview>
             <Body style={main}>
                 <Container style={container}>
                     <Section style={header}>

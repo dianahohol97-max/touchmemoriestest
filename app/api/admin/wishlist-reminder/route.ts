@@ -62,10 +62,10 @@ export async function POST(req: Request) {
             const html = `
                 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
                     <img src="${siteUrl}/logo.png" alt="Touch.Memories" style="height:40px;margin-bottom:24px;" />
-                    <h2 style="color:#263A99;margin-bottom:8px;">Привіт, ${name}! 👋</h2>
+                    <h2 style="color:#263A99;margin-bottom:8px;">Привіт, ${name}! </h2>
                     <p style="color:#64748b;margin-bottom:24px;">
                         У вашому списку бажань є товари, які чекають на вас.
-                        Не забудьте оформити замовлення — ми вже готові до роботи! 🎨
+                        Не забудьте оформити замовлення — ми вже готові до роботи! 
                     </p>
                     <table style="width:100%;border-collapse:collapse;">
                         ${itemsHtml}
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     to: customer.email,
-                    subject: `${name}, у вашому вішлісті є незавершені бажання 💙`,
+                    subject: `${name}, у вашому вішлісті є незавершені бажання `,
                     html,
                 }),
             });

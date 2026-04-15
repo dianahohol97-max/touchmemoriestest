@@ -129,7 +129,7 @@ export default function PrintProfileForm({ profile, onClose, onSuccess }: PrintP
 
                     <div style={{ background: '#f8fafc', padding: '20px', borderRadius: "3px", border: '1px solid #e2e8f0' }}>
                         <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#263A99', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            📏 Розміри та відступи (у міліметрах)
+                             Розміри та відступи (у міліметрах)
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                             <div>

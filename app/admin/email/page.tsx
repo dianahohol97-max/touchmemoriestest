@@ -149,7 +149,7 @@ export default function EmailAdminPage() {
             if(error){ toast.error(error.message); setSaving(false); return; }
             setCampaigns(prev=>prev.map(c=>c.id===editing.id?{...c,...payload} as Campaign:c));
         }
-        toast.success('Збережено ✓'); setSaving(false);
+        toast.success('Збережено '); setSaving(false);
     }
 
     async function sendCampaign(id: string) {
@@ -161,7 +161,7 @@ export default function EmailAdminPage() {
             const res = await fetch('/api/admin/send-campaign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({campaign_id:id})});
             const data = await res.json();
             if(!res.ok){ toast.error(data.error||'Помилка'); return; }
-            toast.success(`✅ Надіслано ${data.sent}/${data.total} листів`);
+            toast.success(` Надіслано ${data.sent}/${data.total} листів`);
             await loadAll();
         } finally { setSending(false); }
     }
@@ -180,7 +180,7 @@ export default function EmailAdminPage() {
         toast.success('Шаблон збережено'); setEditTpl(null);
     }
 
-    const TABS = [{id:'campaigns',l:'📨 Кампанії',cnt:campaigns.length},{id:'templates',l:'📋 Шаблони',cnt:templates.length},{id:'subscribers',l:'👥 Підписники',cnt:stats.active},{id:'stats',l:'📊 Статистика',cnt:undefined}] as const;
+    const TABS = [{id:'campaigns',l:' Кампанії',cnt:campaigns.length},{id:'templates',l:' Шаблони',cnt:templates.length},{id:'subscribers',l:' Підписники',cnt:stats.active},{id:'stats',l:' Статистика',cnt:undefined}] as const;
 
     return (
         <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'#f8fafc'}}>
@@ -280,7 +280,7 @@ export default function EmailAdminPage() {
                     ) : (
                         <div style={{display:'flex',flexDirection:'column',gap:14}}>
                             <div style={{background:'#fff',borderRadius:12,border:'1px solid #e5e7eb',padding:18}}>
-                                <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:'#1e2d7d'}}>📊 Кампанії</div>
+                                <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:'#1e2d7d'}}> Кампанії</div>
                                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
                                     {[
                                         {l:'Всього кампаній',v:campaigns.length},
@@ -296,7 +296,7 @@ export default function EmailAdminPage() {
                                 </div>
                             </div>
                             <div style={{background:'#fff',borderRadius:12,border:'1px solid #e5e7eb',padding:18}}>
-                                <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:'#1e2d7d'}}>👥 Джерела підписки</div>
+                                <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:'#1e2d7d'}}> Джерела підписки</div>
                                 {Object.entries(stats.bySource).map(([src,cnt])=>(
                                     <div key={src} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                                         <span style={{fontSize:12,color:'#374151'}}>{src}</span>
@@ -310,7 +310,7 @@ export default function EmailAdminPage() {
                                 ))}
                             </div>
                             <div style={{background:'#fff',borderRadius:12,border:'1px solid #e5e7eb',padding:18}}>
-                                <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:'#1e2d7d'}}>📬 Надіслані кампанії</div>
+                                <div style={{fontWeight:700,fontSize:14,marginBottom:12,color:'#1e2d7d'}}> Надіслані кампанії</div>
                                 {campaigns.filter(c=>c.status==='sent').slice(0,5).map(c=>(
                                     <div key={c.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid #f3f4f6'}}>
                                         <div><div style={{fontSize:12,fontWeight:600}}>{c.name}</div><div style={{fontSize:10,color:'#9ca3af'}}>{c.sent_at?new Date(c.sent_at).toLocaleDateString('uk-UA'):'—'}</div></div>
@@ -360,7 +360,7 @@ export default function EmailAdminPage() {
                             </div>
                             <div>
                                 <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:4}}>Тема листа *</label>
-                                <input value={editing.subject||''} onChange={e=>setEditing(p=>({...p,subject:e.target.value}))} placeholder="🎁 Знижка 20% тільки сьогодні!" style={IS}/>
+                                <input value={editing.subject||''} onChange={e=>setEditing(p=>({...p,subject:e.target.value}))} placeholder=" Знижка 20% тільки сьогодні!" style={IS}/>
                             </div>
                             <div>
                                 <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:4}}>Ім'я відправника</label>
@@ -391,7 +391,7 @@ export default function EmailAdminPage() {
 
                         {templates.length>0 && (
                             <div style={{marginBottom:14,padding:'10px 12px',background:'#f8fafc',borderRadius:8,border:'1px solid #e5e7eb'}}>
-                                <div style={{fontSize:11,fontWeight:700,color:'#374151',marginBottom:6}}>📋 Вставити шаблон:</div>
+                                <div style={{fontSize:11,fontWeight:700,color:'#374151',marginBottom:6}}> Вставити шаблон:</div>
                                 <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
                                     {templates.map(t=>(
                                         <button key={t.id} onClick={()=>{setEditing(p=>({...p,subject:t.subject,body_html:t.body_html||t.body}));toast.success(`"${t.name}" застосовано`);}} style={{padding:'4px 10px',background:'#fff',border:'1px solid #d1d5db',borderRadius:6,cursor:'pointer',fontSize:11,color:'#374151'}}>{t.name}</button>
@@ -456,7 +456,7 @@ export default function EmailAdminPage() {
                 <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
                     <div style={{background:'#fff',borderRadius:14,width:'100%',maxWidth:660,maxHeight:'90vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,.2)'}}>
                         <div style={{padding:'14px 20px',borderBottom:'1px solid #e5e7eb',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                            <div style={{fontWeight:700,fontSize:14}}>👁 {editing.subject}</div>
+                            <div style={{fontWeight:700,fontSize:14}}> {editing.subject}</div>
                             <button onClick={()=>setPreviewOpen(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#9ca3af'}}><X size={18}/></button>
                         </div>
                         <div style={{flex:1,overflow:'auto'}}>

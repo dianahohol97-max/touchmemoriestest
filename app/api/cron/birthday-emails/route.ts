@@ -43,7 +43,7 @@ export async function GET(request: Request) {
             .from('email_campaigns')
             .insert({
                 type: 'birthday',
-                subject: 'З Днем Народження! Ваш подарунок всередині 🎂',
+                subject: 'З Днем Народження! Ваш подарунок всередині ',
                 segment: 'birthday_auto',
                 status: 'sending'
             })
@@ -136,7 +136,7 @@ export async function GET(request: Request) {
             // Dispatch Email
             const emailResult = await sendEmail({
                 to: sub.email,
-                subject: 'З Днем Народження! Ваш подарунок всередині 🎂',
+                subject: 'З Днем Народження! Ваш подарунок всередині ',
                 html: htmlMessage,
                 campaignId: campaign.id,
                 subscriberId: sub.id,

@@ -278,7 +278,7 @@ export default function SmartModeProcessor({
                           </p>
                           <p className="text-xs text-gray-400">
                             {photo.restored
-                              ? '✓ Відновлено'
+                              ? ' Відновлено'
                               : REASON_LABELS[photo.reason] || photo.reason}
                           </p>
                         </div>

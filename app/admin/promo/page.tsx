@@ -366,7 +366,7 @@ export default function PromoPage() {
                                 </div>
                                 {exists && (
                                     <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px' }}>
-                                        ✓ Вже створено
+                                         Вже створено
                                     </div>
                                 )}
                             </button>

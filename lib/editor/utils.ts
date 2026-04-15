@@ -4,7 +4,7 @@ import {
   PAGE_PROPORTIONS, ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS, METAL_VARIANTS,
 } from './constants';
 
-// ── Cover color resolution ───────────────────────────────────────────────────
+//  Cover color resolution 
 // Single function to get the hex color for any cover material + color name
 
 export function resolveCoverColor(materialType: string, colorName: string): string {
@@ -23,7 +23,7 @@ export function resolveCoverColor(materialType: string, colorName: string): stri
   return '#e8ecf4';
 }
 
-// ── Cover material type detection ────────────────────────────────────────────
+//  Cover material type detection 
 
 export type CoverMaterialKey = 'velour' | 'leatherette' | 'fabric' | 'printed';
 
@@ -35,7 +35,7 @@ export function detectCoverMaterial(coverType: string): CoverMaterialKey {
   return 'printed';
 }
 
-// ── Decoration type detection ────────────────────────────────────────────────
+//  Decoration type detection 
 
 export function detectDecoType(decoString: string): CoverDecoType {
   const deco = (decoString || '').toLowerCase();
@@ -47,7 +47,7 @@ export function detectDecoType(decoString: string): CoverDecoType {
   return 'none';
 }
 
-// ── Decoration color detection ───────────────────────────────────────────────
+//  Decoration color detection 
 
 export function detectDecoColor(colorString: string): string {
   const dc = (colorString || '').toLowerCase();
@@ -57,7 +57,7 @@ export function detectDecoColor(colorString: string): string {
   return '#D4AF37'; // default gold
 }
 
-// ── Auto-select variant for size ─────────────────────────────────────────────
+//  Auto-select variant for size 
 
 export function autoSelectVariant(
   decoType: CoverDecoType,
@@ -87,7 +87,7 @@ export function autoSelectVariant(
   return variants[0] || '';
 }
 
-// ── Size key resolution ──────────────────────────────────────────────────────
+//  Size key resolution 
 
 export function normalizeSizeKey(size: string): string {
   return (size || '20x20').replace(/[×х]/g, 'x').replace(/\s*см/g, '').trim();
@@ -107,7 +107,7 @@ export function getSizeKeyForProduct(config: BookConfig | null): string {
   return normalizeSizeKey(config.selectedSize || '20x20');
 }
 
-// ── Product slug helpers ─────────────────────────────────────────────────────
+//  Product slug helpers 
 
 export function getProductFlags(config: BookConfig | null) {
   const slug = (config?.productSlug || '').toLowerCase();
@@ -134,7 +134,7 @@ export function getProductFlags(config: BookConfig | null) {
   return { isHardCoverJournal, isPrinted, hasKalka, hasEndpaper };
 }
 
-// ── Canvas dimensions ────────────────────────────────────────────────────────
+//  Canvas dimensions 
 
 export function getCanvasDimensions(sizeKey: string, zoom: number) {
   const prop = PAGE_PROPORTIONS[sizeKey] ?? PAGE_PROPORTIONS['A4'];
@@ -146,7 +146,7 @@ export function getCanvasDimensions(sizeKey: string, zoom: number) {
   return { cW, cH, pageW, baseW, baseH };
 }
 
-// ── Spread / page index helpers ──────────────────────────────────────────────
+//  Spread / page index helpers 
 
 export function getActivePageIdx(currentIdx: number, activeSide: 0 | 1): number {
   return currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + activeSide;
@@ -164,13 +164,13 @@ export function getEndpaperIndices(hasEndpaper: boolean, totalPages: number) {
   return { endpaperFirstIdx, endpaperLastIdx };
 }
 
-// ── Slot helpers ─────────────────────────────────────────────────────────────
+//  Slot helpers 
 
 export function makeSlots(n: number): SlotData[] {
   return Array.from({ length: n }, () => ({ photoId: null, cropX: 50, cropY: 50, zoom: 1 }));
 }
 
-// ── Initialize cover state from config ───────────────────────────────────────
+//  Initialize cover state from config 
 
 export function initCoverStateFromConfig(config: BookConfig): Partial<CoverState> {
   const decoStr = config.selectedDecorationType || config.selectedDecoration || '';
@@ -184,7 +184,7 @@ export function initCoverStateFromConfig(config: BookConfig): Partial<CoverState
   return { decoType, decoVariant: variant, decoColor };
 }
 
-// ── Build CoverEditor props (single source of truth) ─────────────────────────
+//  Build CoverEditor props (single source of truth) 
 // This eliminates the bug where two CoverEditor instances get different props.
 
 export function buildCoverEditorProps(
@@ -217,7 +217,7 @@ export function buildCoverEditorProps(
   };
 }
 
-// ── CoverEditor onChange handler (single source of truth) ────────────────────
+//  CoverEditor onChange handler (single source of truth) 
 
 export function handleCoverChange(
   cfg: Partial<CoverState>,
@@ -245,7 +245,7 @@ export function handleCoverChange(
   };
 }
 
-// ── Initialize pages from config ─────────────────────────────────────────────
+//  Initialize pages from config 
 
 export function initPages(config: BookConfig): Page[] {
   const m = config.selectedPageCount.match(/(\d+)/);

@@ -113,7 +113,7 @@ export default function PhotoboothDemoPage() {
           onClick={() => setShowPhotobooth(false)}
           className={styles.closeButton}
         >
-          ✕ Close Demo
+           Close Demo
         </button>
         <PhotoboothEmbed
           initialConfig={presets[preset]}
@@ -128,7 +128,7 @@ export default function PhotoboothDemoPage() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1>📸 Photobooth Demo</h1>
+        <h1> Photobooth Demo</h1>
         <p>Choose a preset configuration and launch the photobooth</p>
       </header>
 
@@ -137,7 +137,7 @@ export default function PhotoboothDemoPage() {
           className={`${styles.presetCard} ${preset === 'wedding' ? styles.active : ''}`}
           onClick={() => setPreset('wedding')}
         >
-          <div className={styles.icon}>💒</div>
+          <div className={styles.icon}></div>
           <h3>Wedding</h3>
           <p>2×6" strip, 3 photos</p>
           <p className={styles.detail}>Elegant serif font with gold text</p>
@@ -147,7 +147,7 @@ export default function PhotoboothDemoPage() {
           className={`${styles.presetCard} ${preset === 'corporate' ? styles.active : ''}`}
           onClick={() => setPreset('corporate')}
         >
-          <div className={styles.icon}>💼</div>
+          <div className={styles.icon}></div>
           <h3>Corporate</h3>
           <p>4×6" grid, 4 photos</p>
           <p className={styles.detail}>Professional layout for events</p>
@@ -157,7 +157,7 @@ export default function PhotoboothDemoPage() {
           className={`${styles.presetCard} ${preset === 'birthday' ? styles.active : ''}`}
           onClick={() => setPreset('birthday')}
         >
-          <div className={styles.icon}>🎂</div>
+          <div className={styles.icon}></div>
           <h3>Birthday</h3>
           <p>4×4" square, 4 photos</p>
           <p className={styles.detail}>Fun Instagram-style layout</p>
@@ -167,7 +167,7 @@ export default function PhotoboothDemoPage() {
           className={`${styles.presetCard} ${preset === 'festival' ? styles.active : ''}`}
           onClick={() => setPreset('festival')}
         >
-          <div className={styles.icon}>🎪</div>
+          <div className={styles.icon}></div>
           <h3>Festival</h3>
           <p>6×4" landscape, 2 photos</p>
           <p className={styles.detail}>Bold design for events</p>
@@ -177,7 +177,7 @@ export default function PhotoboothDemoPage() {
           className={`${styles.presetCard} ${preset === 'custom' ? styles.active : ''}`}
           onClick={() => setPreset('custom')}
         >
-          <div className={styles.icon}>⚙️</div>
+          <div className={styles.icon}></div>
           <h3>Custom</h3>
           <p>5×15cm strip, 3 photos</p>
           <p className={styles.detail}>Fully customizable</p>
@@ -200,15 +200,15 @@ export default function PhotoboothDemoPage() {
       <div className={styles.info}>
         <h3>Features</h3>
         <ul>
-          <li>✅ Live camera preview with WebRTC</li>
-          <li>✅ Countdown timer with visual feedback</li>
-          <li>✅ Multiple photo capture sequence</li>
-          <li>✅ High-quality canvas rendering (300 DPI)</li>
-          <li>✅ Multiple layout options</li>
-          <li>✅ Customizable text and branding</li>
-          <li>✅ PNG/JPG export</li>
-          <li>✅ Responsive mobile-first design</li>
-          <li>✅ Configuration panel for developers</li>
+          <li> Live camera preview with WebRTC</li>
+          <li> Countdown timer with visual feedback</li>
+          <li> Multiple photo capture sequence</li>
+          <li> High-quality canvas rendering (300 DPI)</li>
+          <li> Multiple layout options</li>
+          <li> Customizable text and branding</li>
+          <li> PNG/JPG export</li>
+          <li> Responsive mobile-first design</li>
+          <li> Configuration panel for developers</li>
         </ul>
       </div>
     </div>

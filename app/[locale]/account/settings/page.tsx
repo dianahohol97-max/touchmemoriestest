@@ -102,12 +102,12 @@ export default function SettingsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {passwordSuccess && (
                             <div style={{ backgroundColor: '#f0fdf4', color: '#16a34a', padding: '12px', borderRadius: "3px", fontSize: '14px', fontWeight: 600 }}>
-                                ✓ {passwordSuccess}
+                                 {passwordSuccess}
                             </div>
                         )}
                         {passwordError && (
                             <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px', borderRadius: "3px", fontSize: '14px', fontWeight: 600 }}>
-                                ⚠ {passwordError}
+                                 {passwordError}
                             </div>
                         )}
                         <div>

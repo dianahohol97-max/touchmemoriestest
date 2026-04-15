@@ -398,49 +398,49 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'sp-4-diagonal',       label: '4 по діагоналі',      slots: 4, group: 'Розворот 4 фото' },
   { id: 'sp-4-uneven',         label: '4 нерівний',          slots: 4, group: 'Розворот 4 фото' },
 
-  // ── Сторінка 1 фото — додаткові до 20 ──
+  //  Сторінка 1 фото — додаткові до 20 
   { id: 'p-1-oval',            label: 'Овал',                slots: 1, group: '1 фото' },
   { id: 'p-1-inset-tl',        label: 'Вставка ліво-верх',   slots: 1, group: '1 фото' },
   { id: 'p-1-inset-br',        label: 'Вставка право-низ',   slots: 1, group: '1 фото' },
   { id: 'p-1-wide-center',     label: 'Широке по центру',    slots: 1, group: '1 фото' },
   { id: 'p-1-tall-center',     label: 'Вузьке по центру',    slots: 1, group: '1 фото' },
 
-  // ── Сторінка 2 фото — додаткові до 20 ──
+  //  Сторінка 2 фото — додаткові до 20 
   { id: 'p-2-triptych',        label: 'Триптих',             slots: 2, group: '2 фото' },
   { id: 'p-2-asymm-left',      label: 'Асим. ліво (1/3+2/3)',slots: 2, group: '2 фото' },
   { id: 'p-2-asymm-right',     label: 'Асим. право (2/3+1/3)',slots: 2, group: '2 фото' },
   { id: 'p-2-stacked-center',  label: '2 по центру',         slots: 2, group: '2 фото' },
   { id: 'p-2-wide-top',        label: 'Широке + вузьке',     slots: 2, group: '2 фото' },
 
-  // ── Сторінка 3 фото — додаткові до 20 ──
+  //  Сторінка 3 фото — додаткові до 20 
   { id: 'p-3-fan',             label: 'Віяло',               slots: 3, group: '3 фото' },
   { id: 'p-3-asymm',           label: 'Асиметричний',        slots: 3, group: '3 фото' },
   { id: 'p-3-stacked',         label: '3 стек',              slots: 3, group: '3 фото' },
   { id: 'p-3-wide-mid',        label: 'Широке середнє',      slots: 3, group: '3 фото' },
   { id: 'p-3-2col',            label: '2 колонки (2+1)',      slots: 3, group: '3 фото' },
 
-  // ── Сторінка 4 фото — додаткові до 20 ──
+  //  Сторінка 4 фото — додаткові до 20 
   { id: 'p-4-diamond',         label: 'Ромб',                slots: 4, group: '4 фото' },
   { id: 'p-4-t-shape',         label: 'Т-форма',             slots: 4, group: '4 фото' },
   { id: 'p-4-asymm-col',       label: 'Асим. 2 колонки',     slots: 4, group: '4 фото' },
   { id: 'p-4-wide-bot',        label: 'Широке знизу + 3',    slots: 4, group: '4 фото' },
   { id: 'p-4-center-focus',    label: 'Центр у фокусі',      slots: 4, group: '4 фото' },
 
-  // ── Сторінка 5 фото — додаткові до 20 ──
+  //  Сторінка 5 фото — додаткові до 20 
   { id: 'p-5-scattered',       label: '5 розкидані',         slots: 5, group: '5 фото' },
   { id: 'p-5-pyramid',         label: 'Піраміда',            slots: 5, group: '5 фото' },
   { id: 'p-5-2-1-2',           label: '2+1+2 рядки',         slots: 5, group: '5 фото' },
   { id: 'p-5-wide-center',     label: 'Широке центр + 4',    slots: 5, group: '5 фото' },
   { id: 'p-5-editorial',       label: 'Редакційний',         slots: 5, group: '5 фото' },
 
-  // ── Сторінка 6 фото — додаткові до 20 ──
+  //  Сторінка 6 фото — додаткові до 20 
   { id: 'p-6-editorial',       label: 'Редакційний',         slots: 6, group: '6 фото' },
   { id: 'p-6-3rows',           label: '3 ряди по 2',         slots: 6, group: '6 фото' },
   { id: 'p-6-asymm',           label: 'Асиметричний 6',      slots: 6, group: '6 фото' },
   { id: 'p-6-pyramid',         label: 'Піраміда 6',          slots: 6, group: '6 фото' },
   { id: 'p-6-center-hero',     label: 'Центральне велике',   slots: 6, group: '6 фото' },
 
-  // ── Сторінка 9 фото — додаткові до 20 ──
+  //  Сторінка 9 фото — додаткові до 20 
   { id: 'p-9-4-rows',          label: '4+3+2 рядки',         slots: 9, group: '9 фото' },
   { id: 'p-9-big-center',      label: 'Велике центр + 8',    slots: 9, group: '9 фото' },
   { id: 'p-9-2col-asym',       label: 'Асим. 2 колонки',     slots: 9, group: '9 фото' },
@@ -448,42 +448,42 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'p-9-editorial',       label: 'Редакційний',         slots: 9, group: '9 фото' },
   { id: 'p-9-zigzag',          label: 'Зигзаг',              slots: 9, group: '9 фото' },
 
-  // ── Текстові — додаткові до 8 ──
+  //  Текстові — додаткові до 8 
   { id: 'p-text-center',       label: 'Текст по центру',     slots: 0, group: 'Текст' },
   { id: 'p-text-left',         label: 'Текст ліворуч',       slots: 0, group: 'Текст' },
   { id: 'p-text-right',        label: 'Текст праворуч',      slots: 0, group: 'Текст' },
   { id: 'p-text-photo-left',   label: 'Текст + фото ліво',   slots: 1, group: 'Текст' },
   { id: 'p-text-photo-right',  label: 'Текст + фото право',  slots: 1, group: 'Текст' },
 
-  // ── Розворот 1 фото — додаткові до 20 ──
+  //  Розворот 1 фото — додаткові до 20 
   { id: 'sp-1-tilt-left',      label: 'Нахил ліво',          slots: 1, group: 'Розворот 1 фото' },
   { id: 'sp-1-tilt-right',     label: 'Нахил право',         slots: 1, group: 'Розворот 1 фото' },
   { id: 'sp-1-wide-strip',     label: 'Широка смуга',        slots: 1, group: 'Розворот 1 фото' },
   { id: 'sp-1-panorama',       label: 'Панорама',            slots: 1, group: 'Розворот 1 фото' },
   { id: 'sp-1-inset',          label: 'З відступами',        slots: 1, group: 'Розворот 1 фото' },
 
-  // ── Розворот 2 фото — додаткові до 20 ──
+  //  Розворот 2 фото — додаткові до 20 
   { id: 'sp-2-stacked-left',   label: '2 стек ліво',         slots: 2, group: 'Розворот 2 фото' },
   { id: 'sp-2-stacked-right',  label: '2 стек право',        slots: 2, group: 'Розворот 2 фото' },
   { id: 'sp-2-panorama-pair',  label: 'Панорамна пара',      slots: 2, group: 'Розворот 2 фото' },
   { id: 'sp-2-asymm-top',      label: 'Асим. зверху',        slots: 2, group: 'Розворот 2 фото' },
   { id: 'sp-2-inset-small',    label: 'Велике + маленьке',   slots: 2, group: 'Розворот 2 фото' },
 
-  // ── Розворот 3 фото — додаткові до 20 ──
+  //  Розворот 3 фото — додаткові до 20 
   { id: 'sp-3-editorial',      label: 'Редакційний',         slots: 3, group: 'Розворот 3 фото' },
   { id: 'sp-3-scattered',      label: '3 розкидані',         slots: 3, group: 'Розворот 3 фото' },
   { id: 'sp-3-asymm-wide',     label: 'Асим. широкий',       slots: 3, group: 'Розворот 3 фото' },
   { id: 'sp-3-two-col',        label: '2 ліво + 1 право',    slots: 3, group: 'Розворот 3 фото' },
   { id: 'sp-3-one-two',        label: '1 ліво + 2 право',    slots: 3, group: 'Розворот 3 фото' },
 
-  // ── Розворот 4 фото — додаткові до 20 ──
+  //  Розворот 4 фото — додаткові до 20 
   { id: 'sp-4-editorial',      label: 'Редакційний',         slots: 4, group: 'Розворот 4 фото' },
   { id: 'sp-4-pyramid',        label: 'Піраміда',            slots: 4, group: 'Розворот 4 фото' },
   { id: 'sp-4-scattered',      label: '4 розкидані',         slots: 4, group: 'Розворот 4 фото' },
   { id: 'sp-4-2-2',            label: '2 ліво + 2 право',    slots: 4, group: 'Розворот 4 фото' },
   { id: 'sp-4-asymm-wide',     label: 'Асим. широкий',       slots: 4, group: 'Розворот 4 фото' },
 
-  // ── Розворот 5+ фото — додаткові до 25 ──
+  //  Розворот 5+ фото — додаткові до 25 
   { id: 'sp-5-editorial',      label: '5 редакційний',       slots: 5, group: 'Розворот 5+ фото' },
   { id: 'sp-6-editorial',      label: '6 редакційний',       slots: 6, group: 'Розворот 5+ фото' },
   { id: 'sp-8-editorial',      label: '8 редакційний',       slots: 8, group: 'Розворот 5+ фото' },
@@ -653,7 +653,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'sp-15-grid')     { const cw=(W-4*g)/5; const ch=(H-2*g)/3; return Array.from({length:15},(_,ii)=>S(ii,(ii%5)*(cw+g),Math.floor(ii/5)*(ch+g),cw,ch)); }
   if (layout === 'sp-16-grid')     { const cw=(W-3*g)/4; const ch=(H-3*g)/4; return Array.from({length:16},(_,ii)=>S(ii,(ii%4)*(cw+g),Math.floor(ii/4)*(ch+g),cw,ch)); }
 
-  // ── PAGE: 1 фото додаткові ──────────────────────────────────────────
+  //  PAGE: 1 фото додаткові 
   if (layout === 'p-1-top-strip')    return [S(0, 0, 0, W, H*0.45)];
   if (layout === 'p-1-bottom-strip') return [S(0, 0, H*0.55, W, H*0.45)];
   if (layout === 'p-1-left-wide')    return [S(0, 0, 0, W*0.75, H)];
@@ -664,7 +664,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-1-corner-tl')    return [S(0, 0, 0, W*0.75, H*0.75)];
   if (layout === 'p-1-corner-br')    return [S(0, W*0.25, H*0.25, W*0.75, H*0.75)];
 
-  // ── PAGE: 2 фото додаткові ──────────────────────────────────────────
+  //  PAGE: 2 фото додаткові 
   if (layout === 'p-2-overlap')      return [S(0, 0, 0, W*0.75, H*0.75), S(1, W*0.25, H*0.25, W*0.75, H*0.75)];
   if (layout === 'p-2-top-strip')    return [S(0, 0, 0, W, H*0.3), S(1, 0, H*0.3+g, W, H*0.7-g)];
   if (layout === 'p-2-bottom-strip') return [S(0, 0, 0, W, H*0.7), S(1, 0, H*0.7+g, W, H*0.3-g)];
@@ -674,7 +674,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-2-cinema')       { const ch=H*0.42; return [S(0, 0, (H-2*ch-g)/2, W, ch), S(1, 0, (H-2*ch-g)/2+ch+g, W, ch)]; }
   if (layout === 'p-2-frame')        return [S(0, W*0.04, H*0.04, W*0.92, h2-H*0.02), S(1, W*0.04, H*0.5+H*0.02, W*0.92, h2-H*0.04)];
 
-  // ── PAGE: 3 фото додаткові ──────────────────────────────────────────
+  //  PAGE: 3 фото додаткові 
   if (layout === 'p-3-hero-right')   return [S(0, W*0.45+g, 0, W*0.55-g, H), S(1, 0, 0, W*0.45, h2), S(2, 0, h2+g, W*0.45, h2)];
   if (layout === 'p-3-strip-top')    return [S(0, 0, 0, W, H*0.35), S(1, 0, H*0.35+g, w2, H*0.65-g), S(2, w2+g, H*0.35+g, w2, H*0.65-g)];
   if (layout === 'p-3-strip-bot')    return [S(0, 0, 0, w2, H*0.65), S(1, w2+g, 0, w2, H*0.65), S(2, 0, H*0.65+g, W, H*0.35-g)];
@@ -683,7 +683,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-3-featured')     return [S(0, W*0.1, H*0.05, W*0.8, H*0.55), S(1, 0, H*0.6+g, w2, H*0.4-g), S(2, w2+g, H*0.6+g, w2, H*0.4-g)];
   if (layout === 'p-3-panorama')     return [S(0, 0, 0, W, H*0.5), S(1, 0, H*0.5+g, w2, H*0.5-g), S(2, w2+g, H*0.5+g, w2, H*0.5-g)];
 
-  // ── PAGE: 4 фото додаткові ──────────────────────────────────────────
+  //  PAGE: 4 фото додаткові 
   if (layout === 'p-4-mosaic')       return [S(0, 0, 0, W*0.6, H*0.6), S(1, W*0.6+g, 0, W*0.4-g, H*0.4-g/2), S(2, W*0.6+g, H*0.4+g/2, W*0.4-g, H*0.6-g/2), S(3, 0, H*0.6+g, W*0.6, H*0.4-g)];
   if (layout === 'p-4-top-bottom')   return [S(0, 0, 0, w2, h2), S(1, w2+g, 0, w2, h2), S(2, 0, h2+g, w2, h2), S(3, w2+g, h2+g, w2, h2)];
   if (layout === 'p-4-corner')       return [S(0, 0, 0, W*0.48, H*0.48), S(1, W*0.52, 0, W*0.48, H*0.48), S(2, 0, H*0.52, W*0.48, H*0.48), S(3, W*0.52, H*0.52, W*0.48, H*0.48)];
@@ -694,7 +694,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-4-cross')        return [S(0, 0, 0, w2, H*0.45), S(1, w2+g, 0, w2, H*0.45), S(2, 0, H*0.55, w2, H*0.45), S(3, w2+g, H*0.55, w2, H*0.45)];
   if (layout === 'p-4-uneven')       return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h3), S(2, W*0.55+g, h3+g, W*0.45-g, h3), S(3, W*0.55+g, 2*(h3+g), W*0.45-g, h3)];
 
-  // ── PAGE: 5 фото ────────────────────────────────────────────────────
+  //  PAGE: 5 фото 
   if (layout === 'p-5-col')         { const h5=(H-4*g)/5; return Array.from({length:5},(_,i)=>S(i,0,i*(h5+g),W,h5)); }
   if (layout === 'p-5-row')         { const w5=(W-4*g)/5; return Array.from({length:5},(_,i)=>S(i,i*(w5+g),0,w5,H)); }
   if (layout === 'p-5-2-3')        return [S(0,0,0,w2,h2), S(1,w2+g,0,w2,h2), S(2,0,h2+g,w3,h2), S(3,w3+g,h2+g,w3,h2), S(4,2*(w3+g),h2+g,w3,h2)];
@@ -708,7 +708,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-5-diagonal')   return [S(0,0,0,W*0.5,H*0.5), S(1,W*0.5+g,0,W*0.5-g,H*0.35), S(2,W*0.5+g,H*0.35+g,W*0.5-g,H*0.65-g), S(3,0,H*0.5+g,W*0.35,H*0.5-g), S(4,W*0.35+g,H*0.5+g,W*0.65-g,H*0.5-g)];
   if (layout === 'p-5-corner')     return [S(0,0,0,w2,h2), S(1,w2+g,0,w2,h2), S(2,W*0.25,H*0.25,W*0.5,H*0.5), S(3,0,h2+g,w2,h2), S(4,w2+g,h2+g,w2,h2)];
 
-  // ── PAGE: 6 фото ────────────────────────────────────────────────────
+  //  PAGE: 6 фото 
   if (layout === 'p-6-strip-h')    { const h6=(H-5*g)/6; return Array.from({length:6},(_,i)=>S(i,0,i*(h6+g),W,h6)); }
   if (layout === 'p-6-strip-v')    { const w6=(W-5*g)/6; return Array.from({length:6},(_,i)=>S(i,i*(w6+g),0,w6,H)); }
   if (layout === 'p-6-mosaic')     return [S(0,0,0,W*0.5,H*0.5), S(1,W*0.5+g,0,W*0.25-g/2,H*0.35), S(2,W*0.75+g/2,0,W*0.25-g/2,H*0.35), S(3,W*0.5+g,H*0.35+g,W*0.5-g,H*0.65-g), S(4,0,H*0.5+g,W*0.25-g/2,H*0.5-g), S(5,W*0.25+g/2,H*0.5+g,W*0.25-g/2,H*0.5-g)];
@@ -722,7 +722,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-6-magazine')   return [S(0,0,0,W*0.65,H*0.5-g/2), S(1,W*0.65+g,0,W*0.35-g,H*0.25-g/2), S(2,W*0.65+g,H*0.25+g/2,W*0.35-g,H*0.25-g/2), S(3,0,H*0.5+g/2,w3,H*0.5-g/2), S(4,w3+g,H*0.5+g/2,w3,H*0.5-g/2), S(5,2*(w3+g),H*0.5+g/2,w3,H*0.5-g/2)];
   if (layout === 'p-6-uneven')     return [S(0,0,0,W*0.4,H*0.6), S(1,W*0.4+g,0,W*0.6-g,H*0.4-g/2), S(2,W*0.4+g,H*0.4+g/2,W*0.6-g,H*0.6-g/2), S(3,0,H*0.6+g,w3,H*0.4-g), S(4,w3+g,H*0.6+g,w3,H*0.4-g), S(5,2*(w3+g),H*0.6+g,w3,H*0.4-g)];
 
-  // ── PAGE: 7 фото ────────────────────────────────────────────────────
+  //  PAGE: 7 фото 
   if (layout === 'p-7-grid')       { const sw=(W-2*g)/3, sh=(H-2*g)/3; return [[0,1,2].flatMap(col=>[0,1].map(row=>S(col*2+row,col*(sw+g),row*(sh+g),sw,sh))).concat(S(6,0,(sh+g)*2,W,sh))].flat(); }
   if (layout === 'p-7-hero')       { const bh=H*0.5; const sw=(W-5*g)/6; return [S(0,0,0,W,bh), ...Array.from({length:6},(_,i)=>S(i+1,i*(sw+g),bh+g,sw,H-bh-g))]; }
   if (layout === 'p-7-3-4')        { const sw=(W-2*g)/3; const sh=(H-g)/2; return [...[0,1,2].map(i=>S(i,i*(sw+g),0,sw,sh)), ...[0,1,2].map(i=>S(i+3,i*(sw+g),sh+g,sw,sh)), S(6,0,0,0,0)].slice(0,7); }
@@ -734,7 +734,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-7-strip')      { const w7=(W-6*g)/7; return Array.from({length:7},(_,i)=>S(i,i*(w7+g),0,w7,H)); }
   if (layout === 'p-7-focus')      return [S(0,0,0,W*0.6,H*0.6), ...Array.from({length:6},(_,i)=>{ const cols=3; const sw=(W-2*g)/3; const sh=H*0.4-g; return i<3 ? S(i+1,i*(sw+g),H*0.6+g,sw,sh) : S(i+1,(i-3)*(sw+g)+(i<3?0:W*0.6+g),0,W*0.4-g,H*0.6/3-g/2); }).slice(0,6)];
 
-  // ── PAGE: 8 фото ────────────────────────────────────────────────────
+  //  PAGE: 8 фото 
   if (layout === 'p-8-grid')       return Array.from({length:8},(_,i)=>S(i,(i%4)*(w4+g),Math.floor(i/4)*(h2+g),w4,h2));
   if (layout === 'p-8-hero')       { const sw=(W-6*g)/7; const sh=h2; return [S(0,0,0,W,sh), ...Array.from({length:7},(_,i)=>S(i+1,i*(sw+g),sh+g,sw,sh))]; }
   if (layout === 'p-8-2x4')        return Array.from({length:8},(_,i)=>S(i,(i%4)*(w4+g),Math.floor(i/4)*(h2+g),w4,h2));
@@ -743,14 +743,14 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-8-focus')      { const sw=(W-3*g)/4; const sh=(H-g)/2; return [S(0,0,0,W*0.5,H*0.5-g/2), ...Array.from({length:7},(_,i)=>{ if(i<3) return S(i+1,i*(sw+g),H*0.5+g/2,sw,sh); return S(i+1,(i===3?W*0.5+g:((i-4)*(sw+g))),(i===3?0:(i<4?0:H*0.5+g/2)),i===3?W*0.5-g:sw,i===3?H*0.5-g/2:sh); })].slice(0,8); }
   if (layout === 'p-8-cols')       { const sw=(W-3*g)/4; const sh=(H-g)/2; return Array.from({length:8},(_,i)=>S(i,(i%4)*(sw+g),Math.floor(i/4)*(sh+g),sw,sh)); }
 
-  // ── PAGE: 9 фото ────────────────────────────────────────────────────
+  //  PAGE: 9 фото 
   if (layout === 'p-9-grid')       return Array.from({length:9},(_,i)=>S(i,(i%3)*(w3+g),Math.floor(i/3)*(h3+g),w3,h3));
   if (layout === 'p-9-hero')       { const sw=(W-7*g)/8; const sh=h2; return [S(0,0,0,W,sh), ...Array.from({length:8},(_,i)=>S(i+1,i*(sw+g),sh+g,sw,sh))]; }
   if (layout === 'p-9-mosaic')     return [S(0,0,0,W*0.55,H*0.55), ...Array.from({length:8},(_,i)=>{ const cols=4; const sw=(W-3*g)/4; const sh=H*0.45-g; return i<4 ? S(i+1,i*(sw+g),H*0.55+g,sw,sh) : S(i+1,(i-4)*((W*0.45-g)/4+g)+W*0.55+g,0,(W*0.45-g)/4,(H*0.55-g)/4); })];
   if (layout === 'p-9-strip')      { const w9=(W-8*g)/9; return Array.from({length:9},(_,i)=>S(i,i*(w9+g),0,w9,H)); }
   if (layout === 'p-9-focus')      { const sw=(W-2*g)/3; const sh=(H-2*g)/3; return [S(0,sw+g,sh+g,sw,sh), ...[ [0,0],[sw+sw+g+g,0],[0,sh+g+sh+g],[sw+sw+g+g,sh+g+sh+g],[0,sh+g],[sw+sw+g+g,sh+g],[sw+g,0],[sw+g,sh+g+sh+g] ].map(([x,y],i)=>S(i+1,x,y,sw,sh))].slice(0,9); }
 
-  // ── SPREAD: 1 фото додаткові ────────────────────────────────────────
+  //  SPREAD: 1 фото додаткові 
   if (layout === 'sp-1-polaroid')     return [S(0, W*0.1, H*0.08, W*0.8, H*0.72)];
   if (layout === 'sp-1-portrait')     return [S(0, W*0.25, H*0.05, W*0.5, H*0.9)];
   if (layout === 'sp-1-landscape')    return [S(0, W*0.04, H*0.15, W*0.92, H*0.7)];
@@ -759,22 +759,22 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'sp-1-left-strip')   return [S(0, 0, 0, W*0.4, H)];
   if (layout === 'sp-1-right-strip')  return [S(0, W*0.6, 0, W*0.4, H)];
 
-  // ── SPREAD: 2 фото додаткові ────────────────────────────────────────
+  //  SPREAD: 2 фото додаткові 
   if (layout === 'sp-2-triptych')     return [S(0, W*0.05, H*0.1, W*0.42, H*0.8), S(1, W*0.53, H*0.1, W*0.42, H*0.8)];
   if (layout === 'sp-2-overlap')      return [S(0, 0, 0, W*0.65, H*0.75), S(1, W*0.35, H*0.25, W*0.65, H*0.75)];
   if (layout === 'sp-2-frame')        return [S(0, W*0.03, H*0.05, W*0.46, H*0.9), S(1, W*0.51, H*0.05, W*0.46, H*0.9)];
 
-  // ── SPREAD: 3 фото додаткові ────────────────────────────────────────
+  //  SPREAD: 3 фото додаткові 
   if (layout === 'sp-3-magazine')     return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h2-g/2), S(2, W*0.55+g, h2+g/2, W*0.45-g, h2-g/2)];
   if (layout === 'sp-3-focus')        return [S(0, 0, 0, W*0.6, H*0.65), S(1, 0, H*0.65+g, W, H*0.2-g/2), S(2, 0, H*0.85+g/2, W, H*0.15-g/2)];
   if (layout === 'sp-3-diagonal')     return [S(0, 0, 0, W*0.5, H*0.55), S(1, W*0.5+g, 0, W*0.5-g, H*0.45-g/2), S(2, 0, H*0.55+g, W, H*0.45-g)];
 
-  // ── SPREAD: 4 фото додаткові ────────────────────────────────────────
+  //  SPREAD: 4 фото додаткові 
   if (layout === 'sp-4-magazine')     return [S(0, 0, 0, W*0.6, H*0.6), S(1, W*0.6+g, 0, W*0.4-g, H*0.4-g/2), S(2, W*0.6+g, H*0.4+g/2, W*0.4-g, H*0.6-g/2), S(3, 0, H*0.6+g, W*0.6, H*0.4-g)];
   if (layout === 'sp-4-diagonal')     return [S(0, 0, 0, W*0.5, H*0.5-g/2), S(1, W*0.5+g, 0, W*0.5-g, H*0.5-g/2), S(2, 0, H*0.5+g/2, W*0.5-g/2, H*0.5-g/2), S(3, W*0.5+g/2, H*0.5+g/2, W*0.5-g/2, H*0.5-g/2)];
   if (layout === 'sp-4-uneven')       return [S(0, 0, 0, W*0.55, H), S(1, W*0.55+g, 0, W*0.45-g, h3-g/3), S(2, W*0.55+g, h3+g*2/3, W*0.45-g, h3-g/3), S(3, W*0.55+g, 2*h3+g*4/3, W*0.45-g, h3-g/3)];
 
-  // ── PAGE: 8 фото додаткові ──────────────────────────────────────────
+  //  PAGE: 8 фото додаткові 
   if (layout === 'p-8-3-5')        { const sw3=(W-2*g)/3; const sw5=(W-4*g)/5; const sh=h2; return [...Array.from({length:3},(_,i)=>S(i,i*(sw3+g),0,sw3,sh)), ...Array.from({length:5},(_,i)=>S(i+3,i*(sw5+g),sh+g,sw5,sh))]; }
   if (layout === 'p-8-5-3')        { const sw5=(W-4*g)/5; const sw3=(W-2*g)/3; const sh=h2; return [...Array.from({length:5},(_,i)=>S(i,i*(sw5+g),0,sw5,sh)), ...Array.from({length:3},(_,i)=>S(i+5,i*(sw3+g),sh+g,sw3,sh))]; }
   if (layout === 'p-8-corner')     return [S(0,W*0.2,H*0.2,W*0.6,H*0.6), S(1,0,0,W*0.18,H*0.18), S(2,W*0.41,0,W*0.18,H*0.18), S(3,W*0.82,0,W*0.18,H*0.18), S(4,0,H*0.41,W*0.18,H*0.18), S(5,W*0.82,H*0.41,W*0.18,H*0.18), S(6,0,H*0.82,W*0.18,H*0.18), S(7,W*0.82,H*0.82,W*0.18,H*0.18)];
@@ -782,7 +782,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-8-diagonal')   { const sz=W*0.35; return Array.from({length:8},(_,i)=>S(i,(i%2)*((W-sz-g)/1+g+sz/2-(i%2)*(sz/2+g)),(Math.floor(i/2))*(H/4),sz,H/4-g/2)); }
   if (layout === 'p-8-magazine')   return [S(0,0,0,W*0.6,H*0.55-g/2), S(1,W*0.6+g,0,W*0.4-g,H*0.27-g/2), S(2,W*0.6+g,H*0.27+g/2,W*0.4-g,H*0.27-g/2), S(3,0,H*0.55+g/2,w4,H*0.45-g), S(4,w4+g,H*0.55+g/2,w4,H*0.45-g), S(5,2*(w4+g),H*0.55+g/2,w4,H*0.45-g), S(6,3*(w4+g),H*0.55+g/2,w4,H*0.45-g), S(7,W*0.6+g,H*0.55+g/2,W*0.4-g,H*0.45-g)];
 
-  // ── PAGE: 9 фото додаткові ──────────────────────────────────────────
+  //  PAGE: 9 фото додаткові 
   if (layout === 'p-9-cols')       { const sw=(W-2*g)/3; const sh=(H-2*g)/3; return Array.from({length:9},(_,i)=>S(i,(i%3)*(sw+g),Math.floor(i/3)*(sh+g),sw,sh)); }
   if (layout === 'p-9-3-3-3')     { const sh=(H-2*g)/3; const sw3=(W-2*g)/3; return Array.from({length:9},(_,i)=>S(i,(i%3)*(sw3+g),Math.floor(i/3)*(sh+g),sw3,sh)); }
   if (layout === 'p-9-hero-top')  { const sw=(W-7*g)/8; const bh=H*0.35; return [S(0,0,0,W,bh), ...Array.from({length:8},(_,i)=>S(i+1,i*(sw+g),bh+g,sw,H-bh-g))]; }
@@ -793,14 +793,14 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-9-5-4')       { const sw5=(W-4*g)/5; const sw4=(W-3*g)/4; const sh=h2; return [...Array.from({length:5},(_,i)=>S(i,i*(sw5+g),0,sw5,sh)), ...Array.from({length:4},(_,i)=>S(i+5,i*(sw4+g),sh+g,sw4,sh))]; }
   if (layout === 'p-9-strip-h')   { const h9=(H-8*g)/9; return Array.from({length:9},(_,i)=>S(i,0,i*(h9+g),W,h9)); }
 
-  // ── PAGE: 7 фото додаткові ──────────────────────────────────────────
+  //  PAGE: 7 фото додаткові 
   if (layout === 'p-7-row')        { const w7=(W-6*g)/7; return Array.from({length:7},(_,i)=>S(i,i*(w7+g),0,w7,H)); }
   if (layout === 'p-7-col-full')   { const h7=(H-6*g)/7; return Array.from({length:7},(_,i)=>S(i,0,i*(h7+g),W,h7)); }
   if (layout === 'p-7-panorama')   { const sw=(W-5*g)/6; return [S(0,0,0,W,H*0.38), ...Array.from({length:6},(_,i)=>S(i+1,i*(sw+g),H*0.38+g,sw,H*0.62-g))]; }
   if (layout === 'p-7-magazine')   return [S(0,0,0,W*0.6,H*0.5-g/2), S(1,W*0.6+g,0,W*0.4-g,H*0.25-g/2), S(2,W*0.6+g,H*0.25+g/2,W*0.4-g,H*0.25-g/2), S(3,0,H*0.5+g/2,w3,H*0.5-g/2), S(4,w3+g,H*0.5+g/2,w3,H*0.5-g/2), S(5,2*(w3+g),H*0.5+g/2,w2,H*0.25-g/2), S(6,2*(w3+g),H*0.75+g/2,w2,H*0.25-g/2)];
   if (layout === 'p-7-diagonal')   return Array.from({length:7},(_,i)=>S(i,(i%3)*(W/3+g),(Math.floor(i/3))*(H/3),W/3-g,H/3-g));
 
-  // ── PAGE: 8 фото додаткові ──────────────────────────────────────────
+  //  PAGE: 8 фото додаткові 
   if (layout === 'p-8-row')        { const w8=(W-7*g)/8; return Array.from({length:8},(_,i)=>S(i,i*(w8+g),0,w8,H)); }
   if (layout === 'p-8-col')        { const h8=(H-7*g)/8; return Array.from({length:8},(_,i)=>S(i,0,i*(h8+g),W,h8)); }
   if (layout === 'p-8-4-4')        { const sw=(W-3*g)/4; const sh=(H-g)/2; return Array.from({length:8},(_,i)=>S(i,(i%4)*(sw+g),Math.floor(i/4)*(sh+g),sw,sh)); }
@@ -810,49 +810,49 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-8-uneven')     return [S(0,0,0,W*0.5,H*0.5-g/2), S(1,W*0.5+g,0,W*0.25-g/2,H*0.25-g/2), S(2,W*0.75+g/2,0,W*0.25-g/2,H*0.25-g/2), S(3,W*0.5+g,H*0.25+g/2,W*0.5-g,H*0.25-g/2), S(4,0,H*0.5+g/2,w4,H*0.5-g/2), S(5,w4+g,H*0.5+g/2,w4,H*0.5-g/2), S(6,2*(w4+g),H*0.5+g/2,w4,H*0.5-g/2), S(7,3*(w4+g),H*0.5+g/2,w4,H*0.5-g/2)];
   if (layout === 'p-8-cross')      return [S(0,W*0.33,0,W*0.34,H*0.33), S(1,0,W*0.33,W*0.33,H*0.34), S(2,W*0.67,W*0.33,W*0.33,H*0.34), S(3,W*0.33,H*0.67,W*0.34,H*0.33), S(4,0,0,W*0.3,H*0.3), S(5,W*0.7,0,W*0.3,H*0.3), S(6,0,H*0.7,W*0.3,H*0.3), S(7,W*0.7,H*0.7,W*0.3,H*0.3)];
 
-  // ── PAGE: 1 фото додаткові ──
+  //  PAGE: 1 фото додаткові 
   if (layout === 'p-1-oval')           return [S(0, W*0.1, H*0.05, W*0.8, H*0.9)];
   if (layout === 'p-1-inset-tl')       return [S(0, W*0.04, H*0.04, W*0.7, H*0.7)];
   if (layout === 'p-1-inset-br')       return [S(0, W*0.26, H*0.26, W*0.7, H*0.7)];
   if (layout === 'p-1-wide-center')    return [S(0, W*0.02, H*0.12, W*0.96, H*0.76)];
   if (layout === 'p-1-tall-center')    return [S(0, W*0.2, H*0.02, W*0.6, H*0.96)];
 
-  // ── PAGE: 2 фото додаткові ──
+  //  PAGE: 2 фото додаткові 
   if (layout === 'p-2-triptych')       return [S(0, W*0.04, H*0.08, W*0.42, H*0.84), S(1, W*0.54, H*0.08, W*0.42, H*0.84)];
   if (layout === 'p-2-asymm-left')     return [S(0, 0, 0, W/3, H), S(1, W/3+g, 0, W*2/3-g, H)];
   if (layout === 'p-2-asymm-right')    return [S(0, 0, 0, W*2/3, H), S(1, W*2/3+g, 0, W/3-g, H)];
   if (layout === 'p-2-stacked-center') return [S(0, W*0.08, H*0.04, W*0.84, H*0.44), S(1, W*0.08, H*0.52, W*0.84, H*0.44)];
   if (layout === 'p-2-wide-top')       return [S(0, 0, 0, W, H*0.55), S(1, W*0.1, H*0.58, W*0.8, H*0.38)];
 
-  // ── PAGE: 3 фото додаткові ──
+  //  PAGE: 3 фото додаткові 
   if (layout === 'p-3-fan')            return [S(0, 0, 0, W*0.55, H*0.55), S(1, W*0.22, H*0.22, W*0.55, H*0.55), S(2, W*0.44, H*0.44, W*0.56, H*0.56)];
   if (layout === 'p-3-asymm')          return [S(0, 0, 0, W*0.6, H*0.45), S(1, W*0.6+g, 0, W*0.4-g, H*0.45), S(2, 0, H*0.45+g, W, H*0.55-g)];
   if (layout === 'p-3-stacked')        { const h3s=(H-2*g)/3; return [S(0,W*0.05,0,W*0.9,h3s), S(1,0,h3s+g,W*0.9,h3s), S(2,W*0.1,(h3s+g)*2,W*0.9,h3s)]; }
   if (layout === 'p-3-wide-mid')       return [S(0, W*0.1, 0, W*0.8, H*0.3-g/2), S(1, 0, H*0.3+g/2, W, H*0.4-g), S(2, W*0.1, H*0.7+g/2, W*0.8, H*0.3-g/2)];
   if (layout === 'p-3-2col')           return [S(0, 0, 0, w2, h2), S(1, 0, h2+g, w2, h2), S(2, w2+g, 0, w2, H)];
 
-  // ── PAGE: 4 фото додаткові ──
+  //  PAGE: 4 фото додаткові 
   if (layout === 'p-4-diamond')        return [S(0,W*0.25,0,w2,h2-g/2), S(1,0,h2+g/2,w2,h2-g/2), S(2,w2+g,h2+g/2,w2,h2-g/2), S(3,W*0.25,H*0.5+g/2,w2,h2-g/2)];
   if (layout === 'p-4-t-shape')        return [S(0,0,0,w3,H*0.5-g/2), S(1,w3+g,0,w3,H*0.5-g/2), S(2,(w3+g)*2,0,w3,H*0.5-g/2), S(3,W*0.15,H*0.5+g/2,W*0.7,H*0.5-g/2)];
   if (layout === 'p-4-asymm-col')      return [S(0,0,0,W*0.4,h2-g/2), S(1,0,h2+g/2,W*0.4,h2-g/2), S(2,W*0.4+g,0,W*0.6-g,H*0.6), S(3,W*0.4+g,H*0.6+g,W*0.6-g,H*0.4-g)];
   if (layout === 'p-4-wide-bot')       return [S(0,0,0,w3,H*0.45), S(1,w3+g,0,w3,H*0.45), S(2,(w3+g)*2,0,w3,H*0.45), S(3,0,H*0.45+g,W,H*0.55-g)];
   if (layout === 'p-4-center-focus')   return [S(0,0,0,W*0.22,H), S(1,W*0.22+g,0,W*0.56-2*g,H*0.65), S(2,W*0.22+g,H*0.65+g,W*0.56-2*g,H*0.35-g), S(3,W*0.78,0,W*0.22,H)];
 
-  // ── PAGE: 5 фото додаткові ──
+  //  PAGE: 5 фото додаткові 
   if (layout === 'p-5-scattered')      return [S(0,0,0,W*0.55,H*0.5), S(1,W*0.6,0,W*0.4,H*0.38), S(2,W*0.6,H*0.4,W*0.4,H*0.28), S(3,0,H*0.52,W*0.38,H*0.48), S(4,W*0.4,H*0.6,W*0.6,H*0.4)];
   if (layout === 'p-5-pyramid')        { const tw=(W-2*g)/3; return [S(0,0,0,w2,H*0.38), S(1,w2+g,0,w2,H*0.38), S(2,0,H*0.38+g,tw,H*0.62-g), S(3,tw+g,H*0.38+g,tw,H*0.62-g), S(4,(tw+g)*2,H*0.38+g,tw,H*0.62-g)]; }
   if (layout === 'p-5-2-1-2')         { const sw=(W-g)/2; const sh=(H-2*g)/3; return [S(0,0,0,sw,sh), S(1,sw+g,0,sw,sh), S(2,W*0.1,sh+g,W*0.8,sh), S(3,0,(sh+g)*2,sw,sh), S(4,sw+g,(sh+g)*2,sw,sh)]; }
   if (layout === 'p-5-wide-center')    { const sw=(W-3*g)/4; return [S(0,0,0,sw,H*0.45), S(1,sw+g,0,sw,H*0.45), S(2,W*0.1,H*0.45+g,W*0.8,H*0.25), S(3,0,H*0.7+g,sw+g/2,H*0.3-g), S(4,sw+g+g/2,H*0.7+g,W-sw-g-g/2,H*0.3-g)]; }
   if (layout === 'p-5-editorial')      return [S(0,0,0,W*0.55,H*0.6), S(1,W*0.55+g,0,W*0.45-g,H*0.3-g/2), S(2,W*0.55+g,H*0.3+g/2,W*0.45-g,H*0.3-g/2), S(3,0,H*0.6+g,W*0.28,H*0.4-g), S(4,W*0.28+g,H*0.6+g,W*0.72-g,H*0.4-g)];
 
-  // ── PAGE: 6 фото додаткові ──
+  //  PAGE: 6 фото додаткові 
   if (layout === 'p-6-editorial')      return [S(0,0,0,W*0.65,H*0.5-g/2), S(1,W*0.65+g,0,W*0.35-g,H*0.25-g/2), S(2,W*0.65+g,H*0.25+g/2,W*0.35-g,H*0.25-g/2), S(3,0,H*0.5+g/2,w3,H*0.5-g/2), S(4,w3+g,H*0.5+g/2,w3,H*0.5-g/2), S(5,2*(w3+g),H*0.5+g/2,w3,H*0.5-g/2)];
   if (layout === 'p-6-3rows')          { const rh=(H-2*g)/3; return Array.from({length:6},(_,i)=>S(i,(i%2)*(w2+g),Math.floor(i/2)*(rh+g),w2,rh)); }
   if (layout === 'p-6-asymm')          return [S(0,0,0,W*0.55,H*0.55), S(1,W*0.55+g,0,W*0.45-g,H*0.28-g/2), S(2,W*0.55+g,H*0.28+g/2,W*0.45-g,H*0.27-g/2), S(3,0,H*0.55+g,W*0.28,H*0.45-g), S(4,W*0.28+g,H*0.55+g,W*0.27,H*0.45-g), S(5,W*0.55+g,H*0.55+g,W*0.45-g,H*0.45-g)];
   if (layout === 'p-6-pyramid')        { const sw=(W-2*g)/3; return [S(0,W*0.15,0,W*0.7,H*0.35), S(1,0,H*0.35+g,w2,H*0.3-g/2), S(2,w2+g,H*0.35+g,w2,H*0.3-g/2), S(3,0,H*0.65+g/2,sw,H*0.35-g/2), S(4,sw+g,H*0.65+g/2,sw,H*0.35-g/2), S(5,2*(sw+g),H*0.65+g/2,sw,H*0.35-g/2)]; }
   if (layout === 'p-6-center-hero')    return [S(0,W*0.15,H*0.1,W*0.7,H*0.5), S(1,0,0,W*0.14,H*0.45), S(2,W*0.86,0,W*0.14,H*0.45), S(3,0,H*0.6,W*0.14,H*0.4), S(4,W*0.86,H*0.6,W*0.14,H*0.4), S(5,W*0.15,H*0.62,W*0.7,H*0.38)];
 
-  // ── PAGE: 9 фото додаткові ──
+  //  PAGE: 9 фото додаткові 
   if (layout === 'p-9-4-rows')         { const sw4=(W-3*g)/4; const sw3=(W-2*g)/3; const sw2=(W-g)/2; const sh=(H-3*g)/4; return [...Array.from({length:4},(_,i)=>S(i,i*(sw4+g),0,sw4,sh)), ...Array.from({length:3},(_,i)=>S(i+4,i*(sw3+g),sh+g,sw3,sh)), ...Array.from({length:2},(_,i)=>S(i+7,i*(sw2+g),(sh+g)*2,sw2,sh))]; }
   if (layout === 'p-9-big-center')     { const sw=(W-2*g)/3; const sh=(H-2*g)/3; return [S(0,0,0,sw,sh), S(1,sw+g,0,sw,sh), S(2,2*(sw+g),0,sw,sh), S(3,0,sh+g,sw,sh), S(4,sw+g,sh+g,sw,sh), S(5,2*(sw+g),sh+g,sw,sh), S(6,0,2*(sh+g),sw,sh), S(7,sw+g,2*(sh+g),sw,sh), S(8,2*(sw+g),2*(sh+g),sw,sh)]; }
   if (layout === 'p-9-2col-asym')      { const sh=(H-4*g)/5; return [...Array.from({length:5},(_,i)=>S(i,0,i*(sh+g),W*0.55-g/2,sh)), ...Array.from({length:4},(_,i)=>S(i+5,W*0.55+g/2,i*((H-3*g)/4+g),(W*0.45-g/2),(H-3*g)/4))]; }
@@ -860,42 +860,42 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'p-9-editorial')      return [S(0,0,0,W*0.6,H*0.5), S(1,W*0.6+g,0,W*0.4-g,H*0.25-g/2), S(2,W*0.6+g,H*0.25+g/2,W*0.4-g,H*0.25-g/2), ...Array.from({length:5},(_,i)=>S(i+3,i*((W-4*g)/5+g),H*0.5+g,(W-4*g)/5,H*0.5-g)), S(8,W*0.6+g,H*0.5+g,W*0.4-g,H*0.5-g)];
   if (layout === 'p-9-zigzag')         { const cw=(W-2*g)/3; const ch=(H-2*g)/3; return Array.from({length:9},(_,i)=>S(i,(i%3)*(cw+g),Math.floor(i/3)*(ch+g),cw,ch)); }
 
-  // ── PAGE: Текстові ──
+  //  PAGE: Текстові 
   if (layout === 'p-text-center')      return [];
   if (layout === 'p-text-left')        return [];
   if (layout === 'p-text-right')       return [];
   if (layout === 'p-text-photo-left')  return [S(0, 0, 0, W*0.45, H)];
   if (layout === 'p-text-photo-right') return [S(0, W*0.55, 0, W*0.45, H)];
 
-  // ── SPREAD: 1 фото додаткові ──
+  //  SPREAD: 1 фото додаткові 
   if (layout === 'sp-1-tilt-left')     return [S(0, W*0.02, H*0.05, W*0.55, H*0.9)];
   if (layout === 'sp-1-tilt-right')    return [S(0, W*0.43, H*0.05, W*0.55, H*0.9)];
   if (layout === 'sp-1-wide-strip')    return [S(0, 0, H*0.2, W, H*0.6)];
   if (layout === 'sp-1-panorama')      return [S(0, W*0.02, H*0.08, W*0.96, H*0.84)];
   if (layout === 'sp-1-inset')         return [S(0, W*0.08, H*0.08, W*0.84, H*0.84)];
 
-  // ── SPREAD: 2 фото додаткові ──
+  //  SPREAD: 2 фото додаткові 
   if (layout === 'sp-2-stacked-left')  return [S(0, 0, 0, W*0.48-g/2, h2-g/2), S(1, 0, h2+g/2, W*0.48-g/2, h2-g/2)];
   if (layout === 'sp-2-stacked-right') return [S(0, W*0.52+g/2, 0, W*0.48-g/2, h2-g/2), S(1, W*0.52+g/2, h2+g/2, W*0.48-g/2, h2-g/2)];
   if (layout === 'sp-2-panorama-pair') return [S(0, 0, H*0.1, W*0.5-g/2, H*0.8), S(1, W*0.5+g/2, H*0.1, W*0.5-g/2, H*0.8)];
   if (layout === 'sp-2-asymm-top')     return [S(0, 0, 0, W, H*0.4-g/2), S(1, W*0.1, H*0.4+g/2, W*0.8, H*0.6-g/2)];
   if (layout === 'sp-2-inset-small')   return [S(0, 0, 0, W, H), S(1, W*0.6, H*0.6, W*0.35, H*0.35)];
 
-  // ── SPREAD: 3 фото додаткові ──
+  //  SPREAD: 3 фото додаткові 
   if (layout === 'sp-3-editorial')     return [S(0,0,0,W*0.55,H), S(1,W*0.55+g,0,W*0.45-g,h2-g/2), S(2,W*0.55+g,h2+g/2,W*0.45-g,h2-g/2)];
   if (layout === 'sp-3-scattered')     return [S(0,0,H*0.05,W*0.5,H*0.6), S(1,W*0.45,H*0.35,W*0.55,H*0.6), S(2,W*0.1,H*0.65,W*0.45,H*0.35)];
   if (layout === 'sp-3-asymm-wide')    return [S(0,0,0,W*0.7,H*0.6), S(1,W*0.7+g,0,W*0.3-g,H*0.6), S(2,0,H*0.6+g,W,H*0.4-g)];
   if (layout === 'sp-3-two-col')       return [S(0,0,0,W*0.5-g/2,h2-g/2), S(1,0,h2+g/2,W*0.5-g/2,h2-g/2), S(2,W*0.5+g/2,0,W*0.5-g/2,H)];
   if (layout === 'sp-3-one-two')       return [S(0,0,0,W*0.5-g/2,H), S(1,W*0.5+g/2,0,W*0.5-g/2,h2-g/2), S(2,W*0.5+g/2,h2+g/2,W*0.5-g/2,h2-g/2)];
 
-  // ── SPREAD: 4 фото додаткові ──
+  //  SPREAD: 4 фото додаткові 
   if (layout === 'sp-4-editorial')     return [S(0,0,0,W*0.6,H*0.6), S(1,W*0.6+g,0,W*0.4-g,H*0.3-g/2), S(2,W*0.6+g,H*0.3+g/2,W*0.4-g,H*0.3-g/2), S(3,0,H*0.6+g,W*0.6,H*0.4-g)];
   if (layout === 'sp-4-pyramid')       return [S(0,W*0.15,0,W*0.7,H*0.45), S(1,0,H*0.45+g,W*0.33-g/2,H*0.55-g), S(2,W*0.33+g/2,H*0.45+g,W*0.34-g,H*0.55-g), S(3,W*0.67+g/2,H*0.45+g,W*0.33-g/2,H*0.55-g)];
   if (layout === 'sp-4-scattered')     return [S(0,0,0,W*0.52,H*0.52), S(1,W*0.52+g,0,W*0.48-g,H*0.45), S(2,W*0.52+g,H*0.48,W*0.48-g,H*0.52), S(3,0,H*0.55,W*0.52,H*0.45)];
   if (layout === 'sp-4-2-2')          return [S(0,0,0,W*0.5-g/2,h2-g/2), S(1,0,h2+g/2,W*0.5-g/2,h2-g/2), S(2,W*0.5+g/2,0,W*0.5-g/2,h2-g/2), S(3,W*0.5+g/2,h2+g/2,W*0.5-g/2,h2-g/2)];
   if (layout === 'sp-4-asymm-wide')    return [S(0,0,0,W*0.55,H), S(1,W*0.55+g,0,W*0.45-g,H*0.33-g/3), S(2,W*0.55+g,H*0.33+g/3,W*0.45-g,H*0.34-g/3), S(3,W*0.55+g,H*0.67+g/3,W*0.45-g,H*0.33-g/3)];
 
-  // ── SPREAD: 5+ фото додаткові ──
+  //  SPREAD: 5+ фото додаткові 
   if (layout === 'sp-5-editorial')     return [S(0,0,0,W*0.55,H*0.6), S(1,W*0.55+g,0,W*0.45-g,H*0.3-g/2), S(2,W*0.55+g,H*0.3+g/2,W*0.45-g,H*0.3-g/2), S(3,0,H*0.6+g,W*0.28,H*0.4-g), S(4,W*0.28+g,H*0.6+g,W*0.72-g,H*0.4-g)];
   if (layout === 'sp-6-editorial')     return [S(0,0,0,W*0.5,H*0.55), S(1,W*0.5+g,0,W*0.25-g/2,H*0.28-g/2), S(2,W*0.75+g/2,0,W*0.25-g/2,H*0.28-g/2), S(3,W*0.5+g,H*0.28+g/2,W*0.5-g,H*0.27-g/2), S(4,0,H*0.55+g,W*0.33-g/2,H*0.45-g), S(5,W*0.33+g/2,H*0.55+g,W*0.67-g/2,H*0.45-g)];
   if (layout === 'sp-8-editorial')     { const sw=(W-3*g)/4; const sh=(H-g)/2; return Array.from({length:8},(_,i)=>S(i,(i%4)*(sw+g),Math.floor(i/4)*(sh+g),sw,sh)); }
@@ -1204,7 +1204,7 @@ export default function BookLayoutEditor() {
     setPages(ps);
   }, [config]);
 
-  // ── Designer mode: load existing project canvas_data ──
+  //  Designer mode: load existing project canvas_data 
   useEffect(() => {
     if (!designerOrderId) return;
     let cancelled = false;
@@ -1515,7 +1515,7 @@ export default function BookLayoutEditor() {
     img.src = previewDataUrl;
   };
 
-  // ── Remove background via remove.bg API ──
+  //  Remove background via remove.bg API 
   const removePhotoBg = async (photoId: string) => {
     const photo = photos.find(p => p.id === photoId);
     if (!photo) return;
@@ -1543,7 +1543,7 @@ export default function BookLayoutEditor() {
           ? { ...p, noBgUrl: dataUrl, noBgLoading: false }
           : p
         ));
-        toast.success('✂️ Фон видалено!');
+        toast.success(' Фон видалено!');
       };
       reader.readAsDataURL(resultBlob);
     } catch (err: any) {
@@ -1564,7 +1564,7 @@ export default function BookLayoutEditor() {
     const unused = photos.filter(ph => !usedIds.has(ph.id));
 
     if (unused.length === 0) {
-      toast.success('Усі фото вже розкладені ✓');
+      toast.success('Усі фото вже розкладені ');
       return;
     }
 
@@ -1617,7 +1617,7 @@ export default function BookLayoutEditor() {
       return newPages;
     });
 
-    toast.success(`✨ Розкладено ${unused.length} фото на сторінки!`);
+    toast.success(` Розкладено ${unused.length} фото на сторінки!`);
   };
 
   // Auto-collage: drop N photos onto a page → pick best layout + assign
@@ -2015,7 +2015,7 @@ export default function BookLayoutEditor() {
   if (!config || pages.length === 0) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
 
 
-// ── Pricing (imported from @/lib/editor/pricing) ─────────────────────────
+//  Pricing (imported from @/lib/editor/pricing) 
   const currentPageCount = Math.max(0, pages.length - 1);
   const { dynamicPrice: baseDynamicPrice, priceDiff: basePriceDiff } = calculateDynamicPrice(
     config.selectedCoverType || 'Велюр',
@@ -2055,8 +2055,8 @@ export default function BookLayoutEditor() {
                 <span>Розворот {currentIdx}/{Math.ceil((pages.length-1)/2)}</span>
                 <span>·</span>
                 <span>{photos.length} фото</span>
-                {saveStatus==='saving' && <span style={{color:'#f59e0b'}}>● збер...</span>}
-                {saveStatus==='saved' && <span style={{color:'#10b981'}}>✓</span>}
+                {saveStatus==='saving' && <span style={{color:'#f59e0b'}}> збер...</span>}
+                {saveStatus==='saved' && <span style={{color:'#10b981'}}></span>}
               </div>
             </div>
             {/* Undo */}
@@ -2078,7 +2078,7 @@ export default function BookLayoutEditor() {
             ) : (
               <button onClick={addToCart}
                 style={{ padding:'7px 14px', background:'#16a34a', color:'#fff', border:'none', borderRadius:8, fontWeight:800, fontSize:12, cursor:'pointer', flexShrink:0, touchAction:'manipulation', boxShadow:'0 2px 8px rgba(22,163,74,0.35)' }}>
-                ✓ Готово
+                 Готово
               </button>
             )}
           </div>
@@ -2098,8 +2098,8 @@ export default function BookLayoutEditor() {
               <div style={{ fontSize:11, color:'#64748b' }}>
                 Редактор • {photos.length} фото • {pages.length} сторінок
                 {_slug.includes('travel') ? ' • 20×30 см' : (_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')) ? ' • A4' : config?.selectedSize ? ` • ${config.selectedSize} см` : ''}
-                {saveStatus === 'saving' && <span style={{ color:'#f59e0b', marginLeft:6, fontSize:10 }}>● Зберігаю...</span>}
-                {saveStatus === 'saved' && <span style={{ color:'#10b981', marginLeft:6, fontSize:10 }}>✓ Збережено</span>}
+                {saveStatus === 'saving' && <span style={{ color:'#f59e0b', marginLeft:6, fontSize:10 }}> Зберігаю...</span>}
+                {saveStatus === 'saved' && <span style={{ color:'#10b981', marginLeft:6, fontSize:10 }}> Збережено</span>}
               </div>
             </div>
           </div>
@@ -2122,15 +2122,15 @@ export default function BookLayoutEditor() {
               <div style={{ display:'flex', gap:8 }}>
                 <button onClick={()=>saveDesignerProject('save')} disabled={designerSaving}
                   style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', background:'#7c3aed', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', opacity:designerSaving?0.6:1 }}>
-                  💾 Зберегти макет
+                   Зберегти макет
                 </button>
                 <button onClick={()=>saveDesignerProject('send_for_review')} disabled={designerSaving}
                   style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', background:'#0891b2', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer', opacity:designerSaving?0.6:1 }}>
-                  ✉️ Надіслати на узгодження
+                   Надіслати на узгодження
                 </button>
               </div>
             ) : (
-              <button onClick={addToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#16a34a', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(22,163,74,0.35)' }}>✓ Зберегти та замовити</button>
+              <button onClick={addToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#16a34a', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(22,163,74,0.35)' }}> Зберегти та замовити</button>
             )}
           </div>
         </div>
@@ -2142,7 +2142,7 @@ export default function BookLayoutEditor() {
         {/* Форзац pricing notice — for magazines and travelbooks */}
         {hasEndpaper && (
           <div style={{ position:'absolute', top:0, left:72, right:0, zIndex:50, background:'linear-gradient(90deg,#fef3c7,#fde68a)', padding:'6px 16px', display:'flex', alignItems:'center', justifyContent:'center', gap:8, borderBottom:'1px solid #fcd34d', fontSize:12, color:'#92400e', fontWeight:600 }}>
-            <span>📋</span>
+            <span></span>
             <span>Друк на форзаці — <b>+200 ₴</b> (фіксована ціна за обидва). Налаштуйте у вкладці <b>«ФЗ Форзац»</b></span>
           </div>
         )}
@@ -2154,13 +2154,13 @@ export default function BookLayoutEditor() {
               ...(!isWishbook ? [['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'] as [string, React.ReactNode, string]] : []),
               ['text', <Type key="t" size={20}/>, 'Текст', isMagazine && !hasTextLayout],
               ['bg', <span key="bg" style={{fontSize:16,fontWeight:700}}>Фн</span>, 'Фон'],
-              ['shapes', <span key="sh" style={{fontSize:16,fontWeight:700}}>◻</span>, 'Фігури'],
-              ['stickers', <span key="stk" style={{fontSize:16}}>★</span>, 'Стікери'],
-              ['frames', <span key="fr" style={{fontSize:16,fontWeight:700}}>⬜</span>, 'Рамки'],
+              ['shapes', <span key="sh" style={{fontSize:16,fontWeight:700}}></span>, 'Фігури'],
+              ['stickers', <span key="stk" style={{fontSize:16}}></span>, 'Стікери'],
+              ['frames', <span key="fr" style={{fontSize:16,fontWeight:700}}></span>, 'Рамки'],
               ['qr', <QrCode key="qr" size={18}/>, 'QR-код'],
               ...(hasKalka?[['kalka', <span key="kl" style={{fontSize:13,fontWeight:700}}>КЛ</span>, 'Калька'] as [string, React.ReactNode, string]]:[]),
               ...(hasEndpaper?[['endpaper', <span key="ep" style={{fontSize:11,fontWeight:700}}>ФЗ</span>, 'Форзац'] as [string, React.ReactNode, string]]:[]),
-              ...(currentIdx===0 || isWishbook?[['cover', <span key="cv" style={{fontSize:18}}>▣</span>, 'Обкл.'] as [string, React.ReactNode, string]]:[]),
+              ...(currentIdx===0 || isWishbook?[['cover', <span key="cv" style={{fontSize:18}}></span>, 'Обкл.'] as [string, React.ReactNode, string]]:[]),
             ];
             return allTabs;
           })() as [string, React.ReactNode, string, boolean?][]).map(([id, icon, label, disabled]) => (
@@ -2190,7 +2190,7 @@ export default function BookLayoutEditor() {
                 {/* AI Portrait button */}
                 <button onClick={() => setLeftTab('pixar' as any)}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #a855f7', borderRadius: 10, background: '#faf5ff', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#7c3aed', width: '100%' }}>
-                  🎨 AI Портрет (Піксар / Аніме / Акварель)
+                   AI Портрет (Піксар / Аніме / Акварель)
                 </button>
                 {/* Add free slot button — only on content pages */}
                 {currentIdx !== 0 && (
@@ -2250,7 +2250,7 @@ export default function BookLayoutEditor() {
                         toast.success(`${ids.length} фото → авторозміщення на розворот`);
                       }}
                       style={{ padding:'8px', border:'none', borderRadius:6, background:'#7c3aed', color:'#fff', fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                      ✦ {t(isSpreadMode ? 'constructor.place_on_spread' : 'constructor.place_on_page')}
+                       {t(isSpreadMode ? 'constructor.place_on_spread' : 'constructor.place_on_page')}
                     </button>
                     <button
                       onClick={() => setSelectedPhotoIds(new Set())}
@@ -2274,20 +2274,20 @@ export default function BookLayoutEditor() {
                         style={{ display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', opacity: used ? 0.6 : 1, border: ph.noBgUrl ? '2px solid #7c3aed' : isSel ? '2px solid #7c3aed' : tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : used ? '1px solid #10b981' : '1px solid #e2e8f0', outline: isSel ? '2px solid rgba(124,58,237,0.3)' : tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none', background: isSel ? '#f5f3ff' : tapSelectedPhotoId === ph.id ? '#eff6ff' : '#fff' }}>
                         <div style={{ position: 'relative', width: '100%', aspectRatio: String(ratio), maxHeight: 120, overflow: 'hidden' }}>
                           <img src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-                          {used && tapSelectedPhotoId !== ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, pointerEvents:'none' }}>✓</div>}
+                          {used && tapSelectedPhotoId !== ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, pointerEvents:'none' }}></div>}
                           {used && tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents:'none' }}><span style={{fontSize:9,fontWeight:800,color:'#1d4ed8',background:'rgba(255,255,255,0.9)',padding:'2px 6px',borderRadius:6}}>для заміни</span></div>}
                           {isSel && <div style={{ position: 'absolute', inset: 0, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#7c3aed', fontWeight: 700 }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
-                          {!isSel && tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👆</div>}
+                          {!isSel && tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}></div>}
                           <span style={{ position: 'absolute', top: 2, left: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3 }}>{i + 1}</span>
-                          {ph.hasFace && <span title="Обличчя знайдено — смарт кадрування" style={{ position:'absolute', bottom:2, right:2, fontSize:10, background:'rgba(0,0,0,0.55)', borderRadius:4, padding:'1px 3px' }}>👤</span>}
-                          {ph.focalX !== undefined && !ph.hasFace && <span title="Фокус визначено" style={{ position:'absolute', bottom:2, right:2, fontSize:8, background:'rgba(0,0,0,0.45)', borderRadius:4, padding:'1px 3px', color:'#fff' }}>🎯</span>}
+                          {ph.hasFace && <span title="Обличчя знайдено — смарт кадрування" style={{ position:'absolute', bottom:2, right:2, fontSize:10, background:'rgba(0,0,0,0.55)', borderRadius:4, padding:'1px 3px' }}></span>}
+                          {ph.focalX !== undefined && !ph.hasFace && <span title="Фокус визначено" style={{ position:'absolute', bottom:2, right:2, fontSize:8, background:'rgba(0,0,0,0.45)', borderRadius:4, padding:'1px 3px', color:'#fff' }}></span>}
                           {ph.noBgLoading && <span style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.7)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>⏳</span>}
-                          {ph.noBgUrl && !ph.noBgLoading && <span title="Фон видалено" style={{ position:'absolute', top:2, right:2, background:'rgba(124,58,237,0.9)', color:'#fff', fontSize:9, fontWeight:700, padding:'1px 4px', borderRadius:3 }}>✂ без фону</span>}
+                          {ph.noBgUrl && !ph.noBgLoading && <span title="Фон видалено" style={{ position:'absolute', top:2, right:2, background:'rgba(124,58,237,0.9)', color:'#fff', fontSize:9, fontWeight:700, padding:'1px 4px', borderRadius:3 }}> без фону</span>}
                           {/* Low DPI warning — check against full page size */}
                           {(() => {
                             const dpi = checkPhotoDpi(ph.width, ph.height, pageW, cH, pageW, cH, prop.w, prop.h);
                             if (!dpi || dpi.level === 'ok') return null;
-                            return <span title={`${dpi.dpi} DPI для повної сторінки`} style={{ position:'absolute', top:2, right:2, background: dpi.level==='bad' ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.85)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 4px', borderRadius:3, cursor:'help' }}>⚠ {dpi.dpi}</span>;
+                            return <span title={`${dpi.dpi} DPI для повної сторінки`} style={{ position:'absolute', top:2, right:2, background: dpi.level==='bad' ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.85)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 4px', borderRadius:3, cursor:'help' }}> {dpi.dpi}</span>;
                           })()}
                         </div>
                         <div style={{ padding: '3px 4px', fontSize: 9, color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }} title={ph.name}>{displayName}</div>
@@ -2297,7 +2297,7 @@ export default function BookLayoutEditor() {
                           disabled={!!ph.noBgLoading}
                           title={ph.noBgUrl ? 'Відновити фон' : 'Видалити фон (remove.bg)'}
                           style={{ width:'100%', padding:'3px 2px', border:'none', borderTop:'1px solid #f1f5f9', background: ph.noBgUrl ? '#fef3c7' : '#faf5ff', color: ph.noBgUrl ? '#d97706' : '#7c3aed', cursor: ph.noBgLoading ? 'wait' : 'pointer', fontSize:9, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', gap:3 }}>
-                          {ph.noBgLoading ? '⏳' : ph.noBgUrl ? '↩ фон' : '✂ без фону'}
+                          {ph.noBgLoading ? '⏳' : ph.noBgUrl ? '↩ фон' : ' без фону'}
                         </button>
                       </div>
                     );
@@ -2356,7 +2356,7 @@ export default function BookLayoutEditor() {
                   const groups = [...new Set(textTemplates.map(t => t.group))];
                   return groups.map(group => (
                     <div key={'txt-'+group}>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', padding: '8px 4px 4px', textTransform: 'uppercase' }}>📝 {group}</div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', padding: '8px 4px 4px', textTransform: 'uppercase' }}> {group}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                         {textTemplates.filter(t => t.group === group).map(tmpl => (
                           <button key={tmpl.id} title={tmpl.label}
@@ -2384,7 +2384,7 @@ export default function BookLayoutEditor() {
                             }}
                             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '7px 4px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>
                             <div style={{ width: '100%', height: 48, borderRadius: 4, background: tmpl.bgColor || '#f8fafc', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#94a3b8', overflow: 'hidden', position: 'relative' }}>
-                              {tmpl.hasPhoto && <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 10 }}>📷</span>}
+                              {tmpl.hasPhoto && <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 10 }}></span>}
                               <span style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.2, padding: '0 4px', color: '#64748b' }}>
                                 {tmpl.texts[0]?.text.slice(0, 20)}...
                               </span>
@@ -2420,7 +2420,7 @@ export default function BookLayoutEditor() {
                     toast.success(`Шаблон «${LAYOUTS.find(l=>l.id===activeLayout)?.label||activeLayout}» застосовано до всіх сторінок`);
                   }}
                     style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 10px', border: '1px solid #ddd6fe', borderRadius: 8, background: '#faf5ff', cursor: 'pointer', fontWeight: 600, fontSize: 11, color: '#7c3aed', width: '100%' }}>
-                    ✦ Шаблон до всіх сторінок
+                     Шаблон до всіх сторінок
                   </button>
                 </div>
               </div>
@@ -2468,7 +2468,7 @@ export default function BookLayoutEditor() {
                           {(['rect','rounded','circle','heart'] as const).map(sh => (
                             <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
                               style={{ flex:1, padding:'6px 4px', border: ps.shape===sh ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: ps.shape===sh ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:16 }}>
-                              {sh==='rect'?'▭':sh==='rounded'?'▢':sh==='heart'?'♥':'◯'}
+                              {sh==='rect'?'':sh==='rounded'?'':sh==='heart'?'':''}
                             </button>
                           ))}
                         </div>
@@ -2580,7 +2580,7 @@ export default function BookLayoutEditor() {
                                 return (
                                   <button key={sh} onClick={()=>setCoverState(p=>({...p,backCoverSlot:{...bs,shape:sh}}))}
                                     style={{ flex:1, padding:'5px 4px', border: bs.shape===sh ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: bs.shape===sh ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:14 }}>
-                                    {sh==='rect'?'▭':sh==='rounded'?'▢':sh==='heart'?'♥':'◯'}
+                                    {sh==='rect'?'':sh==='rounded'?'':sh==='heart'?'':''}
                                   </button>
                                 );
                               })}
@@ -2613,7 +2613,7 @@ export default function BookLayoutEditor() {
                             <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleUpload} style={{ display:'none' }} />
                             <button onClick={() => fileRef.current?.click()}
                               style={{ width:'100%', padding:'8px', fontSize:10, fontWeight:700, color:'#1e2d7d', background:'#f0f3ff', border:'2px dashed #c7d2fe', borderRadius:6, cursor:'pointer' }}>
-                              📷 Завантажити фото
+                               Завантажити фото
                             </button>
                           </div>
                         ) : (
@@ -2801,7 +2801,7 @@ export default function BookLayoutEditor() {
             {(leftTab as string) === 'pixar' && (
               <div style={{ padding:'0 4px' }}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                  <span style={{ fontSize:14, fontWeight:800, color:'#7c3aed' }}>🎨 AI Портрет</span>
+                  <span style={{ fontSize:14, fontWeight:800, color:'#7c3aed' }}> AI Портрет</span>
                   <button onClick={()=>setLeftTab('photos')} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', fontSize:11 }}>← Назад до фото</button>
                 </div>
                 <PixarPortraitGenerator
@@ -2812,7 +2812,7 @@ export default function BookLayoutEditor() {
                     detectFocalPoint(url, newPhoto.id);
                     setLeftTab('photos');
                     setHasAiPortrait(true);
-                    toast.success('🎨 AI портрет додано! +75 ₴');
+                    toast.success(' AI портрет додано! +75 ₴');
                   }}
                 />
               </div>
@@ -2853,7 +2853,7 @@ export default function BookLayoutEditor() {
                         style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺ Скинути</button>
                     </div>
                     <div style={{ marginTop:8, padding:'8px 10px', background:'#f0f3ff', borderRadius:8, fontSize:11, color:'#1e2d7d' }}>
-                      💡 Фото обкладинки перекриє фон
+                       Фото обкладинки перекриє фон
                     </div>
                   </div>
                 ) : currentIdx === 0 && !isPrinted ? (
@@ -2880,7 +2880,7 @@ export default function BookLayoutEditor() {
                     toast.success(`Фон застосовано до всіх ${pages.length - 1} сторінок`);
                   }}
                     style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 10px', border:'1px solid #ddd6fe', borderRadius:8, background:'#faf5ff', cursor:'pointer', fontWeight:600, fontSize:11, color:'#7c3aed', width:'100%' }}>
-                    ✦ Застосувати фон до всіх сторінок
+                     Застосувати фон до всіх сторінок
                   </button>
                 </div>
                 {/* Gap & Border controls */}
@@ -2989,7 +2989,7 @@ export default function BookLayoutEditor() {
               if (currentIdx === 0 && !isPrinted) {
                 return (
                   <div style={{ padding:'16px 12px', textAlign:'center' }}>
-                    <div style={{ fontSize:24, marginBottom:8 }}>◻</div>
+                    <div style={{ fontSize:24, marginBottom:8 }}></div>
                     <div style={{ fontSize:12, fontWeight:700, color:'#374151', marginBottom:6 }}>Фігури недоступні на цій обкладинці</div>
                     <div style={{ fontSize:11, color:'#94a3b8', lineHeight:1.5 }}>
                       Фігури доступні для друкованих обкладинок та внутрішніх сторінок.
@@ -3044,11 +3044,11 @@ export default function BookLayoutEditor() {
                   <div style={{ display:'flex', gap:6 }}>
                     <button onClick={() => kalkaImageInputRef.current?.click()}
                       style={{ flex:1, padding:'8px 10px', border:'1.5px dashed #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:600, color:'#1e2d7d' }}>
-                      📎 Завантажити зображення
+                       Завантажити зображення
                     </button>
                     {kalkaState.imageUrl && (
                       <button onClick={() => setKalkaState(p => ({ ...p, imageUrl: null }))}
-                        style={{ padding:'8px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', fontSize:11, color:'#ef4444' }}>✕</button>
+                        style={{ padding:'8px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:'pointer', fontSize:11, color:'#ef4444' }}></button>
                     )}
                   </div>
                   {kalkaState.imageUrl && (
@@ -3123,13 +3123,13 @@ export default function BookLayoutEditor() {
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', background:'#f0f3ff', borderRadius:8, fontSize:11 }}>
                     <span style={{ fontWeight:700, color:'#1e2d7d' }}>Перший форзац</span>
                     <span style={{ color: endpaperUnlocked.first ? '#16a34a' : '#94a3b8', fontWeight:700 }}>
-                      {endpaperUnlocked.first ? '✓ Активний' : '○ Не активний'}
+                      {endpaperUnlocked.first ? ' Активний' : ' Не активний'}
                     </span>
                   </div>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', background:'#f0f3ff', borderRadius:8, fontSize:11 }}>
                     <span style={{ fontWeight:700, color:'#1e2d7d' }}>Останній форзац</span>
                     <span style={{ color: endpaperUnlocked.last ? '#16a34a' : '#94a3b8', fontWeight:700 }}>
-                      {endpaperUnlocked.last ? '✓ Активний' : '○ Не активний'}
+                      {endpaperUnlocked.last ? ' Активний' : ' Не активний'}
                     </span>
                   </div>
                 </div>
@@ -3141,22 +3141,22 @@ export default function BookLayoutEditor() {
                 {
                   group: 'Emoji',
                   items: [
-                    {name:'Серце', emoji:'❤️', url:''},
-                    {name:'Зірка', emoji:'⭐', url:''},
-                    {name:'Сонце', emoji:'☀️', url:''},
-                    {name:'Квітка', emoji:'🌸', url:''},
-                    {name:'Корона', emoji:'👑', url:''},
-                    {name:'Метелик', emoji:'🦋', url:''},
-                    {name:'Місяць', emoji:'🌙', url:''},
-                    {name:'Хмара', emoji:'☁️', url:''},
-                    {name:'Діамант', emoji:'💎', url:''},
-                    {name:'Веселка', emoji:'🌈', url:''},
-                    {name:"Полум'я", emoji:'🔥', url:''},
-                    {name:'Зірочки', emoji:'✨', url:''},
-                    {name:'Бант', emoji:'🎀', url:''},
-                    {name:'Кулька', emoji:'🎈', url:''},
-                    {name:'Сніжинка', emoji:'❄️', url:''},
-                    {name:'Торт', emoji:'🎂', url:''},
+                    {name:'Серце', emoji:'', url:''},
+                    {name:'Зірка', emoji:'', url:''},
+                    {name:'Сонце', emoji:'', url:''},
+                    {name:'Квітка', emoji:'', url:''},
+                    {name:'Корона', emoji:'', url:''},
+                    {name:'Метелик', emoji:'', url:''},
+                    {name:'Місяць', emoji:'', url:''},
+                    {name:'Хмара', emoji:'', url:''},
+                    {name:'Діамант', emoji:'', url:''},
+                    {name:'Веселка', emoji:'', url:''},
+                    {name:"Полум'я", emoji:'', url:''},
+                    {name:'Зірочки', emoji:'', url:''},
+                    {name:'Бант', emoji:'', url:''},
+                    {name:'Кулька', emoji:'', url:''},
+                    {name:'Сніжинка', emoji:'', url:''},
+                    {name:'Торт', emoji:'', url:''},
                   ],
                 },
                 {
@@ -3224,12 +3224,12 @@ export default function BookLayoutEditor() {
                   <div>
                     <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>Власні стікери</div>
                     <label style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:700, color:'#1e2d7d' }}>
-                      <span style={{ fontSize:18 }}>📎</span>
+                      <span style={{ fontSize:18 }}></span>
                       Завантажити PNG / стікер
                       <input type="file" accept="image/*" style={{ display:'none' }} onChange={handleCustomSticker} />
                     </label>
                     <div style={{ fontSize:9, color:'#94a3b8', marginTop:4, lineHeight:1.4 }}>
-                      PNG з прозорістю або будь-яке фото. Після додавання можна прибрати фон кнопкою ✂️
+                      PNG з прозорістю або будь-яке фото. Після додавання можна прибрати фон кнопкою 
                     </div>
                     {/* Show custom stickers with remove-bg button */}
                     {(() => {
@@ -3245,7 +3245,7 @@ export default function BookLayoutEditor() {
                                 onClick={() => removeBackground(stk.url, spi, stk.id)}
                                 title="Видалити фон"
                                 style={{ position:'absolute', bottom:2, right:2, background:'rgba(0,0,0,0.7)', border:'none', borderRadius:6, color:'#fff', fontSize:10, padding:'2px 5px', cursor:'pointer' }}>
-                                ✂️
+                                
                               </button>
                             </div>
                           ))}
@@ -3359,7 +3359,7 @@ export default function BookLayoutEditor() {
                       </button>
                     )}
                     <div style={{ padding: '8px 10px', background: '#f0f3ff', borderRadius: 8, fontSize: 11, color: '#64748b' }}>
-                      💡 Перейдіть на внутрішні сторінки для вільного розміщення тексту кліком
+                       Перейдіть на внутрішні сторінки для вільного розміщення тексту кліком
                     </div>
                   </div>
                 ) : (
@@ -3374,7 +3374,7 @@ export default function BookLayoutEditor() {
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Розмір: {tFontSize}px</div>
                     {!selectedTextId && <span style={{ fontSize:9, color:'#f59e0b', fontWeight:600 }}>↑ клікніть на текст</span>}
-                    {selectedTextId && <span style={{ fontSize:9, color:'#10b981', fontWeight:600 }}>✓ активний</span>}
+                    {selectedTextId && <span style={{ fontSize:9, color:'#10b981', fontWeight:600 }}> активний</span>}
                   </div>
                   <input type="range" min={8} max={120} value={tFontSize} onChange={e => { const v = +e.target.value; setTFontSize(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontSize: v }, selectedTextPageIdx); }} style={{ width: '100%', accentColor: selectedTextId ? '#1e2d7d' : '#94a3b8' }} />
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Колір</div>
@@ -3510,7 +3510,7 @@ export default function BookLayoutEditor() {
           {/* Форзац surcharge notice for magazines/travelbooks */}
           {hasEndpaper && (
             <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:10, padding:'8px 14px', fontSize:12, color:'#92400e', marginBottom:10, maxWidth: cW, textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-              <span style={{ fontSize:16 }}>📋</span>
+              <span style={{ fontSize:16 }}></span>
               <span>Форзац — перша та остання сторінка. Друк на форзаці <b>+200 ₴</b> (фіксована за обидва). Натисніть <b>«ФЗ»</b> для налаштування.</span>
             </div>
           )}
@@ -3789,7 +3789,7 @@ export default function BookLayoutEditor() {
                   )}
                   {!kalkaState.text && !kalkaState.imageUrl && (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', gap: 8, pointerEvents: 'none' }}>
-                      <div style={{ fontSize: 28, opacity: 0.15 }}>📜</div>
+                      <div style={{ fontSize: 28, opacity: 0.15 }}></div>
                       <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>Калька</span>
                       <span style={{ fontSize: 9, color: '#cbd5e1' }}>Натисніть для редагування</span>
                     </div>
@@ -4023,8 +4023,8 @@ export default function BookLayoutEditor() {
                                       <span style={{color:'rgba(255,255,255,0.7)',fontSize:8,minWidth:18,textAlign:'center'}}>{slot!.rotation||0}°</span>
                                       <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)+90)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути +90°">↷</button>
                                       <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                      <button onPointerDown={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}>✕</button>
-                                      <button onPointerDown={e=>{e.stopPropagation();setEditSlotKey(editSlotKey===key?null:key);setPhotoEditSlot(null);}} style={{background:'rgba(59,130,246,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}>✎</button>
+                                      <button onPointerDown={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}></button>
+                                      <button onPointerDown={e=>{e.stopPropagation();setEditSlotKey(editSlotKey===key?null:key);setPhotoEditSlot(null);}} style={{background:'rgba(59,130,246,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}></button>
                                     </div>
                                   </div>
                                 )}
@@ -4036,7 +4036,7 @@ export default function BookLayoutEditor() {
                                       return (
                                         <button key={sh} onClick={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,shape:sh})}));}}
                                           style={{background:curShape===sh?'rgba(255,255,255,0.3)':'none',border:'none',color:'#fff',cursor:'pointer',fontSize:12,padding:'2px 5px',borderRadius:8}}>
-                                          {sh==='rect'?'▭':sh==='rounded'?'▢':sh==='heart'?'♥':'◯'}
+                                          {sh==='rect'?'':sh==='rounded'?'':sh==='heart'?'':''}
                                         </button>
                                       );
                                     })}
@@ -4071,7 +4071,7 @@ export default function BookLayoutEditor() {
                                 return (
                                   <div title={`${dpiCheck.dpi} DPI — ${isBad ? 'якість буде погана' : 'якість може бути недостатня'}`}
                                     style={{ position:'absolute', top:4, left:4, display:'flex', alignItems:'center', gap:3, padding:'2px 6px', background: isBad ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.9)', borderRadius:10, zIndex:35, pointerEvents:'auto', cursor:'help', fontSize:9, fontWeight:700, color:'#fff' }}>
-                                    <span style={{fontSize:11}}>⚠</span>{dpiCheck.dpi} DPI
+                                    <span style={{fontSize:11}}></span>{dpiCheck.dpi} DPI
                                   </div>
                                 );
                               })()}
@@ -4127,7 +4127,7 @@ export default function BookLayoutEditor() {
                               <button onClick={e=>{e.stopPropagation();setEditSlotKey(null);}}
                                 onMouseDown={e=>e.stopPropagation()}
                                 style={{position:'absolute',left:lx+sw/2,top:ty-24,transform:'translateX(-50%)',background:'#16a34a',color:'#fff',border:'none',cursor:'pointer',fontSize:10,fontWeight:700,padding:'3px 12px',borderRadius:10,zIndex:16,boxShadow:'0 2px 6px rgba(0,0,0,0.3)'}}>
-                                ✓ Готово
+                                 Готово
                               </button>
                             </>
                           );
@@ -4238,7 +4238,7 @@ export default function BookLayoutEditor() {
                       {/* Empty state hint */}
                       {!kalkaState.text && !kalkaState.imageUrl && (
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, pointerEvents: 'none' }}>
-                          <div style={{ fontSize: 28, opacity: 0.15 }}>📜</div>
+                          <div style={{ fontSize: 28, opacity: 0.15 }}></div>
                           <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>Калька</span>
                           <span style={{ fontSize: 9, color: '#cbd5e1' }}>Натисніть для редагування</span>
                         </div>
@@ -4370,7 +4370,7 @@ export default function BookLayoutEditor() {
                       {pageDefs.length === 0 && !textTool && currentIdx !== 0 && (
                         <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, zIndex:2 }}>
                           <div style={{ padding:'16px 20px', background:'rgba(238,240,251,0.95)', borderRadius:12, border:'2px dashed #c7d2fe', textAlign:'center', maxWidth:'85%', pointerEvents:'none' }}>
-                            <div style={{ fontSize:26, marginBottom:6 }}>📋</div>
+                            <div style={{ fontSize:26, marginBottom:6 }}></div>
                             <div style={{ fontSize:12, fontWeight:800, color:'#1e2d7d', marginBottom:4 }}>Сторінка без шаблону</div>
                             <div style={{ fontSize:11, color:'#6b7280', lineHeight:1.5 }}>
                               Оберіть шаблон у панелі<br/>
@@ -4461,7 +4461,7 @@ export default function BookLayoutEditor() {
                                         <span style={{color:'rgba(255,255,255,0.7)',fontSize:8,fontWeight:600,minWidth:18,textAlign:'center'}}>{slot!.rotation||0}°</span>
                                         <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)+90)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути +90°">↷</button>
                                         <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                        <button onPointerDown={e=>{e.stopPropagation();clearSlot(pageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}>✕</button>
+                                        <button onPointerDown={e=>{e.stopPropagation();clearSlot(pageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}></button>
                                       </div>
                                     </div>
                                   )}
@@ -4481,7 +4481,7 @@ export default function BookLayoutEditor() {
                                         background: isBad ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.9)',
                                         borderRadius:10, zIndex:35, pointerEvents:'auto', cursor:'help',
                                         fontSize:9, fontWeight:700, color:'#fff', lineHeight:1 }}>
-                                      <span style={{fontSize:11}}>⚠</span>{dpiCheck.dpi} DPI
+                                      <span style={{fontSize:11}}></span>{dpiCheck.dpi} DPI
                                     </div>
                                   );
                                 })()}
@@ -4658,7 +4658,7 @@ export default function BookLayoutEditor() {
                               }; img2.src=stk.url;
                             }}
                             title="Видалити фон"
-                            style={{ position:'absolute',top:-6,left:-6,width:18,height:18,borderRadius:'50%',background:'#8b5cf6',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>✂</button>
+                            style={{ position:'absolute',top:-6,left:-6,width:18,height:18,borderRadius:'50%',background:'#8b5cf6',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}></button>
                           )}
                         </div>
                       ))}
@@ -4883,8 +4883,8 @@ export default function BookLayoutEditor() {
                   onPointerDown={() => { setTapSelectedPhotoId(isTapped ? null : ph.id); setMobilePanel(false); }}
                   style={{ flexShrink:0, width:56, height:56, borderRadius:8, overflow:'hidden', border: isTapped ? '2.5px solid #3b82f6' : '2px solid transparent', cursor:'pointer', position:'relative', touchAction:'manipulation' }}>
                   <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
-                  {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>👆</div>}
-                  {ph.hasFace && <span style={{ position:'absolute', bottom:1, right:1, fontSize:9 }}>👤</span>}
+                  {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}></div>}
+                  {ph.hasFace && <span style={{ position:'absolute', bottom:1, right:1, fontSize:9 }}></span>}
                 </div>
               );
             })}
@@ -4893,7 +4893,7 @@ export default function BookLayoutEditor() {
               return !used;
             }).length === 0 && (
               <div style={{ color:'#94a3b8', fontSize:11, padding:'4px 8px', display:'flex', alignItems:'center', gap:6 }}>
-                <span>✓</span> Всі фото розміщено
+                <span></span> Всі фото розміщено
               </div>
             )}
           </div>
@@ -5000,7 +5000,7 @@ export default function BookLayoutEditor() {
                     }}>
                     <div style={{ position:'relative', width:thumbW, height:thumbH, borderRadius:4, overflow:'hidden', flexShrink:0 }}>
                       <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
-                      {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✓</div>}
+                      {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>}
                       {isSel && <div style={{ position:'absolute', top:2, right:2, width:18, height:18, borderRadius:'50%', background:'#7c3aed', color:'#fff', fontSize:10, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
                       <span style={{ position:'absolute', top:2, left:2, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 3px', borderRadius:2 }}>{i+1}</span>
                       {timelineCuts.size > 0 && (
@@ -5031,7 +5031,7 @@ export default function BookLayoutEditor() {
                       {hasCutAfter ? (
                         <>
                           <div style={{ width:2, height:20, background:'rgba(255,255,255,0.6)', borderRadius:1 }}/>
-                          <div style={{ fontSize:8, color:'#fff', fontWeight:800, lineHeight:1 }}>✂</div>
+                          <div style={{ fontSize:8, color:'#fff', fontWeight:800, lineHeight:1 }}></div>
                           <div style={{ width:2, height:20, background:'rgba(255,255,255,0.6)', borderRadius:1 }}/>
                         </>
                       ) : (
@@ -5054,7 +5054,7 @@ export default function BookLayoutEditor() {
           <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:420, boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }}>
             {tooltipStep === 0 && (
               <>
-                <div style={{ fontSize:24, marginBottom:12 }}>👋</div>
+                <div style={{ fontSize:24, marginBottom:12 }}></div>
                 <h3 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:8 }}>Ласкаво просимо до редактора!</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:20 }}>
                   Тут ви можете створити свій унікальний {config?.productName ? `«${config.productName}»` : 'виріб'}. Давайте розберемось як це працює.
@@ -5082,7 +5082,7 @@ export default function BookLayoutEditor() {
             )}
             {tooltipStep === 2 && (
               <>
-                <div style={{ fontSize:24, marginBottom:12 }}>📐</div>
+                <div style={{ fontSize:24, marginBottom:12 }}></div>
                 <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Шаблони та активна сторінка</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
                   <b>Клікніть на ліву або праву сторінку</b> розвороту щоб зробити її активною.
@@ -5098,7 +5098,7 @@ export default function BookLayoutEditor() {
             )}
             {tooltipStep === 3 && (
               <>
-                <div style={{ fontSize:24, marginBottom:12 }}>✏️</div>
+                <div style={{ fontSize:24, marginBottom:12 }}></div>
                 <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Текст, фон та фігури</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
                   В панелі <b>Текст</b> — натисніть «Додати текст», потім клікніть на сторінку.
@@ -5116,7 +5116,7 @@ export default function BookLayoutEditor() {
             )}
             {tooltipStep === 4 && (
               <>
-                <div style={{ fontSize:24, marginBottom:12 }}>👁️</div>
+                <div style={{ fontSize:24, marginBottom:12 }}></div>
                 <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Попередній перегляд та замовлення</h3>
                 <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
                   Натисніть <b>Попередній перегляд</b> щоб переглянути виріб з перегортанням сторінок.
@@ -5125,13 +5125,13 @@ export default function BookLayoutEditor() {
                   Хочете більше сторінок? Натисніть <b>+ Розворот</b> в правій панелі. Ціна оновлюється автоматично.
                 </p>
                 <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#15803d' }}>
-                  ✓ Коли завершите — натисніть зелену кнопку <b>«Зберегти та замовити»</b> у верхньому правому куті.
+                   Коли завершите — натисніть зелену кнопку <b>«Зберегти та замовити»</b> у верхньому правому куті.
                 </div>
                 <button onClick={() => {
                   setShowTooltips(false);
                   localStorage.setItem('editor_tooltips_seen', '1');
                 }} style={{ width:'100%', padding:'12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
-                  Зрозуміло, почнемо! 🚀
+                  Зрозуміло, почнемо! 
                 </button>
                 <button onClick={() => {
                   setShowTooltips(false);
@@ -5157,11 +5157,11 @@ export default function BookLayoutEditor() {
             {ctxMenu.type === 'text' && <>
               <button onClick={()=>{ haptic.light(); setEditingTextId(ctxMenu.id); closeCtxMenu(); }}
                 style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#1e2d7d', fontWeight:600 }}>
-                ✏️ Редагувати текст
+                 Редагувати текст
               </button>
               <button onClick={()=>{ haptic.error(); if (ctxMenu.pageIdx !== undefined) deleteTxtForPage(ctxMenu.id, ctxMenu.pageIdx); else deleteTxt(ctxMenu.id); closeCtxMenu(); }}
                 style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#ef4444', fontWeight:600 }}>
-                🗑️ Видалити
+                 Видалити
               </button>
             </>}
             {ctxMenu.type === 'slot' && <>
@@ -5170,11 +5170,11 @@ export default function BookLayoutEditor() {
                 setPages(prev=>prev.map((p,i)=>i!==pi?p:{...p,slots:p.slots.map((s,j)=>j!==si?s:{...s,photoId:null,cropX:50,cropY:50})}));
                 closeCtxMenu();
               }} style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#374151', fontWeight:500 }}>
-                🖼️ Очистити слот
+                 Очистити слот
               </button>
               <button onClick={()=>{ haptic.light(); setPhotoEditSlot(ctxMenu.id); closeCtxMenu(); }}
                 style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#1e2d7d', fontWeight:500 }}>
-                ✂️ Режим кадрування
+                 Режим кадрування
               </button>
               {(() => {
                 const [pi,si] = ctxMenu.id.split('-').map(Number);
@@ -5186,7 +5186,7 @@ export default function BookLayoutEditor() {
                 return (
                   <button onClick={()=>{ haptic.light(); removePhotoBg(slotPhoto.id); closeCtxMenu(); }}
                     style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background: hasNoBg ? '#fef3c7' : 'transparent', cursor:'pointer', fontSize:14, color: hasNoBg ? '#d97706' : '#7c3aed', fontWeight:500 }}>
-                    {isLoading ? '⏳' : hasNoBg ? '↩️' : '✂️'} {isLoading ? 'Видаляю фон...' : hasNoBg ? 'Відновити фон' : 'Видалити фон (remove.bg)'}
+                    {isLoading ? '⏳' : hasNoBg ? '↩' : ''} {isLoading ? 'Видаляю фон...' : hasNoBg ? 'Відновити фон' : 'Видалити фон (remove.bg)'}
                   </button>
                 );
               })()}
@@ -5205,11 +5205,11 @@ export default function BookLayoutEditor() {
 
             {/* Steps */}
             {[
-              { icon:'📸', title:'Додати фото в слот', desc:'Відкрий "Зображення" → тапни фото → тапни слот на сторінці' },
-              { icon:'✌️', title:'Збільшити/зменшити фото', desc:'Зведи або розведи два пальці на фото (pinch-zoom)' },
-              { icon:'👆👆', title:'Змінити кадрування', desc:'Двічі тапни на фото → переміщай пальцем → "Готово"' },
-              { icon:'☝️', title:'Перемістити слот', desc:'Один палець на рамці фотослота → тягни в потрібне місце' },
-              { icon:'↔️', title:'Змінити розмір слота', desc:'Тапни слот → тягни за білі кутові ручки' },
+              { icon:'', title:'Додати фото в слот', desc:'Відкрий "Зображення" → тапни фото → тапни слот на сторінці' },
+              { icon:'', title:'Збільшити/зменшити фото', desc:'Зведи або розведи два пальці на фото (pinch-zoom)' },
+              { icon:'', title:'Змінити кадрування', desc:'Двічі тапни на фото → переміщай пальцем → "Готово"' },
+              { icon:'', title:'Перемістити слот', desc:'Один палець на рамці фотослота → тягни в потрібне місце' },
+              { icon:'↔', title:'Змінити розмір слота', desc:'Тапни слот → тягни за білі кутові ручки' },
               { icon:'⊡', title:'Редагувати обкладинку', desc:'Перейди на "Обкладинка" → налаштуй фото, текст, накладення' },
             ].map(({ icon, title, desc }) => (
               <div key={title} style={{ display:'flex', gap:12, alignItems:'flex-start', padding:'10px 0', borderBottom:'1px solid #f1f5f9' }}>
@@ -5262,12 +5262,12 @@ export default function BookLayoutEditor() {
           {/* Tool buttons row */}
           <div style={{ display:'flex', alignItems:'stretch' }}>
             {([
-              ...(!isWishbook ? [['photos', '🖼', 'Фото']] : []),
+              ...(!isWishbook ? [['photos', '', 'Фото']] : []),
               ...(!isWishbook ? [['layouts', '⊞', 'Макет']] : []),
               ['text', 'Aa', 'Текст'],
-              ['bg', '🎨', 'Фон'],
-              ['stickers', '⭐', 'Стікер'],
-              ...(currentIdx===0 || isWishbook ? [['cover', '🖊', 'Обкл.']] : [['frames', '▭', 'Рамки']]) as any,
+              ['bg', '', 'Фон'],
+              ['stickers', '', 'Стікер'],
+              ...(currentIdx===0 || isWishbook ? [['cover', '', 'Обкл.']] : [['frames', '', 'Рамки']]) as any,
             ] as [string,string,string][]).map(([id, icon, label]) => {
               const active = leftTab===id && mobilePanel;
               return (
@@ -5292,9 +5292,9 @@ export default function BookLayoutEditor() {
               );
             })}
             {/* Quick Auto button */}
-            <button onPointerDown={()=>{ autoFill(); toast.success('✨ Авто!', {duration:1200}); }}
+            <button onPointerDown={()=>{ autoFill(); toast.success(' Авто!', {duration:1200}); }}
               style={{ flex:1, padding:'7px 2px 5px', border:'none', background:'transparent', color:'#374151', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, cursor:'pointer', minWidth:0, touchAction:'manipulation', borderTop:'2px solid transparent' }}>
-              <span style={{ fontSize:19, lineHeight:1 }}>✨</span>
+              <span style={{ fontSize:19, lineHeight:1 }}></span>
               <span style={{ fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>Авто</span>
             </button>
           </div>
@@ -5412,7 +5412,7 @@ export default function BookLayoutEditor() {
                 {/* Tap-to-place hint */}
                 {!tapSelectedPhotoId && (
                   <div style={{ background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:10, padding:'8px 12px', fontSize:11, color:'#0369a1', display:'flex', gap:8, alignItems:'flex-start' }}>
-                    <span style={{ fontSize:14, flexShrink:0 }}>💡</span>
+                    <span style={{ fontSize:14, flexShrink:0 }}></span>
                     <span><b>Тап на фото</b> → потім <b>тапніть слот</b> на сторінці щоб вставити</span>
                   </div>
                 )}
@@ -5424,15 +5424,15 @@ export default function BookLayoutEditor() {
                   {photos.length > 0 && (
                     <button onPointerDown={()=>{ autoFill(); setMobilePanel(false); toast.success('Фото розкладено!'); }}
                       style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'11px 12px', border:'2px solid #10b981', borderRadius:10, background:'#f0fdf4', cursor:'pointer', fontWeight:700, fontSize:13, color:'#059669', touchAction:'manipulation', flexShrink:0 }}>
-                      <span style={{fontSize:18}}>⚡</span> Авто
+                      <span style={{fontSize:18}}></span> Авто
                     </button>
                   )}
                 </div>
                 <input id="photo-upload-mobile" type="file" multiple accept="image/*" style={{display:'none'}} onChange={handleUpload}/>
                 {tapSelectedPhotoId && (
                   <div style={{ background:'#dbeafe', border:'2px solid #3b82f6', borderRadius:10, padding:'10px 12px', fontSize:12, color:'#1d4ed8', fontWeight:700, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                    <span>👆 Тапніть на слот у книзі</span>
-                    <button onClick={()=>setTapSelectedPhotoId(null)} style={{ background:'rgba(0,0,0,0.08)', border:'none', borderRadius:6, cursor:'pointer', color:'#1d4ed8', fontSize:13, padding:'2px 8px', fontWeight:700, touchAction:'manipulation' }}>✕</button>
+                    <span> Тапніть на слот у книзі</span>
+                    <button onClick={()=>setTapSelectedPhotoId(null)} style={{ background:'rgba(0,0,0,0.08)', border:'none', borderRadius:6, cursor:'pointer', color:'#1d4ed8', fontSize:13, padding:'2px 8px', fontWeight:700, touchAction:'manipulation' }}></button>
                   </div>
                 )}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
@@ -5453,11 +5453,11 @@ export default function BookLayoutEditor() {
                             setMobilePanel(false);
                           }}>
                           <img src={ph.noBgUrl || ph.preview} style={{ width:'100%', height:'100%', objectFit: ph.noBgUrl ? 'contain' : 'cover' }} draggable={false}/>
-                          {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>✓</div>}
-                          {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>👆</div>}
+                          {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}></div>}
+                          {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}></div>}
                           {ph.noBgLoading && <div style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.75)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>⏳</div>}
                           <span style={{ position:'absolute', bottom:2, left:2, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700, padding:'1px 4px', borderRadius:3 }}>{i+1}</span>
-                          {ph.noBgUrl && <span style={{ position:'absolute', top:2, right:2, background:'rgba(124,58,237,0.9)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 3px', borderRadius:3 }}>✂</span>}
+                          {ph.noBgUrl && <span style={{ position:'absolute', top:2, right:2, background:'rgba(124,58,237,0.9)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 3px', borderRadius:3 }}></span>}
                         </div>
                         {/* Remove BG button */}
                         <button
@@ -5468,7 +5468,7 @@ export default function BookLayoutEditor() {
                             color: ph.noBgUrl ? '#d97706' : '#7c3aed',
                             cursor: ph.noBgLoading ? 'wait' : 'pointer',
                             fontSize:9, fontWeight:700, touchAction:'manipulation' }}>
-                          {ph.noBgLoading ? '⏳...' : ph.noBgUrl ? '↩ фон' : '✂ без фону'}
+                          {ph.noBgLoading ? '⏳...' : ph.noBgUrl ? '↩ фон' : ' без фону'}
                         </button>
                       </div>
                     );
@@ -5497,7 +5497,7 @@ export default function BookLayoutEditor() {
                 <div>
                   <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>Власний стікер</div>
                   <label style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d' }}>
-                    <span style={{fontSize:18}}>📎</span> Завантажити PNG / фото
+                    <span style={{fontSize:18}}></span> Завантажити PNG / фото
                     <input type="file" accept="image/*" style={{display:'none'}} onChange={e => {
                       const file = e.target.files?.[0]; if (!file) return;
                       const reader = new FileReader();
@@ -5519,7 +5519,7 @@ export default function BookLayoutEditor() {
                         <div key={stk.id} style={{ position:'relative', borderRadius:8, overflow:'hidden', border:'1px solid #e2e8f0', background:'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0/10px 10px', aspectRatio:'1' }}>
                           <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain' }}/>
                           <button onClick={()=>removeBackgroundMobile(stk.url, stk.id)}
-                            style={{ position:'absolute', bottom:2, right:2, background:'rgba(139,92,246,0.9)', border:'none', borderRadius:6, color:'#fff', fontSize:11, padding:'2px 5px', cursor:'pointer', touchAction:'manipulation' }}>✂️</button>
+                            style={{ position:'absolute', bottom:2, right:2, background:'rgba(139,92,246,0.9)', border:'none', borderRadius:6, color:'#fff', fontSize:11, padding:'2px 5px', cursor:'pointer', touchAction:'manipulation' }}></button>
                         </div>
                       ))}
                     </div>
@@ -5529,7 +5529,7 @@ export default function BookLayoutEditor() {
                 <div>
                   <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>Emoji</div>
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(6, minmax(0, 1fr))', gap:6 }}>
-                    {['❤️','🧡','💛','💚','💙','💜','⭐','🌟','✨','⚡','🔥','🌸','🌺','🌻','🦋','🌙','☀️','🌈','☁️','❄️','💎','👑','🎀','🎈','🎂','🎁','🎉','🎊','🌊','🏔️','🌿','🍃'].map((em,i) => (
+                    {['','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''].map((em,i) => (
                       <button key={i} onPointerDown={()=>{ setPageStickers(prev=>({...prev,[spi]:[...(prev[spi]||[]),{id:'stk-'+Date.now(),url:'',emoji:em,x:38,y:38,w:'14%',h:'14%'}]})); toast.success('Додано'); setMobilePanel(false); }}
                         style={{ padding:6, border:'1px solid #f1f5f9', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:22, display:'flex', alignItems:'center', justifyContent:'center', touchAction:'manipulation' }}>
                         {em}
@@ -5558,7 +5558,7 @@ export default function BookLayoutEditor() {
                           {(['rect','rounded','circle','heart'] as const).map(sh => (
                             <button key={sh} onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{...ps,shape:sh}}))}
                               style={{ flex:1, padding:'10px 4px', border: ps.shape===sh?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: ps.shape===sh?'#f0f3ff':'#fff', cursor:'pointer', fontSize:20 }}>
-                              {sh==='rect'?'▭':sh==='rounded'?'▢':sh==='heart'?'♥':'◯'}
+                              {sh==='rect'?'':sh==='rounded'?'':sh==='heart'?'':''}
                             </button>
                           ))}
                         </div>
@@ -5802,7 +5802,7 @@ export default function BookLayoutEditor() {
                         <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>Готові шаблони сторінок</div>
                         {tGroups.map(grp => (
                           <div key={grp} style={{ marginBottom:10 }}>
-                            <div style={{ fontSize:10, fontWeight:700, color:'#64748b', marginBottom:6 }}>📝 {grp}</div>
+                            <div style={{ fontSize:10, fontWeight:700, color:'#64748b', marginBottom:6 }}> {grp}</div>
                             <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
                               {PAGE_TEMPLATES.filter(t => t.group === grp).map(tmpl => (
                                 <button key={tmpl.id}
@@ -5839,7 +5839,7 @@ export default function BookLayoutEditor() {
                         {(pages[pageIdx]?.textBlocks||[]).length > 0 && (
                           <button onPointerDown={()=>{ pushHistory(); setPages(prev=>prev.map((p,i)=>i!==pageIdx?p:{...p,textBlocks:[]})); toast.success('Тексти видалено'); }}
                             style={{ width:'100%', padding:'10px', border:'1px solid #fde68a', borderRadius:10, background:'#fffbeb', cursor:'pointer', fontWeight:700, fontSize:12, color:'#d97706', marginTop:6, touchAction:'manipulation' }}>
-                            🗑 Видалити всі тексти
+                             Видалити всі тексти
                           </button>
                         )}
                       </div>
@@ -5854,7 +5854,7 @@ export default function BookLayoutEditor() {
               if (currentIdx === 0 && !isPrinted) {
                 return (
                   <div style={{ padding:'16px 12px', textAlign:'center' }}>
-                    <div style={{ fontSize:20, marginBottom:6 }}>◻</div>
+                    <div style={{ fontSize:20, marginBottom:6 }}></div>
                     <div style={{ fontSize:12, fontWeight:700, color:'#374151', marginBottom:4 }}>Фігури недоступні на цій обкладинці</div>
                     <div style={{ fontSize:11, color:'#94a3b8' }}>Доступні для друкованих обкладинок</div>
                   </div>
@@ -5916,7 +5916,7 @@ export default function BookLayoutEditor() {
                         style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺ Скинути</button>
                     </div>
                     <div style={{ marginTop:8, padding:'8px 10px', background:'#f0f3ff', borderRadius:8, fontSize:11, color:'#1e2d7d' }}>
-                      💡 Фото обкладинки перекриє фон
+                       Фото обкладинки перекриє фон
                     </div>
                   </div>
                 ) : currentIdx === 0 && !isPrinted ? (
@@ -5995,11 +5995,11 @@ export default function BookLayoutEditor() {
                   <div style={{ display:'flex', gap:8 }}>
                     <button onClick={() => kalkaImageInputRef.current?.click()}
                       style={{ flex:1, padding:'10px', border:'1.5px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:600, color:'#1e2d7d' }}>
-                      📎 Завантажити зображення
+                       Завантажити зображення
                     </button>
                     {kalkaState.imageUrl && (
                       <button onClick={() => setKalkaState(p => ({ ...p, imageUrl: null }))}
-                        style={{ padding:'10px 14px', border:'1px solid #fee2e2', borderRadius:10, background:'#fff7f7', cursor:'pointer', color:'#ef4444', fontWeight:700 }}>✕</button>
+                        style={{ padding:'10px 14px', border:'1px solid #fee2e2', borderRadius:10, background:'#fff7f7', cursor:'pointer', color:'#ef4444', fontWeight:700 }}></button>
                     )}
                   </div>
                   {kalkaState.imageUrl && (

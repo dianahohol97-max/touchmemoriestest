@@ -207,7 +207,7 @@ export default function GiftCertificatePage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
-                      <span className="text-2xl">💵</span>
+                      <span className="text-2xl"></span>
                     </div>
                     <div>
                       <h3 className="font-bold text-stone-900">На суму</h3>
@@ -254,7 +254,7 @@ export default function GiftCertificatePage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-                      <span className="text-2xl">🎁</span>
+                      <span className="text-2xl"></span>
                     </div>
                     <div>
                       <h3 className="font-bold text-stone-900">На продукт</h3>

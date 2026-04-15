@@ -177,7 +177,7 @@ export default function AdminBlogPostsPage() {
                                         <span style={{ backgroundColor: '#f8fafc', padding: '2px 8px', borderRadius: "3px", border: '1px solid #e2e8f0', fontWeight: 600 }}>
                                             {post.blog_categories?.name || 'Без категорії'}
                                         </span>
-                                        <span>👁 {post.views_count} переглядів</span>
+                                        <span> {post.views_count} переглядів</span>
                                         <span>Автор: {post.author_name || 'Не вказано'}</span>
                                     </div>
                                 </div>

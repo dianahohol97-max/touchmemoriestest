@@ -85,11 +85,11 @@ export async function POST(request: NextRequest) {
       if (decision === 'approved') {
         await sendTelegramMessage({
           chat_id: telegramChatId,
-          text: `✅ Клієнт затвердив дизайн!\n\n` +
+          text: ` Клієнт затвердив дизайн!\n\n` +
             `Замовлення: #${order.order_number}\n` +
             `Клієнт: ${order.customer.name}\n` +
             `Загальний відгук: ${generalFeedback || 'Немає'}\n\n` +
-            `Можна відправляти у виробництво! 🎉`,
+            `Можна відправляти у виробництво! `,
         });
       } else {
         const commentsText = pageComments && pageComments.length > 0
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
 
         await sendTelegramMessage({
           chat_id: telegramChatId,
-          text: `✏️ Клієнт запросив правки\n\n` +
+          text: ` Клієнт запросив правки\n\n` +
             `Замовлення: #${order.order_number}\n` +
             `Клієнт: ${order.customer.name}\n` +
             `Ревізія: ${revision.revision_number + 1}\n\n` +

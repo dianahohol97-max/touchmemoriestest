@@ -25,7 +25,7 @@ export interface PageTemplate {
 }
 
 export const PAGE_TEMPLATES: PageTemplate[] = [
-  // ── Вступна сторінка "Привіт, [Ім'я]!" ──
+  //  Вступна сторінка "Привіт, [Ім'я]!" 
   {
     id: 'pt-hello',
     label: 'Привіт, Ім\'я!',
@@ -43,7 +43,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
 
-  // ── About / Про [Ім'я] ──
+  //  About / Про [Ім'я] 
   {
     id: 'pt-about',
     label: 'About [Ім\'я]',
@@ -61,7 +61,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
 
-  // ── 8 речей, за які ми тебе любимо ──
+  //  8 речей, за які ми тебе любимо 
   {
     id: 'pt-8-reasons',
     label: '8 речей любимо',
@@ -87,7 +87,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
 
-  // ── Мистецтво бути поруч ──
+  //  Мистецтво бути поруч 
   {
     id: 'pt-art-of-being',
     label: 'Мистецтво бути поруч',
@@ -105,7 +105,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
 
-  // ── В коханні: ніжність і сила ──
+  //  В коханні: ніжність і сила 
   {
     id: 'pt-love-tenderness',
     label: 'В коханні',
@@ -121,7 +121,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
 
-  // ── Під знаком [Зодіаку] ──
+  //  Під знаком [Зодіаку] 
   {
     id: 'pt-zodiac',
     label: 'Під знаком зодіаку',
@@ -139,7 +139,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
 
-  // ── Дім — це не місце ──
+  //  Дім — це не місце 
   {
     id: 'pt-home',
     label: 'Дім — це не місце',
@@ -157,7 +157,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
 
-  // ── Серцем назавжди (Дружба) ──
+  //  Серцем назавжди (Дружба) 
   {
     id: 'pt-friends',
     label: 'Серцем назавжди',
@@ -174,7 +174,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
 
-  // ── Цитата на весь розворот ──
+  //  Цитата на весь розворот 
   {
     id: 'pt-quote-full',
     label: 'Цитата',
@@ -190,7 +190,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
 
-  // ── Порожня сторінка з заголовком ──
+  //  Порожня сторінка з заголовком 
   {
     id: 'pt-chapter-title',
     label: 'Заголовок розділу',
@@ -205,7 +205,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     ],
   },
 
-  // ── Фото на весь розворот з цитатою ──
+  //  Фото на весь розворот з цитатою 
   {
     id: 'pt-photo-quote',
     label: 'Фото + цитата',
@@ -221,11 +221,11 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
   },
 ];
 
-// ════════════════════════════════════════════════════════
+// 
 // НОВІ ШАБЛОНИ — додані для різних тематик та кількостей фото
-// ════════════════════════════════════════════════════════
+// 
 
-// ── Весілля ──
+//  Весілля 
 export const WEDDING_TEMPLATES: PageTemplate[] = [
   {
     id: 'pt-wedding-vows',
@@ -308,7 +308,7 @@ export const WEDDING_TEMPLATES: PageTemplate[] = [
   },
 ];
 
-// ── Дитячий / Family ──
+//  Дитячий / Family 
 export const FAMILY_TEMPLATES: PageTemplate[] = [
   {
     id: 'pt-baby-first-year',
@@ -364,7 +364,7 @@ export const FAMILY_TEMPLATES: PageTemplate[] = [
   },
 ];
 
-// ── Подорожі ──
+//  Подорожі 
 export const TRAVEL_TEMPLATES: PageTemplate[] = [
   {
     id: 'pt-travel-hero',
@@ -377,7 +377,7 @@ export const TRAVEL_TEMPLATES: PageTemplate[] = [
     texts: [
       { text: '[МІСТО / КРАЇНА]', x: 50, y: 10, fontSize: 28, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
       { text: '[місяць рік]', x: 50, y: 20, fontSize: 12, fontFamily: 'Cormorant Garamond', color: 'rgba(255,255,255,0.7)', bold: false },
-      { text: '📍 [координати або опис місця]', x: 50, y: 90, fontSize: 10, fontFamily: 'Montserrat', color: 'rgba(255,255,255,0.6)', bold: false },
+      { text: ' [координати або опис місця]', x: 50, y: 90, fontSize: 10, fontFamily: 'Montserrat', color: 'rgba(255,255,255,0.6)', bold: false },
     ],
   },
   {
@@ -453,7 +453,7 @@ export const TRAVEL_TEMPLATES: PageTemplate[] = [
   },
 ];
 
-// ── День народження ──
+//  День народження 
 export const BIRTHDAY_TEMPLATES: PageTemplate[] = [
   {
     id: 'pt-bday-hero-photo',
@@ -492,12 +492,12 @@ export const BIRTHDAY_TEMPLATES: PageTemplate[] = [
     texts: [
       { text: 'ПОБАЖАННЯ', x: 50, y: 8, fontSize: 12, fontFamily: 'Montserrat', color: '#e8a87c', bold: true },
       { text: 'Бажаємо тобі...', x: 50, y: 22, fontSize: 16, fontFamily: 'Dancing Script', color: '#d4956b', bold: false },
-      { text: '✦ Здоров\'я та сил', x: 50, y: 35, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
-      { text: '✦ Кохання та тепла', x: 50, y: 45, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
-      { text: '✦ Мрій, що здійснюються', x: 50, y: 55, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
-      { text: '✦ Людей, що надихають', x: 50, y: 65, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
-      { text: '✦ Щастя у дрібницях', x: 50, y: 75, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
-      { text: 'З любов\'ю, [хто підписав] ♥', x: 50, y: 88, fontSize: 14, fontFamily: 'Dancing Script', color: '#d4956b', bold: false },
+      { text: ' Здоров\'я та сил', x: 50, y: 35, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+      { text: ' Кохання та тепла', x: 50, y: 45, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+      { text: ' Мрій, що здійснюються', x: 50, y: 55, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+      { text: ' Людей, що надихають', x: 50, y: 65, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+      { text: ' Щастя у дрібницях', x: 50, y: 75, fontSize: 13, fontFamily: 'Cormorant Garamond', color: '#555555', bold: false },
+      { text: 'З любов\'ю, [хто підписав] ', x: 50, y: 88, fontSize: 14, fontFamily: 'Dancing Script', color: '#d4956b', bold: false },
     ],
   },
   {
@@ -529,7 +529,7 @@ export const BIRTHDAY_TEMPLATES: PageTemplate[] = [
   },
 ];
 
-// ── Цитати ──
+//  Цитати 
 export const QUOTE_TEMPLATES: PageTemplate[] = [
   {
     id: 'pt-quote-dark',
@@ -554,7 +554,7 @@ export const QUOTE_TEMPLATES: PageTemplate[] = [
     bgColor: '#faf6f0',
     hasPhoto: false,
     texts: [
-      { text: '❝', x: 50, y: 22, fontSize: 48, fontFamily: 'Playfair Display', color: '#e8d5b0', bold: false },
+      { text: '', x: 50, y: 22, fontSize: 48, fontFamily: 'Playfair Display', color: '#e8d5b0', bold: false },
       { text: '[Ваша цитата тут]', x: 50, y: 50, fontSize: 20, fontFamily: 'Cormorant Garamond', color: '#3a3a3a', bold: false, italic: true },
       { text: '— [Автор]', x: 50, y: 65, fontSize: 12, fontFamily: 'Montserrat', color: '#999999', bold: false },
     ],
@@ -588,7 +588,7 @@ export const QUOTE_TEMPLATES: PageTemplate[] = [
   },
 ];
 
-// ── Структурні / Навігаційні ──
+//  Структурні / Навігаційні 
 export const STRUCTURAL_TEMPLATES: PageTemplate[] = [
   {
     id: 'pt-section-dark',
@@ -658,7 +658,7 @@ export const STRUCTURAL_TEMPLATES: PageTemplate[] = [
   },
 ];
 
-// ── Фінальні сторінки ──
+//  Фінальні сторінки 
 export const FINAL_TEMPLATES: PageTemplate[] = [
   {
     id: 'pt-the-end',
@@ -685,7 +685,7 @@ export const FINAL_TEMPLATES: PageTemplate[] = [
     texts: [
       { text: 'Дякую, що ти є.', x: 50, y: 72, fontSize: 28, fontFamily: 'Dancing Script', color: '#8b6914', bold: false },
       { text: 'Цей журнал — лише маленька частина того, що я відчуваю.', x: 50, y: 82, fontSize: 11, fontFamily: 'Cormorant Garamond', color: '#888888', bold: false, italic: true },
-      { text: 'З любов\'ю, [ім\'я] ♥', x: 50, y: 91, fontSize: 13, fontFamily: 'Dancing Script', color: '#c8b89a', bold: false },
+      { text: 'З любов\'ю, [ім\'я] ', x: 50, y: 91, fontSize: 13, fontFamily: 'Dancing Script', color: '#c8b89a', bold: false },
     ],
   },
   {
@@ -703,7 +703,7 @@ export const FINAL_TEMPLATES: PageTemplate[] = [
   },
 ];
 
-// ── Експортуємо всі нові шаблони разом зі старими ──
+//  Експортуємо всі нові шаблони разом зі старими 
 // Додаємо нові шаблони до PAGE_TEMPLATES
 PAGE_TEMPLATES.push(
   ...WEDDING_TEMPLATES,

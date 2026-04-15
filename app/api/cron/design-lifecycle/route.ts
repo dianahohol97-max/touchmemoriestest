@@ -6,13 +6,13 @@ export const dynamic = 'force-dynamic';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
 
-// ─── Auth check ────────────────────────────────────────────────────────────────
+//  Auth check 
 function unauthorized(req: Request) {
     const auth = req.headers.get('authorization');
     return auth !== `Bearer ${process.env.CRON_SECRET}`;
 }
 
-// ─── Main cron handler ────────────────────────────────────────────────────────
+//  Main cron handler 
 export async function GET(request: Request) {
     if (unauthorized(request)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -32,10 +32,10 @@ export async function GET(request: Request) {
     };
 
     try {
-        // ── 1. EDITOR PROJECTS lifecycle ─────────────────────────────────────
+        //  1. EDITOR PROJECTS lifecycle 
         await processEditorProjects(supabase, now, stats);
 
-        // ── 2. UNPAID ORDERS — 24h abandoned reminder ────────────────────────
+        //  2. UNPAID ORDERS — 24h abandoned reminder 
         await processAbandonedOrders(supabase, now, stats);
 
         return NextResponse.json({
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     }
 }
 
-// ─── Editor projects lifecycle ────────────────────────────────────────────────
+//  Editor projects lifecycle 
 
 async function processEditorProjects(supabase: any, now: Date, stats: any) {
     // Fetch all draft projects with owner email (via auth.users)
@@ -79,7 +79,7 @@ async function processEditorProjects(supabase: any, now: Date, stats: any) {
         const designName = project.name || (project.product_type ? `${project.product_type}${project.format ? ' ' + project.format : ''}` : 'Ваш дизайн');
 
         try {
-            // ── 60d: DELETE ──────────────────────────────────────────────────
+            //  60d: DELETE 
             if (ageDays >= 60) {
                 await supabase.from('projects').delete().eq('id', project.id);
                 stats.designs_deleted++;
@@ -87,7 +87,7 @@ async function processEditorProjects(supabase: any, now: Date, stats: any) {
                 continue;
             }
 
-            // ── 59d: Final warning (24h before deletion) ─────────────────────
+            //  59d: Final warning (24h before deletion) 
             if (ageDays >= 59 && !project.notified_59d_at) {
                 const sent = await sendLifecycleEmail(email, '59d', designName, project.id);
                 if (sent) {
@@ -97,7 +97,7 @@ async function processEditorProjects(supabase: any, now: Date, stats: any) {
                 continue;
             }
 
-            // ── 55d: Warning — deleted in 5 days ─────────────────────────────
+            //  55d: Warning — deleted in 5 days 
             if (ageDays >= 55 && !project.notified_55d_at) {
                 const sent = await sendLifecycleEmail(email, '55d', designName, project.id);
                 if (sent) {
@@ -107,7 +107,7 @@ async function processEditorProjects(supabase: any, now: Date, stats: any) {
                 continue;
             }
 
-            // ── 10d: Second reminder ──────────────────────────────────────────
+            //  10d: Second reminder 
             if (ageDays >= 10 && !project.notified_10d_at) {
                 const sent = await sendLifecycleEmail(email, '10d', designName, project.id);
                 if (sent) {
@@ -117,7 +117,7 @@ async function processEditorProjects(supabase: any, now: Date, stats: any) {
                 continue;
             }
 
-            // ── 24h: First reminder ───────────────────────────────────────────
+            //  24h: First reminder 
             if (ageDays >= 1 && !project.notified_24h_at) {
                 const sent = await sendLifecycleEmail(email, '24h', designName, project.id);
                 if (sent) {
@@ -133,7 +133,7 @@ async function processEditorProjects(supabase: any, now: Date, stats: any) {
     }
 }
 
-// ─── Abandoned orders (unpaid, 24h) ──────────────────────────────────────────
+//  Abandoned orders (unpaid, 24h) 
 
 async function processAbandonedOrders(supabase: any, now: Date, stats: any) {
     const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
@@ -165,7 +165,7 @@ async function processAbandonedOrders(supabase: any, now: Date, stats: any) {
     }
 }
 
-// ─── Email senders ────────────────────────────────────────────────────────────
+//  Email senders 
 
 async function sendLifecycleEmail(
     to: string,
@@ -189,9 +189,9 @@ async function sendLifecycleEmail(
             color: '#263a99',
         },
         '10d': {
-            subject: `🎨 «${designName}» — не забудьте замовити!`,
+            subject: ` «${designName}» — не забудьте замовити!`,
             preheader: 'Ваш дизайн зберігається вже 10 днів',
-            emoji: '🎨',
+            emoji: '',
             headline: '10 днів пройшло...',
             body: `Ваш дизайн <strong>«${designName}»</strong> зберігається вже 10 днів. Замовте зараз і отримайте готовий виріб з доставкою по Україні!`,
             cta: 'Завершити замовлення',
@@ -200,9 +200,9 @@ async function sendLifecycleEmail(
             color: '#263a99',
         },
         '55d': {
-            subject: `⚠️ Ваш дизайн буде видалено через 5 днів`,
+            subject: ` Ваш дизайн буде видалено через 5 днів`,
             preheader: `«${designName}» — залишилося 5 днів до автоматичного видалення`,
-            emoji: '⚠️',
+            emoji: '',
             headline: 'Увага! Дизайн видалиться через 5 днів',
             body: `Ваш дизайн <strong>«${designName}»</strong> зберігається вже 55 днів. Через 5 днів він буде <strong>автоматично видалений</strong>. Завершіть замовлення зараз, щоб не втратити свою роботу.`,
             cta: 'Зберегти дизайн — замовити зараз',
@@ -211,12 +211,12 @@ async function sendLifecycleEmail(
             color: '#f59e0b',
         },
         '59d': {
-            subject: `🚨 Останній шанс! «${designName}» видаляється завтра`,
+            subject: ` Останній шанс! «${designName}» видаляється завтра`,
             preheader: 'За 24 години ваш дизайн буде безповоротно видалено',
-            emoji: '🚨',
+            emoji: '',
             headline: 'Дизайн видаляється за 24 години!',
             body: `Це <strong>останнє нагадування</strong>. Ваш дизайн <strong>«${designName}»</strong> буде видалено завтра. Після цього відновлення буде неможливим. Замовте прямо зараз!`,
-            cta: '⚡ Замовити негайно',
+            cta: ' Замовити негайно',
             ctaUrl: editorUrl,
             urgency: 'Залишилося менше 24 годин',
             color: '#ef4444',
@@ -250,7 +250,7 @@ async function sendLifecycleEmail(
 
       <!-- Design preview card -->
       <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:20px 24px;margin:0 0 28px;display:flex;align-items:center;gap:16px;">
-        <div style="width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#eff3ff,#e0e7ff);display:inline-flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">🎨</div>
+        <div style="width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#eff3ff,#e0e7ff);display:inline-flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;"></div>
         <div>
           <div style="font-weight:800;color:#263a99;font-size:15px;margin-bottom:2px;">${designName}</div>
           <div style="font-size:12px;color:#94a3b8;">Збережено у вашому кабінеті</div>
@@ -315,7 +315,7 @@ async function sendAbandonedOrderEmail(order: any): Promise<boolean> {
   <div style="max-width:600px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
     <div style="background:linear-gradient(135deg,#1e2d7d,#263a99);padding:32px 40px;text-align:center;">
-      <div style="font-size:40px;margin-bottom:12px;">🛒</div>
+      <div style="font-size:40px;margin-bottom:12px;"></div>
       <div style="color:white;font-size:22px;font-weight:900;">Ви забули щось у кошику!</div>
       <div style="color:rgba(255,255,255,0.75);font-size:13px;margin-top:6px;">Touch.Memories</div>
     </div>
@@ -357,7 +357,7 @@ async function sendAbandonedOrderEmail(order: any): Promise<boolean> {
 
     const result = await sendEmail({
         to,
-        subject: `🛒 Ваше замовлення #${order.order_number} чекає на оплату`,
+        subject: ` Ваше замовлення #${order.order_number} чекає на оплату`,
         html,
     });
 

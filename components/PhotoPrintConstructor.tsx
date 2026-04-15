@@ -8,7 +8,7 @@ import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
-// ─── Size definitions ─────────────────────────────────────────────────────────
+//  Size definitions 
 const STANDARD_SIZES: Record<string, { w: number; h: number; label: string }> = {
   '9x13': { w: 9, h: 13, label: '9×13 см' },
   '10x15': { w: 10, h: 15, label: '10×15 см' },
@@ -64,7 +64,7 @@ interface PhotoPrintConstructorProps {
   initialBorder?: string; // 'with' | 'none'
 }
 
-// ─── Photo Preview Component ──────────────────────────────────────────────────
+//  Photo Preview Component 
 function PhotoPreview({
   photo, sizeKey, showBorder, isPolaroid, isNonstandard,
   onCropChange, onTextChange, polaroidFont, polaroidColor,
@@ -204,7 +204,7 @@ function PhotoPreview({
   const canvasW = MAX_W;
   const canvasH = Math.round(totalH * scale);
   // Border in pixels — 3mm relative to actual print size
-  // e.g. 10cm wide → scale=32px/cm → 3mm = 0.3cm * 32 = 9.6px ✓
+  // e.g. 10cm wide → scale=32px/cm → 3mm = 0.3cm * 32 = 9.6px 
   const borderMmActual = (showBorder || isNonstandard) ? 3 : 0;
   const borderPx = Math.round(borderMmActual * scale / 10); // divide by 10: mm → cm, then * scale
   // Keep old variable names for compat
@@ -331,7 +331,7 @@ function PhotoPreview({
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+//  Main Component 
 export default function PhotoPrintConstructor({ productSlug, initialSize, initialFinish, initialBorder }: PhotoPrintConstructorProps) {
   const t = useT();
   const { addItem } = useCartStore();
@@ -607,7 +607,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                   <div
                     onMouseDown={e => { e.stopPropagation(); toggleSelect(ph.id); }}
                     style={{ position:'absolute', top:2, left:2, width:16, height:16, borderRadius:3, background: selectedPhotoIds.has(ph.id) ? '#e05a2b':'rgba(255,255,255,0.8)', border: selectedPhotoIds.has(ph.id) ? '2px solid #e05a2b':'2px solid rgba(0,0,0,0.2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#fff', fontWeight:900 }}>
-                    {selectedPhotoIds.has(ph.id) ? '✓' : ''}
+                    {selectedPhotoIds.has(ph.id) ? '' : ''}
                   </div>
                   {/* Qty badge */}
                   {(ph.qty||1) > 1 && <div style={{ position:'absolute', bottom:1, right:1, background:'#1e2d7d', color:'#fff', fontSize:9, fontWeight:800, padding:'1px 4px', borderRadius:4 }}>×{ph.qty}</div>}
@@ -623,7 +623,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
         {/* RIGHT: Options */}
         <div style={{ flex:1, minWidth: 0, width: '100%' }}>
-          {/* ── Selection Panel ── */}
+          {/*  Selection Panel  */}
           {photos.length > 0 && (
             <div style={{ background:'#fff', borderRadius:12, border:'1px solid #e2e8f0', padding:16, marginBottom:12 }}>
 

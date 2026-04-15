@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         const orderNumber = `PB-${year}-${randomStr}`;
 
         // 3. Construct initial note with Instagram Handle (if provided) that won't get lost
-        let orderNotes = customer.instagram ? `⚠️ Instagram замовлення (${customer.instagram})\n` : '';
+        let orderNotes = customer.instagram ? ` Instagram замовлення (${customer.instagram})\n` : '';
         orderNotes += notes;
 
         // 4. Create the Order

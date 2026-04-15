@@ -29,16 +29,16 @@ type Role = {
 };
 
 const PERMISSION_SECTIONS = [
-    { id: 'catalog', label: '📦 Каталог', sub: 'Товари, Категорії, Популярні' },
-    { id: 'orders', label: '🛒 Замовлення', sub: 'Перегляд, Створення, Редагування' },
-    { id: 'customers', label: '👥 Клієнти', sub: 'Перегляд та редагування' },
-    { id: 'production', label: '🏭 Виробництво', sub: 'Склад та виробництво' },
-    { id: 'finance', label: '💰 Фінанси', sub: 'Витрати, Зарплати, Рахунки' },
-    { id: 'marketing', label: '📣 Маркетинг', sub: 'Розсилки, Промокоди' },
-    { id: 'content', label: '✍️ Контент', sub: 'Блог, Шаблони, Дизайн' },
-    { id: 'settings', label: '⚙️ Налаштування', sub: 'Команда, Інтеграції' },
-    { id: 'ai', label: '🤖 AI', sub: 'Chat Inbox, AI Налаштування' },
-    { id: 'analytics', label: '📊 Аналітика', sub: 'Dashboard, Звіти' },
+    { id: 'catalog', label: ' Каталог', sub: 'Товари, Категорії, Популярні' },
+    { id: 'orders', label: ' Замовлення', sub: 'Перегляд, Створення, Редагування' },
+    { id: 'customers', label: ' Клієнти', sub: 'Перегляд та редагування' },
+    { id: 'production', label: ' Виробництво', sub: 'Склад та виробництво' },
+    { id: 'finance', label: ' Фінанси', sub: 'Витрати, Зарплати, Рахунки' },
+    { id: 'marketing', label: ' Маркетинг', sub: 'Розсилки, Промокоди' },
+    { id: 'content', label: ' Контент', sub: 'Блог, Шаблони, Дизайн' },
+    { id: 'settings', label: ' Налаштування', sub: 'Команда, Інтеграції' },
+    { id: 'ai', label: ' AI', sub: 'Chat Inbox, AI Налаштування' },
+    { id: 'analytics', label: ' Аналітика', sub: 'Dashboard, Звіти' },
 ];
 
 const ACCESS_LEVELS: { id: PermissionLevel; label: string; color: string }[] = [

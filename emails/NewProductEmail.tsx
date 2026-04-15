@@ -54,7 +54,7 @@ export default function NewProductEmail({
     return (
         <Html>
             <Head />
-            <Preview>Новинка! {productName} вже у нас ✨</Preview>
+            <Preview>Новинка! {productName} вже у нас </Preview>
             <Tailwind>
                 <Body className="bg-[#f8fafc] font-sans text-[#263A99] m-0 p-0">
                     <Container className="bg-white mx-auto my-[40px] max-w-[600px] overflow-hidden shadow-sm border border-[#e2e8f0]">
@@ -67,7 +67,7 @@ export default function NewProductEmail({
                         {/* Content */}
                         <Section className="p-[40px] text-center">
                             <Text className="text-[#263A99] text-[14px] font-bold uppercase tracking-widest mb-[8px] m-0">
-                                Нове Надходження ✨
+                                Нове Надходження 
                             </Text>
                             <Text className="text-[28px] font-black text-[#263A99] mt-[8px] mb-[16px] leading-tight">
                                 {productName}

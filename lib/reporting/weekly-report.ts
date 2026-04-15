@@ -306,7 +306,7 @@ export function formatWeeklyReportHTML(data: WeeklyReportData): string {
   </style>
 </head>
 <body>
-  <h1>📊 Підсумок тижня</h1>
+  <h1> Підсумок тижня</h1>
   <div class="subtitle">${startDate} – ${endDate}</div>
 
   <div class="section">
@@ -394,7 +394,7 @@ export function formatWeeklyReportHTML(data: WeeklyReportData): string {
   </div>
 
   <div class="footer">
-    <p>🤖 Цей звіт згенеровано автоматично системою TouchMemories</p>
+    <p> Цей звіт згенеровано автоматично системою TouchMemories</p>
     <p>Згенеровано: ${new Date().toLocaleString('uk-UA')}</p>
   </div>
 </body>
@@ -428,7 +428,7 @@ export function formatWeeklyReportText(data: WeeklyReportData): string {
   });
 
   return `
-📊 *Підсумок тижня*
+ *Підсумок тижня*
 ${startDate} – ${endDate}
 
 *ПРОДАЖІ:*

@@ -65,9 +65,9 @@ export default function BriefPageClient({
             зв'яжіться з нами:
           </p>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>📧 Email: info@touchmemories.com.ua</li>
-            <li>📱 Telegram: @touchmemories</li>
-            <li>📞 Телефон: +380 XX XXX XX XX</li>
+            <li> Email: info@touchmemories.com.ua</li>
+            <li> Telegram: @touchmemories</li>
+            <li> Телефон: +380 XX XXX XX XX</li>
           </ul>
         </div>
       </div>

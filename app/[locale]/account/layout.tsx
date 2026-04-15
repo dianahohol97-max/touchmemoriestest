@@ -113,7 +113,7 @@ export default function AccountLayout({
         )}
         <div>
           <div style={{ fontWeight: 700, fontSize: '18px', color: '#263A99' }}>
-            Привіт, {displayName}! 👋
+            Привіт, {displayName}! 
           </div>
           <div style={{ color: '#64748b', fontSize: '14px' }}>
             {user?.email ?? ''}

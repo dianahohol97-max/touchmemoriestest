@@ -122,7 +122,7 @@ export default function TravelBookConstructor() {
       <div className="min-h-screen bg-[#F5F0E8] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
           <div className="w-20 h-20 bg-gradient-to-br from-[#2D4A3E] to-[#C4704F] rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-5xl">🌍</span>
+            <span className="text-5xl"></span>
           </div>
           <h2 className="text-2xl font-bold text-[#1A1A1A] mb-3">
             Дякуємо! Ваше замовлення прийнято.
@@ -189,7 +189,7 @@ export default function TravelBookConstructor() {
             Ваша подорож — у форматі книги з твердою обкладинкою
           </p>
           <div className="inline-block bg-white/20 backdrop-blur-sm rounded-full px-4 py-1 text-sm">
-            🌍 A4 · Тверда обкладинка · 170g глянець
+             A4 · Тверда обкладинка · 170g глянець
           </div>
         </div>
       </div>
@@ -270,7 +270,7 @@ export default function TravelBookConstructor() {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-900">
-                📖 <strong>Порада:</strong> 1 сторінка = 1 аркуш. 24 сторінки — це 12
+                 <strong>Порада:</strong> 1 сторінка = 1 аркуш. 24 сторінки — це 12
                 розворотів, ідеально для 20–30 найкращих кадрів вашої подорожі.
               </p>
             </div>
@@ -448,7 +448,7 @@ export default function TravelBookConstructor() {
             {/* Price Summary - Sticky on Desktop */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-xl p-5 border-2 border-[#C4704F] sticky top-4">
-                <h3 className="font-bold text-lg mb-4 text-[#1A1A1A]">🧾 Ваше замовлення</h3>
+                <h3 className="font-bold text-lg mb-4 text-[#1A1A1A]"> Ваше замовлення</h3>
                 <div className="space-y-2 text-sm mb-4">
                   <div className="flex justify-between">
                     <span className="text-gray-600">
@@ -550,7 +550,7 @@ export default function TravelBookConstructor() {
             {/* Photo Upload */}
             <div className="bg-white rounded-xl p-6">
               <h3 className="font-bold text-lg mb-3">
-                📷 Рекомендована кількість фото: {minFiles}–{maxFiles}
+                 Рекомендована кількість фото: {minFiles}–{maxFiles}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
                 Менше фото — більше простору на кожній сторінці. Більше — насиченіша книга.
@@ -564,7 +564,7 @@ export default function TravelBookConstructor() {
                   onChange={handlePhotoUpload}
                   className="hidden"
                 />
-                <div className="text-4xl mb-3">📁</div>
+                <div className="text-4xl mb-3"></div>
                 <div className="font-semibold text-gray-700 mb-1">
                   Натисніть або перетягніть фото
                 </div>

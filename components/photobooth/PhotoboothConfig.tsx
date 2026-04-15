@@ -46,7 +46,7 @@ export const PhotoboothConfigPanel: React.FC<PhotoboothConfigPanelProps> = ({
         <h2>Photobooth Configuration</h2>
         {onClose && (
           <button onClick={onClose} className={styles.closeBtn}>
-            ✕
+            
           </button>
         )}
       </div>

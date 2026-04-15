@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, useRef, useCallback, Re
 import { createClient } from '@/lib/supabase/client';
 import { AuthModal } from '@/components/ui/AuthModal';
 
-// ─── Context ──────────────────────────────────────────────────────────────────
+//  Context 
 
 interface AuthModalContextType {
     /**
@@ -21,7 +21,7 @@ const AuthModalContext = createContext<AuthModalContextType>({
     isLoggedIn: false,
 });
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
+//  Provider 
 
 export function AuthModalProvider({ children }: { children: ReactNode }) {
     const supabase = createClient();
@@ -93,7 +93,7 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
     );
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+//  Hook 
 
 export function useAuthModal() {
     return useContext(AuthModalContext);

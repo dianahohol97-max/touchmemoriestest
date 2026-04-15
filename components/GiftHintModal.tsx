@@ -80,7 +80,7 @@ export default function GiftHintModal({ product, isOpen, onClose }: GiftHintModa
                     {!sent ? (
                         <>
                             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                                <div style={iconBadgeStyle}>💝</div>
+                                <div style={iconBadgeStyle}></div>
                                 <h2 style={titleStyle}>{t('gift_hint.title')}</h2>
                                 <p style={subtitleStyle}>{t('gift_hint.subtitle')}</p>
                             </div>

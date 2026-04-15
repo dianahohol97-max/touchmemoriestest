@@ -45,7 +45,7 @@ export async function POST(
             order_status: 'pending', // Reset status
             payment_status: 'pending', // Reset payment
             fiscal_status: 'pending', // Reset fiscal status
-            notes: `⚠️ Повторне замовлення з ${originalOrder.order_number}\n\n`,
+            notes: ` Повторне замовлення з ${originalOrder.order_number}\n\n`,
             created_at: new Date().toISOString()
             // Removed: ttn, mono_invoice_id, mono_payment_id, paid_at, fiscal_id, fiscal_url
         };

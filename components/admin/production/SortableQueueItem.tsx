@@ -57,10 +57,10 @@ export function SortableQueueItem({ item, index, onAssignDesigner, onClearOverri
                     <span className="text-sm font-bold text-slate-900">#{item.order_id.substring(0, 8)}</span>
                     <span className="text-sm font-medium text-slate-700">{item.customer_name}</span>
                     {item.has_express_tag && (
-                        <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0">⚡ ЕКСПРЕС</Badge>
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0"> ЕКСПРЕС</Badge>
                     )}
                     {item.is_vip_customer && (
-                        <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[10px] px-1.5 py-0">⭐ VIP</Badge>
+                        <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[10px] px-1.5 py-0"> VIP</Badge>
                     )}
                 </div>
 

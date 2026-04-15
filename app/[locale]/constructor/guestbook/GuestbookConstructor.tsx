@@ -62,9 +62,9 @@ interface CanvasState {
 // ============================================================================
 
 const COVER_TEMPLATES: CoverTemplate[] = [
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   // GROUP 1: ВЕСІЛЛЯ (Wedding) - 5 templates
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   {
     id: 'wedding-classic',
     name: 'Класична весільна',
@@ -320,9 +320,9 @@ const COVER_TEMPLATES: CoverTemplate[] = [
     ]
   },
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   // GROUP 2: ДНІ НАРОДЖЕННЯ (Birthday) - 4 templates
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   {
     id: 'birthday-elegant',
     name: 'Елегантна',
@@ -512,9 +512,9 @@ const COVER_TEMPLATES: CoverTemplate[] = [
     ]
   },
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   // GROUP 3: ХРЕСТИНИ (Baby/Christening) - 3 templates
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   {
     id: 'baby-soft',
     name: 'Ніжна дитяча',
@@ -666,9 +666,9 @@ const COVER_TEMPLATES: CoverTemplate[] = [
     ]
   },
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   // GROUP 4: КОРПОРАТИВ (Corporate/Universal) - 4 templates
-  // ──────────────────────────────────────────────────────────────────────────
+  // 
   {
     id: 'corp-minimal',
     name: 'Корпоративна мінімал',
@@ -1283,7 +1283,7 @@ export default function GuestbookConstructor() {
                                   opacity: 0.3
                                 }}
                               >
-                                ❧
+                                
                               </div>
                               <div
                                 className="absolute text-4xl"
@@ -1294,7 +1294,7 @@ export default function GuestbookConstructor() {
                                   opacity: 0.3
                                 }}
                               >
-                                ❧
+                                
                               </div>
                             </>
                           )}
@@ -1312,7 +1312,7 @@ export default function GuestbookConstructor() {
                                   opacity: 0.4
                                 }}
                               >
-                                ◆
+                                
                               </div>
                               <div
                                 className="absolute text-2xl"
@@ -1324,7 +1324,7 @@ export default function GuestbookConstructor() {
                                   opacity: 0.4
                                 }}
                               >
-                                ◆
+                                
                               </div>
                             </>
                           )}
@@ -1344,7 +1344,7 @@ export default function GuestbookConstructor() {
                                     fontSize: `${12 + Math.random() * 12}px`
                                   }}
                                 >
-                                  ✦
+                                  
                                 </div>
                               ))}
                             </>
@@ -1439,7 +1439,7 @@ export default function GuestbookConstructor() {
                         Фото
                       </div>
                       <div className={`text-sm font-medium ${uploadedPhoto ? 'text-green-400' : 'text-gray-500'}`}>
-                        {uploadedPhoto ? '✓ Завантажено' : 'Не завантажено'}
+                        {uploadedPhoto ? ' Завантажено' : 'Не завантажено'}
                       </div>
                     </div>
                   )}

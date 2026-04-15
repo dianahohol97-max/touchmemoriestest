@@ -6,7 +6,7 @@ import { BackgroundLayer, PageBackground, DEFAULT_BG } from './BackgroundLayer';
 import type { Shape } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES } from './FramesLayer';
 
-// ── Interfaces ──
+//  Interfaces 
 
 interface SlotData {
   photoId: string | null;
@@ -64,7 +64,7 @@ interface BookPreviewProps {
   hasKalka?: boolean;
 }
 
-// ── Component ──
+//  Component 
 
 export function BookPreviewModal({
   pages, photos, propW, propH, onClose,
@@ -111,7 +111,7 @@ export function BookPreviewModal({
   const kalkaForzatsIdx = hasKalka ? 1 : -1;
   const kalkaPageIdx = hasKalka ? 2 : -1;
 
-  // ── Render shapes (non-interactive) ──
+  //  Render shapes (non-interactive) 
   const renderShapes = (shapes: Shape[]) => {
     if (!shapes.length) return null;
     return shapes.map(sh => {
@@ -134,7 +134,7 @@ export function BookPreviewModal({
     });
   };
 
-  // ── Render stickers ──
+  //  Render stickers 
   const renderStickers = (stickers: typeof pageStickers[0], cW: number) => {
     if (!stickers?.length) return null;
     return stickers.map(st => (
@@ -148,7 +148,7 @@ export function BookPreviewModal({
     ));
   };
 
-  // ── Render frame (non-interactive preview) ──
+  //  Render frame (non-interactive preview) 
   const renderFrame = (fc: FrameConfig, cW: number, cH: number) => {
     if (!fc.frameId) return null;
     const sc = (fc.scale === 1 && fc.x === 0 && fc.y === 0) ? 0.6 : (fc.scale ?? 0.6);
@@ -172,7 +172,7 @@ export function BookPreviewModal({
     );
   };
 
-  // ── Render a photo inside a layout slot ──
+  //  Render a photo inside a layout slot 
   const renderSlotPhoto = (slot: SlotData, slotStyle: React.CSSProperties) => {
     const photo = getPhoto(slot.photoId);
     if (!photo) return null;
@@ -196,7 +196,7 @@ export function BookPreviewModal({
     );
   };
 
-  // ── Render a content page ──
+  //  Render a content page 
   const renderContentPage = (pageIdx: number, cW: number, cH: number) => {
     const page = pages[pageIdx];
     if (!page) return <div style={{ width: cW, height: cH, background: '#f8f9fa', flexShrink: 0 }} />;
@@ -261,7 +261,7 @@ export function BookPreviewModal({
     );
   };
 
-  // ── Kalka page ──
+  //  Kalka page 
   const renderKalkaPage = (cW: number, cH: number) => (
     <div style={{ width: cW, height: cH, position: 'relative', background: '#f8f9fc', overflow: 'hidden', flexShrink: 0 }}>
       <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(135deg, transparent, transparent 3px, rgba(200,210,240,0.15) 3px, rgba(200,210,240,0.15) 4px)', pointerEvents: 'none' }} />
@@ -283,14 +283,14 @@ export function BookPreviewModal({
     </div>
   );
 
-  // ── Forzats ──
+  //  Forzats 
   const renderForzats = (cW: number, cH: number) => (
     <div style={{ width: cW, height: cH, background: '#fafbfc', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
       <span style={{ color: '#d1d5db', fontSize: 9, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', writingMode: 'vertical-rl' }}>ФОРЗАЦ</span>
     </div>
   );
 
-  // ── Cover back ──
+  //  Cover back 
   const renderCoverBack = () => {
     const backBg = isPrinted ? (coverState?.backCoverBgColor || '#f1f5f9') : (effectiveCoverColor || '#e8ecf4');
     const backPhoto = isPrinted && coverState?.backCoverPhotoId ? getPhoto(coverState.backCoverPhotoId) : null;
@@ -309,7 +309,7 @@ export function BookPreviewModal({
     );
   };
 
-  // ── Cover front ──
+  //  Cover front 
   const renderCoverFront = () => {
     if (!isPrinted) {
       const bg = effectiveCoverColor || '#8b7355';
@@ -365,7 +365,7 @@ export function BookPreviewModal({
     );
   };
 
-  // ── Render a spread ──
+  //  Render a spread 
   const renderSpread = (spreadIdx: number) => {
     if (spreadIdx === 0) {
       return (

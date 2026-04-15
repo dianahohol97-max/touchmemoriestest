@@ -22,7 +22,7 @@ export const LAYOUTS: Layout[] = [
   {
     id: 'full-bleed',
     name: 'На весь розворот',
-    thumbnail: '🖼',
+    thumbnail: '',
     productTypes: ['photobook', 'travelbook', 'magazine'],
     slots: [{ id: 's1', type: 'photo', x: 0, y: 0, width: 1, height: 1 }]
   },
@@ -30,7 +30,7 @@ export const LAYOUTS: Layout[] = [
   {
     id: 'two-cols',
     name: 'Дві фотографії',
-    thumbnail: '⬜⬜',
+    thumbnail: '',
     productTypes: ['photobook', 'travelbook'],
     slots: [
       { id: 's1', type: 'photo', x: 0, y: 0, width: 0.49, height: 1 },
@@ -41,7 +41,7 @@ export const LAYOUTS: Layout[] = [
   {
     id: 'photo-caption',
     name: 'Фото + напис',
-    thumbnail: '📝',
+    thumbnail: '',
     productTypes: ['photobook', 'travelbook', 'magazine'],
     slots: [
       { id: 's1', type: 'photo', x: 0.05, y: 0.05, width: 0.9, height: 0.75 },
@@ -52,7 +52,7 @@ export const LAYOUTS: Layout[] = [
   {
     id: 'three-grid',
     name: 'Три фотографії',
-    thumbnail: '⬜⬜⬜',
+    thumbnail: '',
     productTypes: ['photobook'],
     slots: [
       { id: 's1', type: 'photo', x: 0, y: 0, width: 0.49, height: 1 },
@@ -64,7 +64,7 @@ export const LAYOUTS: Layout[] = [
   {
     id: 'four-grid',
     name: 'Чотири фотографії',
-    thumbnail: '⬜⬜⬜⬜',
+    thumbnail: '',
     productTypes: ['photobook'],
     slots: [
       { id: 's1', type: 'photo', x: 0, y: 0, width: 0.49, height: 0.49 },
@@ -85,7 +85,7 @@ export const LAYOUTS: Layout[] = [
   {
     id: 'mag-cover',
     name: 'Обкладинка журналу',
-    thumbnail: '📰',
+    thumbnail: '',
     productTypes: ['magazine'],
     slots: [
       { id: 's1', type: 'photo', x: 0, y: 0, width: 1, height: 1 },
@@ -96,7 +96,7 @@ export const LAYOUTS: Layout[] = [
   {
     id: 'blank',
     name: 'Чиста сторінка',
-    thumbnail: '⬜',
+    thumbnail: '',
     productTypes: ['photobook', 'travelbook', 'magazine'],
     slots: []
   },

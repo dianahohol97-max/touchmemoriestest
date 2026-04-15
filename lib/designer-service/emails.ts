@@ -63,7 +63,7 @@ export async function sendDesignReadyEmail({
     const { data, error } = await resend.emails.send({
       from: 'TOUCH MEMORIES <noreply@touchmemories.com.ua>',
       to: [customerEmail],
-      subject: `Ваш дизайн готовий! 🎉 Замовлення ${orderNumber}`,
+      subject: `Ваш дизайн готовий!  Замовлення ${orderNumber}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center;">
@@ -74,7 +74,7 @@ export async function sendDesignReadyEmail({
             <h2 style="color: #333;">Вітаємо, ${customerName}!</h2>
 
             <p style="font-size: 16px; line-height: 1.6; color: #555;">
-              Ваш дизайн фотоальбому готовий! 🎉
+              Ваш дизайн фотоальбому готовий! 
             </p>
 
             <p style="font-size: 16px; line-height: 1.6; color: #555;">
@@ -98,16 +98,16 @@ export async function sendDesignReadyEmail({
             <h3 style="color: #333;">Що далі?</h3>
 
             <p style="font-size: 16px; line-height: 1.6; color: #555;">
-              ✅ Перегляньте макет<br/>
-              💬 Залишіть коментарі на конкретних сторінках (якщо потрібно)<br/>
-              ✏️ Запросіть правки або затвердіть дизайн<br/>
-              🖨️ Після затвердження — друк та доставка!
+               Перегляньте макет<br/>
+               Залишіть коментарі на конкретних сторінках (якщо потрібно)<br/>
+               Запросіть правки або затвердіть дизайн<br/>
+               Після затвердження — друк та доставка!
             </p>
 
             <p style="font-size: 14px; color: #666; text-align: center; margin-top: 32px;">
               Потрібна допомога?<br/>
-              📧 <a href="mailto:info@touchmemories.com.ua" style="color: #667eea;">info@touchmemories.com.ua</a><br/>
-              📱 <a href="https://t.me/touchmemories" style="color: #667eea;">@touchmemories</a>
+               <a href="mailto:info@touchmemories.com.ua" style="color: #667eea;">info@touchmemories.com.ua</a><br/>
+               <a href="https://t.me/touchmemories" style="color: #667eea;">@touchmemories</a>
             </p>
           </div>
 
@@ -151,7 +151,7 @@ export async function sendRevisionsCompleteEmail({
     const { data, error } = await resend.emails.send({
       from: 'TOUCH MEMORIES <noreply@touchmemories.com.ua>',
       to: [customerEmail],
-      subject: `Правки виконано ✅ Замовлення ${orderNumber}`,
+      subject: `Правки виконано  Замовлення ${orderNumber}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center;">
@@ -162,7 +162,7 @@ export async function sendRevisionsCompleteEmail({
             <h2 style="color: #333;">Вітаємо, ${customerName}!</h2>
 
             <p style="font-size: 16px; line-height: 1.6; color: #555;">
-              Дизайнер виконав всі правки, які ви запросили! ✅
+              Дизайнер виконав всі правки, які ви запросили! 
             </p>
 
             <div style="text-align: center; margin: 32px 0;">

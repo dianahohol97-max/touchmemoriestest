@@ -61,7 +61,7 @@ export default function FAQPage() {
             <details key={i} className="border border-stone-200 rounded-xl overflow-hidden group">
               <summary className="flex items-center justify-between p-6 cursor-pointer font-semibold text-stone-900 hover:bg-stone-50">
                 {faq.q}
-                <span className="ml-4 text-stone-400 group-open:rotate-180 transition-transform">▼</span>
+                <span className="ml-4 text-stone-400 group-open:rotate-180 transition-transform"></span>
               </summary>
               <div className="px-6 pb-6 text-stone-600 leading-relaxed">{faq.a}</div>
             </details>

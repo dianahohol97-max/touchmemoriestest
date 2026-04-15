@@ -19,7 +19,7 @@ export function PageTemplatesPicker({ onApply, onClear, hasTextBlocks, productTy
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: '#1e2d7d', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 16 }}>📝</span> Шаблони сторінок з текстом
+        <span style={{ fontSize: 16 }}></span> Шаблони сторінок з текстом
       </div>
       <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>
         Готові текстові сторінки — тексти можна редагувати після застосування
@@ -30,7 +30,7 @@ export function PageTemplatesPicker({ onApply, onClear, hasTextBlocks, productTy
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             padding: '8px 12px', border: '1px solid #fee2e2', borderRadius: 8,
             background: '#fff7f7', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#ef4444' }}>
-          ✕ Прибрати шаблон (очистити текст і фон)
+           Прибрати шаблон (очистити текст і фон)
         </button>
       )}
 
@@ -46,7 +46,7 @@ export function PageTemplatesPicker({ onApply, onClear, hasTextBlocks, productTy
                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#1e2d7d'; e.currentTarget.style.background = '#f8f9ff'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#fff'; }}>
                 <div style={{ width: 36, height: 36, borderRadius: 6, background: t.bgColor || '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14, color: '#94a3b8' }}>
-                  {t.hasPhoto ? '📷' : '📝'}
+                  {t.hasPhoto ? '' : ''}
                 </div>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', lineHeight: 1.2 }}>{t.label}</div>

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
             const messageId = body.message.message_id.toString();
 
             if (text === '/start') {
-                const welcomeMsg = "Привіт! Я Софія з TouchMemories 👋\nМожу розповісти про наші фотокниги, ціни та допомогти з замовленням.\nЩо вас цікавить?";
+                const welcomeMsg = "Привіт! Я Софія з TouchMemories \nМожу розповісти про наші фотокниги, ціни та допомогти з замовленням.\nЩо вас цікавить?";
                 await bot.sendMessage(chatId, welcomeMsg);
                 return NextResponse.json({ ok: true });
             }

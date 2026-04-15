@@ -105,7 +105,7 @@ export default function GiftHintButton({
                             <div style={{ width: '56px', height: '56px', backgroundColor: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                                 <Check size={28} color="#16a34a" />
                             </div>
-                            <h3 style={{ margin: '0 0 8px', color: '#263A99' }}>Натяк відправлено! 🎁</h3>
+                            <h3 style={{ margin: '0 0 8px', color: '#263A99' }}>Натяк відправлено! </h3>
                             <p style={{ color: '#64748b', margin: '0 0 20px', fontSize: '14px' }}>Ваш натяк успішно надіслано</p>
                             <button onClick={() => { setOpen(false); setStep('choose'); setForm({ sender_name: '', recipient_email: '', recipient_phone: '', message: '' }); }}
                                 style={{ padding: '12px 28px', backgroundColor: '#263A99', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}>

@@ -18,14 +18,14 @@ export interface Shape {
 }
 
 const SHAPE_PRESETS: { type: ShapeType; icon: string; label: string }[] = [
-  { type:'rect',         icon:'▭', label:'Прямокутник' },
-  { type:'rounded-rect', icon:'▢', label:'Заокруглений' },
-  { type:'circle',       icon:'○', label:'Коло' },
-  { type:'triangle',     icon:'△', label:'Трикутник' },
-  { type:'line',         icon:'─', label:'Лінія горизонт.' },
-  { type:'line-v',        icon:'│', label:'Лінія вертик.' },
-  { type:'line-diagonal', icon:'╱', label:'По діагоналі' },
-  { type:'star',         icon:'☆', label:'Зірка' },
+  { type:'rect',         icon:'', label:'Прямокутник' },
+  { type:'rounded-rect', icon:'', label:'Заокруглений' },
+  { type:'circle',       icon:'', label:'Коло' },
+  { type:'triangle',     icon:'', label:'Трикутник' },
+  { type:'line',         icon:'', label:'Лінія горизонт.' },
+  { type:'line-v',        icon:'', label:'Лінія вертик.' },
+  { type:'line-diagonal', icon:'', label:'По діагоналі' },
+  { type:'star',         icon:'', label:'Зірка' },
   { type:'arrow',        icon:'→', label:'Стрілка' },
 ];
 

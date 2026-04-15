@@ -616,7 +616,7 @@ export default function PaymentsPage() {
                                         )}
                                         {order.payment_status === 'paid' && order.paid_at && (
                                             <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>
-                                                ✓ {formatDateOnly(order.paid_at)}
+                                                 {formatDateOnly(order.paid_at)}
                                             </div>
                                         )}
                                     </td>

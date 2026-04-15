@@ -369,7 +369,7 @@ export default function PopularProductsPage() {
                     fontWeight: 600,
                     zIndex: 100
                 }}>
-                    ⚠️ Є незбережені зміни
+                     Є незбережені зміни
                 </div>,
               document.body
             )}

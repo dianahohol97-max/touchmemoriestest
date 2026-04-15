@@ -130,7 +130,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
                     {/* Customer Notes */}
                     <div style={{ ...cardStyle, position: 'relative' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#263A99', margin: 0 }}>📌 Нотатки про клієнта</h3>
+                            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#263A99', margin: 0 }}> Нотатки про клієнта</h3>
                             <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {saving ? <><Loader2 size={12} className={styles.animateSpin} /> Збереження...</> : <><Save size={12} /> Збережено</>}
                             </div>

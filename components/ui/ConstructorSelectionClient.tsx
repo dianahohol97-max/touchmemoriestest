@@ -60,7 +60,7 @@ export function ConstructorSelectionClient({
         <section ref={ref} className="py-20 bg-white">
             <div className="container px-4">
 
-                {/* ─── Photobooks Section ─── */}
+                {/*  Photobooks Section  */}
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -99,7 +99,7 @@ export function ConstructorSelectionClient({
   {/* Фон */}
   <rect width="600" height="340" fill="#f4f6fb"/>
 
-  {/* ── TOPBAR (36px) ── */}
+  {/*  TOPBAR (36px)  */}
   <rect width="600" height="36" fill="#fff"/>
   <rect x="0" y="35.5" width="600" height="0.5" fill="#e2e8f0"/>
   {/* Кнопка назад */}
@@ -122,7 +122,7 @@ export function ConstructorSelectionClient({
   <rect x="516" y="7" width="76" height="22" rx="8" fill="#1e2d7d"/>
   <rect x="526" y="14" width="40" height="8" rx="2" fill="white" opacity="0.85"/>
 
-  {/* ── ICON COL (72px) ── */}
+  {/*  ICON COL (72px)  */}
   <rect x="0" y="36" width="72" height="304" fill="#fff"/>
   <rect x="71.5" y="36" width="0.5" height="304" fill="#f1f5f9"/>
   {/* Фото (активна вкладка — синя) */}
@@ -147,7 +147,7 @@ export function ConstructorSelectionClient({
   <rect x="18" y="218" width="36" height="26" rx="2" fill="#c7d2fe" opacity="0.5"/>
   <rect x="28" y="242" width="18" height="4" rx="1.5" fill="#94a3b8"/>
 
-  {/* ── LEFT PANEL (200px) ── */}
+  {/*  LEFT PANEL (200px)  */}
   <rect x="72" y="36" width="200" height="304" fill="#fff"/>
   <rect x="272" y="36" width="0.5" height="304" fill="#e2e8f0"/>
   {/* Заголовок панелі */}
@@ -174,7 +174,7 @@ export function ConstructorSelectionClient({
   <rect x="180" y="250" width="48" height="28" rx="2" fill="#e2e8f0" opacity="0.8"/>
   <text x="204" y="269" textAnchor="middle" fontSize="10" fill="#94a3b8" fontFamily="sans-serif">+</text>
 
-  {/* ── CANVAS (центр) — розворот фотокниги ── */}
+  {/*  CANVAS (центр) — розворот фотокниги  */}
   {/* Сторінка ліва */}
   <rect x="284" y="46" width="138" height="284" rx="3" fill="#fff" stroke="#e8edf5" strokeWidth="1" filter="url(#bs)"/>
   {/* Фото 1/2 на лівій */}
@@ -227,7 +227,7 @@ export function ConstructorSelectionClient({
                     </div>
                 </motion.div>
 
-                {/* ─── Glossy Magazines Section ─── */}
+                {/*  Glossy Magazines Section  */}
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -252,7 +252,7 @@ export function ConstructorSelectionClient({
   {/* Фон */}
   <rect width="600" height="340" fill="#f4f6fb"/>
 
-  {/* ── TOPBAR ── */}
+  {/*  TOPBAR  */}
   <rect width="600" height="36" fill="#fff"/>
   <rect x="0" y="35.5" width="600" height="0.5" fill="#e2e8f0"/>
   <rect x="10" y="8" width="40" height="20" rx="4" fill="#f8fafc"/>
@@ -267,7 +267,7 @@ export function ConstructorSelectionClient({
   <rect x="516" y="7" width="76" height="22" rx="8" fill="#7c3aed"/>
   <rect x="526" y="14" width="40" height="8" rx="2" fill="white" opacity="0.85"/>
 
-  {/* ── ICON COL ── */}
+  {/*  ICON COL  */}
   <rect x="0" y="36" width="72" height="304" fill="#fff"/>
   <rect x="71.5" y="36" width="0.5" height="304" fill="#f1f5f9"/>
   {/* Фото — активна */}
@@ -290,7 +290,7 @@ export function ConstructorSelectionClient({
   <rect x="18" y="218" width="36" height="26" rx="2" fill="#c4b5fd" opacity="0.4"/>
   <rect x="28" y="242" width="18" height="4" rx="1.5" fill="#94a3b8"/>
 
-  {/* ── LEFT PANEL ── */}
+  {/*  LEFT PANEL  */}
   <rect x="72" y="36" width="200" height="304" fill="#fff"/>
   <rect x="272" y="36" width="0.5" height="304" fill="#e2e8f0"/>
   <rect x="84" y="44" width="80" height="7" rx="2" fill="#7c3aed" opacity="0.5"/>
@@ -314,7 +314,7 @@ export function ConstructorSelectionClient({
   <rect x="176" y="236" width="84" height="64" rx="4" fill="#ede9fe" stroke="#ddd6fe" strokeWidth="1"/>
   <rect x="180" y="240" width="76" height="56" rx="2" fill="#8b5cf6" opacity="0.3"/>
 
-  {/* ── CANVAS — журнальний розворот A4 ── */}
+  {/*  CANVAS — журнальний розворот A4  */}
   {/* Ліва A4 сторінка — вертикальна */}
   <rect x="284" y="44" width="150" height="288" rx="3" fill="#fff" stroke="#e8edf5" strokeWidth="1" filter="url(#bsm)"/>
   {/* Повнокадрове фото зверху */}

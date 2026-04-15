@@ -106,7 +106,7 @@ export const PhotoboothEmbed: React.FC<PhotoboothEmbedProps> = ({
           }}
           title="Configuration"
         >
-          ⚙️
+          
         </button>
       )}
 

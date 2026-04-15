@@ -39,7 +39,7 @@ export async function POST(request: Request) {
                 type: 'percent',
                 value: 10,
                 discount_amount: discount_amount,
-                message: `Знижка -${discount_amount} грн (Реферальний код) ✓`,
+                message: `Знижка -${discount_amount} грн (Реферальний код) `,
                 promo_id: null,
                 referral_code_id: refCode.id
             });
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
             type: promo.type,
             value: promo.value,
             discount_amount: discount_amount,
-            message: `Знижка -${discount_amount} грн застосована ✓`,
+            message: `Знижка -${discount_amount} грн застосована `,
             promo_id: promo.id // Return ID so client can submit it when finalizing order
         });
 

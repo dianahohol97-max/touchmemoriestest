@@ -46,7 +46,7 @@ export async function POST() {
         const html = `<div style="font-family:sans-serif;max-width:560px;margin:0 auto">
             <div style="background:#263a99;padding:24px;text-align:center"><h1 style="color:white;margin:0">Touch.Memories</h1></div>
             <div style="padding:32px">
-                <h2 style="color:#263a99">Привіт, ${firstName}! 👋</h2>
+                <h2 style="color:#263a99">Привіт, ${firstName}! </h2>
                 <p style="color:#64748b">У вашому списку бажань є товари, які чекають на вас:</p>
                 ${itemsHtml}
                 <div style="margin-top:24px;text-align:center">
@@ -62,7 +62,7 @@ export async function POST() {
             await fetch(`${siteUrl}/api/email/transactional`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'custom', to: user.email, subject: `${firstName}, у вашому списку бажань ${userItems.length} товар${userItems.length > 1 ? 'и' : ''} 💙`, html }),
+                body: JSON.stringify({ action: 'custom', to: user.email, subject: `${firstName}, у вашому списку бажань ${userItems.length} товар${userItems.length > 1 ? 'и' : ''} `, html }),
             });
             sent++;
         } catch (e) { console.error('wishlist reminder failed:', e); }

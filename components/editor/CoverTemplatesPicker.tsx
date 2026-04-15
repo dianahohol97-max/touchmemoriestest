@@ -65,7 +65,7 @@ export function CoverTemplatesPicker({ onApply, productType }: CoverTemplatesPic
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: '#1e2d7d', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 16 }}>✨</span> Шаблони обкладинок
+        <span style={{ fontSize: 16 }}></span> Шаблони обкладинок
       </div>
       <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>
         Оберіть шаблон — текст і фото можна редагувати після застосування

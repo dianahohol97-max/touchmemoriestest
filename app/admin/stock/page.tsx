@@ -343,7 +343,7 @@ export default function StockPage() {
         toast.success('Excel файл завантажено');
     };
 
-    // ── Edit modal handlers ──
+    //  Edit modal handlers 
     const openEditModal = (product: Product) => {
         setEditModalProduct(product);
         setEditModalData({
@@ -388,7 +388,7 @@ export default function StockPage() {
         }
     };
 
-    // ── Delete modal handlers ──
+    //  Delete modal handlers 
     const openDeleteModal = (product: Product) => {
         setDeleteProduct(product);
         setDeleteReason('');
@@ -424,7 +424,7 @@ export default function StockPage() {
         }
     };
 
-    // ── History fetch ──
+    //  History fetch 
     const fetchHistory = useCallback(async () => {
         setHistoryLoading(true);
         try {

@@ -282,23 +282,23 @@ function ConfigurationStep({
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             {templates.map((template) => {
                                 const templateStyles: Record<string, { bg: string; accent: string; label: string; icon: string }> = {
-                                    classic:      { bg: '#f8f5f0', accent: '#2c3e7a', label: 'Classic',      icon: '📅' },
-                                    modern:       { bg: '#f0f4ff', accent: '#1a1a2e', label: 'Modern',       icon: '🗓️' },
-                                    minimal:      { bg: '#fafafa', accent: '#888888', label: 'Minimal',      icon: '◽' },
-                                    vintage:      { bg: '#f5ede0', accent: '#8b4513', label: 'Vintage',      icon: '🍂' },
-                                    colorful:     { bg: '#fff0f5', accent: '#e91e8c', label: 'Colorful',     icon: '🎨' },
-                                    nature:       { bg: '#f0f7f0', accent: '#2e7d32', label: 'Nature',       icon: '🌿' },
-                                    urban:        { bg: '#f0f0f0', accent: '#37474f', label: 'Urban',        icon: '🏙️' },
-                                    family:       { bg: '#fff8f0', accent: '#e65100', label: 'Family',       icon: '🏡' },
-                                    travel:       { bg: '#e8f4fd', accent: '#0277bd', label: 'Travel',       icon: '✈️' },
-                                    business:     { bg: '#f5f5f5', accent: '#212121', label: 'Business',     icon: '💼' },
-                                    elegant:      { bg: '#fdf5e6', accent: '#8d6e63', label: 'Elegant',      icon: '✨' },
-                                    bright:       { bg: '#fffde7', accent: '#f57f17', label: 'Bright',       icon: '☀️' },
-                                    wood:         { bg: '#efebe9', accent: '#5d4037', label: 'Wood',         icon: '🌲' },
-                                    professional: { bg: '#eceff1', accent: '#546e7a', label: 'Professional', icon: '📊' },
-                                    photo:        { bg: '#f3e5f5', accent: '#7b1fa2', label: 'Photo',        icon: '📷' },
+                                    classic:      { bg: '#f8f5f0', accent: '#2c3e7a', label: 'Classic',      icon: '' },
+                                    modern:       { bg: '#f0f4ff', accent: '#1a1a2e', label: 'Modern',       icon: '' },
+                                    minimal:      { bg: '#fafafa', accent: '#888888', label: 'Minimal',      icon: '' },
+                                    vintage:      { bg: '#f5ede0', accent: '#8b4513', label: 'Vintage',      icon: '' },
+                                    colorful:     { bg: '#fff0f5', accent: '#e91e8c', label: 'Colorful',     icon: '' },
+                                    nature:       { bg: '#f0f7f0', accent: '#2e7d32', label: 'Nature',       icon: '' },
+                                    urban:        { bg: '#f0f0f0', accent: '#37474f', label: 'Urban',        icon: '' },
+                                    family:       { bg: '#fff8f0', accent: '#e65100', label: 'Family',       icon: '' },
+                                    travel:       { bg: '#e8f4fd', accent: '#0277bd', label: 'Travel',       icon: '' },
+                                    business:     { bg: '#f5f5f5', accent: '#212121', label: 'Business',     icon: '' },
+                                    elegant:      { bg: '#fdf5e6', accent: '#8d6e63', label: 'Elegant',      icon: '' },
+                                    bright:       { bg: '#fffde7', accent: '#f57f17', label: 'Bright',       icon: '' },
+                                    wood:         { bg: '#efebe9', accent: '#5d4037', label: 'Wood',         icon: '' },
+                                    professional: { bg: '#eceff1', accent: '#546e7a', label: 'Professional', icon: '' },
+                                    photo:        { bg: '#f3e5f5', accent: '#7b1fa2', label: 'Photo',        icon: '' },
                                 };
-                                const s = templateStyles[template] || { bg: '#f5f5f5', accent: '#1e2d7d', label: template, icon: '📅' };
+                                const s = templateStyles[template] || { bg: '#f5f5f5', accent: '#1e2d7d', label: template, icon: '' };
                                 const isSelected = config.template === template;
                                 return (
                                     <button

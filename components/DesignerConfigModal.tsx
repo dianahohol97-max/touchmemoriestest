@@ -66,13 +66,13 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
   // Cover type selection step (for photobooks and magazines without a fixed slug)
   const needsCoverSelection = (productType === 'photobook' || productType === 'magazine') && !slugProp;
   const COVER_OPTIONS = productType === 'magazine' ? [
-    { slug: 'personalized-glossy-magazine', label: 'М\'яка обкладинка', desc: 'Глянцева м\'яка обкладинка', icon: '📖' },
-    { slug: 'fotozhurnal-tverd-obkladynka', label: 'Тверда обкладинка', desc: 'Тверда обкладинка преміум', icon: '📚' },
+    { slug: 'personalized-glossy-magazine', label: 'М\'яка обкладинка', desc: 'Глянцева м\'яка обкладинка', icon: '' },
+    { slug: 'fotozhurnal-tverd-obkladynka', label: 'Тверда обкладинка', desc: 'Тверда обкладинка преміум', icon: '' },
   ] : [
-    { slug: 'photobook-velour', label: 'Велюр', desc: 'М\'який оксамитовий матеріал', icon: '🟣' },
-    { slug: 'photobook-leatherette', label: 'Шкірзамінник', desc: 'Елегантна шкіра', icon: '🟤' },
-    { slug: 'photobook-fabric', label: 'Тканина', desc: 'Натуральна льняна тканина', icon: '🟡' },
-    { slug: 'photobook-printed', label: 'Друкована', desc: 'Фото на всю обкладинку', icon: '🖼️' },
+    { slug: 'photobook-velour', label: 'Велюр', desc: 'М\'який оксамитовий матеріал', icon: '' },
+    { slug: 'photobook-leatherette', label: 'Шкірзамінник', desc: 'Елегантна шкіра', icon: '' },
+    { slug: 'photobook-fabric', label: 'Тканина', desc: 'Натуральна льняна тканина', icon: '' },
+    { slug: 'photobook-printed', label: 'Друкована', desc: 'Фото на всю обкладинку', icon: '' },
   ];
   const [selectedCoverSlug, setSelectedCoverSlug] = useState('');
   const [coverStepDone, setCoverStepDone] = useState(false);

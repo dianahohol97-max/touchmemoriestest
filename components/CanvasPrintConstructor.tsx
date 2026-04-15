@@ -96,7 +96,7 @@ export default function CanvasPrintConstructor() {
         setStep(3);
     };
 
-    // ── Get aspect ratio for size preview ──
+    //  Get aspect ratio for size preview 
     const getSizeDims = (val: string) => {
         const m = val.match(/(\d+)x(\d+)/);
         if (!m) return { w: 1, h: 1 };
@@ -137,7 +137,7 @@ export default function CanvasPrintConstructor() {
                                     color: done || active ? '#fff' : '#94a3b8',
                                     fontSize: 13, fontWeight: 800, flexShrink: 0
                                 }}>
-                                    {done ? '✓' : n}
+                                    {done ? '' : n}
                                 </div>
                                 <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#1e2d7d' : done ? '#10b981' : '#94a3b8' }}>
                                     {label}
@@ -151,7 +151,7 @@ export default function CanvasPrintConstructor() {
                 })}
             </div>
 
-            {/* ── STEP 1: SIZE ── */}
+            {/*  STEP 1: SIZE  */}
             {step === 1 && (
                 <div>
                     <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', marginBottom: 20 }}>{t('canvasprint.select_size')}</h2>
@@ -211,7 +211,7 @@ export default function CanvasPrintConstructor() {
                 </div>
             )}
 
-            {/* ── STEP 2: PHOTO UPLOAD ── */}
+            {/*  STEP 2: PHOTO UPLOAD  */}
             {step === 2 && (
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
@@ -228,7 +228,7 @@ export default function CanvasPrintConstructor() {
                         const minPx = Math.max(dims.w, dims.h) * 40; // ~40px/cm for print quality
                         return (
                             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#92400e' }}>
-                                💡 Для розміру <b>{selectedSize.label}</b> рекомендовано фото від <b>{minPx}×{Math.round(minPx * dims.h / dims.w)} px</b> (300 dpi). Мінімум — 150 dpi.
+                                 Для розміру <b>{selectedSize.label}</b> рекомендовано фото від <b>{minPx}×{Math.round(minPx * dims.h / dims.w)} px</b> (300 dpi). Мінімум — 150 dpi.
                             </div>
                         );
                     })()}
@@ -313,10 +313,10 @@ export default function CanvasPrintConstructor() {
                 </div>
             )}
 
-            {/* ── STEP 3: ADDED TO CART ── */}
+            {/*  STEP 3: ADDED TO CART  */}
             {step === 3 && (
                 <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                    <div style={{ fontSize: 60, marginBottom: 16 }}>🎨</div>
+                    <div style={{ fontSize: 60, marginBottom: 16 }}></div>
                     <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1e2d7d', marginBottom: 8 }}>{t('canvasprint.added_to_cart')}</h2>
                     <p style={{ color: '#64748b', marginBottom: 32, fontSize: 15 }}>
                         Полотно <b>{selectedSize?.label}</b> чекає на тебе в кошику

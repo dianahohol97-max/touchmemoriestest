@@ -1156,7 +1156,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             </div>
                         )}
 
-                        {/* 🎁 Gift Hint + Certificate buttons */}
+                        {/*  Gift Hint + Certificate buttons */}
                         <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
                             <button
                                 onClick={() => setShowGiftHint(true)}
@@ -1167,7 +1167,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 onMouseOver={e => (e.currentTarget.style.background = '#fdf4ff', e.currentTarget.style.borderColor = '#e879f9')}
                                 onMouseOut={e => (e.currentTarget.style.background = '#fff', e.currentTarget.style.borderColor = '#e2e8f0')}
                             >
-                                🎁 Натякнути на подарунок
+                                 Натякнути на подарунок
                             </button>
                             <Link
                                 href="/catalog/gift-certificate"
@@ -1178,7 +1178,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 onMouseOver={(e: any) => (e.currentTarget.style.background = '#fefce8', e.currentTarget.style.borderColor = '#facc15')}
                                 onMouseOut={(e: any) => (e.currentTarget.style.background = '#fff', e.currentTarget.style.borderColor = '#e2e8f0')}
                             >
-                                🏷️ Придбати сертифікат
+                                 Придбати сертифікат
                             </Link>
                         </div>
 
@@ -1189,7 +1189,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 <div style={{ background: '#fff', borderRadius: 16, padding: 32, maxWidth: 460, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
                                     {giftHintSent ? (
                                         <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                                            <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+                                            <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                                             <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>Натяк відправлено!</h3>
                                             <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>Отримувач отримає листа з посиланням на цей товар</p>
                                             <button onClick={() => { setShowGiftHint(false); setGiftHintSent(false); setGiftHintForm({ senderName: '', recipientName: '', recipientEmail: '', message: '' }); }}
@@ -1200,11 +1200,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     ) : (
                                         <>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>🎁 Натякнути на подарунок</h3>
+                                                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', margin: 0 }}> Натякнути на подарунок</h3>
                                                 <button onClick={() => setShowGiftHint(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94a3b8' }}>×</button>
                                             </div>
                                             <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>
-                                                Відправимо листа людині, яку хочете порадувати, з посиланням на цей товар 💜
+                                                Відправимо листа людині, яку хочете порадувати, з посиланням на цей товар 
                                             </p>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                                 <input
@@ -1261,7 +1261,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                         cursor: giftHintForm.recipientEmail ? 'pointer' : 'not-allowed',
                                                         transition: 'all 0.15s' }}
                                                 >
-                                                    {giftHintSending ? 'Відправляємо...' : '💌 Відправити натяк'}
+                                                    {giftHintSending ? 'Відправляємо...' : ' Відправити натяк'}
                                                 </button>
                                             </div>
                                         </>

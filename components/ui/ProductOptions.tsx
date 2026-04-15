@@ -234,7 +234,7 @@ export function ProductOptions({ product }: ProductOptionsProps) {
                             onClick={() => setIsHintModalOpen(true)}
                             className="flex-1 py-4 bg-gray-50 text-primary/40 rounded-brand font-bold text-[12px] uppercase tracking-widest hover:bg-primary/5 hover:text-primary transition-all flex items-center justify-center gap-2"
                         >
-                            💝 Натякнути
+                             Натякнути
                         </button>
                         <WishlistButton productId={product.id} variant="full" className="flex-1" />
                     </div>

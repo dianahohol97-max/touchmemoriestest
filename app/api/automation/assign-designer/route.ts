@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
           if (order) {
             const customAttrs = order.custom_attributes as any;
-            const isExpress = customAttrs?.tags?.includes('⚡ Відправити швидше') || false;
+            const isExpress = customAttrs?.tags?.includes(' Відправити швидше') || false;
 
             // Send Telegram notification
             await notifyDesignerNewOrder({

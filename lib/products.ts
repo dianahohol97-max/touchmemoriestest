@@ -576,7 +576,7 @@ export function getBindingInfo(pages: number) {
   if (type === 'saddle-stitch') {
     return {
       type: 'saddle-stitch',
-      icon: '📎',
+      icon: '',
       title: 'Скоба (Saddle-stitch)',
       description: 'Класична журнальна палітурка — ідеально до 44 сторінок. Аркуші складаються навпіл і скріплюються двома металевими скобами.',
       backgroundColor: '#F0F8FF',
@@ -587,7 +587,7 @@ export function getBindingInfo(pages: number) {
 
   return {
     type: 'perfect-binding',
-    icon: '📚',
+    icon: '',
     title: 'Клейова палітурка (Perfect binding)',
     description: 'Книжкова якість — для журналів від 46 сторінок. Сторінки приклеюються до корінця. Журнал виглядає як справжня книга.',
     backgroundColor: '#F0FFF4',
@@ -598,13 +598,13 @@ export function getBindingInfo(pages: number) {
 
 export function getUsageHelper(pages: number): string {
   if (pages >= 12 && pages <= 20) {
-    return '💼 Ідеально для: корпоративних буклетів, запрошень, портфоліо';
+    return ' Ідеально для: корпоративних буклетів, запрошень, портфоліо';
   }
   if (pages >= 21 && pages <= 32) {
-    return '💒 Ідеально для: весільних журналів, шкільних газет, подієвих видань';
+    return ' Ідеально для: весільних журналів, шкільних газет, подієвих видань';
   }
   if (pages >= 33 && pages <= 60) {
-    return '📸 Ідеально для: сімейних альбомів, спортивних журналів, фото-звітів';
+    return ' Ідеально для: сімейних альбомів, спортивних журналів, фото-звітів';
   }
-  return '🏢 Ідеально для: великих корпоративних звітів, каталогів, книг';
+  return ' Ідеально для: великих корпоративних звітів, каталогів, книг';
 }

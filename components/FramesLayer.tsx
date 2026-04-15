@@ -15,23 +15,23 @@ export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opa
 
 // PNG frames — rendered as <img> overlay, black bg = transparent (mix-blend-mode: multiply not needed, these have real alpha)
 export const PNG_FRAMES = [
-  // ── Акварельні квіткові ──
+  //  Акварельні квіткові 
   { id: 'png-pink-roses-watercolor',  label: 'Рожеві троянди',    group: 'Акварельні', src: '/frames/pink-roses-watercolor.png' },
   { id: 'png-pink-flower-corner',     label: 'Рожеві маки',        group: 'Акварельні', src: '/frames/pink-flower-corner.png' },
   { id: 'png-eucalyptus-gold-square', label: 'Евкаліпт квадрат',  group: 'Акварельні', src: '/frames/eucalyptus-gold-square.png' },
   { id: 'png-jasmine-corners',        label: 'Жасмин кутики',     group: 'Акварельні', src: '/frames/jasmine-corners.png' },
   { id: 'png-botanical-vines',        label: 'Ботанічні ліани',   group: 'Акварельні', src: '/frames/botanical-vines-square.png' },
   { id: 'png-lily-corner',            label: 'Лілії кутик',       group: 'Акварельні', src: '/frames/lily-corner.png' },
-  // ── Золоті класичні ──
+  //  Золоті класичні 
   { id: 'png-gold-baroque-simple',    label: 'Золото бароко',      group: 'Золоті',    src: '/frames/gold-baroque-simple.png' },
   { id: 'png-gold-baroque-ornate',    label: 'Золото розкішне',    group: 'Золоті',    src: '/frames/gold-baroque-ornate.png' },
   { id: 'png-gold-rococo-ornate',     label: 'Золото рококо',      group: 'Золоті',    src: '/frames/gold-rococo-ornate.png' },
   { id: 'png-gold-ornate-portrait',   label: 'Золото портрет',     group: 'Золоті',    src: '/frames/gold-ornate-portrait.png' },
-  // ── Весільні (gold + florals) ──
+  //  Весільні (gold + florals) 
   { id: 'png-boho-gold-floral',       label: 'Бохо золото',        group: 'Весільні PNG', src: '/frames/boho-gold-floral.png' },
   { id: 'png-roses-gold-circle',      label: 'Троянди коло',       group: 'Весільні PNG', src: '/frames/roses-gold-circle.png' },
   { id: 'png-eucalyptus-gold-circle', label: 'Евкаліпт коло',      group: 'Весільні PNG', src: '/frames/eucalyptus-gold-circle.png' },
-  // ── Векторні декоративні ──
+  //  Векторні декоративні 
   { id: 'png-gdj-floral-wreath',      label: 'Квітковий вінок',    group: 'Векторні', src: '/frames/gdj-floral-wreath.png' },
   { id: 'png-gdj-leaves-circle',      label: 'Листя коло',         group: 'Векторні', src: '/frames/gdj-leaves-circle.png' },
   { id: 'png-gdj-botanical-square',   label: 'Ботаніка квадрат',   group: 'Векторні', src: '/frames/gdj-botanical-square.png' },
@@ -41,19 +41,19 @@ export const PNG_FRAMES = [
   { id: 'png-silver-ornament-bands',  label: 'Срібний орнамент',   group: 'Векторні', src: '/frames/silver-ornament-bands.png' },
   { id: 'png-teal-monstera-square',   label: 'Монстера',           group: 'Векторні', src: '/frames/teal-monstera-square.png' },
   { id: 'png-jungle-vines-square',    label: 'Джунглі ліани',      group: 'Векторні', src: '/frames/jungle-vines-square.png' },
-  // ── Акварельні 2 ──
+  //  Акварельні 2 
   { id: 'png-blue-leaves-corners',    label: 'Сині листя',         group: 'Акварельні', src: '/frames/blue-leaves-corners.png' },
   { id: 'png-peach-roses-gold',       label: 'Персик троянди',     group: 'Акварельні', src: '/frames/peach-roses-gold.png' },
   { id: 'png-green-berries-wreath',   label: 'Зелений вінок',      group: 'Акварельні', src: '/frames/green-berries-wreath.png' },
   { id: 'png-eucalyptus-white-flowers', label: 'Евкаліпт+квіти',  group: 'Акварельні', src: '/frames/eucalyptus-white-flowers.png' },
   { id: 'png-sage-botanical-corner',  label: 'Сейдж кутик',        group: 'Акварельні', src: '/frames/sage-botanical-corner.png' },
   { id: 'png-white-roses-cascade',    label: 'Білі троянди',       group: 'Акварельні', src: '/frames/white-roses-cascade.png' },
-  // ── Весільні PNG 2 ──
+  //  Весільні PNG 2 
   { id: 'png-pink-hexagon-gold',      label: 'Рожевий шестикут',   group: 'Весільні PNG', src: '/frames/pink-hexagon-gold.png' },
   { id: 'png-pink-roses-gold-circle', label: 'Рожеве коло',        group: 'Весільні PNG', src: '/frames/pink-roses-gold-circle.png' },
   { id: 'png-gold-acanthus-corner',   label: 'Золотий аканф',      group: 'Весільні PNG', src: '/frames/gold-acanthus-corner.png' },
   { id: 'png-pink-cherry-gold-poly',  label: 'Сакура золото',      group: 'Весільні PNG', src: '/frames/pink-cherry-gold-poly.png' },
-  // ── Спеціальні ──
+  //  Спеціальні 
   { id: 'png-polaroid-paperclip',     label: 'Поляроїд',           group: 'Спеціальні', src: '/frames/polaroid-paperclip.png' },
   { id: 'png-vyshyvanka-blue-top',     label: 'Вишиванка синя',     group: 'Спеціальні', src: '/frames/vyshyvanka-blue-top.png' },
 ];
@@ -63,7 +63,7 @@ export const ALL_FRAMES_FLAT = [...PNG_FRAMES]; // SVG appended below
 
 // SVG frame definitions
 export const FRAMES = [
-  // ── Simple frames ──
+  //  Simple frames 
   {
     id: 'simple-thin',
     label: 'Тонка (1мм)',
@@ -131,7 +131,7 @@ export const FRAMES = [
   },
 
   // REMOVED: Decorative and Floral frames — use SVG only simple
-  // ── Decorative frames ──
+  //  Decorative frames 
   {
     id: 'corners',
     label: 'Кутики',

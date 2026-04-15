@@ -159,7 +159,7 @@ export default function GlossyMagazineConstructor() {
           </p>
           {extras.urgent && (
             <p className="text-[#E63946] text-sm font-semibold mb-6">
-              ⚡ Ваше замовлення відзначено як термінове — опрацюємо в першу чергу.
+               Ваше замовлення відзначено як термінове — опрацюємо в першу чергу.
             </p>
           )}
           <button
@@ -405,7 +405,7 @@ export default function GlossyMagazineConstructor() {
                 </div>
                 {extras.typesetting && (
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-800 animate-in fade-in slide-in-from-top-2">
-                    📎 На кроці 3 буде можливість завантажити текстовий файл
+                     На кроці 3 буде можливість завантажити текстовий файл
                   </div>
                 )}
               </div>
@@ -485,7 +485,7 @@ export default function GlossyMagazineConstructor() {
                   <div className="flex-1">
                     <h3 className="text-lg font-bold text-gray-900 mb-2">Термінове виготовлення</h3>
                     <p className="text-sm text-gray-600 leading-relaxed mb-3">
-                      ⚡ Пріоритетне виконання — 2–3 робочих дні замість стандартних 4–8
+                       Пріоритетне виконання — 2–3 робочих дні замість стандартних 4–8
                     </p>
                     {extras.urgent && (
                       <p className="text-base font-semibold text-[#E63946] mb-2">
@@ -493,7 +493,7 @@ export default function GlossyMagazineConstructor() {
                       </p>
                     )}
                     <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg">
-                      ⚠️ Термінове замовлення оформлюється після погодження з менеджером
+                       Термінове замовлення оформлюється після погодження з менеджером
                     </p>
                   </div>
                   <label className="relative inline-block w-14 h-8 cursor-pointer flex-shrink-0">
@@ -513,7 +513,7 @@ export default function GlossyMagazineConstructor() {
             {/* Price Summary Sticky */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200 sticky top-4">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                🧾 Вартість замовлення
+                 Вартість замовлення
               </h3>
               <div className="space-y-2 text-sm mb-4">
                 <div className="flex justify-between">
@@ -605,7 +605,7 @@ export default function GlossyMagazineConstructor() {
 
             {/* Photo Upload */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-800">
-              📷 Рекомендована кількість фото для журналу на <b>{pages}</b> сторінок: <b>{pages + 1}–{Math.round(pages * 1.3)}</b>
+               Рекомендована кількість фото для журналу на <b>{pages}</b> сторінок: <b>{pages + 1}–{Math.round(pages * 1.3)}</b>
             </div>
             <PhotoUploader
               canvasSize={{ width: 2480, height: 3508 }}
@@ -864,7 +864,7 @@ export default function GlossyMagazineConstructor() {
             </button>
 
             <div className="text-center space-y-2 text-sm text-gray-600">
-              <p>🔒 Оплата при отриманні або онлайн (Visa/Mastercard)</p>
+              <p> Оплата при отриманні або онлайн (Visa/Mastercard)</p>
               <p>⏱ Час виготовлення: 4–8 робочих днів</p>
             </div>
 

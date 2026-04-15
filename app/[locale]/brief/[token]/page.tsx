@@ -26,7 +26,7 @@ export default async function BriefPage({ params }: PageProps) {
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-[3px] shadow-md p-8 text-center">
-            <div className="text-6xl mb-4">✅</div>
+            <div className="text-6xl mb-4"></div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Бриф вже відправлено
             </h1>
@@ -77,7 +77,7 @@ export default async function BriefPage({ params }: PageProps) {
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-[3px] shadow-md p-8 text-center">
-            <div className="text-6xl mb-4">⚠️</div>
+            <div className="text-6xl mb-4"></div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Доступ обмежено
             </h1>

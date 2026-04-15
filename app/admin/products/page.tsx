@@ -32,12 +32,12 @@ interface Product {
 type Tab = 'main' | 'prices' | 'media' | 'options' | 'stock' | 'seo';
 
 const TABS: { id: Tab; label: string }[] = [
-    { id: 'main', label: '📋 Основне' },
-    { id: 'prices', label: '💰 Ціни' },
-    { id: 'media', label: '🖼 Фото/Відео' },
-    { id: 'options', label: '⚙️ Опції' },
-    { id: 'stock', label: '📦 Склад' },
-    { id: 'seo', label: '🔍 SEO' },
+    { id: 'main', label: ' Основне' },
+    { id: 'prices', label: ' Ціни' },
+    { id: 'media', label: ' Фото/Відео' },
+    { id: 'options', label: ' Опції' },
+    { id: 'stock', label: ' Склад' },
+    { id: 'seo', label: ' SEO' },
 ];
 
 const IS = { width:'100%', padding:'9px 12px', border:'1px solid #d1d5db', borderRadius:8, fontSize:14, outline:'none', background:'#fff', boxSizing:'border-box' as const };
@@ -110,7 +110,7 @@ export default function ProductsAdminPage() {
         }).eq('id', sel.id);
         setSaving(false);
         if (error) { toast.error('Помилка: ' + error.message); return; }
-        toast.success('Збережено ✓');
+        toast.success('Збережено ');
         setProducts(prev => prev.map(p => p.id === sel.id ? { ...sel } : p));
     }
 
@@ -264,7 +264,7 @@ export default function ProductsAdminPage() {
                     <div style={{ flex:1, overflowY:'auto', padding:20, background:'#f9fafb' }}>
                     <div style={{ maxWidth:800, display:'flex', flexDirection:'column', gap:16 }}>
 
-                    {/* ── MAIN ── */}
+                    {/*  MAIN  */}
                     {tab==='main' && <>
                         <div style={{ background:'#fff', borderRadius:12, padding:20, border:'1px solid #e5e7eb' }}>
                             <div style={{ fontWeight:700, color:'#1e2d7d', marginBottom:14 }}>Загальна інформація</div>
@@ -318,7 +318,7 @@ export default function ProductsAdminPage() {
                         </div>
                     </>}
 
-                    {/* ── PRICES ── */}
+                    {/*  PRICES  */}
                     {tab==='prices' && <>
                         <div style={{ background:'#fff', borderRadius:12, padding:20, border:'1px solid #e5e7eb' }}>
                             <div style={{ fontWeight:700, color:'#1e2d7d', marginBottom:14 }}>Ціни</div>
@@ -338,13 +338,13 @@ export default function ProductsAdminPage() {
                             </div>
                             {S.price>0 && S.cost_price && (
                                 <div style={{ marginTop:12, padding:'10px 14px', background:'#f0fdf4', borderRadius:8, fontSize:13, color:'#166534' }}>
-                                    💰 Маржа: <b>{Math.round(((S.price-S.cost_price)/S.price)*100)}%</b> · Прибуток: <b>{(S.price-S.cost_price).toFixed(0)} ₴</b>
+                                     Маржа: <b>{Math.round(((S.price-S.cost_price)/S.price)*100)}%</b> · Прибуток: <b>{(S.price-S.cost_price).toFixed(0)} ₴</b>
                                 </div>
                             )}
                         </div>
                     </>}
 
-                    {/* ── MEDIA ── */}
+                    {/*  MEDIA  */}
                     {tab==='media' && <>
                         <div style={{ background:'#fff', borderRadius:12, padding:20, border:'1px solid #e5e7eb' }}>
                             {(() => {
@@ -397,7 +397,7 @@ export default function ProductsAdminPage() {
                         </div>
                     </>}
 
-                    {/* ── OPTIONS ── */}
+                    {/*  OPTIONS  */}
                     {tab==='options' && <>
                         <div style={{ background:'#fff', borderRadius:12, padding:20, border:'1px solid #e5e7eb' }}>
                             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
@@ -462,7 +462,7 @@ export default function ProductsAdminPage() {
                         </div>
                     </>}
 
-                    {/* ── STOCK ── */}
+                    {/*  STOCK  */}
                     {tab==='stock' && <>
                         <div style={{ background:'#fff', borderRadius:12, padding:20, border:'1px solid #e5e7eb' }}>
                             <div style={{ fontWeight:700, color:'#1e2d7d', marginBottom:14 }}>Склад</div>
@@ -483,14 +483,14 @@ export default function ProductsAdminPage() {
                                 )}
                                 {S.is_personalized && (
                                     <div style={{ padding:'10px 14px', background:'#fef9c3', borderRadius:8, fontSize:13, color:'#713f12' }}>
-                                        ℹ️ Персоналізовані товари виготовляються під замовлення — склад не обмежений.
+                                        ℹ Персоналізовані товари виготовляються під замовлення — склад не обмежений.
                                     </div>
                                 )}
                             </div>
                         </div>
                     </>}
 
-                    {/* ── SEO ── */}
+                    {/*  SEO  */}
                     {tab==='seo' && <>
                         <div style={{ background:'#fff', borderRadius:12, padding:20, border:'1px solid #e5e7eb' }}>
                             <div style={{ fontWeight:700, color:'#1e2d7d', marginBottom:14 }}>SEO</div>

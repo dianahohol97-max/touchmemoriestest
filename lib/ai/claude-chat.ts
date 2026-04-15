@@ -287,7 +287,7 @@ export async function processAIChatMessage(params: {
 
   if (handoffCheck.shouldHandoff) {
     return {
-      response: 'Дозвольте мені передати вас нашому менеджеру, який зможе краще допомогти з цим питанням. Один момент... 👤',
+      response: 'Дозвольте мені передати вас нашому менеджеру, який зможе краще допомогти з цим питанням. Один момент... ',
       shouldHandoff: true,
       handoffReason: handoffCheck.reason,
     };
@@ -303,7 +303,7 @@ export async function processAIChatMessage(params: {
 
   if (aiResponse.error) {
     return {
-      response: 'Вибачте, виникла технічна проблема. Зараз підключу менеджера... 👤',
+      response: 'Вибачте, виникла технічна проблема. Зараз підключу менеджера... ',
       shouldHandoff: true,
       handoffReason: 'AI technical error',
       error: aiResponse.error,

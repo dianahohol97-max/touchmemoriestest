@@ -53,7 +53,7 @@ export async function POST(req: Request) {
                 return resend.emails.send({
                     from: 'TouchMemories <shop@mail.touchmemories.com.ua>',
                     to: email,
-                    subject: `Ціна знижена на ${productName}! 🎉`,
+                    subject: `Ціна знижена на ${productName}! `,
                     html: `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #263A99; border: 1px solid #f1f5f9; border-radius: 24px; padding: 40px;">
                             <h1 style="color: #ef4444; margin-bottom: 24px;">Гарні новини, ${name}!</h1>

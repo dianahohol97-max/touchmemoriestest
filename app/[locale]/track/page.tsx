@@ -73,7 +73,7 @@ export default function TrackPage() {
 
                 <header style={{ textAlign: 'center', marginBottom: '64px' }}>
                     <div style={badgeStyle}>ДЛЯ КЛІЄНТІВ</div>
-                    <h1 style={titleStyle}>Де моє замовлення? 📦</h1>
+                    <h1 style={titleStyle}>Де моє замовлення? </h1>
                     <p style={subtitleStyle}>Введіть номер вашого замовлення та контактні дані, щоб перевірити статус виготовлення.</p>
                 </header>
 

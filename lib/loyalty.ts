@@ -15,7 +15,7 @@ export const LOYALTY_TIERS: LoyaltyTier[] = [
         name: 'Новий',
         minOrders: 1,
         discount: 0,
-        emoji: '🥉',
+        emoji: '',
         color: '#94a3b8',
         bgColor: '#f1f5f9'
     },
@@ -23,7 +23,7 @@ export const LOYALTY_TIERS: LoyaltyTier[] = [
         name: 'Постійний',
         minOrders: 2,
         discount: 5,
-        emoji: '🥈',
+        emoji: '',
         color: '#6366f1',
         bgColor: '#e0e7ff'
     },
@@ -31,7 +31,7 @@ export const LOYALTY_TIERS: LoyaltyTier[] = [
         name: 'VIP',
         minOrders: 5,
         discount: 10,
-        emoji: '🥇',
+        emoji: '',
         color: '#f59e0b',
         bgColor: '#fef3c7'
     },
@@ -39,7 +39,7 @@ export const LOYALTY_TIERS: LoyaltyTier[] = [
         name: 'Преміум',
         minOrders: 10,
         discount: 15,
-        emoji: '💎',
+        emoji: '',
         color: '#7c3aed',
         bgColor: '#f3e8ff'
     }

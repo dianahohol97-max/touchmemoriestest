@@ -68,7 +68,7 @@ export function LanguageSwitcher() {
                         >
                             <span style={{ fontSize: 18 }}>{l.flag}</span>
                             <span>{l.label}</span>
-                            {l.code === locale && <span style={{ marginLeft: 'auto', color: '#1e2d7d' }}>✓</span>}
+                            {l.code === locale && <span style={{ marginLeft: 'auto', color: '#1e2d7d' }}></span>}
                         </button>
                     ))}
                 </div>

@@ -5,9 +5,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// ═══════════════════════════════════════════════════════
+// 
 // CONSTRUCTOR ORDER SUBMISSION (for photobook/magazine constructor)
-// ═══════════════════════════════════════════════════════
+// 
 
 export async function submitConstructorOrder(data: {
   product_type: string
@@ -29,9 +29,9 @@ export async function submitConstructorOrder(data: {
   if (error) throw error
 }
 
-// ═══════════════════════════════════════════════════════
+// 
 // LEGACY ORDER SUBMISSION (for cart-based checkout)
-// ═══════════════════════════════════════════════════════
+// 
 
 export interface OrderItem {
   product_type: string

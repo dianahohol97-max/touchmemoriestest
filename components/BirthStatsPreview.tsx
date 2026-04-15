@@ -151,7 +151,7 @@ export default function BirthStatsPreview({ config }: BirthStatsPreviewProps) {
                 ctx.fillStyle = config.accentColor;
                 ctx.globalAlpha = 0.4;
                 ctx.font = `${size}px serif`;
-                ctx.fillText('★', x, y);
+                ctx.fillText('', x, y);
                 ctx.globalAlpha = 1;
             };
 

@@ -11,7 +11,7 @@ export default function TagsSettingsPage() {
     // New tag form
     const [newName, setNewName] = useState('');
     const [newColor, setNewColor] = useState('#263A99');
-    const [newIcon, setNewIcon] = useState('📌');
+    const [newIcon, setNewIcon] = useState('');
     const [isAdding, setIsAdding] = useState(false);
 
     useEffect(() => {
@@ -101,7 +101,7 @@ export default function TagsSettingsPage() {
         <div style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Управління тегами 🏷️</h1>
+                    <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Управління тегами </h1>
                     <p style={{ color: '#64748b' }}>Налаштуйте теги для швидкої категоризації замовлень</p>
                 </div>
             </div>
@@ -166,8 +166,8 @@ export default function TagsSettingsPage() {
                     {tags.map((tag, index) => (
                         <div key={tag.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', background: '#f8fafc', borderRadius: "3px", border: '1px solid #e2e8f0' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginRight: '16px' }}>
-                                <button onClick={() => moveTag(index, 'up')} disabled={index === 0} style={{ border: 'none', background: 'transparent', cursor: index === 0 ? 'default' : 'pointer', opacity: index === 0 ? 0.3 : 1, padding: 0 }}>▲</button>
-                                <button onClick={() => moveTag(index, 'down')} disabled={index === tags.length - 1} style={{ border: 'none', background: 'transparent', cursor: index === tags.length - 1 ? 'default' : 'pointer', opacity: index === tags.length - 1 ? 0.3 : 1, padding: 0 }}>▼</button>
+                                <button onClick={() => moveTag(index, 'up')} disabled={index === 0} style={{ border: 'none', background: 'transparent', cursor: index === 0 ? 'default' : 'pointer', opacity: index === 0 ? 0.3 : 1, padding: 0 }}></button>
+                                <button onClick={() => moveTag(index, 'down')} disabled={index === tags.length - 1} style={{ border: 'none', background: 'transparent', cursor: index === tags.length - 1 ? 'default' : 'pointer', opacity: index === tags.length - 1 ? 0.3 : 1, padding: 0 }}></button>
                             </div>
 
                             <div style={{ padding: '4px 10px', borderRadius: "3px", backgroundColor: `${tag.color}15`, color: tag.color, fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>

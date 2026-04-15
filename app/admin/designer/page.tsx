@@ -118,7 +118,7 @@ export default function DesignerCabinetPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d', margin: 0 }}>
-            🎨 Кабінет дизайнера
+             Кабінет дизайнера
           </h1>
           <p style={{ color: '#64748b', fontSize: 14, marginTop: 4 }}>
             Твої проекти, замовлення та правки від клієнтів
@@ -145,7 +145,7 @@ export default function DesignerCabinetPage() {
         ))}
       </div>
 
-      {/* ── DASHBOARD ── */}
+      {/*  DASHBOARD  */}
       {tab === 'dashboard' && (
         <div>
           {/* Stat cards */}
@@ -208,7 +208,7 @@ export default function DesignerCabinetPage() {
               {revisionProjects.length === 0
                 ? <div style={{ textAlign: 'center', padding: '20px 0' }}>
                     <CheckCircle size={32} color="#10b981" style={{ marginBottom: 8 }} />
-                    <p style={{ fontSize: 13, color: '#64748b' }}>Правок немає 🎉</p>
+                    <p style={{ fontSize: 13, color: '#64748b' }}>Правок немає </p>
                   </div>
                 : revisionProjects.slice(0, 4).map(p => (
                   <Link key={p.id} href={`/admin/orders/${p.order_id}`}
@@ -224,7 +224,7 @@ export default function DesignerCabinetPage() {
         </div>
       )}
 
-      {/* ── MY PROJECTS ── */}
+      {/*  MY PROJECTS  */}
       {tab === 'projects' && (
         <div>
           <div style={{ display: 'grid', gap: 12 }}>
@@ -241,14 +241,14 @@ export default function DesignerCabinetPage() {
                     <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 2 }}>{p.title}</div>
                     <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#94a3b8', flexWrap: 'wrap' }}>
                       {order?.order_number && <span>#{order.order_number}</span>}
-                      {p.format && <span>📐 {p.format}</span>}
-                      {p.cover_type && <span>📖 {p.cover_type}</span>}
-                      {p.page_count > 0 && <span>📄 {p.page_count} стор.</span>}
-                      <span>🕐 {new Date(p.updated_at).toLocaleDateString('uk-UA')}</span>
+                      {p.format && <span> {p.format}</span>}
+                      {p.cover_type && <span> {p.cover_type}</span>}
+                      {p.page_count > 0 && <span> {p.page_count} стор.</span>}
+                      <span> {new Date(p.updated_at).toLocaleDateString('uk-UA')}</span>
                     </div>
                     {p.revision_notes && (
                       <div style={{ marginTop: 6, fontSize: 12, color: '#b45309', background: '#fffbeb', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
-                        💬 {p.revision_notes}
+                         {p.revision_notes}
                       </div>
                     )}
                   </div>
@@ -275,11 +275,11 @@ export default function DesignerCabinetPage() {
         </div>
       )}
 
-      {/* ── FREE ORDERS ── */}
+      {/*  FREE ORDERS  */}
       {tab === 'free' && (
         <div>
           <div style={{ marginBottom: 20, padding: '12px 16px', background: '#eff6ff', borderRadius: 10, border: '1px solid #bfdbfe', fontSize: 13, color: '#1e40af' }}>
-            📋 Тут замовлення де клієнт обрав «Оформити з дизайнером» і ще не призначено виконавця. Натисни «Взяти» щоб прийняти замовлення.
+             Тут замовлення де клієнт обрав «Оформити з дизайнером» і ще не призначено виконавця. Натисни «Взяти» щоб прийняти замовлення.
           </div>
           <div style={{ display: 'grid', gap: 12 }}>
             {freeOrders.map(o => {
@@ -326,13 +326,13 @@ export default function DesignerCabinetPage() {
         </div>
       )}
 
-      {/* ── REVISIONS ── */}
+      {/*  REVISIONS  */}
       {tab === 'revisions' && (
         <div>
           {revisionProjects.length === 0 ? (
             <div style={{ ...cardStyle, textAlign: 'center', padding: 64 }}>
               <CheckCircle size={48} color="#10b981" style={{ marginBottom: 16 }} />
-              <p style={{ fontSize: 18, fontWeight: 800, color: '#064e3b' }}>Правок немає 🎉</p>
+              <p style={{ fontSize: 18, fontWeight: 800, color: '#064e3b' }}>Правок немає </p>
               <p style={{ fontSize: 14, color: '#6ee7b7', marginTop: 4 }}>Усі клієнти задоволені!</p>
             </div>
           ) : (

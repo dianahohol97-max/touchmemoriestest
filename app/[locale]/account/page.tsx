@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n/context';
 import { useCartStore } from '@/store/cart-store';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+//  Types 
 
 type Tab = 'orders' | 'designs' | 'wishlist' | 'profile';
 
@@ -47,7 +47,7 @@ interface Design {
     source: 'editor' | 'designer';
 }
 
-// ─── Status config ────────────────────────────────────────────────────────────
+//  Status config 
 
 const ORDER_STATUSES = [
     { key: 'pending',       label: 'Нове',           icon: Clock,         color: '#3b82f6', bg: '#eff6ff',   step: 0 },
@@ -70,7 +70,7 @@ function getOrderStatus(key: string) {
     return ORDER_STATUSES.find(s => s.key === key) || ORDER_STATUSES[0];
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+//  Component 
 
 export default function AccountPage() {
     const supabase = createClient();
@@ -164,7 +164,7 @@ export default function AccountPage() {
         setIsSaving(true);
         try {
             await supabase.from('customers').update(formData).eq('email', user.email);
-            toast.success('Зміни збережено ✓');
+            toast.success('Зміни збережено ');
         } catch { toast.error('Помилка збереження'); }
         setIsSaving(false);
     };
@@ -182,7 +182,7 @@ export default function AccountPage() {
         setRepeatingId(null);
     };
 
-    // ── Loading ──────────────────────────────────────────────────────────────
+    //  Loading 
     if (isLoading) return (
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
             <Loader2 size={36} color="#263a99" style={{ animation: 'spin 0.8s linear infinite' }} />
@@ -201,14 +201,14 @@ export default function AccountPage() {
         { id: 'profile', icon: <User size={17}/>,        label: 'Профіль' },
     ];
 
-    // ── Render ───────────────────────────────────────────────────────────────
+    //  Render 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9' }}>
             <Navigation />
             <main style={{ flex: 1, paddingTop: 100, paddingBottom: 80 }}>
                 <div style={{ maxWidth: 1160, margin: '0 auto', padding: '0 20px', display: 'flex', gap: 28, alignItems: 'flex-start' }}>
 
-                    {/* ── SIDEBAR ──────────────────────────────────────────── */}
+                    {/*  SIDEBAR  */}
                     <aside style={{ width: 260, flexShrink: 0, position: 'sticky', top: 112 }}>
 
                         {/* User card */}
@@ -222,7 +222,7 @@ export default function AccountPage() {
                                     </div>
                                 )}
                                 <div style={{ minWidth: 0 }}>
-                                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 2 }}>Привіт, {displayName}! 👋</div>
+                                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 2 }}>Привіт, {displayName}! </div>
                                     <div style={{ fontSize: 12, opacity: 0.75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
                                 </div>
                             </div>
@@ -273,10 +273,10 @@ export default function AccountPage() {
                         </div>
                     </aside>
 
-                    {/* ── MAIN CONTENT ─────────────────────────────────────── */}
+                    {/*  MAIN CONTENT  */}
                     <div style={{ flex: 1, minWidth: 0 }}>
 
-                        {/* ══ ORDERS ══════════════════════════════════════════ */}
+                        {/*  ORDERS  */}
                         {tab === 'orders' && (
                             <div>
                                 <SectionHeader icon={<ShoppingBag size={20}/>} title="Мої замовлення" sub={`${orders.length} замовлень`} />
@@ -309,7 +309,7 @@ export default function AccountPage() {
                                                                 <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20,
                                                                     background: order.payment_status === 'paid' ? '#ecfdf5' : '#fffbeb',
                                                                     color: order.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>
-                                                                    {order.payment_status === 'paid' ? '✓ Оплачено' : '⏳ Очікує оплати'}
+                                                                    {order.payment_status === 'paid' ? ' Оплачено' : '⏳ Очікує оплати'}
                                                                 </span>
                                                             </div>
                                                             <div style={{ fontSize: 12, color: '#94a3b8' }}>
@@ -391,7 +391,7 @@ export default function AccountPage() {
                             </div>
                         )}
 
-                        {/* ══ DESIGNS ═════════════════════════════════════════ */}
+                        {/*  DESIGNS  */}
                         {tab === 'designs' && (
                             <div>
                                 <SectionHeader icon={<FileText size={20}/>} title="Мої дизайни" sub={`${designs.length} збережених проєктів`} />
@@ -445,12 +445,12 @@ export default function AccountPage() {
                             </div>
                         )}
 
-                        {/* ══ WISHLIST ═════════════════════════════════════════ */}
+                        {/*  WISHLIST  */}
                         {tab === 'wishlist' && (
                             <div>
                                 <SectionHeader icon={<Heart size={20}/>} title="Список бажань" sub={`${wishlist.length} товарів`} />
                                 {wishlist.length === 0 ? (
-                                    <Empty icon={<Heart size={40} color="#94a3b8"/>} title="Вішлист порожній" sub="Натискай ♡ на товарах, щоб зберігати їх тут" cta="До каталогу" href="/catalog" />
+                                    <Empty icon={<Heart size={40} color="#94a3b8"/>} title="Вішлист порожній" sub="Натискай  на товарах, щоб зберігати їх тут" cta="До каталогу" href="/catalog" />
                                 ) : (
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 16 }}>
                                         {wishlist.map(w => (
@@ -487,7 +487,7 @@ export default function AccountPage() {
                             </div>
                         )}
 
-                        {/* ══ PROFILE ══════════════════════════════════════════ */}
+                        {/*  PROFILE  */}
                         {tab === 'profile' && (
                             <div>
                                 <SectionHeader icon={<User size={20}/>} title="Мій профіль" sub="Особисті дані та налаштування" />
@@ -561,7 +561,7 @@ export default function AccountPage() {
     );
 }
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
+//  Sub-components 
 
 function SectionHeader({ icon, title, sub }: { icon: React.ReactNode; title: string; sub: string }) {
     return (

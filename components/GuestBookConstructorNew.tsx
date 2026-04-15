@@ -9,7 +9,7 @@ import { useT } from '@/lib/i18n/context';
 import { CoverEditor, CoverConfig, VELOUR_COLORS, LEATHERETTE_COLORS, FABRIC_COLORS } from './CoverEditor';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+//  Types 
 type BookSize = '20x30' | '30x20' | '23x23';
 type PageColor = 'white' | 'cream' | 'black';
 type CoverMaterial = 'velour' | 'leatherette' | 'fabric' | 'printed';
@@ -40,10 +40,10 @@ const PAGE_COLORS: {id:PageColor; label:string; hex:string; textColor:string}[] 
 const PAGE_COUNTS = [32, 48, 64, 96];
 
 const INTERIOR_TYPES: {id:InteriorType; label:string; icon:string; desc:string}[] = [
-  { id:'blank',    label:'Чисті',        icon:'□',   desc:'Порожні сторінки' },
+  { id:'blank',    label:'Чисті',        icon:'',   desc:'Порожні сторінки' },
   { id:'lined',    label:'З лініями',    icon:'≡',   desc:'Горизонтальні лінії' },
-  { id:'dotgrid',  label:'Крапки',       icon:'⠿',  desc:'Сітка з крапок' },
-  { id:'prompted', label:'З підказками', icon:'💬', desc:'Питання для гостей' },
+  { id:'dotgrid',  label:'Крапки',       icon:'',  desc:'Сітка з крапок' },
+  { id:'prompted', label:'З підказками', icon:'', desc:'Питання для гостей' },
 ];
 
 const MAT_COLORS: Record<CoverMaterial, {name:string; hex:string}[]> = {
@@ -85,7 +85,7 @@ const DEFAULT_COVER: CoverConfig = {
   printedOverlay: { type:'none', color:'#000', opacity:0, gradient:'' },
 };
 
-// ── Page preview ───────────────────────────────────────────────────────────────
+//  Page preview 
 function PagePreview({ pageColor, interiorType, prompts, W, H }:
   { pageColor:PageColor; interiorType:InteriorType; prompts:PromptItem[]; W:number; H:number }) {
   const t = useT();
@@ -124,7 +124,7 @@ function PagePreview({ pageColor, interiorType, prompts, W, H }:
   return <canvas ref={ref} width={W} height={H} style={{width:'100%',height:'auto',display:'block',borderRadius:6}}/>;
 }
 
-// ── Cover canvas preview ───────────────────────────────────────────────────────
+//  Cover canvas preview 
 function CoverPreview({ cover, photos, W, H }:
   { cover:CoverConfig; photos:{id:string;preview:string}[]; W:number; H:number }) {
   const t = useT();
@@ -174,7 +174,7 @@ function CoverPreview({ cover, photos, W, H }:
   return <canvas ref={ref} width={W} height={H} style={{width:'100%',height:'auto',display:'block',borderRadius:8}}/>;
 }
 
-// ── Main constructor ───────────────────────────────────────────────────────────
+//  Main constructor 
 export default function GuestBookConstructorNew() {
   const t = useT();
   const router = useRouter();
@@ -234,7 +234,7 @@ export default function GuestBookConstructorNew() {
 
   return (
     <div style={{fontFamily:'var(--font-primary,sans-serif)',minHeight:'100vh',background:'#f8fafc'}}>
-      {/* ── Header ── */}
+      {/*  Header  */}
       <div style={{background:'#fff',borderBottom:'1px solid #e2e8f0',padding:'12px 24px',display:'flex',alignItems:'center',gap:12}}>
         <a href="/catalog/guestbook-wedding" style={{color:'#64748b',textDecoration:'none',fontSize:13,display:'flex',alignItems:'center',gap:4}}>
           <ChevronLeft size={14}/> Назад
@@ -247,7 +247,7 @@ export default function GuestBookConstructorNew() {
         </button>}
       </div>
 
-      {/* ── Step tabs ── */}
+      {/*  Step tabs  */}
       <div style={{background:'#fff',borderBottom:'1px solid #e2e8f0',display:'flex'}}>
         {STEP_LABELS.map((label,i)=>(
           <button key={i} onClick={()=>setStep(i)}
@@ -259,10 +259,10 @@ export default function GuestBookConstructorNew() {
         ))}
       </div>
 
-      {/* ── Body ── */}
+      {/*  Body  */}
       <div style={{display:'flex',maxWidth:1400,margin:'0 auto',minHeight:'calc(100vh - 110px)'}}>
 
-        {/* ── Left panel ── */}
+        {/*  Left panel  */}
         <div style={{width:340,flexShrink:0,background:'#fff',borderRight:'1px solid #e2e8f0',overflowY:'auto',padding:20,display:'flex',flexDirection:'column',gap:16}}>
 
           {/* STEP 0: Cover */}
@@ -492,7 +492,7 @@ export default function GuestBookConstructorNew() {
           </div>
         </div>
 
-        {/* ── Right: Preview ── */}
+        {/*  Right: Preview  */}
         <div style={{flex:1,background:'#f4f6fb',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:'32px 24px',overflowY:'auto',gap:20}}>
           <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase'}}>
             {step===0?t('guestbooknew.coverPreview'):step===1?t('guestbooknew.pagePreview'):t('guestbooknew.bookPreview')} — {sizeObj.label}

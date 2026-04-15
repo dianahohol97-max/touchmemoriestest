@@ -10,11 +10,11 @@ import de from '@/locales/de.json';
 export type Locale = 'uk' | 'en' | 'ro' | 'pl' | 'de';
 
 export const LOCALES: { code: Locale; label: string; flag: string }[] = [
-    { code: 'uk', label: 'UA', flag: '🇺🇦' },
-    { code: 'en', label: 'EN', flag: '🇬🇧' },
-    { code: 'ro', label: 'RO', flag: '🇷🇴' },
-    { code: 'pl', label: 'PL', flag: '🇵🇱' },
-    { code: 'de', label: 'DE', flag: '🇩🇪' },
+    { code: 'uk', label: 'UA', flag: '' },
+    { code: 'en', label: 'EN', flag: '' },
+    { code: 'ro', label: 'RO', flag: '' },
+    { code: 'pl', label: 'PL', flag: '' },
+    { code: 'de', label: 'DE', flag: '' },
 ];
 
 export const INTERNATIONAL_LOCALES: Locale[] = ['en', 'ro', 'pl', 'de'];

@@ -23,7 +23,7 @@ export interface CoverTemplate {
 }
 
 export const COVER_TEMPLATES: CoverTemplate[] = [
-  // ── Мінімалістичні ──
+  //  Мінімалістичні 
   {
     id: 'minimal-classic',
     label: 'Класика',
@@ -32,7 +32,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     photoSlot: { x: 15, y: 35, w: 70, h: 40, shape: 'rect' },
     texts: [
       { text: 'Наша історія', x: 50, y: 12, fontSize: 28, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
-      { text: 'Імʼя ♥ Імʼя', x: 50, y: 24, fontSize: 42, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
+      { text: 'Імʼя  Імʼя', x: 50, y: 24, fontSize: 42, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
       { text: '01.01.2025', x: 50, y: 85, fontSize: 24, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
     ],
   },
@@ -44,7 +44,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     photoSlot: { x: 20, y: 42, w: 60, h: 30, shape: 'rect' },
     texts: [
       { text: 'Proposal in Paris', x: 50, y: 10, fontSize: 26, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
-      { text: 'Ivan ♥ Anhelina', x: 50, y: 25, fontSize: 40, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
+      { text: 'Ivan  Anhelina', x: 50, y: 25, fontSize: 40, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
       { text: '08.10.2023', x: 50, y: 88, fontSize: 26, fontFamily: 'Dancing Script', color: '#1a1a1a', bold: false },
     ],
   },
@@ -82,7 +82,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     ],
   },
 
-  // ── Елегантні ──
+  //  Елегантні 
   {
     id: 'elegant-dark',
     label: 'Темний елегант',
@@ -129,7 +129,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     ],
   },
 
-  // ── Фото на весь фон ──
+  //  Фото на весь фон 
   {
     id: 'fullphoto-simple',
     label: 'Фото + підпис',
@@ -168,7 +168,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     ],
   },
 
-  // ── Дитячі ──
+  //  Дитячі 
   {
     id: 'kids-first-year',
     label: 'Перший рік',
@@ -189,11 +189,11 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     photoSlot: { x: 15, y: 25, w: 70, h: 45, shape: 'rounded' },
     texts: [
       { text: 'Наше маленьке диво', x: 50, y: 10, fontSize: 24, fontFamily: 'Comfortaa', color: '#7b5ea7', bold: false },
-      { text: '♡', x: 50, y: 80, fontSize: 28, fontFamily: 'Inter', color: '#c9a0dc', bold: false },
+      { text: '', x: 50, y: 80, fontSize: 28, fontFamily: 'Inter', color: '#c9a0dc', bold: false },
     ],
   },
 
-  // ── З референсів Діани ──
+  //  З референсів Діани 
   {
     id: 'ref-wedding-moments',
     label: 'Wedding Moments',
@@ -317,7 +317,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     ],
   },
 
-  // ── Подорожі ──
+  //  Подорожі 
   {
     id: 'travel-adventure',
     label: 'Пригоди',
@@ -341,7 +341,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     ],
   },
 
-  // ── Журнали (Magazine) ──
+  //  Журнали (Magazine) 
   {
     id: 'mag-editorial',
     label: 'Editorial',
@@ -546,7 +546,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     texts: [
       { text: 'Наше маленьке', x: 50, y: 68, fontSize: 20, fontFamily: 'Comfortaa', color: '#7b5ea7', bold: false },
       { text: 'ДИВО', x: 45, y: 78, fontSize: 28, fontFamily: 'Playfair Display', color: '#7b5ea7', bold: true },
-      { text: '♡', x: 45, y: 90, fontSize: 24, fontFamily: 'Inter', color: '#c9a0dc', bold: false },
+      { text: '', x: 45, y: 90, fontSize: 24, fontFamily: 'Inter', color: '#c9a0dc', bold: false },
     ],
   },
   {
@@ -574,7 +574,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
       { text: '2025', x: 45, y: 88, fontSize: 32, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
     ],
   },
-  // ── Журнальні обкладинки (стиль глянцевих журналів) ──
+  //  Журнальні обкладинки (стиль глянцевих журналів) 
   {
     id: 'mag-model-birthday',
     label: 'Birthday Edition',
@@ -831,7 +831,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     ],
   },
 
-  // ── Книга побажань (Wishbook) ──
+  //  Книга побажань (Wishbook) 
   {
     id: 'wish-elegant',
     label: 'Елегантна',
@@ -881,7 +881,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     photoSlot: { x: 20, y: 25, w: 60, h: 40, shape: 'circle' },
     texts: [
       { text: 'Книга побажань', x: 50, y: 10, fontSize: 22, fontFamily: 'Cormorant Garamond', color: '#333333', bold: false },
-      { text: '♡', x: 50, y: 78, fontSize: 28, fontFamily: 'Inter', color: '#d4af37', bold: false },
+      { text: '', x: 50, y: 78, fontSize: 28, fontFamily: 'Inter', color: '#d4af37', bold: false },
       { text: 'Імʼя & Імʼя', x: 50, y: 88, fontSize: 18, fontFamily: 'Dancing Script', color: '#555555', bold: false },
     ],
   },
@@ -910,7 +910,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
       { text: 'для нас', x: 50, y: 86, fontSize: 20, fontFamily: 'Cormorant Garamond', color: '#a08080', bold: false },
     ],
   },
-  // ── Wishbook — trending 2025 designs ──
+  //  Wishbook — trending 2025 designs 
   {
     id: 'wish-mr-mrs',
     label: 'Mr & Mrs',
@@ -948,7 +948,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#faf6f0',
     photoSlot: null,
     texts: [
-      { text: '❀', x: 50, y: 25, fontSize: 36, fontFamily: 'Playfair Display', color: '#8a9a5c', bold: false },
+      { text: '', x: 50, y: 25, fontSize: 36, fontFamily: 'Playfair Display', color: '#8a9a5c', bold: false },
       { text: 'Our Wedding', x: 50, y: 42, fontSize: 18, fontFamily: 'Montserrat', color: '#8a9a5c', bold: true },
       { text: 'Guest Book', x: 50, y: 52, fontSize: 32, fontFamily: 'Dancing Script', color: '#5c6a3c', bold: false },
       { text: 'Імʼя & Імʼя', x: 50, y: 72, fontSize: 16, fontFamily: 'Cormorant Garamond', color: '#6a7a4c', bold: false, italic: true },
@@ -1060,10 +1060,10 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#1a1a1a',
     photoSlot: null,
     texts: [
-      { text: '◆ ◆ ◆', x: 50, y: 18, fontSize: 16, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
+      { text: '  ', x: 50, y: 18, fontSize: 16, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
       { text: 'GUEST', x: 50, y: 38, fontSize: 38, fontFamily: 'Playfair Display', color: '#d4af37', bold: true },
       { text: 'BOOK', x: 50, y: 54, fontSize: 38, fontFamily: 'Playfair Display', color: '#d4af37', bold: true },
-      { text: '◆ ◆ ◆', x: 50, y: 70, fontSize: 16, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
+      { text: '  ', x: 50, y: 70, fontSize: 16, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
       { text: '— 2025 —', x: 50, y: 85, fontSize: 12, fontFamily: 'Cormorant Garamond', color: '#d4af37', bold: false, italic: true },
     ],
   },
@@ -1075,7 +1075,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#fde4e4',
     photoSlot: { x: 22, y: 15, w: 56, h: 40, shape: 'circle' },
     texts: [
-      { text: '☆', x: 50, y: 63, fontSize: 22, fontFamily: 'Playfair Display', color: '#d68c8c', bold: false },
+      { text: '', x: 50, y: 63, fontSize: 22, fontFamily: 'Playfair Display', color: '#d68c8c', bold: false },
       { text: 'Побажання', x: 50, y: 74, fontSize: 26, fontFamily: 'Dancing Script', color: '#8a4a4a', bold: false },
       { text: 'для малюка', x: 50, y: 84, fontSize: 16, fontFamily: 'Cormorant Garamond', color: '#8a4a4a', bold: false, italic: true },
     ],
@@ -1088,7 +1088,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#faf0e0',
     photoSlot: null,
     texts: [
-      { text: '✦ ✦ ✦', x: 50, y: 20, fontSize: 18, fontFamily: 'Playfair Display', color: '#c09060', bold: false },
+      { text: '  ', x: 50, y: 20, fontSize: 18, fontFamily: 'Playfair Display', color: '#c09060', bold: false },
       { text: 'HAPPY', x: 50, y: 38, fontSize: 32, fontFamily: 'Playfair Display', color: '#8a6030', bold: true },
       { text: 'Birthday', x: 50, y: 52, fontSize: 36, fontFamily: 'Dancing Script', color: '#c09060', bold: false },
       { text: 'GUEST BOOK', x: 50, y: 72, fontSize: 12, fontFamily: 'Montserrat', color: '#8a6030', bold: true },
@@ -1110,7 +1110,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
       { text: "Ім'я & Ім'я", x: 50, y: 87, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#1a1a1a', bold: false, italic: true },
   ],
   },
-  // ── Wishbook — additional trending designs ──
+  //  Wishbook — additional trending designs 
   {
     id: 'wish-greenery',
     label: 'Зелена гілка',
@@ -1119,7 +1119,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#f3f7ee',
     photoSlot: null,
     texts: [
-      { text: '✿', x: 50, y: 22, fontSize: 32, fontFamily: 'Playfair Display', color: '#6a8a4a', bold: false },
+      { text: '', x: 50, y: 22, fontSize: 32, fontFamily: 'Playfair Display', color: '#6a8a4a', bold: false },
       { text: 'WEDDING', x: 50, y: 40, fontSize: 14, fontFamily: 'Montserrat', color: '#5a7a3a', bold: true },
       { text: 'Guest Book', x: 50, y: 55, fontSize: 34, fontFamily: 'Great Vibes', color: '#4a6a2a', bold: false },
       { text: "Ім'я & Ім'я", x: 50, y: 76, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#5a7a3a', bold: false, italic: true },
@@ -1134,7 +1134,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#e8d0ce',
     photoSlot: null,
     texts: [
-      { text: '— ♡ —', x: 50, y: 20, fontSize: 18, fontFamily: 'Playfair Display', color: '#8a4a4a', bold: false },
+      { text: '—  —', x: 50, y: 20, fontSize: 18, fontFamily: 'Playfair Display', color: '#8a4a4a', bold: false },
       { text: 'with love', x: 50, y: 38, fontSize: 22, fontFamily: 'Dancing Script', color: '#8a4a4a', bold: false, italic: true },
       { text: 'Guest Book', x: 50, y: 52, fontSize: 36, fontFamily: 'Great Vibes', color: '#5a2a2a', bold: false },
       { text: "Ім'я & Ім'я", x: 50, y: 74, fontSize: 14, fontFamily: 'Cormorant Garamond', color: '#5a2a2a', bold: false, italic: true },
@@ -1149,7 +1149,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#0a0e27',
     photoSlot: null,
     texts: [
-      { text: '✦', x: 50, y: 22, fontSize: 24, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
+      { text: '', x: 50, y: 22, fontSize: 24, fontFamily: 'Playfair Display', color: '#d4af37', bold: false },
       { text: 'forever', x: 50, y: 40, fontSize: 22, fontFamily: 'Dancing Script', color: '#d4af37', bold: false, italic: true },
       { text: 'OUR STORY', x: 50, y: 55, fontSize: 26, fontFamily: 'Playfair Display', color: '#ffffff', bold: true },
       { text: '— Guest Book —', x: 50, y: 70, fontSize: 12, fontFamily: 'Cormorant Garamond', color: '#d4af37', bold: false, italic: true },
@@ -1225,10 +1225,10 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#f5f1ea',
     photoSlot: null,
     texts: [
-      { text: '◇ ◇ ◇', x: 50, y: 22, fontSize: 16, fontFamily: 'Playfair Display', color: '#b8944a', bold: false },
+      { text: '  ', x: 50, y: 22, fontSize: 16, fontFamily: 'Playfair Display', color: '#b8944a', bold: false },
       { text: 'GUEST', x: 50, y: 40, fontSize: 32, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
       { text: 'BOOK', x: 50, y: 56, fontSize: 32, fontFamily: 'Playfair Display', color: '#1a1a1a', bold: true },
-      { text: '◇ ◇ ◇', x: 50, y: 72, fontSize: 16, fontFamily: 'Playfair Display', color: '#b8944a', bold: false },
+      { text: '  ', x: 50, y: 72, fontSize: 16, fontFamily: 'Playfair Display', color: '#b8944a', bold: false },
       { text: "Ім'я & Ім'я • 2025", x: 50, y: 88, fontSize: 11, fontFamily: 'Cormorant Garamond', color: '#5a5a5a', bold: false, italic: true },
     ],
   },
@@ -1240,7 +1240,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#e8dcc8',
     photoSlot: null,
     texts: [
-      { text: '🌾', x: 50, y: 22, fontSize: 28, fontFamily: 'Playfair Display', color: '#8a6a3a', bold: false },
+      { text: '', x: 50, y: 22, fontSize: 28, fontFamily: 'Playfair Display', color: '#8a6a3a', bold: false },
       { text: 'celebrate', x: 50, y: 40, fontSize: 20, fontFamily: 'Dancing Script', color: '#5a3a1a', bold: false, italic: true },
       { text: 'OUR LOVE', x: 50, y: 55, fontSize: 24, fontFamily: 'Playfair Display', color: '#3a1a0a', bold: true },
       { text: '— GUEST BOOK —', x: 50, y: 72, fontSize: 10, fontFamily: 'Montserrat', color: '#8a6a3a', bold: true },
@@ -1255,7 +1255,7 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     bgColor: '#f5e6e6',
     photoSlot: null,
     texts: [
-      { text: '♡ ♡ ♡', x: 50, y: 22, fontSize: 18, fontFamily: 'Playfair Display', color: '#c07080', bold: false },
+      { text: '  ', x: 50, y: 22, fontSize: 18, fontFamily: 'Playfair Display', color: '#c07080', bold: false },
       { text: 'memories', x: 50, y: 40, fontSize: 28, fontFamily: 'Dancing Script', color: '#8a4050', bold: false, italic: true },
       { text: 'OF A LIFETIME', x: 50, y: 55, fontSize: 14, fontFamily: 'Montserrat', color: '#5a2030', bold: true },
       { text: '— Guest Book —', x: 50, y: 72, fontSize: 12, fontFamily: 'Cormorant Garamond', color: '#8a4050', bold: false, italic: true },

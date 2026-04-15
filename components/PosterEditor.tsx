@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+//  Types 
 
 interface PhotoSlot {
   x: number; y: number; w: number; h: number; // % of canvas
@@ -38,7 +38,7 @@ interface Photo {
   name: string;
 }
 
-// ─── Poster templates ─────────────────────────────────────────────────────────
+//  Poster templates 
 
 const POSTER_TEMPLATES: PosterTemplate[] = [
   {
@@ -126,7 +126,7 @@ const SIZES = [
 
 const FONTS = ['Dancing Script', 'Playfair Display', 'Cormorant Garamond', 'Montserrat', 'Inter', 'Georgia'];
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+//  Main Component 
 
 export default function PosterEditor() {
   const router = useRouter();
@@ -231,7 +231,7 @@ export default function PosterEditor() {
         <div style={{ fontWeight:800, fontSize:16, color:'#1e2d7d' }}>{price} ₴</div>
         <button onClick={handleOrder}
           style={{ padding:'8px 16px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontWeight:700, fontSize:13 }}>
-          🛒 Замовити
+           Замовити
         </button>
       </div>
 
@@ -240,7 +240,7 @@ export default function PosterEditor() {
         <div style={{ width:220, background:'#fff', borderRight:'1px solid #e2e8f0', display:'flex', flexDirection:'column', overflow:'hidden' }}>
           {/* Tab bar */}
           <div style={{ display:'flex', borderBottom:'1px solid #e2e8f0' }}>
-            {([['templates','🎨','Шаблони'],['photos','📷','Фото'],['text','T','Текст'],['bg','🎨','Фон']] as const).map(([t, icon, label]) => (
+            {([['templates','','Шаблони'],['photos','','Фото'],['text','T','Текст'],['bg','','Фон']] as const).map(([t, icon, label]) => (
               <button key={t} onClick={() => setTab(t as any)}
                 style={{ flex:1, padding:'8px 2px', border:'none', borderBottom: tab===t ? '2px solid #1e2d7d' : '2px solid transparent',
                   background:'none', cursor:'pointer', fontSize:10, color: tab===t ? '#1e2d7d' : '#94a3b8', fontWeight: tab===t ? 700 : 400 }}>
@@ -336,7 +336,7 @@ export default function PosterEditor() {
                           {(['left','center','right'] as const).map(a => (
                             <button key={a} onClick={() => updateText(selText.id, { align: a })}
                               style={{ flex:1, padding:'4px 2px', border: selText.align===a ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:4, background: selText.align===a ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:12 }}>
-                              {a==='left'?'◀':a==='center'?'≡':'▶'}
+                              {a==='left'?'':a==='center'?'≡':''}
                             </button>
                           ))}
                         </div>
@@ -344,7 +344,7 @@ export default function PosterEditor() {
                     </div>
                     <button onClick={() => { setTexts(prev => prev.filter(t => t.id !== selText.id)); setSelectedTextId(null); }}
                       style={{ padding:'6px', border:'1px solid #fee2e2', borderRadius:6, background:'#fff7f7', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:600 }}>
-                      🗑 Видалити текст
+                       Видалити текст
                     </button>
                   </div>
                 )}
@@ -391,7 +391,7 @@ export default function PosterEditor() {
                       {photo
                         ? <img src={photo.preview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} draggable={false}/>
                         : <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:2 }}>
-                            <span style={{ fontSize: Math.max(12, px.h * 0.2), color:'rgba(148,163,184,0.7)' }}>📷</span>
+                            <span style={{ fontSize: Math.max(12, px.h * 0.2), color:'rgba(148,163,184,0.7)' }}></span>
                           </div>
                       }
                       {photo && (

@@ -51,7 +51,7 @@ export async function POST(request: Request) {
             .from('email_campaigns')
             .insert({
                 type: 'new_product',
-                subject: `Новинка! ${product.name} вже у нас ✨`,
+                subject: `Новинка! ${product.name} вже у нас `,
                 product_id: product.id,
                 segment: segment,
                 status: 'sending'
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 
             const emailResult = await sendEmail({
                 to: sub.email,
-                subject: `Новинка! ${product.name} вже у нас ✨`,
+                subject: `Новинка! ${product.name} вже у нас `,
                 html: htmlMessage,
                 campaignId: campaign.id,
                 subscriberId: sub.id,

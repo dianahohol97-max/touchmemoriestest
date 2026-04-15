@@ -61,7 +61,7 @@ export default function ReviewPageClient({ project: initialProject, token }: { p
         {(result === 'approved' || project.status === 'approved') && (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center mb-6">
             <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-3" />
-            <h2 className="text-xl font-black text-green-700 mb-1">Макет затверджено! 🎉</h2>
+            <h2 className="text-xl font-black text-green-700 mb-1">Макет затверджено! </h2>
             <p className="text-green-600 text-sm">Передаємо у виробництво. Дякуємо!</p>
           </div>
         )}

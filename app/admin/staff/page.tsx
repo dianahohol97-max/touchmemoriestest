@@ -31,16 +31,16 @@ type Role = {
 };
 
 const PERMISSION_SECTIONS = [
-    { id: 'catalog', label: '📦 Каталог' },
-    { id: 'orders', label: '🛒 Замовлення' },
-    { id: 'customers', label: '👥 Клієнти' },
-    { id: 'production', label: '🏭 Виробництво' },
-    { id: 'finance', label: '💰 Фінанси' },
-    { id: 'marketing', label: '📣 Маркетинг' },
-    { id: 'content', label: '✍️ Контент' },
-    { id: 'settings', label: '⚙️ Налаштування' },
-    { id: 'ai', label: '🤖 AI' },
-    { id: 'analytics', label: '📊 Аналітика' },
+    { id: 'catalog', label: ' Каталог' },
+    { id: 'orders', label: ' Замовлення' },
+    { id: 'customers', label: ' Клієнти' },
+    { id: 'production', label: ' Виробництво' },
+    { id: 'finance', label: ' Фінанси' },
+    { id: 'marketing', label: ' Маркетинг' },
+    { id: 'content', label: ' Контент' },
+    { id: 'settings', label: ' Налаштування' },
+    { id: 'ai', label: ' AI' },
+    { id: 'analytics', label: ' Аналітика' },
 ];
 
 const ACCESS_LEVELS: { id: PermissionLevel; label: string }[] = [

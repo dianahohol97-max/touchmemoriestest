@@ -2,7 +2,7 @@
 
 import { useRef, useCallback } from 'react';
 
-// ── Haptic Feedback ──────────────────────────────────────────────────────────
+//  Haptic Feedback 
 export const haptic = {
   light:   () => { try { if ('vibrate' in navigator) navigator.vibrate(8);  } catch {} },
   medium:  () => { try { if ('vibrate' in navigator) navigator.vibrate(18); } catch {} },
@@ -10,7 +10,7 @@ export const haptic = {
   error:   () => { try { if ('vibrate' in navigator) navigator.vibrate([30, 20, 30]); } catch {} },
 };
 
-// ── Unified pointer drag (mouse + touch + stylus) ────────────────────────────
+//  Unified pointer drag (mouse + touch + stylus) 
 export function startPointerDrag(
   e: React.PointerEvent,
   onMove: (dx: number, dy: number) => void,
@@ -36,7 +36,7 @@ export function startPointerDrag(
   window.addEventListener('pointercancel', end);
 }
 
-// ── Long Press hook ──────────────────────────────────────────────────────────
+//  Long Press hook 
 export function useLongPress(
   onLongPress: (e: React.PointerEvent) => void,
   onPress?: (e: React.PointerEvent) => void,

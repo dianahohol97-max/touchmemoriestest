@@ -32,7 +32,7 @@ interface PromotionEmailProps {
 }
 
 export default function PromotionEmail({
-    title = 'Спеціальна Пропозиція До Дня Матері 🌸',
+    title = 'Спеціальна Пропозиція До Дня Матері ',
     previewText = 'Час обирати подарунки з нашою новою акцією',
     heroImageUrl = 'https://images.unsplash.com/photo-1516961642265-531546e84af2?q=80&w=1200&auto=format&fit=crop',
     bodyText = 'Збережіть найтепліші моменти з найріднішими. Ми підготували для вас чудову можливість створити фотокнигу, яка збереже ваші спогади назавжди.',

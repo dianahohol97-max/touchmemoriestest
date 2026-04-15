@@ -432,7 +432,7 @@ export default function CheckoutPage() {
                                 onMouseEnter={e => (e.currentTarget.style.borderColor = '#1e2d7d')}
                                 onMouseLeave={e => (e.currentTarget.style.borderColor = '#c7d2fe')}
                             >
-                                <span style={{ fontSize: 28 }}>🇺🇦</span>
+                                <span style={{ fontSize: 28 }}></span>
                                 <div>
                                     <div style={{ fontSize: 15, fontWeight: 700, color: '#1e2d7d' }}>Картка українського банку</div>
                                     <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Monobank, PrivatBank, Oschadbank та інші</div>
@@ -448,7 +448,7 @@ export default function CheckoutPage() {
                                 onMouseEnter={e => (e.currentTarget.style.borderColor = '#374151')}
                                 onMouseLeave={e => (e.currentTarget.style.borderColor = '#d1d5db')}
                             >
-                                <span style={{ fontSize: 28 }}>🌍</span>
+                                <span style={{ fontSize: 28 }}></span>
                                 <div>
                                     <div style={{ fontSize: 15, fontWeight: 700, color: '#374151' }}>Картка іноземного банку</div>
                                     <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Visa/Mastercard, випущена за кордоном</div>

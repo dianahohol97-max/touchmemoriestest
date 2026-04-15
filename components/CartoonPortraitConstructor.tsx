@@ -511,7 +511,7 @@ ${config.addDate ? `Дата: ${new Date().toLocaleDateString('uk-UA')}` : ''}
                                                 <p className="text-sm flex items-center gap-2">
                                                     {config.faceDetected ? (
                                                         <>
-                                                            <span className="text-green-600">✓</span>
+                                                            <span className="text-green-600"></span>
                                                             <span>Обличчя виявлено</span>
                                                         </>
                                                     ) : (

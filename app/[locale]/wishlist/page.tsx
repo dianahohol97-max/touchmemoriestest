@@ -68,7 +68,7 @@ export default function WishlistPage() {
             <div style={containerStyle}>
                 <header style={{ marginBottom: '64px', textAlign: 'center' }}>
                     <div style={badgeStyle}>ВАШ ВИБІР</div>
-                    <h1 style={titleStyle}>Список бажань ❤️</h1>
+                    <h1 style={titleStyle}>Список бажань </h1>
                     <p style={subtitleStyle}>Збережені товари, які вам сподобались. Поверніться до них, коли будете готові!</p>
                 </header>
 

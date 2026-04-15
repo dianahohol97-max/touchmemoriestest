@@ -37,7 +37,7 @@ export default function DesignerBriefEmail({
 
             <Text style={paragraph}>
               Дякуємо за замовлення <strong>{orderNumber}</strong> з послугою дизайнера
-              "Зроби за мене" 🎨
+              "Зроби за мене" 
             </Text>
 
             <Text style={paragraph}>
@@ -83,22 +83,22 @@ export default function DesignerBriefEmail({
             <Text style={heading}>Що далі?</Text>
 
             <Text style={paragraph}>
-              ✅ <strong>AI обробить ваші фото</strong> — проаналізує якість,
+               <strong>AI обробить ваші фото</strong> — проаналізує якість,
               виявить найкращі моменти
             </Text>
 
             <Text style={paragraph}>
-              🎨 <strong>Дизайнер створить макет</strong> — на основі AI-аналізу
+               <strong>Дизайнер створить макет</strong> — на основі AI-аналізу
               та ваших побажань
             </Text>
 
             <Text style={paragraph}>
-              👀 <strong>Ви переглянете та затвердите</strong> — можна залишити
+               <strong>Ви переглянете та затвердите</strong> — можна залишити
               коментарі та запросити до 2 безкоштовних правок
             </Text>
 
             <Text style={paragraph}>
-              🖨️ <strong>Друк та доставка</strong> — ваш унікальний альбом буде
+               <strong>Друк та доставка</strong> — ваш унікальний альбом буде
               надрукований і доставлений Новою Поштою
             </Text>
 
@@ -108,12 +108,12 @@ export default function DesignerBriefEmail({
             <Text style={helpText}>
               Потрібна допомога? Напишіть нам:
               <br />
-              📧 Email:{' '}
+               Email:{' '}
               <Link href="mailto:info@touchmemories.com.ua" style={link}>
                 info@touchmemories.com.ua
               </Link>
               <br />
-              📱 Telegram:{' '}
+               Telegram:{' '}
               <Link href="https://t.me/touchmemories" style={link}>
                 @touchmemories
               </Link>

@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     if (telegramChatId) {
       await sendTelegramMessage({
         chat_id: telegramChatId,
-        text: `🎨 Нове замовлення з послугою дизайнера!\n\n` +
+        text: ` Нове замовлення з послугою дизайнера!\n\n` +
           `Замовлення: #${order.order_number}\n` +
           `Клієнт: ${order.customer.name}\n` +
           `Email: ${order.customer.email}\n` +

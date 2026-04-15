@@ -436,7 +436,7 @@ function DesignerUploadContent() {
         <Navigation />
         <main style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '600px', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ backgroundColor: '#f0fdf4', border: '2px solid #86efac', borderRadius: '16px', padding: '48px 32px', textAlign: 'center' }}>
-            <div style={{ fontSize: '64px', marginBottom: '16px' }}>✅</div>
+            <div style={{ fontSize: '64px', marginBottom: '16px' }}></div>
             <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#166534', marginBottom: '12px' }}>
               Замовлення прийнято!
             </h1>
@@ -477,7 +477,7 @@ function DesignerUploadContent() {
         {/* Restored banner */}
         {showRestoredBanner && (
           <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac', borderRadius: '12px', padding: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '20px' }}>✅</span>
+            <span style={{ fontSize: '20px' }}></span>
             <p style={{ fontSize: '14px', color: '#166534', margin: 0 }}>
               Ваші дані збережені. Додайте нові товари або оформіть замовлення.
             </p>

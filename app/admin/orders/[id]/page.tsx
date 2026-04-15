@@ -906,7 +906,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 </>
                                             ) : (
                                                 <>
-                                                    💳 Надіслати посилання на оплату
+                                                     Надіслати посилання на оплату
                                                 </>
                                             )}
                                         </button>
@@ -984,7 +984,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         </div>
                         {previousOrdersCount > 0 && (
                             <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', fontWeight: 600, color: '#166534' }}>
-                                📦 Попередніх замовлень: {previousOrdersCount}
+                                 Попередніх замовлень: {previousOrdersCount}
                             </div>
                         )}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1033,7 +1033,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         </div>
                     </div>
 
-                    {/* ── Designer Project Block ── */}
+                    {/*  Designer Project Block  */}
                     {order.with_designer && (
                         <DesignerProjectBlock order={order} />
                     )}

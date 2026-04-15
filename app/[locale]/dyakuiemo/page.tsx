@@ -105,10 +105,10 @@ function DyakuiemoContent() {
                         {t('thankyou.whats_next')}
                     </div>
                     {[
-                        { icon: '📞', text: t('thankyou.step1') },
-                        { icon: '🎨', text: t('thankyou.step2') },
-                        { icon: '🖨️', text: t('thankyou.step3') },
-                        { icon: '📦', text: t('thankyou.step4') },
+                        { icon: '', text: t('thankyou.step1') },
+                        { icon: '', text: t('thankyou.step2') },
+                        { icon: '', text: t('thankyou.step3') },
+                        { icon: '', text: t('thankyou.step4') },
                     ].map((step, i) => (
                         <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'flex-start' }}>
                             <span style={{ fontSize: 18 }}>{step.icon}</span>

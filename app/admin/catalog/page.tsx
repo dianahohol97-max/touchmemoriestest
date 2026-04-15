@@ -188,7 +188,7 @@ export default function AdminCatalogPage() {
                 <div style={S.prodName} className="truncate">{p.name}</div>
                 <div style={S.prodSlug}>/{p.slug}</div>
             </div>
-            {p.is_popular && <span style={{ fontSize: 10, fontWeight: 700, color: '#d97706', background: '#fef3c7', padding: '2px 7px', borderRadius: 10 }}>⭐ топ</span>}
+            {p.is_popular && <span style={{ fontSize: 10, fontWeight: 700, color: '#d97706', background: '#fef3c7', padding: '2px 7px', borderRadius: 10 }}> топ</span>}
             <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 8,
                 background: p.is_active ? '#dcfce7' : '#f1f5f9',
                 color: p.is_active ? '#15803d' : '#94a3b8' }}>
@@ -227,7 +227,7 @@ export default function AdminCatalogPage() {
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 8,
                         background: p.is_active ? '#dcfce7' : '#f1f5f9',
                         color: p.is_active ? '#15803d' : '#94a3b8' }}>
-                        {p.is_active ? '●' : '○'} {p.is_active ? 'ON' : 'OFF'}
+                        {p.is_active ? '' : ''} {p.is_active ? 'ON' : 'OFF'}
                     </span>
                 </div>
                 <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
@@ -319,7 +319,7 @@ export default function AdminCatalogPage() {
                                 ? <ChevronDown size={16} color="#64748b"/>
                                 : <ChevronRight size={16} color="#64748b"/>}
                             <span style={S.catTitle}>
-                                {cat ? cat.name : '📂 Без категорії'}
+                                {cat ? cat.name : ' Без категорії'}
                             </span>
                             <span style={S.catCount}>{catProds.length} товарів</span>
                             {cat && (

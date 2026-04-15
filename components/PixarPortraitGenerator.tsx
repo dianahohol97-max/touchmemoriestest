@@ -16,12 +16,12 @@ interface StyleOption {
 }
 
 const STYLES: StyleOption[] = [
-  { id: 'pixar',      label: 'Піксар',         emoji: '🎬', desc: 'Pixar/Disney 3D персонаж', color: '#f0f3ff' },
-  { id: 'anime',      label: 'Аніме',           emoji: '✨', desc: 'Studio Ghibli стиль',      color: '#fef3c7' },
-  { id: 'cartoon',    label: 'Мультик',         emoji: '🎨', desc: 'Disney 2D мультиплікація', color: '#f0fdf4' },
-  { id: 'watercolor', label: 'Акварель',        emoji: '🖌️', desc: 'Акварельний живопис',       color: '#fce7f3' },
-  { id: 'sketch',     label: 'Ескіз',           emoji: '✏️', desc: 'Олівцевий малюнок',         color: '#f8fafc' },
-  { id: 'oilpainting',label: 'Олія',            emoji: '🖼️', desc: 'Класичний олійний живопис', color: '#fff7ed' },
+  { id: 'pixar',      label: 'Піксар',         emoji: '', desc: 'Pixar/Disney 3D персонаж', color: '#f0f3ff' },
+  { id: 'anime',      label: 'Аніме',           emoji: '', desc: 'Studio Ghibli стиль',      color: '#fef3c7' },
+  { id: 'cartoon',    label: 'Мультик',         emoji: '', desc: 'Disney 2D мультиплікація', color: '#f0fdf4' },
+  { id: 'watercolor', label: 'Акварель',        emoji: '', desc: 'Акварельний живопис',       color: '#fce7f3' },
+  { id: 'sketch',     label: 'Ескіз',           emoji: '', desc: 'Олівцевий малюнок',         color: '#f8fafc' },
+  { id: 'oilpainting',label: 'Олія',            emoji: '', desc: 'Класичний олійний живопис', color: '#fff7ed' },
 ];
 
 interface Props {
@@ -73,7 +73,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
         setProgress(100);
         setResultUrl(data.url);
         setIsGenerating(false);
-        toast.success('🎨 Портрет готовий!');
+        toast.success(' Портрет готовий!');
         onResult(data.url, selectedStyle);
         return;
       } else if (data.status === 'failed') {
@@ -123,7 +123,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
         setProgress(100);
         setResultUrl(data.url);
         setIsGenerating(false);
-        toast.success('🎨 Портрет готовий!');
+        toast.success(' Портрет готовий!');
         onResult(data.url, selectedStyle);
       } else if (data.predictionId && data.polling) {
         // Need to poll
@@ -143,7 +143,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
 
   const styleObj = STYLES.find(s => s.id === selectedStyle) || STYLES[0];
 
-  // ── Compact mode (for sidebar in BookLayoutEditor/PosterConstructor) ──
+  //  Compact mode (for sidebar in BookLayoutEditor/PosterConstructor) 
   if (compact) {
     return (
       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -187,7 +187,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
             color:'#fff', border:'none', borderRadius:8, fontWeight:800, fontSize:13,
             cursor: isGenerating ? 'wait' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
           <Wand2 size={14}/>
-          {isGenerating ? `Генерую... ${progress}%` : `✨ Перетворити в ${styleObj.label} (+${AI_PORTRAIT_PRICE} ₴)`}
+          {isGenerating ? `Генерую... ${progress}%` : ` Перетворити в ${styleObj.label} (+${AI_PORTRAIT_PRICE} ₴)`}
         </button>
 
         {/* Progress bar */}
@@ -203,7 +203,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
             <img src={resultUrl} style={{ width:'100%', display:'block' }}/>
             <button onClick={handleUseResult}
               style={{ width:'100%', padding:'8px', background:'#7c3aed', color:'#fff', border:'none', fontWeight:700, fontSize:12, cursor:'pointer' }}>
-              ✓ Використати цю фотографію
+               Використати цю фотографію
             </button>
           </div>
         )}
@@ -211,11 +211,11 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
     );
   }
 
-  // ── Full mode ──
+  //  Full mode 
   return (
     <div style={{ maxWidth:700, margin:'0 auto', fontFamily:'var(--font-primary, sans-serif)' }}>
       <div style={{ textAlign:'center', marginBottom:24 }}>
-        <div style={{ fontSize:32, marginBottom:8 }}>🎨</div>
+        <div style={{ fontSize:32, marginBottom:8 }}></div>
         <h2 style={{ fontSize:22, fontWeight:800, color:'#1e2d7d', margin:'0 0 6px' }}>AI Портрет</h2>
         <p style={{ fontSize:14, color:'#64748b', margin:0 }}>Перетворіть фото в художній стиль за допомогою штучного інтелекту</p>
       </div>
@@ -271,7 +271,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
               display:'flex', alignItems:'center', justifyContent:'center', gap:8,
               boxShadow: sourcePreview && !isGenerating ? '0 4px 20px rgba(124,58,237,0.35)' : 'none' }}>
             {isGenerating ? <RefreshCw size={18} style={{ animation:'spin 1s linear infinite' }}/> : <Wand2 size={18}/>}
-            {isGenerating ? `Генерую... ${progress}%` : `✨ Перетворити в ${styleObj.emoji} ${styleObj.label} (+${AI_PORTRAIT_PRICE} ₴)`}
+            {isGenerating ? `Генерую... ${progress}%` : ` Перетворити в ${styleObj.emoji} ${styleObj.label} (+${AI_PORTRAIT_PRICE} ₴)`}
           </button>
 
           {/* Progress */}
@@ -301,7 +301,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
               <div style={{ display:'flex', gap:8 }}>
                 <button onClick={handleUseResult}
                   style={{ flex:1, padding:'10px', background:'#7c3aed', color:'#fff', border:'none', borderRadius:8, fontWeight:800, fontSize:13, cursor:'pointer' }}>
-                  ✓ Використати
+                   Використати
                 </button>
                 <a href={resultUrl} download="portrait.jpg" target="_blank"
                   style={{ padding:'10px 12px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', textDecoration:'none', display:'flex', alignItems:'center', gap:4 }}>
@@ -315,7 +315,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
             </>
           ) : (
             <div style={{ height:280, border:'2px dashed #e2e8f0', borderRadius:10, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12, color:'#94a3b8', background:'#fafafa' }}>
-              <div style={{ fontSize:48 }}>🎭</div>
+              <div style={{ fontSize:48 }}></div>
               <div style={{ fontSize:13, textAlign:'center', padding:'0 20px' }}>
                 {sourcePreview ? `Натисніть "Перетворити" для генерації` : 'Завантажте фото та оберіть стиль'}
               </div>
@@ -329,7 +329,7 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
 
       {/* Info note */}
       <div style={{ background:'#faf5ff', border:'1px solid #e9d5ff', borderRadius:8, padding:'10px 14px', fontSize:11, color:'#7c3aed' }}>
-        💡 <b>AI перетворення (+75 ₴):</b> Штучний інтелект (FLUX 2 Pro) зберігає риси обличчя і трансформує стиль. Результат ~20–40 секунд.
+         <b>AI перетворення (+75 ₴):</b> Штучний інтелект (FLUX 2 Pro) зберігає риси обличчя і трансформує стиль. Результат ~20–40 секунд.
       </div>
     </div>
   );

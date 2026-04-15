@@ -71,7 +71,7 @@ export default function RegisterForm() {
             const data = await response.json();
 
             if (response.ok) {
-                toast.success('Реєстрація успішна! Вітаємо! 🎉');
+                toast.success('Реєстрація успішна! Вітаємо! ');
                 // Redirect to login or auto-login
                 setTimeout(() => {
                     router.push('/account/orders');
@@ -182,7 +182,7 @@ export default function RegisterForm() {
             {/* Birthday */}
             <div style={birthdaySectionStyle}>
                 <label style={{ ...labelStyle, marginBottom: '8px' }}>
-                    <Gift size={16} /> 🎂 День народження (необов'язково)
+                    <Gift size={16} />  День народження (необов'язково)
                 </label>
                 <p style={birthdayHintStyle}>
                     Отримайте подарунок у свій день народження!
@@ -194,7 +194,7 @@ export default function RegisterForm() {
                         onChange={handleChange}
                         style={selectStyle}
                     >
-                        <option value="">День ▾</option>
+                        <option value="">День </option>
                         {days.map(day => (
                             <option key={day} value={day}>{day}</option>
                         ))}
@@ -205,7 +205,7 @@ export default function RegisterForm() {
                         onChange={handleChange}
                         style={selectStyle}
                     >
-                        <option value="">Місяць ▾</option>
+                        <option value="">Місяць </option>
                         {months.map(month => (
                             <option key={month.value} value={month.value}>{month.label}</option>
                         ))}

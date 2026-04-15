@@ -44,7 +44,7 @@ export async function POST(req: Request) {
         const { data: emailData, error: emailError } = await resend.emails.send({
             from: 'TouchMemories <hints@mail.touchmemories.ua>', // Needs domain verification in Resend
             to: [recipient_email],
-            subject: `${senderDisplay} натякає вам на чудовий подарунок 🎁`,
+            subject: `${senderDisplay} натякає вам на чудовий подарунок `,
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 24px;">
                     <div style="text-align: center; margin-bottom: 32px;">
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
                     </div>
 
                     <div style="text-align: center; border-top: 1px solid #f0f0f0; paddingTop: 32px; color: #94a3b8; font-size: 13px;">
-                        Це лише натяк — без жодних зобов'язань 😊
+                        Це лише натяк — без жодних зобов'язань 
                     </div>
                 </div>
             `

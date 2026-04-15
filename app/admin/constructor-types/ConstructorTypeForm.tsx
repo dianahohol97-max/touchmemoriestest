@@ -24,7 +24,7 @@ export default function ConstructorTypeForm({ typeId, onClose, onSuccess }: Cons
         slug: '',
         description: '',
         product_id: null,
-        icon: '📚',
+        icon: '',
         is_active: true,
         sort_order: 0,
         min_pages: 10,

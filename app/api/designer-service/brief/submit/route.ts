@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (telegramChatId) {
       await sendTelegramMessage({
         chat_id: telegramChatId,
-        text: `📝 Новий бриф отримано!\n\nТокен: ${token}\nСтиль: ${formData.style_preference}\nПодія: ${formData.occasion}\nФото: перевірте у системі\n\nAI обробляє фото автоматично.`,
+        text: ` Новий бриф отримано!\n\nТокен: ${token}\nСтиль: ${formData.style_preference}\nПодія: ${formData.occasion}\nФото: перевірте у системі\n\nAI обробляє фото автоматично.`,
       });
     }
 

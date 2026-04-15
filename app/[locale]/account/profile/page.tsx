@@ -98,7 +98,7 @@ export default function ProfilePage() {
                     fontSize: '14px',
                     fontWeight: 600,
                 }}>
-                    ✓ Зміни збережено успішно
+                     Зміни збережено успішно
                 </div>
             )}
 

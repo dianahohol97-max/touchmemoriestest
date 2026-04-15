@@ -273,7 +273,7 @@ export function QRCodeGenerator({
 
           {qrUrl && (
             <p style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4, marginTop: 4 }}>
-              💡 QR-код можна скачати та додати у будь-який редактор як зображення
+               QR-код можна скачати та додати у будь-який редактор як зображення
             </p>
           )}
         </div>

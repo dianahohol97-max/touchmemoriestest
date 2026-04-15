@@ -115,7 +115,7 @@ export default function DiplomaOrderPage() {
 
                     <div className="bg-white rounded-xl border border-gray-200 p-8">
 
-                        {/* ═══ STEP 1: Parameters ═══ */}
+                        {/*  STEP 1: Parameters  */}
                         {step === 1 && (
                             <div className="space-y-6">
                                 <div>
@@ -183,7 +183,7 @@ export default function DiplomaOrderPage() {
                             </div>
                         )}
 
-                        {/* ═══ STEP 2: Content ═══ */}
+                        {/*  STEP 2: Content  */}
                         {step === 2 && (
                             <div className="space-y-6">
                                 <div>
@@ -240,7 +240,7 @@ export default function DiplomaOrderPage() {
                             </div>
                         )}
 
-                        {/* ═══ STEP 3: Contact & Order ═══ */}
+                        {/*  STEP 3: Contact & Order  */}
                         {step === 3 && (
                             <div className="space-y-6">
                                 <div>

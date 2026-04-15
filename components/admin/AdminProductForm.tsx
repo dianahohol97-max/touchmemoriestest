@@ -546,7 +546,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                             <div style={{ marginBottom: 12 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                     <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Фото: {images.length} / 10</span>
-                                    {images.length >= 10 && <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700 }}>✕ Ліміт досягнуто</span>}
+                                    {images.length >= 10 && <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700 }}> Ліміт досягнуто</span>}
                                     {images.length > 0 && images.length < 10 && <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>Можна ще {10 - images.length}</span>}
                                 </div>
                                 <div style={{ height: 4, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
@@ -572,7 +572,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                                     : <>
                                         <Upload size={22} color={isDragActive ? '#263A99' : '#94a3b8'}/>
                                         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: isDragActive ? '#263A99' : '#374151' }}>
-                                            {isDragActive ? '📁 Відпустіть для завантаження' : 'Перетягніть фото або натисніть'}
+                                            {isDragActive ? ' Відпустіть для завантаження' : 'Перетягніть фото або натисніть'}
                                         </p>
                                         <p style={{ margin: 0, fontSize: 11, color: '#94a3b8' }}>JPG, PNG, WebP · макс. 10MB · до {10 - images.length} фото</p>
                                     </>

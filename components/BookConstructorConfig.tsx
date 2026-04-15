@@ -711,7 +711,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
                 <div className="space-y-6">
 
-                    {/* ── Wishbook: Fixed sizes (identical style to photobook) ── */}
+                    {/*  Wishbook: Fixed sizes (identical style to photobook)  */}
                     {productType === 'wishbook' && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -738,7 +738,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Wishbook: Cover type — identical to photobook ── */}
+                    {/*  Wishbook: Cover type — identical to photobook  */}
                     {productType === 'wishbook' && (() => {
                         const types = coverTypes.length > 0 ? coverTypes : [
                             { id: 'w1', name: 'Велюр', sort_order: 1 },
@@ -768,7 +768,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     ); })()}
 
-                    {/* ── Wishbook: Color swatches — identical to photobook ── */}
+                    {/*  Wishbook: Color swatches — identical to photobook  */}
                     {productType === 'wishbook' && selectedCoverType && selectedCoverType !== 'Друкована' && (() => {
                         const colors = selectedCoverType === 'Шкірзамінник' ? LEATHERETTE_BOOK_COLORS
                             : selectedCoverType === 'Тканина' ? FABRIC_BOOK_COLORS
@@ -801,7 +801,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         );
                     })()}
 
-                    {/* ── Wishbook: Lamination for Друкована — identical to photobook ── */}
+                    {/*  Wishbook: Lamination for Друкована — identical to photobook  */}
                     {productType === 'wishbook' && selectedCoverType === 'Друкована' && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -823,7 +823,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Wishbook: Decoration types — identical to photobook ── */}
+                    {/*  Wishbook: Decoration types — identical to photobook  */}
                     {productType === 'wishbook' && selectedCoverType && selectedCoverType !== 'Друкована' && decorationTypes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -863,7 +863,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Wishbook: Decoration variant — identical to photobook ── */}
+                    {/*  Wishbook: Decoration variant — identical to photobook  */}
                     {productType === 'wishbook' && selectedDecorationType !== 'none' && selectedCoverType && selectedCoverType !== 'Друкована' && selectedSize && (() => {
                         const variants = decorationVariants.filter(
                             (dv: any) => dv.decoration_type?.name === selectedDecorationType &&
@@ -892,7 +892,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         );
                     })()}
 
-                    {/* ── Photobook: Size selector from photobook_sizes ── */}
+                    {/*  Photobook: Size selector from photobook_sizes  */}
                     {productType === 'photobook' && photobookSizes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -935,7 +935,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Photobook: Cover type selector from cover_types ── */}
+                    {/*  Photobook: Cover type selector from cover_types  */}
                     {productType === 'photobook' && coverTypes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -963,7 +963,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Cover color picker for soft covers ── */}
+                    {/*  Cover color picker for soft covers  */}
                     {productType === 'photobook' && selectedCoverType && selectedCoverType !== 'Друкована' && (() => {
                         const colors = selectedCoverType === 'Шкірзамінник' ? LEATHERETTE_BOOK_COLORS
                             : selectedCoverType === 'Тканина' ? FABRIC_BOOK_COLORS
@@ -999,7 +999,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         );
                     })()}
 
-                    {/* ── Photobook: Lamination for Друкована cover ── */}
+                    {/*  Photobook: Lamination for Друкована cover  */}
                     {productType === 'photobook' && selectedCoverType === 'Друкована' && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -1024,7 +1024,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Photobook: Decoration selector (not for Друкована) ── */}
+                    {/*  Photobook: Decoration selector (not for Друкована)  */}
                     {productType === 'photobook' && selectedCoverType && selectedCoverType !== 'Друкована' && decorationTypes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -1070,7 +1070,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Photobook: Decoration variant sub-options ── */}
+                    {/*  Photobook: Decoration variant sub-options  */}
                     {productType === 'photobook' && selectedDecorationType !== 'none' && selectedCoverType && selectedCoverType !== 'Друкована' && selectedSize && (() => {
                         const variants = decorationVariants.filter(
                             (dv: any) => dv.decoration_type?.name === selectedDecorationType &&
@@ -1100,7 +1100,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         );
                     })()}
 
-                    {/* ── Photobook: Page count selector from photobook_prices ── */}
+                    {/*  Photobook: Page count selector from photobook_prices  */}
                     {productType === 'photobook' && photobookPrices.length > 0 && selectedSize && selectedCoverType && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1129,7 +1129,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Non-photobook: Size from product.variants ── */}
+                    {/*  Non-photobook: Size from product.variants  */}
                     {productType !== 'photobook' && product.variants && product.variants.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1149,7 +1149,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
-                    {/* ── Non-photobook: Dynamic options from product.options ── */}
+                    {/*  Non-photobook: Dynamic options from product.options  */}
                     {productType !== 'photobook' && product.options && (product.options as ProductOption[]).filter((option) => option.values && option.values.length > 0).map((option) => (
                         <div key={option.name}>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1313,7 +1313,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {/* Text layout surcharge note */}
                     {searchParams.get('text_layout') === 'with' && (
                         <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg px-4 py-2">
-                            <span className="text-sm text-blue-800 font-medium">✏️ З версткою тексту</span>
+                            <span className="text-sm text-blue-800 font-medium"> З версткою тексту</span>
                             <span className="text-sm font-bold text-blue-800">+175 ₴</span>
                         </div>
                     )}

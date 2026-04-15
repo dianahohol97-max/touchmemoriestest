@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+//  Types 
 
 interface Feature {
   title: string;
@@ -34,13 +34,13 @@ interface LaminationType {
   imageUrl: string;
 }
 
-// ── Photobook cover data ─────────────────────────────────────────────────────
+//  Photobook cover data 
 
 const COVER_TYPES: CoverType[] = [
   {
     id: 'velour',
     label: 'Велюр',
-    emoji: '🟣',
+    emoji: '',
     description: 'М\'яка оксамитова поверхня, приємна на дотик. 14 кольорів. Ідеальна для ніжних, романтичних альбомів.',
     swatchColors: [
       '#F0EAD6','#D9C8B0','#A89880','#E8B4B8', // Молочний, Бежевий, Таупе, Рожевий
@@ -60,7 +60,7 @@ const COVER_TYPES: CoverType[] = [
   {
     id: 'leatherette',
     label: 'Шкірзамінник',
-    emoji: '🟤',
+    emoji: '',
     description: 'Текстурована поверхня під шкіру. Виглядає солідно та елегантно. 24 кольори.',
     swatchColors: [
       '#F5F5F0','#D9C8B0','#D4A76A','#C8844E', // Білий, Бежевий, Пісочний, Рудий
@@ -82,7 +82,7 @@ const COVER_TYPES: CoverType[] = [
   {
     id: 'fabric',
     label: 'Тканина',
-    emoji: '🟡',
+    emoji: '',
     description: 'Натуральна текстура тканини, легка та тепла. 9 кольорів. Відмінно підходить для сімейних альбомів.',
     swatchColors: [
       '#C4AA88','#A04838','#B838A0', // Бежевий/пісочний, Теракотовий/цегляний, Фуксія/пурпурний
@@ -99,7 +99,7 @@ const COVER_TYPES: CoverType[] = [
   {
     id: 'printed',
     label: 'Друкована',
-    emoji: '🖨️',
+    emoji: '',
     description: 'Повноколірний друк вашого фото прямо на обкладинці. Найбільш персоналізований варіант.',
     laminationTypes: [
       { id: 'glossy', label: 'Глянцева', imageUrl: '/lamination/glossy.jpg' },
@@ -108,7 +108,7 @@ const COVER_TYPES: CoverType[] = [
   },
 ];
 
-// ── Cover selector component ─────────────────────────────────────────────────
+//  Cover selector component 
 
 function PhotobookCoversSection() {
   const [activeCover, setActiveCover] = useState<string>('velour');
@@ -227,7 +227,7 @@ function PhotobookCoversSection() {
                     style={{ padding: '16px', borderRadius: 10, border: activeLamination === l.id ? '2.5px solid #1e2d7d' : '1.5px solid #e2e8f0',
                       cursor: 'pointer', background: activeLamination === l.id ? '#f0f3ff' : '#fff',
                       transition: 'all 0.15s', textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, marginBottom: 6 }}>{l.id === 'glossy' ? '✨' : '🫧'}</div>
+                    <div style={{ fontSize: 24, marginBottom: 6 }}>{l.id === 'glossy' ? '' : ''}</div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: activeLamination === l.id ? '#1e2d7d' : '#374151' }}>
                       {l.label}
                     </div>
@@ -249,7 +249,7 @@ function PhotobookCoversSection() {
 }
 
 
-// ── Journal cover comparison ─────────────────────────────────────────────────
+//  Journal cover comparison 
 
 function JournalCoversSection() {
   const [activeTab, setActiveTab] = useState<'soft' | 'hard'>('soft');
@@ -257,28 +257,28 @@ function JournalCoversSection() {
   const covers = {
     soft: {
       label: "М'яка обкладинка",
-      emoji: "📔",
+      emoji: "",
       color: '#f0f3ff',
       border: '#1e2d7d',
       features: [
-        { icon: '⚖️', title: 'Легша та тонша', text: 'Обкладинка з картону 300г, ламінована. Зручно брати з собою в дорогу.' },
-        { icon: '💰', title: 'Доступніша ціна', text: 'Відмінний вибір для великих тиражів — весільних газет, корпоративних журналів.' },
-        { icon: '📐', title: 'Формат А4', text: 'Стандартний журнальний формат. Ламінація: глянцева або матова.' },
-        { icon: '🔗', title: 'Скоба або клей', text: 'До 44 сторінок — скоба, понад 44 — термоклей. Лежить рівно.' },
+        { icon: '', title: 'Легша та тонша', text: 'Обкладинка з картону 300г, ламінована. Зручно брати з собою в дорогу.' },
+        { icon: '', title: 'Доступніша ціна', text: 'Відмінний вибір для великих тиражів — весільних газет, корпоративних журналів.' },
+        { icon: '', title: 'Формат А4', text: 'Стандартний журнальний формат. Ламінація: глянцева або матова.' },
+        { icon: '', title: 'Скоба або клей', text: 'До 44 сторінок — скоба, понад 44 — термоклей. Лежить рівно.' },
       ],
       badgeText: 'Глянцева або матова ламінація',
       bgGradient: 'linear-gradient(135deg, #f0f3ff 0%, #e8ecff 100%)',
     },
     hard: {
       label: 'Тверда обкладинка',
-      emoji: '📕',
+      emoji: '',
       color: '#f0fdf4',
       border: '#15803d',
       features: [
-        { icon: '💪', title: 'Міцна та довговічна', text: 'Обкладинка з твердого картону, покрита друкованою або тканинною поверхнею.' },
-        { icon: '✨', title: 'Преміальний вигляд', text: 'Ідеальна для фотожурналів, портфоліо, корпоративних видань що мають зберігатись роками.' },
-        { icon: '📏', title: 'Будь-який формат', text: 'А5, А4, А3 та нестандарт. Тримає форму без деформацій.' },
-        { icon: '📖', title: 'Книжкова палітурка', text: 'Сшита нитками або на термоклей. Сторінки не випадають, лежить рівно.' },
+        { icon: '', title: 'Міцна та довговічна', text: 'Обкладинка з твердого картону, покрита друкованою або тканинною поверхнею.' },
+        { icon: '', title: 'Преміальний вигляд', text: 'Ідеальна для фотожурналів, портфоліо, корпоративних видань що мають зберігатись роками.' },
+        { icon: '', title: 'Будь-який формат', text: 'А5, А4, А3 та нестандарт. Тримає форму без деформацій.' },
+        { icon: '', title: 'Книжкова палітурка', text: 'Сшита нитками або на термоклей. Сторінки не випадають, лежить рівно.' },
       ],
       badgeText: 'Преміальна серія',
       bgGradient: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
@@ -305,7 +305,7 @@ function JournalCoversSection() {
               background: activeTab === tab ? '#1e2d7d' : '#fff',
               color: activeTab === tab ? '#fff' : '#374151',
               transition: 'all 0.2s' }}>
-            {tab === 'soft' ? "📔 М'яка" : '📕 Тверда'}
+            {tab === 'soft' ? " М'яка" : ' Тверда'}
           </button>
         ))}
       </div>
@@ -337,7 +337,7 @@ function JournalCoversSection() {
                 background: 'rgba(0,0,0,0.3)', borderRadius: '2px 0 0 2px' }}/>
               {/* Content */}
               <div style={{ textAlign: 'center', color: '#fff', padding: '0 20px' }}>
-                <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
+                <div style={{ fontSize: 36, marginBottom: 8 }}></div>
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', opacity: 0.9 }}>
                   ФОТОЖУРНАЛ
                 </div>
@@ -380,7 +380,7 @@ function JournalCoversSection() {
   );
 }
 
-// ── Features grid ────────────────────────────────────────────────────────────
+//  Features grid 
 
 interface ProductFeaturesBlockProps {
   features?: Feature[];
@@ -421,7 +421,7 @@ export function ProductFeaturesBlock({ features, isPhotobook, isJournal }: Produ
                   ) : (
                     <div style={{ borderRadius: 16, background: '#f1f5f9', aspectRatio: '4/3', display: 'flex',
                       alignItems: 'center', justifyContent: 'center', direction: 'ltr' }}>
-                      <span style={{ fontSize: 48 }}>📸</span>
+                      <span style={{ fontSize: 48 }}></span>
                     </div>
                   )}
                   {/* Text */}

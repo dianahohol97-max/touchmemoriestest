@@ -481,17 +481,17 @@ export default function TeamPage() {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
                                             {member.daily_base_rate && member.daily_base_rate > 0 && (
                                                 <div style={{ color: '#475569', fontWeight: 600 }}>
-                                                    📅 За день: {member.daily_base_rate} ₴
+                                                     За день: {member.daily_base_rate} ₴
                                                 </div>
                                             )}
                                             {member.commission_percentage && member.commission_percentage > 0 && (
                                                 <div style={{ color: '#475569', fontWeight: 600 }}>
-                                                    💰 Відсоток: {member.commission_percentage}%
+                                                     Відсоток: {member.commission_percentage}%
                                                 </div>
                                             )}
                                             {member.piece_rate && member.piece_rate > 0 && (
                                                 <div style={{ color: '#475569', fontWeight: 600 }}>
-                                                    📦 За продукт: {member.piece_rate} ₴
+                                                     За продукт: {member.piece_rate} ₴
                                                 </div>
                                             )}
                                         </div>

@@ -397,7 +397,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                           background: isBad ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.9)',
                           borderRadius:10, zIndex:35, pointerEvents:'auto', cursor:'help',
                           fontSize:9, fontWeight:700, color:'#fff', lineHeight:1 }}>
-                        <span style={{fontSize:11}}>⚠</span>{dpiCheck.dpi} DPI
+                        <span style={{fontSize:11}}></span>{dpiCheck.dpi} DPI
                       </div>
                     );
                   })()}
@@ -435,7 +435,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                 <div style={{ display:'flex', alignItems:'center', gap:3 }}>
                   <button {...tb(() => setSelectedId(null))}
                     style={{ padding:'5px 10px', border:'none', borderRadius:6, background:'#16a34a', cursor:'pointer', fontSize:11, fontWeight:700, color:'#fff', minHeight:28, touchAction:'manipulation' }}>
-                    ✓ Готово
+                     Готово
                   </button>
                   {photo && (
                     <button {...tb(() => setCropModeId(slot.id))}
@@ -447,18 +447,18 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                     <button key={s} {...tb(() => update(slot.id, { shape: s }))}
                       title={s==='rect' ? 'Прямокутник' : s==='rounded' ? 'Заокруглений' : 'Коло'}
                       style={{ padding:'4px 6px', border:slot.shape===s?'1.5px solid #3b82f6':'1px solid #e2e8f0', borderRadius:5, background:slot.shape===s?'#eff6ff':'#fff', cursor:'pointer', fontSize:12, minHeight:28, touchAction:'manipulation' }}>
-                      {s==='rect'?'▭':s==='rounded'?'▢':'●'}
+                      {s==='rect'?'':s==='rounded'?'':''}
                     </button>
                   ))}
                   {photo && (
                     <button {...tb(() => update(slot.id, { photoId: null }))}
                       style={{ padding:'4px 7px', border:'1px solid #fbbf24', borderRadius:5, background:'#fffbeb', cursor:'pointer', fontSize:10, color:'#92400e', fontWeight:700, minHeight:28, touchAction:'manipulation' }}>
-                      ✕
+                      
                     </button>
                   )}
                   <button {...tb(() => deleteSlot(slot.id))}
                     style={{ padding:'4px 7px', border:'1px solid #fca5a5', borderRadius:5, background:'#fef2f2', cursor:'pointer', fontSize:10, color:'#ef4444', fontWeight:700, minHeight:28, touchAction:'manipulation' }}>
-                    🗑
+                    
                   </button>
                 </div>
                 {/* Row 2: filters (only when photo exists) */}
@@ -487,7 +487,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                     {([0, 4, 8, 12, 20] as number[]).map(p => (
                       <button key={p} {...tb(() => update(slot.id, { padding: p || undefined }))}
                         style={{ padding:'3px 5px', border:(slot.padding||0)===p?'1.5px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:4, background:(slot.padding||0)===p?'#eff6ff':'#fff', cursor:'pointer', fontSize:8, fontWeight:700, color:(slot.padding||0)===p?'#1e2d7d':'#64748b', minHeight:22, touchAction:'manipulation', lineHeight:1 }}>
-                        {p === 0 ? '✕' : `${p}px`}
+                        {p === 0 ? '' : `${p}px`}
                       </button>
                     ))}
                   </div>
@@ -624,11 +624,11 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                     cursor: 'pointer', minHeight: 36, touchAction: 'manipulation',
                   }}
                 >
-                  {s === 'rect' ? '▭' : s === 'rounded' ? '▢' : '●'}
+                  {s === 'rect' ? '' : s === 'rounded' ? '' : ''}
                 </button>
               ))}
               <div style={{ flex: 1 }} />
-              {btn('✕ слот', () => { onChange(slots.filter(s => s.id !== slot.id)); setInternalSelectedId(null); onSelect?.(null); }, false)}
+              {btn(' слот', () => { onChange(slots.filter(s => s.id !== slot.id)); setInternalSelectedId(null); onSelect?.(null); }, false)}
             </div>
           </div>
         );

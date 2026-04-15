@@ -44,7 +44,7 @@ const { addItem } = useCartStore();
     const [config, setConfig] = useState<ZodiacConfig>({
         // Step 1 defaults
         zodiacSign: t('zodiac.leo'),
-        zodiacSymbol: '♌',
+        zodiacSymbol: '',
         autoDetect: false,
         birthDate: '',
 
@@ -93,18 +93,18 @@ const { addItem } = useCartStore();
 
     // Zodiac signs with symbols
     const zodiacSigns = [
-        { name: t('zodiac.aries'), symbol: '♈', dates: '21.03 - 19.04', element: 'Вогонь' },
-        { name: 'Телець', symbol: '♉', dates: '20.04 - 20.05', element: 'Земля' },
-        { name: 'Близнюки', symbol: '♊', dates: '21.05 - 20.06', element: 'Повітря' },
-        { name: 'Рак', symbol: '♋', dates: '21.06 - 22.07', element: 'Вода' },
-        { name: t('zodiac.leo'), symbol: '♌', dates: '23.07 - 22.08', element: 'Вогонь' },
-        { name: 'Діва', symbol: '♍', dates: '23.08 - 22.09', element: 'Земля' },
-        { name: 'Терези', symbol: '♎', dates: '23.09 - 22.10', element: 'Повітря' },
-        { name: 'Скорпіон', symbol: '♏', dates: '23.10 - 21.11', element: 'Вода' },
-        { name: 'Стрілець', symbol: '♐', dates: '22.11 - 21.12', element: 'Вогонь' },
-        { name: 'Козеріг', symbol: '♑', dates: '22.12 - 19.01', element: 'Земля' },
-        { name: 'Водолій', symbol: '♒', dates: '20.01 - 18.02', element: 'Повітря' },
-        { name: 'Риби', symbol: '♓', dates: '19.02 - 20.03', element: 'Вода' }
+        { name: t('zodiac.aries'), symbol: '', dates: '21.03 - 19.04', element: 'Вогонь' },
+        { name: 'Телець', symbol: '', dates: '20.04 - 20.05', element: 'Земля' },
+        { name: 'Близнюки', symbol: '', dates: '21.05 - 20.06', element: 'Повітря' },
+        { name: 'Рак', symbol: '', dates: '21.06 - 22.07', element: 'Вода' },
+        { name: t('zodiac.leo'), symbol: '', dates: '23.07 - 22.08', element: 'Вогонь' },
+        { name: 'Діва', symbol: '', dates: '23.08 - 22.09', element: 'Земля' },
+        { name: 'Терези', symbol: '', dates: '23.09 - 22.10', element: 'Повітря' },
+        { name: 'Скорпіон', symbol: '', dates: '23.10 - 21.11', element: 'Вода' },
+        { name: 'Стрілець', symbol: '', dates: '22.11 - 21.12', element: 'Вогонь' },
+        { name: 'Козеріг', symbol: '', dates: '22.12 - 19.01', element: 'Земля' },
+        { name: 'Водолій', symbol: '', dates: '20.01 - 18.02', element: 'Повітря' },
+        { name: 'Риби', symbol: '', dates: '19.02 - 20.03', element: 'Вода' }
     ];
 
     // Calculate zodiac sign from birth date
@@ -113,18 +113,18 @@ const { addItem } = useCartStore();
         const month = date.getMonth() + 1;
         const day = date.getDate();
 
-        if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return { name: t('zodiac.aries'), symbol: '♈' };
-        if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return { name: 'Телець', symbol: '♉' };
-        if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return { name: 'Близнюки', symbol: '♊' };
-        if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return { name: 'Рак', symbol: '♋' };
-        if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return { name: t('zodiac.leo'), symbol: '♌' };
-        if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return { name: 'Діва', symbol: '♍' };
-        if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return { name: 'Терези', symbol: '♎' };
-        if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return { name: 'Скорпіон', symbol: '♏' };
-        if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return { name: 'Стрілець', symbol: '♐' };
-        if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return { name: 'Козеріг', symbol: '♑' };
-        if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return { name: 'Водолій', symbol: '♒' };
-        return { name: 'Риби', symbol: '♓' };
+        if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return { name: t('zodiac.aries'), symbol: '' };
+        if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return { name: 'Телець', symbol: '' };
+        if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return { name: 'Близнюки', symbol: '' };
+        if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return { name: 'Рак', symbol: '' };
+        if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return { name: t('zodiac.leo'), symbol: '' };
+        if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return { name: 'Діва', symbol: '' };
+        if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return { name: 'Терези', symbol: '' };
+        if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return { name: 'Скорпіон', symbol: '' };
+        if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return { name: 'Стрілець', symbol: '' };
+        if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return { name: 'Козеріг', symbol: '' };
+        if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return { name: 'Водолій', symbol: '' };
+        return { name: 'Риби', symbol: '' };
     };
 
     // Auto-detect zodiac sign when birth date changes
@@ -456,7 +456,7 @@ const { addItem } = useCartStore();
                                                                 className="w-full h-full flex items-center justify-center text-xl"
                                                                 style={{ color: stylePresets[style].zodiac }}
                                                             >
-                                                                ★
+                                                                
                                                             </div>
                                                         </div>
                                                     </div>
