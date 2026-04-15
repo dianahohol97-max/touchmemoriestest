@@ -525,8 +525,9 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
   const isFabricProduct = s.includes('fabric') || s.includes('tkanina');
   const isPrintedProduct = s.includes('printed') || s.includes('drukov');
   const isPhotobookProduct = productType === 'photobook';
-  // Non-printed photobooks get colors + decoration options
-  const hasColorAndDecoration = isPhotobookProduct && !isPrintedProduct;
+  const isWishbookProduct = productType === 'wishbook';
+  // Photobooks AND wishbook (non-printed) get colors + decoration options
+  const hasColorAndDecoration = (isPhotobookProduct || isWishbookProduct) && !isPrintedProduct;
 
   const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
   const [selectedWishbookColor, setSelectedWishbookColor] = useState<{code:string;name:string;hex:string}|null>(null);

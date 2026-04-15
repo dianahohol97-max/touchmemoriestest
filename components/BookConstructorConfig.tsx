@@ -310,7 +310,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const coverValue = cover || coverFromCatalog;
         if (coverValue) {
             // Map Ukrainian catalog names to internal names
-            const coverMap: Record<string, string> = { 'Велюрова': 'Велюр', 'Шкірзамінник': 'Шкірзамінник', 'Тканинна': 'Тканина', 'Друкована': 'Друкована' };
+            const coverMap: Record<string, string> = {
+                'Велюрова': 'Велюр',
+                'Велюр': 'Велюр',
+                'Шкірзамінник': 'Шкірзамінник',
+                'Тканинна': 'Тканина',
+                'Тканина': 'Тканина',
+                'З тканини': 'Тканина',
+                'Друкована': 'Друкована',
+                'Друкована тверда': 'Друкована',
+            };
             setSelectedCoverType(coverMap[coverValue] || coverValue);
         } else {
             if (pt === 'photobook' || pt === 'wishbook') {
@@ -350,9 +359,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (!autoAdvance || loading || !product) return;
         const pt = getProductType();
         const timer = setTimeout(() => {
-            // Photobooks need size + pages; magazines/travelbooks need just pages
+            // Photobooks need size + pages; wishbook needs size + cover; magazines/travelbooks need just pages
             const canAdvance = pt === 'photobook'
                 ? (selectedSize && selectedPageCount && (selectedCoverType === 'Друкована' || selectedCoverColor))
+                : pt === 'wishbook'
+                ? (selectedSize && selectedCoverType && (selectedCoverType === 'Друкована' || selectedCoverColor))
                 : selectedPageCount;
             if (canAdvance) {
                 handleContinue();
@@ -360,7 +371,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         }, 150);
         return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [autoAdvance, selectedSize, selectedPageCount, selectedCoverType]);
+    }, [autoAdvance, selectedSize, selectedPageCount, selectedCoverType, selectedCoverColor]);
 
     const calculatePrice = (): number => {
         if (!product) return 0;
