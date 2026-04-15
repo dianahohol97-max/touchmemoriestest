@@ -399,11 +399,8 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                         <div style={{fontSize:11,color:'#94a3b8'}}>{photos.length} фото · 13 сторінок</div>
                     </div>
                 </div>
-                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
                     <span style={{fontSize:15,fontWeight:800,color:'#1e2d7d'}}>{basePrice} ₴</span>
-                        {/* QR Code Generator */}
-                        <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
-
                     <button onClick={addToCart} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 20px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer'}}>
                         <ShoppingCart size={15}/> До кошика
                     </button>
@@ -447,15 +444,16 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                         </button>
                         {/* Cover btn */}
                         <button onClick={()=>{setCurrentIdx(0);setActiveSlot(null);}}
-                            style={{width:32,height:28,borderRadius:6,border:currentIdx===0?'2px solid #1e2d7d':'1px solid #e2e8f0',background:currentIdx===0?'#1e2d7d':'#fff',color:currentIdx===0?'#fff':'#374151',fontSize:9,fontWeight:800,cursor:'pointer'}}>
-                            О
+                            style={{padding:'4px 10px',height:28,borderRadius:6,border:currentIdx===0?'2px solid #1e2d7d':'1px solid #e2e8f0',background:currentIdx===0?'#1e2d7d':'#fff',color:currentIdx===0?'#fff':'#374151',fontSize:10,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap'}}>
+                            Обкл.
                         </button>
                         {pages.map((p,i)=>{
                             const has=p.slots.some(s=>s.photoId);
+                            const mLabels=['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
                             return (
                                 <button key={p.id} onClick={()=>{setCurrentIdx(i+1);setActiveSlot(null);}}
-                                    style={{width:28,height:28,borderRadius:6,border:currentIdx===i+1?'2px solid #1e2d7d':'1px solid #e2e8f0',background:currentIdx===i+1?'#1e2d7d':has?'#f0fdf4':'#fff',color:currentIdx===i+1?'#fff':'#374151',fontSize:10,fontWeight:700,cursor:'pointer'}}>
-                                    {p.month}
+                                    style={{padding:'4px 7px',height:28,borderRadius:6,border:currentIdx===i+1?'2px solid #1e2d7d':'1px solid #e2e8f0',background:currentIdx===i+1?'#1e2d7d':has?'#f0fdf4':'#fff',color:currentIdx===i+1?'#fff':'#374151',fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>
+                                    {mLabels[p.month-1]||p.month}
                                 </button>
                             );
                         })}
@@ -494,6 +492,43 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                         <span style={{fontSize:11,fontWeight:700,color:'#475569',minWidth:36,textAlign:'center'}}>{zoom}%</span>
                         <button onClick={()=>setZoom(z=>Math.min(130,z+10))} style={{padding:'5px 8px',border:'1px solid #d1d5db',borderRadius:6,background:'#fff',cursor:'pointer'}}><ZoomIn size={13}/></button>
                     </div>
+
+                    {/* Page thumbnail strip */}
+                    <div style={{marginTop:20,padding:'12px 0',borderTop:'1px solid #e2e8f0',width:'100%'}}>
+                        <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textAlign:'center',marginBottom:8,textTransform:'uppercase',letterSpacing:'0.08em'}}>Всі сторінки</div>
+                        <div style={{display:'flex',gap:6,overflowX:'auto',padding:'0 8px',flexWrap:'nowrap',justifyContent:'center'}}>
+                            {/* Cover thumb */}
+                            <button onClick={()=>{setCurrentIdx(0);setActiveSlot(null);}}
+                                style={{flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center',gap:3,background:'transparent',border:'none',cursor:'pointer',padding:2}}>
+                                <div style={{width:36,height:50,borderRadius:4,border:currentIdx===0?'2px solid #1e2d7d':'1.5px solid #e2e8f0',background:coverConfig.printedBgColor||'#1e2d7d',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
+                                    {coverConfig.photoId && photos.find(p=>p.id===coverConfig.photoId)
+                                        ? <img src={photos.find(p=>p.id===coverConfig.photoId)!.preview} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                                        : <span style={{fontSize:7,color:'#fff',fontWeight:700}}>Обкл.</span>}
+                                </div>
+                                <span style={{fontSize:8,fontWeight:currentIdx===0?800:600,color:currentIdx===0?'#1e2d7d':'#94a3b8'}}>Обкл.</span>
+                            </button>
+                            {/* Month thumbs */}
+                            {pages.map((p,i)=>{
+                                const mLabels=['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
+                                const mainSlot=p.slots[0];
+                                const thumbPh=mainSlot?.photoId?photos.find(ph=>ph.id===mainSlot.photoId):null;
+                                return (
+                                    <button key={p.id} onClick={()=>{setCurrentIdx(i+1);setActiveSlot(null);}}
+                                        style={{flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center',gap:3,background:'transparent',border:'none',cursor:'pointer',padding:2}}>
+                                        <div style={{width:36,height:50,borderRadius:4,border:currentIdx===i+1?'2px solid #1e2d7d':'1.5px solid #e2e8f0',background:'#f8fafc',overflow:'hidden',position:'relative'}}>
+                                            {thumbPh
+                                                ? <img src={thumbPh.preview} style={{width:'100%',height:'60%',objectFit:'cover',display:'block'}}/>
+                                                : <div style={{width:'100%',height:'60%',background:'#e2e8f0'}}/>}
+                                            <div style={{background:accent,height:'40%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                                <span style={{fontSize:6,fontWeight:700,color:'#fff'}}>{mLabels[p.month-1]}</span>
+                                            </div>
+                                        </div>
+                                        <span style={{fontSize:8,fontWeight:currentIdx===i+1?800:600,color:currentIdx===i+1?'#1e2d7d':'#94a3b8'}}>{mLabels[p.month-1]}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Right — tools */}
@@ -501,11 +536,11 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                     {isCover ? (
                         /* Cover tools */
                         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase'}}>Обкладинка</div>
+                            <div style={{fontSize:11,fontWeight:800,color:'#1e2d7d',letterSpacing:'0.08em',textTransform:'uppercase',padding:'6px 8px',background:'#f0f3ff',borderRadius:6,textAlign:'center'}}>✏️ Редактор обкладинки</div>
 
                             {/* Cover templates */}
                             <div>
-                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:6}}>Шаблон</div>
+                                <div style={{fontSize:10,fontWeight:800,color:'#374151',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.05em'}}>Шаблон</div>
                                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
                                     {[
                                         {id:'photo-full', label:'Фото фон', bg:'#1e2d7d'},
