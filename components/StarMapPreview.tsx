@@ -498,8 +498,8 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
                 backgroundColor: config.backgroundColor,
                 width: '100%',
                 // Cap width so portrait posters (3/4) fit in typical viewports
-                // ~500px wide × 4/3 = ~667px tall, leaves room above + below
-                maxWidth: 500,
+                // 450px wide × 4/3 = 600px tall, leaves comfortable room above + below
+                maxWidth: 450,
                 aspectRatio,
                 position: 'relative',
               }}

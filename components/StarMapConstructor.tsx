@@ -309,7 +309,9 @@ export default function StarMapConstructor() {
                             <Step3Design config={config} setConfig={setConfig} />
                         )}
 
-                        {/* QR Code Generator — wired to config (adds +50 ₴ when enabled) */}
+                        {/* QR Code Generator — wired to config (adds +50 ₴ when enabled).
+                            Shown only on the Text step (2) — felt out of place on the Moment step. */}
+                        {currentStep === 2 && (
                         <div style={{ marginBottom: 16 }}>
                           <QRCodeGenerator
                             compact
@@ -351,6 +353,7 @@ export default function StarMapConstructor() {
                             </div>
                           )}
                         </div>
+                        )}
 
                         {/* Navigation Buttons */}
                         <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">
