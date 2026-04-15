@@ -1037,6 +1037,7 @@ export default function BookLayoutEditor() {
   const [coverColorOverride, setCoverColorOverride] = useState<string|null>(null);
   const effectiveCoverColor = coverColorOverride ?? (config?.selectedCoverColor || '');
   const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;emoji?:string;x:number;y:number;w:number|string;h:number|string}[]>>({});
+  const [dbStickers, setDbStickers] = useState<{id:string;name:string;category:string;image_url:string}[]>([]);
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -1178,6 +1179,22 @@ export default function BookLayoutEditor() {
     if (currentIdx === 0) setLeftTab('cover');
     else if (leftTab === 'cover') setLeftTab('layouts');
   }, [currentIdx]);
+
+  // Fetch PNG stickers from DB
+  useEffect(() => {
+    const fetchStickers = async () => {
+      const { createClient } = await import('@/lib/supabase/client');
+      const sb = createClient();
+      const { data } = await sb
+        .from('editor_stickers')
+        .select('id, name, category, image_url')
+        .eq('is_active', true)
+        .order('category')
+        .order('sort_order');
+      if (data) setDbStickers(data);
+    };
+    fetchStickers();
+  }, []);
 
   useEffect(() => {
     if (!config) return;
@@ -3137,35 +3154,30 @@ export default function BookLayoutEditor() {
             )}
             {/* TEXT */}
             {leftTab === 'stickers' && (() => {
-              const STICKER_GROUPS = [
-                {
-                  group: 'Emoji',
-                  items: [
-                    {name:'Серце', emoji:'', url:''},
-                    {name:'Зірка', emoji:'', url:''},
-                    {name:'Сонце', emoji:'', url:''},
-                    {name:'Квітка', emoji:'', url:''},
-                    {name:'Корона', emoji:'', url:''},
-                    {name:'Метелик', emoji:'', url:''},
-                    {name:'Місяць', emoji:'', url:''},
-                    {name:'Хмара', emoji:'', url:''},
-                    {name:'Діамант', emoji:'', url:''},
-                    {name:'Веселка', emoji:'', url:''},
-                    {name:"Полум'я", emoji:'', url:''},
-                    {name:'Зірочки', emoji:'', url:''},
-                    {name:'Бант', emoji:'', url:''},
-                    {name:'Кулька', emoji:'', url:''},
-                    {name:'Сніжинка', emoji:'', url:''},
-                    {name:'Торт', emoji:'', url:''},
-                  ],
-                },
-                {
-                  group: 'Серця PNG',
-                  items: [
-                    {name:'Подвійні серця', emoji:'', url:'/stickers/hearts-double-multicolor.png'},
-                  ],
-                },
+              const EMOJI_STICKERS = [
+                {name:'Серце', emoji:'❤️'},
+                {name:'Зірка', emoji:'⭐'},
+                {name:'Сонце', emoji:'☀️'},
+                {name:'Квітка', emoji:'🌸'},
+                {name:'Корона', emoji:'👑'},
+                {name:'Метелик', emoji:'🦋'},
+                {name:'Місяць', emoji:'🌙'},
+                {name:'Хмара', emoji:'☁️'},
+                {name:'Діамант', emoji:'💎'},
+                {name:'Веселка', emoji:'🌈'},
+                {name:"Полум'я", emoji:'🔥'},
+                {name:'Зірочки', emoji:'✨'},
+                {name:'Бант', emoji:'🎀'},
+                {name:'Кулька', emoji:'🎈'},
+                {name:'Сніжинка', emoji:'❄️'},
+                {name:'Торт', emoji:'🎂'},
               ];
+              const dbGroups = dbStickers.reduce((acc: Record<string, typeof dbStickers>, s) => {
+                const cat = s.category || 'Стікери';
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(s);
+                return acc;
+              }, {});
               // Custom sticker upload handler
               const handleCustomSticker = async (e: React.ChangeEvent<HTMLInputElement>) => {
                 const file = e.target.files?.[0];
@@ -3253,30 +3265,48 @@ export default function BookLayoutEditor() {
                       );
                     })()}
                   </div>
-                  {STICKER_GROUPS.map(grp => (
-                    <div key={grp.group}>
-                      <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>{grp.group}</div>
+                  {/* DB sticker groups — PNG з прозорим фоном */}
+                  {Object.entries(dbGroups).map(([cat, items]) => (
+                    <div key={cat}>
+                      <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>{cat}</div>
                       <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:4 }}>
-                        {grp.items.map(sticker => (
-                          <button key={sticker.name}
+                        {(items as typeof dbStickers).map(sticker => (
+                          <button key={sticker.id}
                             onClick={() => {
                               const spi = getActivePageIdx();
-                              const newS = { id:'stk-'+Date.now(), url:sticker.url, emoji:sticker.emoji, x:42, y:42, w:'20%', h:'20%' };
+                              const newS = { id:'stk-'+Date.now(), url:sticker.image_url, emoji:'', x:42, y:42, w:'20%', h:'20%' };
                               setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
                               toast.success('Стікер додано', { duration: 1500 });
                             }}
-                            style={{ padding:'6px 2px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, overflow:'hidden', minWidth:0 }}
+                            style={{ padding:'6px 2px', border:'1px solid #e2e8f0', borderRadius:8, background:'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0 / 8px 8px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, overflow:'hidden', minWidth:0 }}
                             title={sticker.name}>
-                            {sticker.url
-                              ? <img src={sticker.url} alt={sticker.name} style={{ width:40, height:40, objectFit:'contain' }} />
-                              : <span style={{ fontSize:22, lineHeight:1 }}>{sticker.emoji}</span>
-                            }
+                            <img src={sticker.image_url} alt={sticker.name} style={{ width:40, height:40, objectFit:'contain' }} />
                             <span style={{ fontSize:7, color:'#64748b', textAlign:'center', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{sticker.name}</span>
                           </button>
                         ))}
                       </div>
                     </div>
                   ))}
+                  {/* Emoji стікери */}
+                  <div>
+                    <div style={{ fontSize:10, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>Emoji</div>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:4 }}>
+                      {EMOJI_STICKERS.map(sticker => (
+                        <button key={sticker.name}
+                          onClick={() => {
+                            const spi = getActivePageIdx();
+                            const newS = { id:'stk-'+Date.now(), url:'', emoji:sticker.emoji, x:42, y:42, w:'20%', h:'20%' };
+                            setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
+                            toast.success('Стікер додано', { duration: 1500 });
+                          }}
+                          style={{ padding:'6px 2px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, overflow:'hidden', minWidth:0 }}
+                          title={sticker.name}>
+                          <span style={{ fontSize:22, lineHeight:1 }}>{sticker.emoji}</span>
+                          <span style={{ fontSize:7, color:'#64748b', textAlign:'center', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{sticker.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               );
             })()}
