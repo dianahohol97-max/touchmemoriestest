@@ -392,12 +392,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     // Source 3: ALWAYS add modifiers from product.options that aren't covered by sources 1-2
     // This catches DB-only options like "Верстка тексту" that hardcoded PRODUCT_OPTIONS doesn't know about
     if (product.options && Array.isArray(product.options)) {
-        // Names already handled by ProductOptionsSelector (hardcoded PRODUCT_OPTIONS)
-        const hardcodedNames = new Set(['Розмір', 'Кількість сторінок', 'Тип обкладинки',
+        // Names already handled by ProductOptionsSelector (hardcoded PRODUCT_OPTIONS).
+        // 'Розмір' is only excluded when dynamicPrice is set (ProductOptionsSelector already priced it)
+        // or for photobooks (priced via Source 1). For pure DB products (posters, maps etc.)
+        // 'Розмір' carries a price modifier and must be included here.
+        const hardcodedNames = new Set([
+            'Кількість сторінок', 'Тип обкладинки',
             'Калька перед першою сторінкою', 'Тип ламінації',
             'Рамка', 'Вид', 'Покриття', 'Біла рамочка 3мм', 'Матеріал',
             'Матеріал обкладинки', 'Колір сторінок',
-            'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка']);
+            'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка',
+            // Exclude 'Розмір' only when already handled by ProductOptionsSelector or photobook lookup
+            ...(dynamicPrice !== null || isPhotobook ? ['Розмір'] : []),
+        ]);
 
         let extraModifiers = 0;
         product.options.forEach((opt: any) => {
