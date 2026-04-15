@@ -1081,6 +1081,7 @@ export default function BookLayoutEditor() {
   const [tColor, setTColor] = useState('#1e2d7d');
   const [tBold, setTBold] = useState(false);
   const [tItalic, setTItalic] = useState(false);
+  const [hasAiPortrait, setHasAiPortrait] = useState(false);
   const cropRef = useRef<{ key: string; sx: number; sy: number; cx: number; cy: number } | null>(null);
   const txtRef = useRef<{ id: string; sx: number; sy: number; tx: number; ty: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -2048,7 +2049,6 @@ export default function BookLayoutEditor() {
   // Add endpaper surcharge for unlocked forzats pages
   // Flat surcharge: 200₴ total regardless of how many endpapers are printed
   const endpaperExtra = (endpaperUnlocked.first || endpaperUnlocked.last) ? endpaperSurcharge : 0;
-  const [hasAiPortrait, setHasAiPortrait] = useState(false);
   const dynamicPrice = baseDynamicPrice + endpaperExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
   const priceDiff = basePriceDiff + endpaperExtra;
 
