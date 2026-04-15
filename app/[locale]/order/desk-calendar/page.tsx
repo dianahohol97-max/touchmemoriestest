@@ -16,7 +16,7 @@ export default function DeskCalendarOrderPage() {
       <main style={{ minHeight:'100vh', paddingTop:80 }}>
         <div style={{ background:'#fff', borderBottom:'1px solid #e2e8f0', padding:'14px 24px' }}>
           <div style={{ maxWidth:1400, margin:'0 auto', display:'flex', alignItems:'center', gap:12 }}>
-            <a href="/catalog/desk-calendar" style={{ color:'#64748b', textDecoration:'none', fontSize:13 }}>← Назад</a>
+            <a href="/catalog/calendar-table" style={{ color:'#64748b', textDecoration:'none', fontSize:13 }}>← Назад до каталогу</a>
             <span style={{ color:'#e2e8f0' }}>|</span>
             <h1 style={{ fontSize:17, fontWeight:800, color:'#1e2d7d', margin:0 }}>Конструктор настільного календаря</h1>
           </div>
