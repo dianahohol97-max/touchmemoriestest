@@ -19,10 +19,12 @@ import { useT } from '@/lib/i18n/context';
 interface Photo { id: string; preview: string; width: number; height: number; name: string; }
 interface Slot  { photoId: string | null; cropX: number; cropY: number; zoom: number; }
 type Layout = '1-full'|'1-top'|'2-h'|'2-v'|'3-top1-bot2'|'3-left1-right2'|'4-grid'|'5-2top3bot'|'5-cross'|'6-grid'|'6-2rows';
+type PageStyle = 'classic' | 'half' | 'photo-dominant' | 'footer-band' | 'side-by-side' | 'mini-cal';
 
 interface MonthPage {
     id: string; month: number; year: number;
     layout: Layout; slots: Slot[];
+    pageStyle?: PageStyle; // page structure (default: classic)
 }
 type Page = { id: 'cover'; type: 'cover' } | MonthPage;
 
@@ -34,6 +36,16 @@ const SIZE_DIMS = {
     A4: { w: 210, h: 297, label: 'A4 (21×29.7 см)', px: 480 },
     A3: { w: 297, h: 420, label: 'A3 (29.7×42 см)', px: 480 },
 };
+
+// Page structure presets — control how photo + calendar split the page
+const PAGE_STYLES: { id: PageStyle; label: string; photoRatio: number; orientation: 'vertical'|'horizontal'; hasFooterBand?: boolean; hasMiniCal?: boolean }[] = [
+    { id: 'classic',        label: 'Класична',      photoRatio: 0.56, orientation: 'vertical' },
+    { id: 'half',           label: 'Половина',      photoRatio: 0.50, orientation: 'vertical' },
+    { id: 'photo-dominant', label: 'Фото велике',   photoRatio: 0.75, orientation: 'vertical' },
+    { id: 'footer-band',    label: 'З акцентом',    photoRatio: 0.70, orientation: 'vertical', hasFooterBand: true },
+    { id: 'side-by-side',   label: 'Поряд',         photoRatio: 0.55, orientation: 'horizontal' },
+    { id: 'mini-cal',       label: 'Фото на весь', photoRatio: 1.0,  orientation: 'vertical', hasMiniCal: true },
+];
 const LAYOUTS: { id: Layout; label: string; slots: number; icon: string }[] = [
     { id: '1-full',         label: '1 повне',      slots: 1, icon: '' },
     { id: '1-top',          label: '1 зверху',     slots: 1, icon: '' },
@@ -97,6 +109,42 @@ function LayoutThumb({ layout, active }: { layout: Layout; active: boolean }) {
     return (
         <svg viewBox="0 0 60 44" width={48} height={36} style={{ display:'block' }}>
             {slots}
+        </svg>
+    );
+}
+
+// Visual thumbnail for page structure — shows photo + calendar split
+function PageStyleThumb({ style, active, accent }: { style: typeof PAGE_STYLES[number]; active: boolean; accent: string }) {
+    const photoFill = active ? '#1e2d7d' : '#cbd5e1';
+    const calFill = active ? '#dde3f5' : '#f1f5f9';
+    const calStroke = active ? '#1e2d7d' : '#94a3b8';
+    const W = 60, H = 44;
+    let elements: React.ReactNode = null;
+    if (style.orientation === 'horizontal') {
+        const pw = W * style.photoRatio;
+        elements = <>
+            <rect x={2} y={2} width={pw - 3} height={H - 4} fill={photoFill} rx={1.5}/>
+            <rect x={pw + 1} y={2} width={W - pw - 3} height={H - 4} fill={calFill} stroke={calStroke} strokeWidth={0.5} rx={1.5}/>
+        </>;
+    } else if (style.hasMiniCal) {
+        elements = <>
+            <rect x={2} y={2} width={W - 4} height={H - 4} fill={photoFill} rx={1.5}/>
+            <rect x={W - 22} y={H - 14} width={20} height={12} fill="#fff" stroke={calStroke} strokeWidth={0.5} rx={1}/>
+        </>;
+    } else {
+        const ph = (H - 4) * style.photoRatio;
+        const bandH = style.hasFooterBand ? 2 : 0;
+        const calY = 2 + ph + bandH;
+        const calH = H - 2 - calY;
+        elements = <>
+            <rect x={2} y={2} width={W - 4} height={ph} fill={photoFill} rx={1.5}/>
+            {style.hasFooterBand && <rect x={2} y={2 + ph} width={W - 4} height={bandH} fill={accent}/>}
+            <rect x={2} y={calY} width={W - 4} height={calH} fill={calFill} stroke={calStroke} strokeWidth={0.5} rx={1.5}/>
+        </>;
+    }
+    return (
+        <svg viewBox={`0 0 ${W} ${H}`} width={48} height={36} style={{ display:'block' }}>
+            {elements}
         </svg>
     );
 }
@@ -293,25 +341,60 @@ function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, ac
     const W = Math.round(dims.w * scale);
     const H = 480;
     const spiralH = Math.round(H * 0.045);
-    const photoH = Math.round((H - spiralH) * 0.56);
-    const gridH  = H - spiralH - photoH;
     const g = 2;
 
-    // All slot positions offset by spiralH
+    // Page style controls how photo + calendar split the available area
+    const ps = PAGE_STYLES.find(s => s.id === (page.pageStyle || 'classic')) || PAGE_STYLES[0];
+    const availableH = H - spiralH;
+
+    // Compute photo area dimensions based on orientation
+    let photoX = 0, photoY = spiralH, photoW = W, photoH: number;
+    let gridX = 0, gridY: number, gridW = W, gridH: number;
+    let footerBandH = 0;
+    let miniCalConfig: { x: number; y: number; w: number; h: number } | null = null;
+
+    if (ps.orientation === 'horizontal') {
+        // Photo on left, calendar on right
+        photoW = Math.round(W * ps.photoRatio);
+        photoH = availableH;
+        gridX = photoW + g;
+        gridY = spiralH;
+        gridW = W - photoW - g;
+        gridH = availableH;
+    } else if (ps.hasMiniCal) {
+        // Photo full, mini calendar overlay in bottom-right
+        photoH = availableH;
+        miniCalConfig = { x: W - Math.round(W * 0.35) - 8, y: H - Math.round(H * 0.18) - 8, w: Math.round(W * 0.35), h: Math.round(H * 0.18) };
+        gridY = -1; gridH = 0; // grid not rendered in main area
+    } else if (ps.hasFooterBand) {
+        // Photo on top + accent footer band + calendar
+        photoH = Math.round(availableH * ps.photoRatio);
+        footerBandH = Math.round(availableH * 0.04);
+        gridY = spiralH + photoH + footerBandH;
+        gridH = availableH - photoH - footerBandH;
+    } else {
+        // Vertical: photo top, calendar bottom
+        photoH = Math.round(availableH * ps.photoRatio);
+        gridY = spiralH + photoH;
+        gridH = availableH - photoH;
+    }
+
+    // All slot positions within the photo area
     const slotDefs: {x:number;y:number;w:number;h:number}[] = (() => {
+        const ph = photoH; const pw = photoW; const px = photoX; const py = photoY;
         switch (page.layout) {
-            case '1-full':         return [{x:0,y:spiralH,w:W,h:photoH}];
-            case '1-top':          return [{x:0,y:spiralH,w:W,h:photoH*0.9}];
-            case '2-h':            return [{x:0,y:spiralH,w:W,h:(photoH-g)/2},{x:0,y:spiralH+(photoH-g)/2+g,w:W,h:(photoH-g)/2}];
-            case '2-v':            return [{x:0,y:spiralH,w:(W-g)/2,h:photoH},{x:(W-g)/2+g,y:spiralH,w:(W-g)/2,h:photoH}];
-            case '3-top1-bot2':    return [{x:0,y:spiralH,w:W,h:photoH*0.55},{x:0,y:spiralH+photoH*0.55+g,w:(W-g)/2,h:photoH*0.45-g},{x:(W-g)/2+g,y:spiralH+photoH*0.55+g,w:(W-g)/2,h:photoH*0.45-g}];
-            case '3-left1-right2': return [{x:0,y:spiralH,w:W*0.55,h:photoH},{x:W*0.55+g,y:spiralH,w:W*0.45-g,h:(photoH-g)/2},{x:W*0.55+g,y:spiralH+(photoH-g)/2+g,w:W*0.45-g,h:(photoH-g)/2}];
-            case '4-grid':         { const hw=(W-g)/2,hh=(photoH-g)/2; return [{x:0,y:spiralH,w:hw,h:hh},{x:hw+g,y:spiralH,w:hw,h:hh},{x:0,y:spiralH+hh+g,w:hw,h:hh},{x:hw+g,y:spiralH+hh+g,w:hw,h:hh}]; }
-            case '5-2top3bot':     { const topH=Math.round(photoH*0.55),botH=photoH-topH-g,tw=(W-g)/2,bw=(W-2*g)/3; return [{x:0,y:spiralH,w:tw,h:topH},{x:tw+g,y:spiralH,w:tw,h:topH},{x:0,y:spiralH+topH+g,w:bw,h:botH},{x:bw+g,y:spiralH+topH+g,w:bw,h:botH},{x:2*(bw+g),y:spiralH+topH+g,w:bw,h:botH}]; }
-            case '5-cross':        { const w3=(W-2*g)/3,h3=(photoH-2*g)/3; return [{x:w3+g,y:spiralH,w:w3,h:h3},{x:0,y:spiralH+h3+g,w:w3,h:h3},{x:w3+g,y:spiralH+h3+g,w:w3,h:h3},{x:2*(w3+g),y:spiralH+h3+g,w:w3,h:h3},{x:w3+g,y:spiralH+2*(h3+g),w:w3,h:h3}]; }
-            case '6-grid':         { const hw=(W-2*g)/3,hh=(photoH-g)/2; return Array.from({length:6},(_,i)=>({x:(i%3)*(hw+g),y:spiralH+Math.floor(i/3)*(hh+g),w:hw,h:hh})); }
-            case '6-2rows':        { const hw=(W-2*g)/3,hh=(photoH-g)/2; return Array.from({length:6},(_,i)=>({x:(i%3)*(hw+g),y:spiralH+Math.floor(i/3)*(hh+g),w:hw,h:hh})); }
-            default:               return [{x:0,y:0,w:W,h:photoH}];
+            case '1-full':         return [{x:px,y:py,w:pw,h:ph}];
+            case '1-top':          return [{x:px,y:py,w:pw,h:ph*0.9}];
+            case '2-h':            return [{x:px,y:py,w:pw,h:(ph-g)/2},{x:px,y:py+(ph-g)/2+g,w:pw,h:(ph-g)/2}];
+            case '2-v':            return [{x:px,y:py,w:(pw-g)/2,h:ph},{x:px+(pw-g)/2+g,y:py,w:(pw-g)/2,h:ph}];
+            case '3-top1-bot2':    return [{x:px,y:py,w:pw,h:ph*0.55},{x:px,y:py+ph*0.55+g,w:(pw-g)/2,h:ph*0.45-g},{x:px+(pw-g)/2+g,y:py+ph*0.55+g,w:(pw-g)/2,h:ph*0.45-g}];
+            case '3-left1-right2': return [{x:px,y:py,w:pw*0.55,h:ph},{x:px+pw*0.55+g,y:py,w:pw*0.45-g,h:(ph-g)/2},{x:px+pw*0.55+g,y:py+(ph-g)/2+g,w:pw*0.45-g,h:(ph-g)/2}];
+            case '4-grid':         { const hw=(pw-g)/2,hh=(ph-g)/2; return [{x:px,y:py,w:hw,h:hh},{x:px+hw+g,y:py,w:hw,h:hh},{x:px,y:py+hh+g,w:hw,h:hh},{x:px+hw+g,y:py+hh+g,w:hw,h:hh}]; }
+            case '5-2top3bot':     { const topH=Math.round(ph*0.55),botH=ph-topH-g,tw=(pw-g)/2,bw=(pw-2*g)/3; return [{x:px,y:py,w:tw,h:topH},{x:px+tw+g,y:py,w:tw,h:topH},{x:px,y:py+topH+g,w:bw,h:botH},{x:px+bw+g,y:py+topH+g,w:bw,h:botH},{x:px+2*(bw+g),y:py+topH+g,w:bw,h:botH}]; }
+            case '5-cross':        { const w3=(pw-2*g)/3,h3=(ph-2*g)/3; return [{x:px+w3+g,y:py,w:w3,h:h3},{x:px,y:py+h3+g,w:w3,h:h3},{x:px+w3+g,y:py+h3+g,w:w3,h:h3},{x:px+2*(w3+g),y:py+h3+g,w:w3,h:h3},{x:px+w3+g,y:py+2*(h3+g),w:w3,h:h3}]; }
+            case '6-grid':         { const hw=(pw-2*g)/3,hh=(ph-g)/2; return Array.from({length:6},(_,i)=>({x:px+(i%3)*(hw+g),y:py+Math.floor(i/3)*(hh+g),w:hw,h:hh})); }
+            case '6-2rows':        { const hw=(pw-2*g)/3,hh=(ph-g)/2; return Array.from({length:6},(_,i)=>({x:px+(i%3)*(hw+g),y:py+Math.floor(i/3)*(hh+g),w:hw,h:hh})); }
+            default:               return [{x:px,y:py,w:pw,h:ph}];
         }
     })();
 
@@ -336,14 +419,30 @@ function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, ac
                     </div>
                 );
             })}
-            {/* Calendar grid */}
-            <div style={{ position:'absolute', top:spiralH+photoH, left:0, width:W, height:gridH, background:'#fff', padding:'4px 8px 2px' }}>
-                <div style={{ fontSize:11, fontWeight:900, color:accent, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2, textAlign:'center' }}>
-                    {MONTHS_UK[page.month-1]} {page.year}
+            {/* Footer accent band — only for footer-band style */}
+            {ps.hasFooterBand && (
+                <div style={{ position:'absolute', top:spiralH+photoH, left:0, width:W, height:footerBandH, background:accent }}/>
+            )}
+            {/* Calendar grid — main area for vertical/horizontal styles */}
+            {!ps.hasMiniCal && gridH > 0 && (
+                <div style={{ position:'absolute', top:gridY, left:gridX, width:gridW, height:gridH, background:'#fff', padding:'4px 8px 2px' }}>
+                    <div style={{ fontSize:11, fontWeight:900, color:accent, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2, textAlign:'center' }}>
+                        {MONTHS_UK[page.month-1]} {page.year}
+                    </div>
+                    <CalendarGrid year={page.year} month={page.month} W={gridW-16} accent={accent}
+                        marks={marks}/>
                 </div>
-                <CalendarGrid year={page.year} month={page.month} W={W-16} accent={accent}
-                    marks={marks}/>
-            </div>
+            )}
+            {/* Mini calendar overlay — for mini-cal style */}
+            {miniCalConfig && (
+                <div style={{ position:'absolute', left:miniCalConfig.x, top:miniCalConfig.y, width:miniCalConfig.w, height:miniCalConfig.h, background:'rgba(255,255,255,0.95)', backdropFilter:'blur(4px)', borderRadius:4, padding:'3px 6px', boxShadow:'0 2px 8px rgba(0,0,0,0.2)' }}>
+                    <div style={{ fontSize:8, fontWeight:900, color:accent, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:1, textAlign:'center' }}>
+                        {MONTHS_UK[page.month-1]} {page.year}
+                    </div>
+                    <CalendarGrid year={page.year} month={page.month} W={miniCalConfig.w-12} accent={accent}
+                        marks={marks}/>
+                </div>
+            )}
         </div>
     );
 }
@@ -399,6 +498,10 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
         const def = LAYOUTS.find(l=>l.id===layout)!;
         setPages(prev=>prev.map((p,i)=> i!==currentIdx-1 ? p : {...p, layout, slots:makeSlots(def.slots)}));
         setActiveSlot(null);
+    };
+
+    const setPageStyle = (pageStyle: PageStyle) => {
+        setPages(prev=>prev.map((p,i)=> i!==currentIdx-1 ? p : {...p, pageStyle}));
     };
 
     const onSlotDrop = (si: number, photoId: string) => {
@@ -779,6 +882,21 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                     ) : (
                         /* Month tools */
                         <>
+                            {/* Page structure */}
+                            <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:10}}>Структура сторінки</div>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:14}}>
+                                {PAGE_STYLES.map(s=>{
+                                    const isSel = (curMonth?.pageStyle || 'classic') === s.id;
+                                    return (
+                                    <button key={s.id} onClick={()=>setPageStyle(s.id)}
+                                        style={{padding:'8px 6px',border:isSel?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:8,background:isSel?'#f0f3ff':'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
+                                        <PageStyleThumb style={s} active={isSel} accent={accent} />
+                                        <span style={{fontSize:9,fontWeight:600,color:isSel?'#1e2d7d':'#64748b',textAlign:'center',lineHeight:1.2}}>{s.label}</span>
+                                    </button>
+                                    );
+                                })}
+                            </div>
+
                             <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:10}}>{t('wallcal.photo_template_label')}</div>
                             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
                                 {LAYOUTS.map(l=>{
