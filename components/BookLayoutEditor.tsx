@@ -2199,7 +2199,7 @@ export default function BookLayoutEditor() {
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: 800, fontSize: 12, color: '#1e2d7d' }}>
             {(({'photos':t('constructor.tab_photos'),'layouts':t('constructor.tab_layouts'),'text':t('constructor.tab_text'),'bg':t('constructor.tab_bg'),'shapes':t('constructor.tab_shapes'),'frames':t('constructor.tab_frames'),'stickers':t('constructor.tab_stickers'),'options':t('constructor.tab_options'),'cover':t('constructor.cover'),'qr':'QR-код'} as Record<string,string>)[leftTab] || leftTab)}
           </div>
-          <div style={{ flex: 1, overflow: 'auto', padding: 10 }}>
+          <div style={{ flex: 1, overflow: 'auto', padding: 10, paddingBottom: 130 }}>
 
             {/* PHOTOS */}
             {leftTab === 'photos' && (
