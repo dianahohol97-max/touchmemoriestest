@@ -26,7 +26,7 @@ const PHOTOBOOK_SIZE_PRICES: Record<string, number> = {
 };
 
 const MAGAZINE_PAGE_PRICES: Record<number, number> = {
-  12: 475, 16: 625, 20: 775, 24: 925, 28: 1075, 32: 1225,
+  8: 425, 12: 475, 16: 625, 20: 775, 24: 925, 28: 1075, 32: 1225,
   36: 1375, 40: 1525, 44: 1675, 48: 1825, 52: 1950,
   60: 2150, 72: 2450, 80: 2700, 92: 2850, 100: 3050,
 };
@@ -283,14 +283,20 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     { name: 'Розмір', values: ['A4'], type: 'text', required: false },
     {
       name: 'Кількість сторінок',
-      values: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80, 92, 100],
+      values: [8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80, 92, 100],
       prices: MAGAZINE_PAGE_PRICES,
       required: true
     },
     {
-      name: 'Тип обкладинки',
-      values: ['М\'яка обкладинка', 'Тверда обкладинка'],
-      required: true
+      name: 'Верстка тексту',
+      values: ['Без тексту (тільки фото)', 'З версткою тексту (+175 ₴)'],
+      required: false
+    },
+    {
+      name: 'Терміновість',
+      values: ['Стандартна (4–8 днів)', 'Термінова (+30%)'],
+      required: false,
+      note: 'Пришвидшене виробництво — +30% до вартості'
     },
   ],
   photojournal: [
@@ -604,7 +610,15 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
     if (productType === 'magazine') {
       const pages = opts['Кількість сторінок'];
       if (pages && typeof pages === 'number') {
-        return MAGAZINE_PAGE_PRICES[pages] || null;
+        const basePrice = MAGAZINE_PAGE_PRICES[pages] || null;
+        if (!basePrice) return null;
+        // Text layout surcharge
+        const hasText = String(opts['Верстка тексту'] || '').includes('175') || String(opts['Верстка тексту'] || '') === 'З версткою тексту (+175 ₴)';
+        const textPrice = hasText ? 175 : 0;
+        const subtotal = basePrice + textPrice;
+        // Urgency +30%
+        const isUrgent = String(opts['Терміновість'] || '').includes('Термінова') || String(opts['Терміновість'] || '').includes('+30');
+        return isUrgent ? Math.round(subtotal * 1.3) : subtotal;
       }
     }
 
@@ -735,7 +749,30 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                     wrap={option.values.length > 5}
                   />
                 )}
-              {option.name !== 'Розмір' && <select
+                {/* Special toggle UI for Терміновість */}
+                {option.name === 'Терміновість' && (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {option.values.map((value: string | number, vi: number) => {
+                      const v = String(value);
+                      const isUrgent = v.includes('Термінова') || v.includes('+30');
+                      const isActive = String(selectedValue) === v;
+                      return (
+                        <button key={vi} type="button"
+                          onClick={() => handleOptionChange(option.name, v)}
+                          style={{ flex: 1, padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
+                            border: isActive ? (isUrgent ? '2px solid #f59e0b' : '2px solid #1e2d7d') : '1px solid #e2e8f0',
+                            background: isActive ? (isUrgent ? '#fffbeb' : '#f0f3ff') : '#fff',
+                            color: isActive ? (isUrgent ? '#d97706' : '#1e2d7d') : '#374151',
+                            fontWeight: isActive ? 700 : 500, fontSize: 13, transition: 'all 0.15s',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                          <span style={{ fontSize: 18 }}>{isUrgent ? '⚡' : '📦'}</span>
+                          <span>{v}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              {option.name !== 'Розмір' && option.name !== 'Терміновість' && <select
                 value={selectedValue || ''}
                 onChange={(e) => {
                   const val = option.values.includes(Number(e.target.value))
