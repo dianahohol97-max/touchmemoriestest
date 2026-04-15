@@ -199,7 +199,7 @@ function CatalogContent() {
 
             {/* Breadcrumbs */}
             <div style={{ fontSize: '14px', color: '#888', marginBottom: '24px' }}>
-                {t('footer.about') ? t('nav.catalog') || 'Каталог' : 'Каталог'} <span style={{ margin: '0 8px' }}>→</span> {t('catalog.title')}
+                <a href="/" style={{ color: '#888', textDecoration: 'none' }}>Головна</a> <span style={{ margin: '0 8px' }}>→</span> {t('catalog.title')}
             </div>
 
             <header style={{ marginBottom: '40px' }}>
@@ -234,21 +234,7 @@ function CatalogContent() {
                     <div className={styles.controlsBarWrapper} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
 
                         {/* Category Chips Bar */}
-                        <div className={styles.categoryChipsBar} style={{
-                            display: 'flex',
-                            gap: '8px',
-                            overflowX: 'auto',
-                            paddingBottom: '8px',
-                            msOverflowStyle: 'none',  /* IE and Edge */
-                            scrollbarWidth: 'none'    /* Firefox */
-                        }}>
-                            {/* Hide scrollbar for webkit browsers as well in global CSS if needed, or via inline styles if supported, but usually better in CSS. For inline scrolling: */}
-                            <style jsx>{`
-                                .${styles.categoryChipsBar}::-webkit-scrollbar {
-                                    display: none;
-                                }
-                            `}</style>
-
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {categories.map((cat) => {
                                 const isActive = selectedCategory === cat.slug;
                                 return (
@@ -259,18 +245,18 @@ function CatalogContent() {
                                             setSelectedCategory(cat.slug);
                                         }}
                                         style={{
-                                            padding: '8px 20px',
-                                            border: isActive ? '1px solid #263A99' : '1px solid #e2e8f0',
+                                            padding: '8px 18px',
+                                            border: isActive ? '2px solid #263A99' : '1.5px solid #e2e8f0',
                                             backgroundColor: isActive ? '#263A99' : 'white',
-                                            color: isActive ? 'white' : '#263A99',
+                                            color: isActive ? 'white' : '#475569',
                                             fontSize: '14px',
-                                            fontWeight: 600,
+                                            fontWeight: isActive ? 700 : 500,
                                             cursor: 'pointer',
                                             whiteSpace: 'nowrap',
-                                            transition: 'all 0.2s ease',
-                                          borderRadius: '10px',
+                                            transition: 'all 0.15s ease',
+                                            borderRadius: '999px',
+                                            boxShadow: isActive ? '0 2px 8px rgba(38,58,153,0.2)' : 'none',
                                         }}
-                                        className="hover:opacity-90"
                                     >
                                         {getLocalized(cat, locale, 'name')}
                                     </button>
