@@ -382,7 +382,7 @@ export default function StarMapConstructor() {
                     </div>
 
                     {/* Right: Preview */}
-                    <div className="lg:sticky lg:top-24 lg:self-start" ref={previewAreaRef}>
+                    <div className="lg:sticky lg:top-52 lg:self-start" ref={previewAreaRef}>
                         <StarMapPreview config={config} onConfigChange={(cfg) => setConfig(cfg as StarMapConfig)} />
                     </div>
                 </div>

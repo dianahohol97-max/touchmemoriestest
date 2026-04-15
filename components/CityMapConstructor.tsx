@@ -234,7 +234,7 @@ export default function CityMapConstructor() {
             <div className="container mx-auto px-4 py-8">
                 <div className="grid lg:grid-cols-[69%_31%] gap-6">
                     {/* Left: Map Preview */}
-                    <div className="lg:sticky lg:top-24 lg:self-start order-1 lg:order-1">
+                    <div className="lg:sticky lg:top-52 lg:self-start order-1 lg:order-1">
                         <CityMapPreview config={config} setConfig={setConfig} />
                     </div>
 

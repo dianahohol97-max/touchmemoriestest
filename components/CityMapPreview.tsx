@@ -57,24 +57,24 @@ const getTileUrl = (style: string) => {
     switch (style) {
         case 'dark-mode':
         case 'plum':
-            return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            return 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}{r}.png';
         case 'blueprint':
-            return 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
+            return 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}{r}.png';
         case 'color-outdoors':
         case 'bayside':
         case 'forest-green':
-            return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+            return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
         case 'smooth-light':
         case 'vintage-sepia':
         case 'harvest':
-            return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            return 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}{r}.png';
         // For B&W poster styles: light_nolabels = clean roads/parks/water
         // without district labels (matches Etsy poster style — text goes below map)
         case 'stamen-toner':
         case 'classic-bw':
         case 'stamen-toner-lite':
         default:
-            return 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+            return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
     }
 };
 
@@ -210,7 +210,11 @@ export default function CityMapPreview({ config, setConfig }: CityMapPreviewProp
                             doubleClickZoom={false}
                             keyboard={false}
                         >
-                            <TileLayer url={getTileUrl(config.mapStyle)} />
+                            <TileLayer
+                                url={getTileUrl(config.mapStyle)}
+                                subdomains={['a','b','c','d']}
+                                maxZoom={19}
+                            />
                             <MapUpdater lat={config.latitude} lng={config.longitude} zoom={config.zoom} />
                         </MapContainer>
                     ) : (
