@@ -1,5 +1,6 @@
 import { Metadata, ResolvingMetadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import ProductClient from './ProductClient';
 import { notFound } from 'next/navigation';
 import { getLocalized } from '@/lib/i18n/localize';
@@ -16,7 +17,8 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { slug, locale } = await params;
-  const supabase = await createClient();
+  // Use admin client — more reliable in SSR/ISR context (bypasses RLS, no cookie dependency)
+  const supabase = getAdminClient();
 
   const { data: product, error } = await supabase
     .from('products')
