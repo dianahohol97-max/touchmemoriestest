@@ -42,7 +42,12 @@ const COVER_TYPES: CoverType[] = [
     label: 'Велюр',
     emoji: '🟣',
     description: 'М\'яка оксамитова поверхня, приємна на дотик. 16 кольорів. Ідеальна для ніжних, романтичних альбомів.',
-    swatchColors: ['#f3e8ff','#ddd6fe','#c4b5fd','#a78bfa','#7c3aed','#5b21b6','#fce7f3','#fbcfe8','#f472b6','#ec4899','#fef3c7','#fde68a','#f59e0b','#d97706','#f0fdf4','#86efac'],
+    swatchColors: [
+      '#f5f0eb','#e8ddd2','#d4bfa8','#c4a882', // бежеві/кремові
+      '#8b7355','#6b4c3b','#4a2c1a','#2d1810', // коричневі
+      '#1a1a2e','#0d1b4b','#1e3a5f','#2d5a27', // темно-сині/зелені
+      '#8b1a1a','#c41e3a','#e8405a','#f5a0b0', // червоні/рожеві
+    ],
     decorations: [
       { id: 'none',         label: 'Без оздоблення', imageUrl: '' },
       { id: 'acryl',        label: 'Акрил',           imageUrl: '/decorations/acryl.jpg' },
@@ -57,7 +62,11 @@ const COVER_TYPES: CoverType[] = [
     label: 'Шкірзамінник',
     emoji: '🟤',
     description: 'Текстурована поверхня під шкіру. Виглядає солідно та елегантно. 12 кольорів.',
-    swatchColors: ['#fafafa','#f5f0e8','#e8d5b7','#d4a96a','#c49a6c','#8b4513','#6b3a2a','#4a1e0f','#1a1a1a','#2d4a3e','#1e3a5f','#3b1f5e'],
+    swatchColors: [
+      '#f5f0eb','#e8ddd2','#d4bfa8','#c4a882', // світлі натуральні
+      '#8b7355','#6b4c3b','#4a2c1a','#2d1810', // темно-коричневі
+      '#1a1a1a','#2d2d2d','#1e3a5f','#2d4a3e', // чорний, темно-синій, зелений
+    ],
     decorations: [
       { id: 'none',         label: 'Без оздоблення', imageUrl: '' },
       { id: 'acryl',        label: 'Акрил',           imageUrl: '/decorations/acryl.jpg' },
@@ -72,7 +81,12 @@ const COVER_TYPES: CoverType[] = [
     label: 'Тканина',
     emoji: '🟡',
     description: 'Натуральна текстура тканини, легка та тепла. 10 кольорів. Відмінно підходить для сімейних альбомів.',
-    swatchColors: ['#fef9e7','#fef3c7','#fde68a','#fcd34d','#f0fdf4','#dcfce7','#bbf7d0','#86efac','#f0f9ff','#bae6fd','#7dd3fc','#38bdf8'],
+    swatchColors: [
+      '#f5f0eb','#e8ddd2','#d4bfa8', // кремові/льон
+      '#8fbc8f','#4a7c59','#2d5a27', // зелені
+      '#8b9dc3','#4a6fa5','#1e3a5f', // сині
+      '#c4a882','#8b7355','#6b4c3b', // теракота/беж
+    ],
     decorations: [
       { id: 'none',         label: 'Без оздоблення', imageUrl: '' },
       { id: 'acryl',        label: 'Акрил',           imageUrl: '/decorations/acryl.jpg' },

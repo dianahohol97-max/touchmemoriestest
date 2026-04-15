@@ -505,49 +505,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 {/* Two Column Layout */}
                 <div className={styles.productLayout} style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(280px, 420px)', gap: '40px', marginBottom: '80px', alignItems: 'start' }}>
 
-                    {/* Left Column: Images — vertical thumbnails + main photo */}
-                    <div style={{ display: 'flex', gap: 12 }}>
-                        {/* Vertical thumbnail strip */}
-                        {allMedia.length > 1 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, maxHeight: 480, overflowY: 'auto', scrollbarWidth: 'none' }}>
-                                {thumbnails.map((src: string, idx: number) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => { setMainImage(src); setMainVideo(''); }}
-                                        style={{
-                                            position: 'relative', width: 72, height: 72,
-                                            borderRadius: 8, overflow: 'hidden', flexShrink: 0,
-                                            border: mainImage === src && !mainVideo
-                                                ? '2.5px solid #1e2d7d'
-                                                : '2px solid #e2e8f0',
-                                            cursor: 'pointer', background: '#f8fafc',
-                                            padding: 0, transition: 'border-color 0.15s',
-                                        }}
-                                    >
-                                        <Image src={src} alt={`фото ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
-                                    </button>
-                                ))}
-                                {product.video_url && (
-                                    <button
-                                        onClick={() => { setMainVideo(product.video_url); setMainImage(''); }}
-                                        style={{
-                                            position: 'relative', width: 72, height: 72,
-                                            borderRadius: 8, overflow: 'hidden', flexShrink: 0,
-                                            border: mainVideo ? '2.5px solid #1e2d7d' : '2px solid #e2e8f0',
-                                            cursor: 'pointer', background: '#000', padding: 0,
-                                        }}
-                                    >
-                                        <video src={product.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
-                                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Play size={18} color="white" />
-                                        </div>
-                                    </button>
-                                )}
-                            </div>
-                        )}
+                    {/* Left Column: Images — main photo + horizontal thumbnails below */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
-                        {/* Main image with arrows */}
-                        <div className={styles.mainImageContainer} style={{ position: 'relative', flex: 1, aspectRatio: '1/1', maxHeight: 480, borderRadius: 12, overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {/* Main image */}
+                        <div className={styles.mainImageContainer} style={{ position: 'relative', width: '100%', aspectRatio: '1/1', maxHeight: 480, borderRadius: 12, overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {mainVideo ? (
                                 <video src={mainVideo} controls autoPlay muted playsInline
                                     style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -594,6 +556,38 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 </div>
                             </>)}
                         </div>
+
+                        {/* Horizontal thumbnail strip below main image */}
+                        {allMedia.length > 1 && (
+                            <div className={styles.thumbnailContainer} style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
+                                {thumbnails.map((src: string, idx: number) => (
+                                    <button key={idx}
+                                        onClick={() => { setMainImage(src); setMainVideo(''); }}
+                                        style={{
+                                            position: 'relative', width: 72, height: 72, flexShrink: 0,
+                                            borderRadius: 8, overflow: 'hidden',
+                                            border: mainImage === src && !mainVideo ? '2.5px solid #1e2d7d' : '2px solid #e2e8f0',
+                                            cursor: 'pointer', background: '#f8fafc', padding: 0, transition: 'border-color 0.15s',
+                                        }}>
+                                        <Image src={src} alt={`фото ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
+                                    </button>
+                                ))}
+                                {product.video_url && (
+                                    <button onClick={() => { setMainVideo(product.video_url); setMainImage(''); }}
+                                        style={{
+                                            position: 'relative', width: 72, height: 72, flexShrink: 0,
+                                            borderRadius: 8, overflow: 'hidden',
+                                            border: mainVideo ? '2.5px solid #1e2d7d' : '2px solid #e2e8f0',
+                                            cursor: 'pointer', background: '#000', padding: 0,
+                                        }}>
+                                        <video src={product.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
+                                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Play size={18} color="white" />
+                                        </div>
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Right Column: Details */}
