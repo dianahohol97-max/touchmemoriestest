@@ -47,9 +47,114 @@ const LAYOUTS: { id: Layout; label: string; slots: number; icon: string }[] = [
     { id: '6-grid',         label: '6 сітка 3×2',  slots: 6, icon: '' },
     { id: '6-2rows',        label: '6 (2 рядки)',  slots: 6, icon: '≡≡' },
 ];
+
+// Visual SVG thumbnails of photo layouts — show structure at a glance
+function LayoutThumb({ layout, active }: { layout: Layout; active: boolean }) {
+    const fill = active ? '#1e2d7d' : '#cbd5e1';
+    const stroke = active ? '#1e2d7d' : '#94a3b8';
+    // 60x44 viewbox = thumbnail. 1px gap between slots.
+    const rect = (x: number, y: number, w: number, h: number, key: string) => (
+        <rect key={key} x={x} y={y} width={w} height={h} fill={fill} stroke={stroke} strokeWidth={0.5} rx={1.5} />
+    );
+    let slots: React.ReactNode = null;
+    switch (layout) {
+        case '1-full':
+            slots = rect(2, 2, 56, 40, 'a');
+            break;
+        case '1-top':
+            slots = rect(2, 2, 56, 28, 'a'); // photo top, calendar bottom (just photo for thumb)
+            break;
+        case '2-h':
+            slots = <>{rect(2, 2, 56, 19, 'a')}{rect(2, 23, 56, 19, 'b')}</>;
+            break;
+        case '2-v':
+            slots = <>{rect(2, 2, 27.5, 40, 'a')}{rect(30.5, 2, 27.5, 40, 'b')}</>;
+            break;
+        case '3-top1-bot2':
+            slots = <>{rect(2, 2, 56, 19, 'a')}{rect(2, 23, 27.5, 19, 'b')}{rect(30.5, 23, 27.5, 19, 'c')}</>;
+            break;
+        case '3-left1-right2':
+            slots = <>{rect(2, 2, 27.5, 40, 'a')}{rect(30.5, 2, 27.5, 19, 'b')}{rect(30.5, 23, 27.5, 19, 'c')}</>;
+            break;
+        case '4-grid':
+            slots = <>{rect(2, 2, 27.5, 19, 'a')}{rect(30.5, 2, 27.5, 19, 'b')}{rect(2, 23, 27.5, 19, 'c')}{rect(30.5, 23, 27.5, 19, 'd')}</>;
+            break;
+        case '5-2top3bot':
+            slots = <>{rect(2, 2, 27.5, 19, 'a')}{rect(30.5, 2, 27.5, 19, 'b')}{rect(2, 23, 18, 19, 'c')}{rect(21, 23, 18, 19, 'd')}{rect(40, 23, 18, 19, 'e')}</>;
+            break;
+        case '5-cross':
+            slots = <>{rect(2, 2, 27.5, 19, 'a')}{rect(30.5, 2, 27.5, 19, 'b')}{rect(2, 23, 56, 6, 'c')}{rect(2, 30, 27.5, 12, 'd')}{rect(30.5, 30, 27.5, 12, 'e')}</>;
+            break;
+        case '6-grid':
+            slots = <>{rect(2, 2, 18, 19, 'a')}{rect(21, 2, 18, 19, 'b')}{rect(40, 2, 18, 19, 'c')}{rect(2, 23, 18, 19, 'd')}{rect(21, 23, 18, 19, 'e')}{rect(40, 23, 18, 19, 'f')}</>;
+            break;
+        case '6-2rows':
+            slots = <>{rect(2, 2, 27.5, 19, 'a')}{rect(30.5, 2, 27.5, 19, 'b')}{rect(2, 23, 27.5, 19, 'c')}{rect(30.5, 23, 27.5, 19, 'd')}{rect(2, 23, 56, 0, 'e')}</>;
+            break;
+        default:
+            slots = rect(2, 2, 56, 40, 'a');
+    }
+    return (
+        <svg viewBox="0 0 60 44" width={48} height={36} style={{ display:'block' }}>
+            {slots}
+        </svg>
+    );
+}
+
 const ACCENT_COLORS = [
     '#1e2d7d','#C0392B','#27AE60','#8E44AD','#E67E22','#1ABC9C','#2C3E50','#000000',
 ];
+
+// Cover template presets — each defines bg, text position, font, weight, color
+type CoverTemplate = {
+    id: string; label: string;
+    bg: string; textColor: string; textX: number; textY: number;
+    fontSize: number; bold: boolean; font: string;
+    overlay?: { type: 'gradient' | 'none'; color: string; opacity: number; gradient: string };
+};
+const COVER_TEMPLATES: CoverTemplate[] = [
+    { id:'classic-bottom', label:'Класична',     bg:'#1e2d7d', textColor:'#ffffff', textX:50, textY:88, fontSize:22, bold:true,  font:'Playfair Display' },
+    { id:'big-center',     label:'Заголовок\nпо центру', bg:'#0a0e1a', textColor:'#ffffff', textX:50, textY:50, fontSize:34, bold:true,  font:'Playfair Display' },
+    { id:'minimal-top',    label:'Мінімал\nзверху',     bg:'#faf7f2', textColor:'#1a1a1a', textX:50, textY:14, fontSize:18, bold:false, font:'Cormorant Garamond' },
+    { id:'elegant-script', label:'Каліграфія', bg:'#3d2c1e', textColor:'#f5e6c8', textX:50, textY:50, fontSize:30, bold:false, font:'Dancing Script' },
+    { id:'photo-overlay',  label:'Фото +\nтемна смуга', bg:'#14532d', textColor:'#ffffff', textX:50, textY:90, fontSize:18, bold:true,  font:'Montserrat',
+        overlay: { type:'gradient', color:'#000', opacity:0.6, gradient:'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 40%)' } },
+    { id:'bordered',       label:'З рамкою',  bg:'#f8fafc', textColor:'#0a0e1a', textX:50, textY:50, fontSize:24, bold:true,  font:'Playfair Display' },
+];
+
+// Visual thumbnail for cover templates — shows real text position + bg color
+function CoverThumb({ tpl, active }: { tpl: CoverTemplate; active: boolean }) {
+    const isLight = tpl.bg === '#faf7f2' || tpl.bg === '#f8fafc';
+    return (
+        <div style={{
+            width: 56, height: 70, borderRadius: 4,
+            background: tpl.bg,
+            border: active ? '1.5px solid #1e2d7d' : (isLight ? '1px solid #e2e8f0' : 'none'),
+            position: 'relative', overflow: 'hidden',
+        }}>
+            {/* Bordered template — show inner border */}
+            {tpl.id === 'bordered' && (
+                <div style={{ position:'absolute', inset:5, border:'1px solid #0a0e1a', borderRadius:1 }}/>
+            )}
+            {/* Photo overlay template — show photo placeholder + dark band */}
+            {tpl.id === 'photo-overlay' && (
+                <>
+                    <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg, #4a6f4a 0%, #2a3f2a 100%)' }}/>
+                    <div style={{ position:'absolute', left:0, right:0, bottom:0, height:'40%', background:'linear-gradient(to top, rgba(0,0,0,0.7), transparent)' }}/>
+                </>
+            )}
+            {/* Text marker — small line at the right Y position */}
+            <div style={{
+                position:'absolute',
+                left: '50%', top: `${tpl.textY}%`,
+                transform: 'translate(-50%, -50%)',
+                width: tpl.fontSize > 28 ? '70%' : '50%',
+                height: Math.max(2, tpl.fontSize / 8),
+                background: tpl.textColor, opacity: 0.85, borderRadius: 1,
+            }}/>
+        </div>
+    );
+}
 const DEFAULT_COVER: CoverConfig = {
     coverMaterial: 'printed',
     coverColorName: '',
@@ -541,25 +646,31 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                         <div style={{display:'flex',flexDirection:'column',gap:12}}>
                             <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase'}}>{t('wallcal.cover_editor_label')}</div>
 
-                            {/* Cover templates */}
+                            {/* Cover templates — structural presets */}
                             <div>
                                 <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:6}}>{t('wallcal.template_label')}</div>
-                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
-                                    {[
-                                        {id:'photo-full', label:'Фото фон', bg:'#1e2d7d'},
-                                        {id:'split',      label:'Фото + смуга', bg:'#14532d'},
-                                        {id:'frame',      label:'З рамкою', bg:'#3d2c1e'},
-                                        {id:'minimal',    label:'Мінімал', bg:'#f8fafc'},
-                                        {id:'dark',       label:'Темна', bg:'#0a0e1a'},
-                                        {id:'light',      label:'Світла', bg:'#faf7f2'},
-                                    ].map(t => {
-                                        const isSel = (coverConfig.printedBgColor || '#1e2d7d') === t.bg;
+                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                                    {COVER_TEMPLATES.map(tpl => {
+                                        const isSel = (coverConfig as any).templateId === tpl.id;
                                         return (
-                                            <button key={t.id}
-                                                onClick={()=>setCoverConfig(prev=>({...prev, printedBgColor: t.bg, printedOverlay:{type:'none',color:'#000',opacity:0,gradient:''}}))}
-                                                style={{padding:'6px 4px',border:isSel?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:7,background:'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-                                                <div style={{width:28,height:20,borderRadius:3,background:t.bg}}/>
-                                                <span style={{fontSize:8,fontWeight:700,color:isSel?'#1e2d7d':'#374151'}}>{t.label}</span>
+                                            <button key={tpl.id}
+                                                onClick={()=>setCoverConfig(prev=>({
+                                                    ...prev,
+                                                    templateId: tpl.id,
+                                                    printedBgColor: tpl.bg,
+                                                    printedOverlay: tpl.overlay || {type:'none',color:'#000',opacity:0,gradient:''},
+                                                    printedTextBlocks: [{
+                                                        ...(prev.printedTextBlocks?.[0] || { id:'t1', text:'Мій календар 2026' }),
+                                                        x: tpl.textX, y: tpl.textY,
+                                                        fontSize: tpl.fontSize,
+                                                        color: tpl.textColor,
+                                                        bold: tpl.bold,
+                                                        fontFamily: tpl.font,
+                                                    }],
+                                                } as any))}
+                                                style={{padding:'6px 4px',border:isSel?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:7,background:'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                                                <CoverThumb tpl={tpl} active={isSel}/>
+                                                <span style={{fontSize:9,fontWeight:700,color:isSel?'#1e2d7d':'#374151',textAlign:'center',lineHeight:1.1}}>{tpl.label}</span>
                                             </button>
                                         );
                                     })}
@@ -669,13 +780,17 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                         /* Month tools */
                         <>
                             <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:10}}>{t('wallcal.photo_template_label')}</div>
-                            <div style={{display:'grid',gap:5}}>
-                                {LAYOUTS.map(l=>(
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                                {LAYOUTS.map(l=>{
+                                    const isSel = curMonth?.layout===l.id;
+                                    return (
                                     <button key={l.id} onClick={()=>setLayout(l.id)}
-                                        style={{padding:'7px 10px',border:curMonth?.layout===l.id?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:8,background:curMonth?.layout===l.id?'#f0f3ff':'#fff',cursor:'pointer',textAlign:'left',fontSize:12,fontWeight:600,color:curMonth?.layout===l.id?'#1e2d7d':'#374151',display:'flex',alignItems:'center',gap:8}}>
-                                        <span style={{fontSize:13}}>{l.icon}</span><span>{l.label}</span>
+                                        style={{padding:'8px 6px',border:isSel?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:8,background:isSel?'#f0f3ff':'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
+                                        <LayoutThumb layout={l.id} active={isSel} />
+                                        <span style={{fontSize:9,fontWeight:600,color:isSel?'#1e2d7d':'#64748b',textAlign:'center',lineHeight:1.2}}>{l.label}</span>
                                     </button>
-                                ))}
+                                    );
+                                })}
                             </div>
                             <div style={{marginTop:16,height:1,background:'#f1f5f9'}}/>
                             <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',margin:'12px 0 8px'}}>{t('wallcal.accent_label')}</div>
