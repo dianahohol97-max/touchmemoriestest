@@ -1,5 +1,6 @@
 'use client';
 
+// Build trigger 2026-04-15 — preview sizing fix (a19210b)
 import { useEffect, useRef, useState } from 'react';
 import { STAR_CATALOG, CONSTELLATION_LINES, CONSTELLATION_LABELS, CONSTELLATION_LABELS_EN, CONSTELLATION_LABELS_PL, CONSTELLATION_LABELS_RO, CONSTELLATION_LABELS_DE, NAMED_STARS } from '@/lib/astronomy/starCatalog';
 
