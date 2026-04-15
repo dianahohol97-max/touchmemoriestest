@@ -440,8 +440,20 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
     const aspectRatio = aspectMap[config.size] || '3/4';
 
     return (
-        <div className="rounded-xl shadow-2xl overflow-hidden" style={{backgroundColor: config.backgroundColor}}>
-            <div ref={containerRef} style={{ position: 'relative', width: '100%', aspectRatio, overflow: 'hidden' }}>
+        <div
+          className="rounded-xl shadow-2xl overflow-hidden mx-auto"
+          style={{
+            backgroundColor: config.backgroundColor,
+            // Cap height to viewport so the entire poster fits and isn't cropped
+            // when used inside a sticky container. Width follows from aspectRatio.
+            maxHeight: 'calc(100vh - 200px)',
+            // Width derived from aspect ratio: portrait 3/4 → maxWidth = maxHeight * 0.75
+            // Use aspect-ratio CSS to auto-size, but also clamp width.
+            maxWidth: '100%',
+            aspectRatio,
+          }}
+        >
+            <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%', aspectRatio, overflow: 'hidden' }}>
                 <canvas
                     ref={canvasRef}
                     style={{
