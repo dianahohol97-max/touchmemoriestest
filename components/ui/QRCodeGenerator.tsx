@@ -182,15 +182,15 @@ export function QRCodeGenerator({
           value={inputValue}
           onChange={e => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="https://example.com або довільний текст"
-          style={{ flex: 1, fontSize: 13, padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, outline: 'none', color: '#1e293b' }}
+          placeholder="URL або текст для QR..."
+          style={{ flex: 1, minWidth: 0, fontSize: 13, padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, outline: 'none', color: '#1e293b' }}
         />
         <button
           onClick={handleGenerate}
-          style={{ padding: '8px 14px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}
+          title="Генерувати QR-код"
+          style={{ flexShrink: 0, padding: '8px 10px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <RefreshCw size={13} />
-          Генерувати
+          <RefreshCw size={14} />
         </button>
       </div>
 
