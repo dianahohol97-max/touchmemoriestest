@@ -147,7 +147,6 @@ export default function PhotoPrintsPage() {
   const [retouchChoice, setRetouchChoice] = useState<'specify' | 'designer-decides'>('specify');
   const [retouchCount, setRetouchCount] = useState(1);
   const [retouchNotes, setRetouchNotes] = useState('');
-  const [urgentProduction, setUrgentProduction] = useState(false);
 
   // Contact info
   const [name, setName] = useState('');
@@ -196,7 +195,7 @@ export default function PhotoPrintsPage() {
 
   let subtotal = totalQuantity * pricePerPrint;
   if (photoRetouching && retouchChoice === 'specify') subtotal += retouchCount * 7;
-  const totalPrice = urgentProduction ? Math.round(subtotal * 1.3) : subtotal;
+  const totalPrice = subtotal;
 
   // File handling
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -269,7 +268,6 @@ export default function PhotoPrintsPage() {
         retouchChoice,
         retouchCount,
         retouchNotes,
-        urgentProduction
       },
       totalPrice
     }));
@@ -808,24 +806,6 @@ export default function PhotoPrintsPage() {
             )}
           </div>
 
-          {/* SERVICE 2: Urgent Production */}
-          <div>
-            <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-              <input
-                type="checkbox"
-                className="mt-1 w-4 h-4 text-blue-600 rounded"
-                checked={urgentProduction}
-                onChange={(e) => setUrgentProduction(e.target.checked)}
-              />
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-900">Термінове виготовлення</span>
-                  <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">+30%</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-0.5">Виготовлення за 1–2 робочих дні замість стандартних 4–8</p>
-              </div>
-            </label>
-          </div>
         </div>
 
         {/* STEP 7: Price Summary */}
@@ -846,13 +826,6 @@ export default function PhotoPrintsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
               <span>Ретуш фото</span>
               <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>уточнюється</span>
-            </div>
-          )}
-
-          {urgentProduction && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
-              <span>Термінове виготовлення (+30%)</span>
-              <span>+{Math.round(subtotal * 0.3)} ₴</span>
             </div>
           )}
 
