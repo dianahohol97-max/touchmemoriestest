@@ -1072,9 +1072,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Натисніть щоб призначити дизайнера для цього замовлення</div>
                                 </div>
                                 <button onClick={async () => {
-                                    const { error } = await supabase.from('orders').update({ with_designer: true }).eq('id', order.id);
-                                    if (!error) { setOrder((o: any) => ({ ...o, with_designer: true })); toast.success('Дизайн увімкнено'); }
-                                    else toast.error(error.message);
+                                    const res = await fetch(`/api/admin/orders/${order.id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ with_designer: true })
+                                    });
+                                    if (res.ok) {
+                                        setOrder((o: any) => ({ ...o, with_designer: true }));
+                                        toast.success('Дизайн увімкнено — замовлення зʼявилось у кабінеті дизайнера');
+                                    } else {
+                                        const d = await res.json();
+                                        toast.error(d.error || 'Помилка');
+                                    }
                                 }} style={{ padding: '7px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                                     Увімкнути дизайн
                                 </button>

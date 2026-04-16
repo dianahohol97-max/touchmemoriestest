@@ -38,21 +38,30 @@ export default function DesignerCabinetPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    setCurrentUser(user);
+
+    // Get staff record by email (designer_id in orders = staff.id, not auth uid)
+    const { data: staffRecord } = await supabase
+      .from('staff')
+      .select('id, name, role')
+      .eq('email', user.email)
+      .maybeSingle();
+
+    const designerId = staffRecord?.id || user.id;
+    setCurrentUser({ ...user, staffId: designerId, staffName: staffRecord?.name });
 
     // My projects (as designer)
     const { data: projects } = await supabase
       .from('customer_projects')
       .select('*, order:orders(id, order_number, customer_name, items, order_status)')
-      .eq('designer_id', user.id)
+      .eq('designer_id', designerId)
       .order('updated_at', { ascending: false });
     setMyProjects(projects || []);
 
     // Orders assigned to me
     const { data: orders } = await supabase
       .from('orders')
-      .select('id, order_number, customer_name, items, order_status, created_at, designer_project_id, with_designer')
-      .eq('designer_id', user.id)
+      .select('id, order_number, customer_name, items, order_status, created_at, designer_project_id, with_designer, designer_note')
+      .eq('designer_id', designerId)
       .eq('with_designer', true)
       .order('created_at', { ascending: false });
     setMyOrders(orders || []);
@@ -85,8 +94,12 @@ export default function DesignerCabinetPage() {
 
   const takeOrder = async (orderId: string) => {
     if (!currentUser) return;
-    await supabase.from('orders').update({ designer_id: currentUser.id, assigned_at: new Date().toISOString() }).eq('id', orderId);
-    await loadData();
+    const res = await fetch(`/api/admin/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ designer_id: currentUser.staffId, assigned_at: new Date().toISOString() })
+    });
+    if (res.ok) await loadData();
   };
 
   // Stats
