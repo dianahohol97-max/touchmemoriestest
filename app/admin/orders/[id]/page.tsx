@@ -723,20 +723,22 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     <button
                                         onClick={openTTNModal}
                                         style={{
-                                            padding: '6px 12px',
+                                            padding: '5px 10px',
                                             backgroundColor: '#22c55e',
                                             color: 'white',
                                             border: 'none',
-                                            borderRadius: "3px",
-                                            fontSize: '13px',
+                                            borderRadius: 7,
+                                            fontSize: '12px',
                                             fontWeight: 700,
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '6px'
+                                            gap: '4px',
+                                            flexShrink: 0,
+                                            whiteSpace: 'nowrap'
                                         }}
                                     >
-                                        <Plus size={14} /> Створити ТТН
+                                        <Plus size={12} /> ТТН
                                     </button>
                                 )}
                             </div>
@@ -903,19 +905,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             disabled={creatingPaymentLink}
                                             style={{
                                                 width: '100%',
-                                                padding: '12px 16px',
+                                                padding: '9px 14px',
                                                 backgroundColor: '#22c55e',
                                                 color: 'white',
                                                 border: 'none',
-                                                borderRadius: "3px",
-                                                fontSize: '14px',
+                                                borderRadius: 8,
+                                                fontSize: '13px',
                                                 fontWeight: 700,
                                                 cursor: creatingPaymentLink ? 'wait' : 'pointer',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                gap: '8px',
-                                                marginBottom: '16px'
+                                                gap: '6px',
+                                                marginBottom: '12px'
                                             }}
                                         >
                                             {creatingPaymentLink ? (
