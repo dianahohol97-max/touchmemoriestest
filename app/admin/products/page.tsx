@@ -226,7 +226,7 @@ export default function ProductsAdminPage() {
         if (error) { toast.error('Помилка: ' + error.message); return; }
         toast.success('Товар створено ✓');
         // Revalidate cache
-        fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: newProduct?.slug || '' }) }).catch(() => {});
+        fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: newProd?.slug || '' }) }).catch(() => {});
         const newProd = { ...sel, id: data.id };
         setProducts(prev => [...prev, newProd].sort((a,b) => a.name.localeCompare(b.name)));
         setModal(false); setSel(null);
