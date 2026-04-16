@@ -171,7 +171,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         if (s.includes('travelbook') || s.includes('travel')) return 'до 10 робочих днів';
         // Hard cover journal: 10–14 days
         if (ps.includes('tverd') || ps.includes('hard') || s.includes('tverd') || s.includes('hard-cover')) return '10–14 робочих днів';
-        if (s.includes('magazine') || s.includes('journal') || s.includes('журнал') || s.includes('hlyantsevi') || s.includes('glyantsevy')) return '4–8 робочих днів';
+        if (s.includes('magazine') || s.includes('journal') || s.includes('журнал') || s.includes('hlyantsevi') || s.includes('glyantsevy')) return '5–8 робочих днів';
         if (s.includes('guestbook') || s.includes('photoalbum') || s.includes('wishbook')) return '10 робочих днів';
         if (s.includes('print') || s.includes('photo-print') || s.includes('magnet')) return '2–3 робочих дні';
         if (s.includes('puzzle') || s.includes('canvas')) return '5–7 робочих днів';
