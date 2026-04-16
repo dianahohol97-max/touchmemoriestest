@@ -500,7 +500,6 @@ export default function ClientsPage() {
                         ) : (
                             paginatedCustomers.map((customer) => (
                                 <tr style={trStyle}
-                                    whileHover={{ backgroundColor: '#f8fafc' }}
                                     onClick={() => openCustomerDrawer(customer)}
                                 >
                                     <td style={tdStyle}>

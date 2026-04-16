@@ -254,10 +254,7 @@ export default function ProductionKanbanPage() {
                                         const isSelected = selectedIds.has(order.id);
 
                                         return (
-                                            <div layout
-                                                initial={{ opacity: 0, scale: 0.9 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                exit={{ opacity: 0, scale: 0.9 }}
+                                            <div layout } } }
                                                 key={order.id}
                                                 style={{
                                                     background: 'white',

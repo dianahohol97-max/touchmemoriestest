@@ -289,8 +289,7 @@ export default function MessageTemplatesPage() {
             )}
 
             {isEditing && currentTemplate ? (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                <motion.div } }
                     style={{ background: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}
                 >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -414,9 +413,7 @@ export default function MessageTemplatesPage() {
                         return (
                             <motion.div
                                 key={tmpl.id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
+                                layout } }
                                 style={{
                                     background: 'white',
                                     borderRadius: '12px',
@@ -509,9 +506,7 @@ export default function MessageTemplatesPage() {
             {/* Send Modal */}
             {showSendModal && mounted && createPortal(
               <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowSendModal(false)}>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                    <motion.div } }
                         onClick={e => e.stopPropagation()}
                         style={{ background: 'white', padding: '32px', borderRadius: '16px', maxWidth: '500px', width: '90%', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}
                     >
