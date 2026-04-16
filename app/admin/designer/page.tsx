@@ -37,17 +37,20 @@ export default function DesignerCabinetPage() {
   const loadData = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
 
     // Get staff record by email (designer_id in orders = staff.id, not auth uid)
-    const { data: staffRecord } = await supabase
-      .from('staff')
-      .select('id, name, role')
-      .eq('email', user.email)
-      .maybeSingle();
-
-    const designerId = staffRecord?.id || user.id;
-    setCurrentUser({ ...user, staffId: designerId, staffName: staffRecord?.name });
+    let designerId = user?.id || '';
+    let staffRecord: any = null;
+    if (user?.email) {
+      const { data: sr } = await supabase
+        .from('staff')
+        .select('id, name, role')
+        .eq('email', user.email)
+        .maybeSingle();
+      staffRecord = sr;
+      if (sr?.id) designerId = sr.id;
+    }
+    if (user) setCurrentUser({ ...user, staffId: designerId, staffName: staffRecord?.name });
 
     // My projects (as designer)
     const { data: projects } = await supabase
@@ -66,15 +69,10 @@ export default function DesignerCabinetPage() {
       .order('created_at', { ascending: false });
     setMyOrders(orders || []);
 
-    // Free orders (with_designer=true, no designer assigned)
-    const { data: free } = await supabase
-      .from('orders')
-      .select('id, order_number, customer_name, items, order_status, created_at')
-      .eq('with_designer', true)
-      .is('designer_id', null)
-      .in('order_status', ['new', 'confirmed'])
-      .order('created_at', { ascending: false });
-    setFreeOrders(free || []);
+    // Free orders — use server API to bypass RLS restrictions
+    const freeRes = await fetch('/api/designer/free-orders');
+    const freeData = freeRes.ok ? await freeRes.json() : { orders: [] };
+    setFreeOrders(freeData.orders || []);
 
     setLoading(false);
   };
