@@ -168,8 +168,50 @@ export default function ProductsAdminPage() {
         if (newUrls.length) { upd('images', [...sel.images, ...newUrls]); toast.success(`Додано ${newUrls.length} фото`); }
     }
 
+    const isNew = sel?.id === '';
+
     function openEdit(p: Product) { setSel({...p}); setTab('main'); setModal(true); }
     function closeModal() { setModal(false); setSel(null); }
+
+    function openNew() {
+        setSel({
+            id: '', name: 'Новий товар', slug: '',
+            category_id: null, price: 0, sale_price: null, price_from: false,
+            cost_price: null, designer_service_price: null,
+            short_description: null, description: null,
+            images: [], video_url: null, og_image: null,
+            options: [], is_active: true, is_personalized: true,
+            has_designer_option: false, stock_quantity: null,
+            track_inventory: false, tags: [],
+            meta_title: null, meta_description: null,
+            is_popular: false, product_type: 'personalized',
+        });
+        setTab('main'); setModal(true);
+    }
+
+    async function saveNew() {
+        if (!sel) return;
+        if (!sel.name.trim() || !sel.slug.trim()) { toast.error('Заповніть назву та slug'); return; }
+        setSaving(true);
+        const { data, error } = await supabase.from('products').insert({
+            name: sel.name, slug: sel.slug, category_id: sel.category_id,
+            price: sel.price, sale_price: sel.sale_price, price_from: sel.price_from,
+            cost_price: sel.cost_price, designer_service_price: sel.designer_service_price,
+            short_description: sel.short_description, description: sel.description,
+            images: sel.images, video_url: sel.video_url, og_image: sel.og_image,
+            options: sel.options, is_active: sel.is_active,
+            is_personalized: sel.is_personalized, has_designer_option: sel.has_designer_option,
+            stock_quantity: sel.stock_quantity, track_inventory: sel.track_inventory,
+            tags: sel.tags, meta_title: sel.meta_title, meta_description: sel.meta_description,
+            is_popular: sel.is_popular, product_type: sel.product_type,
+        }).select().single();
+        setSaving(false);
+        if (error) { toast.error('Помилка: ' + error.message); return; }
+        toast.success('Товар створено ✓');
+        const newProd = { ...sel, id: data.id };
+        setProducts(prev => [...prev, newProd].sort((a,b) => a.name.localeCompare(b.name)));
+        setModal(false); setSel(null);
+    }
 
     const filtered = products.filter(p => {
         const q = search.toLowerCase();
@@ -202,10 +244,10 @@ export default function ProductsAdminPage() {
                     {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <div style={{ fontSize:12, color:'#9ca3af', whiteSpace:'nowrap' }}>{filtered.length} / {products.length}</div>
-                <a href="/admin/products/new"
-                    style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:'#1e2d7d', color:'#fff', borderRadius:8, fontWeight:700, fontSize:13, textDecoration:'none', flexShrink:0 }}>
+                <button onClick={openNew}
+                    style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:'#1e2d7d', color:'#fff', borderRadius:8, fontWeight:700, fontSize:13, border:'none', cursor:'pointer', flexShrink:0 }}>
                     <Plus size={14}/> Додати товар
-                </a>
+                </button>
             </div>
 
             {/* TABLE */}
@@ -311,14 +353,14 @@ export default function ProductsAdminPage() {
                                     {S.is_active ? <Eye size={13}/> : <EyeOff size={13}/>}
                                     {S.is_active ? 'Активний' : 'Неактивний'}
                                 </button>
-                                <button onClick={deleteProduct}
+                                {!isNew && <button onClick={deleteProduct}
                                     style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', borderRadius:8, background:'#fff', color:'#ef4444', border:'1px solid #fca5a5', cursor:'pointer', fontWeight:600, fontSize:13 }}>
                                     <Trash2 size={14}/> Видалити
-                                </button>
-                                <button onClick={save} disabled={saving}
+                                </button>}
+                                <button onClick={isNew ? saveNew : save} disabled={saving}
                                     style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 18px', borderRadius:8, background:'#1e2d7d', color:'#fff', border:'none', cursor:'pointer', fontWeight:700, fontSize:13, opacity:saving?0.7:1 }}>
                                     {saving ? <Activity className="animate-spin" size={14}/> : <Save size={14}/>}
-                                    {saving ? 'Збереження...' : 'Зберегти'}
+                                    {saving ? 'Збереження...' : isNew ? 'Створити' : 'Зберегти'}
                                 </button>
                                 <button onClick={closeModal}
                                     style={{ padding:'8px 10px', border:'1px solid #e5e7eb', borderRadius:8, background:'#fff', cursor:'pointer', color:'#6b7280', display:'flex', alignItems:'center' }}>
@@ -348,8 +390,14 @@ export default function ProductsAdminPage() {
                                 <div style={{ fontWeight:700, color:'#1e2d7d', marginBottom:14 }}>Загальна інформація</div>
                                 <div style={{ display:'grid', gap:14 }}>
                                     <F label="Назва товару" req>
-                                        <input value={S.name} onChange={e=>upd('name',e.target.value)} style={IS}/>
+                                        <input value={S.name} onChange={e=>{
+                                            upd('name',e.target.value);
+                                            if(isNew) upd('slug', e.target.value.toLowerCase().replace(/[^a-zа-яіїєґ0-9\s-]/gi,'').replace(/\s+/g,'-').replace(/-+/g,'-'));
+                                        }} style={IS}/>
                                     </F>
+                                    {isNew && <F label="Slug (URL)" req>
+                                        <input value={S.slug} onChange={e=>upd('slug',e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,''))} placeholder="miy-tovar" style={{...IS, fontFamily:'monospace'}}/>
+                                    </F>}
                                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
                                         <F label="Категорія">
                                             <select value={S.category_id||''} onChange={e=>upd('category_id',e.target.value||null)} style={IS}>
