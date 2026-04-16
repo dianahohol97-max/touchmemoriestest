@@ -45,6 +45,7 @@ export default function CreateOrderPage() {
     const [bankAccountId, setBankAccountId] = useState('');
     const [paidAmount, setPaidAmount] = useState(0);
     const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+    const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
 
     const supabase = createClient();
 
@@ -56,6 +57,16 @@ export default function CreateOrderPage() {
             const { data: prodData } = await supabase.from('products').select('*').eq('is_active', true);
             if (catData) setAllCategories(catData);
             if (prodData) setAllProducts(prodData);
+            // Get current staff ID from auth session
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.email) {
+                const { data: staffData } = await supabase
+                    .from('staff')
+                    .select('id')
+                    .eq('email', session.user.email)
+                    .maybeSingle();
+                if (staffData) setCurrentStaffId(staffData.id);
+            }
         };
         fetchData();
     }, [supabase]);
@@ -130,6 +141,7 @@ export default function CreateOrderPage() {
                 source,
                 with_designer: withDesigner,
                 designer_note: withDesigner ? designerNote : null,
+                created_by: currentStaffId,
             };
 
             const res = await fetch('/api/admin/orders/create', {
