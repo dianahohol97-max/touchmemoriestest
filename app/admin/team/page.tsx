@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
     Plus,
@@ -70,8 +68,6 @@ export default function TeamPage() {
     const [staffStats, setStaffStats] = useState<Record<string, StaffStats>>({});
     const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -349,10 +345,8 @@ export default function TeamPage() {
                         const roleBadge = getRoleBadgeColor(getRoleLabel(member));
 
                         return (
-                            <motion.div
+                            <div
                                 key={member.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
                                 style={{
                                     ...memberCard,
                                     opacity: member.is_active ? 1 : 0.6,
@@ -521,32 +515,17 @@ export default function TeamPage() {
                                         <DollarSign size={16} />
                                     </Link>
                                 </div>
-                            </motion.div>
+                            </div>
                         );
                     })}
                 </div>
             )}
 
             {/* Add/Edit Modal */}
-                        {mounted && createPortal(
-              <>
-              <AnimatePresence>
-                {isFormOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            style={overlay}
-                            onClick={() => setIsFormOpen(false)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            style={modal}
-                            onClick={(e) => e.stopPropagation()}
-                        >
+            {isFormOpen && (
+                <>
+                    <div style={overlay} onClick={() => setIsFormOpen(false)} />
+                    <div style={modal} onClick={(e) => e.stopPropagation()}>
                             <div style={modalHeader}>
                                 <h2 style={{ fontSize: '22px', fontWeight: 900, color: '#263A99', margin: 0 }}>
                                     {formData.id ? 'Редагувати співробітника' : 'Новий співробітник'}
@@ -711,12 +690,8 @@ export default function TeamPage() {
                                     </button>
                                 </div>
                             </form>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
-              </>,
-              document.body
+                    </div>
+                </>
             )}
         </div>
     );

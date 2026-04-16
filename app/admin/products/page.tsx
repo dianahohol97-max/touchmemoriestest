@@ -173,6 +173,21 @@ export default function ProductsAdminPage() {
     function openEdit(p: Product) { setSel({...p}); setTab('main'); setModal(true); }
     function closeModal() { setModal(false); setSel(null); }
 
+    async function handleVideoUpload(file: File) {
+        if (!sel) return;
+        if (!file.type.startsWith('video/')) { toast.error('Оберіть відео файл'); return; }
+        if (file.size > 100 * 1024 * 1024) { toast.error('Відео не більше 100MB'); return; }
+        toast.loading('Завантаження відео...', { id: 'video-upload' });
+        const ext = file.name.split('.').pop();
+        const path = `products/videos/${Date.now()}.${ext}`;
+        const supabaseClient = createClient();
+        const { error } = await supabaseClient.storage.from('touch-memories-assets').upload(path, file, { upsert: true });
+        if (error) { toast.error('Помилка: ' + error.message, { id: 'video-upload' }); return; }
+        const { data: { publicUrl } } = supabaseClient.storage.from('touch-memories-assets').getPublicUrl(path);
+        upd('video_url', publicUrl);
+        toast.success('Відео завантажено ✓', { id: 'video-upload' });
+    }
+
     function openNew() {
         setSel({
             id: '', name: 'Новий товар', slug: '',
@@ -510,7 +525,21 @@ export default function ProductsAdminPage() {
                             <div style={{ background:'#fff', borderRadius:12, padding:20, border:'1px solid #e5e7eb' }}>
                                 <div style={{ fontWeight:700, color:'#1e2d7d', marginBottom:14 }}>Відео та OG</div>
                                 <div style={{ display:'grid', gap:12 }}>
-                                    <F label="URL відео (MP4)"><input value={S.video_url||''} onChange={e=>upd('video_url',e.target.value||null)} placeholder="https://..." style={IS}/></F>
+                                    <F label="Відео (MP4)">
+                                        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                                            {S.video_url && (
+                                                <video src={S.video_url} controls style={{ width:'100%', borderRadius:8, maxHeight:180 }}/>
+                                            )}
+                                            <div style={{ display:'flex', gap:8 }}>
+                                                <label style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 12px', background:'#f0f3ff', color:'#1e2d7d', border:'1px dashed #c7d2fe', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600, flexShrink:0 }}>
+                                                    📁 Завантажити файл
+                                                    <input type="file" accept="video/*" style={{ display:'none' }} onChange={e=>{ if(e.target.files?.[0]) handleVideoUpload(e.target.files[0]); }}/>
+                                                </label>
+                                                <input value={S.video_url||''} onChange={e=>upd('video_url',e.target.value||null)} placeholder="або вставте URL відео..." style={{ ...IS, flex:1 }}/>
+                                                {S.video_url && <button onClick={()=>upd('video_url',null)} style={{ padding:'8px', border:'1px solid #fca5a5', borderRadius:8, background:'#fff', cursor:'pointer', color:'#ef4444', display:'flex', alignItems:'center' }}>✕</button>}
+                                            </div>
+                                        </div>
+                                    </F>
                                     <F label="OG Image URL"><input value={S.og_image||''} onChange={e=>upd('og_image',e.target.value||null)} placeholder="https://..." style={IS}/></F>
                                 </div>
                             </div>

@@ -31,9 +31,39 @@ export default function CheckoutPage() {
     const [currentStep, setCurrentStep] = useState<Step>('info');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showRegionModal, setShowRegionModal] = useState(false);
-    const total = getTotal();
+    const rawTotal = getTotal();
+    const [promoCode, setPromoCode] = useState('');
+    const [promoInput, setPromoInput] = useState('');
+    const [promoDiscount, setPromoDiscount] = useState(0);
+    const [promoLoading, setPromoLoading] = useState(false);
+    const [promoError, setPromoError] = useState('');
+    const total = rawTotal - promoDiscount;
 
     const supabase = createClient();
+
+    const applyPromo = async () => {
+        if (!promoInput.trim()) return;
+        setPromoLoading(true);
+        setPromoError('');
+        const code = promoInput.trim().toUpperCase();
+        const { data } = await supabase
+            .from('promo_codes')
+            .select('*')
+            .eq('code', code)
+            .eq('is_active', true)
+            .maybeSingle();
+        setPromoLoading(false);
+        if (!data) { setPromoError('Промокод не знайдено або він не активний'); return; }
+        if (data.min_order_amount && rawTotal < data.min_order_amount) {
+            setPromoError(`Мінімальна сума замовлення для цього промокоду: ${data.min_order_amount} ₴`);
+            return;
+        }
+        const discount = data.type === 'percent'
+            ? Math.round(rawTotal * data.value / 100)
+            : Number(data.value); // type is 'percent' or 'fixed'
+        setPromoDiscount(Math.min(discount, rawTotal));
+        setPromoCode(code);
+    };
 
     // Form State
     const [formData, setFormData] = useState({
@@ -99,6 +129,8 @@ export default function CheckoutPage() {
                 payment_status: 'pending',
                 order_status: 'new',
                 with_designer: needsDesigner,
+                promo_code: promoCode || null,
+                discount_amount: promoDiscount || 0,
                 created_at: new Date().toISOString()
             };
 
@@ -377,14 +409,51 @@ export default function CheckoutPage() {
                             </div>
 
                             <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: '24px' }}>
+                                {/* Promo code */}
+                                <div style={{ marginBottom: 16 }}>
+                                    {!promoCode ? (
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>🏷️ Маєте промокод?</div>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <input
+                                                    value={promoInput}
+                                                    onChange={e => setPromoInput(e.target.value.toUpperCase())}
+                                                    onKeyDown={e => e.key === 'Enter' && applyPromo()}
+                                                    placeholder="PROMO2024"
+                                                    style={{ flex: 1, padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none' }}
+                                                />
+                                                <button type="button" onClick={applyPromo} disabled={promoLoading}
+                                                    style={{ padding: '9px 16px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: promoLoading ? 0.7 : 1 }}>
+                                                    {promoLoading ? '...' : 'Застосувати'}
+                                                </button>
+                                            </div>
+                                            {promoError && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 5 }}>{promoError}</div>}
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>
+                                                ✓ Промокод <b>{promoCode}</b> — знижка {promoDiscount} ₴
+                                            </div>
+                                            <button type="button" onClick={() => { setPromoCode(''); setPromoDiscount(0); setPromoInput(''); }}
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 18, lineHeight: 1 }}>×</button>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#666' }}>
                                     <span>Вартість товарів:</span>
-                                    <span>{total} ₴</span>
+                                    <span>{rawTotal} ₴</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '14px', color: '#666' }}>
                                     <span>{t('checkout.delivery_cost')}:</span>
                                     <span>за тарифами перевізника</span>
                                 </div>
+                                {promoDiscount > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
+                                        <span>🏷️ Знижка ({promoCode}):</span>
+                                        <span>-{promoDiscount} ₴</span>
+                                    </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 900, color: 'var(--primary)' }}>
                                     <span>Разом:</span>
                                     <span>{total} ₴</span>
