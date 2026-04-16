@@ -47,6 +47,16 @@ export default function CreateOrderPage() {
     const [bankAccounts, setBankAccounts] = useState<any[]>([]);
     const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
 
+    // Customer search from DB
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [customerResults, setCustomerResults] = useState<any[]>([]);
+    const [customerSearching, setCustomerSearching] = useState(false);
+
+    // Discount
+    const [discountType, setDiscountType] = useState<'percent' | 'amount'>('percent');
+    const [discountValue, setDiscountValue] = useState(0);
+    const [promoCode, setPromoCode] = useState('');
+
     const supabase = createClient();
 
     useEffect(() => {
@@ -87,8 +97,11 @@ export default function CreateOrderPage() {
     // Calculate totals
     const subtotal = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
     const subtotalCost = items.reduce((acc, item) => acc + ((item.cost_price || 0) * item.qty), 0);
-    const total = subtotal + Number(delivery.cost);
-    const profit = subtotal - subtotalCost;
+    const discountAmount = discountType === 'percent'
+        ? Math.round(subtotal * discountValue / 100)
+        : Number(discountValue);
+    const total = subtotal - discountAmount + Number(delivery.cost);
+    const profit = subtotal - discountAmount - subtotalCost;
     const margin = subtotal > 0 ? (profit / subtotal) * 100 : 0;
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -129,6 +142,10 @@ export default function CreateOrderPage() {
                 },
                 totals: {
                     subtotal,
+                    discount_amount: discountAmount,
+                    discount_type: discountType,
+                    discount_value: discountValue,
+                    promo_code: promoCode || null,
                     total
                 },
                 notes: notes ? `\n--- Внутрішні нотатки ---\n${notes}` : '',
@@ -164,6 +181,33 @@ export default function CreateOrderPage() {
         }
     };
 
+    // Search customers from DB
+    const searchCustomers = async (q: string) => {
+        if (q.length < 2) { setCustomerResults([]); return; }
+        setCustomerSearching(true);
+        const { data } = await supabase.from('customers')
+            .select('id,name,first_name,last_name,phone,email,telegram,instagram')
+            .or(`name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`)
+            .limit(8);
+        setCustomerResults(data || []);
+        setCustomerSearching(false);
+    };
+
+    const selectCustomer = (c: any) => {
+        setCustomer({
+            first_name: c.first_name || c.name?.split(' ')[0] || '',
+            last_name: c.last_name || c.name?.split(' ').slice(1).join(' ') || '',
+            phone: c.phone || '',
+            email: c.email || '',
+            instagram: c.instagram || '',
+            telegram: c.telegram || '',
+            birthday: c.birthday || '',
+        });
+        setCustomerSearch('');
+        setCustomerResults([]);
+        toast.success('Клієнт обраний: ' + c.name);
+    };
+
     return (
         <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '80px' }}>
             {/* Header */}
@@ -185,6 +229,41 @@ export default function CreateOrderPage() {
                 {/* Customer Section */}
                 <div style={cardStyle}>
                     <h2 style={cardTitleStyle}>Клієнт</h2>
+
+                    {/* Customer search from DB */}
+                    <div style={{ marginBottom: 20, position: 'relative' }}>
+                        <label style={labelStyle}>Пошук існуючого клієнта</label>
+                        <div style={{ position: 'relative' }}>
+                            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}/>
+                            <input
+                                type="text"
+                                placeholder="Ім'я, телефон або email..."
+                                value={customerSearch}
+                                onChange={e => { setCustomerSearch(e.target.value); searchCustomers(e.target.value); }}
+                                style={{ ...inputStyle, paddingLeft: 36 }}
+                            />
+                            {customerSearching && <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#9ca3af' }}>Пошук...</div>}
+                        </div>
+                        {customerResults.length > 0 && (
+                            <div style={{ position: 'absolute', zIndex: 50, top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4, overflow: 'hidden' }}>
+                                {customerResults.map(c => (
+                                    <button key={c.id} type="button" onClick={() => selectCustomer(c)}
+                                        style={{ width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #f1f5f9' }}
+                                        onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1e2d7d', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                                            {c.name?.[0] || '?'}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{c.name}</div>
+                                            <div style={{ fontSize: 12, color: '#6b7280' }}>{c.phone}{c.email ? ' · ' + c.email : ''}{c.instagram ? ' · ' + c.instagram : ''}</div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
                             <label style={labelStyle}>Ім'я *</label>
@@ -586,6 +665,39 @@ export default function CreateOrderPage() {
                     <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column' }}>
                         <h2 style={cardTitleStyle}>Підсумок</h2>
                         <div style={{ flex: 1 }}>
+                            {/* Discount */}
+                            <div style={{ marginBottom: 16, padding: '14px 16px', background: discountAmount > 0 ? '#f0fdf4' : '#f9fafb', border: `1px solid ${discountAmount > 0 ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 10 }}>
+                                <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10 }}>🏷️ Знижка</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+                                    <div>
+                                        <label style={{ ...labelStyle, marginBottom: 4 }}>Тип</label>
+                                        <select value={discountType} onChange={e => setDiscountType(e.target.value as any)} style={selectStyle}>
+                                            <option value="percent">% відсоток</option>
+                                            <option value="amount">₴ сума</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ ...labelStyle, marginBottom: 4 }}>Розмір знижки</label>
+                                        <input type="number" min="0" max={discountType === 'percent' ? 100 : subtotal}
+                                            value={discountValue || ''}
+                                            onChange={e => setDiscountValue(Number(e.target.value))}
+                                            placeholder={discountType === 'percent' ? '10' : '200'}
+                                            style={inputStyle}/>
+                                    </div>
+                                    <div>
+                                        <label style={{ ...labelStyle, marginBottom: 4 }}>Промокод</label>
+                                        <input type="text" value={promoCode}
+                                            onChange={e => setPromoCode(e.target.value.toUpperCase())}
+                                            placeholder="PROMO2024" style={inputStyle}/>
+                                    </div>
+                                </div>
+                                {discountAmount > 0 && (
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>
+                                        ✓ Знижка: -{discountAmount} ₴ {discountType === 'percent' ? `(${discountValue}%)` : ''}
+                                    </div>
+                                )}
+                            </div>
+
                             <div style={{ marginBottom: '16px' }}>
                                 <label style={labelStyle}>Вартість доставки (₴) - Опціонально</label>
                                 <input
@@ -617,6 +729,12 @@ export default function CreateOrderPage() {
                                 <span>Доставка:</span>
                                 <span>{delivery.cost || 0} ₴</span>
                             </div>
+                            {discountAmount > 0 && (
+                                <div style={{ ...totalRowStyle, color: '#16a34a', fontWeight: 700 }}>
+                                    <span>🏷️ Знижка {promoCode ? `(${promoCode})` : ''}:</span>
+                                    <span>-{discountAmount} ₴</span>
+                                </div>
+                            )}
                             <div style={{ ...totalRowStyle, color: '#64748b', fontSize: '13px', borderTop: '1px solid #f1f5f9', paddingTop: '8px', marginTop: '8px' }}>
                                 <span>Собівартість:</span>
                                 <span>{subtotalCost} ₴</span>
