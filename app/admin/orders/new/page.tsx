@@ -38,6 +38,8 @@ export default function CreateOrderPage() {
     });
 
     const [notes, setNotes] = useState('');
+    const [withDesigner, setWithDesigner] = useState(false);
+    const [designerNote, setDesignerNote] = useState('');
     const [source, setSource] = useState('instagram');
     const [paymentStatus, setPaymentStatus] = useState('pending');
     const [bankAccountId, setBankAccountId] = useState('');
@@ -125,7 +127,9 @@ export default function CreateOrderPage() {
                     paid_amount: paymentStatus === 'paid' ? (paidAmount || total)
                         : paymentStatus === 'partial' ? paidAmount : 0,
                 },
-                source
+                source,
+                with_designer: withDesigner,
+                designer_note: withDesigner ? designerNote : null,
             };
 
             const res = await fetch('/api/admin/orders/create', {
@@ -619,6 +623,38 @@ export default function CreateOrderPage() {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Designer Block */}
+                <div style={{ background: withDesigner ? '#fdf4ff' : '#fff', border: `1px solid ${withDesigner ? '#d8b4fe' : '#e5e7eb'}`, borderRadius: 12, padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <div style={{ fontWeight: 700, fontSize: 15, color: withDesigner ? '#7c3aed' : '#374151' }}>
+                                🎨 Потрібен дизайн від дизайнера
+                            </div>
+                            <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+                                Дизайнер побачить це замовлення в своєму кабінеті
+                            </div>
+                        </div>
+                        <button type="button" onClick={() => setWithDesigner(v => !v)}
+                            style={{ padding: '8px 18px', borderRadius: 8, border: `1px solid ${withDesigner ? '#7c3aed' : '#d1d5db'}`, background: withDesigner ? '#7c3aed' : '#fff', color: withDesigner ? '#fff' : '#374151', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                            {withDesigner ? '✓ Увімкнено' : 'Увімкнути'}
+                        </button>
+                    </div>
+                    {withDesigner && (
+                        <div>
+                            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#7c3aed', marginBottom: 6 }}>
+                                Технічне завдання для дизайнера
+                            </label>
+                            <textarea
+                                value={designerNote}
+                                onChange={e => setDesignerNote(e.target.value)}
+                                placeholder="Опишіть що потрібно зробити: стиль, кольори, текст, побажання клієнта..."
+                                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d8b4fe', borderRadius: 8, fontSize: 14, outline: 'none', background: '#fff', resize: 'vertical', minHeight: 80, boxSizing: 'border-box' as const }}
+                                rows={3}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer Actions */}

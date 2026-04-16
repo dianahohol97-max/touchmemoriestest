@@ -1034,9 +1034,25 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     </div>
 
                     {/*  Designer Project Block  */}
-                    {order.with_designer && (
-                        <DesignerProjectBlock order={order} />
-                    )}
+                    <div style={{ marginBottom: 0 }}>
+                        {!order.with_designer ? (
+                            <div style={{ background: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div>
+                                    <div style={{ fontWeight: 600, fontSize: 14, color: '#374151' }}>🎨 Дизайн від дизайнера</div>
+                                    <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Натисніть щоб призначити дизайнера для цього замовлення</div>
+                                </div>
+                                <button onClick={async () => {
+                                    const { error } = await supabase.from('orders').update({ with_designer: true }).eq('id', order.id);
+                                    if (!error) { setOrder((o: any) => ({ ...o, with_designer: true })); toast.success('Дизайн увімкнено'); }
+                                    else toast.error(error.message);
+                                }} style={{ padding: '7px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                                    Увімкнути дизайн
+                                </button>
+                            </div>
+                        ) : (
+                            <DesignerProjectBlock order={order} />
+                        )}
+                    </div>
 
                     <div style={cardStyle}>
                         <div style={cardHeaderStyle}>

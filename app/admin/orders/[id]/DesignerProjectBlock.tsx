@@ -114,6 +114,16 @@ export default function DesignerProjectBlock({ order }: Props) {
         )}
       </div>
 
+      {/* Designer note / brief */}
+      {order.designer_note && (
+        <div style={{ background: '#fdf4ff', border: '1px solid #e9d5ff', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+            📋 Технічне завдання
+          </div>
+          <div style={{ fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{order.designer_note}</div>
+        </div>
+      )}
+
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#94a3b8', fontSize: 13 }}>
           <Clock size={14} /> Завантаження...
