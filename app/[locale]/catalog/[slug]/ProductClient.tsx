@@ -367,7 +367,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         const kalkaVal = String(customProductOptions['Калька перед першою сторінкою'] || '');
 
         const pageCount = Number(String(pagesVal).replace(/[^\d]/g, '')) || 0;
-        const sizeNorm = sizeVal.replace(/[хxX]/g, '×');
+        const sizeNorm = sizeVal.replace(/[хxX]/g, '×').replace(/\s*см$/i, '').trim();
 
         let coverName = 'Друкована';
         const sl = product.slug || '';
