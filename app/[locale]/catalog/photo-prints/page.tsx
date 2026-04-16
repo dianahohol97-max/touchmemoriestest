@@ -385,7 +385,7 @@ export default function PhotoPrintsPage() {
         {/* Product Header */}
         <div style={{ marginBottom: '40px' }}>
           <div style={{ display: 'inline-block', padding: '6px 14px', backgroundColor: '#dbeafe', color: '#1e40af', borderRadius: '9999px', fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>
-            від {productInfo.startingPrice}
+            {productInfo.startingPrice}
           </div>
           <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: '12px', lineHeight: 1.2 }}>
             {productInfo.nameUk}
