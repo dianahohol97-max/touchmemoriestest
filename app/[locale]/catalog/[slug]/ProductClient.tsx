@@ -420,6 +420,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             'Рамка', 'Вид', 'Покриття', 'Біла рамочка 3мм', 'Матеріал',
             'Матеріал обкладинки', 'Колір сторінок',
             'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка',
+            'Терміновість',
             // Exclude 'Розмір' only when already handled by ProductOptionsSelector or photobook lookup
             ...(dynamicPrice !== null || isPhotobook ? ['Розмір'] : []),
         ]);
@@ -441,6 +442,21 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             }
         });
         finalPrice += extraModifiers;
+
+        // Handle surcharge_pct options (e.g. Терміновість +30%)
+        if (product.options && Array.isArray(product.options)) {
+            product.options.forEach((opt: any) => {
+                if (!opt.options) return;
+                const selected = customProductOptions[opt.name];
+                if (!selected) return;
+                const match = opt.options.find((i: any) =>
+                    String(i.value) === String(selected) || i.label === selected
+                );
+                if (match && match.surcharge_pct && Number(match.surcharge_pct) > 0) {
+                    finalPrice = Math.round(finalPrice * (1 + Number(match.surcharge_pct) / 100));
+                }
+            });
+        }
     }
 
     const handleAddToCart = () => {
