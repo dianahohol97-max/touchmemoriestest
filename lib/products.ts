@@ -189,7 +189,7 @@ export const PHOTO_BOOKS: PhotoBookProduct = {
     standard: {
       name: 'Standard (Printed Cover)',
       description: 'Printed cover (Друкована обкладинка)',
-      productionTime: '14–18 business days',
+      productionTime: '10–14 business days',
       coverDesign: 'FREE',
       prices: {
         6: { '20x20': 450, '25x25': null, '20x30_30x20': null, '30x30': null },
