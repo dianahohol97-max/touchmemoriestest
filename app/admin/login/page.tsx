@@ -41,10 +41,7 @@ function AdminLoginContent() {
 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#263A99', padding: '20px' }}>
-            <div }
-                animate={{ opacity: 1, y: 0 }}
-                style={{ width: '100%', maxWidth: '400px', backgroundColor: 'white', padding: '48px', borderRadius: "3px", boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
-            >
+            <div style={{ width: '100%', maxWidth: '400px', backgroundColor: 'white', padding: '48px', borderRadius: "3px", boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>TM ADMIN</h1>
                     <p style={{ color: '#64748b', fontSize: '15px' }}>Вхід до панелі управління</p>

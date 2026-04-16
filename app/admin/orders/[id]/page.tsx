@@ -1210,6 +1210,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         </button>
                     </div>
                 </div>
+            )}
 
             {/* Nova Poshta TTN Creation Modal */}
             {showTTNModal && (
@@ -1365,6 +1366,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         </div>
                     </div>
                 </div>
+            )}
         </div>
     );
 }
