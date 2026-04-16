@@ -1030,6 +1030,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     {staff.filter(s => s.role === 'designer' || s.role === 'admin').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </div>
+                            {order.creator && (
+                                <div style={{ paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+                                    <label style={smallLabelStyle}>Додав замовлення</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: order.creator.color || '#1e2d7d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                                            {order.creator.initials || order.creator.name?.charAt(0)}
+                                        </div>
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{order.creator.name}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

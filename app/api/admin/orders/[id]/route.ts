@@ -14,6 +14,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             customers(id, name, email, phone),
             manager:staff!orders_manager_id_fkey(id, name, initials, color),
             designer:staff!orders_designer_id_fkey(id, name, initials, color),
+            creator:staff!orders_created_by_fkey(id, name, initials, color),
             order_tag_assignments(order_tags(*))
         `)
         .eq('id', id)
