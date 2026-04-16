@@ -849,7 +849,10 @@ const overlay = {
 };
 
 const modal = {
-    position: 'relative' as any,
+    position: 'fixed' as any,
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
     backgroundColor: 'white',
     borderRadius: '12px',
     width: '90%',
