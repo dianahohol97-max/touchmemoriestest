@@ -218,7 +218,7 @@ function SalaryCard({ salary, onStatusUpdate }: any) {
     const breakdown = salary.breakdown || {};
 
     return (
-        <div layout } }
+        <div
             style={card}
         >
             <div style={cardTop}>

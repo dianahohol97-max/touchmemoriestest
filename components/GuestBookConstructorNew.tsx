@@ -60,7 +60,7 @@ const MAT_LABELS: Record<CoverMaterial,string> = {
 const DECO_TYPES = [
   {id:'acryl',        label:'Акрил'},
   {id:'photovstavka', label:'Фотовставка'},
-  {id:'flex',         label:'Фото Flex'},
+  {id:'flex',         label:'Друк кольором'},
   {id:'metal',        label:'Метал'},
   {id:'graviruvannya',label:'Гравіювання'},
   {id:'none',         label:'Без декору'},

@@ -254,7 +254,7 @@ export default function ProductionKanbanPage() {
                                         const isSelected = selectedIds.has(order.id);
 
                                         return (
-                                            <div layout } } }
+                                            <div
                                                 key={order.id}
                                                 style={{
                                                     background: 'white',

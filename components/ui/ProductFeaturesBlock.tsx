@@ -52,7 +52,7 @@ const COVER_TYPES: CoverType[] = [
       { id: 'none',         label: 'Без оздоблення', imageUrl: '' },
       { id: 'acryl',        label: 'Акрил',           imageUrl: '/decorations/acryl.jpg' },
       { id: 'photovstavka', label: 'Фотовставка',     imageUrl: '/decorations/photovstavka.jpg' },
-      { id: 'flex',         label: 'Фото Flex',       imageUrl: '/decorations/flex.jpg' },
+      { id: 'flex',         label: 'Друк кольором',       imageUrl: '/decorations/flex.jpg' },
       { id: 'metal',        label: 'Метал',           imageUrl: '/decorations/metal.jpg' },
       { id: 'graviruvannya',label: 'Гравіювання',     imageUrl: '/decorations/graviruvannya.jpg' },
     ],
@@ -74,9 +74,7 @@ const COVER_TYPES: CoverType[] = [
       { id: 'none',         label: 'Без оздоблення', imageUrl: '' },
       { id: 'acryl',        label: 'Акрил',           imageUrl: '/decorations/acryl.jpg' },
       { id: 'photovstavka', label: 'Фотовставка',     imageUrl: '/decorations/photovstavka.jpg' },
-      { id: 'flex',         label: 'Фото Flex',       imageUrl: '/decorations/flex.jpg' },
       { id: 'metal',        label: 'Метал',           imageUrl: '/decorations/metal.jpg' },
-      { id: 'graviruvannya',label: 'Гравіювання',     imageUrl: '/decorations/graviruvannya.jpg' },
     ],
   },
   {
@@ -93,7 +91,7 @@ const COVER_TYPES: CoverType[] = [
       { id: 'none',         label: 'Без оздоблення', imageUrl: '' },
       { id: 'acryl',        label: 'Акрил',           imageUrl: '/decorations/acryl.jpg' },
       { id: 'photovstavka', label: 'Фотовставка',     imageUrl: '/decorations/photovstavka.jpg' },
-      { id: 'flex',         label: 'Фото Flex',       imageUrl: '/decorations/flex.jpg' },
+      { id: 'flex',         label: 'Друк кольором',       imageUrl: '/decorations/flex.jpg' },
     ],
   },
   {
