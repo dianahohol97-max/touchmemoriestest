@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { formatDateTime, formatDateOnly, formatTimeOnly } from '@/lib/date-utils';
 import {
@@ -549,11 +548,7 @@ export default function PaymentsPage() {
                             </tr>
                         ) : (
                             filteredOrders.map((order) => (
-                                <motion.tr
-                                    key={order.id}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    style={trStyle}
+                                <tr style={trStyle}
                                 >
                                     <td style={tdStyle}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -620,7 +615,7 @@ export default function PaymentsPage() {
                                             </div>
                                         )}
                                     </td>
-                                </motion.tr>
+                                </tr>
                             ))
                         )}
                     </tbody>

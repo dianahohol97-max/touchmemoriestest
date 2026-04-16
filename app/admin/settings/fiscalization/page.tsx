@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import {
     Plus,
@@ -21,10 +20,7 @@ export default function FiscalizationPage() {
 
     const [accounts, setAccounts] = useState<any[]>([]);
     const [rules, setRules] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [loading, setLoading] = useState(true);    const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState<any>(null);
 
     const [formData, setFormData] = useState({

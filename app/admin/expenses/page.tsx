@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
     Plus,
@@ -85,8 +83,6 @@ export default function ExpensesPage() {
         margin: 0
     });
     const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -509,10 +505,8 @@ export default function ExpensesPage() {
                             </tr>
                         ) : (
                             expenses.map((expense) => (
-                                <motion.tr
+                                <tr
                                     key={expense.id}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
                                     style={trStyle}
                                 >
                                     <td style={tdStyle}>
@@ -549,32 +543,18 @@ export default function ExpensesPage() {
                                             <X size={16} />
                                         </button>
                                     </td>
-                                </motion.tr>
+                                </tr>
                             ))
                         )}
                     </tbody>
                 </table>
             </div>
 
-            {mounted && createPortal(<>
             {/* Add Expense Modal */}
-            <AnimatePresence>
-                {isFormOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            style={overlay}
-                            onClick={() => setIsFormOpen(false)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            style={modal}
-                            onClick={(e) => e.stopPropagation()}
-                        >
+            {isFormOpen && (
+                <>
+                        <div style={overlay} onClick={() => setIsFormOpen(false)} />
+                        <div style={modal} onClick={(e) => e.stopPropagation()}>
                             <div style={modalHeader}>
                                 <h2 style={{ fontSize: '22px', fontWeight: 900, color: '#263A99', margin: 0 }}>
                                     Додати витрату
@@ -685,11 +665,9 @@ export default function ExpensesPage() {
                                     </button>
                                 </div>
                             </form>
-                        </motion.div>
+                        </div>
                     </>
-                )}
-            </AnimatePresence>
-            </>, document.body)}
+            )}
         </div>
     );
 }

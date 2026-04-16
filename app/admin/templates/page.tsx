@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
     Loader2, Plus, Edit2, Trash2, Mail, MessageSquare,

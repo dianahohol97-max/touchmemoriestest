@@ -12,7 +12,6 @@ import {
     Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface Product {
     id: string;
@@ -333,14 +332,9 @@ export default function QuizAdminPage() {
             </div>
 
             {/* Add/Edit Modal */}
-            <AnimatePresence>
-                {isModalOpen && (
+            {isModalOpen && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-8"
+                        <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-8"
                         >
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-stone-900">
@@ -457,20 +451,14 @@ export default function QuizAdminPage() {
                                     {editingId ? 'Зберегти' : 'Створити'}
                                 </button>
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
                 )}
-            </AnimatePresence>
 
             {/* Delete Confirmation Modal */}
-            <AnimatePresence>
-                {deleteModal.isOpen && (
+            {deleteModal.isOpen && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white rounded-2xl max-w-md w-full p-8"
+                        <div className="bg-white rounded-2xl max-w-md w-full p-8"
                         >
                             <div className="flex flex-col items-center text-center">
                                 <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
@@ -496,10 +484,9 @@ export default function QuizAdminPage() {
                                     </button>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
                 )}
-            </AnimatePresence>
         </div>
     );
 }

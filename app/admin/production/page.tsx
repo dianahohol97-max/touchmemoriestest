@@ -2,7 +2,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import styles from './production.module.css';
 import { createClient } from '@/lib/supabase/client';
-import { motion, AnimatePresence } from 'framer-motion';
 import { formatUKDate, addWorkingDays, getDeadlineStatus } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import JSZip from 'jszip';
@@ -248,16 +247,14 @@ export default function ProductionKanbanPage() {
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
-                                <AnimatePresence>
-                                    {columnOrders.map((order) => {
+                                {columnOrders.map((order) => {
                                         const startDate = order.paid_at || order.created_at;
                                         const deadline = addWorkingDays(startDate, 5);
                                         const status = getDeadlineStatus(deadline);
                                         const isSelected = selectedIds.has(order.id);
 
                                         return (
-                                            <motion.div
-                                                layout
+                                            <div layout
                                                 initial={{ opacity: 0, scale: 0.9 }}
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 exit={{ opacity: 0, scale: 0.9 }}
@@ -394,10 +391,9 @@ export default function ProductionKanbanPage() {
                                                     </div>
                                                 </div>
 
-                                            </motion.div>
+                                            </div>
                                         );
                                     })}
-                                </AnimatePresence>
                                 {columnOrders.length === 0 && (
                                     <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: '13px' }}>
                                         Немає замовлень

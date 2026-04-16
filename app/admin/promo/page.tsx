@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
     Plus,
@@ -51,10 +49,7 @@ export default function PromoPage() {
 
     const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => { setMounted(true); }, []);
-    const [isSaving, setIsSaving] = useState(false);
+    const [isFormOpen, setIsFormOpen] = useState(false);    const [isSaving, setIsSaving] = useState(false);
 
     const [stats, setStats] = useState({
         activeCount: 0,
@@ -412,11 +407,7 @@ export default function PromoPage() {
                             </tr>
                         ) : (
                             promoCodes.map((promo) => (
-                                <motion.tr
-                                    key={promo.id}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    style={trStyle}
+                                <tr style={trStyle}
                                 >
                                     <td style={tdStyle}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -487,7 +478,7 @@ export default function PromoPage() {
                                             </button>
                                         </div>
                                     </td>
-                                </motion.tr>
+                                </tr>
                             ))
                         )}
                     </tbody>
@@ -495,22 +486,12 @@ export default function PromoPage() {
             </div>
 
             {/* Create Promo Modal — rendered in portal to escape overflow:auto main */}
-            {mounted && createPortal(
-            <AnimatePresence>
-                {isFormOpen && (
+            {isFormOpen && (
                     <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            style={overlay}
+                        <div style={overlay}
                             onClick={() => setIsFormOpen(false)}
                         />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            style={modal}
+                        <div style={modal}
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div style={modalHeader}>
@@ -666,11 +647,10 @@ export default function PromoPage() {
                                     </button>
                                 </div>
                             </form>
-                        </motion.div>
+                        </div>
                     </>
                 )}
-            </AnimatePresence>
-            , document.body)}
+
         </div>
     );
 }

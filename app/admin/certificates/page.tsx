@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, Search, Check, X, Calendar, AlertTriangle, Plus, Copy, ExternalLink } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -440,20 +439,11 @@ export default function CertificatesAdminPage() {
       </div>
 
       {/* Details Modal */}
-      <AnimatePresence>
-        {showDetailsModal && selectedCertificate && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      {showDetailsModal && selectedCertificate && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
             onClick={() => setShowDetailsModal(false)}
           >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
@@ -548,26 +538,16 @@ export default function CertificatesAdminPage() {
                   </div>
                 )}
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
 
       {/* Extend Validity Modal */}
-      <AnimatePresence>
-        {showExtendModal && selectedCertificate && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      {showExtendModal && selectedCertificate && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
             onClick={() => setShowExtendModal(false)}
           >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-8 max-w-md w-full"
+            <div className="bg-white rounded-2xl p-8 max-w-md w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="text-2xl font-bold text-stone-900 mb-6">Продовжити термін дії</h2>
@@ -615,10 +595,9 @@ export default function CertificatesAdminPage() {
                   Продовжити
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
 
       {/* Create Certificate Modal */}
       {showCreateModal && (

@@ -20,7 +20,6 @@ import {
     PlusCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
 import { exportSalariesToExcel } from '@/lib/export/excel';
 
 export default function SalaryPage() {
@@ -186,11 +185,10 @@ export default function SalaryPage() {
 
                 {/* Salary List */}
                 <div style={contentArea}>
-                    <AnimatePresence mode="wait">
-                        {loading ? (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={loaderContainer}>
+                    {loading ? (
+                            <div style={loaderContainer}>
                                 <Loader2 size={40} className="animate-spin" color="#6366f1" />
-                            </motion.div>
+                            </div>
                         ) : filteredSalaries.length > 0 ? (
                             <div style={listContainer}>
                                 {filteredSalaries.map(salary => (
@@ -202,13 +200,12 @@ export default function SalaryPage() {
                                 ))}
                             </div>
                         ) : (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={emptyState}>
+                            <div style={emptyState}>
                                 <div style={emptyIcon}><Search size={32} /></div>
                                 <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>Нічого не знайдено</h3>
                                 <p style={{ color: '#64748b' }}>Спробуйте змінити період або фільтри</p>
-                            </motion.div>
+                            </div>
                         )}
-                    </AnimatePresence>
                 </div>
             </div>
         </div>
@@ -221,8 +218,7 @@ function SalaryCard({ salary, onStatusUpdate }: any) {
     const breakdown = salary.breakdown || {};
 
     return (
-        <motion.div
-            layout
+        <div layout
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             style={card}
@@ -253,13 +249,8 @@ function SalaryCard({ salary, onStatusUpdate }: any) {
                 </div>
             </div>
 
-            <AnimatePresence>
-                {expanded && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        style={{ overflow: 'hidden' }}
+            {expanded && (
+                    <div style={{ overflow: 'hidden' }}
                     >
                         <div style={breakdownContainer}>
                             <h4 style={breakdownTitle}>Деталізація нарахувань</h4>
@@ -290,10 +281,9 @@ function SalaryCard({ salary, onStatusUpdate }: any) {
                                 <div style={lastUpdated}>Оновлено: {new Date(salary.updated_at).toLocaleDateString()}</div>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
                 )}
-            </AnimatePresence>
-        </motion.div>
+        </div>
     );
 }
 

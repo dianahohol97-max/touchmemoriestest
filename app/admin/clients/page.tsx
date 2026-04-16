@@ -1,8 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
     Search,
@@ -106,10 +104,7 @@ export default function ClientsPage() {
     const supabase = createClient();
 
     const [customers, setCustomers] = useState<Customer[]>([]);
-    const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-    const [filters, setFilters] = useState<FilterState>({
+    const [loading, setLoading] = useState(true);    const [filters, setFilters] = useState<FilterState>({
         search: '',
         tag: '',
         dateFrom: '',
@@ -504,11 +499,7 @@ export default function ClientsPage() {
                             </tr>
                         ) : (
                             paginatedCustomers.map((customer) => (
-                                <motion.tr
-                                    key={customer.id}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    style={trStyle}
+                                <tr style={trStyle}
                                     whileHover={{ backgroundColor: '#f8fafc' }}
                                     onClick={() => openCustomerDrawer(customer)}
                                 >
@@ -664,7 +655,7 @@ export default function ClientsPage() {
                                             </button>
                                         </div>
                                     </td>
-                                </motion.tr>
+                                </tr>
                             ))
                         )}
                     </tbody>
@@ -703,24 +694,13 @@ export default function ClientsPage() {
             )}
 
             {/* Customer Detail Drawer */}
-                        {mounted && createPortal(
-              <>
-              <AnimatePresence>
-                {selectedCustomer && (
+                        <>
+              {selectedCustomer && (
                     <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            style={overlay}
+                        <div style={overlay}
                             onClick={closeDrawer}
                         />
-                        <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            style={drawer}
+                        <div style={drawer}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                                 <h2 style={{ fontSize: '24px', fontWeight: 900, color: '#263A99', margin: 0 }}>
@@ -845,13 +825,10 @@ export default function ClientsPage() {
                                     </div>
                                 )}
                             </div>
-                        </motion.div>
+                        </div>
                     </>
                 )}
-            </AnimatePresence>
-              </>,
-              document.body
-            )}
+              </>
         </div>
     );
 }

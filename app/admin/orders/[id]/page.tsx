@@ -1189,8 +1189,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             )}
 
             {/* Reply Modal */}
-            {showReplyModal && mounted && createPortal(
-              <div style={overlayStyle} onClick={() => setShowReplyModal(false)}>
+            {showReplyModal && (
+<div style={overlayStyle} onClick={() => setShowReplyModal(false)}>
                     <div style={{ ...cardStyle, width: '600px' }} onClick={e => e.stopPropagation()}>
                         <div style={cardHeaderStyle}>
                             <h3 style={cardTitleStyle}>Відповідь клієнту</h3>
@@ -1209,13 +1209,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             {sendingReply ? <Loader2 className="animate-spin" /> : <Send size={18} />} Надіслати
                         </button>
                     </div>
-                </div>,
-              document.body
-            )}
+                </div>
 
             {/* Nova Poshta TTN Creation Modal */}
-            {showTTNModal && mounted && createPortal(
-              <div style={overlayStyle} onClick={() => setShowTTNModal(false)}>
+            {showTTNModal && (
+<div style={overlayStyle} onClick={() => setShowTTNModal(false)}>
                     <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: "3px", padding: '40px', width: '600px', maxWidth: '90vw', boxShadow: '0 25px 50px rgba(0,0,0,0.2)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 900, margin: 0 }}>Створити ТТН Нова Пошта</h2>
@@ -1366,9 +1364,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             <strong>Увага:</strong> Переконайтесь, що всі дані введено правильно перед створенням ТТН
                         </div>
                     </div>
-                </div>,
-              document.body
-            )}
+                </div>
         </div>
     );
 }
