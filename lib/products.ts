@@ -257,7 +257,7 @@ export const TRAVEL_BOOK: TravelBookProduct = {
   description: 'Hard cover, 170g glossy coated paper.',
   format: 'A4 (21×29.7 cm)',
   canvasDimensions: '2480×3508 px',
-  productionTime: '5–7 business days',
+  productionTime: 'до 10 робочих днів',
   pagesAvailable: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
   prices: {
     12: 550,

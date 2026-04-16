@@ -59,7 +59,7 @@ export default function OrderSummary({
   totalPrice,
   isReady,
   onAddToCart,
-  productionTime = '5–7 business days',
+  productionTime = 'до 10 робочих днів',
   isSubmitting = false,
   errorMessage
 }: OrderSummaryProps) {
