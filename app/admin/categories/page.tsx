@@ -1,477 +1,273 @@
 'use client';
 
 export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import {
-    Plus,
-    Edit,
-    Trash2,
-    GripVertical,
-    Save,
-    X,
-    Folder,
-    Loader2,
-    Layout,
-    ArrowRight,
-    Image as ImageIcon,
-    Check
-} from 'lucide-react';
-import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
-import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    DragEndEvent
-} from '@dnd-kit/core';
-import {
-    arrayMove,
-    SortableContext,
-    sortableKeyboardCoordinates,
-    verticalListSortingStrategy,
-    useSortable
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { Plus, Trash2, Activity, Folder, X, Save, Eye, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface Category {
     id: string;
     name: string;
     slug: string;
-    description: string;
-    display_style: 'thumbnail' | 'banner';
+    description: string | null;
     is_active: boolean;
     sort_order: number;
-    cover_image?: string;
+    cover_image: string | null;
 }
 
-function SortableCategoryItem({
-    category,
-    onEdit,
-    onDelete
-}: {
-    category: Category,
-    onEdit: (cat: Category) => void,
-    onDelete: (id: string) => void
-}) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
+const IS: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid #d1d5db', borderRadius:8, fontSize:14, outline:'none', background:'#fff', boxSizing:'border-box' };
+const TS: React.CSSProperties = { ...IS, resize:'vertical', minHeight:80 };
+const TH: React.CSSProperties = { padding:'10px 14px', fontSize:11, fontWeight:700, color:'#6b7280', textTransform:'uppercase', letterSpacing:'0.05em', borderBottom:'1px solid #e5e7eb', whiteSpace:'nowrap' };
+const TD: React.CSSProperties = { padding:'10px 14px', verticalAlign:'middle' };
 
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-        zIndex: isDragging ? 10 : 1,
-    };
-
+function F({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) {
     return (
-        <div ref={setNodeRef} style={{ ...style, ...catRowStyle }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
-                <button type="button" {...attributes} {...listeners} style={dragHandleStyle}>
-                    <GripVertical size={20} />
-                </button>
-                <div style={iconBoxStyle}>
-                    {category.cover_image ? (
-                        <img src={category.cover_image} alt={category.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                        <Folder size={20} color="var(--primary)" />
-                    )}
-                </div>
-                <div>
-                    <div style={{ fontWeight: 800, color: '#263A99', fontSize: '16px' }}>{category.name}</div>
-                    <div style={{ fontSize: '13px', color: '#94a3b8', fontFamily: 'monospace' }}>/{category.slug}</div>
-                </div>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => onEdit(category)} style={actionBtnStyle}><Edit size={18} /></button>
-                <button onClick={() => onDelete(category.id)} style={{ ...actionBtnStyle, color: '#ef4444' }}><Trash2 size={18} /></button>
-            </div>
+        <div>
+            <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#374151', marginBottom:6 }}>
+                {label}{req && <span style={{ color:'#ef4444', marginLeft:3 }}>*</span>}
+            </label>
+            {children}
         </div>
     );
 }
-import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
+
+const EMPTY: Omit<Category,'id'> = { name:'', slug:'', description:null, is_active:true, sort_order:0, cover_image:null };
 
 export default function CategoriesPage() {
-    return (
-        <AdminErrorBoundary fallbackTitle="Помилка завантаження сторінки категорій">
-            <CategoriesContent />
-        </AdminErrorBoundary>
-    );
-}
-
-function CategoriesContent() {
     const supabase = createClient();
+    const [loading,    setLoading]    = useState(true);
+    const [saving,     setSaving]     = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isEditing, setIsEditing] = useState<string | null>(null);
-    const [editForm, setEditForm] = useState<Partial<Category>>({
-        name: '',
-        slug: '',
-        description: '',
-        sort_order: 0,
-        is_active: true,
-        display_style: 'banner'
-    });
-    const [isAdding, setIsAdding] = useState(false);
-    const [uploading, setUploading] = useState(false);
+    const [sel,        setSel]        = useState<(Category & { _new?: boolean }) | null>(null);
+    const [modal,      setModal]      = useState(false);
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
+    useEffect(() => { fetch(); }, []);
 
-    useEffect(() => {
-        fetchCategories();
-    }, []);
-
-    async function fetchCategories() {
+    async function fetch() {
         setLoading(true);
-        const { data } = await supabase
-            .from('categories')
-            .select('*')
-            .order('sort_order', { ascending: true });
-
+        const { data, error } = await supabase.from('categories').select('*').order('sort_order');
+        if (error) toast.error(error.message);
         if (data) setCategories(data);
         setLoading(false);
     }
 
-    const onDrop = async (acceptedFiles: File[]) => {
-        const file = acceptedFiles[0];
-        if (!file) return;
+    function openNew() {
+        setSel({ id:'', ...EMPTY, sort_order: categories.length + 1, _new: true });
+        setModal(true);
+    }
+    function openEdit(c: Category) { setSel({ ...c }); setModal(true); }
+    function closeModal() { setModal(false); setSel(null); }
 
-        // Validation
-        const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
-        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+    function upd<K extends keyof Category>(k: K, v: Category[K]) {
+        setSel(p => p ? { ...p, [k]: v } : p);
+    }
 
-        if (!isValidType) {
-            toast.error('Непідтримуваний формат фото (JPG, PNG, WebP)');
-            return;
+    async function save() {
+        if (!sel) return;
+        if (!sel.name.trim() || !sel.slug.trim()) { toast.error('Заповніть назву та slug'); return; }
+        setSaving(true);
+        if ((sel as any)._new) {
+            const { data, error } = await supabase.from('categories').insert({
+                name: sel.name, slug: sel.slug, description: sel.description,
+                is_active: sel.is_active, sort_order: sel.sort_order, cover_image: sel.cover_image,
+            }).select().single();
+            setSaving(false);
+            if (error) { toast.error(error.message); return; }
+            toast.success('Категорію створено ✓');
+            setCategories(prev => [...prev, data].sort((a,b) => a.sort_order - b.sort_order));
+        } else {
+            const { error } = await supabase.from('categories').update({
+                name: sel.name, slug: sel.slug, description: sel.description,
+                is_active: sel.is_active, sort_order: sel.sort_order, cover_image: sel.cover_image,
+            }).eq('id', sel.id);
+            setSaving(false);
+            if (error) { toast.error(error.message); return; }
+            toast.success('Збережено ✓');
+            setCategories(prev => prev.map(c => c.id === sel.id ? { ...sel } : c));
         }
-        if (isValidSize === false) {
-            toast.error('Фото завелике (>5MB)');
-            return;
-        }
+        closeModal();
+    }
 
-        setUploading(true);
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `categories/${fileName}`;
-
-        try {
-            const { error: uploadError } = await supabase.storage
-                .from('touch-memories-assets')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('touch-memories-assets')
-                .getPublicUrl(filePath);
-
-            setEditForm(p => ({ ...p, cover_image: publicUrl }));
-            toast.success('Фото завантажено');
-        } catch (err: any) {
-            toast.error(`Помилка: ${err.message}`);
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop,
-        accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
-        multiple: false
-    });
-
-    const startAdd = () => {
-        setEditForm({
-            name: '',
-            slug: '',
-            description: '',
-            sort_order: categories.length + 1,
-            is_active: true,
-            display_style: 'banner'
-        });
-        setIsAdding(true);
-    };
-
-    const startEdit = (cat: Category) => {
-        setEditForm({
-            ...cat,
-            name: cat.name || '',
-            slug: cat.slug || '',
-            description: cat.description || '',
-            cover_image: cat.cover_image || ''
-        });
-        setIsEditing(cat.id);
-    };
-
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-
-        try {
-            if (isAdding) {
-                const { error } = await supabase.from('categories').insert([editForm]);
-                if (error) throw error;
-                toast.success('Категорію створено');
-            } else {
-                const { error } = await supabase
-                    .from('categories')
-                    .update(editForm)
-                    .eq('id', isEditing);
-                if (error) throw error;
-                toast.success('Категорію оновлено');
-            }
-            fetchCategories();
-            setIsAdding(false);
-            setIsEditing(null);
-        } catch (error: any) {
-            toast.error(error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDragEnd = async (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (active.id !== over?.id) {
-            const oldIndex = categories.findIndex(c => c.id === active.id);
-            const newIndex = categories.findIndex(c => c.id === over?.id);
-            const newCategories = arrayMove(categories, oldIndex, newIndex);
-            setCategories(newCategories);
-
-            // Update order in DB
-            const updates = newCategories.map((cat, idx) => ({
-                id: cat.id,
-                sort_order: idx + 1
-            }));
-
-            try {
-                await Promise.all(updates.map(u =>
-                    supabase.from('categories').update({ sort_order: u.sort_order }).eq('id', u.id)
-                ));
-                toast.success('Порядок збережено');
-            } catch (err) {
-                toast.error('Помилка при збереженні порядку');
-                fetchCategories();
-            }
-        }
-    };
-
-    const deleteCategory = async (id: string) => {
-        if (!confirm('Ви впевнені?')) return;
+    async function del(id: string, name: string) {
+        if (!confirm(`Видалити категорію "${name}"?`)) return;
         const { error } = await supabase.from('categories').delete().eq('id', id);
-        if (!error) {
-            setCategories(categories.filter(c => c.id !== id));
-            toast.success('Видалено');
-        }
-    };
+        if (error) { toast.error(error.message); return; }
+        toast.success('Видалено');
+        setCategories(prev => prev.filter(c => c.id !== id));
+    }
+
+    async function moveOrder(id: string, dir: -1 | 1) {
+        const idx = categories.findIndex(c => c.id === id);
+        const swapIdx = idx + dir;
+        if (swapIdx < 0 || swapIdx >= categories.length) return;
+        const next = [...categories];
+        const a = next[idx], b = next[swapIdx];
+        [next[idx], next[swapIdx]] = [{ ...b, sort_order: a.sort_order }, { ...a, sort_order: b.sort_order }];
+        setCategories(next);
+        await Promise.all([
+            supabase.from('categories').update({ sort_order: a.sort_order }).eq('id', b.id),
+            supabase.from('categories').update({ sort_order: b.sort_order }).eq('id', a.id),
+        ]);
+    }
+
+    const isNew = (sel as any)?._new;
 
     return (
-        <div style={{ maxWidth: '1000px', margin: '0 auto', color: '#263A99' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                <div>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '8px' }}>Категорії</h1>
-                    <p style={{ color: '#64748b', fontSize: '15px' }}>Структуруйте товари та керуйте навігацією магазину.</p>
-                </div>
-                <button onClick={startAdd} style={addBtnStyle}>
-                    <Plus size={20} /> Нова категорія
+        <div style={{ display:'flex', flexDirection:'column', height:'calc(100vh - 64px)', overflow:'hidden', fontFamily:'var(--font-body,sans-serif)', fontSize:14, color:'#111827', background:'#f9fafb' }}>
+
+            {/* TOP BAR */}
+            <div style={{ padding:'12px 20px', borderBottom:'1px solid #e5e7eb', background:'#fff', display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+                <div style={{ fontWeight:800, fontSize:17, color:'#1e2d7d' }}>Категорії</div>
+                <div style={{ fontSize:12, color:'#9ca3af' }}>{categories.length} категорій</div>
+                <button onClick={openNew}
+                    style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:'#1e2d7d', color:'#fff', borderRadius:8, fontWeight:700, fontSize:13, border:'none', cursor:'pointer' }}>
+                    <Plus size={14}/> Нова категорія
                 </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {(isAdding || isEditing) && (
-                    <form onSubmit={handleSave} style={formCardStyle}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                            <h2 style={{ fontSize: '18px', fontWeight: 800 }}>{isAdding ? 'Створення категорії' : 'Редагування'}</h2>
-                            <button type="button" onClick={() => { setIsAdding(false); setIsEditing(null); }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={24} /></button>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-                            <div>
-                                <label style={labelStyle}>Назва категорії *</label>
-                                <input
-                                    type="text"
-                                    value={editForm.name || ''}
-                                    onChange={(e) => {
-                                        const name = e.target.value;
-                                        const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
-                                        setEditForm(p => ({ ...p, name, slug: isEditing ? editForm.slug : slug }));
-                                    }}
-                                    style={inputStyle}
-                                    placeholder="Напр. Весільні фотокниги"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label style={labelStyle}>Slug (URL-ідентифікатор) *</label>
-                                <input
-                                    type="text"
-                                    value={editForm.slug || ''}
-                                    onChange={(e) => setEditForm(p => ({ ...p, slug: e.target.value }))}
-                                    style={inputStyle}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div style={{ marginBottom: '24px' }}>
-                            <label style={labelStyle}>Опис</label>
-                            <textarea
-                                value={editForm.description || ''}
-                                onChange={(e) => setEditForm(p => ({ ...p, description: e.target.value }))}
-                                style={textareaStyle}
-                                rows={3}
-                                placeholder="Коротко про товари в цій категорії..."
-                            />
-                        </div>
-
-                        <div style={{ marginBottom: '24px' }}>
-                            <label style={labelStyle}>Фото категорії (optional)</label>
-                            <div {...getRootProps()} style={{
-                                ...dropzoneStyle,
-                                borderColor: isDragActive ? 'var(--accent)' : '#e2e8f0',
-                                backgroundColor: isDragActive ? '#f0f7ff' : '#f8fafc'
-                            }}>
-                                <input {...getInputProps()} />
-                                {editForm.cover_image ? (
-                                    <div style={{ position: 'relative', width: '120px', height: '90px' }}>
-                                        <img
-                                            src={editForm.cover_image}
-                                            alt="Preview"
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: "3px" }}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditForm(p => ({ ...p, cover_image: '' }));
-                                            }}
-                                            style={deleteImgBtnStyle}
-                                        >
-                                            <X size={14} />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                                        {uploading ? (
-                                            <Loader2 size={24} className="animate-spin" />
-                                        ) : (
-                                            <>
-                                                <ImageIcon size={24} style={{ marginBottom: '8px' }} />
-                                                <p style={{ fontSize: '12px' }}>Перетягніть фото або клікніть</p>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
-                                Рекомендований розмір: 800×600 px. Макс. 5MB.
-                            </p>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
-                            <div>
-                                <label style={labelStyle}>Відображення в каталозі</label>
-                                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setEditForm(p => ({ ...p, display_style: 'thumbnail' }))}
-                                        style={{
-                                            ...radioBtnStyle,
-                                            borderColor: editForm.display_style === 'thumbnail' ? 'var(--accent)' : '#e2e8f0',
-                                            backgroundColor: editForm.display_style === 'thumbnail' ? '#f0f7ff' : 'white',
-                                            color: editForm.display_style === 'thumbnail' ? 'var(--accent)' : '#64748b'
-                                        }}
-                                    >
-                                        {editForm.display_style === 'thumbnail' && <Check size={14} />}
-                                        Мініатюра
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setEditForm(p => ({ ...p, display_style: 'banner' }))}
-                                        style={{
-                                            ...radioBtnStyle,
-                                            borderColor: editForm.display_style === 'banner' ? 'var(--accent)' : '#e2e8f0',
-                                            backgroundColor: editForm.display_style === 'banner' ? '#f0f7ff' : 'white',
-                                            color: editForm.display_style === 'banner' ? 'var(--accent)' : '#64748b'
-                                        }}
-                                    >
-                                        {editForm.display_style === 'banner' && <Check size={14} />}
-                                        Банер
-                                    </button>
-                                </div>
-                            </div>
-                            <div>
-                                <label style={labelStyle}>Статус</label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px', cursor: 'pointer' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={editForm.is_active}
-                                        onChange={(e) => setEditForm(p => ({ ...p, is_active: e.target.checked }))}
-                                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                                    />
-                                    <span style={{ fontSize: '14px', fontWeight: 600 }}>Показувати в каталозі</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                            <button type="submit" disabled={loading || uploading} style={saveBtnStyle}>
-                                {loading ? <Loader2 size={18} className="animate-spin" /> : isAdding ? <Plus size={18} /> : <Save size={18} />}
-                                {isAdding ? 'Створити категорію' : 'Зберегти зміни'}
-                            </button>
-                        </div>
-                    </form>
-                )}
-
-                {loading && !isAdding && !isEditing ? (
-                    <div style={{ textAlign: 'center', padding: '100px', backgroundColor: 'white', borderRadius: "3px" }}>
-                        <Loader2 size={40} className="animate-spin" style={{ color: '#cbd5e1', marginBottom: '16px' }} />
-                        <p style={{ fontWeight: 600, color: '#94a3b8' }}>Завантаження категорій...</p>
-                    </div>
-                ) : categories.length === 0 ? (
-                    <div style={emptyStateStyle}>
-                        <Layout size={48} color="#cbd5e1" style={{ marginBottom: '16px' }} />
-                        <h3 style={{ fontWeight: 800, marginBottom: '8px' }}>Немає категорій</h3>
-                        <p style={{ color: '#64748b', marginBottom: '24px' }}>Додайте першу категорію, щоб почати наповнювати каталог.</p>
-                        <button onClick={startAdd} style={addBtnStyle}>Створити категорію</button>
+            {/* TABLE */}
+            <div style={{ flex:1, overflowY:'auto', padding:'16px 20px' }}>
+                {loading ? (
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200 }}>
+                        <Activity className="animate-spin" size={32} color="#1e2d7d"/>
                     </div>
                 ) : (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                        <SortableContext items={categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {categories.map((cat) => (
-                                    <SortableCategoryItem
-            // @ts-ignore
-                                        key={cat.id}
-                                        category={cat}
-                                        onEdit={startEdit}
-                                        onDelete={deleteCategory}
-                                    />
-                                ))}
-                            </div>
-                        </SortableContext>
-                    </DndContext>
+                    <table style={{ width:'100%', borderCollapse:'separate', borderSpacing:0, background:'#fff', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden' }}>
+                        <thead>
+                            <tr style={{ background:'#f8fafc' }}>
+                                <th style={{ ...TH, width:44 }}></th>
+                                <th style={{ ...TH, textAlign:'left' }}>Назва</th>
+                                <th style={{ ...TH, textAlign:'left' }}>Slug</th>
+                                <th style={{ ...TH, textAlign:'center' }}>Статус</th>
+                                <th style={{ ...TH, textAlign:'center' }}>Порядок</th>
+                                <th style={{ ...TH, textAlign:'center', width:120 }}>Дії</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {categories.map((c, idx) => (
+                                <tr key={c.id}
+                                    onClick={()=>openEdit(c)}
+                                    style={{ borderTop: idx===0?'none':'1px solid #f1f5f9', cursor:'pointer' }}
+                                    onMouseEnter={e=>(e.currentTarget.style.background='#f8fafc')}
+                                    onMouseLeave={e=>(e.currentTarget.style.background='')}>
+                                    <td style={{ ...TD, padding:'8px 8px 8px 14px' }}>
+                                        <div style={{ width:36, height:36, borderRadius:8, overflow:'hidden', background:'#f3f4f6', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                            {c.cover_image
+                                                ? <img src={c.cover_image} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{(e.currentTarget as HTMLImageElement).style.display='none';}}/>
+                                                : <Folder size={16} color="#d1d5db"/>}
+                                        </div>
+                                    </td>
+                                    <td style={{ ...TD, fontWeight:600 }}>{c.name}</td>
+                                    <td style={{ ...TD, fontFamily:'monospace', fontSize:12, color:'#6b7280' }}>/{c.slug}</td>
+                                    <td style={{ ...TD, textAlign:'center' }}>
+                                        <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 10px', borderRadius:20, fontSize:12, fontWeight:600,
+                                            background: c.is_active?'#f0fdf4':'#fef2f2', color: c.is_active?'#10b981':'#ef4444' }}>
+                                            <span style={{ width:6, height:6, borderRadius:'50%', background: c.is_active?'#10b981':'#ef4444', display:'inline-block' }}/>
+                                            {c.is_active ? 'Активна' : 'Прихована'}
+                                        </span>
+                                    </td>
+                                    <td style={{ ...TD, textAlign:'center' }}>
+                                        <span style={{ fontWeight:600, color:'#6b7280' }}>{c.sort_order}</span>
+                                    </td>
+                                    <td style={{ ...TD, textAlign:'center' }} onClick={e=>e.stopPropagation()}>
+                                        <div style={{ display:'flex', gap:4, justifyContent:'center' }}>
+                                            <button onClick={()=>moveOrder(c.id,-1)} disabled={idx===0} title="Вгору"
+                                                style={{ padding:'5px 7px', border:'1px solid #e5e7eb', borderRadius:7, background:'#fff', cursor:idx===0?'default':'pointer', color:idx===0?'#d1d5db':'#374151', display:'flex', alignItems:'center' }}>
+                                                <ArrowUp size={13}/>
+                                            </button>
+                                            <button onClick={()=>moveOrder(c.id,1)} disabled={idx===categories.length-1} title="Вниз"
+                                                style={{ padding:'5px 7px', border:'1px solid #e5e7eb', borderRadius:7, background:'#fff', cursor:idx===categories.length-1?'default':'pointer', color:idx===categories.length-1?'#d1d5db':'#374151', display:'flex', alignItems:'center' }}>
+                                                <ArrowDown size={13}/>
+                                            </button>
+                                            <button onClick={()=>del(c.id,c.name)} title="Видалити"
+                                                style={{ padding:'5px 7px', border:'1px solid #fca5a5', borderRadius:7, background:'#fff', cursor:'pointer', color:'#ef4444', display:'flex', alignItems:'center' }}>
+                                                <Trash2 size={13}/>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+                {!loading && categories.length === 0 && (
+                    <div style={{ textAlign:'center', padding:60, color:'#9ca3af' }}>
+                        <Folder size={40} style={{ margin:'0 auto 12px', opacity:.3, display:'block' }}/>
+                        <div>Категорій немає. Створіть першу!</div>
+                    </div>
                 )}
             </div>
+
+            {/* SLIDE-IN MODAL */}
+            {modal && sel && (
+                <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:1000, display:'flex', alignItems:'flex-start', justifyContent:'flex-end' }}
+                    onClick={e=>{ if(e.target===e.currentTarget) closeModal(); }}>
+                    <div style={{ width:'min(560px,100vw)', height:'100vh', background:'#fff', display:'flex', flexDirection:'column', boxShadow:'-4px 0 32px rgba(0,0,0,0.12)' }}>
+
+                        {/* Header */}
+                        <div style={{ padding:'14px 20px', borderBottom:'1px solid #e5e7eb', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+                            <div style={{ fontWeight:800, fontSize:16, color:'#1e2d7d' }}>
+                                {isNew ? 'Нова категорія' : 'Редагування категорії'}
+                            </div>
+                            <div style={{ display:'flex', gap:8 }}>
+                                <button onClick={()=>upd('is_active',!sel.is_active)}
+                                    style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:8, border:`1px solid ${sel.is_active?'#10b981':'#ef4444'}`, background:sel.is_active?'#f0fdf4':'#fef2f2', color:sel.is_active?'#10b981':'#ef4444', cursor:'pointer', fontSize:12, fontWeight:600 }}>
+                                    {sel.is_active ? <Eye size={13}/> : <EyeOff size={13}/>}
+                                    {sel.is_active ? 'Активна' : 'Прихована'}
+                                </button>
+                                <button onClick={save} disabled={saving}
+                                    style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 18px', borderRadius:8, background:'#1e2d7d', color:'#fff', border:'none', cursor:'pointer', fontWeight:700, fontSize:13, opacity:saving?0.7:1 }}>
+                                    {saving ? <Activity className="animate-spin" size={14}/> : <Save size={14}/>}
+                                    {saving ? 'Збереження...' : isNew ? 'Створити' : 'Зберегти'}
+                                </button>
+                                <button onClick={closeModal}
+                                    style={{ padding:'8px 10px', border:'1px solid #e5e7eb', borderRadius:8, background:'#fff', cursor:'pointer', color:'#6b7280', display:'flex', alignItems:'center' }}>
+                                    <X size={16}/>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div style={{ flex:1, overflowY:'auto', padding:20, background:'#f9fafb' }}>
+                        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+
+                            <div style={{ background:'#fff', borderRadius:12, padding:20, border:'1px solid #e5e7eb' }}>
+                                <div style={{ fontWeight:700, color:'#1e2d7d', marginBottom:14 }}>Основна інформація</div>
+                                <div style={{ display:'grid', gap:14 }}>
+                                    <F label="Назва" req>
+                                        <input value={sel.name} onChange={e=>{
+                                            const v = e.target.value;
+                                            upd('name', v);
+                                            if (isNew) upd('slug', v.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,''));
+                                        }} style={IS}/>
+                                    </F>
+                                    <F label="Slug (URL)" req>
+                                        <input value={sel.slug} onChange={e=>upd('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,''))}
+                                            style={{ ...IS, fontFamily:'monospace' }}/>
+                                    </F>
+                                    <F label="Опис">
+                                        <textarea value={sel.description||''} onChange={e=>upd('description', e.target.value||null)} style={TS}/>
+                                    </F>
+                                    <F label="URL зображення">
+                                        <input value={sel.cover_image||''} onChange={e=>upd('cover_image', e.target.value||null)} placeholder="https://..." style={IS}/>
+                                        {sel.cover_image && (
+                                            <img src={sel.cover_image} alt="" style={{ marginTop:8, width:'100%', maxHeight:120, objectFit:'cover', borderRadius:8, border:'1px solid #e5e7eb' }}
+                                                onError={e=>{(e.currentTarget as HTMLImageElement).style.display='none';}}/>
+                                        )}
+                                    </F>
+                                    <F label="Порядок сортування">
+                                        <input type="number" value={sel.sort_order} onChange={e=>upd('sort_order', parseInt(e.target.value)||0)} style={IS}/>
+                                    </F>
+                                </div>
+                            </div>
+
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
-
-const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: "3px", border: 'none', fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'transform 0.2s' };
-const catRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: 'white', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 4px 15px rgba(0,0,0,0.01)', transition: 'all 0.2s' };
-const iconBoxStyle = { width: '48px', height: '48px', borderRadius: "3px", backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
-const dragHandleStyle = { padding: '8px', color: '#cbd5e1', cursor: 'grab', background: 'none', border: 'none', display: 'flex', alignItems: 'center' };
-const actionBtnStyle = { padding: '10px', borderRadius: "3px", backgroundColor: '#f8fafc', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const formCardStyle = { backgroundColor: 'white', padding: '40px', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', marginBottom: '32px' };
-const labelStyle = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any, letterSpacing: '0.05em' };
-const inputStyle = { width: '100%', padding: '14px 16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', transition: 'border-color 0.2s' };
-const textareaStyle = { width: '100%', padding: '14px 16px', borderRadius: "3px", border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', backgroundColor: '#f8fafc', fontFamily: 'inherit' };
-const saveBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#10b981', color: 'white', borderRadius: "3px", border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '15px' };
-const emptyStateStyle = { textAlign: 'center' as any, padding: '80px 40px', backgroundColor: 'white', borderRadius: "3px", border: '2px dashed #e2e8f0', display: 'flex', flexDirection: 'column' as any, alignItems: 'center' };
-const dropzoneStyle = { border: '2px dashed #e2e8f0', borderRadius: "3px", padding: '16px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const radioBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', borderRadius: "3px", border: '1.5px solid #e2e8f0', cursor: 'pointer', fontSize: '14px', fontWeight: 700, transition: 'all 0.2s' };
-const deleteImgBtnStyle = { position: 'absolute' as any, top: '-8px', right: '-8px', width: '24px', height: '24px', borderRadius: "3px", backgroundColor: '#ef4444', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' };
