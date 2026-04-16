@@ -36,6 +36,7 @@ export async function POST(request: Request) {
                     phone: customer.phone,
                     email: customer.email || null,
                     telegram: customer.telegram || null,
+                    instagram: customer.instagram || null,
                     birthday: customer.birthday || null
                 })
                 .select('id')
@@ -78,6 +79,7 @@ export async function POST(request: Request) {
             fiscal_status: 'pending',
             notes: orderNotes.trim(),
             source: source || 'manual',
+            customer_instagram: customer.instagram || null,
             with_designer: with_designer || false,
             designer_note: designer_note || null,
             created_by: created_by || null,

@@ -618,14 +618,33 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     <div style={{ flex: 1 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <div>
-                                                <div style={{ fontWeight: 800, fontSize: '16px' }}>{item.name}</div>
-                                                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
-                                                    {Object.entries(item.options || {}).map(([key, val]) => `${key}: ${val}`).join(' • ')}
+                                                <div style={{ fontWeight: 800, fontSize: '16px' }}>
+                                                    {item.name || item.product_name || 'Товар'}
                                                 </div>
+                                                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
+                                                    {/* selected_options — human readable */}
+                                                    {item.selected_options && Object.keys(item.selected_options).length > 0
+                                                        ? Object.entries(item.selected_options).map(([k, v]) => `${k}: ${v}`).join(' • ')
+                                                        : item.format
+                                                        ? item.format
+                                                        : Object.entries(item.options || {})
+                                                            .filter(([k]) => !['Tier'].includes(k))
+                                                            .map(([k, v]) => `${k}: ${v}`).join(' • ')
+                                                    }
+                                                </div>
+                                                {(item.pages || item.qty > 1) && (
+                                                    <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: 2 }}>
+                                                        {item.pages ? `${item.pages} стор.` : ''}{item.pages && item.qty > 1 ? ' · ' : ''}{item.qty > 1 ? `${item.qty} шт` : ''}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontWeight: 900, fontSize: '16px' }}>{(item.price * item.qty).toLocaleString()} ₴</div>
-                                                <div style={{ fontSize: '12px', color: '#94a3b8' }}>{item.qty} шт × {item.price} ₴</div>
+                                                <div style={{ fontWeight: 900, fontSize: '16px' }}>
+                                                    {((item.price || item.unit_price || 0) * (item.qty || item.quantity || 1)).toLocaleString()} ₴
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                                                    {item.qty || item.quantity || 1} шт × {item.price || item.unit_price || 0} ₴
+                                                </div>
                                             </div>
                                         </div>
 
@@ -990,17 +1009,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <a href={`mailto:${order.customer_email}`} style={contactLinkStyle}><Mail size={16} /> {order.customer_email}</a>
 
-                            {order.customer_instagram && (
-                                <a href={`https://instagram.com/${order.customer_instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={contactLinkStyle}>
+                            {(order.customer_instagram || order.customers?.instagram) && (
+                                <a href={`https://instagram.com/${(order.customer_instagram || order.customers?.instagram || '').replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={contactLinkStyle}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                                    {order.customer_instagram}
+                                    @{(order.customer_instagram || order.customers?.instagram || '').replace('@', '')}
                                 </a>
                             )}
 
-                            {order.customer_telegram && (
-                                <div style={contactLinkStyle}>
-                                    <Send size={16} /> {order.customer_telegram}
-                                </div>
+                            {(order.customer_telegram || order.customers?.telegram) && (
+                                <a href={`https://t.me/${(order.customer_telegram || order.customers?.telegram || '').replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={contactLinkStyle}>
+                                    <Send size={16} /> {order.customer_telegram || order.customers?.telegram}
+                                </a>
                             )}
 
                             {order.customer_birthday && (
