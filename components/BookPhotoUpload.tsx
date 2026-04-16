@@ -30,14 +30,14 @@ interface BookConfig {
     selectedPageLamination?: string | null;
 }
 
-// Print dimensions in mm for quality checking (at 300 DPI)
+// Print dimensions in mm for quality checking (single page)
 const PRINT_DIMENSIONS: Record<string, { width: number; height: number }> = {
-    // Photobooks - using spread dimensions
-    '20×20': { width: 405, height: 203 },
-    '25×25': { width: 500, height: 254 },
-    '20×30': { width: 420, height: 305 },
-    '30×20': { width: 610, height: 203 },
-    '30×30': { width: 610, height: 305 },
+    // Photobooks - single page dimensions
+    '20×20': { width: 200, height: 200 },
+    '25×25': { width: 250, height: 250 },
+    '20×30': { width: 200, height: 300 },
+    '30×20': { width: 300, height: 200 },
+    '30×30': { width: 300, height: 300 },
     // Magazines and Travel Book - A4
     'A4': { width: 210, height: 297 },
     'default': { width: 210, height: 297 }
@@ -179,7 +179,7 @@ export default function BookPhotoUpload() {
     };
 
     const checkDimensions = (photo: PhotoFile, widthMM: number, heightMM: number): { ok: boolean; message: string } => {
-        const dpi = 300;
+        const dpi = 150; // 150 DPI is acceptable for photobook printing
         const requiredWidth = (widthMM / 25.4) * dpi; // Convert mm to inches, then to pixels
         const requiredHeight = (heightMM / 25.4) * dpi;
 

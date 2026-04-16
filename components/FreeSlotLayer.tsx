@@ -54,8 +54,8 @@ function checkPhotoDpi(
   const dpiW = photoW / (slotMmW / 25.4);
   const dpiH = photoH / (slotMmH / 25.4);
   const dpi = Math.min(dpiW, dpiH); // worst axis
-  if (dpi >= 200) return { level: 'ok', dpi: Math.round(dpi) };
-  if (dpi >= 100) return { level: 'warn', dpi: Math.round(dpi) };
+  if (dpi >= 150) return { level: 'ok', dpi: Math.round(dpi) };
+  if (dpi >= 80) return { level: 'warn', dpi: Math.round(dpi) };
   return { level: 'bad', dpi: Math.round(dpi) };
 }
 
