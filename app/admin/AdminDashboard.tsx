@@ -37,7 +37,6 @@ import {
     Bar,
     Legend
 } from 'recharts';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -191,7 +190,7 @@ function AdminDashboardContent() {
 
     if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
-            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><Activity size={40} color="var(--primary)" /></motion.div>
+            <Activity size={40} color="var(--primary)" className="animate-spin" />
         </div>
     );
 
@@ -437,11 +436,7 @@ function AdminDashboardContent() {
                                         <span style={{ color: '#6366f1' }}>{(p.revenue || 0).toLocaleString()} ₴</span>
                                     </div>
                                     <div style={{ height: '8px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: "3px", overflow: 'hidden' }}>
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${((p.revenue || 0) / (safeCharts.topProducts[0]?.revenue || 1)) * 100}%` }}
-                                            style={{ height: '100%', backgroundColor: COLORS[i % COLORS.length], borderRadius: "3px" }}
-                                        />
+                                        <div style={{ height: '100%', width: `${((p.revenue || 0) / (safeCharts.topProducts[0]?.revenue || 1)) * 100}%`, backgroundColor: COLORS[i % COLORS.length], borderRadius: "3px" }} />
                                     </div>
                                 </div>
                             ))
@@ -484,11 +479,8 @@ function AdminDashboardContent() {
                     <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Автоматичні Попередження </h2>
                     {Array.isArray(alerts) && alerts.length > 0 ? (
                         alerts.map((alert, i) => (
-                            <motion.div
+                            <div
                                 key={i}
-                                initial={{ x: -20, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                transition={{ delay: i * 0.1 }}
                                 style={{
                                     ...alertCard,
                                     borderLeft: `6px solid ${alert.type === 'error' ? '#ef4444' : alert.type === 'warning' ? '#f59e0b' : '#263A99'}`
@@ -499,7 +491,7 @@ function AdminDashboardContent() {
                                     <h3 style={{ fontSize: '15px', fontWeight: 800 }}>{alert.title || 'Попередження'}</h3>
                                 </div>
                                 <p style={{ margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 500 }}>{alert.message || ''}</p>
-                            </motion.div>
+                            </div>
                         ))
                     ) : (
                         <div style={{ padding: '40px', textAlign: 'center', backgroundColor: '#ecfdf5', borderRadius: "3px", border: '1px solid #d1fae5' }}>
@@ -526,14 +518,11 @@ function AdminDashboardContent() {
                                 </tr>
                             </thead>
                             <tbody>
-                                <AnimatePresence initial={false}>
+                                <>
                                     {Array.isArray(recentOrders) && recentOrders.length > 0 ? (
                                         recentOrders.map((order) => (
-                                            <motion.tr
+                                            <tr
                                                 key={order.id}
-                                                initial={{ opacity: 0, x: -20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, scale: 0.95 }}
                                                 style={orderRow}
                                             >
                                                 <td style={tdStyle}><span style={{ fontWeight: 800 }}>#{order.order_number || 'N/A'}</span></td>
@@ -543,7 +532,7 @@ function AdminDashboardContent() {
                                                 <td style={tdStyle}>
                                                     <StatusBadge status={order.order_status || 'new'} />
                                                 </td>
-                                            </motion.tr>
+                                            </tr>
                                         ))
                                     ) : (
                                         <tr>
@@ -552,7 +541,7 @@ function AdminDashboardContent() {
                                             </td>
                                         </tr>
                                     )}
-                                </AnimatePresence>
+                                </>
                             </tbody>
                         </table>
                     </div>
@@ -572,10 +561,7 @@ export default function AdminDashboard() {
 
 function MetricCard({ title, value, change, icon, color, badge }: any) {
     return (
-        <motion.div
-            whileHover={{ y: -4 }}
-            style={metricCardStyle}
-        >
+        <div style={metricCardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <div style={{ backgroundColor: `${color}15`, color: color, padding: '12px', borderRadius: "3px" }}>
                     {icon}
@@ -600,7 +586,7 @@ function MetricCard({ title, value, change, icon, color, badge }: any) {
             </div>
             <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</div>
             <div style={{ fontSize: '28px', fontWeight: 900, color: '#263A99' }}>{value}</div>
-        </motion.div>
+        </div>
     );
 }
 
