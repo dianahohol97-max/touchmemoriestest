@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { SizeVisualizer } from '@/components/ui/SizeVisualizer';
@@ -143,6 +143,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const optValueLabel = (label: string) => { const k = t('option_value_labels.' + label); return k !== 'option_value_labels.' + label ? k : label; };
     const resolvedParams = React.use(params);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -188,6 +189,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
     const [customProductOptions, setCustomProductOptions] = useState<Record<string, string | number>>({});
     const [dynamicPrice, setDynamicPrice] = useState<number | null>(null);
+
+    // Sync selected options to URL so back-navigation restores state
+    useEffect(() => {
+        if (typeof window === 'undefined' || Object.keys(customProductOptions).length === 0) return;
+        const url = new URL(window.location.href);
+        Object.entries(customProductOptions).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, String(v));
+        });
+        window.history.replaceState(null, '', url.toString());
+    }, [customProductOptions]);
 
     // Recalculate price when customProductOptions change for travelbook
     useEffect(() => {
@@ -281,7 +292,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     if (!defaultOptions['Індивідуальна обкладинка']) defaultOptions['Індивідуальна обкладинка'] = 'Стандартна';
                 }
 
-                setCustomProductOptions(defaultOptions);
+                // Restore options from URL params if present
+                const urlOptions: Record<string, string> = {};
+                searchParams.forEach((val, key) => {
+                    if (key !== 'slug' && key !== 'locale') urlOptions[key] = val;
+                });
+                setCustomProductOptions(Object.keys(urlOptions).length > 0
+                    ? { ...defaultOptions, ...urlOptions }
+                    : defaultOptions);
 
                 // Fetch Related Products
                 const { data: relatedData } = await supabase
