@@ -1,643 +1,257 @@
 'use client';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import {
-    ShoppingBag,
-    ShoppingCart,
-    Users,
-    TrendingUp,
-    AlertTriangle,
-    ArrowUpRight,
-    ArrowDownRight,
-    Package,
-    Calendar,
-    Users2,
-    MessageSquare,
-    Mail,
-    ChevronDown,
-    Activity,
-    CreditCard,
-    Star,
-    Bell
-} from 'lucide-react';
+import { ShoppingBag, Clock, CreditCard, Palette, Plus, RefreshCw, ArrowRight, AlertTriangle, CheckCircle, Users } from 'lucide-react';
 import Link from 'next/link';
-import {
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell,
-    BarChart,
-    Bar,
-    Legend
-} from 'recharts';
-import { toast } from 'sonner';
 
-const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const supabase = createClient();
 
-function AdminDashboardContent() {
-    const supabase = createClient();
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+// ── helpers ──────────────────────────────────────────────────────────────────
+function fmt(n: number) { return n.toLocaleString('uk-UA'); }
+function timeAgo(iso: string) {
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (diff < 1) return 'щойно';
+    if (diff < 60) return `${diff} хв тому`;
+    if (diff < 1440) return `${Math.floor(diff/60)} год тому`;
+    return `${Math.floor(diff/1440)} дн тому`;
+}
 
-    const [period, setPeriod] = useState('month');
-    const [data, setData] = useState<any>(null);
+const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
+    new:         { label: 'Нове',          color: '#2563eb', bg: '#eff6ff' },
+    pending:     { label: 'Очікує',        color: '#d97706', bg: '#fffbeb' },
+    in_progress: { label: 'В роботі',      color: '#7c3aed', bg: '#f5f3ff' },
+    ready:       { label: 'Готове',        color: '#059669', bg: '#f0fdf4' },
+    shipped:     { label: 'Відправлено',   color: '#0891b2', bg: '#ecfeff' },
+    completed:   { label: 'Виконано',      color: '#16a34a', bg: '#f0fdf4' },
+    cancelled:   { label: 'Скасовано',     color: '#dc2626', bg: '#fef2f2' },
+};
+
+const PAY_LABEL: Record<string, { label: string; color: string }> = {
+    pending:  { label: 'Очікує оплати', color: '#d97706' },
+    paid:     { label: 'Оплачено',      color: '#16a34a' },
+    partial:  { label: 'Часткова',      color: '#7c3aed' },
+    refunded: { label: 'Повернення',    color: '#dc2626' },
+};
+
+// ── StatCard ─────────────────────────────────────────────────────────────────
+function StatCard({ icon, label, value, sub, color, href }: any) {
+    const card = (
+        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14, cursor: href ? 'pointer' : 'default', transition: 'box-shadow .15s' }}
+            onMouseEnter={e => href && ((e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)')}
+            onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.boxShadow = 'none')}>
+            <div style={{ width: 44, height: 44, borderRadius: 10, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {icon}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: '#111827', lineHeight: 1.1 }}>{value}</div>
+                {sub && <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{sub}</div>}
+            </div>
+            {href && <ArrowRight size={16} color="#d1d5db"/>}
+        </div>
+    );
+    return href ? <Link href={href} style={{ textDecoration: 'none' }}>{card}</Link> : card;
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
-    const [recentOrders, setRecentOrders] = useState<any[]>([]);
-    const [alerts, setAlerts] = useState<any[]>([]);
-    const [sourceStats, setSourceStats] = useState<{source: string; count: number}[]>([]);
+    const [stats, setStats] = useState({ today: 0, todayRevenue: 0, awaitingPayment: 0, awaitingPaymentSum: 0, inProgress: 0, needDesigner: 0, newClients: 0 });
+    const [queue, setQueue] = useState<any[]>([]);
+    const [alerts, setAlerts] = useState<{ type: 'warn' | 'ok'; text: string }[]>([]);
+    const [lastUpdated, setLastUpdated] = useState('');
 
-    const fetchSourceStats = async () => {
-        try {
-            const now = new Date();
-            let since: Date;
-            if (period === 'today') since = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            else if (period === 'week') { since = new Date(now); since.setDate(since.getDate() - 7); }
-            else { since = new Date(now); since.setMonth(since.getMonth() - 1); }
+    const load = async () => {
+        setLoading(true);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const todayIso = today.toISOString();
+        const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-            const { data: orders } = await supabase
-                .from('orders')
-                .select('source')
-                .gte('created_at', since.toISOString());
-
-            if (orders) {
-                const counts: Record<string, number> = {};
-                orders.forEach((o: any) => { const s = o.source || 'other'; counts[s] = (counts[s] || 0) + 1; });
-                const stats = Object.entries(counts).map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count);
-                setSourceStats(stats);
-            }
-        } catch (err) { console.error('Source stats error:', err); }
-    };
-
-    useEffect(() => {
-        fetchAnalytics();
-        fetchRecentOrders();
-        fetchAlerts();
-        fetchSourceStats();
-
-        // Realtime orders
-        const channel = supabase
-            .channel('admin_dashboard')
-            .on(
-                'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'orders' },
-                (payload) => {
-                    handleNewOrder(payload.new);
-                }
-            )
-            .subscribe();
-
-        return () => { supabase.removeChannel(channel); };
-    }, [period]);
-
-    const fetchAnalytics = async () => {
-        try {
-            setLoading(true);
-            const res = await fetch(`/api/admin/analytics?period=${period}`);
-            if (!res.ok) {
-                throw new Error(`API returned ${res.status}`);
-            }
-            const json = await res.json();
-
-            // Validate response structure
-            if (!json || !json.metrics || !json.charts) {
-                throw new Error('Invalid response structure from analytics API');
-            }
-
-            setData(json);
-        } catch (error) {
-            console.error('Failed to fetch analytics:', error);
-            toast.error('Не вдалося завантажити аналітику');
-            setData(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchRecentOrders = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('orders')
-                .select('*')
+        const [ordersRes, queueRes, clientsRes] = await Promise.all([
+            supabase.from('orders').select('id,order_status,payment_status,total,with_designer,created_at'),
+            supabase.from('orders')
+                .select('id,order_number,customer_name,order_status,payment_status,total,source,created_at,with_designer,items')
+                .not('order_status', 'in', '("completed","cancelled")')
                 .order('created_at', { ascending: false })
-                .limit(10);
+                .limit(20),
+            supabase.from('customers').select('id').gte('created_at', weekAgo),
+        ]);
 
-            if (error) throw error;
-            if (data) setRecentOrders(data);
-        } catch (error) {
-            console.error('Failed to fetch recent orders:', error);
-            setRecentOrders([]);
-        }
+        const orders = ordersRes.data || [];
+        const todayOrders = orders.filter(o => o.created_at >= todayIso);
+
+        const newStats = {
+            today: todayOrders.length,
+            todayRevenue: todayOrders.reduce((s, o) => s + Number(o.total || 0), 0),
+            awaitingPayment: orders.filter(o => o.payment_status === 'pending' && o.order_status !== 'cancelled').length,
+            awaitingPaymentSum: orders.filter(o => o.payment_status === 'pending' && o.order_status !== 'cancelled').reduce((s, o) => s + Number(o.total || 0), 0),
+            inProgress: orders.filter(o => ['new','pending','in_progress'].includes(o.order_status)).length,
+            needDesigner: orders.filter(o => o.with_designer && !['completed','cancelled'].includes(o.order_status)).length,
+            newClients: (clientsRes.data || []).length,
+        };
+
+        setStats(newStats);
+        setQueue(queueRes.data || []);
+
+        // Alerts
+        const a: { type: 'warn' | 'ok'; text: string }[] = [];
+        if (newStats.awaitingPayment > 0) a.push({ type: 'warn', text: `${newStats.awaitingPayment} замовлень очікують оплати на суму ${fmt(newStats.awaitingPaymentSum)} ₴` });
+        if (newStats.needDesigner > 0) a.push({ type: 'warn', text: `${newStats.needDesigner} замовлень потребують роботи дизайнера` });
+        if (newStats.today === 0) a.push({ type: 'warn', text: 'Сьогодні ще немає нових замовлень' });
+        if (a.length === 0) a.push({ type: 'ok', text: 'Всі показники в нормі' });
+        setAlerts(a);
+        setLastUpdated(new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }));
+        setLoading(false);
     };
 
-    const fetchAlerts = async () => {
-        try {
-            // 1. Low stock
-            const { data: stockAlerts, error: stockError } = await supabase
-                .from('products')
-                .select('name, stock')
-                .lt('stock', 5);
-
-            if (stockError) console.error('Stock alerts error:', stockError);
-
-            // 2. Stale orders (> 24h)
-            const dayAgo = new Date(Date.now() - 86400000).toISOString();
-            const { data: staleOrders, error: ordersError } = await supabase
-                .from('orders')
-                .select('order_number')
-                .eq('order_status', 'new')
-                .lt('created_at', dayAgo);
-
-            if (ordersError) console.error('Stale orders error:', ordersError);
-
-            // 3. Pending reviews (> 3 days)
-            const threeDaysAgo = new Date(Date.now() - 259200000).toISOString();
-            const { data: oldReviews, error: reviewsError } = await supabase
-                .from('reviews')
-                .select('id')
-                .eq('status', 'pending')
-                .lt('created_at', threeDaysAgo);
-
-            if (reviewsError) console.error('Old reviews error:', reviewsError);
-
-            const newAlerts: {title:string;message:string;type:string}[] = [];
-            if (stockAlerts?.length) newAlerts.push({ title: 'Критичний залишок', message: `${stockAlerts.length} товарів мають запас < 5 шт.`, type: 'error' });
-            if (staleOrders?.length) newAlerts.push({ title: 'Завислі замовлення', message: `${staleOrders.length} нових замовлень без реакції > 24 год.`, type: 'warning' });
-            if (oldReviews?.length) newAlerts.push({ title: 'Черга відгуків', message: `${oldReviews.length} відгуків чекають модерації > 3 днів.`, type: 'info' });
-
-            setAlerts(newAlerts);
-        } catch (error) {
-            console.error('Failed to fetch alerts:', error);
-            setAlerts([]);
-        }
-    };
-
-    const handleNewOrder = (order: any) => {
-        setRecentOrders(prev => [order, ...prev.slice(0, 9)]);
-        toast.success(`Нове замовлення! #${order.order_number}`, {
-            icon: <Bell className="animate-bounce" />
-        });
-        // Play sound
-        if (audioRef.current) {
-            audioRef.current.play().catch(e => console.log('Audio play failed', e));
-        }
-    };
+    useEffect(() => { load(); const t = setInterval(load, 60000); return () => clearInterval(t); }, []);
 
     if (loading) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
-            <Activity size={40} color="var(--primary)" className="animate-spin" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+            <RefreshCw size={32} color="#1e2d7d" className="animate-spin"/>
         </div>
     );
 
-    // Validate data structure with safe defaults
-    if (!data || !data.metrics || !data.charts) {
-        return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh', flexDirection: 'column', gap: '16px' }}>
-                <AlertTriangle size={48} color="#ef4444" />
-                <p style={{ fontSize: '18px', color: '#64748b' }}>Помилка завантаження даних аналітики</p>
-                <button
-                    onClick={() => fetchAnalytics()}
-                    style={{
-                        marginTop: '20px',
-                        padding: '12px 24px',
-                        backgroundColor: '#263A99',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '15px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 16px rgba(38, 58, 153, 0.35)'
-                    }}
-                >
-                    Спробувати ще раз
-                </button>
-            </div>
-        );
-    }
-
-    const { metrics, charts } = data;
-
-    // Ensure all required chart data exists with safe defaults
-    const safeCharts = {
-        revenue: Array.isArray(charts?.revenue) ? charts.revenue : [],
-        funnel: Array.isArray(charts?.funnel) ? charts.funnel : [],
-        topProducts: Array.isArray(charts?.topProducts) ? charts.topProducts : [],
-        status: Array.isArray(charts?.status) ? charts.status : []
-    };
-
-    // Ensure metrics has safe defaults
-    const safeMetrics = {
-        revenue: metrics?.revenue || { value: 0, change: 0 },
-        profit: metrics?.profit || { value: 0, change: 0 },
-        margin: metrics?.margin || { value: 0, change: 0 },
-        cogs: metrics?.cogs || { value: 0 },
-        orders: metrics?.orders || { value: 0, change: 0 },
-        customers: metrics?.customers || { value: 0 },
-        reviews: metrics?.reviews || { value: 0 },
-        subscribers: metrics?.subscribers || { value: 0 }
-    };
-
     return (
-        <div style={{ maxWidth: '100%', paddingBottom: '100px' }}>
-            {/* Hidden audio for notifications */}
-            <audio ref={audioRef} src="/sounds/notification.mp3" preload="auto" />
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                    <h1 style={{ fontSize: '36px', fontWeight: 900, marginBottom: '8px', letterSpacing: '-0.02em' }}>Аналітика Бізнесу </h1>
-                    <p style={{ color: '#64748b', fontSize: '16px' }}>Повний огляд вашої діяльності за обраний період.</p>
+                    <h1 style={{ fontSize: 26, fontWeight: 900, color: '#1e2d7d', margin: 0 }}>Огляд</h1>
+                    <div style={{ fontSize: 13, color: '#9ca3af', marginTop: 3 }}>Оновлено о {lastUpdated} · автооновлення кожну хвилину</div>
                 </div>
-                <div style={periodSwitcher}>
-                    {['today', 'week', 'month'].map(p => (
-                        <button
-                            key={p}
-                            onClick={() => setPeriod(p)}
-                            style={{
-                                ...periodBtn,
-                                backgroundColor: period === p ? 'white' : 'transparent',
-                                color: period === p ? '#263A99' : '#64748b',
-                                boxShadow: period === p ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
-                            }}
-                        >
-                            {p === 'today' ? 'Сьогодні' : p === 'week' ? 'Тиждень' : 'Місяць'}
-                        </button>
+                <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={load} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#374151' }}>
+                        <RefreshCw size={14}/> Оновити
+                    </button>
+                    <Link href="/admin/orders/new" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: '#1e2d7d', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                        <Plus size={14}/> Нове замовлення
+                    </Link>
+                </div>
+            </div>
+
+            {/* Alerts */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {alerts.map((a, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8, background: a.type === 'warn' ? '#fffbeb' : '#f0fdf4', border: `1px solid ${a.type === 'warn' ? '#fde68a' : '#bbf7d0'}` }}>
+                        {a.type === 'warn'
+                            ? <AlertTriangle size={15} color="#d97706"/>
+                            : <CheckCircle size={15} color="#16a34a"/>}
+                        <span style={{ fontSize: 13, fontWeight: 600, color: a.type === 'warn' ? '#92400e' : '#166534' }}>{a.text}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+                <StatCard icon={<ShoppingBag size={20} color="#1e2d7d"/>} color="#1e2d7d"
+                    label="Сьогодні замовлень" value={stats.today}
+                    sub={stats.todayRevenue > 0 ? `${fmt(stats.todayRevenue)} ₴` : 'ще немає'}
+                    href="/admin/orders"/>
+                <StatCard icon={<CreditCard size={20} color="#d97706"/>} color="#d97706"
+                    label="Очікують оплати" value={stats.awaitingPayment}
+                    sub={`${fmt(stats.awaitingPaymentSum)} ₴`}
+                    href="/admin/orders"/>
+                <StatCard icon={<Clock size={20} color="#7c3aed"/>} color="#7c3aed"
+                    label="В черзі (активні)" value={stats.inProgress}
+                    sub="не завершені"
+                    href="/admin/orders"/>
+                <StatCard icon={<Palette size={20} color="#ec4899"/>} color="#ec4899"
+                    label="Потребують дизайну" value={stats.needDesigner}
+                    sub="з дизайнером"
+                    href="/admin/orders"/>
+            </div>
+
+            {/* Quick actions */}
+            <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: '16px 20px' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Швидкі дії</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {[
+                        { label: '+ Замовлення', href: '/admin/orders/new', color: '#1e2d7d' },
+                        { label: '+ Товар', href: '/admin/products', color: '#059669' },
+                        { label: 'Всі замовлення', href: '/admin/orders', color: '#374151' },
+                        { label: 'Клієнти', href: '/admin/clients', color: '#374151' },
+                        { label: 'Кабінет дизайнера', href: '/admin/designer', color: '#7c3aed' },
+                        { label: 'Аналітика', href: '/admin/analytics', color: '#374151' },
+                    ].map(a => (
+                        <Link key={a.href} href={a.href} style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${a.color === '#374151' ? '#e5e7eb' : a.color}`, background: a.color === '#374151' ? '#fff' : `${a.color}10`, color: a.color, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                            {a.label}
+                        </Link>
                     ))}
                 </div>
             </div>
 
-            {/* Metric Cards */}
-            <div style={statsGrid}>
-                <MetricCard
-                    title="Виручка"
-                    value={`${(safeMetrics.revenue.value || 0).toLocaleString()} ₴`}
-                    change={safeMetrics.revenue.change}
-                    icon={<CreditCard />}
-                    color="#6366f1"
-                />
-                <MetricCard
-                    title="Прибуток"
-                    value={`${(safeMetrics.profit.value || 0).toLocaleString()} ₴`}
-                    change={safeMetrics.profit.change}
-                    icon={<TrendingUp />}
-                    color="#10b981"
-                />
-                <MetricCard
-                    title="Маржа (Середня)"
-                    value={`${(safeMetrics.margin.value || 0).toFixed(1)}%`}
-                    change={safeMetrics.margin.change}
-                    icon={<Activity />}
-                    color="#f59e0b"
-                />
-                <MetricCard
-                    title="Собівартість"
-                    value={`${(safeMetrics.cogs.value || 0).toLocaleString()} ₴`}
-                    icon={<Package />}
-                    color="#64748b"
-                />
-                <MetricCard
-                    title="Замовлення"
-                    value={safeMetrics.orders.value || 0}
-                    change={safeMetrics.orders.change}
-                    icon={<ShoppingBag />}
-                    color="#8b5cf6"
-                />
-                <MetricCard
-                    title="Нові клієнти"
-                    value={safeMetrics.customers.value || 0}
-                    icon={<Users2 />}
-                    color="#ec4899"
-                />
-                <MetricCard
-                    title="Відгуки"
-                    value={safeMetrics.reviews.value || 0}
-                    badge={(safeMetrics.reviews.value || 0) > 0 ? safeMetrics.reviews.value : null}
-                    icon={<Star />}
-                    color="#ef4444"
-                />
-                <MetricCard
-                    title="Підписники"
-                    value={safeMetrics.subscribers.value || 0}
-                    icon={<Mail />}
-                    color="#8b5cf6"
-                />
-            </div>
-
-            <div style={chartsLayout}>
-                {/* Order Sources */}
-                {sourceStats.length > 0 && (() => {
-                    const SOURCE_LABELS: Record<string, string> = {
-                        site: 'Сайт', instagram: 'Instagram', telegram: 'Telegram',
-                        phone: 'Телефон', manual: 'Вручну', other: 'Інше',
-                    };
-                    const SOURCE_COLORS: Record<string, string> = {
-                        site: '#6366f1', instagram: '#ec4899', telegram: '#3b82f6',
-                        phone: '#10b981', manual: '#f59e0b', other: '#94a3b8',
-                    };
-                    const totalOrders = sourceStats.reduce((s, r) => s + r.count, 0);
-                    return (
-                        <div style={{ background: '#fff', borderRadius: 16, padding: '24px 28px', border: '1px solid #f1f5f9', marginBottom: 24 }}>
-                            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', marginBottom: 16 }}>Джерела замовлень</h2>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                {sourceStats.map(({ source, count }) => {
-                                    const pct = totalOrders > 0 ? Math.round(count / totalOrders * 100) : 0;
-                                    return (
-                                        <div key={source} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <div style={{ width: 120, fontSize: 13, fontWeight: 600, color: '#374151' }}>{SOURCE_LABELS[source] || source}</div>
-                                            <div style={{ flex: 1, height: 24, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
-                                                <div style={{ width: `${pct}%`, height: '100%', background: SOURCE_COLORS[source] || '#94a3b8', borderRadius: 6, transition: 'width 0.5s ease', minWidth: pct > 0 ? 4 : 0 }} />
-                                            </div>
-                                            <div style={{ width: 40, fontSize: 13, fontWeight: 700, color: '#1e293b', textAlign: 'right' }}>{count}</div>
-                                            <div style={{ width: 40, fontSize: 12, color: '#64748b', textAlign: 'right' }}>{pct}%</div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 12 }}>Всього: {totalOrders} замовлень</div>
-                        </div>
-                    );
-                })()}
-
-                {/* Main Revenue Chart */}
-                <div style={chartCardLarge}>
-                    <div style={cardHeader}>
-                        <h2 style={cardTitle}>Динаміка виручки (30 днів)</h2>
-                        <div style={dotStyle} />
-                    </div>
-                    <div style={{ height: '350px', width: '100%' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={safeCharts.revenue}>
-                                <defs>
-                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={15} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(v) => `${v / 1000}k`} />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: "3px", border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-                                    formatter={(v: any) => [`${v.toLocaleString()} ₴`, 'Виручка']}
-                                />
-                                <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorRevenue)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
+            {/* Queue */}
+            <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontWeight: 800, fontSize: 15, color: '#1e2d7d' }}>Черга замовлень</div>
+                    <Link href="/admin/orders" style={{ fontSize: 13, color: '#6b7280', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        Всі <ArrowRight size={13}/>
+                    </Link>
                 </div>
-
-                {/* Conversion Funnel */}
-                <div style={chartCardSmall}>
-                    <h2 style={cardTitle}>Воронка продажів</h2>
-                    <div style={funnelContainer}>
-                        {safeCharts.funnel.length > 0 ? (
-                            safeCharts.funnel.map((step: any, i: number) => (
-                                <div key={step.name || i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <div style={{
-                                        ...funnelStep,
-                                        width: `${100 - (i * 15)}%`,
-                                        backgroundColor: step.color || '#94a3b8',
-                                        opacity: 1 - (i * 0.1)
-                                    }}>
-                                        <span style={{ fontWeight: 800 }}>{step.value || 0}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
-                                        <span>{step.name || 'N/A'}</span>
-                                        {i > 0 && safeCharts.funnel[i - 1]?.value > 0 && (
-                                            <span style={{ color: '#10b981' }}>
-                                                {Math.round(((step.value || 0) / safeCharts.funnel[i - 1].value) * 100)}%
+                {queue.length === 0 ? (
+                    <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>
+                        <CheckCircle size={32} style={{ margin: '0 auto 10px', display: 'block', opacity: .4 }}/>
+                        Черга порожня — всі замовлення виконані!
+                    </div>
+                ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ background: '#f8fafc' }}>
+                                {['Замовлення', 'Клієнт', 'Товари', 'Сума', 'Статус', 'Оплата', 'Час'].map(h => (
+                                    <th key={h} style={{ padding: '9px 14px', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {queue.map((o, idx) => {
+                                const st = STATUS_LABEL[o.order_status] || { label: o.order_status, color: '#374151', bg: '#f9fafb' };
+                                const pay = PAY_LABEL[o.payment_status] || { label: o.payment_status, color: '#6b7280' };
+                                return (
+                                    <tr key={o.id}
+                                        style={{ borderTop: idx === 0 ? 'none' : '1px solid #f1f5f9', cursor: 'pointer' }}
+                                        onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                                        onMouseLeave={e => (e.currentTarget.style.background = '')}
+                                        onClick={() => window.location.href = `/admin/orders/${o.id}`}>
+                                        <td style={{ padding: '10px 14px', fontWeight: 700, fontSize: 13, color: '#1e2d7d', whiteSpace: 'nowrap' }}>
+                                            #{o.order_number}
+                                            {o.with_designer && <span title="Потрібен дизайнер" style={{ marginLeft: 6, fontSize: 11 }}>🎨</span>}
+                                        </td>
+                                        <td style={{ padding: '10px 14px', fontSize: 13, color: '#374151' }}>{o.customer_name}</td>
+                                        <td style={{ padding: '10px 14px', fontSize: 13, color: '#6b7280' }}>{Array.isArray(o.items) ? o.items.length : 0} шт</td>
+                                        <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap' }}>{fmt(Number(o.total || 0))} ₴</td>
+                                        <td style={{ padding: '10px 14px' }}>
+                                            <span style={{ display: 'inline-block', padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: st.bg, color: st.color }}>
+                                                {st.label}
                                             </span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                                Немає даних
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Top Products */}
-                <div style={chartCardSmall}>
-                    <h2 style={cardTitle}>Топ-5 товарів</h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
-                        {safeCharts.topProducts.length > 0 ? (
-                            safeCharts.topProducts.map((p: any, i: number) => (
-                                <div key={p.name || i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700 }}>
-                                        <span style={{ color: '#263A99' }}>{p.name || 'Невідомий товар'}</span>
-                                        <span style={{ color: '#6366f1' }}>{(p.revenue || 0).toLocaleString()} ₴</span>
-                                    </div>
-                                    <div style={{ height: '8px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: "3px", overflow: 'hidden' }}>
-                                        <div style={{ height: '100%', width: `${((p.revenue || 0) / (safeCharts.topProducts[0]?.revenue || 1)) * 100}%`, backgroundColor: COLORS[i % COLORS.length], borderRadius: "3px" }} />
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                                Немає даних
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Order Status & Customers */}
-                <div style={chartCardSmall}>
-                    <h2 style={cardTitle}>Статуси замовлень</h2>
-                    <div style={{ height: '220px' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={safeCharts.status}
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {safeCharts.status.map((entry: any, index: number) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
-                                    ))}
-                                </Pie>
-                                <Tooltip contentStyle={{ borderRadius: "3px" }} />
-                                <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </div>
-
-            <div style={bottomGrid}>
-                {/* Alerts Section */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Автоматичні Попередження </h2>
-                    {Array.isArray(alerts) && alerts.length > 0 ? (
-                        alerts.map((alert, i) => (
-                            <div
-                                key={i}
-                                style={{
-                                    ...alertCard,
-                                    borderLeft: `6px solid ${alert.type === 'error' ? '#ef4444' : alert.type === 'warning' ? '#f59e0b' : '#263A99'}`
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                    <AlertTriangle size={18} color={alert.type === 'error' ? '#ef4444' : '#f59e0b'} />
-                                    <h3 style={{ fontSize: '15px', fontWeight: 800 }}>{alert.title || 'Попередження'}</h3>
-                                </div>
-                                <p style={{ margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 500 }}>{alert.message || ''}</p>
-                            </div>
-                        ))
-                    ) : (
-                        <div style={{ padding: '40px', textAlign: 'center', backgroundColor: '#ecfdf5', borderRadius: "3px", border: '1px solid #d1fae5' }}>
-                            <p style={{ color: '#065f46', fontWeight: 700, margin: 0 }}>Всі показники в нормі </p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Real-time Orders Table */}
-                <div style={ordersSection}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Останні Замовлення </h2>
-                        <Link href="/admin/orders" style={viewAllBtn}>Дивитись всі</Link>
-                    </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 12px' }}>
-                            <thead>
-                                <tr style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    <th style={thStyle}>ID</th>
-                                    <th style={thStyle}>Клієнт</th>
-                                    <th style={thStyle}>Товари</th>
-                                    <th style={thStyle}>Сума</th>
-                                    <th style={thStyle}>Статус</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <>
-                                    {Array.isArray(recentOrders) && recentOrders.length > 0 ? (
-                                        recentOrders.map((order) => (
-                                            <tr
-                                                key={order.id}
-                                                style={orderRow}
-                                            >
-                                                <td style={tdStyle}><span style={{ fontWeight: 800 }}>#{order.order_number || 'N/A'}</span></td>
-                                                <td style={tdStyle}>{order.customer_name || 'N/A'}</td>
-                                                <td style={tdStyle}>{Array.isArray(order.items) ? order.items.length : 0} шт.</td>
-                                                <td style={tdStyle}><span style={{ fontWeight: 900 }}>{order.total || 0} ₴</span></td>
-                                                <td style={tdStyle}>
-                                                    <StatusBadge status={order.order_status || 'new'} />
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                                                Немає замовлень
-                                            </td>
-                                        </tr>
-                                    )}
-                                </>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-export default function AdminDashboard() {
-    return (
-        <ErrorBoundary>
-            <AdminDashboardContent />
-        </ErrorBoundary>
-    );
-}
-
-function MetricCard({ title, value, change, icon, color, badge }: any) {
-    return (
-        <div style={metricCardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <div style={{ backgroundColor: `${color}15`, color: color, padding: '12px', borderRadius: "3px" }}>
-                    {icon}
-                </div>
-                {change !== undefined && (
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '12px',
-                        fontWeight: 800,
-                        color: change >= 0 ? '#10b981' : '#ef4444',
-                        backgroundColor: change >= 0 ? '#ecfdf5' : '#fef2f2',
-                        padding: '4px 10px',
-                        borderRadius: "3px"
-                    }}>
-                        {change >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                        {Math.abs(Math.round(change))}%
-                    </div>
+                                        </td>
+                                        <td style={{ padding: '10px 14px', fontSize: 12, fontWeight: 600, color: pay.color, whiteSpace: 'nowrap' }}>
+                                            {pay.label}
+                                        </td>
+                                        <td style={{ padding: '10px 14px', fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap' }}>{timeAgo(o.created_at)}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 )}
-                {badge && <span style={redBadge}>{badge}</span>}
             </div>
-            <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</div>
-            <div style={{ fontSize: '28px', fontWeight: 900, color: '#263A99' }}>{value}</div>
+
+            {/* Bottom row — new clients this week */}
+            <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Users size={18} color="#16a34a"/>
+                </div>
+                <div>
+                    <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>Нових клієнтів за тиждень</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#111827' }}>{stats.newClients}</div>
+                </div>
+                <Link href="/admin/clients" style={{ marginLeft: 'auto', fontSize: 13, color: '#6b7280', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    CRM <ArrowRight size={13}/>
+                </Link>
+            </div>
+
         </div>
     );
 }
-
-function StatusBadge({ status }: { status: string }) {
-    const config: Record<string, any> = {
-        'new': { label: 'Нове', bg: '#eff6ff', color: '#263A99' },
-        'confirmed': { label: 'Підтверджено', bg: '#f0fdf4', color: '#16a34a' },
-        'in_production': { label: 'Виробництво', bg: '#fff7ed', color: '#ea580c' },
-        'shipped': { label: 'Відправлено', bg: '#faf5ff', color: '#9333ea' },
-        'delivered': { label: 'Доставлено', bg: '#ecfdf5', color: '#059669' },
-        'cancelled': { label: 'Скасовано', bg: '#fef2f2', color: '#dc2626' }
-    };
-    const s = config[status] || config.new;
-    return (
-        <span style={{
-            padding: '6px 14px',
-            borderRadius: "3px",
-            fontSize: '12px',
-            fontWeight: 800,
-            backgroundColor: s.bg,
-            color: s.color
-        }}>
-            {s.label}
-        </span>
-    );
-}
-
-// Styles
-const statsGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '48px' };
-const metricCardStyle = { backgroundColor: 'white', padding: '28px', borderRadius: "3px", border: '1.5px solid #f1f5f9', position: 'relative' as any };
-const redBadge = { position: 'absolute' as any, top: '24px', right: '24px', backgroundColor: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 900, padding: '2px 8px', borderRadius: "3px", boxShadow: '0 4px 10px rgba(239, 68, 68, 0.3)' };
-
-const chartsLayout = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '48px' };
-const chartCardLarge = { gridColumn: 'span 2', backgroundColor: 'white', padding: '32px', borderRadius: "3px", border: '1.5px solid #f1f5f9' };
-const chartCardSmall = { backgroundColor: 'white', padding: '32px', borderRadius: "3px", border: '1.5px solid #f1f5f9' };
-
-const cardHeader = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' };
-const cardTitle = { fontSize: '18px', fontWeight: 900, color: '#263A99', margin: 0 };
-const dotStyle = { width: '8px', height: '8px', borderRadius: "3px", backgroundColor: '#6366f1' };
-
-const funnelContainer = { marginTop: '24px', display: 'flex', flexDirection: 'column' as any, gap: '20px' };
-const funnelStep = { padding: '12px 16px', borderRadius: "3px", color: 'white', fontSize: '14px', transition: 'all 0.3s' };
-
-const bottomGrid = { display: 'grid', gridTemplateColumns: '380px 1fr', gap: '48px' };
-const alertCard = { padding: '20px 24px', backgroundColor: 'white', borderRadius: "3px", border: '1.5px solid #f1f5f9' };
-const ordersSection = { backgroundColor: 'white', padding: '40px', borderRadius: "3px", border: '1.5px solid #f1f5f9' };
-const orderRow = { backgroundColor: '#fcfcfc', borderBottom: '1.5px solid #f8fafc' };
-
-const periodSwitcher = { display: 'flex', padding: '6px', backgroundColor: '#f1f5f9', borderRadius: "3px", gap: '4px' };
-const periodBtn = { padding: '8px 20px', borderRadius: "3px", border: 'none', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' };
-const viewAllBtn = { fontSize: '14px', fontWeight: 800, color: '#6366f1', textDecoration: 'none' };
-
-const thStyle = { textAlign: 'left' as any, padding: '16px' };
-const tdStyle = { padding: '16px', fontSize: '14px', color: '#4d5562' };
