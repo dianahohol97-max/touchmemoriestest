@@ -3,7 +3,6 @@ import { useState } from 'react';
 import styles from './admin-login.module.css';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -42,8 +41,7 @@ function AdminLoginContent() {
 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#263A99', padding: '20px' }}>
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
+            <div }
                 animate={{ opacity: 1, y: 0 }}
                 style={{ width: '100%', maxWidth: '400px', backgroundColor: 'white', padding: '48px', borderRadius: "3px", boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
             >
@@ -104,7 +102,7 @@ function AdminLoginContent() {
                 <div style={{ marginTop: '32px', textAlign: 'center' }}>
                     <a href="/" style={{ fontSize: '14px', color: '#64748b', textDecoration: 'none' }}>← На сайт</a>
                 </div>
-            </motion.div>
+            </div>
 
         </div>
     );
