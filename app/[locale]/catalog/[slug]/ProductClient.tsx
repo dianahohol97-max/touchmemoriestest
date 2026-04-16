@@ -190,14 +190,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const [customProductOptions, setCustomProductOptions] = useState<Record<string, string | number>>({});
     const [dynamicPrice, setDynamicPrice] = useState<number | null>(null);
 
-    // Sync selected options to URL so back-navigation restores state
+    // Sync selected options to sessionStorage so back-navigation restores state
     useEffect(() => {
         if (typeof window === 'undefined' || Object.keys(customProductOptions).length === 0) return;
-        const url = new URL(window.location.href);
-        Object.entries(customProductOptions).forEach(([k, v]) => {
-            if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, String(v));
-        });
-        window.history.replaceState(null, '', url.toString());
+        const key = `product_options_${window.location.pathname}`;
+        sessionStorage.setItem(key, JSON.stringify(customProductOptions));
     }, [customProductOptions]);
 
     // Recalculate price when customProductOptions change for travelbook
@@ -292,13 +289,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     if (!defaultOptions['Індивідуальна обкладинка']) defaultOptions['Індивідуальна обкладинка'] = 'Стандартна';
                 }
 
-                // Restore options from URL params if present
-                const urlOptions: Record<string, string> = {};
-                searchParams.forEach((val, key) => {
-                    if (key !== 'slug' && key !== 'locale') urlOptions[key] = val;
-                });
-                setCustomProductOptions(Object.keys(urlOptions).length > 0
-                    ? { ...defaultOptions, ...urlOptions }
+                // Restore options from sessionStorage if present (back-navigation)
+                const storageKey = `product_options_${window.location.pathname}`;
+                const saved = typeof window !== 'undefined' ? sessionStorage.getItem(storageKey) : null;
+                const savedOptions = saved ? JSON.parse(saved) : {};
+                setCustomProductOptions(Object.keys(savedOptions).length > 0
+                    ? { ...defaultOptions, ...savedOptions }
                     : defaultOptions);
 
                 // Fetch Related Products
