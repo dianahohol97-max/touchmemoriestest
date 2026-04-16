@@ -40,6 +40,8 @@ interface Customer {
     birthday?: string;
     birth_date?: string;
     telegram_subscribed?: boolean;
+    telegram?: string;
+    instagram?: string;
     loyalty_tier?: string;
     last_order_date?: string;
     address?: string;
@@ -752,6 +754,24 @@ export default function ClientsPage() {
                                         <Phone size={16} color="#94a3b8" />
                                         {selectedCustomer.phone || '—'}
                                     </div>
+                                    {selectedCustomer.instagram && (
+                                        <div style={infoRow}>
+                                            <a href={`https://instagram.com/${selectedCustomer.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer"
+                                                style={{ display:'flex', alignItems:'center', gap:8, color:'#e1306c', textDecoration:'none', fontWeight:600, fontSize:14 }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                                                {selectedCustomer.instagram}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {selectedCustomer.telegram && (
+                                        <div style={infoRow}>
+                                            <a href={`https://t.me/${selectedCustomer.telegram.replace('@','')}`} target="_blank" rel="noopener noreferrer"
+                                                style={{ display:'flex', alignItems:'center', gap:8, color:'#0088cc', textDecoration:'none', fontWeight:600, fontSize:14 }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
+                                                {selectedCustomer.telegram}
+                                            </a>
+                                        </div>
+                                    )}
                                     {selectedCustomer.birth_date && (
                                         <div style={infoRow}>
                                             <Gift size={16} color="#94a3b8" />
