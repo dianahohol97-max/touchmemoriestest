@@ -10,7 +10,7 @@ interface Props {
 }
 
 // ISR: revalidate every hour. Remove force-dynamic so ISR caching works.
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export async function generateMetadata(
   { params }: Props,

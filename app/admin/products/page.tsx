@@ -116,6 +116,8 @@ export default function ProductsAdminPage() {
         toast.success('Збережено ✓');
         setProducts(prev => prev.map(p => p.id === sel.id ? { ...sel } : p));
         setModal(false);
+        // Revalidate cache so changes appear on site immediately
+        fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
     }
 
     async function deleteProduct() {
@@ -223,6 +225,8 @@ export default function ProductsAdminPage() {
         setSaving(false);
         if (error) { toast.error('Помилка: ' + error.message); return; }
         toast.success('Товар створено ✓');
+        // Revalidate cache
+        fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: newProduct?.slug || '' }) }).catch(() => {});
         const newProd = { ...sel, id: data.id };
         setProducts(prev => [...prev, newProd].sort((a,b) => a.name.localeCompare(b.name)));
         setModal(false); setSel(null);

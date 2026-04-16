@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import CatalogClient from './CatalogClient';
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 const CATALOG_META: Record<string, { title: string; description: string }> = {
   uk: { title: 'Каталог товарів | Touch.Memories', description: 'Фотокниги, журнали, книги побажань та фотодруки на замовлення. 34+ продукти від Touch.Memories у Тернополі.' },
