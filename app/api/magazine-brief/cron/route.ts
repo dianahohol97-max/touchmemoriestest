@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   if (!briefs || briefs.length === 0) return NextResponse.json({ processed: 0 });
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
-  const results = [];
+  const results: string[] = [];
 
   for (const brief of briefs) {
     // Fire generation (don't await — let it run)
