@@ -811,7 +811,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                       // Find min_pages from product options (passed via slug-based config)
                       const MIN_PAGES: Record<string, number> = {
                         '20х20': 6, '20x20': 6, '20×20': 6,
-                        '25х25': 6, '25x25': 6, '25×25': 6,
+                        '25х25': 8, '25x25': 8, '25×25': 8,
                         '20х30': 10, '20x30': 10, '20×30': 10,
                         '30х20': 10, '30x20': 10, '30×20': 10,
                         '30х30': 16, '30x30': 16, '30×30': 16,
