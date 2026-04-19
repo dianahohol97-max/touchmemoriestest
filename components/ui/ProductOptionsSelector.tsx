@@ -699,6 +699,8 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       if (selectedOzdoblennya) {
         const decorationLabel = VELOUR_OZDOBLENNYA.find(o => o.value === selectedOzdoblennya)?.label || 'Без оздоблення';
         newOptions['Тип оздоблення'] = decorationLabel;
+        // Clear flex color if switching away from flex
+        if (selectedOzdoblennya !== 'flex') delete newOptions['Колір напису'];
       }
     }
     const price = calculatePrice(newOptions);
@@ -1024,6 +1026,40 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                       : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
                   }`}>
                   {v.variant_name}{Number(v.surcharge) > 0 ? ` (+${v.surcharge} ₴)` : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Друк кольором — color selection */}
+      {hasColorAndDecoration && selectedOzdoblennya === 'flex' && (() => {
+        const FLEX_COLORS = [
+          { value: 'white',  label: 'Білий' },
+          { value: 'black',  label: 'Чорний' },
+          { value: 'silver', label: 'Срібло' },
+          { value: 'gold',   label: 'Золото' },
+        ];
+        const selectedFlexColor = String(selectedOptions['Колір напису'] || '');
+        return (
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
+              Колір напису
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {FLEX_COLORS.map(c => (
+                <button key={c.value} type="button"
+                  onClick={() => {
+                    const newOptions = { ...selectedOptions, 'Колір напису': c.value };
+                    onChange(newOptions, undefined);
+                  }}
+                  className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                    selectedFlexColor === c.value
+                      ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
+                  }`}>
+                  {c.label}
                 </button>
               ))}
             </div>
