@@ -266,16 +266,29 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     (data.slug || '').toLowerCase().includes('pobazhan');
 
                 if (data.options && Array.isArray(data.options) && !isWishbookSlug) {
+                    // First pass: find default size to know min_pages
+                    const sizeOpt = data.options.find((o: any) => o.name === 'Розмір');
+                    const defaultSizeValue = sizeOpt?.options?.[0]?.value || '';
+                    const defaultMinPages = sizeOpt?.options?.[0]?.min_pages || 6;
+
                     data.options.forEach((opt: any) => {
                         const items = opt.options || opt.values;
                         if (items && items.length > 0) {
                             const s = (data.slug || '').toLowerCase();
                             const isPhotoprint = s.includes('photoprint') || s.includes('polaroid');
-                            // For photoprint: auto-select first value for non-size options
                             if (isPhotoprint && opt.name !== 'Розмір') {
                                 defaultOptions[opt.name] = items[0].value ?? items[0].name ?? 0;
                             } else if (!isPhotoprint) {
-                                defaultOptions[opt.name] = items[0].value ?? items[0].name ?? 0;
+                                if (opt.name === 'Кількість сторінок') {
+                                    // Find first item that meets min_pages for default size
+                                    const firstValid = items.find((item: any) => {
+                                        const pageNum = Number(item.value || item.label?.match(/\d+/)?.[0] || 0);
+                                        return pageNum >= defaultMinPages;
+                                    });
+                                    defaultOptions[opt.name] = firstValid?.value ?? items[0].value ?? items[0].name ?? 0;
+                                } else {
+                                    defaultOptions[opt.name] = items[0].value ?? items[0].name ?? 0;
+                                }
                             }
                         }
                     });
@@ -293,9 +306,20 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 const storageKey = `product_options_${window.location.pathname}`;
                 const saved = typeof window !== 'undefined' ? sessionStorage.getItem(storageKey) : null;
                 const savedOptions = saved ? JSON.parse(saved) : {};
-                setCustomProductOptions(Object.keys(savedOptions).length > 0
-                    ? { ...defaultOptions, ...savedOptions }
-                    : defaultOptions);
+                if (Object.keys(savedOptions).length > 0) {
+                    // Validate saved pages against min_pages of saved size
+                    const mergedOpts = { ...defaultOptions, ...savedOptions };
+                    const savedSize = mergedOpts['Розмір'];
+                    const savedSizeItem = sizeOpt?.options?.find((s: any) => s.value === savedSize);
+                    const savedMinPages = savedSizeItem?.min_pages || 6;
+                    const savedPages = Number(mergedOpts['Кількість сторінок'] || 0);
+                    if (savedPages > 0 && savedPages < savedMinPages) {
+                        mergedOpts['Кількість сторінок'] = String(savedMinPages);
+                    }
+                    setCustomProductOptions(mergedOpts);
+                } else {
+                    setCustomProductOptions(defaultOptions);
+                }
 
                 // Fetch Related Products
                 const { data: relatedData } = await supabase
