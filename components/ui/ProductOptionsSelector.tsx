@@ -291,12 +291,12 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Верстка тексту',
-      values: ['Без тексту (тільки фото)', 'З версткою тексту (+175 ₴)'],
+      values: ['Без тексту (тільки фото)', 'З текстом (+195 ₴)'],
       required: false
     },
     {
       name: 'Терміновість',
-      values: ['Стандартна (4–8 днів)', 'Термінова (+30%)'],
+      values: ['Стандартна (5–8 днів)', 'Термінова 1–3 дні (+30%)'],
       required: false,
       note: 'Пришвидшене виробництво — +30% до вартості'
     },
@@ -326,7 +326,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Верстка тексту',
-      values: ['Без верстки', 'З версткою тексту (+175 ₴)'],
+      values: ['Без тексту (тільки фото)', 'З текстом (+195 ₴)'],
       required: true
     },
     {
@@ -644,7 +644,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         let total = PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || 0;
         if (!total) return null;
         // Add typesetting price
-        if (opts['Верстка тексту'] === 'З версткою тексту (+175 ₴)') total += 175;
+        if (String(opts['Верстка тексту'] || '').includes('текстом') || String(opts['Верстка тексту'] || '').includes('верстк')) total += 195;
         // Add lamination: 5 UAH per page
         if (opts['Ламінування сторінок'] === 'З ламінуванням (+5 ₴/стор)') total += pages * 5;
         return total;
