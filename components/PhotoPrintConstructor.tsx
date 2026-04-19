@@ -774,6 +774,11 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                     </button>
                   ))}
                 </div>
+                {(isNonstandard || isPolaroid) && selectedSize && getMultiple(selectedSize) > 1 && (
+                  <div style={{ marginTop:6, fontSize:11, color:'#64748b' }}>
+                    ℹ Для розміру <strong>{selectedSize.replace(/\s*\(.*?\)/g, '').trim()}</strong> — кількість фото має бути кратною <strong>{getMultiple(selectedSize)}</strong> (наприклад: {Array.from({length:3},(_,i)=>((Math.ceil(20/getMultiple(selectedSize))+i)*getMultiple(selectedSize))).join(', ')} і т.д.)
+                  </div>
+                )}
               </div>
             )}
 
