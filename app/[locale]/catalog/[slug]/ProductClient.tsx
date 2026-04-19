@@ -361,7 +361,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         else { setMainImage(url); setMainVideo(''); }
     };
 
-    const isPhotobook = product.slug?.includes('photobook');
+    const isPhotobook = product.slug?.includes('photobook') || product.slug?.includes('graduation');
     const isPhotobookProduct = isPhotobook || product.slug?.includes('fotokniga') || 
         product.slug?.includes('velyur') || product.slug?.includes('velour') || 
         product.slug?.includes('leatherette') || product.slug?.includes('tkanina') || 
@@ -388,6 +388,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         if (sl.includes('velour') || sl.includes('velyur')) coverName = 'Велюр';
         else if (sl.includes('leather')) coverName = 'Шкірзамінник';
         else if (sl.includes('fabric') || sl.includes('tkanina')) coverName = 'Тканина';
+        else if (sl.includes('graduation')) coverName = 'Випускна';
 
         if (sizeNorm && pageCount) {
             const entry = photobookPricesData.find((p: any) =>
