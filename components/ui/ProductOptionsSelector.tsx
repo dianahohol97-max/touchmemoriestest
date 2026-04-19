@@ -349,11 +349,6 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       required: true,
       note: '+5 ₴ × кількість сторінок'
     },
-    {
-      name: 'Індивідуальна обкладинка',
-      values: ['Стандартна', 'Індивідуальна (+50 ₴)'],
-      required: false,
-    },
   ],
   wishbook: [
     {
