@@ -39,9 +39,9 @@ const PHOTOJOURNAL_PAGE_PRICES: Record<number, number> = {
 };
 
 const PHOTOJOURNAL_HARD_PAGE_PRICES: Record<number, number> = {
-  12: 600, 16: 750, 20: 900, 24: 1050, 28: 1200, 32: 1350,
-  36: 1500, 40: 1650, 44: 1800, 48: 1950, 52: 2075,
-  60: 2275, 72: 2575, 80: 2825,
+  12: 650, 16: 800, 20: 950, 24: 1100, 28: 1250, 32: 1400,
+  36: 1550, 40: 1700, 44: 1850, 48: 2000, 52: 2125,
+  60: 2325, 72: 2625, 80: 2875,
 };
 
 const TRAVELBOOK_PAGE_PRICES: Record<number, number> = {
