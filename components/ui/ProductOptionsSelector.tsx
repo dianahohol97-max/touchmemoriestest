@@ -479,7 +479,7 @@ function detectProductType(slug: string): string | null {
   }
 
   // Глянцевий журнал
-  if ((s.includes('magazine') || s.includes('zhurnal') || s.includes('glyancevij') || s.includes('gloss')) && !s.includes('tverda') && !s.includes('hard')) {
+  if ((s.includes('magazine') || s.includes('zhurnal') || s.includes('glyancevij') || s.includes('gloss')) && !s.includes('tverda') && !s.includes('tverd') && !s.includes('hard')) {
     return 'magazine';
   }
 
