@@ -310,7 +310,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     // Validate saved pages against min_pages of saved size
                     const mergedOpts = { ...defaultOptions, ...savedOptions };
                     const savedSize = mergedOpts['Розмір'];
-                    const savedSizeItem = sizeOpt?.options?.find((s: any) => s.value === savedSize);
+                    const sizeOptForValidation = data.options?.find((o: any) => o.name === 'Розмір');
+                    const savedSizeItem = sizeOptForValidation?.options?.find((s: any) => s.value === savedSize);
                     const savedMinPages = savedSizeItem?.min_pages || 6;
                     const savedPages = Number(mergedOpts['Кількість сторінок'] || 0);
                     if (savedPages > 0 && savedPages < savedMinPages) {
