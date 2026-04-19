@@ -132,7 +132,7 @@ const VELOUR_OZDOBLENNYA = [
   { value: 'acryl',          label: 'Акрил' },
   { value: 'photovstavka',   label: 'Фотовставка' },
   { value: 'metal',          label: 'Металева вставка' },
-  { value: 'flex',           label: 'Флекс' },
+  { value: 'flex',           label: 'Друк кольором' },
   { value: 'graviruvannya',  label: 'Гравірування' },
 ];
 
