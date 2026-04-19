@@ -45,10 +45,9 @@ const PHOTOJOURNAL_HARD_PAGE_PRICES: Record<number, number> = {
 };
 
 const TRAVELBOOK_PAGE_PRICES: Record<number, number> = {
-  12: 550, 16: 700, 20: 850, 24: 1000, 28: 1150, 32: 1300,
-  36: 1450, 40: 1600, 44: 1750, 48: 1900, 52: 2025,
-  56: 2125, 60: 2225, 64: 2325, 68: 2425, 72: 2525,
-  76: 2650, 80: 2775,
+  12: 650, 16: 800, 20: 950, 24: 1100, 28: 1250, 32: 1400,
+  36: 1550, 40: 1700, 44: 1850, 48: 2000, 52: 2125,
+  60: 2325, 72: 2625, 80: 2875,
 };
 
 const WISHBOOK_PRICES: Record<string, Record<string, number>> = {
@@ -339,7 +338,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     { name: 'Розмір', values: ['A4'], type: 'text', required: false },
     {
       name: 'Кількість сторінок',
-      values: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80],
+      values: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
       prices: TRAVELBOOK_PAGE_PRICES,
       required: true
     },
