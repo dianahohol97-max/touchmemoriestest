@@ -670,7 +670,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                             <div className={styles.priceContainer} style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)' }}>
-                                {`${product.price_from ? t('product_page.from_price') + ' ' : ''}${finalPrice} ₴`}
+                                {product.slug?.includes('polaroid') || product.slug?.includes('поляроїд') || product.slug?.includes('полароїд')
+                                    ? `від ${product.price} ₴/шт`
+                                    : `${product.price_from ? t('product_page.from_price') + ' ' : ''}${finalPrice} ₴`}
                             </div>
                             {product.sale_price && (
                                 <div style={{ fontSize: '20px', fontWeight: 600, color: '#94a3b8', textDecoration: 'line-through' }}>
