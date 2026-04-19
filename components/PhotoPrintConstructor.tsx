@@ -593,6 +593,11 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               <button style={{ padding:'8px 20px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>
                 Вибрати фото
               </button>
+              {isNonstandard && (
+                <div style={{ fontSize:11, color:'#64748b', textAlign:'center', marginTop:4 }}>
+                  мінімальне замовлення — <strong>20 фото</strong>
+                </div>
+              )}
             </div>
           )}
 
