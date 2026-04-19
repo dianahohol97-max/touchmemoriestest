@@ -523,12 +523,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     '9×9': 6,    '9x9': 6,
     '10×10': 6,  '10x10': 6,
     // polaroid
-    '6×6': 10,   '6x6': 10,
-    '7×7': 10,   '7x7': 10,
-    '8×8': 10,   '8x8': 10,
-    '5×15': 10,  '5x15': 10,
-    '6.5×20': 10,'6.5x20': 10,
-    '7×21': 10,  '7x21': 10,
+    '7.6 × 10.1': 8, '7.6x10.1': 8, '7.6×10.1': 8,
+    '8.6 × 5.4': 10, '8.6x5.4': 10, '8.6×5.4': 10,
   };
 
   const getMultiple = (size: string): number => {
