@@ -343,6 +343,11 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       required: true
     },
     {
+      name: 'Ламінація обкладинки',
+      values: ['Глянцева', 'Матова'],
+      required: true,
+    },
+    {
       name: 'Ламінація',
       values: ['Без ламінації', 'З ламінацією сторінок'],
       required: true,

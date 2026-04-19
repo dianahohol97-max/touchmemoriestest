@@ -31,6 +31,7 @@ const PAGE_OPTIONS = [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80]
 interface Extras {
   lamination: boolean
   laminationType: 'glossy' | 'matte'
+  coverLamination: 'glossy' | 'matte'
   endpapers: boolean
   qrCode: boolean
   coverText: boolean
@@ -56,6 +57,7 @@ export default function TravelBookConstructor() {
   const [extras, setExtras] = useState<Extras>({
     lamination: false,
     laminationType: 'glossy',
+    coverLamination: 'glossy',
     endpapers: false,
     qrCode: false,
     coverText: false,
@@ -295,6 +297,22 @@ export default function TravelBookConstructor() {
               </h2>
 
               {/* Lamination */}
+              {/* Cover lamination */}
+              <div className="bg-white rounded-xl p-5 border-l-4 border-[#C4704F]">
+                <h3 className="font-bold text-lg text-[#1A1A1A] mb-3">Ламінація обкладинки</h3>
+                <div className="flex gap-3">
+                  {(['glossy', 'matte'] as const).map(type => (
+                    <label key={type} className="flex-1 flex items-center gap-2 cursor-pointer border rounded-lg px-4 py-3" style={{borderColor: extras.coverLamination === type ? '#C4704F' : '#e5e7eb', background: extras.coverLamination === type ? '#fff7f4' : '#fff'}}>
+                      <input type="radio" name="coverLamination" checked={extras.coverLamination === type}
+                        onChange={() => setExtras({ ...extras, coverLamination: type })}
+                        className="w-4 h-4 text-[#C4704F]"
+                      />
+                      <span className="text-sm font-medium">{type === 'glossy' ? 'Глянцева' : 'Матова'}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <div className="bg-white rounded-xl p-5 border-l-4 border-[#C4704F]">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
