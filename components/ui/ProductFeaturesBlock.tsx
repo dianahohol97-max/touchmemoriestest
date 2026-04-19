@@ -74,7 +74,8 @@ const COVER_TYPES: CoverType[] = [
       { id: 'none',         label: 'Без оздоблення', imageUrl: '' },
       { id: 'acryl',        label: 'Акрил',           imageUrl: '/decorations/acryl.jpg' },
       { id: 'photovstavka', label: 'Фотовставка',     imageUrl: '/decorations/photovstavka.jpg' },
-      { id: 'metal',        label: 'Металева вставка',           imageUrl: '/decorations/metal.jpg' },
+      { id: 'flex',         label: 'Друк кольором',   imageUrl: '/decorations/flex.jpg' },
+      { id: 'metal',        label: 'Металева вставка', imageUrl: '/decorations/metal.jpg' },
     ],
   },
   {
