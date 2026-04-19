@@ -277,7 +277,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Калька перед першою сторінкою',
-      values: ['Без кальки', 'З калькою'],
+      values: ['Без кальки', 'З калькою (+300 грн)'],
       required: true
     },
   ],
