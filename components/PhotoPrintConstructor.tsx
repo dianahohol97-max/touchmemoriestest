@@ -515,10 +515,39 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     return basePrice + textSurcharge;
   };
 
+  // Multiple map for nonstandard and polaroid
+  const MULTIPLE_MAP: Record<string, number> = {
+    '5×7.5': 12, '5x7.5': 12,
+    '6×9': 10,   '6x9': 10,
+    '7.5×10': 8, '7.5x10': 8,
+    '9×9': 6,    '9x9': 6,
+    '10×10': 6,  '10x10': 6,
+    // polaroid
+    '6×6': 10,   '6x6': 10,
+    '7×7': 10,   '7x7': 10,
+    '8×8': 10,   '8x8': 10,
+    '5×15': 10,  '5x15': 10,
+    '6.5×20': 10,'6.5x20': 10,
+    '7×21': 10,  '7x21': 10,
+  };
+
+  const getMultiple = (size: string): number => {
+    const key = String(size || '').replace(/\s*\(.*?\)/g, '').trim();
+    return MULTIPLE_MAP[key] || 1;
+  };
+
   const handleAddToCart = () => {
     const minOrder = 20;
   if (photos.length === 0) { toast.error(t('photo_print.add_photo_first')); return; }
   if (photos.length < minOrder) { toast.error(t('photo_print.min_order').replace('{n}', String(minOrder))); return; }
+  // Check multiple for nonstandard and polaroid
+  if ((isNonstandard || isPolaroid) && selectedSize) {
+    const multiple = getMultiple(selectedSize);
+    if (multiple > 1 && photos.length % multiple !== 0) {
+      toast.error(`Кількість фото має бути кратною ${multiple}. Зараз: ${photos.length} фото.`);
+      return;
+    }
+  }
     addItem({
       id: `${product.id}_${Date.now()}`,
       product_id: product.id, name: product.name,
@@ -727,6 +756,9 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               <span style={{ fontWeight:700, color:photos.length===0?'#c2410c':photos.length<20?'#d97706':'#1d4ed8', fontSize:13 }}>
               {photos.length}/500 фотографій
               {photos.length > 0 && photos.length < 20 && <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>{t('photo_print.min_20')}</span>}
+              {(isNonstandard || isPolaroid) && selectedSize && photos.length >= 20 && getMultiple(selectedSize) > 1 && photos.length % getMultiple(selectedSize) !== 0 && (
+                <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>кратно {getMultiple(selectedSize)}</span>
+              )}
             </span>
             </div>
 
@@ -859,8 +891,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           {/* QR Code Generator */}
           <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
 
-          <button onClick={handleAddToCart} disabled={photos.length < 20}
-            style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px', background:photos.length < 20?'#94a3b8':'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:16, cursor:photos.length < 20?'not-allowed':'pointer', boxShadow:photos.length < 20?'none':'0 4px 16px rgba(30,45,125,0.3)', transition:'all 0.2s' }}>
+          <button onClick={handleAddToCart} disabled={photos.length < 20 || ((isNonstandard || isPolaroid) && selectedSize ? getMultiple(selectedSize) > 1 && photos.length % getMultiple(selectedSize) !== 0 : false)}
+            style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px', background:(photos.length < 20 || ((isNonstandard || isPolaroid) && selectedSize && getMultiple(selectedSize) > 1 && photos.length % getMultiple(selectedSize) !== 0))?'#94a3b8':'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:16, cursor:(photos.length < 20 || ((isNonstandard || isPolaroid) && selectedSize && getMultiple(selectedSize) > 1 && photos.length % getMultiple(selectedSize) !== 0))?'not-allowed':'pointer', boxShadow:'none', transition:'all 0.2s' }}>
             <ShoppingCart size={18} /> {t('photo_print.add_to_cart')}
           </button>
 
