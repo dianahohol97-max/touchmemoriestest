@@ -524,7 +524,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       product_id: product.id, name: product.name,
       price: calculatePrice(), // total price for all photos
       image: product.images?.[0] || '', slug: product.slug,
-      options: { 'Кількість фото': photos.length.toString(), ...(selectedSize && {'Розмір': selectedSize}), ...(selectedFinish && {'Покриття': selectedFinish}), ...(!isNonstandard && !isPolaroid && {'Біла рамочка': selectedBorder === 'with' ? 'Так' : 'Ні'}) },
+      options: { 'Кількість фото': photos.length.toString(), ...(selectedSize && {'Розмір': selectedSize}), ...(selectedFinish && {'Покриття': selectedFinish}), ...(isNonstandard ? {'Біла рамочка': 'Так'} : (!isPolaroid && {'Біла рамочка': selectedBorder === 'with' ? 'Так' : 'Ні'})) },
       qty: 1, // price already includes all photo quantities
       personalization_note: isPolaroid
         ? `${photos.length} фото. Написи: ${photos.filter(p=>p.polaroidText?.trim()).map((p,i)=>`фото ${photos.indexOf(p)+1}: "${p.polaroidText}"`).join(', ') || 'немає'}`
@@ -541,7 +541,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const sizeOptions = getSizeOptions();
   const finishOptions = getFinishOptions();
   const sizeKey = getSizeKey(selectedSize);
-  const showBorder = !isNonstandard && !isPolaroid && selectedBorder === 'with';
+  const showBorder = isNonstandard || (!isPolaroid && selectedBorder === 'with');
   const hasBorderOption = !isNonstandard && !isPolaroid && (product.options as ProductOption[])?.some(o => o.name === 'Біла рамочка 3мм');
 
   return (
