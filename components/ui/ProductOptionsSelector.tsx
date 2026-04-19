@@ -803,7 +803,25 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                 <option value="" disabled>
                   {t('product_page.choose_option')} {optLabel(option.name).toLowerCase()}
                 </option>
-                {option.values.map((value, valIdx) => {
+                {option.values.filter((value) => {
+                  // Filter pages by min_pages of selected size (for photobook)
+                  if (option.name === 'Кількість сторінок') {
+                    const selectedSize = selectedOptions['Розмір'];
+                    if (selectedSize) {
+                      // Find min_pages from product options (passed via slug-based config)
+                      const MIN_PAGES: Record<string, number> = {
+                        '20х20': 6, '20x20': 6, '20×20': 6,
+                        '25х25': 6, '25x25': 6, '25×25': 6,
+                        '20х30': 10, '20x30': 10, '20×30': 10,
+                        '30х20': 10, '30x20': 10, '30×20': 10,
+                        '30х30': 16, '30x30': 16, '30×30': 16,
+                      };
+                      const minPages = MIN_PAGES[String(selectedSize)] || 6;
+                      return Number(value) >= minPages;
+                    }
+                  }
+                  return true;
+                }).map((value, valIdx) => {
                   const price = option.prices?.[value as string];
                   return (
                     <option key={valIdx} value={value}>

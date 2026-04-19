@@ -693,7 +693,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 <SizeVisualizer
                                                                     sizes={sizeValues}
                                                                     selected={customProductOptions[opt.name] || null}
-                                                                    onSelect={(size) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: size }))}
+                                                                    onSelect={(size) => {
+                                                                    // When size changes, reset pages if below min_pages
+                                                                    const sizeItem = opt.options?.find((s: any) => s.value === size);
+                                                                    const minPages = sizeItem?.min_pages || 6;
+                                                                    setCustomProductOptions(prev => {
+                                                                        const currentPages = Number(prev['Кількість сторінок'] || 0);
+                                                                        const newPages = currentPages < minPages ? String(minPages) : prev['Кількість сторінок'];
+                                                                        return { ...prev, [opt.name]: size, 'Кількість сторінок': newPages };
+                                                                    });
+                                                                }}
                                                                     prices={prices}
                                                                     wrap={sizeValues.length > 5}
                                                                 />
@@ -712,7 +721,21 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                             }}
                                                         >
                                                             {opt.required !== false && <option value="" disabled>{t('product_page.choose_option')} {opt.name.toLowerCase()}</option>}
-                                                            {items.map((item: any, idx: number) => {
+                                                            {items.filter((item: any) => {
+                                                                // Filter pages by min_pages of selected size
+                                                                if (opt.name === 'Кількість сторінок') {
+                                                                    const selectedSizeVal = String(customProductOptions['Розмір'] || '');
+                                                                    if (selectedSizeVal) {
+                                                                        // Find min_pages from the size option
+                                                                        const sizeOpt = product.options?.find((o: any) => o.name === 'Розмір');
+                                                                        const sizeItem = sizeOpt?.options?.find((s: any) => s.value === selectedSizeVal);
+                                                                        const minPages = sizeItem?.min_pages || 6;
+                                                                        const pageNum = Number(item.value || item.label?.match(/\d+/)?.[0] || 0);
+                                                                        if (pageNum > 0 && pageNum < minPages) return false;
+                                                                    }
+                                                                }
+                                                                return true;
+                                                            }).map((item: any, idx: number) => {
                                                                 const label = item.label || item.name || String(item);
                                                                 const value = item.value || item.name || String(item);
                                                                 const price = Number(item.price || 0);
