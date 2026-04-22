@@ -794,7 +794,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                                     {/* DB-only options not rendered by ProductOptionsSelector */}
                                     {product.options && Array.isArray(product.options) && (() => {
-                                        const hardcodedNames = new Set(['Розмір', 'Кількість сторінок', 'Тип обкладинки',
+                                        const isPhotobookOrMagazine = (product.slug || '').includes('photobook') || (product.slug || '').includes('magazine') || (product.slug || '').includes('graduation');
+                                        const hardcodedNames = new Set(['Розмір', ...(isPhotobookOrMagazine ? ['Кількість сторінок'] : []), 'Тип обкладинки',
                                             'Калька перед першою сторінкою', 'Тип ламінації', 'Текст', 'Оздоблення',
                                             'Варіант акрилу', 'Варіант фотовставки', 'Варіант металевої вставки',
                                             'Варіант тиснення', 'Варіант гравірування', 'Корінець',
