@@ -522,7 +522,9 @@
     "no_description": "Descrierea detaliată pentru acest produs nu a fost încă adăugată.",
     "review_text": "\"Calitate incredibilă! A depășit toate așteptările mele.\"",
     "review_author": "Client Touch Memories",
-    "you_may_like": "S-ar putea să vă placă și"
+    "you_may_like": "S-ar putea să vă placă și",
+    "upload_order_hint": "Încărcați fotografii și plasați comanda în 3 pași",
+    "designer_order_hint": "Nu știți cum să comandați? Designerul nostru vă va ajuta să creați produsul perfect"
   },
   "custom_book": {
     "photo_print_label": "Tipărire Foto",

@@ -953,7 +953,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     {t('product.order_now_arrow')}
                                 </button>
                                 <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: 0 }}>
-                                    Завантажте фото та оформіть замовлення за 3 кроки
+                                    {t('product_page.upload_order_hint')}
                                 </p>
                             </div>
                         ) : product.is_personalized ? (
@@ -1078,7 +1078,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         )}
                                     </div>
                                     <p style={{ fontSize: '14px', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
-                                        Не знаєте як оформити? Наш дизайнер допоможе вам створити ідеальний продукт                                    </p>
+                                        {t('product_page.designer_order_hint')}                                    </p>
                                 </div>
                             </div>
                         ) : product.is_partially_personalized ? (

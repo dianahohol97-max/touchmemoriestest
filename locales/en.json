@@ -522,7 +522,9 @@
     "no_description": "Detailed description for this product has not been added yet.",
     "review_text": "\"Incredible quality! Exceeded all my expectations. I ordered it as a gift for my parents, they were absolutely delighted.\"",
     "review_author": "Touch Memories Customer",
-    "you_may_like": "You may also like"
+    "you_may_like": "You may also like",
+    "upload_order_hint": "Upload photos and place your order in 3 steps",
+    "designer_order_hint": "Not sure how to design? Our designer will help you create the perfect product"
   },
   "custom_book": {
     "photo_print_label": "Photo Prints",

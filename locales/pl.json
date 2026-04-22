@@ -522,7 +522,9 @@
     "no_description": "Szczegółowy opis tego produktu nie został jeszcze dodany.",
     "review_text": "\"Niesamowita jakość! Przekroczyło wszystkie moje oczekiwania.\"",
     "review_author": "Klient Touch Memories",
-    "you_may_like": "Może Ci się spodobać"
+    "you_may_like": "Może Ci się spodobać",
+    "upload_order_hint": "Prześlij zdjęcia i złóż zamówienie w 3 krokach",
+    "designer_order_hint": "Nie wiesz jak zamówić? Nasz projektant pomoże Ci stworzyć idealny produkt"
   },
   "custom_book": {
     "photo_print_label": "Wydruki Foto",
