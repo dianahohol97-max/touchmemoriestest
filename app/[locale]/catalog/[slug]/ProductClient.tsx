@@ -796,13 +796,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     {/* DB-only options not rendered by ProductOptionsSelector */}
                                     {product.options && Array.isArray(product.options) && (() => {
                                         const isPhotobookOrMagazine = (product.slug || '').includes('photobook') || (product.slug || '').includes('magazine') || (product.slug || '').includes('graduation');
-                                        const hardcodedNames = new Set(['Розмір', ...(isPhotobookOrMagazine ? ['Кількість сторінок'] : []), 'Тип обкладинки',
+                                        const isTravelbook = (product.slug || '').includes('travelbook') || (product.slug || '').includes('travel');
+                                        const hardcodedNames = new Set(['Розмір', ...(isPhotobookOrMagazine || isTravelbook ? ['Кількість сторінок'] : []), 'Тип обкладинки',
                                             'Калька перед першою сторінкою', 'Тип ламінації', 'Текст', 'Оздоблення',
                                             'Варіант акрилу', 'Варіант фотовставки', 'Варіант металевої вставки',
                                             'Варіант тиснення', 'Варіант гравірування', 'Корінець',
                                             'Рамка', 'Вид', 'Покриття', 'Біла рамочка 3мм', 'Матеріал',
                                             'Матеріал обкладинки', 'Колір сторінок',
-                                            'Верстка тексту', 'Терміновість', 'Ламінація сторінок', 'Ламінування сторінок',
+                                            'Верстка тексту', 'Терміновість', 'Ламінація сторінок', 'Ламінування сторінок', ...(isTravelbook ? ['Ламінація обкладинки', 'Ламінація', 'Індивідуальна обкладинка'] : []),
                                             'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка']);
                                         return product.options
                                             .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0))
