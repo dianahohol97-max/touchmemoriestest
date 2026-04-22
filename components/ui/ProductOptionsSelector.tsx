@@ -58,11 +58,11 @@ const WISHBOOK_PRICES: Record<string, Record<string, number>> = {
 };
 
 const PHOTOPRINT_STANDARD_PRICES: Record<string, number> = {
-  '9х13': 8,
-  '10х15': 8,
-  '13х15': 18,
-  '15х20': 23,
-  '20х30': 44,
+  '9х13': 8, '9x13': 8,
+  '10х15': 8, '10x15': 8,
+  '13х18': 18, '13x18': 18,
+  '15х20': 23, '15x20': 23,
+  '20х30': 44, '20x30': 44,
 };
 
 const PHOTOPRINT_NONSTANDARD_PRICES: Record<string, number> = {
@@ -375,7 +375,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
   photoprint_standard: [
     {
       name: 'Розмір',
-      values: ['9х13', '10х15', '13х15', '15х20', '20х30'],
+      values: ['9х13', '10х15', '13х18', '15х20', '20х30'],
       prices: PHOTOPRINT_STANDARD_PRICES,
       required: true
     },
