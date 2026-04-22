@@ -769,9 +769,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 const price = Number(item.price || 0);
                                                                 // Don't show (+X ₴) if label already contains price (грн/₴)
                                                                 const labelHasPrice = /\d+\s*(грн|₴)/.test(label);
+                                                                const basePrice = Number(product.price || 0);
                                                                 return (
                                                                     <option key={idx} value={value}>
-                                                                        {optValueLabel(label)}{price > 0 && !labelHasPrice ? ` (+${price} ₴)` : ''}
+                                                                        {optValueLabel(label)}{price > 0 && !labelHasPrice ? ` — ${basePrice + price} ₴` : ''}
                                                                     </option>
                                                                 );
                                                             })}
@@ -829,9 +830,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 const value = item.value || item.name || item;
                                                                 const price = Number(item.price || 0);
                                                                 const labelHasPrice = /\d+\s*(грн|₴)/.test(String(label));
+                                                                const basePr = Number(product.price || 0);
                                                                 return (
                                                                     <option key={idx} value={value}>
-                                                                        {optValueLabel(label)}{price > 0 && !labelHasPrice ? ` (+${price} ₴)` : ''}
+                                                                        {optValueLabel(label)}{price > 0 && !labelHasPrice ? ` — ${basePr + price} ₴` : ''}
                                                                     </option>
                                                                 );
                                                             })}
