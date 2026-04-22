@@ -325,7 +325,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 // Fetch Related Products
                 const { data: relatedData } = await supabase
                     .from('products')
-                    .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, category_id')
+                    .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, category_id, translations')
                     .eq('is_active', true)
                     .neq('id', data.id)
                     .limit(4);

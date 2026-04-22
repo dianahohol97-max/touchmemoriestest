@@ -161,7 +161,7 @@ export function Footer({ categories = [] }: FooterProps) {
                         title: t('footer.contacts'),
                         links: [
                             { label: 'touch.memories3@gmail.com', href: 'mailto:touch.memories3@gmail.com' },
-                            { label: 'Тернопіль, вул. Київська 2', href: 'https://maps.google.com/?q=Тернопіль,+вул.+Київська+2' },
+                            { label: t('footer.address'), href: 'https://maps.google.com/?q=Тернопіль,+вул.+Київська+2' },
                             { label: 'Telegram: @touchmemories', href: 'https://t.me/touchmemories' },
                             { label: 'Instagram: @touch.memories', href: 'https://instagram.com/touch.memories' },
                             { label: 'TikTok: @touch.memories', href: 'https://tiktok.com/@touch.memories' }
@@ -192,7 +192,7 @@ export function Footer({ categories = [] }: FooterProps) {
                         
                         <div className="flex flex-col gap-2">
                             <p className="text-sm text-stone-500 mt-2 flex items-center gap-2">
-                                <MapPin size={14} /> Тернопіль, вул. Київська 2
+                                <MapPin size={14} /> {t('footer.address')}
                             </p>
                             <p className="text-sm text-stone-500 flex items-center gap-2">
                                 <Mail size={14} /> touch.memories3@gmail.com
