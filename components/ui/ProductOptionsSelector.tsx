@@ -619,11 +619,13 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         const basePrice = MAGAZINE_PAGE_PRICES[pages] || null;
         if (!basePrice) return null;
         // Text layout surcharge
-        const hasText = String(opts['Верстка тексту'] || '').includes('175') || String(opts['Верстка тексту'] || '') === 'З версткою тексту (+175 ₴)';
-        const textPrice = hasText ? 175 : 0;
+        const textVal = String(opts['Верстка тексту'] || '');
+        const hasText = textVal.includes('текстом') || textVal.includes('верстк') || textVal === 'with';
+        const textPrice = hasText ? 195 : 0;
         const subtotal = basePrice + textPrice;
         // Urgency +30%
-        const isUrgent = String(opts['Терміновість'] || '').includes('Термінова') || String(opts['Терміновість'] || '').includes('+30');
+        const urgVal = String(opts['Терміновість'] || '');
+        const isUrgent = urgVal === 'urgent' || urgVal.includes('Термінова') || urgVal.includes('+30');
         return isUrgent ? Math.round(subtotal * 1.3) : subtotal;
       }
     }
