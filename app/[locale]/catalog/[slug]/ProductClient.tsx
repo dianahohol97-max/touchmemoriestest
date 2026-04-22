@@ -905,7 +905,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     {/* Quantity: hidden for photoprint (determined by uploaded photo count) */}
                                     {!(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('поляроїд') || product.slug?.includes('полароїд')) && (
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>Кількість</label>
+                                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>{t('product_page.quantity_label')}</label>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <button
                                                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -1027,7 +1027,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             }}
                                             className="hover:bg-[#1a2966]"
                                         >
-                                            Відкрити редактор
+                                            {t('product_page.open_editor')}
                                         </button>
                                         {isWishbookProduct(product.slug || resolvedParams.slug) ? (
                                             <button
@@ -1266,7 +1266,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 onMouseOver={e => (e.currentTarget.style.background = '#fdf4ff', e.currentTarget.style.borderColor = '#e879f9')}
                                 onMouseOut={e => (e.currentTarget.style.background = '#fff', e.currentTarget.style.borderColor = '#e2e8f0')}
                             >
-                                 Натякнути на подарунок
+                                 {t('product_page.hint_as_gift')}
                             </button>
                             <Link
                                 href="/catalog/gift-certificate"
@@ -1277,7 +1277,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 onMouseOver={(e: any) => (e.currentTarget.style.background = '#fefce8', e.currentTarget.style.borderColor = '#facc15')}
                                 onMouseOut={(e: any) => (e.currentTarget.style.background = '#fff', e.currentTarget.style.borderColor = '#e2e8f0')}
                             >
-                                 Придбати сертифікат
+                                 {t('product_page.buy_certificate')}
                             </Link>
                         </div>
 
@@ -1299,7 +1299,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     ) : (
                                         <>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', margin: 0 }}> Натякнути на подарунок</h3>
+                                                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', margin: 0 }}> {t('product_page.hint_as_gift')}</h3>
                                                 <button onClick={() => setShowGiftHint(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94a3b8' }}>×</button>
                                             </div>
                                             <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>
@@ -1387,7 +1387,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 <div style={{ background: '#dcfce7', padding: '6px', borderRadius: "3px" }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
-                                Термін виготовлення: {getProductionTime(product.categories?.slug || product.category_id, product.slug || '')}
+                                {t('product_page.production_time_label')}: {getProductionTime(product.categories?.slug || product.category_id, product.slug || '')}
                                 {isJournalProduct(product.slug, product.categories?.slug || '') && (
                                     <span style={{ marginLeft: 8, fontSize: 12, color: '#f59e0b', fontWeight: 700, background: '#fffbeb', padding: '2px 8px', borderRadius: 4, border: '1px solid #fde68a' }}>
                                         {t('product_page.urgent_order')}
@@ -1477,7 +1477,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         borderBottom: idx < product.specs.length - 1 ? '1px solid #f1f5f9' : 'none'
                                     }}>
                                         <div style={{ minWidth: 160, fontSize: 14, color: '#64748b', fontWeight: 500, flexShrink: 0 }}>
-                                            {spec.label || spec.key || spec.name}
+                                            {(locale !== 'uk' && spec[`label_${locale}`]) ? spec[`label_${locale}`] : (spec.label || spec.key || spec.name)}
                                         </div>
                                         <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#1e2d7d' }}>
                                             {spec.value}

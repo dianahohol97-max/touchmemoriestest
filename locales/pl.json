@@ -525,7 +525,17 @@
     "review_author": "Klient Touch Memories",
     "you_may_like": "Może Ci się spodobać",
     "upload_order_hint": "Prześlij zdjęcia i złóż zamówienie w 3 krokach",
-    "designer_order_hint": "Nie wiesz jak zamówić? Nasz projektant pomoże Ci stworzyć idealny produkt"
+    "designer_order_hint": "Nie wiesz jak zamówić? Nasz projektant pomoże Ci stworzyć idealny produkt",
+    "open_editor": "Otwórz edytor",
+    "buy_certificate": "Kup certyfikat",
+    "quantity_label": "Ilość",
+    "production_time_label": "Czas produkcji",
+    "hint_as_gift": "Zasugeruj jako prezent",
+    "cover_types_title": "Rodzaje okładek",
+    "cover_types_subtitle": "Wybierz materiał okładki, aby zobaczyć przykłady",
+    "cover_example_after_upload": "Przykład pojawi się po przesłaniu zdjęcia",
+    "available_colors": "Dostępne kolory",
+    "cover_decoration": "Zdobienie okładki"
   },
   "custom_book": {
     "photo_print_label": "Wydruki Foto",

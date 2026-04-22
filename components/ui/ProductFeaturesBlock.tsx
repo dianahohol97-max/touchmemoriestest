@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 //  Types 
 
@@ -119,10 +120,10 @@ function PhotobookCoversSection() {
   return (
     <div style={{ marginTop: 64, marginBottom: 64 }}>
       <h2 style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d', marginBottom: 8, textAlign: 'center' }}>
-        Типи обкладинок
+        {t('product_page.cover_types_title')}
       </h2>
       <p style={{ textAlign: 'center', color: '#64748b', fontSize: 15, marginBottom: 36 }}>
-        Оберіть матеріал обкладинки щоб побачити приклади
+        {t('product_page.cover_types_subtitle')}
       </p>
 
       {/* Cover type tabs */}
@@ -158,7 +159,7 @@ function PhotobookCoversSection() {
             ) : (
               <div style={{ textAlign: 'center', padding: 40 }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', marginBottom: 4 }}>{cover.label}</div>
-                <div style={{ fontSize: 13, color: '#94a3b8' }}>Приклад буде після завантаження фото</div>
+                <div style={{ fontSize: 13, color: '#94a3b8' }}>{t('product_page.cover_example_after_upload')}</div>
               </div>
             )}
           </div>
@@ -167,7 +168,7 @@ function PhotobookCoversSection() {
           {cover.swatchColors && (
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Доступні кольори
+                {t('product_page.available_colors')}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {cover.swatchColors.map((hex, i) => (
@@ -192,7 +193,7 @@ function PhotobookCoversSection() {
           {cover.decorations && (
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Оздоблення обкладинки
+                {t('product_page.cover_decoration')}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {cover.decorations.map(d => (
@@ -384,6 +385,7 @@ interface ProductFeaturesBlockProps {
 }
 
 export function ProductFeaturesBlock({ features, isPhotobook, isJournal }: ProductFeaturesBlockProps) {
+  const t = useTranslations();
   const hasFeatures = features && features.length > 0;
   const showCovers = isPhotobook;
   const showJournalCovers = isJournal;

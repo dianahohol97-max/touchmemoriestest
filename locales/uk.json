@@ -525,7 +525,17 @@
     "review_author": "Клієнт Touch Memories",
     "you_may_like": "Вам також може сподобатись",
     "upload_order_hint": "Завантажте фото та оформіть замовлення за 3 кроки",
-    "designer_order_hint": "Не знаєте як оформити? Наш дизайнер допоможе вам створити ідеальний продукт"
+    "designer_order_hint": "Не знаєте як оформити? Наш дизайнер допоможе вам створити ідеальний продукт",
+    "open_editor": "Відкрити редактор",
+    "buy_certificate": "Придбати сертифікат",
+    "quantity_label": "Кількість",
+    "production_time_label": "Термін виготовлення",
+    "hint_as_gift": "Натякнути на подарунок",
+    "cover_types_title": "Типи обкладинок",
+    "cover_types_subtitle": "Оберіть матеріал обкладинки щоб побачити приклади",
+    "cover_example_after_upload": "Приклад буде після завантаження фото",
+    "available_colors": "Доступні кольори",
+    "cover_decoration": "Оздоблення обкладинки"
   },
   "custom_book": {
     "photo_print_label": "Фотодрук",

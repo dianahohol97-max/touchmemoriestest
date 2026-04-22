@@ -525,7 +525,17 @@
     "review_author": "Touch Memories Customer",
     "you_may_like": "You may also like",
     "upload_order_hint": "Upload photos and place your order in 3 steps",
-    "designer_order_hint": "Not sure how to design? Our designer will help you create the perfect product"
+    "designer_order_hint": "Not sure how to design? Our designer will help you create the perfect product",
+    "open_editor": "Open Editor",
+    "buy_certificate": "Buy Gift Certificate",
+    "quantity_label": "Quantity",
+    "production_time_label": "Production time",
+    "hint_as_gift": "Hint as a Gift",
+    "cover_types_title": "Cover Types",
+    "cover_types_subtitle": "Choose a cover material to see examples",
+    "cover_example_after_upload": "Example will appear after photo upload",
+    "available_colors": "Available Colors",
+    "cover_decoration": "Cover Decoration"
   },
   "custom_book": {
     "photo_print_label": "Photo Prints",

@@ -525,7 +525,17 @@
     "review_author": "Touch Memories Kunde",
     "you_may_like": "Das könnte Ihnen auch gefallen",
     "upload_order_hint": "Fotos hochladen und Bestellung in 3 Schritten aufgeben",
-    "designer_order_hint": "Nicht sicher, wie Sie gestalten sollen? Unser Designer hilft Ihnen, das perfekte Produkt zu erstellen"
+    "designer_order_hint": "Nicht sicher, wie Sie gestalten sollen? Unser Designer hilft Ihnen, das perfekte Produkt zu erstellen",
+    "open_editor": "Editor öffnen",
+    "buy_certificate": "Zertifikat kaufen",
+    "quantity_label": "Anzahl",
+    "production_time_label": "Produktionszeit",
+    "hint_as_gift": "Als Geschenk vorschlagen",
+    "cover_types_title": "Einbandarten",
+    "cover_types_subtitle": "Wählen Sie ein Einbandmaterial, um Beispiele zu sehen",
+    "cover_example_after_upload": "Beispiel erscheint nach dem Foto-Upload",
+    "available_colors": "Verfügbare Farben",
+    "cover_decoration": "Einbandverzierung"
   },
   "custom_book": {
     "photo_print_label": "Fotodrucke",

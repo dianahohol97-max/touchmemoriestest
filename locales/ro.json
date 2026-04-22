@@ -525,7 +525,17 @@
     "review_author": "Client Touch Memories",
     "you_may_like": "S-ar putea să vă placă și",
     "upload_order_hint": "Încărcați fotografii și plasați comanda în 3 pași",
-    "designer_order_hint": "Nu știți cum să comandați? Designerul nostru vă va ajuta să creați produsul perfect"
+    "designer_order_hint": "Nu știți cum să comandați? Designerul nostru vă va ajuta să creați produsul perfect",
+    "open_editor": "Deschide editorul",
+    "buy_certificate": "Cumpără certificat",
+    "quantity_label": "Cantitate",
+    "production_time_label": "Timp de producție",
+    "hint_as_gift": "Sugerează ca cadou",
+    "cover_types_title": "Tipuri de coperți",
+    "cover_types_subtitle": "Alegeți materialul copertei pentru a vedea exemple",
+    "cover_example_after_upload": "Exemplul va apărea după încărcarea fotografiei",
+    "available_colors": "Culori disponibile",
+    "cover_decoration": "Decorare copertă"
   },
   "custom_book": {
     "photo_print_label": "Tipărire Foto",
