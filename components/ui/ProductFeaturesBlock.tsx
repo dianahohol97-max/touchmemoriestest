@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
+import { useT } from '@/lib/i18n/context';
 
 //  Types 
 
@@ -385,7 +385,7 @@ interface ProductFeaturesBlockProps {
 }
 
 export function ProductFeaturesBlock({ features, isPhotobook, isJournal }: ProductFeaturesBlockProps) {
-  const t = useTranslations();
+  const t = useT();
   const hasFeatures = features && features.length > 0;
   const showCovers = isPhotobook;
   const showJournalCovers = isJournal;
