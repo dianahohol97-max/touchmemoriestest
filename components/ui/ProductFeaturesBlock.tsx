@@ -111,6 +111,7 @@ const COVER_TYPES: CoverType[] = [
 //  Cover selector component 
 
 function PhotobookCoversSection() {
+  const t = useT();
   const [activeCover, setActiveCover] = useState<string>('velour');
   const [activeDecoration, setActiveDecoration] = useState<string>('none');
   const [activeLamination, setActiveLamination] = useState<string>('glossy');
