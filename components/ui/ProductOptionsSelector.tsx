@@ -515,7 +515,19 @@ interface ProductOptionsSelectorProps {
 export function ProductOptionsSelector({ slug, selectedOptions, onChange }: ProductOptionsSelectorProps) {
   const t = useT();
   const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
-  const optValueLabel = (val: string | number) => { const k = t('option_value_labels.' + String(val)); return k !== 'option_value_labels.' + String(val) ? k : String(val); };
+  const optValueLabel = (val: string | number) => {
+    const s = String(val);
+    const kFull = t('option_value_labels.' + s);
+    if (kFull !== 'option_value_labels.' + s) return kFull;
+    const m = s.match(/^(.+?)\s*(\(.+\))\s*$/);
+    if (m) {
+      const base = m[1].trim();
+      const suffix = m[2];
+      const kBase = t('option_value_labels.' + base);
+      if (kBase !== 'option_value_labels.' + base) return `${kBase} ${suffix}`;
+    }
+    return s;
+  };
 
   const productType = detectProductType(slug);
   const s = slug?.toLowerCase() || '';

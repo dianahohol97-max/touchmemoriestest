@@ -140,7 +140,20 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const t = useT();
     const locale = useLocale();
     const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
-    const optValueLabel = (label: string) => { const k = t('option_value_labels.' + label); return k !== 'option_value_labels.' + label ? k : label; };
+    const optValueLabel = (label: string) => {
+        // First try full-string translation
+        const kFull = t('option_value_labels.' + label);
+        if (kFull !== 'option_value_labels.' + label) return kFull;
+        // If label has a price suffix like "З калькою (+300 грн)", translate the base part only
+        const m = label.match(/^(.+?)\s*(\(.+\))\s*$/);
+        if (m) {
+            const base = m[1].trim();
+            const suffix = m[2];
+            const kBase = t('option_value_labels.' + base);
+            if (kBase !== 'option_value_labels.' + base) return `${kBase} ${suffix}`;
+        }
+        return label;
+    };
     const resolvedParams = React.use(params);
     const router = useRouter();
     const searchParams = useSearchParams();
