@@ -1,28 +1,16 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Gift, Mail, Package, Check, Calendar, Info } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { ArrowLeft, Gift, Mail, Package, Check, Calendar, Info } from 'lucide-react';
 import { useCartStore } from '@/lib/store/cart';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
 
-interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  category_id: string;
-}
-
 interface CertificateConfig {
-  type: 'money' | 'product';
   amount: number;
-  productId: string;
-  productName: string;
-  productPrice: number;
   format: 'electronic' | 'printed';
   recipientName: string;
   recipientEmail: string;
@@ -33,11 +21,9 @@ export default function GiftCertificatePage() {
   const t = useT();
   const router = useRouter();
   const { addItem } = useCartStore();
-  const supabase = createClient();
 
   // State
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [certificateCode] = useState<string>(() => {
     // Generate preview code — real code assigned by DB on purchase
     const year = new Date().getFullYear();
@@ -46,78 +32,32 @@ export default function GiftCertificatePage() {
   });
 
   const [config, setConfig] = useState<CertificateConfig>({
-    type: 'money',
     amount: 500,
-    productId: '',
-    productName: '',
-    productPrice: 0,
     format: 'electronic',
     recipientName: '',
     recipientEmail: '',
     message: '',
   });
 
-  // Fetch products for product certificate option
-  useEffect(() => {
-    const fetchProducts = async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, name, slug, price, category_id')
-        .eq('is_active', true)
-        .order('name');
+  // Calculate total price
+  const totalPrice = useMemo(() => config.amount, [config.amount]);
 
-      if (!error && data) {
-        setProducts(data);
-      }
-      setLoading(false);
-    };
-
-    fetchProducts();
+  // Calculate validity date (always 12 months for money certificates)
+  const validUntil = useMemo(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() + 12);
+    return date.toLocaleDateString('uk-UA', { year: 'numeric', month: 'long', day: 'numeric' });
   }, []);
 
-  // Calculate total price
-  const totalPrice = useMemo(() => {
-    if (config.type === 'money') {
-      return config.amount;
-    } else {
-      return config.productPrice;
-    }
-  }, [config.type, config.amount, config.productPrice]);
-
-  // Calculate validity date
-  const validUntil = useMemo(() => {
-    const months = config.type === 'money' ? 12 : 3;
-    const date = new Date();
-    date.setMonth(date.getMonth() + months);
-    return date.toLocaleDateString('uk-UA', { year: 'numeric', month: 'long', day: 'numeric' });
-  }, [config.type]);
-
-  // Handle product selection
-  const handleProductSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedProduct = products.find((p) => p.id === e.target.value);
-    if (selectedProduct) {
-      setConfig({
-        ...config,
-        productId: selectedProduct.id,
-        productName: selectedProduct.name,
-        productPrice: selectedProduct.price,
-      });
-    }
-  };
 
   // Handle add to cart
   const handleAddToCart = () => {
-    if (config.type === 'product' && !config.productId) {
-      toast.error(t('gift_certificate.error_select_product'));
-      return;
-    }
-
     if (config.format === 'electronic' && !config.recipientEmail) {
       toast.error(t('gift_certificate.error_email_required'));
       return;
     }
 
-    if (config.type === 'money' && config.amount < 100) {
+    if (config.amount < 100) {
       toast.error(t('gift_certificate.error_min_amount'));
       return;
     }
@@ -132,24 +72,20 @@ export default function GiftCertificatePage() {
       image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80',
       options: {
         'Номер': certificateCode,
-        'Тип сертифікату': config.type === 'money'
-          ? t('gift_certificate.cart_type_money').replace('{amount}', String(config.amount))
-          : t('gift_certificate.cart_type_product').replace('{name}', config.productName),
+        'Тип сертифікату': t('gift_certificate.cart_type_money').replace('{amount}', String(config.amount)),
         'Формат': config.format === 'electronic' ? t('gift_certificate.cart_format_electronic') : t('gift_certificate.cart_format_printed'),
         'Отримувач': config.recipientName || config.recipientEmail,
         'Термін дії': validUntil,
       },
       metadata: {
         certificateCode,
-        certificateType: config.type,
-        amount: config.type === 'money' ? config.amount : undefined,
-        productId: config.type === 'product' ? config.productId : undefined,
-        productName: config.type === 'product' ? config.productName : undefined,
+        certificateType: 'money',
+        amount: config.amount,
         format: config.format,
         recipientName: config.recipientName,
         recipientEmail: config.recipientEmail,
         message: config.message,
-        validityMonths: config.type === 'money' ? 12 : 3,
+        validityMonths: 12,
       },
     };
 
@@ -169,6 +105,15 @@ export default function GiftCertificatePage() {
   return (
     <div className="min-h-screen bg-stone-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Back button */}
+        <Link
+          href="/catalog"
+          className="inline-flex items-center gap-2 text-stone-600 hover:text-[#1e3a8a] transition-colors mb-6 text-sm font-medium"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          {t('gift_certificate.back_to_catalog')}
+        </Link>
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -201,12 +146,7 @@ export default function GiftCertificatePage() {
 
               {/* Money Certificate */}
               <div
-                onClick={() => setConfig({ ...config, type: 'money' })}
-                className={`p-6 rounded-xl border-2 cursor-pointer transition-all mb-4 ${
-                  config.type === 'money'
-                    ? 'border-[#1e3a8a] bg-blue-50'
-                    : 'border-stone-200 hover:border-stone-300'
-                }`}
+                className="p-6 rounded-xl border-2 border-[#1e3a8a] bg-blue-50 mb-4"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -218,83 +158,25 @@ export default function GiftCertificatePage() {
                       <p className="text-sm text-stone-500">{t('gift_certificate.type_money_subtitle')}</p>
                     </div>
                   </div>
-                  {config.type === 'money' && (
-                    <div className="w-6 h-6 rounded-full bg-[#1e3a8a] flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
-                    </div>
-                  )}
                 </div>
 
-                {config.type === 'money' && (
-                  <div className="space-y-3">
-                    <label className="block">
-                      <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.amount_label')}</span>
-                      <input
-                        type="number"
-                        min="100"
-                        step="50"
-                        value={config.amount}
-                        onChange={(e) => setConfig({ ...config, amount: parseInt(e.target.value) || 100 })}
-                        className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
-                      />
-                    </label>
-                    <div className="flex items-center gap-2 text-sm text-stone-600">
-                      <Calendar className="w-4 h-4" />
-                      <span>{t('gift_certificate.validity_1_year')}</span>
-                    </div>
+                <div className="space-y-3">
+                  <label className="block">
+                    <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.amount_label')}</span>
+                    <input
+                      type="number"
+                      min="100"
+                      step="50"
+                      value={config.amount}
+                      onChange={(e) => setConfig({ ...config, amount: parseInt(e.target.value) || 100 })}
+                      className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
+                    />
+                  </label>
+                  <div className="flex items-center gap-2 text-sm text-stone-600">
+                    <Calendar className="w-4 h-4" />
+                    <span>{t('gift_certificate.validity_1_year')}</span>
                   </div>
-                )}
-              </div>
-
-              {/* Product Certificate */}
-              <div
-                onClick={() => setConfig({ ...config, type: 'product' })}
-                className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
-                  config.type === 'product'
-                    ? 'border-[#1e3a8a] bg-blue-50'
-                    : 'border-stone-200 hover:border-stone-300'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-                      <span className="text-2xl"></span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-stone-900">{t('gift_certificate.type_product_title')}</h3>
-                      <p className="text-sm text-stone-500">{t('gift_certificate.type_product_subtitle')}</p>
-                    </div>
-                  </div>
-                  {config.type === 'product' && (
-                    <div className="w-6 h-6 rounded-full bg-[#1e3a8a] flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
-                    </div>
-                  )}
                 </div>
-
-                {config.type === 'product' && (
-                  <div className="space-y-3">
-                    <label className="block">
-                      <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.select_product_label')}</span>
-                      <select
-                        value={config.productId}
-                        onChange={handleProductSelect}
-                        className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
-                      >
-                        <option value="">{t('gift_certificate.select_product_placeholder')}</option>
-                        {products.map((product) => (
-                          <option key={product.id} value={product.id}>
-                            {product.name} — {product.price} ₴
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className="flex items-center gap-2 text-sm text-stone-600">
-                      <Calendar className="w-4 h-4" />
-                      <span>{t('gift_certificate.validity_3_months')}</span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -492,13 +374,9 @@ export default function GiftCertificatePage() {
                         borderBottom: '1.5px solid rgba(255,255,255,0.6)',
                         minWidth: 110, textAlign: 'center',
                         paddingBottom: 2, letterSpacing: '0.05em',
-                        fontSize: config.type === 'money' && config.amount > 0 ? 'clamp(15px,3vw,18px)' : 'inherit',
+                        fontSize: config.amount > 0 ? 'clamp(15px,3vw,18px)' : 'inherit',
                       }}>
-                        {config.type === 'money' && config.amount > 0
-                          ? config.amount
-                          : config.type === 'product' && config.productPrice > 0
-                          ? config.productPrice
-                          : '·····················'}
+                        {config.amount > 0 ? config.amount : '·····················'}
                       </span>
                       <span>{t('gift_certificate.card_uah')}</span>
                     </div>

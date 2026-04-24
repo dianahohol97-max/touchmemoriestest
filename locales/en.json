@@ -554,6 +554,7 @@
   },
   "gift_certificate": {
     "page_title": "Gift Certificate",
+    "back_to_catalog": "Back to catalog",
     "page_subtitle": "The perfect gift for those who cherish memories. Choose a money certificate or a certificate for a specific product.",
     "section_type": "Certificate Type",
     "type_money_title": "For an Amount",

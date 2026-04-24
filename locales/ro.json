@@ -554,6 +554,7 @@
   },
   "gift_certificate": {
     "page_title": "Certificat Cadou",
+    "back_to_catalog": "Înapoi la catalog",
     "page_subtitle": "Cadoul perfect pentru cei care prețuiesc amintirile. Alege un certificat valoric sau un certificat pentru un produs specific.",
     "section_type": "Tipul certificatului",
     "type_money_title": "Pentru o sumă",

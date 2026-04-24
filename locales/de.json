@@ -554,6 +554,7 @@
   },
   "gift_certificate": {
     "page_title": "Geschenkgutschein",
+    "back_to_catalog": "Zurück zum Katalog",
     "page_subtitle": "Das perfekte Geschenk für alle, die Erinnerungen schätzen. Wählen Sie einen Wertgutschein oder einen Gutschein für ein bestimmtes Produkt.",
     "section_type": "Gutschein-Art",
     "type_money_title": "Über einen Betrag",
