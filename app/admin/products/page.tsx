@@ -163,11 +163,26 @@ export default function ProductsAdminPage() {
         if (!files || !sel) return;
         const remaining = 10 - sel.images.length;
         if (remaining <= 0) { toast.error('Максимум 10 фото'); return; }
-        const newUrls: string[] = [];
-        for (const file of Array.from(files).slice(0, remaining)) {
-            if (file.type.startsWith('image/')) newUrls.push(URL.createObjectURL(file));
+        const filesArr = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, remaining);
+        if (filesArr.length === 0) return;
+        toast.loading(`Завантаження ${filesArr.length} фото...`, { id: 'img-upload' });
+        const supabaseClient = createClient();
+        const uploadedUrls: string[] = [];
+        for (const file of filesArr) {
+            if (file.size > 10 * 1024 * 1024) { toast.error(`${file.name}: більше 10MB`, { id: 'img-upload' }); continue; }
+            const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+            const path = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+            const { error } = await supabaseClient.storage.from('touch-memories-assets').upload(path, file, { upsert: true });
+            if (error) { toast.error(`Помилка: ${error.message}`, { id: 'img-upload' }); continue; }
+            const { data: { publicUrl } } = supabaseClient.storage.from('touch-memories-assets').getPublicUrl(path);
+            uploadedUrls.push(publicUrl);
         }
-        if (newUrls.length) { upd('images', [...sel.images, ...newUrls]); toast.success(`Додано ${newUrls.length} фото`); }
+        if (uploadedUrls.length) {
+            upd('images', [...sel.images, ...uploadedUrls]);
+            toast.success(`Додано ${uploadedUrls.length} фото ✓`, { id: 'img-upload' });
+        } else {
+            toast.error('Жодне фото не завантажено', { id: 'img-upload' });
+        }
     }
 
     const isNew = sel?.id === '';
