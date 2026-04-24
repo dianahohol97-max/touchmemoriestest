@@ -982,7 +982,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         color: '#1e2d7d',
                                         textAlign: 'center'
                                     }}>
-                                        Оберіть всі обов'язкові опції перед замовленням
+                                        {t('product_page.select_required_options')}
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
@@ -1107,7 +1107,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         color: '#1e2d7d',
                                         textAlign: 'center'
                                     }}>
-                                        Оберіть всі обов'язкові опції перед замовленням
+                                        {t('product_page.select_required_options')}
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', gap: '12px' }} className={styles.flexResponsive}>
@@ -1211,7 +1211,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         color: '#1e2d7d',
                                         textAlign: 'center'
                                     }}>
-                                        Оберіть всі обов'язкові опції перед замовленням
+                                        {t('product_page.select_required_options')}
                                     </div>
                                 )}
                                 <button
@@ -1474,11 +1474,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                     <div>
                         {activeTab === 'description' && (
-                            product.description ? (
-                                <div style={{ maxWidth: '800px', lineHeight: 1.8, fontSize: '16px', color: '#475569' }} dangerouslySetInnerHTML={{ __html: product.description }} />
-                            ) : (
-                                <div className="text-slate-500 py-8">{t('product_page.no_description')}</div>
-                            )
+                            (() => {
+                                const localizedDesc = getLocalized(product, locale, 'description');
+                                return localizedDesc ? (
+                                    <div style={{ maxWidth: '800px', lineHeight: 1.8, fontSize: '16px', color: '#475569' }} dangerouslySetInnerHTML={{ __html: localizedDesc }} />
+                                ) : (
+                                    <div className="text-slate-500 py-8">{t('product_page.no_description')}</div>
+                                );
+                            })()
                         )}
 
                         {activeTab === 'specs' && product.specs && product.specs.length > 0 && (

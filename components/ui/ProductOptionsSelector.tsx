@@ -954,7 +954,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
             marginBottom: '12px',
             color: '#1e2d7d'
           }}>
-            Тип оздоблення обкладинки
+            {optLabel('Тип оздоблення обкладинки')}
           </label>
 
           <div style={{
@@ -984,7 +984,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                     : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
                 }`}
               >
-                {opt.label}
+                {optValueLabel(opt.label)}
               </button>
             ))}
           </div>
