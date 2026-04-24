@@ -7,6 +7,7 @@ import { Gift, Mail, Package, Check, Calendar, Info } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useCartStore } from '@/lib/store/cart';
 import { toast } from 'sonner';
+import { useT } from '@/lib/i18n/context';
 
 interface Product {
   id: string;
@@ -29,6 +30,7 @@ interface CertificateConfig {
 }
 
 export default function GiftCertificatePage() {
+  const t = useT();
   const router = useRouter();
   const { addItem } = useCartStore();
   const supabase = createClient();
@@ -106,17 +108,17 @@ export default function GiftCertificatePage() {
   // Handle add to cart
   const handleAddToCart = () => {
     if (config.type === 'product' && !config.productId) {
-      toast.error('Будь ласка, оберіть продукт');
+      toast.error(t('gift_certificate.error_select_product'));
       return;
     }
 
     if (config.format === 'electronic' && !config.recipientEmail) {
-      toast.error('Будь ласка, вкажіть email отримувача');
+      toast.error(t('gift_certificate.error_email_required'));
       return;
     }
 
     if (config.type === 'money' && config.amount < 100) {
-      toast.error('Мінімальна сума сертифікату: 100 ₴');
+      toast.error(t('gift_certificate.error_min_amount'));
       return;
     }
 
@@ -124,14 +126,16 @@ export default function GiftCertificatePage() {
     const cartItem = {
       id: `gift-certificate-${Date.now()}`,
       productId: 'gift-certificate',
-      name: 'Подарунковий сертифікат',
+      name: t('gift_certificate.cart_item_name'),
       price: totalPrice,
       quantity: 1,
       image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80',
       options: {
         'Номер': certificateCode,
-        'Тип сертифікату': config.type === 'money' ? `На суму ${config.amount} ₴` : `На продукт: ${config.productName}`,
-        'Формат': config.format === 'electronic' ? 'Електронний (PDF)' : 'Друкований',
+        'Тип сертифікату': config.type === 'money'
+          ? t('gift_certificate.cart_type_money').replace('{amount}', String(config.amount))
+          : t('gift_certificate.cart_type_product').replace('{name}', config.productName),
+        'Формат': config.format === 'electronic' ? t('gift_certificate.cart_format_electronic') : t('gift_certificate.cart_format_printed'),
         'Отримувач': config.recipientName || config.recipientEmail,
         'Термін дії': validUntil,
       },
@@ -150,7 +154,7 @@ export default function GiftCertificatePage() {
     };
 
     addItem(cartItem);
-    toast.success('Сертифікат додано до кошика');
+    toast.success(t('gift_certificate.added_to_cart_toast'));
     router.push('/cart');
   };
 
@@ -175,10 +179,10 @@ export default function GiftCertificatePage() {
             <Gift className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-light text-stone-900 mb-4">
-            Подарунковий сертифікат
+            {t('gift_certificate.page_title')}
           </h1>
           <p className="text-lg text-stone-600 max-w-2xl mx-auto">
-            Ідеальний подарунок для тих, хто цінує спогади. Оберіть грошовий сертифікат або сертифікат на конкретний продукт.
+            {t('gift_certificate.page_subtitle')}
           </p>
         </motion.div>
 
@@ -193,7 +197,7 @@ export default function GiftCertificatePage() {
           >
             {/* SECTION A — Certificate Type */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-stone-100">
-              <h2 className="text-xl font-bold text-stone-900 mb-6">Тип сертифікату</h2>
+              <h2 className="text-xl font-bold text-stone-900 mb-6">{t('gift_certificate.section_type')}</h2>
 
               {/* Money Certificate */}
               <div
@@ -210,8 +214,8 @@ export default function GiftCertificatePage() {
                       <span className="text-2xl"></span>
                     </div>
                     <div>
-                      <h3 className="font-bold text-stone-900">На суму</h3>
-                      <p className="text-sm text-stone-500">Грошовий сертифікат</p>
+                      <h3 className="font-bold text-stone-900">{t('gift_certificate.type_money_title')}</h3>
+                      <p className="text-sm text-stone-500">{t('gift_certificate.type_money_subtitle')}</p>
                     </div>
                   </div>
                   {config.type === 'money' && (
@@ -224,7 +228,7 @@ export default function GiftCertificatePage() {
                 {config.type === 'money' && (
                   <div className="space-y-3">
                     <label className="block">
-                      <span className="text-sm font-medium text-stone-700 mb-2 block">Сума (₴)</span>
+                      <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.amount_label')}</span>
                       <input
                         type="number"
                         min="100"
@@ -236,7 +240,7 @@ export default function GiftCertificatePage() {
                     </label>
                     <div className="flex items-center gap-2 text-sm text-stone-600">
                       <Calendar className="w-4 h-4" />
-                      <span>Термін дії: 1 рік</span>
+                      <span>{t('gift_certificate.validity_1_year')}</span>
                     </div>
                   </div>
                 )}
@@ -257,8 +261,8 @@ export default function GiftCertificatePage() {
                       <span className="text-2xl"></span>
                     </div>
                     <div>
-                      <h3 className="font-bold text-stone-900">На продукт</h3>
-                      <p className="text-sm text-stone-500">Сертифікат на конкретний товар</p>
+                      <h3 className="font-bold text-stone-900">{t('gift_certificate.type_product_title')}</h3>
+                      <p className="text-sm text-stone-500">{t('gift_certificate.type_product_subtitle')}</p>
                     </div>
                   </div>
                   {config.type === 'product' && (
@@ -271,13 +275,13 @@ export default function GiftCertificatePage() {
                 {config.type === 'product' && (
                   <div className="space-y-3">
                     <label className="block">
-                      <span className="text-sm font-medium text-stone-700 mb-2 block">Оберіть продукт</span>
+                      <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.select_product_label')}</span>
                       <select
                         value={config.productId}
                         onChange={handleProductSelect}
                         className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
                       >
-                        <option value="">-- Оберіть продукт --</option>
+                        <option value="">{t('gift_certificate.select_product_placeholder')}</option>
                         {products.map((product) => (
                           <option key={product.id} value={product.id}>
                             {product.name} — {product.price} ₴
@@ -287,7 +291,7 @@ export default function GiftCertificatePage() {
                     </label>
                     <div className="flex items-center gap-2 text-sm text-stone-600">
                       <Calendar className="w-4 h-4" />
-                      <span>Термін дії: 3 місяці</span>
+                      <span>{t('gift_certificate.validity_3_months')}</span>
                     </div>
                   </div>
                 )}
@@ -296,7 +300,7 @@ export default function GiftCertificatePage() {
 
             {/* SECTION B — Format */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-stone-100">
-              <h2 className="text-xl font-bold text-stone-900 mb-6">Формат доставки</h2>
+              <h2 className="text-xl font-bold text-stone-900 mb-6">{t('gift_certificate.section_format')}</h2>
 
               {/* Electronic */}
               <div
@@ -311,8 +315,8 @@ export default function GiftCertificatePage() {
                   <div className="flex items-center gap-3">
                     <Mail className="w-6 h-6 text-[#1e3a8a]" />
                     <div>
-                      <h3 className="font-bold text-stone-900">Електронний</h3>
-                      <p className="text-sm text-stone-500">PDF на email, миттєва доставка</p>
+                      <h3 className="font-bold text-stone-900">{t('gift_certificate.format_electronic_title')}</h3>
+                      <p className="text-sm text-stone-500">{t('gift_certificate.format_electronic_subtitle')}</p>
                     </div>
                   </div>
                   {config.format === 'electronic' && (
@@ -336,8 +340,8 @@ export default function GiftCertificatePage() {
                   <div className="flex items-center gap-3">
                     <Package className="w-6 h-6 text-[#1e3a8a]" />
                     <div>
-                      <h3 className="font-bold text-stone-900">Друкований</h3>
-                      <p className="text-sm text-stone-500">Преміальний папір, Нова Пошта</p>
+                      <h3 className="font-bold text-stone-900">{t('gift_certificate.format_printed_title')}</h3>
+                      <p className="text-sm text-stone-500">{t('gift_certificate.format_printed_subtitle')}</p>
                     </div>
                   </div>
                   {config.format === 'printed' && (
@@ -351,23 +355,23 @@ export default function GiftCertificatePage() {
 
             {/* Recipient Information */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-stone-100">
-              <h2 className="text-xl font-bold text-stone-900 mb-6">Інформація про отримувача</h2>
+              <h2 className="text-xl font-bold text-stone-900 mb-6">{t('gift_certificate.section_recipient')}</h2>
 
               <div className="space-y-4">
                 <label className="block">
-                  <span className="text-sm font-medium text-stone-700 mb-2 block">Ім'я отримувача (необов'язково)</span>
+                  <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.recipient_name_label')}</span>
                   <input
                     type="text"
                     value={config.recipientName}
                     onChange={(e) => setConfig({ ...config, recipientName: e.target.value })}
-                    placeholder="Ім'я отримувача"
+                    placeholder={t('gift_certificate.recipient_name_placeholder')}
                     className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
                   />
                 </label>
 
                 {config.format === 'electronic' && (
                   <label className="block">
-                    <span className="text-sm font-medium text-stone-700 mb-2 block">Email отримувача *</span>
+                    <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.recipient_email_label')}</span>
                     <input
                       type="email"
                       value={config.recipientEmail}
@@ -380,11 +384,11 @@ export default function GiftCertificatePage() {
                 )}
 
                 <label className="block">
-                  <span className="text-sm font-medium text-stone-700 mb-2 block">Подарункове повідомлення (необов'язково)</span>
+                  <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.message_label')}</span>
                   <textarea
                     value={config.message}
                     onChange={(e) => setConfig({ ...config, message: e.target.value })}
-                    placeholder="Напишіть особисте повідомлення..."
+                    placeholder={t('gift_certificate.message_placeholder')}
                     rows={4}
                     className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent resize-none"
                   />
@@ -403,7 +407,7 @@ export default function GiftCertificatePage() {
           >
             {/* Certificate Preview */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-stone-100">
-              <h2 className="text-base font-bold text-stone-500 mb-4 uppercase tracking-widest">Попередній перегляд</h2>
+              <h2 className="text-base font-bold text-stone-500 mb-4 uppercase tracking-widest">{t('gift_certificate.preview_title')}</h2>
 
               {/* Outer wrapper — cream bg like Canva (shows below the blue card) */}
               <div style={{ background: '#F5F0E8', borderRadius: 12, padding: '0 0 16px', overflow: 'visible', position: 'relative' }}>
@@ -483,7 +487,7 @@ export default function GiftCertificatePage() {
                       letterSpacing: '0.2em',
                       textTransform: 'uppercase',
                     }}>
-                      <span>НА</span>
+                      <span>{t('gift_certificate.card_on')}</span>
                       <span style={{
                         borderBottom: '1.5px solid rgba(255,255,255,0.6)',
                         minWidth: 110, textAlign: 'center',
@@ -496,7 +500,7 @@ export default function GiftCertificatePage() {
                           ? config.productPrice
                           : '·····················'}
                       </span>
-                      <span>ГРН</span>
+                      <span>{t('gift_certificate.card_uah')}</span>
                     </div>
 
                     {/* дійсний до ........... */}
@@ -509,7 +513,7 @@ export default function GiftCertificatePage() {
                       fontWeight: 600,
                       textTransform: 'uppercase',
                     }}>
-                      <span>дійсний до</span>
+                      <span>{t('gift_certificate.card_valid_until')}</span>
                       <span style={{ borderBottom: '1px dotted rgba(255,255,255,0.5)', minWidth: 80, textAlign: 'center', paddingBottom: 1 }}>
                         {validUntil}
                       </span>
@@ -551,7 +555,7 @@ export default function GiftCertificatePage() {
                 <div className="mt-4 flex items-start gap-2 p-4 bg-blue-50 rounded-lg">
                   <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                   <p className="text-sm text-blue-900">
-                    Електронний сертифікат буде надіслано на email <strong>{config.recipientEmail || '(вкажіть email)'}</strong> одразу після оплати
+                    {t('gift_certificate.electronic_info_before')}<strong>{config.recipientEmail || t('gift_certificate.electronic_email_placeholder')}</strong>{t('gift_certificate.electronic_info_after')}
                   </p>
                 </div>
               )}
@@ -560,7 +564,7 @@ export default function GiftCertificatePage() {
                 <div className="mt-4 flex items-start gap-2 p-4 bg-amber-50 rounded-lg">
                   <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <p className="text-sm text-amber-900">
-                    Друкований сертифікат буде виготовлено на преміальному папері та доставлено Новою Поштою у святковому конверті
+                    {t('gift_certificate.printed_info')}
                   </p>
                 </div>
               )}
@@ -568,19 +572,19 @@ export default function GiftCertificatePage() {
 
             {/* Price Summary */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-stone-100">
-              <h2 className="text-xl font-bold text-stone-900 mb-6">Вартість</h2>
+              <h2 className="text-xl font-bold text-stone-900 mb-6">{t('gift_certificate.price_title')}</h2>
 
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-stone-600">
-                  <span>Номінал сертифікату:</span>
+                  <span>{t('gift_certificate.price_nominal')}</span>
                   <span className="font-semibold">{totalPrice} ₴</span>
                 </div>
                 <div className="flex justify-between text-stone-600">
-                  <span>Формат:</span>
-                  <span className="font-semibold">{config.format === 'electronic' ? 'Електронний' : 'Друкований'}</span>
+                  <span>{t('gift_certificate.price_format')}</span>
+                  <span className="font-semibold">{config.format === 'electronic' ? t('gift_certificate.price_format_electronic') : t('gift_certificate.price_format_printed')}</span>
                 </div>
                 <div className="border-t border-stone-200 pt-3 flex justify-between items-center">
-                  <span className="text-lg font-bold text-stone-900">Всього:</span>
+                  <span className="text-lg font-bold text-stone-900">{t('gift_certificate.price_total')}</span>
                   <span className="text-3xl font-bold text-[#1e3a8a]">{totalPrice} ₴</span>
                 </div>
               </div>
@@ -589,11 +593,11 @@ export default function GiftCertificatePage() {
                 onClick={handleAddToCart}
                 className="w-full py-4 bg-[#1e3a8a] text-white rounded-full font-bold text-lg hover:bg-[#1e40af] transition-all hover:shadow-xl hover:scale-105"
               >
-                Додати до кошика
+                {t('gift_certificate.add_to_cart')}
               </button>
 
               <div className="mt-4 text-center text-sm text-stone-500">
-                Безпечна оплата онлайн
+                {t('gift_certificate.secure_payment')}
               </div>
             </div>
           </motion.div>
@@ -606,23 +610,23 @@ export default function GiftCertificatePage() {
           transition={{ delay: 0.3 }}
           className="mt-12 bg-white rounded-2xl p-8 shadow-sm border border-stone-100"
         >
-          <h2 className="text-2xl font-bold text-stone-900 mb-6">Як це працює?</h2>
+          <h2 className="text-2xl font-bold text-stone-900 mb-6">{t('gift_certificate.how_it_works_title')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold text-xl mb-4">1</div>
-              <h3 className="font-bold text-stone-900 mb-2">Оберіть тип</h3>
-              <p className="text-sm text-stone-600">Грошовий сертифікат (дійсний 1 рік) або на конкретний продукт (дійсний 3 місяці)</p>
+              <h3 className="font-bold text-stone-900 mb-2">{t('gift_certificate.step_1_title')}</h3>
+              <p className="text-sm text-stone-600">{t('gift_certificate.step_1_description')}</p>
             </div>
             <div>
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold text-xl mb-4">2</div>
-              <h3 className="font-bold text-stone-900 mb-2">Оберіть формат</h3>
-              <p className="text-sm text-stone-600">Електронний (PDF на email) або друкований (преміальний папір з доставкою)</p>
+              <h3 className="font-bold text-stone-900 mb-2">{t('gift_certificate.step_2_title')}</h3>
+              <p className="text-sm text-stone-600">{t('gift_certificate.step_2_description')}</p>
             </div>
             <div>
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold text-xl mb-4">3</div>
-              <h3 className="font-bold text-stone-900 mb-2">Отримайте сертифікат</h3>
-              <p className="text-sm text-stone-600">Отримувач використовує код сертифікату для замовлення будь-якого продукту з каталогу</p>
+              <h3 className="font-bold text-stone-900 mb-2">{t('gift_certificate.step_3_title')}</h3>
+              <p className="text-sm text-stone-600">{t('gift_certificate.step_3_description')}</p>
             </div>
           </div>
         </motion.div>
