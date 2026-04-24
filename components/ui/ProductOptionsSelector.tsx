@@ -622,11 +622,9 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         const textVal = String(opts['Верстка тексту'] || '');
         const hasText = textVal.includes('текстом') || textVal.includes('верстк') || textVal === 'with';
         const textPrice = hasText ? 195 : 0;
-        const subtotal = basePrice + textPrice;
-        // Urgency +30%
-        const urgVal = String(opts['Терміновість'] || '');
-        const isUrgent = urgVal === 'urgent' || urgVal.includes('Термінова') || urgVal.includes('+30');
-        return isUrgent ? Math.round(subtotal * 1.3) : subtotal;
+        // Urgency surcharge is applied centrally in ProductClient via surcharge_pct,
+        // don't apply it here (would double the +30%)
+        return basePrice + textPrice;
       }
     }
 
