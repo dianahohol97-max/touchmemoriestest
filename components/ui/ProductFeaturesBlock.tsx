@@ -135,7 +135,7 @@ function PhotobookCoversSection() {
               background: activeCover === c.id ? '#1e2d7d' : '#f1f5f9',
               color: activeCover === c.id ? '#fff' : '#374151',
               transition: 'all 0.2s', boxShadow: activeCover === c.id ? '0 4px 12px rgba(30,45,125,0.25)' : 'none' }}>
-            {c.label}
+            {t(`product_page.cover_material_${c.id}`)}
           </button>
         ))}
       </div>
@@ -159,7 +159,7 @@ function PhotobookCoversSection() {
                 alt={activeLamination} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <div style={{ textAlign: 'center', padding: 40 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', marginBottom: 4 }}>{cover.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', marginBottom: 4 }}>{t(`product_page.cover_material_${cover.id}`)}</div>
                 <div style={{ fontSize: 13, color: '#94a3b8' }}>{t('product_page.cover_example_after_upload')}</div>
               </div>
             )}
@@ -184,10 +184,10 @@ function PhotobookCoversSection() {
         {/* Right — options */}
         <div>
           <h3 style={{ fontSize: 22, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>
-            {cover.label}
+            {t(`product_page.cover_material_${cover.id}`)}
           </h3>
           <p style={{ fontSize: 15, color: '#475569', lineHeight: 1.7, marginBottom: 28 }}>
-            {cover.description}
+            {t(`product_page.cover_description_${cover.id}`)}
           </p>
 
           {/* Decorations (velour, leatherette, fabric) */}
@@ -203,13 +203,13 @@ function PhotobookCoversSection() {
                       background: activeDecoration === d.id ? '#1e2d7d' : '#f1f5f9',
                       color: activeDecoration === d.id ? '#fff' : '#374151',
                       transition: 'all 0.15s', boxShadow: activeDecoration === d.id ? '0 2px 8px rgba(30,45,125,0.2)' : 'none' }}>
-                    {d.label}
+                    {t(`product_page.decoration_${d.id}`)}
                   </button>
                 ))}
               </div>
               {activeDecoration !== 'none' && (
                 <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8, fontStyle: 'italic' }}>
-                  Натисніть на оздоблення щоб побачити приклад на фото зліва
+                  {t('product_page.decoration_click_hint')}
                 </p>
               )}
             </div>
@@ -219,7 +219,7 @@ function PhotobookCoversSection() {
           {cover.laminationTypes && (
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Порівняння ламінації
+                {t('product_page.lamination_comparison')}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 {cover.laminationTypes.map(l => (
@@ -228,16 +228,16 @@ function PhotobookCoversSection() {
                       cursor: 'pointer', background: activeLamination === l.id ? '#f0f3ff' : '#fff',
                       transition: 'all 0.15s', textAlign: 'center' }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: activeLamination === l.id ? '#1e2d7d' : '#374151' }}>
-                      {l.label}
+                      {t(`product_page.lamination_${l.id}`)}
                     </div>
                     <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3 }}>
-                      {l.id === 'glossy' ? 'Яскраві кольори, глянцевий блиск' : 'М\'який вигляд, без відблисків'}
+                      {t(`product_page.lamination_${l.id}_desc`)}
                     </div>
                   </button>
                 ))}
               </div>
               <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8, fontStyle: 'italic' }}>
-                Оберіть ламінацію щоб побачити порівняння зліва
+                {t('product_page.lamination_click_hint')}
               </p>
             </div>
           )}
