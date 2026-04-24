@@ -1302,11 +1302,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     {giftHintSent ? (
                                         <div style={{ textAlign: 'center', padding: '16px 0' }}>
                                             <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                                            <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>Натяк відправлено!</h3>
-                                            <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>Отримувач отримає листа з посиланням на цей товар</p>
+                                            <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>{t('product_page.hint_sent_title')}</h3>
+                                            <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>{t('product_page.hint_sent_description')}</p>
                                             <button onClick={() => { setShowGiftHint(false); setGiftHintSent(false); setGiftHintForm({ senderName: '', recipientName: '', recipientEmail: '', message: '' }); }}
                                                 style={{ padding: '12px 32px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-                                                Закрити
+                                                {t('product_page.hint_close')}
                                             </button>
                                         </div>
                                     ) : (
@@ -1316,30 +1316,30 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 <button onClick={() => setShowGiftHint(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94a3b8' }}>×</button>
                                             </div>
                                             <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>
-                                                Відправимо листа людині, яку хочете порадувати, з посиланням на цей товар 
+                                                {t('product_page.hint_modal_description')}
                                             </p>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                                 <input
-                                                    placeholder="Ваше ім'я"
+                                                    placeholder={t('product_page.hint_your_name')}
                                                     value={giftHintForm.senderName}
                                                     onChange={e => setGiftHintForm(p => ({ ...p, senderName: e.target.value }))}
                                                     style={{ padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14, outline: 'none' }}
                                                 />
                                                 <input
-                                                    placeholder="Ім'я отримувача"
+                                                    placeholder={t('product_page.hint_recipient_name')}
                                                     value={giftHintForm.recipientName}
                                                     onChange={e => setGiftHintForm(p => ({ ...p, recipientName: e.target.value }))}
                                                     style={{ padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14, outline: 'none' }}
                                                 />
                                                 <input
                                                     type="email"
-                                                    placeholder="Email отримувача *"
+                                                    placeholder={t('product_page.hint_recipient_email')}
                                                     value={giftHintForm.recipientEmail}
                                                     onChange={e => setGiftHintForm(p => ({ ...p, recipientEmail: e.target.value }))}
                                                     style={{ padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14, outline: 'none' }}
                                                 />
                                                 <textarea
-                                                    placeholder="Особисте повідомлення (необов'язково)"
+                                                    placeholder={t('product_page.hint_personal_message')}
                                                     value={giftHintForm.message}
                                                     onChange={e => setGiftHintForm(p => ({ ...p, message: e.target.value }))}
                                                     rows={3}
@@ -1363,8 +1363,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 }),
                                                             });
                                                             if (res.ok) { setGiftHintSent(true); }
-                                                            else { toast.error('Помилка. Спробуйте пізніше.'); }
-                                                        } catch { toast.error('Помилка мережі'); }
+                                                            else { toast.error(t('product_page.hint_error_retry')); }
+                                                        } catch { toast.error(t('product_page.hint_error_network')); }
                                                         finally { setGiftHintSending(false); }
                                                     }}
                                                     style={{ padding: '13px', background: giftHintForm.recipientEmail ? '#1e2d7d' : '#e2e8f0',
@@ -1373,7 +1373,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                         cursor: giftHintForm.recipientEmail ? 'pointer' : 'not-allowed',
                                                         transition: 'all 0.15s' }}
                                                 >
-                                                    {giftHintSending ? 'Відправляємо...' : ' Відправити натяк'}
+                                                    {giftHintSending ? t('product_page.hint_sending') : t('product_page.hint_send')}
                                                 </button>
                                             </div>
                                         </>
