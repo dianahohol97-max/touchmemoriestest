@@ -178,10 +178,39 @@ export default function ProductsAdminPage() {
             uploadedUrls.push(publicUrl);
         }
         if (uploadedUrls.length) {
-            upd('images', [...sel.images, ...uploadedUrls]);
-            toast.success(`Додано ${uploadedUrls.length} фото ✓`, { id: 'img-upload' });
+            const newImages = [...sel.images, ...uploadedUrls];
+            upd('images', newImages);
+            // Auto-save to DB so user doesn't lose uploads if they close modal without clicking Save
+            if (sel.id) {
+                const { error: dbError } = await supabase.from('products').update({ images: newImages }).eq('id', sel.id);
+                if (dbError) {
+                    toast.error(`Завантажено, але не збережено: ${dbError.message}`, { id: 'img-upload' });
+                } else {
+                    setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: newImages } : p));
+                    toast.success(`Додано ${uploadedUrls.length} фото ✓ (збережено)`, { id: 'img-upload' });
+                    fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
+                }
+            } else {
+                toast.success(`Додано ${uploadedUrls.length} фото ✓`, { id: 'img-upload' });
+            }
         } else {
             toast.error('Жодне фото не завантажено', { id: 'img-upload' });
+        }
+    }
+
+    async function deleteImage(i: number) {
+        if (!sel) return;
+        const newImages = sel.images.filter((_, j) => j !== i);
+        upd('images', newImages);
+        if (sel.id) {
+            const { error } = await supabase.from('products').update({ images: newImages }).eq('id', sel.id);
+            if (error) {
+                toast.error(`Не збережено: ${error.message}`);
+            } else {
+                setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: newImages } : p));
+                toast.success('Фото видалено ✓');
+                fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
+            }
         }
     }
 
@@ -202,7 +231,19 @@ export default function ProductsAdminPage() {
         if (error) { toast.error('Помилка: ' + error.message, { id: 'video-upload' }); return; }
         const { data: { publicUrl } } = supabaseClient.storage.from('touch-memories-assets').getPublicUrl(path);
         upd('video_url', publicUrl);
-        toast.success('Відео завантажено ✓', { id: 'video-upload' });
+        // Auto-save to DB so user doesn't lose upload if they close modal without clicking Save
+        if (sel.id) {
+            const { error: dbError } = await supabase.from('products').update({ video_url: publicUrl }).eq('id', sel.id);
+            if (dbError) {
+                toast.error(`Завантажено, але не збережено: ${dbError.message}`, { id: 'video-upload' });
+            } else {
+                setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, video_url: publicUrl } : p));
+                toast.success('Відео завантажено ✓ (збережено)', { id: 'video-upload' });
+                fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
+            }
+        } else {
+            toast.success('Відео завантажено ✓', { id: 'video-upload' });
+        }
     }
 
     function openNew() {
@@ -531,7 +572,7 @@ export default function ProductsAdminPage() {
                                         {S.images.map((img,i)=>(
                                             <div key={i} style={{ position:'relative', borderRadius:8, overflow:'hidden', border:'1px solid #e5e7eb', aspectRatio:'1' }}>
                                                 <img src={img} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{(e.currentTarget as HTMLImageElement).style.background='#f3f4f6';}}/>
-                                                <button onClick={()=>upd('images',S.images.filter((_,j)=>j!==i))}
+                                                <button onClick={()=>deleteImage(i)}
                                                     style={{ position:'absolute', top:3, right:3, background:'rgba(0,0,0,0.65)', color:'#fff', border:'none', borderRadius:'50%', width:20, height:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
                                                     <X size={11}/>
                                                 </button>
