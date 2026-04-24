@@ -589,7 +589,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
                         {/* Main image */}
-                        <div className={styles.mainImageContainer} style={{ position: 'relative', width: '100%', aspectRatio: '1/1', maxHeight: 480, borderRadius: 12, overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className={styles.mainImageContainer} style={{ position: 'relative', width: '100%', aspectRatio: '4/5', maxHeight: 720, borderRadius: 12, overflow: 'hidden', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {mainVideo ? (
                                 <video src={mainVideo} controls autoPlay muted playsInline
                                     style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
