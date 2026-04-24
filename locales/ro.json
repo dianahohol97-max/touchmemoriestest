@@ -54,6 +54,9 @@
   },
   "catalog": {
     "title": "Catalog",
+    "home": "Acasă",
+    "found": "Găsite",
+    "products_count": "produse",
     "search": "Căutare...",
     "all": "Toate",
     "sort": "Sortare",

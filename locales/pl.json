@@ -54,6 +54,9 @@
   },
   "catalog": {
     "title": "Katalog",
+    "home": "Strona główna",
+    "found": "Znaleziono",
+    "products_count": "produktów",
     "search": "Szukaj...",
     "all": "Wszystkie",
     "sort": "Sortuj",

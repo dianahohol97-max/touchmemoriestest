@@ -222,7 +222,7 @@ function CatalogContent() {
 
             {/* Breadcrumbs */}
             <div style={{ fontSize: '14px', color: '#888', marginBottom: '24px' }}>
-                <a href="/" style={{ color: '#888', textDecoration: 'none' }}>Головна</a> <span style={{ margin: '0 8px' }}>→</span> {t('catalog.title')}
+                <a href="/" style={{ color: '#888', textDecoration: 'none' }}>{t('catalog.home')}</a> <span style={{ margin: '0 8px' }}>→</span> {t('catalog.title')}
             </div>
 
             <header style={{ marginBottom: '40px' }}>
@@ -345,8 +345,8 @@ function CatalogContent() {
                         <div className={styles.controlsBar} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                             <div className={styles.leftControls}>
                                 <div className={styles.resultsCount} style={{ fontSize: '15px', color: '#64748b', fontWeight: 500 }}>
-                                    Знайдено: <span style={{ color: '#263A99', fontWeight: 700 }}>
-                                        {isLoading ? '...' : `${sortedProducts.length} ${getUkrainianPlural(sortedProducts.length, 'товар', 'товари', 'товарів')}`}
+                                    {t('catalog.found')}: <span style={{ color: '#263A99', fontWeight: 700 }}>
+                                        {isLoading ? '...' : `${sortedProducts.length} ${locale === 'uk' ? getUkrainianPlural(sortedProducts.length, 'товар', 'товари', 'товарів') : t('catalog.products_count')}`}
                                     </span>
                                 </div>
                             </div>
