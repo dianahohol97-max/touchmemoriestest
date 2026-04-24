@@ -215,7 +215,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
         let total = TRAVELBOOK_PRICES[pages] || 0;
         if (!total) return;
-        if (customProductOptions['Ламінація'] === 'З ламінацією сторінок') total += pages * 5;
+        if (customProductOptions['Ламінація сторінок'] === 'З ламінацією сторінок') total += pages * 5;
         if (customProductOptions['Індивідуальна обкладинка'] === 'Індивідуальна (+50 ₴)') total += 50;
 
         setDynamicPrice(total);
@@ -298,7 +298,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 const slugLower = (data.slug || '').toLowerCase();
                 if (slugLower.includes('travel') || slugLower.includes('travelbook')) {
                     if (!defaultOptions['Кількість сторінок']) defaultOptions['Кількість сторінок'] = 12;
-                    if (!defaultOptions['Ламінація']) defaultOptions['Ламінація'] = 'Без ламінації';
+                    if (!defaultOptions['Ламінація сторінок']) defaultOptions['Ламінація сторінок'] = 'Без ламінації';
                     if (!defaultOptions['Індивідуальна обкладинка']) defaultOptions['Індивідуальна обкладинка'] = 'Стандартна';
                 }
 

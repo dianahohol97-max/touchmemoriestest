@@ -348,7 +348,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       required: true,
     },
     {
-      name: 'Ламінація',
+      name: 'Ламінація сторінок',
       values: ['Без ламінації', 'З ламінацією сторінок'],
       required: true,
       note: '+5 ₴ × кількість сторінок'
@@ -657,7 +657,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         let total = TRAVELBOOK_PAGE_PRICES[pages] || 0;
         if (!total) return null;
         // Lamination: 5 UAH per page
-        if (opts['Ламінація'] === 'З ламінацією сторінок') total += (pages as number) * 5;
+        if (opts['Ламінація сторінок'] === 'З ламінацією сторінок') total += (pages as number) * 5;
         // Individual cover: +500 UAH
         if (opts['Індивідуальна обкладинка'] === 'Індивідуальна (+50 ₴)') total += 50;
         return total;
@@ -1127,7 +1127,7 @@ export function getCalculatedPrice(slug: string, selectedOptions: Record<string,
     if (pages && typeof pages === 'number') {
       let total = TRAVELBOOK_PAGE_PRICES[pages] || 0;
       if (!total) return null;
-      if (selectedOptions['Ламінація'] === 'З ламінацією сторінок') total += (pages as number) * 5;
+      if (selectedOptions['Ламінація сторінок'] === 'З ламінацією сторінок') total += (pages as number) * 5;
       if (selectedOptions['Індивідуальна обкладинка'] === 'Індивідуальна (+50 ₴)') total += 50;
       return total;
     }
