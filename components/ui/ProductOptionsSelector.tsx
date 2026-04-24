@@ -881,7 +881,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                 <button
                   key={color.code}
                   type="button"
-                  title={color.name}
+                  title={optValueLabel(color.name)}
                   onClick={() => {
                     setSelectedWishbookColor(color);
                     const newOptions = { ...selectedOptions, [colorLabel]: `${color.name} (${color.code})` };
@@ -914,14 +914,14 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         return (
           <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
-              {colorLabel}: <span style={{ fontWeight: 400, color: '#64748b' }}>{current?.name ?? 'оберіть колір'}</span>
+              {optLabel(colorLabel)}: <span style={{ fontWeight: 400, color: '#64748b' }}>{current ? optValueLabel(current.name) : t('product_page.choose_color')}</span>
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
               {colors.map((color: any) => (
                 <button
                   key={color.code}
                   type="button"
-                  title={`${color.name} (${color.code})`}
+                  title={`${optValueLabel(color.name)} (${color.code})`}
                   onClick={() => {
                     if (isVelourProduct) {
                       setSelectedColor(color);
@@ -936,7 +936,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                     current?.code === color.code ? 'border-[#1e2d7d] scale-110 shadow-md' : 'border-transparent hover:border-gray-300'
                   }`}
                   style={{ backgroundColor: color.hex }}
-                  aria-label={color.name}
+                  aria-label={optValueLabel(color.name)}
                 />
               ))}
             </div>
