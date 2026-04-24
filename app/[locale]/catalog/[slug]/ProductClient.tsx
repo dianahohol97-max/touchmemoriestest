@@ -180,16 +180,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     const getProductionTime = (categorySlug: string = '', productSlug: string = '') => {
         const s = (categorySlug || '').toLowerCase();
         const ps = (productSlug || '').toLowerCase();
-        if (s.includes('photobook') || s.includes('фотокниг')) return '10–14 робочих днів';
-        if (s.includes('travelbook') || s.includes('travel')) return 'до 10 робочих днів';
+        if (s.includes('photobook') || s.includes('фотокниг')) return t('product_page.production_10_14');
+        if (s.includes('travelbook') || s.includes('travel')) return t('product_page.production_upto_10');
         // Hard cover journal: 10–14 days
-        if (ps.includes('tverd') || ps.includes('hard') || s.includes('tverd') || s.includes('hard-cover')) return '10–14 робочих днів';
-        if (s.includes('magazine') || s.includes('journal') || s.includes('журнал') || s.includes('hlyantsevi') || s.includes('glyantsevy')) return '5–8 робочих днів';
-        if (s.includes('guestbook') || s.includes('photoalbum') || s.includes('wishbook')) return '10 робочих днів';
-        if (s.includes('print') || s.includes('photo-print') || s.includes('magnet')) return '2–3 робочих дні';
-        if (s.includes('puzzle') || s.includes('canvas')) return '5–7 робочих днів';
+        if (ps.includes('tverd') || ps.includes('hard') || s.includes('tverd') || s.includes('hard-cover')) return t('product_page.production_10_14');
+        if (s.includes('magazine') || s.includes('journal') || s.includes('журнал') || s.includes('hlyantsevi') || s.includes('glyantsevy')) return t('product_page.production_5_8');
+        if (s.includes('guestbook') || s.includes('photoalbum') || s.includes('wishbook')) return t('product_page.production_10');
+        if (s.includes('print') || s.includes('photo-print') || s.includes('magnet')) return t('product_page.production_2_3');
+        if (s.includes('puzzle') || s.includes('canvas')) return t('product_page.production_5_7');
         // Posters: 2–4 working days
-        if (ps.includes('poster') || s.includes('poster') || ps.includes('зодіак') || ps.includes('монограм') || ps.includes('диплом') || ps.includes('portrait') || ps.includes('birth')) return '2–4 робочих дні';
+        if (ps.includes('poster') || s.includes('poster') || ps.includes('зодіак') || ps.includes('монограм') || ps.includes('диплом') || ps.includes('portrait') || ps.includes('birth')) return t('product_page.production_2_4');
         return t('product_page.production_days');
     };
 
