@@ -267,7 +267,7 @@ export function Navigation() {
                                                     href={`/catalog?category=${category.slug}`}
                                                     className="block px-6 py-3 text-primary no-underline text-[13px] font-bold tracking-tight transition-colors hover:bg-primary/5"
                                                 >
-                                                    {category.name}
+                                                    {(locale !== 'uk' && category.translations?.[locale]?.name) || category.name}
                                                 </Link>
                                             ))}
                                         </motion.div>
