@@ -1021,7 +1021,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         return (
           <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
-              Варіант металевої вставки
+              {optLabel('Варіант металевої вставки')}
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {variants.map((v: any) => (
@@ -1036,7 +1036,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                       ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
                   }`}>
-                  {v.variant_name}{Number(v.surcharge) > 0 ? ` (+${v.surcharge} ₴)` : ''}
+                  {optValueLabel(v.variant_name)}{Number(v.surcharge) > 0 ? ` (+${v.surcharge} ₴)` : ''}
                 </button>
               ))}
             </div>
@@ -1056,7 +1056,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         return (
           <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#1e2d7d' }}>
-              Колір напису
+              {optLabel('Колір напису')}
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {FLEX_COLORS.map(c => (
@@ -1070,7 +1070,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                       ? 'bg-[#1e2d7d] text-white border-[#1e2d7d]'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'
                   }`}>
-                  {c.label}
+                  {optValueLabel(c.label)}
                 </button>
               ))}
             </div>
