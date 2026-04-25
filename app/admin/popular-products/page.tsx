@@ -25,7 +25,11 @@ import {
     Activity,
     GripVertical,
     Image as ImageIcon,
-    Package
+    Package,
+    Search,
+    X,
+    Plus,
+    Minus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
@@ -37,6 +41,13 @@ interface Product {
     images: string[];
     is_popular: boolean;
     popular_order: number | null;
+    category_id: string | null;
+    is_active: boolean;
+}
+
+interface Category {
+    id: string;
+    name: string;
 }
 
 const MAX_POPULAR_PRODUCTS = 8;
@@ -52,6 +63,10 @@ export default function PopularProductsPage() {
     const [saving, setSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [showInactive, setShowInactive] = useState(false);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -68,17 +83,25 @@ export default function PopularProductsPage() {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const { data } = await supabase
-                .from('products')
-                .select('id, name, price, images, is_popular, popular_order')
-                .order('name');
+            const [productsRes, categoriesRes] = await Promise.all([
+                supabase
+                    .from('products')
+                    .select('id, name, price, images, is_popular, popular_order, category_id, is_active')
+                    .order('name'),
+                supabase
+                    .from('categories')
+                    .select('id, name')
+                    .order('name')
+            ]);
 
-            if (data) {
-                const popular = data
+            if (categoriesRes.data) setCategories(categoriesRes.data);
+
+            if (productsRes.data) {
+                const popular = productsRes.data
                     .filter(p => p.is_popular)
                     .sort((a, b) => (a.popular_order || 0) - (b.popular_order || 0));
 
-                const available = data.filter(p => !p.is_popular);
+                const available = productsRes.data.filter(p => !p.is_popular);
 
                 setPopularProducts(popular);
                 setAvailableProducts(available);
@@ -180,6 +203,29 @@ export default function PopularProductsPage() {
         }
     };
 
+    const addToPopular = (product: Product) => {
+        if (popularProducts.length >= MAX_POPULAR_PRODUCTS) {
+            toast.error(`Максимум ${MAX_POPULAR_PRODUCTS} популярних товарів`);
+            return;
+        }
+        setAvailableProducts(prev => prev.filter(p => p.id !== product.id));
+        setPopularProducts(prev => [...prev, { ...product, is_popular: true }]);
+        setHasChanges(true);
+    };
+
+    const removeFromPopular = (product: Product) => {
+        setPopularProducts(prev => prev.filter(p => p.id !== product.id));
+        setAvailableProducts(prev => [...prev, { ...product, is_popular: false, popular_order: null }].sort((a, b) => a.name.localeCompare(b.name)));
+        setHasChanges(true);
+    };
+
+    const filteredAvailable = availableProducts.filter(p => {
+        if (!showInactive && !p.is_active) return false;
+        if (selectedCategory !== 'all' && p.category_id !== selectedCategory) return false;
+        if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+    });
+
     const activeProduct = activeId
         ? [...availableProducts, ...popularProducts].find(p => p.id === activeId)
         : null;
@@ -250,7 +296,7 @@ export default function PopularProductsPage() {
                 <Star size={20} color="#263A99" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <div>
                     <p style={{ fontSize: '14px', color: '#1e293b', marginBottom: '4px', fontWeight: 600 }}>
-                        Перетягніть товари для зміни порядку
+                        Натисніть + щоб додати товар, або перетягніть для зміни порядку
                     </p>
                     <p style={{ fontSize: '13px', color: '#475569' }}>
                         Максимум {MAX_POPULAR_PRODUCTS} популярних товарів. Вони відображаються в карусельній секції на головній сторінці.
@@ -289,16 +335,62 @@ export default function PopularProductsPage() {
                     <DroppableColumn
                         id="available-droppable"
                         title="Доступні товари"
-                        subtitle={`${availableProducts.length} товарів`}
+                        subtitle={`${filteredAvailable.length} з ${availableProducts.length}`}
                         icon={<Package size={20} color="#64748b" />}
                         backgroundColor="#f8fafc"
                     >
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {availableProducts.map(product => (
-                            // @ts-ignore
-                                <DraggableProductCard key={product.id} product={product} />
+                        {/* Filter bar */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                            <div style={{ position: 'relative' }}>
+                                <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                <input
+                                    type="text"
+                                    placeholder="Пошук за назвою..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 32px 8px 32px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #e2e8f0',
+                                        fontSize: '14px',
+                                        outline: 'none'
+                                    }}
+                                />
+                                {searchQuery && (
+                                    <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                                        <X size={14} />
+                                    </button>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <select
+                                    value={selectedCategory}
+                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', flex: 1, minWidth: '150px', cursor: 'pointer' }}
+                                >
+                                    <option value="all">Всі категорії</option>
+                                    {categories.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#475569', cursor: 'pointer', padding: '0 8px' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={showInactive}
+                                        onChange={(e) => setShowInactive(e.target.checked)}
+                                    />
+                                    Показати неактивні
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '70vh', overflowY: 'auto' }}>
+                            {filteredAvailable.map(product => (
+                                // @ts-ignore
+                                <DraggableProductCard key={product.id} product={product} onAdd={() => addToPopular(product)} canAdd={popularProducts.length < MAX_POPULAR_PRODUCTS} />
                             ))}
-                            {availableProducts.length === 0 && (
+                            {filteredAvailable.length === 0 && (
                                 <div style={{
                                     padding: '40px',
                                     textAlign: 'center',
@@ -306,7 +398,7 @@ export default function PopularProductsPage() {
                                     fontSize: '14px',
                                     fontStyle: 'italic'
                                 }}>
-                                    Всі товари додано до популярних
+                                    {availableProducts.length === 0 ? 'Всі товари додано до популярних' : 'Нічого не знайдено за цим фільтром'}
                                 </div>
                             )}
                         </div>
@@ -331,6 +423,7 @@ export default function PopularProductsPage() {
                                         key={product.id}
                                         product={product}
                                         index={index}
+                                        onRemove={() => removeFromPopular(product)}
                                     />
                                 ))}
                                 {popularProducts.length === 0 && (
@@ -430,7 +523,7 @@ function DroppableColumn({
 }
 
 // Sortable Product Card Component
-function SortableProductCard({ product, index }: { product: Product; index: number }) {
+function SortableProductCard({ product, index, onRemove }: { product: Product; index: number; onRemove?: () => void }) {
     const {
         attributes,
         listeners,
@@ -448,13 +541,13 @@ function SortableProductCard({ product, index }: { product: Product; index: numb
 
     return (
         <div ref={setNodeRef} style={style}>
-            <ProductCard product={product} index={index} dragHandleProps={{ ...attributes, ...listeners }} />
+            <ProductCard product={product} index={index} dragHandleProps={{ ...attributes, ...listeners }} onRemove={onRemove} />
         </div>
     );
 }
 
 // Draggable Product Card Component
-function DraggableProductCard({ product }: { product: Product }) {
+function DraggableProductCard({ product, onAdd, canAdd }: { product: Product; onAdd?: () => void; canAdd?: boolean }) {
     const {
         attributes,
         listeners,
@@ -472,7 +565,7 @@ function DraggableProductCard({ product }: { product: Product }) {
 
     return (
         <div ref={setNodeRef} style={style}>
-            <ProductCard product={product} dragHandleProps={{ ...attributes, ...listeners }} />
+            <ProductCard product={product} dragHandleProps={{ ...attributes, ...listeners }} onAdd={onAdd} canAdd={canAdd} />
         </div>
     );
 }
@@ -482,12 +575,18 @@ function ProductCard({
     product,
     index,
     isDragging,
-    dragHandleProps
+    dragHandleProps,
+    onAdd,
+    onRemove,
+    canAdd = true
 }: {
     product: Product;
     index?: number;
     isDragging?: boolean;
     dragHandleProps?: any;
+    onAdd?: () => void;
+    onRemove?: () => void;
+    canAdd?: boolean;
 }) {
     const imageUrl = product.images && product.images.length > 0
         ? product.images[0]
@@ -570,11 +669,55 @@ function ProductCard({
                     whiteSpace: 'nowrap'
                 }}>
                     {product.name}
+                    {!product.is_active && (
+                        <span style={{ marginLeft: 8, fontSize: 11, color: '#94a3b8', fontWeight: 500, padding: '2px 6px', backgroundColor: '#f1f5f9', borderRadius: 3 }}>
+                            неактивний
+                        </span>
+                    )}
                 </h3>
                 <p style={{ fontSize: '16px', fontWeight: 700, color: '#263A99' }}>
                     ₴{product.price.toLocaleString('uk-UA')}
                 </p>
             </div>
+
+            {/* Action Button */}
+            {onAdd && (
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onAdd(); }}
+                    disabled={!canAdd}
+                    title={canAdd ? 'Додати до популярних' : 'Досягнуто ліміт'}
+                    style={{
+                        flexShrink: 0,
+                        width: 36, height: 36, borderRadius: 6,
+                        backgroundColor: canAdd ? '#263A99' : '#e2e8f0',
+                        color: canAdd ? 'white' : '#94a3b8',
+                        border: 'none',
+                        cursor: canAdd ? 'pointer' : 'not-allowed',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                >
+                    <Plus size={18} />
+                </button>
+            )}
+            {onRemove && (
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                    title="Прибрати з популярних"
+                    style={{
+                        flexShrink: 0,
+                        width: 36, height: 36, borderRadius: 6,
+                        backgroundColor: '#fee2e2',
+                        color: '#dc2626',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                >
+                    <Minus size={18} />
+                </button>
+            )}
         </div>
     );
 }
