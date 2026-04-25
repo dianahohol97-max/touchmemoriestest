@@ -1496,7 +1496,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             {(locale !== 'uk' && spec[`label_${locale}`]) ? spec[`label_${locale}`] : (spec.label || spec.key || spec.name)}
                                         </div>
                                         <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#1e2d7d' }}>
-                                            {spec.value}
+                                            {(locale !== 'uk' && spec[`value_${locale}`]) ? spec[`value_${locale}`] : spec.value}
                                         </div>
                                     </div>
                                 ))}
