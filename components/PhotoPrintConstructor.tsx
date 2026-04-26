@@ -750,7 +750,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             {/* Photo counter */}
             <div style={{ padding:'10px 14px', borderRadius:8, background:photos.length===0?'#fff7ed':'#eff6ff', border:`1px solid ${photos.length===0?'#fed7aa':'#bfdbfe'}`, marginBottom:16 }}>
               <span style={{ fontWeight:700, color:photos.length===0?'#c2410c':photos.length<20?'#d97706':'#1d4ed8', fontSize:13 }}>
-              {t('photo_print.photo_counter', { count: photos.length, max: 500 })}
+              {`${photos.length}/500 ${t('photo_print.photos_count')}`}
               {photos.length > 0 && photos.length < 20 && <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>{t('photo_print.min_20')}</span>}
               {(isNonstandard || isPolaroid) && selectedSize && photos.length >= 20 && getMultiple(selectedSize) > 1 && photos.length % getMultiple(selectedSize) !== 0 && (
                 <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>кратно {getMultiple(selectedSize)}</span>
