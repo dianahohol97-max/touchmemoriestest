@@ -620,7 +620,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               </button>
               {isNonstandard && (
                 <div style={{ fontSize:11, color:'#64748b', textAlign:'center', marginTop:4 }}>
-                  {t('photo_print.min_order', { n: 20 })}
+                  {t('photo_print.min_order').replace('{n}', '20')}
                 </div>
               )}
             </div>
