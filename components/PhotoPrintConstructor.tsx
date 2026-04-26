@@ -1,5 +1,6 @@
 'use client';
-import { useT } from '@/lib/i18n/context';
+import { useT, useLocale } from '@/lib/i18n/context';
+import { getLocalized } from '@/lib/i18n/localize';
 import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Upload, X, AlertTriangle, ShoppingCart, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
@@ -333,7 +334,7 @@ function PhotoPreview({
 //  Main Component 
 export default function PhotoPrintConstructor({ productSlug, initialSize, initialFinish, initialBorder }: PhotoPrintConstructorProps) {
   const t = useT();
-  const { addItem } = useCartStore();
+  const locale = useLocale();
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -430,7 +431,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
   useEffect(() => {
     async function fetchProduct() {
-      const { data } = await supabase.from('products').select('*').eq('slug', productSlug).eq('is_active', true).single();
+      const { data } = await supabase.from('products').select('*, translations').eq('slug', productSlug).eq('is_active', true).single();
       if (data) {
         setProduct(data);
         const options = (data.options as ProductOption[]) || [];
@@ -570,8 +571,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px', fontFamily: 'var(--font-primary, sans-serif)' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>{product.name}</h1>
-      <p style={{ color: '#64748b', marginBottom: 24 }}>{product.short_description}</p>
+      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>{getLocalized(product, locale, 'name')}</h1>
+      <p style={{ color: '#64748b', marginBottom: 24 }}>{getLocalized(product, locale, 'short_description')}</p>
 
       <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'flex-start' }}>
 
