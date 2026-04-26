@@ -335,6 +335,7 @@ function PhotoPreview({
 export default function PhotoPrintConstructor({ productSlug, initialSize, initialFinish, initialBorder }: PhotoPrintConstructorProps) {
   const t = useT();
   const locale = useLocale();
+  const { addItem } = useCartStore();
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
