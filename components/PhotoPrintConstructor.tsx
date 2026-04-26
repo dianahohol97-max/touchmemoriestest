@@ -616,11 +616,11 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 <div style={{ color:'#94a3b8', fontSize:12, marginTop:4 }}>{t('photo_print.or_drag')}</div>
               </div>
               <button style={{ padding:'8px 20px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>
-                Вибрати фото
+                {t('photo_print.select_photos_btn')}
               </button>
               {isNonstandard && (
                 <div style={{ fontSize:11, color:'#64748b', textAlign:'center', marginTop:4 }}>
-                  мінімальне замовлення — <strong>20 фото</strong>
+                  {t('photo_print.min_order', { n: 20 })}
                 </div>
               )}
             </div>
@@ -750,7 +750,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             {/* Photo counter */}
             <div style={{ padding:'10px 14px', borderRadius:8, background:photos.length===0?'#fff7ed':'#eff6ff', border:`1px solid ${photos.length===0?'#fed7aa':'#bfdbfe'}`, marginBottom:16 }}>
               <span style={{ fontWeight:700, color:photos.length===0?'#c2410c':photos.length<20?'#d97706':'#1d4ed8', fontSize:13 }}>
-              {photos.length}/500 фотографій
+              {t('photo_print.photo_counter', { count: photos.length, max: 500 })}
               {photos.length > 0 && photos.length < 20 && <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>{t('photo_print.min_20')}</span>}
               {(isNonstandard || isPolaroid) && selectedSize && photos.length >= 20 && getMultiple(selectedSize) > 1 && photos.length % getMultiple(selectedSize) !== 0 && (
                 <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>кратно {getMultiple(selectedSize)}</span>
@@ -766,7 +766,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                   {sizeOptions.map(opt => (
                     <button key={opt.name} onClick={() => setSelectedSize(opt.name)}
                       style={{ padding:'6px 12px', border:selectedSize===opt.name?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:selectedSize===opt.name?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:selectedSize===opt.name?'#1e2d7d':'#374151' }}>
-                      {opt.name}
+                      {opt.name.replace(/\s*см\s*/g, '').trim()}
                     </button>
                   ))}
                 </div>
@@ -783,12 +783,17 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               <div style={{ marginBottom:16 }}>
                 <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>{t('photo_print.finish_label')}</label>
                 <div style={{ display:'flex', gap:6 }}>
-                  {finishOptions.map(opt => (
-                    <button key={opt.name} onClick={() => setSelectedFinish(opt.name)}
-                      style={{ padding:'6px 14px', border:selectedFinish===opt.name?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:selectedFinish===opt.name?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:selectedFinish===opt.name?'#1e2d7d':'#374151' }}>
-                      {opt.name}
-                    </button>
-                  ))}
+                  {finishOptions.map(opt => {
+                    const finishLabel = (opt.name === 'Глянцеве' || opt.name === 'Glossy') ? t('photo_print.glossy')
+                      : (opt.name === 'Матове' || opt.name === 'Matte') ? t('photo_print.matte')
+                      : opt.name;
+                    return (
+                      <button key={opt.name} onClick={() => setSelectedFinish(opt.name)}
+                        style={{ padding:'6px 14px', border:selectedFinish===opt.name?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:selectedFinish===opt.name?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:selectedFinish===opt.name?'#1e2d7d':'#374151' }}>
+                        {finishLabel}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -290,7 +290,27 @@
     "loading": "Loading...",
     "not_found": "Product not found",
     "upload_photos": "Upload photos",
-    "or_drag": "or drag here"
+    "or_drag": "or drag here",
+    "select_photos_btn": "Choose photos",
+    "photo_counter": "{count}/{max} photos",
+    "glossy": "Glossy",
+    "matte": "Matte"
+  },
+  "qr_generator": {
+    "label_compact": "QR CODE FOR ORDER",
+    "placeholder": "URL or text for QR...",
+    "hint_enter": "Enter URL and press ↵",
+    "hint_enter_above": "Enter URL above",
+    "size_label": "Size",
+    "color_label": "Color",
+    "url_text_label": "URL or text",
+    "generate_title": "Generate QR code",
+    "download": "Download PNG",
+    "downloading": "Downloading...",
+    "copy_url": "Copy URL",
+    "copied": "Copied!",
+    "add_to_design": "Add to design",
+    "note": "QR code can be downloaded and added to any editor as an image"
   },
   "constructor": {
     "cover": "Cover",

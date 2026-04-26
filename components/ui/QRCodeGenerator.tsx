@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { QrCode, Download, Copy, Check, RefreshCw } from 'lucide-react';
+import { useT } from '@/lib/i18n/context';
 
 interface QRCodeGeneratorProps {
   /** Compact mode — minimal UI for sidebar integration */
@@ -40,6 +41,7 @@ export function QRCodeGenerator({
   onAddToDesign,
   label,
 }: QRCodeGeneratorProps) {
+  const t = useT();
   const [value, setValue] = useState(defaultValue);
   const [inputValue, setInputValue] = useState(defaultValue);
   const [size, setSize] = useState(300);
@@ -107,7 +109,7 @@ export function QRCodeGenerator({
       <div style={{ padding: '12px 10px' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 5 }}>
           <QrCode size={13} />
-          {label || 'QR-код'}
+          {label || t('qr_generator.label_compact')}
         </div>
 
         {/* Input */}
@@ -117,7 +119,7 @@ export function QRCodeGenerator({
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="URL або текст для QR..."
+            placeholder={t('qr_generator.placeholder')}
             style={{ flex: 1, fontSize: 11, padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: 6, outline: 'none', color: '#1e293b' }}
           />
           <button
@@ -137,7 +139,7 @@ export function QRCodeGenerator({
           </div>
         ) : (
           <div style={{ height: 80, background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 10, color: '#94a3b8', textAlign: 'center' }}>Введіть URL і натисніть ↵</span>
+            <span style={{ fontSize: 10, color: '#94a3b8', textAlign: 'center' }}>{t('qr_generator.hint_enter')}</span>
           </div>
         )}
 
@@ -169,12 +171,12 @@ export function QRCodeGenerator({
     <div style={{ padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <QrCode size={18} color="#1e2d7d" />
-        <span style={{ fontSize: 15, fontWeight: 800, color: '#1e2d7d' }}>{label || 'Генератор QR-коду'}</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: '#1e2d7d' }}>{label || t('qr_generator.label_compact')}</span>
       </div>
 
       {/* Input */}
       <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        URL або текст
+        {t('qr_generator.url_text_label')}
       </label>
       <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 14 }}>
         <input
@@ -182,12 +184,12 @@ export function QRCodeGenerator({
           value={inputValue}
           onChange={e => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="URL або текст для QR..."
+          placeholder={t('qr_generator.placeholder')}
           style={{ flex: 1, minWidth: 0, fontSize: 13, padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, outline: 'none', color: '#1e293b' }}
         />
         <button
           onClick={handleGenerate}
-          title="Генерувати QR-код"
+          title={t('qr_generator.generate_title')}
           style={{ flexShrink: 0, padding: '8px 10px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <RefreshCw size={14} />
@@ -198,7 +200,7 @@ export function QRCodeGenerator({
       <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
         <div>
           <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 4 }}>
-            Розмір
+            {t('qr_generator.size_label')}
           </label>
           <div style={{ display: 'flex', gap: 4 }}>
             {QR_SIZES.map(s => (
@@ -211,7 +213,7 @@ export function QRCodeGenerator({
         </div>
         <div>
           <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 4 }}>
-            Колір
+            {t('qr_generator.color_label')}
           </label>
           <div style={{ display: 'flex', gap: 4 }}>
             {QR_COLORS.map((c, i) => (
@@ -245,7 +247,7 @@ export function QRCodeGenerator({
           ) : (
             <div style={{ width: 120, height: 120, background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 6 }}>
               <QrCode size={24} color="#94a3b8" />
-              <span style={{ fontSize: 9, color: '#94a3b8', textAlign: 'center', lineHeight: 1.2 }}>Введіть URL вище</span>
+              <span style={{ fontSize: 9, color: '#94a3b8', textAlign: 'center', lineHeight: 1.2 }}>{t('qr_generator.hint_enter_above')}</span>
             </div>
           )}
         </div>
@@ -257,7 +259,7 @@ export function QRCodeGenerator({
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', fontSize: 13, fontWeight: 700, border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: qrUrl ? 'pointer' : 'not-allowed', color: qrUrl ? '#1e2d7d' : '#94a3b8', opacity: qrUrl ? 1 : 0.5 }}
           >
             <Download size={14} />
-            {downloading ? 'Завантаження...' : 'Скачати PNG'}
+            {downloading ? t('qr_generator.downloading') : t('qr_generator.download')}
           </button>
           <button
             onClick={handleCopyUrl}
@@ -265,7 +267,7 @@ export function QRCodeGenerator({
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', fontSize: 13, fontWeight: 700, border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: value.trim() ? 'pointer' : 'not-allowed', color: value.trim() ? '#374151' : '#94a3b8', opacity: value.trim() ? 1 : 0.5 }}
           >
             {copied ? <Check size={14} color="#16a34a" /> : <Copy size={14} />}
-            {copied ? 'Скопійовано!' : 'Копіювати URL'}
+            {copied ? t('qr_generator.copied') : t('qr_generator.copy_url')}
           </button>
           {showAddToDesign && (
             <button
@@ -274,13 +276,13 @@ export function QRCodeGenerator({
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 8, background: qrUrl ? '#1e2d7d' : '#e2e8f0', cursor: qrUrl ? 'pointer' : 'not-allowed', color: qrUrl ? '#fff' : '#94a3b8' }}
             >
               <QrCode size={14} />
-              Додати на дизайн
+              {t('qr_generator.add_to_design')}
             </button>
           )}
 
           {qrUrl && (
             <p style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4, marginTop: 4 }}>
-               QR-код можна скачати та додати у будь-який редактор як зображення
+               {t('qr_generator.note')}
             </p>
           )}
         </div>

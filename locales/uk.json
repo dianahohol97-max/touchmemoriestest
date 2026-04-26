@@ -290,7 +290,27 @@
     "loading": "Завантаження...",
     "not_found": "Продукт не знайдено",
     "upload_photos": "Завантажте фото",
-    "or_drag": "або перетягніть сюди"
+    "or_drag": "або перетягніть сюди",
+    "select_photos_btn": "Вибрати фото",
+    "photo_counter": "{count}/{max} фотографій",
+    "glossy": "Глянцеве",
+    "matte": "Матове"
+  },
+  "qr_generator": {
+    "label_compact": "QR-КОД ДО ЗАМОВЛЕННЯ",
+    "placeholder": "URL або текст для QR...",
+    "hint_enter": "Введіть URL і натисніть ↵",
+    "hint_enter_above": "Введіть URL вище",
+    "size_label": "Розмір",
+    "color_label": "Колір",
+    "url_text_label": "URL або текст",
+    "generate_title": "Згенерувати QR-код",
+    "download": "Скачати PNG",
+    "downloading": "Завантаження...",
+    "copy_url": "Копіювати URL",
+    "copied": "Скопійовано!",
+    "add_to_design": "Додати на дизайн",
+    "note": "QR-код можна скачати та додати у будь-який редактор як зображення"
   },
   "constructor": {
     "cover": "Обкладинка",
