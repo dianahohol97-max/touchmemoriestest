@@ -1819,10 +1819,22 @@ export default function BookLayoutEditor() {
       reader.onload = ev => {
         const img = new window.Image();
         img.onload = () => {
-          // Unique ID: batchId + index (never collides even if Date.now same)
+          // Compress: cap at 1800px on longest side, JPEG quality 0.82
+          const MAX = 1800;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width >= height) { height = Math.round(height * MAX / width); width = MAX; }
+            else { width = Math.round(width * MAX / height); height = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0, width, height);
+          const preview = canvas.toDataURL('image/jpeg', 0.82);
           const photo: PhotoData = {
             id: `up-${batchId}-${idx}`,
-            preview: ev.target!.result as string,
+            preview,
             width: img.width,
             height: img.height,
             name: file.name,
