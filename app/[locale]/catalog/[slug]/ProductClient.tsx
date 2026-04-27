@@ -217,10 +217,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         if (!slugLower.includes('travel') && !slugLower.includes('travelbook')) return;
 
         const TRAVELBOOK_PRICES: Record<number, number> = {
-            12: 550, 16: 700, 20: 850, 24: 1000, 28: 1150, 32: 1300,
-            36: 1450, 40: 1600, 44: 1750, 48: 1900, 52: 2025,
-            56: 2125, 60: 2225, 64: 2325, 68: 2425, 72: 2525,
-            76: 2650, 80: 2775,
+            12: 675, 16: 825, 20: 975, 24: 1125, 28: 1275, 32: 1425,
+            36: 1575, 40: 1725, 44: 1875, 48: 2025, 52: 2150,
+            60: 2350, 72: 2650, 80: 2900,
         };
 
         const pages = Number(customProductOptions['Кількість сторінок']) || 0;
