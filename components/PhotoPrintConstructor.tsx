@@ -438,8 +438,16 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         setProduct(data);
         const options = (data.options as ProductOption[]) || [];
         const sizeOpt = options.find(o => o.name === 'Розмір');
-        const sizes = sizeOpt?.values || sizeOpt?.options?.map(o=>({name:o.label})) || [];
-        if (sizes.length > 0) setSelectedSize(sizes[0].name || '');
+        const allSizes = sizeOpt?.values || sizeOpt?.options?.map(o=>({name:o.label})) || [];
+        // For nonstandard — pick first nonstandard size, not the first overall
+        const filteredSizes = productSlug === 'photoprint-nonstandard'
+          ? allSizes.filter(s => {
+              const key = s.name.replace(/\s*\(.*?\)/g, '').trim().replace(/[xх]/g, '×');
+              const KEYS = new Set(['5×7.5','5x7.5','6×9','6x9','7.5×10','7.5x10','9×9','9x9','10×10','10x10']);
+              return KEYS.has(key) || KEYS.has(key.replace('×','x'));
+            })
+          : allSizes;
+        if (filteredSizes.length > 0) setSelectedSize(filteredSizes[0].name || '');
         const finishOpt = options.find(o => o.name === 'Покриття');
         const finishes = finishOpt?.values || finishOpt?.options?.map(o=>({name:o.label})) || [];
         if (finishes.length > 0) setSelectedFinish(finishes[0].name || '');
@@ -485,11 +493,23 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     return m ? `${m[1]}x${m[2]}` : '';
   };
 
+  // Canonical nonstandard size keys (without label suffixes)
+  const NONSTANDARD_SIZE_KEYS = new Set(['5×7.5','5x7.5','6×9','6x9','7.5×10','7.5x10','9×9','9x9','10×10','10x10']);
+
+  const isNonstandardSize = (name: string): boolean => {
+    // Strip "(кратно X)" suffix and normalize separators
+    const key = name.replace(/\s*\(.*?\)/g, '').trim().replace(/[xх]/g, '×');
+    return NONSTANDARD_SIZE_KEYS.has(key) || NONSTANDARD_SIZE_KEYS.has(key.replace('×','x'));
+  };
+
   const getSizeOptions = () => {
     if (!product) return [];
     const opts = (product.options as ProductOption[]) || [];
     const sizeOpt = opts.find(o => o.name === 'Розмір');
-    return sizeOpt?.values || sizeOpt?.options?.map(o=>({name:o.label, price:o.price})) || [];
+    const all = sizeOpt?.values || sizeOpt?.options?.map(o=>({name:o.label, price:o.price})) || [];
+    // For nonstandard product — show only nonstandard sizes; for standard — show all
+    if (isNonstandard) return all.filter(o => isNonstandardSize(o.name));
+    return all;
   };
 
   const getFinishOptions = () => {
