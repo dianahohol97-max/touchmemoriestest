@@ -14,7 +14,7 @@ export async function HowItWorksServer({ locale = 'uk' }: { locale?: string } = 
     const translatedCards = (featureCards || []).map((card: any) => {
         const trans = card.translations?.[locale];
         if (!trans) return card;
-        return { ...card, title: trans.title || card.title, subtitle: trans.subtitle || card.subtitle };
+        return { ...card, title: trans.title || card.title, subtitle: trans.subtitle || card.subtitle, description: trans.description || trans.subtitle || card.description };
     });
     return <HowItWorksClient featureCards={translatedCards} />;
 }

@@ -49,7 +49,7 @@ export function HowItWorksClient({ featureCards }: HowItWorksClientProps) {
           className="font-heading font-black text-center mb-16"
           style={{ color: '#1e2d7d', fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', letterSpacing: '-0.02em' }}
         >
-          Чому варто обрати нас
+          {t('home.why_choose_us')}
         </motion.h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
