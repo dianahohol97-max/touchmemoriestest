@@ -400,11 +400,6 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       required: true,
       note: 'Мінімальна кількість залежить від формату. Ціна: 7.5–8 ₴/шт'
     },
-    {
-      name: 'Матеріал',
-      values: ['Матові', 'Глянцеві'],
-      required: true
-    },
   ],
   polaroid: [
     {
