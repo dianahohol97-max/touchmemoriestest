@@ -234,11 +234,29 @@ export default function BookPhotoUpload() {
         })))).then(photosData => {
             try {
                 sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(photosData));
-            } catch (e) {
-                // sessionStorage quota exceeded — store without compression as last resort
-                console.warn('sessionStorage quota, storing minimal data', e);
-                const minimal = photosData.map(p => ({ ...p, preview: p.preview.substring(0, 50000) }));
-                try { sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(minimal)); } catch {}
+            } catch {
+                // sessionStorage quota exceeded — recompress to tiny 400px thumbnails
+                const recompress = async () => {
+                    const tiny = await Promise.all(photosData.map(p => new Promise<typeof p>(res => {
+                        const img = new window.Image();
+                        img.onload = () => {
+                            const MAX = 400;
+                            let w = img.width, h = img.height;
+                            if (w > MAX || h > MAX) {
+                                if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+                                else { w = Math.round(w * MAX / h); h = MAX; }
+                            }
+                            const cv = document.createElement('canvas');
+                            cv.width = w; cv.height = h;
+                            cv.getContext('2d')!.drawImage(img, 0, 0, w, h);
+                            res({ ...p, preview: cv.toDataURL('image/jpeg', 0.6) });
+                        };
+                        img.onerror = () => res(p);
+                        img.src = p.preview;
+                    })));
+                    try { sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(tiny)); } catch {}
+                };
+                recompress();
             }
             navigatingForward.current = true;
             const currentParams = new URLSearchParams(window.location.search);

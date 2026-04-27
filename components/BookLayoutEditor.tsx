@@ -1147,8 +1147,15 @@ export default function BookLayoutEditor() {
     if (ph) {
       try {
         const parsed: PhotoData[] = JSON.parse(ph);
-        // Filter out photos with missing or oversized preview (>4MB base64 = memory risk)
-        const valid = parsed.filter(p => p.preview && p.preview.length < 4_000_000 && p.width > 0 && p.height > 0);
+        // Only keep photos with valid compressed preview (data:image, <3MB, valid dimensions)
+        const valid = parsed.filter(p =>
+          p.preview &&
+          p.preview.startsWith('data:image') &&
+          p.preview.length > 100 &&
+          p.preview.length < 3_000_000 &&
+          p.width > 0 &&
+          p.height > 0
+        );
         setPhotos(valid);
       } catch {}
     }
@@ -1179,6 +1186,22 @@ export default function BookLayoutEditor() {
       } catch {}
     }
   }, [router]);
+
+  // Persist photos to sessionStorage whenever they change (debounced)
+  const photosTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!photos.length) return;
+    if (photosTimerRef.current) clearTimeout(photosTimerRef.current);
+    photosTimerRef.current = setTimeout(() => {
+      try {
+        sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(
+          photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace }))
+        ));
+      } catch {
+        // quota exceeded — skip silently, photos will need to be re-uploaded
+      }
+    }, 1000);
+  }, [photos]);
 
   // Auto-save editor state to sessionStorage (debounced, with status indicator)
   useEffect(() => {
