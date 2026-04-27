@@ -379,16 +379,6 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       prices: PHOTOPRINT_STANDARD_PRICES,
       required: true
     },
-    {
-      name: 'Рамка',
-      values: ['З білою рамкою', 'Без білої рамки'],
-      required: true
-    },
-    {
-      name: 'Вид',
-      values: ['Матові', 'Глянцеві'],
-      required: true
-    },
   ],
   photoprint_nonstandard: [
     {
