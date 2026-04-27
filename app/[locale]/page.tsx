@@ -1,5 +1,6 @@
 import styles from './page.module.css';
 import { getServerT } from '@/lib/i18n/server';
+import { getLocalized } from '@/lib/i18n/localize';
 import { Navigation } from '@/components/ui/Navigation';
 import { Hero } from '@/components/ui/Hero';
 import PopularProducts from '@/components/ui/PopularProducts';
@@ -81,7 +82,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           .limit(2),
         supabase
           .from('blog_posts')
-          .select('*, category:blog_categories(name, slug)')
+          .select('*, translations, category:blog_categories(name, slug, translations)')
           .eq('is_published', true)
           .eq('is_featured', true)
           .order('published_at', { ascending: false })
@@ -288,7 +289,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                     <div className="relative overflow-hidden bg-stone-100 rounded-xl" style={{ aspectRatio: '16/10' }}>
                       <img
                         src={featuredBlogPosts[0].featured_image || 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80'}
-                        alt={featuredBlogPosts[0].title}
+                        alt={getLocalized(featuredBlogPosts[0], locale, 'title')}
                         loading="lazy"
                         decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
@@ -297,14 +298,14 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                       <div className="absolute bottom-0 left-0 right-0 p-6">
                         {featuredBlogPosts[0].category && (
                           <span className="inline-block text-white text-xs uppercase mb-3" style={{ background: 'rgba(38,58,153,0.75)', borderRadius: '6px', padding: '4px 10px', letterSpacing: '0.1em' }}>
-                            {featuredBlogPosts[0].category.name}
+                            {getLocalized(featuredBlogPosts[0].category, locale, 'name')}
                           </span>
                         )}
                         <h3 className="text-white text-xl lg:text-2xl font-heading font-bold leading-snug">
-                          {featuredBlogPosts[0].title}
+                          {getLocalized(featuredBlogPosts[0], locale, 'title')}
                         </h3>
                         {featuredBlogPosts[0].read_time && (
-                          <p className="text-white/70 text-sm mt-2">{featuredBlogPosts[0].read_time} хв читання</p>
+                          <p className="text-white/70 text-sm mt-2">{featuredBlogPosts[0].read_time} {t('blog.min_read')}</p>
                         )}
                       </div>
                     </div>
@@ -321,7 +322,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                       <div className="relative overflow-hidden bg-stone-100 rounded-xl" style={{ aspectRatio: '16/9' }}>
                         <img
                           src={post.featured_image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80'}
-                          alt={post.title}
+                          alt={getLocalized(post, locale, 'title')}
                           loading="lazy"
                           decoding="async"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
@@ -330,11 +331,11 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                         <div className="absolute bottom-0 left-0 right-0 p-4">
                           {post.category && (
                             <span className="inline-block text-white text-xs uppercase mb-3" style={{ background: 'rgba(38,58,153,0.75)', borderRadius: '6px', padding: '4px 10px', letterSpacing: '0.1em' }}>
-                              {post.category.name}
+                              {getLocalized(post.category, locale, 'name')}
                             </span>
                           )}
                           <h3 className="text-white text-base font-heading font-bold leading-snug">
-                            {post.title}
+                            {getLocalized(post, locale, 'title')}
                           </h3>
                         </div>
                       </div>
