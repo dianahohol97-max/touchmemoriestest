@@ -61,6 +61,10 @@ const ARTICLES = [
 export default async function BlogHomePage({ searchParams, params }: { searchParams: Promise<{ category?: string, page?: string }>, params: Promise<{ locale?: string }> }) {
     const { locale: loc } = await params;
     const locale = loc || 'uk';
+    const dateLocale: Record<string, string> = { uk: 'uk-UA', en: 'en-GB', ro: 'ro-RO', pl: 'pl-PL', de: 'de-DE' };
+    const dateFmt = dateLocale[locale] || 'uk-UA';
+    const todayLabel: Record<string, string> = { uk: 'Сьогодні', en: 'Today', ro: 'Astăzi', pl: 'Dziś', de: 'Heute' };
+    const today = todayLabel[locale] || 'Today';
     const supabase = await createClient();
     const { category, page } = await searchParams;
     const currentPage = parseInt(page || '1');
@@ -72,7 +76,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
 
     // Build Posts Query
     let query = supabase.from('blog_posts')
-        .select('*, blog_categories(name, slug)', { count: 'exact' })
+        .select('*, translations, blog_categories(name, slug, translations)', { count: 'exact' })
         .eq('is_published', true)
         .order('published_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -88,7 +92,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
 
     // Fetch Featured Post (Hero)
     const { data: featuredPost } = await supabase.from('blog_posts')
-        .select('*, blog_categories(name, slug)')
+        .select('*, translations, blog_categories(name, slug, translations)')
         .eq('is_published', true)
         .eq('is_featured', true)
         .order('published_at', { ascending: false })
@@ -97,7 +101,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
 
     // Fetch Popular Posts
     const { data: popularPosts } = await supabase.from('blog_posts')
-        .select('id, title, slug, cover_image, views_count, published_at')
+        .select('id, title, slug, cover_image, views_count, published_at, translations')
         .eq('is_published', true)
         .order('views_count', { ascending: false })
         .limit(5);
@@ -139,7 +143,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                                     </span>
                                     {featuredPost.blog_categories && (
                                         <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', padding: '4px 12px', borderRadius: "12px", fontSize: '13px', fontWeight: 600 }}>
-                                            {stripEmoji(featuredPost.blog_categories.name)}
+                                            {stripEmoji(getLocalized(featuredPost.blog_categories, locale, 'name'))}
                                         </span>
                                     )}
                                 </div>
@@ -151,7 +155,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                                 </p>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '24px', fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><User size={16} /> {featuredPost.author_name}</span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Calendar size={16} /> {new Date(featuredPost.published_at).toLocaleDateString('uk-UA')}</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Calendar size={16} /> {new Date(featuredPost.published_at).toLocaleDateString(dateFmt)}</span>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Clock size={16} /> {featuredPost.reading_time} хв читання</span>
                                 </div>
                             </div>
@@ -185,7 +189,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                                         {(post.cover_image || post.image) && <Image src={post.cover_image || post.image} alt={getLocalized(post, locale, "title")} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
                                         {(post.blog_categories || post.category) && (
                                             <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '6px 14px', borderRadius: "12px", fontSize: '12px', fontWeight: 800, color: '#263A99', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                                                {stripEmoji(post.blog_categories?.name || post.category)}
+                                                {stripEmoji(getLocalized(post.blog_categories, locale, 'name') || post.category)}
                                             </div>
                                         )}
                                     </div>
@@ -208,7 +212,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                                                 )}
                                                 <div>
                                                     <div style={{ fontSize: '12px', fontWeight: 700, color: '#263A99' }}>{post.author_name || 'TouchMemories'}</div>
-                                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{post.published_at ? new Date(post.published_at).toLocaleDateString('uk-UA') : 'Сьогодні'}</div>
+                                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{post.published_at ? new Date(post.published_at).toLocaleDateString(dateFmt) : today}</div>
                                                 </div>
                                             </div>
                                             <div style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -278,7 +282,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                                             </div>
                                             <div>
                                                 <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#263A99', marginBottom: '4px', lineHeight: 1.3 }}>{getLocalized(post, locale, "title")}</h4>
-                                                <span style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(post.published_at).toLocaleDateString('uk-UA')}</span>
+                                                <span style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(post.published_at).toLocaleDateString(dateFmt)}</span>
                                             </div>
                                         </Link>
                                     ))}
