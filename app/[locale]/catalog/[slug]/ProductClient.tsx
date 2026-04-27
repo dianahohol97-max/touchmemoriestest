@@ -714,7 +714,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('поляроїд') || product.slug?.includes('полароїд') || product.slug?.includes('poster')) ? (
                                         <>
                                         {product.options && Array.isArray(product.options) && product.options
-                                            .filter((opt: any) => opt.options?.length > 0 || opt.values?.length > 0)
+                                            .filter((opt: any) => (opt.options?.length > 0 || opt.values?.length > 0) && !['Покриття', 'Біла рамочка 3мм', 'Матеріал', 'Рамка', 'Вид'].includes(opt.name))
                                             .map((opt: any) => {
                                                 const items = opt.options || opt.values || [];
                                                 return (
