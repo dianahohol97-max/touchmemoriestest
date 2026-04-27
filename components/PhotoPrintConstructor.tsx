@@ -51,6 +51,7 @@ interface PhotoFile {
   orientation: 'portrait' | 'landscape';
   border: boolean;        // individual border setting
   qty: number;            // print quantity for this photo
+  sizeOverride?: string;  // per-photo size override (empty = use global)
 }
 interface ProductOption {
   name: string;
@@ -242,7 +243,7 @@ function PhotoPreview({
               objectFit: 'cover',
               objectPosition: `${photo.cropX||50}% ${photo.cropY||50}%`,
               top: 0, left: 0,
-              transform: `scale(${photo.zoom||1})`,
+              transform: `scale(${photo.zoom||1}) rotate(${photo.rotation||0}deg)`,
               transformOrigin: `${photo.cropX||50}% ${photo.cropY||50}%`,
               userSelect: 'none', pointerEvents: 'none',
             }}
@@ -501,20 +502,32 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const calculatePrice = () => {
     if (!product || photos.length === 0) return 0;
     const sizeOptions = getSizeOptions();
-    let unitPrice = product.price || 0;
-    if (selectedSize) {
-      const sel = sizeOptions.find(o => o.name === selectedSize);
-      if (sel?.price !== undefined) unitPrice = sel.price;
+    const baseProductPrice = product.price || 0;
+
+    const getUnitPrice = (sizeLabel: string): number => {
+      if (!sizeLabel) return baseProductPrice;
+      const sel = sizeOptions.find(o => o.name === sizeLabel);
+      if (!sel) return baseProductPrice;
+      // price field first, then priceModifier as absolute price, then fallback
+      if (sel.price !== undefined && sel.price !== null) return sel.price;
+      if ((sel as any).priceModifier !== undefined) return baseProductPrice + ((sel as any).priceModifier || 0);
+      return baseProductPrice;
+    };
+
+    let basePrice = 0;
+    for (const p of photos) {
+      const sizeLabel = p.sizeOverride || selectedSize;
+      basePrice += getUnitPrice(sizeLabel) * (p.qty || 1);
     }
-    // Sum per-photo quantities
-    const totalQty = photos.reduce((sum, p) => sum + (p.qty || 1), 0);
-    const basePrice = unitPrice * totalQty;
+
     // Polaroid text surcharge: +5 грн per photo with text
     const textSurcharge = isPolaroid
       ? photos.filter(p => p.polaroidText && p.polaroidText.trim().length > 0).length * POLAROID_TEXT_PRICE
       : 0;
     return basePrice + textSurcharge;
   };
+
+  const totalQty = photos.reduce((s, p) => s + (p.qty || 1), 0);
 
   // Multiple map for nonstandard and polaroid
   const MULTIPLE_MAP: Record<string, number> = {
@@ -533,31 +546,59 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     return MULTIPLE_MAP[key] || 1;
   };
 
-  const handleAddToCart = () => {
+  const [showCartModal, setShowCartModal] = useState(false);
+
+  const handleAddToCart = async () => {
     const minOrder = 20;
-  if (photos.length === 0) { toast.error(t('photo_print.add_photo_first')); return; }
-  if (photos.length < minOrder) { toast.error(t('photo_print.min_order').replace('{n}', String(minOrder))); return; }
-  // Check multiple for nonstandard and polaroid
-  if ((isNonstandard || isPolaroid) && selectedSize) {
-    const multiple = getMultiple(selectedSize);
-    if (multiple > 1 && photos.length % multiple !== 0) {
-      toast.error(`Кількість фото має бути кратною ${multiple}. Зараз: ${photos.length} фото.`);
-      return;
+    if (photos.length === 0) { toast.error(t('photo_print.add_photo_first')); return; }
+    // Fix 4: min 20 counts sum of qty, not photos.length
+    if (totalQty < minOrder) { toast.error(t('photo_print.min_order').replace('{n}', String(minOrder))); return; }
+    // Check multiple for nonstandard and polaroid
+    if ((isNonstandard || isPolaroid) && selectedSize) {
+      const multiple = getMultiple(selectedSize);
+      if (multiple > 1 && totalQty % multiple !== 0) {
+        toast.error(`Кількість фото має бути кратною ${multiple}. Зараз: ${totalQty} фото.`);
+        return;
+      }
     }
-  }
     addItem({
       id: `${product.id}_${Date.now()}`,
       product_id: product.id, name: product.name,
-      price: calculatePrice(), // total price for all photos
+      price: calculatePrice(),
       image: product.images?.[0] || '', slug: product.slug,
-      options: { 'Кількість фото': photos.length.toString(), ...(selectedSize && {'Розмір': selectedSize}), ...(selectedFinish && {'Покриття': selectedFinish}), ...(isNonstandard ? {'Біла рамочка': 'Так'} : (!isPolaroid && {'Біла рамочка': selectedBorder === 'with' ? 'Так' : 'Ні'})) },
-      qty: 1, // price already includes all photo quantities
+      options: { 'Кількість фото': totalQty.toString(), ...(selectedSize && {'Розмір': selectedSize}), ...(selectedFinish && {'Покриття': selectedFinish}), ...(isNonstandard ? {'Біла рамочка': 'Так'} : (!isPolaroid && {'Біла рамочка': selectedBorder === 'with' ? 'Так' : 'Ні'})) },
+      qty: 1,
       personalization_note: isPolaroid
-        ? `${photos.length} фото. Написи: ${photos.filter(p=>p.polaroidText?.trim()).map((p,i)=>`фото ${photos.indexOf(p)+1}: "${p.polaroidText}"`).join(', ') || 'немає'}`
-        : `${photos.length} фото для друку`
+        ? `${totalQty} фото. Написи: ${photos.filter(p=>p.polaroidText?.trim()).map((p,i)=>`фото ${photos.indexOf(p)+1}: "${p.polaroidText}"`).join(', ') || 'немає'}`
+        : `${totalQty} фото для друку`
     });
-    toast.success(t('photo_print.add_to_cart') + '!');
+
+    // Fix 6: save design to Supabase projects
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('projects').insert({
+          user_id: user.id,
+          product_type: 'photo-print',
+          format: selectedSize || '',
+          status: 'draft',
+          pages_data: photos.map(p => ({
+            id: p.id, cropX: p.cropX, cropY: p.cropY, zoom: p.zoom,
+            rotation: p.rotation, orientation: p.orientation,
+            qty: p.qty, sizeOverride: p.sizeOverride, polaroidText: p.polaroidText,
+          })),
+          uploaded_photos: photos.map(p => p.preview),
+          updated_at: new Date().toISOString(),
+        });
+      }
+    } catch (e) {
+      // non-blocking — user may not be logged in
+      console.warn('Design save skipped:', e);
+    }
+
     setPhotos([]);
+    // Fix 7: show modal instead of redirect
+    setShowCartModal(true);
   };
 
   if (loading) return <div className="flex items-center justify-center py-12 text-gray-500">{t('photo_print.loading')}</div>;
@@ -571,6 +612,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const hasBorderOption = !isNonstandard && !isPolaroid && (product.options as ProductOption[])?.some(o => o.name === 'Біла рамочка 3мм');
 
   return (
+  <>
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px', fontFamily: 'var(--font-primary, sans-serif)' }}>
       <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>{getLocalized(product, locale, 'name')}</h1>
       <p style={{ color: '#64748b', marginBottom: 24 }}>{getLocalized(product, locale, 'short_description')}</p>
@@ -734,6 +776,25 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                       </div>
                     </div>
 
+                    {/* Per-photo size override (Fix 2) */}
+                    {sizeOptions.length > 1 && (
+                      <div style={{ marginBottom:12 }}>
+                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Розмір для цих фото</div>
+                        <select
+                          value={selectedPhotos.length === 1 ? (selectedPhotos[0].sizeOverride || '') : ''}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setPhotos(prev => prev.map(p => selectedPhotoIds.has(p.id) ? { ...p, sizeOverride: val || undefined } : p));
+                          }}
+                          style={{ width:'100%', padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, background:'#fff', cursor:'pointer' }}>
+                          <option value="">— як у замовленні ({selectedSize})</option>
+                          {sizeOptions.map(o => (
+                            <option key={o.name} value={o.name}>{o.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     {/* Duplicate + Delete */}
                     <div style={{ display:'flex', gap:8 }}>
                       <button onClick={duplicateSelected} style={{ flex:1, padding:'9px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#374151' }}>{t('photo_print.duplicate')}</button>
@@ -750,10 +811,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
             {/* Photo counter */}
             <div style={{ padding:'10px 14px', borderRadius:8, background:photos.length===0?'#fff7ed':'#eff6ff', border:`1px solid ${photos.length===0?'#fed7aa':'#bfdbfe'}`, marginBottom:16 }}>
-              <span style={{ fontWeight:700, color:photos.length===0?'#c2410c':photos.length<20?'#d97706':'#1d4ed8', fontSize:13 }}>
-              {`${photos.length}/500 ${t('photo_print.photos_count')}`}
-              {photos.length > 0 && photos.length < 20 && <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>{t('photo_print.min_20')}</span>}
-              {(isNonstandard || isPolaroid) && selectedSize && photos.length >= 20 && getMultiple(selectedSize) > 1 && photos.length % getMultiple(selectedSize) !== 0 && (
+              <span style={{ fontWeight:700, color:photos.length===0?'#c2410c':totalQty<20?'#d97706':'#1d4ed8', fontSize:13 }}>
+              {`${photos.length} ${t('photo_print.photos_count')} (${totalQty} шт.)`}
+              {photos.length > 0 && totalQty < 20 && <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>{t('photo_print.min_20')}</span>}
+              {(isNonstandard || isPolaroid) && selectedSize && totalQty >= 20 && getMultiple(selectedSize) > 1 && totalQty % getMultiple(selectedSize) !== 0 && (
                 <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>кратно {getMultiple(selectedSize)}</span>
               )}
             </span>
@@ -895,10 +956,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           </div>
 
           {/* Add to cart */}
-
-
-          <button onClick={handleAddToCart} disabled={photos.length < 20 || ((isNonstandard || isPolaroid) && selectedSize ? getMultiple(selectedSize) > 1 && photos.length % getMultiple(selectedSize) !== 0 : false)}
-            style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px', background:(photos.length < 20 || ((isNonstandard || isPolaroid) && selectedSize && getMultiple(selectedSize) > 1 && photos.length % getMultiple(selectedSize) !== 0))?'#94a3b8':'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:16, cursor:(photos.length < 20 || ((isNonstandard || isPolaroid) && selectedSize && getMultiple(selectedSize) > 1 && photos.length % getMultiple(selectedSize) !== 0))?'not-allowed':'pointer', boxShadow:'none', transition:'all 0.2s' }}>
+          <button onClick={handleAddToCart} disabled={totalQty < 20 || ((isNonstandard || isPolaroid) && selectedSize ? getMultiple(selectedSize) > 1 && totalQty % getMultiple(selectedSize) !== 0 : false)}
+            style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px', background:(totalQty < 20 || ((isNonstandard || isPolaroid) && selectedSize && getMultiple(selectedSize) > 1 && totalQty % getMultiple(selectedSize) !== 0))?'#94a3b8':'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:16, cursor:(totalQty < 20 || ((isNonstandard || isPolaroid) && selectedSize && getMultiple(selectedSize) > 1 && totalQty % getMultiple(selectedSize) !== 0))?'not-allowed':'pointer', boxShadow:'none', transition:'all 0.2s' }}>
             <ShoppingCart size={18} /> {t('photo_print.add_to_cart')}
           </button>
 
@@ -906,5 +965,25 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         </div>
       </div>
     </div>
+
+    {/* Fix 7: Cart modal */}
+    {showCartModal && (
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={() => setShowCartModal(false)}>
+        <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:380, width:'100%', textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+          <div style={{ fontSize:40, marginBottom:12 }}>🛒</div>
+          <h2 style={{ fontWeight:800, fontSize:20, color:'#1e2d7d', marginBottom:8 }}>Фото додано до кошика!</h2>
+          <p style={{ color:'#64748b', fontSize:14, marginBottom:24 }}>Оформити замовлення або продовжити вибирати товари?</p>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <a href={`/${locale}/cart`} style={{ display:'block', padding:'13px', background:'#1e2d7d', color:'#fff', borderRadius:10, fontWeight:800, fontSize:15, textDecoration:'none' }}>
+              Оформити замовлення →
+            </a>
+            <a href={`/${locale}/catalog`} style={{ display:'block', padding:'13px', background:'#f1f5f9', color:'#374151', borderRadius:10, fontWeight:700, fontSize:14, textDecoration:'none' }}>
+              Продовжити покупки
+            </a>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   );
 }
