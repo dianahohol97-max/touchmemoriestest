@@ -1144,13 +1144,33 @@ export default function BookLayoutEditor() {
       router.push('/order/book');
     }
     const ph = sessionStorage.getItem('bookConstructorPhotos');
-    if (ph) { try { setPhotos(JSON.parse(ph)); } catch {} }
+    if (ph) {
+      try {
+        const parsed: PhotoData[] = JSON.parse(ph);
+        // Filter out photos with missing or oversized preview (>4MB base64 = memory risk)
+        const valid = parsed.filter(p => p.preview && p.preview.length < 4_000_000 && p.width > 0 && p.height > 0);
+        setPhotos(valid);
+      } catch {}
+    }
     // Restore editor draft if user navigated back
     const draft = sessionStorage.getItem('bookEditorDraft');
     if (draft) {
       try {
         const d = JSON.parse(draft);
-        if (d.pages?.length) setPages(d.pages);
+        if (d.pages?.length) {
+          // Get valid photo IDs from restored photos to clear dangling refs
+          const validIds = new Set((JSON.parse(sessionStorage.getItem('bookConstructorPhotos') || '[]') as PhotoData[])
+            .filter(p => p.preview && p.preview.length < 4_000_000 && p.width > 0 && p.height > 0)
+            .map(p => p.id));
+          const cleanPages = d.pages.map((p: any) => ({
+            ...p,
+            slots: (p.slots || []).map((s: any) => ({
+              ...s,
+              photoId: s.photoId && validIds.has(s.photoId) ? s.photoId : null,
+            })),
+          }));
+          setPages(cleanPages);
+        }
         if (d.freeSlots) setFreeSlots(d.freeSlots);
         if (d.pageStickers) setPageStickers(d.pageStickers);
         if (d.pageShapes) setPageShapes(d.pageShapes);
