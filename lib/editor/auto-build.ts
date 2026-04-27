@@ -147,8 +147,10 @@ export function autoBuild(options: AutoBuildOptions): AutoBuildResult {
     return { pages: [], coverPhotoId: null, totalSpreads: 0 };
   }
 
-  // Step 1: Classify all photos
-  const classified = photos.map(classifyPhoto);
+  // Step 1: Classify all photos — sorted by filename (preserves date/sequence order from camera)
+  const classified = [...photos]
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+    .map(classifyPhoto);
 
   // Step 2: Pick cover photo (highest megapixels, prefer landscape/square)
   let coverPhotoId: string | null = null;

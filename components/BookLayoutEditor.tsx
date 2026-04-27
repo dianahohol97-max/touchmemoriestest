@@ -1862,8 +1862,8 @@ export default function BookLayoutEditor() {
       reader.onload = ev => {
         const img = new window.Image();
         img.onload = () => {
-          // Compress: cap at 1800px on longest side, JPEG quality 0.82
-          const MAX = 1800;
+          // Compress: cap at 2400px on longest side, JPEG quality 0.88
+          const MAX = 2400;
           let { width, height } = img;
           if (width > MAX || height > MAX) {
             if (width >= height) { height = Math.round(height * MAX / width); width = MAX; }
@@ -1874,7 +1874,7 @@ export default function BookLayoutEditor() {
           canvas.height = height;
           const ctx = canvas.getContext('2d')!;
           ctx.drawImage(img, 0, 0, width, height);
-          const preview = canvas.toDataURL('image/jpeg', 0.82);
+          const preview = canvas.toDataURL('image/jpeg', 0.88);
           const photo: PhotoData = {
             id: `up-${batchId}-${idx}`,
             preview,
@@ -4803,7 +4803,7 @@ export default function BookLayoutEditor() {
             <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Розвороти</span>
             <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{Math.ceil((pages.length - 1) / 2)}{hasEndpaper ? ' +2ФЗ' : ''}</span>
           </div>
-          <div style={{ flex: 1, overflow: 'auto', padding: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ flex: 1, overflow: 'auto', padding: 6, paddingBottom: 120, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {/* Cover spread */}
             {(() => {
               const active = currentIdx === 0;
