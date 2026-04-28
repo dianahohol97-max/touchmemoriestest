@@ -1161,28 +1161,45 @@ export default function BookLayoutEditor() {
     }
     // Restore editor draft if user navigated back
     const draft = sessionStorage.getItem('bookEditorDraft');
+    const currentConfig = sessionStorage.getItem('bookConstructorConfig');
     if (draft) {
       try {
         const d = JSON.parse(draft);
         if (d.pages?.length) {
-          // Get valid photo IDs from restored photos to clear dangling refs
-          const validIds = new Set((JSON.parse(sessionStorage.getItem('bookConstructorPhotos') || '[]') as PhotoData[])
-            .filter(p => p.preview && p.preview.length < 4_000_000 && p.width > 0 && p.height > 0)
-            .map(p => p.id));
-          const cleanPages = d.pages.map((p: any) => ({
-            ...p,
-            slots: (p.slots || []).map((s: any) => ({
-              ...s,
-              photoId: s.photoId && validIds.has(s.photoId) ? s.photoId : null,
-            })),
-          }));
-          setPages(cleanPages);
+          // Validate draft page count matches current order — discard stale draft
+          let expectedTotal = 20;
+          if (currentConfig) {
+            try {
+              const cfg = JSON.parse(currentConfig);
+              const m = (cfg.selectedPageCount || '').match(/(\d+)/);
+              if (m) expectedTotal = parseInt(m[0]);
+            } catch {}
+          }
+          // draft pages includes cover (page[0]), so content = d.pages.length - 1
+          const draftContent = d.pages.length - 1;
+          if (Math.abs(draftContent - expectedTotal) > 2) {
+            // Draft is from a different order — discard it
+            sessionStorage.removeItem('bookEditorDraft');
+          } else {
+            // Get valid photo IDs from restored photos to clear dangling refs
+            const validIds = new Set((JSON.parse(sessionStorage.getItem('bookConstructorPhotos') || '[]') as PhotoData[])
+              .filter(p => p.preview && p.preview.length < 4_000_000 && p.width > 0 && p.height > 0)
+              .map(p => p.id));
+            const cleanPages = d.pages.map((p: any) => ({
+              ...p,
+              slots: (p.slots || []).map((s: any) => ({
+                ...s,
+                photoId: s.photoId && validIds.has(s.photoId) ? s.photoId : null,
+              })),
+            }));
+            setPages(cleanPages);
+            if (d.freeSlots) setFreeSlots(d.freeSlots);
+            if (d.pageStickers) setPageStickers(d.pageStickers);
+            if (d.pageShapes) setPageShapes(d.pageShapes);
+            if (d.pageBgs) setPageBgs(d.pageBgs);
+            if (d.coverState) setCoverState(d.coverState);
+          }
         }
-        if (d.freeSlots) setFreeSlots(d.freeSlots);
-        if (d.pageStickers) setPageStickers(d.pageStickers);
-        if (d.pageShapes) setPageShapes(d.pageShapes);
-        if (d.pageBgs) setPageBgs(d.pageBgs);
-        if (d.coverState) setCoverState(d.coverState);
       } catch {}
     }
   }, [router]);
@@ -2081,14 +2098,57 @@ export default function BookLayoutEditor() {
     setDesignerSaving(false);
   };
 
+  const [showCartModal, setShowCartModal] = useState(false);
+
   const addToCart = () => {
     if (!config) return;
-    addItem({ id: `pb-${Date.now()}`, name: config.productName || 'Фотокнига', price: dynamicPrice, qty: 1, image: getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '', options: { 'Розмір': config.selectedSize || '', 'Сторінок': config.selectedPageCount }, personalization_note: `${pages.length} сторінок` });
-    // Clear editor draft — user successfully added to cart
+    // pages[0] = cover, so content pages = pages.length - 1
+    const contentPages = pages.length - 1;
+    // Use product image from config if available, otherwise use cover photo preview
+    const productImage = config.productImage || getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '';
+    addItem({
+      id: `pb-${Date.now()}`,
+      name: config.productName || 'Фотокнига',
+      price: dynamicPrice,
+      qty: 1,
+      image: productImage,
+      options: {
+        'Розмір': config.selectedSize || '',
+        'Сторінок': `${contentPages} сторінок`,
+        'Обкладинка': config.selectedCoverType || '',
+      },
+      personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}`,
+    } as any);
+    // Clear draft
     sessionStorage.removeItem('bookEditorDraft');
     sessionStorage.removeItem('bookConstructorConfig');
-    toast.success('Додано до кошика!');
-    router.push('/cart');
+    // Save design to Supabase (non-blocking)
+    saveDesignToProjects(contentPages, productImage);
+    // Show modal instead of redirect
+    setShowCartModal(true);
+  };
+
+  const saveDesignToProjects = async (contentPages: number, productImage: string) => {
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+      await sb.from('projects').insert({
+        user_id: user.id,
+        product_type: 'photobook',
+        format: config?.selectedSize || '',
+        cover_type: config?.selectedCoverType || '',
+        total_pages: contentPages,
+        status: 'draft',
+        pages_data: pages,
+        cover_data: coverState,
+        uploaded_photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })),
+        updated_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn('Design save skipped:', e);
+    }
   };
 
   if (!config || pages.length === 0) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
@@ -6220,6 +6280,37 @@ export default function BookLayoutEditor() {
           isSpreadMode={isSpreadMode}
           hasKalka={hasKalka}
         />
+      )}
+
+      {/* Cart modal — after adding to cart */}
+      {showCartModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:9999,
+          display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+          onClick={() => setShowCartModal(false)}>
+          <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:380, width:'100%',
+            textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize:40, marginBottom:12 }}>🛒</div>
+            <h2 style={{ fontWeight:800, fontSize:20, color:'#1e2d7d', marginBottom:8 }}>
+              Фотокнигу додано до кошика!
+            </h2>
+            <p style={{ color:'#64748b', fontSize:14, marginBottom:24 }}>
+              Оформити замовлення або продовжити редагування?
+            </p>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <a href={`/${typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'uk'}/cart`}
+                style={{ display:'block', padding:'13px', background:'#1e2d7d', color:'#fff',
+                  borderRadius:10, fontWeight:800, fontSize:15, textDecoration:'none' }}>
+                Оформити замовлення →
+              </a>
+              <button onClick={() => setShowCartModal(false)}
+                style={{ padding:'13px', background:'#f1f5f9', color:'#374151',
+                  borderRadius:10, fontWeight:700, fontSize:14, border:'none', cursor:'pointer' }}>
+                Продовжити редагування
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

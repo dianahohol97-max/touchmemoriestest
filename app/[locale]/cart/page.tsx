@@ -190,7 +190,17 @@ export default function CartPage() {
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: 800, fontSize: '16px', marginBottom: '4px' }}>{item.name}</div>
                                                 <div style={{ fontSize: '13px', color: '#888' }}>
-                                                    {item.options?.format} • {item.options?.cover} • {item.options?.pages} стор.
+                                                    {/* Show options as key:value pairs, fallback to personalization_note */}
+                                                    {item.options && Object.keys(item.options).length > 0
+                                                      ? Object.entries(item.options)
+                                                          .filter(([,v]) => v && String(v).trim())
+                                                          .map(([k,v]) => `${k}: ${v}`)
+                                                          .join(' · ')
+                                                      : (item as any).personalization_note || ''
+                                                    }
+                                                    {(item as any).personalization_note && Object.keys(item.options||{}).length > 0 && (
+                                                      <div style={{ marginTop:2, fontSize:11, color:'#aaa' }}>{(item as any).personalization_note}</div>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '6px', borderRadius: "3px" }}>

@@ -59,10 +59,10 @@ export default function RootLayout({
         <ThemeProvider>
           <I18nProvider>
           {children}
-          </I18nProvider>
           <CartDrawer />
           <Toaster position="top-right" richColors />
           <NewsletterPopup />
+          </I18nProvider>
           <Suspense fallback={null}>
             <AnalyticsProvider />
           </Suspense>
