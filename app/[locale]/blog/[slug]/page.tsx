@@ -9,8 +9,8 @@ import MarkdownViewer from '@/components/ui/MarkdownViewer';
 import BlogShareButton from '@/components/ui/BlogShareButton';
 import { getLocalized } from '@/lib/i18n/localize';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 3600;
+// ISR: revalidate every 2 hours — blog posts rarely change
+export const revalidate = 7200;
 
 const stripEmoji = (text?: string) => {
     if (!text) return '';

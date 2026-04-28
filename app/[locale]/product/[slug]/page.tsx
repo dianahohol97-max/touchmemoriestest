@@ -1,9 +1,8 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import ProductContent from './ProductContent';
 
-// Force dynamic rendering (cart requires client-side)
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// ISR: product data changes rarely — revalidate every hour
+export const revalidate = 3600;
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
     const supabase = getAdminClient();

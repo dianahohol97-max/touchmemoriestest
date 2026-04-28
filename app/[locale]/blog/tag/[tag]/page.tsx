@@ -5,8 +5,7 @@ import { Clock, User, ArrowLeft, Hash } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: Promise<{ tag: string }> }) {
     const { tag } = await params;
