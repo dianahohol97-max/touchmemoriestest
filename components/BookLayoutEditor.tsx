@@ -2230,6 +2230,7 @@ export default function BookLayoutEditor() {
           {((() => {
             const allTabs: [string, React.ReactNode, string, boolean?][] = [
               ...(!isWishbook ? [['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'] as [string, React.ReactNode, string]] : []),
+              ['photos', <ImageIcon key="ph" size={20}/>, 'Фото'],
               ['text', <Type key="t" size={20}/>, 'Текст', isMagazine && !hasTextLayout],
               ['bg', <Palette key="bg" size={20}/>, 'Фон'],
               ['shapes', <Square key="sh" size={20}/>, 'Фігури'],
