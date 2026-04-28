@@ -121,6 +121,26 @@ interface CoverEditorProps {
 export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange, hidePhotoSlot = false }: CoverEditorProps) {
   const t = useT();
   const [dragOver, setDragOver] = useState(false);
+  // Snap guide lines — {x?: number, y?: number} in % (0-100), shown while dragging
+  const [snapLines, setSnapLines] = useState<{ x?: number[]; y?: number[] }>({});
+
+  // Snap threshold in % units
+  const SNAP_THRESHOLD = 2.5;
+  // Canvas snap points: edges, center, thirds
+  const SNAP_X = [0, 25, 50, 75, 100];
+  const SNAP_Y = [0, 25, 50, 75, 100];
+
+  // Given a value and snap points, return snapped value + which lines to show
+  const snapVal = (val: number, points: number[]): { snapped: number; lines: number[] } => {
+    let best = val, lines: number[] = [];
+    for (const p of points) {
+      if (Math.abs(val - p) < SNAP_THRESHOLD) {
+        if (Math.abs(val - p) <= Math.abs(best - p)) best = p;
+        lines.push(p);
+      }
+    }
+    return { snapped: best, lines };
+  };
   // Load Cyrillic calligraphic fonts
   useEffect(() => {
     const link = document.createElement('link');
@@ -141,12 +161,28 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
     const orig = { ...slot };
     startPointerDrag(e, (dx, dy) => {
       const ddx = dx/canvasW*100, ddy = dy/canvasH*100;
-      if (type==='move') onChange({ printedPhotoSlot: {...orig, x:Math.max(0,Math.min(100-orig.w,orig.x+ddx)), y:Math.max(0,Math.min(100-orig.h,orig.y+ddy)) }});
-      else if (type==='se') onChange({ printedPhotoSlot: {...orig, w:Math.max(10,orig.w+ddx), h:Math.max(10,orig.h+ddy) }});
+      if (type==='move') {
+        const rawX = orig.x + ddx, rawY = orig.y + ddy;
+        // Snap: check center of slot
+        const cxRaw = rawX + orig.w/2, cyRaw = rawY + orig.h/2;
+        const { snapped: cxSnap, lines: lx } = snapVal(cxRaw, SNAP_X);
+        const { snapped: cySnap, lines: ly } = snapVal(cyRaw, SNAP_Y);
+        // Also snap left/right edges
+        const { lines: lxL } = snapVal(rawX, SNAP_X);
+        const { lines: lxR } = snapVal(rawX + orig.w, SNAP_X);
+        const { lines: lyT } = snapVal(rawY, SNAP_Y);
+        const { lines: lyB } = snapVal(rawY + orig.h, SNAP_Y);
+        const allLx = [...new Set([...lx, ...lxL, ...lxR])];
+        const allLy = [...new Set([...ly, ...lyT, ...lyB])];
+        setSnapLines({ x: allLx.length ? allLx : undefined, y: allLy.length ? allLy : undefined });
+        const newX = cxSnap !== cxRaw ? cxSnap - orig.w/2 : rawX;
+        const newY = cySnap !== cyRaw ? cySnap - orig.h/2 : rawY;
+        onChange({ printedPhotoSlot: {...orig, x:Math.max(0,Math.min(100-orig.w,newX)), y:Math.max(0,Math.min(100-orig.h,newY)) }});
+      } else if (type==='se') onChange({ printedPhotoSlot: {...orig, w:Math.max(10,orig.w+ddx), h:Math.max(10,orig.h+ddy) }});
       else if (type==='sw') onChange({ printedPhotoSlot: {...orig, x:orig.x+ddx, w:Math.max(10,orig.w-ddx), h:Math.max(10,orig.h+ddy) }});
       else if (type==='ne') onChange({ printedPhotoSlot: {...orig, y:orig.y+ddy, w:Math.max(10,orig.w+ddx), h:Math.max(10,orig.h-ddy) }});
       else if (type==='nw') onChange({ printedPhotoSlot: {...orig, x:orig.x+ddx, y:orig.y+ddy, w:Math.max(10,orig.w-ddx), h:Math.max(10,orig.h-ddy) }});
-    });
+    }, () => setSnapLines({})); // clear on release
   };
 
   // Printed cover: text block drag via Pointer Events
@@ -159,12 +195,18 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
     startPointerDrag(e, (dx, dy) => {
       if (!moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) moved = true;
       if (!moved) return;
+      const rawX = tx + dx/canvasW*100;
+      const rawY = ty + dy/canvasH*100;
+      // Snap text center to guide lines
+      const { snapped: snX, lines: lx } = snapVal(rawX, SNAP_X);
+      const { snapped: snY, lines: ly } = snapVal(rawY, SNAP_Y);
+      setSnapLines({ x: lx.length ? lx : undefined, y: ly.length ? ly : undefined });
       onChange({
         printedTextBlocks: texts.map(t => t.id === id
-          ? { ...t, x: Math.max(2,Math.min(98,tx+dx/canvasW*100)), y: Math.max(2,Math.min(98,ty+dy/canvasH*100)) }
+          ? { ...t, x: Math.max(2,Math.min(98, snX)), y: Math.max(2,Math.min(98, snY)) }
           : t)
       });
-    });
+    }, () => setSnapLines({})); // clear on release
   };
 
   const bgColor = (() => {
@@ -229,6 +271,25 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
       style={{ position:'relative', width:canvasW, height:canvasH, borderRadius:4, overflow:'hidden',
         boxShadow:'0 8px 32px rgba(0,0,0,0.18)', flexShrink:0, background:bgColor }}>
       {isSoft && <div style={{ position:'absolute', inset:0, backgroundImage:texture, pointerEvents:'none', zIndex:1 }}/>}
+
+      {/* Snap guide lines overlay — shown while dragging */}
+      {(snapLines.x?.length || snapLines.y?.length) && (
+        <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:100 }}
+          viewBox={`0 0 ${canvasW} ${canvasH}`}>
+          {(snapLines.x || []).map(xp => (
+            <line key={'x'+xp} x1={xp/100*canvasW} y1={0} x2={xp/100*canvasW} y2={canvasH}
+              stroke={xp===50 ? '#f97316' : '#ef4444'} strokeWidth={xp===50?1.5:0.8} strokeDasharray={xp===50?'':'3 3'} opacity={0.85}/>
+          ))}
+          {(snapLines.y || []).map(yp => (
+            <line key={'y'+yp} x1={0} y1={yp/100*canvasH} x2={canvasW} y2={yp/100*canvasH}
+              stroke={yp===50 ? '#f97316' : '#ef4444'} strokeWidth={yp===50?1.5:0.8} strokeDasharray={yp===50?'':'3 3'} opacity={0.85}/>
+          ))}
+          {/* Center dot when both center lines active */}
+          {snapLines.x?.includes(50) && snapLines.y?.includes(50) && (
+            <circle cx={canvasW/2} cy={canvasH/2} r={4} fill="#f97316" opacity={0.9}/>
+          )}
+        </svg>
+      )}
 
       {/* Printed cover — draggable photo slot + text blocks + overlay */}
       {!isSoft && !hidePhotoSlot && config.printedPhotoSlot !== null && (() => {
