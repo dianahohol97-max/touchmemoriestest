@@ -27,7 +27,7 @@ import { TravelBookCTA } from '@/components/TravelBookCTA';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 
-export const revalidate = 3600; // Cache for 1 hour — revalidate on deploy
+export const revalidate = 14400; // Cache for 4 hours — homepage content rarely changes
 
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

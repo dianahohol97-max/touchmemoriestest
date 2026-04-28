@@ -1,7 +1,4 @@
 'use client';
-
-export const dynamic = 'force-dynamic';
-
 import { Suspense } from 'react';
 import dynamicImport from 'next/dynamic';
 const StarMapConstructor = dynamicImport(() => import('@/components/StarMapConstructor'), { ssr: false });

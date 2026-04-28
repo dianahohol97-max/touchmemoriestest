@@ -1,0 +1,9 @@
+'use client';
+import { useT, useLocale } from '@/lib/i18n/context';
+import { getLocalized } from '@/lib/i18n/localize';
+import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
+import { useState, useEffect, useRef } from 'react';
+import { Upload, ShoppingCart } from 'lucide-react';
+import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { useCartStore } from '@/store/cart-store';
+import { toast } from 'sonner';

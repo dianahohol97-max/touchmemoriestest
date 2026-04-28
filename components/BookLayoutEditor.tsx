@@ -906,7 +906,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
 }
 
 function LayoutSVG({ layout, active }: { layout: LayoutType; active: boolean }) {
-  const W = 36, H = 46;
+  const W = 48, H = 60;
   const defs = getSlotDefs(layout, W, H);
   const c = active ? '#fff' : '#94a3b8';
   return (
@@ -1218,7 +1218,7 @@ export default function BookLayoutEditor() {
       } catch {
         setSaveStatus('idle');
       }
-    }, 800); // debounce 800ms — wait for user to stop editing
+    }, 1500); // debounce 1500ms — wait for user to stop editing
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState]);
 
@@ -1295,7 +1295,7 @@ export default function BookLayoutEditor() {
   }, [designerOrderId]);
 
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
-  const usedIds = new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean)));
+  const usedIds = React.useMemo(() => new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean))), [pages]);
   const _slug = (config?.productSlug || '').toLowerCase();
   // Hard cover journal: isPrinted=true (uses color bg) but no photo slot
   const isHardCoverJournal = _slug.includes('tverd') || _slug.includes('hard-cover') ||
@@ -1513,14 +1513,14 @@ export default function BookLayoutEditor() {
   };
 
   // Get smart crop position for a photo (uses detected focal point if available)
-  const getFocalCrop = (photoId: string | null) => {
+  const getFocalCrop = React.useCallback((photoId: string | null) => {
     if (!photoId) return { cropX: 50, cropY: 50 };
     const photo = photos.find(p => p.id === photoId);
     if (photo?.focalX !== undefined && photo?.focalY !== undefined) {
       return { cropX: photo.focalX, cropY: photo.focalY };
     }
     return { cropX: 50, cropY: 38 }; // slightly above center — better default for portraits
-  };
+  }, [photos]);
 
   // Detect focal point using Canvas saliency — FREE, no API, runs in browser ~5ms
   const detectFocalPoint = (previewDataUrl: string, photoId: string) => {
@@ -1626,7 +1626,7 @@ export default function BookLayoutEditor() {
     // Collect all unused photos
     const usedIds = new Set<string>();
     pages.forEach(p => p.slots.forEach(s => { if (s.photoId) usedIds.add(s.photoId); }));
-    Object.values(freeSlots).forEach(arr => arr.forEach(fs => { if (fs.photoId) usedIds.add(fs.photoId); }));
+    Object.values(freeSlots).forEach((arr: any[]) => arr.forEach((fs: any) => { if (fs.photoId) usedIds.add(fs.photoId); }));
     const unused = photos.filter(ph => !usedIds.has(ph.id));
 
     if (unused.length === 0) {
@@ -1667,8 +1667,9 @@ export default function BookLayoutEditor() {
         const newId = newPages.length;
         newPages = [...newPages, { id: newId, label: `${newId}`, layout: best.id as LayoutType, slots: newSlots, textBlocks: [] }];
 
-        // Ensure even page count (spreads come in pairs)
-        if (newPages.length % 2 === 0) {
+        // Ensure even count of content pages (page[0] = cover, so content = length-1)
+        // Add blank pair page only when content count is odd AND queue is empty (last spread)
+        if (queue.length === 0 && (newPages.length - 1) % 2 !== 0) {
           const pairId = newPages.length;
           newPages = [...newPages, { id: pairId, label: `${pairId}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }];
         }
@@ -2250,7 +2251,7 @@ export default function BookLayoutEditor() {
         </div>}
 
         {/* CONTENT PANEL — desktop only, mobile uses bottom sheet */}
-        {!isMobile && <div style={{ width: 220, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        {!isMobile && <div style={{ width: 270, background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: 800, fontSize: 12, color: '#1e2d7d' }}>
             {(({'photos':t('constructor.tab_photos'),'layouts':t('constructor.tab_layouts'),'text':t('constructor.tab_text'),'bg':t('constructor.tab_bg'),'shapes':t('constructor.tab_shapes'),'frames':t('constructor.tab_frames'),'stickers':t('constructor.tab_stickers'),'options':t('constructor.tab_options'),'cover':t('constructor.cover'),'qr':'QR-код'} as Record<string,string>)[leftTab] || leftTab)}
           </div>
@@ -2407,14 +2408,14 @@ export default function BookLayoutEditor() {
                   return (
                     <div key={group}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', padding: '8px 4px 4px', textTransform: 'uppercase' }}>{group}</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
                         {gl.map(l => {
                           const activeIdx = getActivePageIdx();
                           const active = pages[activeIdx]?.layout === l.id;
                           const isRecommended = l.slots === unusedCount && unusedCount > 0;
                           return (
                             <button key={l.id} onClick={() => changeLayout(l.id, activeIdx)} title={l.label}
-                              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '7px 4px', border: active ? '2px solid #1e2d7d' : isRecommended ? '2px solid #7c3aed' : '1px solid #e2e8f0', borderRadius: 8, background: active ? '#1e2d7d' : isRecommended ? '#faf5ff' : '#fff', cursor: 'pointer', position:'relative' }}>
+                              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, padding: '8px 6px', border: active ? '2px solid #1e2d7d' : isRecommended ? '2px solid #7c3aed' : '1px solid #e2e8f0', borderRadius: 8, background: active ? '#1e2d7d' : isRecommended ? '#faf5ff' : '#fff', cursor: 'pointer', position:'relative' }}>
                               {isRecommended && !active && <div style={{ position:'absolute', top:-1, right:-1, width:8, height:8, borderRadius:'50%', background:'#7c3aed' }}/>}
                               <LayoutSVG layout={l.id} active={active} />
                               <span style={{ fontSize: 9, fontWeight: 600, color: active ? '#fff' : isRecommended ? '#7c3aed' : '#374151', textAlign: 'center', lineHeight: 1.2 }}>{l.label}</span>
@@ -3552,7 +3553,7 @@ export default function BookLayoutEditor() {
             (e.currentTarget as any)._swipeStartX = null;
             (e.currentTarget as any)._swipeMoved = false;
           }}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? `8px 8px ${mobilePanel ? '370px' : '115px'} 8px` : '24px 32px 140px 32px', background: '#f4f6fb', position:'relative', WebkitOverflowScrolling:'touch' as any }}>
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? `8px 8px ${mobilePanel ? '370px' : '115px'} 8px` : '24px 32px 160px 32px', background: '#f4f6fb', position:'relative', WebkitOverflowScrolling:'touch' as any }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: isMobile ? 6 : 16, display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12 }}>
             {isWishbook ? (
               <span>Обкладинка</span>
@@ -4964,7 +4965,7 @@ export default function BookLayoutEditor() {
         {isMobile && photos.length > 0 && (
           <div style={{ position:'absolute', bottom: 72, left:0, right:0, background:'rgba(255,255,255,0.95)', backdropFilter:'blur(8px)', borderTop:'1px solid #f1f5f9', zIndex:40, padding:'6px 8px', display:'flex', gap:6, overflowX:'auto', overflowY:'hidden', WebkitOverflowScrolling:'touch' as any, scrollbarWidth:'none' }}>
             {photos.filter(p => {
-              const used = pages.some(pg => pg.slots.some(s => s.photoId === p.id)) || Object.values(freeSlots).some(arr => arr.some(fs => fs.photoId === p.id));
+              const used = pages.some(pg => pg.slots.some(s => s.photoId === p.id)) || Object.values(freeSlots).some((arr: any[]) => arr.some((fs: any) => fs.photoId === p.id));
               return !used;
             }).slice(0, 20).map(ph => {
               const isTapped = tapSelectedPhotoId === ph.id;
@@ -4979,7 +4980,7 @@ export default function BookLayoutEditor() {
               );
             })}
             {photos.filter(p => {
-              const used = pages.some(pg => pg.slots.some(s => s.photoId === p.id)) || Object.values(freeSlots).some(arr => arr.some(fs => fs.photoId === p.id));
+              const used = pages.some(pg => pg.slots.some(s => s.photoId === p.id)) || Object.values(freeSlots).some((arr: any[]) => arr.some((fs: any) => fs.photoId === p.id));
               return !used;
             }).length === 0 && (
               <div style={{ color:'#94a3b8', fontSize:11, padding:'4px 8px', display:'flex', alignItems:'center', gap:6 }}>
@@ -5001,7 +5002,7 @@ export default function BookLayoutEditor() {
               <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>
                 Фото ({photos.length}) · використано {photos.filter(p => {
                   const inSlots = pages.some(pg => pg.slots.some(s => s.photoId === p.id));
-                  const inFree = Object.values(freeSlots).some(arr => arr.some(fs => fs.photoId === p.id));
+                  const inFree = Object.values(freeSlots).some((arr: any[]) => arr.some((fs: any) => fs.photoId === p.id));
                   return inSlots || inFree;
                 }).length}
               </span>
@@ -5041,7 +5042,7 @@ export default function BookLayoutEditor() {
               )}
               {photos.map((ph, i) => {
                 const used = pages.some(pg => pg.slots.some(s => s.photoId === ph.id)) ||
-                  Object.values(freeSlots).some(arr => arr.some(fs => fs.photoId === ph.id));
+                  Object.values(freeSlots).some((arr: any[]) => arr.some((fs: any) => fs.photoId === ph.id));
                 const ratio = ph.width / ph.height;
                 const thumbH = isMobile ? 80 : 68;
                 const thumbW = Math.round(thumbH * ratio);
