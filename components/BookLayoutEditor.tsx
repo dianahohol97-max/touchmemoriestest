@@ -3680,11 +3680,15 @@ export default function BookLayoutEditor() {
                               </div>
                               {/* Delete photo */}
                               <button onClick={()=>setCoverState((p: any)=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()}>×</button>
-                              {/* Move handle — drag bar at top */}
+                              {/* Move handle — always visible drag grip */}
                               <div onPointerDown={e => { e.stopPropagation(); startBackSlotDrag(e, 'move'); }}
-                                style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'60%',height:14,cursor:'move',zIndex:25,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(0,0,0,0.3)',opacity:0,transition:'opacity 0.15s'}}
-                                onMouseEnter={e=>{e.currentTarget.style.opacity='1'}} onMouseLeave={e=>{e.currentTarget.style.opacity='0'}}>
-                                <div style={{width:20,height:3,borderRadius:2,background:'rgba(255,255,255,0.7)'}}/>
+                                style={{position:'absolute',top:4,left:4,width:22,height:22,cursor:'move',zIndex:25,
+                                  display:'flex',alignItems:'center',justifyContent:'center',
+                                  background:'rgba(0,0,0,0.55)',borderRadius:6,touchAction:'manipulation'}}
+                                title="Перетягнути слот">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <path d="M6 1v10M1 6h10M6 1L4 3M6 1l2 2M6 11l-2-2M6 11l2-2M1 6l2-2M1 6l2 2M11 6l-2-2M11 6l-2 2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                                </svg>
                               </div>
                             </>
                           ) : (

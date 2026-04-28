@@ -322,13 +322,16 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
                     </div>
                   </div>
-                    {/* Move handle — drag bar at top of slot */}
+                    {/* Move handle — always visible drag grip in top-left corner */}
                     <div onPointerDown={e => { e.stopPropagation(); startSlotDrag(e, 'move'); }}
-                      style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:'60%', height:14, cursor:'move', zIndex:25, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'0 0 6px 6px', background:'rgba(0,0,0,0.3)', opacity:0, transition:'opacity 0.15s' }}
-                      className="slot-move-handle">
-                      <div style={{width:20,height:3,borderRadius:2,background:'rgba(255,255,255,0.7)'}}/>
+                      style={{ position:'absolute', top:4, left:4, width:22, height:22, cursor:'move', zIndex:30,
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        background:'rgba(0,0,0,0.55)', borderRadius:6, touchAction:'manipulation' }}
+                      title="Перетягнути слот">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M6 1v10M1 6h10M6 1L4 3M6 1l2 2M6 11l-2-2M6 11l2-2M1 6l2-2M1 6l2 2M11 6l-2-2M11 6l-2 2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
                     </div>
-                    <style>{`.slot-move-handle{opacity:0!important}div:hover>.slot-move-handle{opacity:1!important}`}</style>
                   </>
                 : <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, color:'#94a3b8' }}>
                     <ImageIcon size={28}/><span style={{ fontSize:11, fontWeight:600, textAlign:'center' }}>{t('constructor.drag_photo')}</span>
