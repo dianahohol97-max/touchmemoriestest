@@ -55,7 +55,7 @@ interface Product {
     };
 }
 
-function CatalogContent() {
+function CatalogContent({ initialProducts = [], initialCategories = [] }: { initialProducts?: any[]; initialCategories?: any[] }) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const t = useT();
@@ -69,10 +69,14 @@ function CatalogContent() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>(() =>
+        initialCategories.length > 0
+            ? [{ id: 'all', name: 'Всі', slug: 'all' }, ...initialCategories]
+            : []
+    );
+    const [products, setProducts] = useState<Product[]>(() => initialProducts as Product[]);
     const [collectionProducts, setCollectionProducts] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(initialProducts.length === 0);
 
     const [selectedCategory, setSelectedCategory] = useState(queryCategory);
     const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(querySubcategory);
@@ -80,16 +84,14 @@ function CatalogContent() {
     const [hasPendingOrder, setHasPendingOrder] = useState(false);
 
     useEffect(() => {
-        // Check for pending order
         const pendingOrder = sessionStorage.getItem('pendingOrder');
         setHasPendingOrder(!!pendingOrder);
     }, []);
 
     useEffect(() => {
-        // Sync state with URL if it changes externally
         if (queryCategory !== selectedCategory) {
             setSelectedCategory(queryCategory);
-            setSelectedSubcategory(null); // reset subcategory when main category changes
+            setSelectedSubcategory(null);
         }
     }, [queryCategory]);
 
@@ -99,9 +101,17 @@ function CatalogContent() {
 
     useEffect(() => {
         const fetchCatalogData = async () => {
-            setIsLoading(true);
+            // If we already have server-prefetched data, only fetch if categories label needs locale
+            if (initialProducts.length > 0 && !queryCollection) {
+                // Update "all" category label with correct locale
+                if (categories.length > 0 && categories[0].id === 'all') {
+                    setCategories(prev => [{ ...prev[0], name: t('catalog.all') }, ...prev.slice(1)]);
+                }
+                setIsLoading(false);
+                return;
+            }
 
-            // Fetch categories
+            setIsLoading(true);
             const { data: catData } = await supabase
                 .from('categories')
                 .select('id, name, slug, cover_image, display_style, translations')
@@ -110,36 +120,20 @@ function CatalogContent() {
 
             if (catData) setCategories([{ id: 'all', name: t('catalog.all'), slug: 'all' }, ...catData]);
 
-            // Fetch products
             const { data: prodData } = await supabase
                 .from('products')
                 .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, is_personalized, is_partially_personalized, translations, categories(name, slug)')
                 .eq('is_active', true);
 
-            if (prodData) {
-                // Supabase returns generic object array, so we map it to our type
-                setProducts(prodData as any);
-            }
+            if (prodData) setProducts(prodData as any);
 
-            // If there's a collection parameter, fetch products for that collection
             if (queryCollection) {
                 const { data: collectionData } = await supabase
-                    .from('gift_collections')
-                    .select('id')
-                    .eq('slug', queryCollection)
-                    .eq('is_active', true)
-                    .single();
-
+                    .from('gift_collections').select('id').eq('slug', queryCollection).eq('is_active', true).single();
                 if (collectionData) {
                     const { data: itemsData } = await supabase
-                        .from('gift_collection_items')
-                        .select('product_id')
-                        .eq('collection_id', collectionData.id)
-                        .order('sort_order');
-
-                    if (itemsData) {
-                        setCollectionProducts(itemsData.map(item => item.product_id));
-                    }
+                        .from('gift_collection_items').select('product_id').eq('collection_id', collectionData.id).order('sort_order');
+                    if (itemsData) setCollectionProducts(itemsData.map(item => item.product_id));
                 }
             } else {
                 setCollectionProducts([]);
@@ -411,12 +405,12 @@ function CatalogContent() {
     );
 }
 
-export default function CatalogPage() {
+export default function CatalogPage({ initialProducts = [], initialCategories = [] }: { initialProducts?: any[]; initialCategories?: any[] }) {
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#fcfcfc', display: 'flex', flexDirection: 'column' }}>
             <Navigation />
             <Suspense fallback={<div className="flex-1 flex justify-center items-center"><Loader2 size={40} className="animate-spin text-slate-300" /></div>}>
-                <CatalogContent />
+                <CatalogContent initialProducts={initialProducts} initialCategories={initialCategories} />
             </Suspense>
             <Footer categories={[]} />
         </div>

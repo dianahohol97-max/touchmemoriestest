@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import CatalogClient from './CatalogClient';
+import { getAdminClient } from '@/lib/supabase/admin';
 
 export const revalidate = 60;
 
@@ -16,6 +17,21 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return CATALOG_META[locale] || CATALOG_META.uk;
 }
 
-export default function CatalogPage() {
-  return <CatalogClient />;
+export default async function CatalogPage() {
+  // Prefetch server-side so client gets instant first paint
+  let initialProducts: any[] = [];
+  let initialCategories: any[] = [];
+  try {
+    const supabase = getAdminClient();
+    if (supabase) {
+      const [{ data: cats }, { data: prods }] = await Promise.all([
+        supabase.from('categories').select('id, name, slug, cover_image, display_style, translations').eq('is_active', true).order('sort_order'),
+        supabase.from('products').select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, category_id, translations').eq('is_active', true).order('sort_order'),
+      ]);
+      initialCategories = cats || [];
+      initialProducts = prods || [];
+    }
+  } catch {}
+
+  return <CatalogClient initialProducts={initialProducts} initialCategories={initialCategories} />;
 }
