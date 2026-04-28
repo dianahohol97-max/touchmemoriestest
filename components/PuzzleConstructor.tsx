@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { CartSuccessModal } from '@/components/ui/CartSuccessModal';
 import { useRouter } from 'next/navigation';
 import { Upload, ShoppingCart, Image as ImageIcon, Type, QrCode, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -83,6 +84,7 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
     fontFamily: 'Playfair Display',
     qrValue: 'https://touch.memories',
   });
+  const [showCartModal, setShowCartModal] = useState(false);
 
   const format = PUZZLE_FORMATS.find(f => f.id === config.formatId)!;
 
@@ -130,7 +132,7 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
       personalization_note: `${format.label} · ${config.pieceCount} деталей · ${finishData.label}`,
     });
     toast.success(t('puzzle.addToCart'));
-    router.push('/cart');
+    setShowCartModal(true);
   };
 
   // Preview scaling — max 360px on longer dimension
@@ -428,6 +430,7 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
           .puzzle-layout { grid-template-columns: 1fr !important; }
         }
       `}</style>
+      {showCartModal && <CartSuccessModal onClose={() => setShowCartModal(false)} />}
     </div>
   );
 }

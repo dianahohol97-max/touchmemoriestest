@@ -53,8 +53,6 @@ export function ConstructorSelectionClient({
     const magazinesConstructorButtonText = sectionContent?.metadata?.magazines?.constructor_button_text || t('constructor_sel.open_constructor');
     const magazinesDesignerButtonText = sectionContent?.metadata?.magazines?.designer_button_text || t('constructor_sel.order_designer');
 
-    console.log('[ConstructorSelectionClient] photobooks URL:', photobooksConstructorUrl);
-    console.log('[ConstructorSelectionClient] magazines URL:', magazinesConstructorUrl);
 
     return (
         <section ref={ref} className="py-20 bg-white">

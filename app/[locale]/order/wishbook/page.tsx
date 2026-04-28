@@ -1,8 +1,8 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { Suspense, useState, useRef, useCallback } from 'react';
+import { CartSuccessModal } from '@/components/ui/CartSuccessModal';
+import { useT } from '@/lib/i18n/context';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
@@ -21,6 +21,7 @@ const SIZE_DIMENSIONS: Record<string, { w: number; h: number }> = {
 };
 
 function WishbookCoverEditorContent() {
+  const t = useT();
   const searchParams = useSearchParams();
   const router = useRouter();
   const addItem = useCartStore(s => s.addItem);
@@ -50,6 +51,7 @@ function WishbookCoverEditorContent() {
   const effectiveHex = (colorMap as Record<string, string>)[coverColor] || '#e8ecf4';
 
   const [photos, setPhotos] = useState<{ id: string; preview: string }[]>([]);
+  const [showCartModal, setShowCartModal] = useState(false);
   const [coverState, setCoverState] = useState<CoverConfig>({
     coverMaterial,
     coverColorName: coverColor,
@@ -95,7 +97,7 @@ function WishbookCoverEditorContent() {
       options: { size, cover: coverType, coverColor, lamination, decoration, decorationVariant, coverDesign: coverState },
     });
     toast.success('Книгу побажань додано до кошика!');
-    router.push('/cart');
+    setShowCartModal(true);
   };
 
   return (
@@ -214,7 +216,7 @@ function WishbookCoverEditorContent() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button onClick={handleAddToCart}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 24px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
-                <ShoppingCart size={18} /> Додати до кошика
+                <ShoppingCart size={18} /> {t('photo_print.add_to_cart')}
               </button>
               <button onClick={() => router.back()}
                 style={{ padding: '12px 24px', background: 'transparent', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 12, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>

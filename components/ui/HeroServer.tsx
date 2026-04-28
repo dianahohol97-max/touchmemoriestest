@@ -34,7 +34,6 @@ export async function HeroServer() {
             is_active: btn.is_active
         }));
 
-        console.log('[HeroServer] heroButtons:', heroButtons.length);
     } catch (err) {
         console.error('[HeroServer] CAUGHT ERROR:', err);
     }

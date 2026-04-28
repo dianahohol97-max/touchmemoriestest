@@ -1,5 +1,6 @@
 'use client';
 import { useSearchParams } from 'next/navigation';
+import { CartSuccessModal } from '@/components/ui/CartSuccessModal';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useCartStore } from '@/store/cart-store';
@@ -472,6 +473,7 @@ function PhotoSlotEditor({
 
 function TextBlockEditor({ block, onUpdate, onDelete }: {
   block: TextBlock;
+  key?: string;
   onUpdate: (id: string, updates: Partial<TextBlock>) => void;
   onDelete: (id: string) => void;
 }) {
@@ -550,6 +552,7 @@ export default function PosterConstructor() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeSlotUpload, setActiveSlotUpload] = useState<number | null>(null);
+  const [showCartModal, setShowCartModal] = useState(false);
   const [dragFromIdx, setDragFromIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
@@ -597,11 +600,11 @@ export default function PosterConstructor() {
 
   //  Photo management 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []) as File[];
     if (!files.length) return;
     const newPhotos: PhotoSlot[] = [];
     let loaded = 0;
-    files.slice(0, layout.slots - config.photos.length).forEach(file => {
+    files.slice(0, layout.slots - config.photos.length).forEach((file: File) => {
       const url = URL.createObjectURL(file);
       newPhotos.push({ id: `photo-${Date.now()}-${Math.random()}`, photoUrl: url, cropX: 50, cropY: 50, zoom: 1, rotation: 0 });
       loaded++;
@@ -697,7 +700,7 @@ export default function PosterConstructor() {
         personalization_note: fileUrl ? `Файл: ${fileUrl}` : `Макет: ${layout.name}`,
       });
       toast.success(' Постер додано до кошика!');
-      router.push('/cart');
+      setShowCartModal(true);
     } catch (err) {
       toast.error('Помилка при оформленні');
     } finally {
@@ -1181,6 +1184,7 @@ export default function PosterConstructor() {
           Друк на щільному папері 200г/м² · Формат {sizeObj.label} · {sizeObj.price} ₴
         </div>
       </div>
+      {showCartModal && <CartSuccessModal onClose={() => setShowCartModal(false)} />}
     </div>
   );
 }

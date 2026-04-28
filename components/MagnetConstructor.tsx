@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { CartSuccessModal } from '@/components/ui/CartSuccessModal';
 import { useRouter } from 'next/navigation';
 import { Upload, X, ShoppingCart, Trash2, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -41,6 +42,7 @@ export default function MagnetConstructor() {
 const router = useRouter();
   const { addItem } = useCartStore();
   const [magnets, setMagnets] = useState<Magnet[]>([]);
+  const [showCartModal, setShowCartModal] = useState(false);
   const [activeMagnetId, setActiveMagnetId] = useState<string | null>(null);
   const [defaultSizeId, setDefaultSizeId] = useState<string>('9x9');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,7 +145,7 @@ const router = useRouter();
       personalization_note: `${magnets.length} магнітів`,
     });
     toast.success(t('magnet.magnets_added'));
-    router.push('/cart');
+    setShowCartModal(true);
   };
 
   return (
@@ -463,6 +465,7 @@ const router = useRouter();
           }
         }
       `}</style>
+      {showCartModal && <CartSuccessModal onClose={() => setShowCartModal(false)} />}
     </div>
   );
 }

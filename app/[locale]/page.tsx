@@ -41,7 +41,6 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
   try {
     const supabase = getAdminClient();
-    console.log('[Homepage] supabase client exists:', !!supabase);
 
     if (!supabase) {
       console.error('[Homepage] FATAL: Supabase client is null - env vars missing');

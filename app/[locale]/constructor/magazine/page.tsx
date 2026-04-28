@@ -1,6 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
 
 import React, { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -129,15 +128,6 @@ export default function GlossyMagazineConstructor() {
     if (!isFormValid()) return
 
     // In real app, send to API
-    console.log('Order submitted:', {
-      pages,
-      extras,
-      orderData,
-      totalPrice,
-      photosCount: uploadedPhotos.length,
-      textFile: textFile?.name,
-      zipFile: zipFile?.name,
-    })
 
     setOrderSuccess(true)
   }, [pages, extras, orderData, totalPrice, uploadedPhotos, textFile, zipFile, isFormValid])

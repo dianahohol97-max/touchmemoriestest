@@ -9,7 +9,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.
 //  Auth check 
 function unauthorized(req: Request) {
     const auth = req.headers.get('authorization');
-    return auth !== `Bearer ${process.env.CRON_SECRET}`;
+    return !process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`;
 }
 
 //  Main cron handler 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { CartSuccessModal } from '@/components/ui/CartSuccessModal';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
@@ -134,6 +135,7 @@ export default function PosterEditor() {
 
   // Photos
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [showCartModal, setShowCartModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Canvas state
@@ -180,8 +182,8 @@ export default function PosterEditor() {
 
   // Photo upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    files.forEach(file => {
+    const files = Array.from(e.target.files || []) as File[];
+    files.forEach((file: File) => {
       const reader = new FileReader();
       reader.onload = ev => {
         const preview = ev.target?.result as string;
@@ -216,7 +218,7 @@ export default function PosterEditor() {
       personalization_note: `Постер ${selectedSize}, шаблон: ${selectedTemplate.label}, фото: ${photos.length} шт.`,
     });
     toast.success('Постер додано до кошика!');
-    router.push('/cart');
+    setShowCartModal(true);
   };
 
   return (
@@ -429,6 +431,7 @@ export default function PosterEditor() {
 
       {/* Google Fonts */}
       <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Playfair+Display:wght@400;700&family=Cormorant+Garamond:wght@400;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet"/>
+      {showCartModal && <CartSuccessModal onClose={() => setShowCartModal(false)} />}
     </div>
   );
 }

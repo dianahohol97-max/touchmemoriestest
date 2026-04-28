@@ -177,7 +177,7 @@ export default function AdminCatalogPage() {
 
     const totalActive = products.filter(p => p.is_active).length;
 
-    const ProductRow = ({ p }: { p: Product }) => (
+    const ProductRow = ({ p }: { p: Product; key?: string }) => (
         <div style={S.prodRow}>
             <div style={S.prodThumb}>
                 {p.images?.[0]
@@ -212,7 +212,7 @@ export default function AdminCatalogPage() {
         </div>
     );
 
-    const ProductCard = ({ p }: { p: Product }) => (
+    const ProductCard = ({ p }: { p: Product; key?: string }) => (
         <div style={S.card}>
             <div style={S.cardImg}>
                 {p.images?.[0]

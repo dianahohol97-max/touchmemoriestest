@@ -1,8 +1,7 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useRef } from 'react';
+import { CartSuccessModal } from '@/components/ui/CartSuccessModal';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { Upload, ShoppingCart, ChevronRight, ChevronLeft } from 'lucide-react';
@@ -28,6 +27,7 @@ export default function DiplomaOrderPage() {
     const { addItem } = useCartStore();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [step, setStep] = useState(1);
+  const [showCartModal, setShowCartModal] = useState(false);
 
     // Step 1 — Parameters
     const [size, setSize] = useState('A4');
@@ -86,7 +86,7 @@ export default function DiplomaOrderPage() {
         });
 
         toast.success('Замовлення додано до кошика!');
-        router.push('/cart');
+        setShowCartModal(true);
     };
 
     const stepTitles = ['Параметри', 'Зміст документа', 'Контакти та замовлення'];

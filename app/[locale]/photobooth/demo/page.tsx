@@ -97,8 +97,6 @@ export default function PhotoboothDemoPage() {
   };
 
   const handleComplete = (imageDataUrl: string) => {
-    console.log('Photobooth completed!');
-    console.log('Image size:', (imageDataUrl.length / 1024 / 1024).toFixed(2), 'MB');
   };
 
   const handleError = (error: { code: string; message: string }) => {

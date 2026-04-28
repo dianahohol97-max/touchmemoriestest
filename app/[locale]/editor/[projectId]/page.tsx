@@ -1,6 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
 
 import { use, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -53,7 +52,6 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
 
         if (!error) {
           useEditorStore.getState().markClean()
-          console.log('Auto-saved at', new Date().toLocaleTimeString())
         }
       }
     }, 30000) // 30 seconds

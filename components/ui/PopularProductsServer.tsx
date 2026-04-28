@@ -34,7 +34,6 @@ export async function PopularProductsServer({ locale = "uk" }: { locale?: string
             console.error('[PopularProductsServer] Error fetching products:', JSON.stringify(productsError));
         }
         products = productsData || [];
-        console.log('[PopularProductsServer] products found:', products.length);
 
         // Fetch section content for heading and CTA
         const { data: sectionResult, error: sectionError } = await supabase

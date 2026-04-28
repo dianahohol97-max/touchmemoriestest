@@ -54,7 +54,6 @@ export const PhotoboothSectionClient: React.FC<PhotoboothSectionClientProps> = (
     ];
 
     const handleComplete = (imageDataUrl: string) => {
-        console.log('Фото готове!');
         // Тут можна додати логіку для збереження фото
     };
 

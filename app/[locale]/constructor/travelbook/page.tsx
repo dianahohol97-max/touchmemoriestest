@@ -1,6 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -98,13 +97,6 @@ export default function TravelBookConstructor() {
 
   const handleSubmitOrder = async () => {
     // Here you would send the order to your backend
-    console.log('Order submitted:', {
-      pages: selectedPages,
-      extras,
-      photos: uploadedPhotos.length,
-      orderData,
-      totalPrice,
-    })
     setOrderSuccess(true)
   }
 

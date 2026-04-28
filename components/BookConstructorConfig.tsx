@@ -205,7 +205,6 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 console.error('[BookConstructor] Error fetching prices:', pricesError);
             }
 
-            console.log('[BookConstructor] prices fetched:', pricesData?.length || 0);
             if (pricesData) {
                 setPhotobookPrices(pricesData);
             }
@@ -218,7 +217,6 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
             if (coverError) console.error('[BookConstructor] cover_types error:', coverError);
 
-            console.log('[BookConstructor] cover_types fetched:', coverTypesData?.length || 0);
             if (coverTypesData) {
                 setCoverTypes(coverTypesData);
             }
@@ -229,7 +227,6 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 .select('*')
                 .order('sort_order', { ascending: true });
 
-            console.log('[BookConstructor] sizes fetched:', sizesData?.length || 0);
             if (sizesData) {
                 setPhotobookSizes(sizesData);
             }

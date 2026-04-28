@@ -5,8 +5,6 @@ import { PhotoboothEmbed } from '@/components/photobooth';
 
 export default function PhotoboothPage() {
   const handleComplete = (imageDataUrl: string) => {
-    console.log('Photobooth session completed!');
-    console.log('Image data URL length:', imageDataUrl.length);
     // You can save the image to your backend here
   };
 
