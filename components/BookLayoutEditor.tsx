@@ -929,9 +929,9 @@ export default function BookLayoutEditor() {
   useEffect(() => {
     const check = () => {
       const w = window.innerWidth;
-      setIsMobile(w < 768);
+      setIsMobile(w < 640);
       // Auto-fit zoom for mobile
-      if (w < 768) {
+      if (w < 640) {
         // Canvas is ~2 pages wide for spread, or 1 page for page mode
         // Available width = screen width - padding (16px each side)
         const available = w - 32;
