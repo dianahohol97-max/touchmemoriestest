@@ -2192,7 +2192,22 @@ export default function BookLayoutEditor() {
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <div style={{ textAlign:'right', paddingRight:4 }}>
               <div style={{ fontSize:11, color:'#94a3b8' }}>{isWishbook ? 'Тільки обкладинка' : `${pages.length-1} стор. (${Math.ceil((pages.length-1)/2)} розворот${Math.ceil((pages.length-1)/2)===1?'':'и'})`}</div>
-              <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d' }}>{dynamicPrice} ₴{priceDiff!==0&&<span style={{ fontSize:11, color:priceDiff>0?'#10b981':'#ef4444', marginLeft:4 }}>{priceDiff>0?'+':''}{priceDiff}₴</span>}</div>
+              <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d', display:'flex', alignItems:'center', gap:4 }}>
+                {dynamicPrice} ₴
+                {priceDiff !== 0 && (
+                  <span title={priceDiff > 0
+                    ? `Ви додали сторінок більше ніж у початковому замовленні — доплата +${priceDiff} ₴`
+                    : `Ви використали менше сторінок ніж у замовленні — знижка ${priceDiff} ₴`}
+                    style={{ fontSize:11, color: priceDiff>0 ? '#f59e0b' : '#10b981',
+                      background: priceDiff>0 ? '#fef3c7' : '#d1fae5',
+                      padding:'1px 6px', borderRadius:5, cursor:'help', fontWeight:700 }}>
+                    {priceDiff>0?'+':''}{priceDiff}₴
+                  </span>
+                )}
+              </div>
+              {priceDiff > 0 && (
+                <div style={{ fontSize:9, color:'#f59e0b', marginTop:1 }}>доплата за додаткові стор.</div>
+              )}
             </div>
             <button onClick={()=>setShowPreview(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}><Eye size={14}/> Попередній перегляд</button>
             <button onClick={()=>{ setTooltipStep(0); setShowTooltips(true); }} title="Підказки" style={{ padding:'9px 10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', color:'#64748b', display:'flex', alignItems:'center' }}><HelpCircle size={14}/></button>
@@ -2648,30 +2663,47 @@ export default function BookLayoutEditor() {
                         <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
                           style={{ padding:'2px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
                       </div>
-                      <div style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>{t('constructor.drag_photo_back')}</div>
-                      {coverState.backCoverPhotoId && (
+
+                      {/* Opt-in toggle for back cover photo */}
+                      {!(coverState as any).backCoverEnabled ? (
+                        <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true } as any))}
+                          style={{ width:'100%', padding:'8px 10px', border:'1px dashed #c7d2fe', borderRadius:8,
+                            background:'#f8fafc', cursor:'pointer', fontSize:11, fontWeight:600, color:'#4f46e5',
+                            display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                          + Додати фото на задню обкладинку
+                        </button>
+                      ) : (
                         <>
-                          <div style={{ marginBottom:6 }}>
-                            <div style={{ fontSize:10, fontWeight:700, color:'#64748b', marginBottom:4 }}>Форма слота</div>
-                            <div style={{ display:'flex', gap:4 }}>
-                              {((['rect','rounded','circle','heart'] as const)).map(sh => {
-                                const bs = coverState.backCoverSlot ?? { x:0,y:0,w:100,h:100,shape:'rect' };
-                                return (
-                                  <button key={sh} onClick={()=>setCoverState(p=>({...p,backCoverSlot:{...bs,shape:sh}}))}
-                                    style={{ flex:1, padding:'5px 4px', border: bs.shape===sh ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: bs.shape===sh ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:14 }}>
-                                    {sh==='rect'?'':sh==='rounded'?'':sh==='heart'?'':''}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                          <button onClick={()=>setCoverState(p=>({...p,backCoverSlot:{x:0,y:0,w:100,h:100,shape:'rect'}}))}
-                            style={{ width:'100%', padding:'5px', fontSize:10, color:'#64748b', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, cursor:'pointer', marginBottom:6 }}>
-                            ↺ На весь розмір
-                          </button>
-                          <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
-                            style={{ width:'100%', padding:'5px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
-                            × {t('constructor.remove_photo_back')}
+                          <div style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>{t('constructor.drag_photo_back')}</div>
+                          {coverState.backCoverPhotoId && (
+                            <>
+                              <div style={{ marginBottom:6 }}>
+                                <div style={{ fontSize:10, fontWeight:700, color:'#64748b', marginBottom:4 }}>Форма слота</div>
+                                <div style={{ display:'flex', gap:4 }}>
+                                  {((['rect','rounded','circle','heart'] as const)).map(sh => {
+                                    const bs = coverState.backCoverSlot ?? { x:0,y:0,w:100,h:100,shape:'rect' };
+                                    return (
+                                      <button key={sh} onClick={()=>setCoverState(p=>({...p,backCoverSlot:{...bs,shape:sh}}))}
+                                        style={{ flex:1, padding:'5px 4px', border: bs.shape===sh ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: bs.shape===sh ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:14 }}>
+                                        {sh==='rect'?'□':sh==='rounded'?'▢':sh==='heart'?'♡':'○'}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                              <button onClick={()=>setCoverState(p=>({...p,backCoverSlot:{x:0,y:0,w:100,h:100,shape:'rect'}}))}
+                                style={{ width:'100%', padding:'5px', fontSize:10, color:'#64748b', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, cursor:'pointer', marginBottom:6 }}>
+                                ↺ На весь розмір
+                              </button>
+                              <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
+                                style={{ width:'100%', padding:'5px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer', marginBottom:6 }}>
+                                × {t('constructor.remove_photo_back')}
+                              </button>
+                            </>
+                          )}
+                          <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: false, backCoverPhotoId: null } as any))}
+                            style={{ width:'100%', padding:'5px', fontSize:10, color:'#94a3b8', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, cursor:'pointer' }}>
+                            Прибрати фото із задньої обкладинки
                           </button>
                         </>
                       )}
@@ -3641,8 +3673,8 @@ export default function BookLayoutEditor() {
                     <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: backBg, borderRight: '2px solid rgba(0,0,0,0.12)' }}
                       onDragOver={e=>{e.preventDefault();}}
                       onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}>
-                      {/* Back cover photo slot — hidden for wishbook/guestbook */}
-                      {isPrinted && !isWishbook && (
+                      {/* Back cover photo slot — hidden by default, shown only when user opted in */}
+                      {isPrinted && !isWishbook && (coverState as any).backCoverEnabled && (
                         <div
                           onPointerDown={e => { if (!backPhoto) return; startBackSlotDrag(e, 'move'); }}
                           onDragOver={e=>{e.preventDefault();}}
@@ -3699,7 +3731,7 @@ export default function BookLayoutEditor() {
                         </div>
                       )}
                       {/* Resize handles for back cover slot */}
-                      {isPrinted && (['nw','ne','se','sw'] as const).map(dir => {
+                      {isPrinted && (coverState as any).backCoverEnabled && (['nw','ne','se','sw'] as const).map(dir => {
                         const lp = (dir==='ne'||dir==='se') ? bSlotPx.x+bSlotPx.w : bSlotPx.x;
                         const tp = (dir==='se'||dir==='sw') ? bSlotPx.y+bSlotPx.h : bSlotPx.y;
                         return (
@@ -6051,14 +6083,28 @@ export default function BookLayoutEditor() {
                       <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
                         style={{ padding:'3px 7px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
                     </div>
-                    {coverState.backCoverPhotoId && (
-                      <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
-                        style={{ width:'100%', padding:'6px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
-                        × {t('constructor.remove_photo_back')}
+                    {!(coverState as any).backCoverEnabled ? (
+                      <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true } as any))}
+                        style={{ width:'100%', padding:'8px', border:'1px dashed #c7d2fe', borderRadius:8,
+                          background:'#f8fafc', cursor:'pointer', fontSize:11, fontWeight:600, color:'#4f46e5' }}>
+                        + Додати фото на задню обкладинку
                       </button>
-                    )}
-                    {!coverState.backCoverPhotoId && (
-                      <div style={{ fontSize:10, color:'#94a3b8' }}>Фото: перетягніть прямо на задню обкладинку</div>
+                    ) : (
+                      <>
+                        {coverState.backCoverPhotoId && (
+                          <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
+                            style={{ width:'100%', padding:'6px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer', marginBottom:6 }}>
+                            × {t('constructor.remove_photo_back')}
+                          </button>
+                        )}
+                        {!coverState.backCoverPhotoId && (
+                          <div style={{ fontSize:10, color:'#94a3b8', marginBottom:6 }}>Перетягніть фото прямо на задню обкладинку</div>
+                        )}
+                        <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: false, backCoverPhotoId: null } as any))}
+                          style={{ width:'100%', padding:'5px', fontSize:10, color:'#94a3b8', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, cursor:'pointer' }}>
+                          Прибрати фото із задньої
+                        </button>
+                      </>
                     )}
                   </div>
                 )}
