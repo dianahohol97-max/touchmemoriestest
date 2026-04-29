@@ -1,6 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { getResendClient } from '@/lib/email/resend';
 import type { OrderStatus, EmailTemplate, StatusChangeNotification } from '@/lib/types/automation';
+
+// All DB writes/reads in this module are backend-side automation logic that
+// runs without an admin session (status-change webhooks, payment processors).
+// We bypass RLS via the service-role admin client; the routes that call into
+// this module are responsible for authenticating their callers.
 
 
 
@@ -8,7 +13,7 @@ import type { OrderStatus, EmailTemplate, StatusChangeNotification } from '@/lib
  * Get email template for a status
  */
 export async function getEmailTemplate(status: OrderStatus): Promise<EmailTemplate | null> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { data, error } = await supabase
     .from('email_templates')
@@ -55,7 +60,7 @@ export async function sendStatusChangeNotification(params: {
 }): Promise<{ success: boolean; error?: string }> {
   try {
     // Check if automation is enabled
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const { data: settings } = await supabase
       .from('automation_settings')
       .select('notify_customer_email')
@@ -133,7 +138,7 @@ export async function sendStatusChangeNotification(params: {
  * Log notification in database for tracking
  */
 async function logNotification(notification: StatusChangeNotification): Promise<void> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   await supabase.from('notification_log').insert({
     order_id: notification.order_id,
@@ -152,7 +157,7 @@ async function logNotification(notification: StatusChangeNotification): Promise<
  * Get all email templates
  */
 export async function getAllEmailTemplates(): Promise<EmailTemplate[]> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { data, error } = await supabase
     .from('email_templates')
@@ -170,7 +175,7 @@ export async function updateEmailTemplate(
   id: string,
   updates: Partial<EmailTemplate>
 ): Promise<EmailTemplate> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { data, error } = await supabase
     .from('email_templates')
@@ -187,7 +192,7 @@ export async function updateEmailTemplate(
  * Toggle email template enabled status
  */
 export async function toggleEmailTemplate(id: string, enabled: boolean): Promise<void> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { error } = await supabase
     .from('email_templates')

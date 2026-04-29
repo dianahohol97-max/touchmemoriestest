@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import type { DesignerWorkload } from '@/lib/types/automation';
 
 /**
  * Get workload for all designers
  */
 export async function getDesignerWorkloads(): Promise<DesignerWorkload[]> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   // Get all designers (staff with role = 'designer' or 'admin')
   const { data: designers, error: designersError } = await supabase
@@ -86,7 +86,7 @@ export async function autoAssignDesigner(orderId: string): Promise<{
       };
     }
 
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     // Update order with assigned designer
     const { error: updateError } = await supabase
@@ -121,7 +121,7 @@ export async function assignDesigner(
   designerId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     const { error } = await supabase
       .from('orders')
@@ -149,7 +149,7 @@ export async function assignDesigner(
  */
 export async function unassignDesigner(orderId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     const { error } = await supabase
       .from('orders')
@@ -181,7 +181,7 @@ export async function getDesignerStatistics(designerId: string): Promise<{
   total_pages_in_queue: number;
   average_completion_time_days: number;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   // Active orders
   const { data: activeOrders } = await supabase

@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendStatusChangeNotification } from '@/lib/automation/email-notifications';
 import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/guards';
 import type { OrderStatus } from '@/lib/types/automation';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Auth: admin OR internal cron-secret. Without a guard, anyone could trigger
+ * status-change emails to any customer (spam vector + leaks order data via
+ * the email body).
+ */
 export async function POST(request: NextRequest) {
+  const cronSecret = request.headers.get('x-cron-secret');
+  const cronOk = !!process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET;
+  if (!cronOk) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+  }
+
   try {
     const body = await request.json();
     const { order_id, old_status, new_status } = body;

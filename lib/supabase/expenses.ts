@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import type {
   ExpenseCategory,
   Expense,
@@ -11,7 +11,7 @@ import type {
 
 // Expense Categories
 export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { data, error } = await supabase
     .from('expense_categories')
@@ -23,7 +23,7 @@ export async function getExpenseCategories(): Promise<ExpenseCategory[]> {
 }
 
 export async function createExpenseCategory(category: Omit<ExpenseCategory, 'id' | 'created_at' | 'updated_at'>): Promise<ExpenseCategory> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { data, error } = await supabase
     .from('expense_categories')
@@ -36,7 +36,7 @@ export async function createExpenseCategory(category: Omit<ExpenseCategory, 'id'
 }
 
 export async function updateExpenseCategory(id: string, category: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { data, error } = await supabase
     .from('expense_categories')
@@ -50,7 +50,7 @@ export async function updateExpenseCategory(id: string, category: Partial<Expens
 }
 
 export async function deleteExpenseCategory(id: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { error } = await supabase
     .from('expense_categories')
@@ -61,7 +61,7 @@ export async function deleteExpenseCategory(id: string): Promise<void> {
 }
 
 export async function getExpenseCategoryById(id: string): Promise<ExpenseCategory> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { data, error } = await supabase
     .from('expense_categories')
@@ -80,7 +80,7 @@ export async function getExpenses(filters?: {
   end_date?: string;
   is_recurring?: boolean;
 }): Promise<ExpenseWithCategory[]> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   let query = supabase
     .from('expenses')
@@ -113,7 +113,7 @@ export async function getExpenses(filters?: {
 }
 
 export async function getExpenseById(id: string): Promise<ExpenseWithCategory> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { data, error } = await supabase
     .from('expenses')
@@ -129,7 +129,7 @@ export async function getExpenseById(id: string): Promise<ExpenseWithCategory> {
 }
 
 export async function createExpense(expense: ExpenseFormData, userId: string): Promise<Expense> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   // Calculate amount_uah based on currency and exchange_rate
   const amount_uah = expense.currency === 'UAH'
@@ -152,7 +152,7 @@ export async function createExpense(expense: ExpenseFormData, userId: string): P
 }
 
 export async function updateExpense(id: string, expense: Partial<ExpenseFormData>): Promise<Expense> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   // Recalculate amount_uah if amount, currency, or exchange_rate changed
   let amount_uah: number | undefined;
@@ -180,7 +180,7 @@ export async function updateExpense(id: string, expense: Partial<ExpenseFormData
 }
 
 export async function deleteExpense(id: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { error } = await supabase
     .from('expenses')
@@ -196,7 +196,7 @@ export async function getRecurringExpenses(): Promise<ExpenseWithCategory[]> {
 }
 
 export async function toggleRecurringExpense(id: string, enabled: boolean): Promise<void> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { error } = await supabase
     .from('expenses')
@@ -208,7 +208,7 @@ export async function toggleRecurringExpense(id: string, enabled: boolean): Prom
 
 // Metrics
 export async function getExpenseMetrics(): Promise<ExpenseMetrics> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const now = new Date();
   const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -305,7 +305,7 @@ export async function getExpenseMetrics(): Promise<ExpenseMetrics> {
 
 // P&L Report
 export async function getPLReport(startDate: string, endDate: string): Promise<PLReportData> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   // Get revenue from orders.
   // Order line items live in `orders.items` JSONB (no separate order_items table).

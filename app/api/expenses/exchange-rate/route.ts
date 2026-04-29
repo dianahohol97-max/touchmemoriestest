@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getExchangeRate } from '@/lib/supabase/expenses';
 import type { Currency } from '@/lib/types/expenses';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export async function GET(request: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const currency = searchParams.get('currency') as Currency;

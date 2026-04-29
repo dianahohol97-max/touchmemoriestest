@@ -1,9 +1,23 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
+
+/**
+ * Auth: admin-only. Reading or modifying automation settings (which control
+ * production deadlines, auto-assignment behaviour, status-change emails)
+ * is privileged business config — anyone could otherwise toggle automation
+ * off, change deadlines, or rewrite status-change templates.
+ *
+ * Switched DB client to admin (service-role) because automation_settings
+ * RLS is admin-only, and we've already authenticated the caller above.
+ */
 
 export async function GET() {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     const { data, error } = await supabase
       .from('automation_settings')
@@ -23,8 +37,11 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const body = await request.json();
 
     // Get current settings

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getExpenseCategories, createExpenseCategory } from '@/lib/supabase/expenses';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export async function GET() {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const categories = await getExpenseCategories();
     return NextResponse.json(categories);
@@ -15,6 +19,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const body = await request.json();
     const category = await createExpenseCategory(body);

@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
+    // Auth: this endpoint calls the Anthropic API on our key. Without a guard
+    // anyone could spam it and run up the bill. Admin-only.
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     try {
         // Check if Anthropic API key is configured
         if (!process.env.ANTHROPIC_API_KEY) {

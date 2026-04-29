@@ -32,23 +32,21 @@ function getLocaleFromAcceptLanguage(acceptLang: string | null): string {
  * would prevent the staff lookup before the admin can be recognised.
  *
  * Returns true if user is admin/owner, false otherwise (including no session).
+ *
+ * NOTE: this does NOT call auth.getUser() itself — it expects the calling
+ * middleware to have already refreshed the session via updateSession() and
+ * pass the resolved user. This avoids two problems:
+ *   1. Calling getUser() before updateSession() means an expired access_token
+ *      (with a valid refresh_token) returns null — admins would be redirected
+ *      to /admin/login on every token-expiry boundary even though they're
+ *      logged in.
+ *   2. updateSession() returns a new NextResponse with rotated cookies. If we
+ *      built our own response from scratch (the redirect path), those cookies
+ *      were silently dropped.
  */
-async function isAdminSession(request: NextRequest): Promise<boolean> {
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() { return request.cookies.getAll(); },
-                setAll() { /* no-op: middleware guard does not set cookies */ },
-            },
-        }
-    );
+async function isUserAdmin(userEmail: string | null | undefined): Promise<boolean> {
+    if (!userEmail) return false;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-
-    // Service role client for the admin/staff lookup (bypasses RLS).
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !serviceKey) return false;
@@ -57,8 +55,7 @@ async function isAdminSession(request: NextRequest): Promise<boolean> {
     // match by email, the same way the is_admin() DB function and the
     // requireAdmin guard do. Matching by user.id silently fails for every
     // real admin and would lock Diana out of the admin panel.
-    if (!user.email) return false;
-    const adminCheckUrl = `${url}/rest/v1/admin_users?select=id&email=eq.${encodeURIComponent(user.email)}`;
+    const adminCheckUrl = `${url}/rest/v1/admin_users?select=id&email=eq.${encodeURIComponent(userEmail)}`;
     try {
         const res = await fetch(adminCheckUrl, {
             headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
@@ -70,7 +67,7 @@ async function isAdminSession(request: NextRequest): Promise<boolean> {
         }
     } catch { /* fall through to staff check */ }
 
-    const staffCheckUrl = `${url}/rest/v1/staff?select=role&email=eq.${encodeURIComponent(user.email)}`;
+    const staffCheckUrl = `${url}/rest/v1/staff?select=role&email=eq.${encodeURIComponent(userEmail)}`;
     try {
         const res = await fetch(staffCheckUrl, {
             headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
@@ -88,14 +85,53 @@ async function isAdminSession(request: NextRequest): Promise<boolean> {
     return false;
 }
 
+/**
+ * Refresh the Supabase session and return both the resolved user (if any) and
+ * the response to use (which may have rotated auth cookies set on it). The
+ * caller can then either return the response as-is, or use it as a basis for
+ * further header/cookie manipulation.
+ */
+async function refreshSessionAndGetUser(request: NextRequest): Promise<{
+    user: { id: string; email?: string } | null;
+    response: NextResponse;
+}> {
+    let response = NextResponse.next({ request });
+
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() { return request.cookies.getAll(); },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+                    response = NextResponse.next({ request });
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        response.cookies.set(name, value, options)
+                    );
+                },
+            },
+        }
+    );
+
+    const { data: { user } } = await supabase.auth.getUser();
+    return { user: user ? { id: user.id, email: user.email ?? undefined } : null, response };
+}
+
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // ─── /admin/* gating ────────────────────────────────────────────────
     // Before this guard, anyone could load /admin URLs and see the admin UI
     // shell. Data was protected by RLS + API guards, but the UI was open.
+    //
+    // Order matters: refresh the session first (which may rotate the auth
+    // cookie if the access_token has expired but the refresh_token is still
+    // valid), THEN check admin status. Doing the check first would cause
+    // spurious logouts on every token-expiry boundary.
     if (pathname.startsWith('/admin') && !PUBLIC_ADMIN_PATHS.has(pathname)) {
-        const ok = await isAdminSession(request);
+        const { user } = await refreshSessionAndGetUser(request);
+        const ok = await isUserAdmin(user?.email);
         if (!ok) {
             const loginUrl = new URL('/admin/login', request.url);
             loginUrl.searchParams.set('error', 'unauthorized');

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getExpenses, createExpense } from '@/lib/supabase/expenses';
 import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export async function GET(request: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const category_id = searchParams.get('category_id') || undefined;
@@ -28,6 +32,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

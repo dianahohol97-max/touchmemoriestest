@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { autoAssignDesigner, assignDesigner, getDesignerWorkloads } from '@/lib/automation/designer-assignment';
 import { notifyDesignerNewOrder } from '@/lib/automation/telegram-notifications';
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
 
+/**
+ * Auth: admin OR internal cron-secret. Without a guard, anyone could
+ * reassign any order to any designer (or auto-assign), trigger Telegram
+ * notifications, and read staff data via the staff lookup below.
+ */
 export async function POST(request: NextRequest) {
+  const cronSecret = request.headers.get('x-cron-secret');
+  const cronOk = !!process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET;
+  if (!cronOk) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+  }
+
   try {
     const body = await request.json();
     const { order_id, designer_id, auto } = body;
@@ -25,8 +38,9 @@ export async function POST(request: NextRequest) {
       result = await assignDesigner(order_id, designer_id);
 
       if (result.success) {
-        // Get designer info for notification
-        const supabase = await createClient();
+        // Get designer info for notification — staff table is admin-only via
+        // RLS, so we use the service-role admin client.
+        const supabase = getAdminClient();
         const { data: designer } = await supabase
           .from('staff')
           .select('id, name, telegram_chat_id')
@@ -87,6 +101,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const workloads = await getDesignerWorkloads();
     return NextResponse.json(workloads);

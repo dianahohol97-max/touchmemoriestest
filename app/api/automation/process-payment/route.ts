@@ -5,13 +5,27 @@ import { calculatePriorityScore } from '@/lib/automation/priority-calculator';
 import { autoAssignDesigner } from '@/lib/automation/designer-assignment';
 import { sendStatusChangeNotification } from '@/lib/automation/email-notifications';
 import { notifyDesignerNewOrder } from '@/lib/automation/telegram-notifications';
+import { requireAdmin } from '@/lib/auth/guards';
 import type { OrderStatus } from '@/lib/types/automation';
 
 /**
  * Process order payment and trigger automation
- * Called after payment is confirmed
+ * Called after payment is confirmed.
+ *
+ * Auth: admin OR internal cron-secret. Without a guard, anyone could call
+ * this with an arbitrary order_id and trigger designer assignment + email
+ * dispatch + Telegram notifications + production deadline calculation —
+ * all of which write back to the order. The Monobank webhook calls this
+ * via cron-secret; admins can call it from the panel.
  */
 export async function POST(request: NextRequest) {
+  const cronSecret = request.headers.get('x-cron-secret');
+  const cronOk = !!process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET;
+  if (!cronOk) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+  }
+
   try {
     const body = await request.json();
     const { order_id } = body;

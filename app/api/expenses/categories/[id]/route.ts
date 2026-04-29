@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateExpenseCategory, deleteExpenseCategory, getExpenseCategoryById } from '@/lib/supabase/expenses';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   const { id } = await params;
   try {
     const category = await getExpenseCategoryById(id);
@@ -25,6 +29,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   const { id } = await params;
   try {
     const body = await request.json();
@@ -43,6 +50,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   const { id } = await params;
   try {
     await deleteExpenseCategory(id);
