@@ -1797,7 +1797,7 @@ export default function BookLayoutEditor() {
   const runAutoBuild = (opts: { density: 'sparse'|'balanced'|'dense'; variety: 'min'|'medium'|'max'; coverPhoto: boolean; gapless?: boolean; avoidSpine?: boolean }) => {
     if (photos.length === 0) return;
     pushHistory();
-    const result = autoBuild({
+    const result: { pages: { layout: string; photoIds: string[] }[]; coverPhotoId: string | null; totalSpreads: number } = autoBuild({
       photos,
       layouts: LAYOUTS.filter(l => {
         if (isSpreadMode && !l.id.startsWith('sp-')) return false;
@@ -1816,6 +1816,14 @@ export default function BookLayoutEditor() {
       hasKalka: hasKalka,
       hasEndpaper: hasEndpaper,
     });
+
+    // targetPages = ordered content pages (pages[0]=cover excluded)
+    const targetPages = pages.length - 1;
+
+    // Hard-cap result to targetPages — autoBuild may return slightly more due to spread pairing
+    if (result.pages.length > targetPages) {
+      result.pages = result.pages.slice(0, targetPages);
+    }
 
     // Apply cover photo
     if (result.coverPhotoId && isPrinted) {
@@ -1861,14 +1869,17 @@ export default function BookLayoutEditor() {
       newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
 
-    // Ensure even number of content pages (spreads need pairs)
-    while ((newPages.length - 1) % 2 !== 0) {
+    // Ensure even number of content pages (spreads need pairs) — but never exceed targetPages
+    while ((newPages.length - 1) % 2 !== 0 && newPages.length - 1 < targetPages) {
       newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
     // Ensure minimum pages for this product — but never exceed the originally ordered amount
-    const targetPages = pages.length - 1; // ordered content pages
     while (newPages.length - 1 < Math.min(minPageCount, targetPages)) {
       newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
+    }
+    // Final hard trim — if still over (e.g. kalka added extra), trim to targetPages
+    if (newPages.length - 1 > targetPages) {
+      newPages.splice(targetPages + 1);
     }
 
     setPages(newPages);
