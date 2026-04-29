@@ -53,7 +53,12 @@ async function isAdminSession(request: NextRequest): Promise<boolean> {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !serviceKey) return false;
 
-    const adminCheckUrl = `${url}/rest/v1/admin_users?select=id&id=eq.${user.id}`;
+    // admin_users.id is its own UUID and is NOT the same as auth.users.id —
+    // match by email, the same way the is_admin() DB function and the
+    // requireAdmin guard do. Matching by user.id silently fails for every
+    // real admin and would lock Diana out of the admin panel.
+    if (!user.email) return false;
+    const adminCheckUrl = `${url}/rest/v1/admin_users?select=id&email=eq.${encodeURIComponent(user.email)}`;
     try {
         const res = await fetch(adminCheckUrl, {
             headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
@@ -65,7 +70,6 @@ async function isAdminSession(request: NextRequest): Promise<boolean> {
         }
     } catch { /* fall through to staff check */ }
 
-    if (!user.email) return false;
     const staffCheckUrl = `${url}/rest/v1/staff?select=role&email=eq.${encodeURIComponent(user.email)}`;
     try {
         const res = await fetch(staffCheckUrl, {
