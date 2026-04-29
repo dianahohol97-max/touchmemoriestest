@@ -2158,10 +2158,13 @@ export default function BookLayoutEditor() {
       const { data: { user } } = await sb.auth.getUser();
       if (user) {
         const contentPages = pages.length - 1;
-        await sb.from('projects').insert({
+        const sizeLabel = config?.selectedSize || '';
+        const name = `${config?.productName || 'Фотокнига'} ${sizeLabel} · ${contentPages} стор.`;
+        const { error } = await sb.from('projects').insert({
           user_id: user.id,
+          name,
           product_type: 'photobook',
-          format: config?.selectedSize || '',
+          format: sizeLabel,
           cover_type: config?.selectedCoverType || '',
           total_pages: contentPages,
           status: 'draft',
@@ -2170,9 +2173,10 @@ export default function BookLayoutEditor() {
           uploaded_photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })),
           updated_at: new Date().toISOString(),
         });
+        if (error) console.error('handleSaveAndExit error:', error.message, error.details);
       }
-    } catch (e) {
-      console.warn('Save on exit failed:', e);
+    } catch (e: any) {
+      console.error('handleSaveAndExit exception:', e?.message || e);
     }
     setExitSaving(false);
     setShowExitModal(false);
@@ -2259,22 +2263,33 @@ export default function BookLayoutEditor() {
       const { createClient } = await import('@/lib/supabase/client');
       const sb = createClient();
       const { data: { user } } = await sb.auth.getUser();
-      if (!user) return;
-      await sb.from('projects').insert({
+      if (!user) {
+        console.warn('saveDesignToProjects: no user logged in');
+        return;
+      }
+      const sizeLabel = config?.selectedSize || '';
+      const coverLabel = config?.selectedCoverType || '';
+      const name = `${config?.productName || 'Фотокнига'} ${sizeLabel} · ${contentPages} стор.`;
+
+      const { error } = await sb.from('projects').insert({
         user_id: user.id,
+        name,
         product_type: 'photobook',
-        format: config?.selectedSize || '',
-        cover_type: config?.selectedCoverType || '',
+        format: sizeLabel,
+        cover_type: coverLabel,
         total_pages: contentPages,
         status: 'draft',
         pages_data: pages,
         cover_data: coverState,
         uploaded_photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })),
         updated_at: new Date().toISOString(),
-        ...(orderId ? { order_ref: orderId } : {}),
       });
-    } catch (e) {
-      console.warn('Design save skipped:', e);
+
+      if (error) {
+        console.error('saveDesignToProjects error:', error.message, error.details, error.hint);
+      }
+    } catch (e: any) {
+      console.error('saveDesignToProjects exception:', e?.message || e);
     }
   };
 
@@ -6493,7 +6508,7 @@ export default function BookLayoutEditor() {
               Фотокнигу додано до кошика!
             </h2>
             <p style={{ color:'#64748b', fontSize:14, marginBottom:24 }}>
-              Оформити замовлення або продовжити редагування?
+              Оформити замовлення або продовжити покупки?
             </p>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               <a href={`/${typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'uk'}/cart`}
@@ -6501,11 +6516,15 @@ export default function BookLayoutEditor() {
                   borderRadius:10, fontWeight:800, fontSize:15, textDecoration:'none' }}>
                 Оформити замовлення →
               </a>
-              <button onClick={() => setShowCartModal(false)}
-                style={{ padding:'13px', background:'#f1f5f9', color:'#374151',
-                  borderRadius:10, fontWeight:700, fontSize:14, border:'none', cursor:'pointer' }}>
-                Продовжити редагування
-              </button>
+              <a href={`/${typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'uk'}/catalog`}
+                style={{ display:'block', padding:'13px', background:'#f1f5f9', color:'#374151',
+                  borderRadius:10, fontWeight:700, fontSize:14, textDecoration:'none' }}>
+                Продовжити покупки
+              </a>
+              <a href={`/${typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'uk'}/account`}
+                style={{ display:'block', padding:'8px', color:'#94a3b8', fontSize:12, textDecoration:'none' }}>
+                Переглянути мої дизайни →
+              </a>
             </div>
           </div>
         </div>
