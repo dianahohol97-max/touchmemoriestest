@@ -1152,7 +1152,7 @@ export default function BookLayoutEditor() {
           p.preview &&
           p.preview.startsWith('data:image') &&
           p.preview.length > 100 &&
-          p.preview.length < 3_000_000 &&
+          p.preview.length < 8_000_000 &&  // allow up to ~6MB per photo (5000px JPEG 0.95)
           p.width > 0 &&
           p.height > 0
         );
@@ -1183,7 +1183,7 @@ export default function BookLayoutEditor() {
           } else {
             // Get valid photo IDs from restored photos to clear dangling refs
             const validIds = new Set((JSON.parse(sessionStorage.getItem('bookConstructorPhotos') || '[]') as PhotoData[])
-              .filter(p => p.preview && p.preview.length < 4_000_000 && p.width > 0 && p.height > 0)
+              .filter(p => p.preview && p.preview.length < 8_000_000 && p.width > 0 && p.height > 0)
               .map(p => p.id));
             const cleanPages = d.pages.map((p: any) => ({
               ...p,
@@ -1211,11 +1211,39 @@ export default function BookLayoutEditor() {
     if (photosTimerRef.current) clearTimeout(photosTimerRef.current);
     photosTimerRef.current = setTimeout(() => {
       try {
-        sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(
-          photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace }))
-        ));
+        const data = photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace }));
+        sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(data));
       } catch {
-        // quota exceeded — skip silently, photos will need to be re-uploaded
+        // Quota exceeded — re-compress previews to smaller size and retry
+        try {
+          const shrink = (b64: string): string => {
+            if (!b64.startsWith('data:image')) return b64;
+            try {
+              const img = new window.Image();
+              img.src = b64;
+              if (!img.complete || img.width === 0) return b64;
+              const MAX = 1800;
+              let { width: w, height: h } = img;
+              if (w > MAX || h > MAX) {
+                if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+                else { w = Math.round(w * MAX / h); h = MAX; }
+              }
+              const c = document.createElement('canvas');
+              c.width = w; c.height = h;
+              const ctx = c.getContext('2d')!;
+              ctx.drawImage(img, 0, 0, w, h);
+              return c.toDataURL('image/jpeg', 0.75);
+            } catch { return b64; }
+          };
+          const reduced = photos.map(p => ({ id: p.id, preview: shrink(p.preview), width: p.width, height: p.height, name: p.name }));
+          sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(reduced));
+        } catch {
+          // Still failing — store only metadata, user will need to re-upload
+          try {
+            const meta = photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name }));
+            sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(meta));
+          } catch { /* give up */ }
+        }
       }
     }, 1000);
   }, [photos]);
@@ -1883,9 +1911,11 @@ export default function BookLayoutEditor() {
       reader.onload = ev => {
         const img = new window.Image();
         img.onload = () => {
-          // Compress: cap at 3600px on longest side (A4@300dpi=3508px), JPEG quality 0.92
-          const MAX = 3600;
+          // For print quality: keep original resolution up to 5000px (A3@300dpi=4961px)
+          // Only downscale if larger — use PNG for small images, JPEG for large
+          const MAX = 5000;
           let { width, height } = img;
+          const originalW = width, originalH = height;
           if (width > MAX || height > MAX) {
             if (width >= height) { height = Math.round(height * MAX / width); width = MAX; }
             else { width = Math.round(width * MAX / height); height = MAX; }
@@ -1897,7 +1927,8 @@ export default function BookLayoutEditor() {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, width, height);
-          const preview = canvas.toDataURL('image/jpeg', 0.92);
+          // Use JPEG 0.95 — best balance of quality and size
+          const preview = canvas.toDataURL('image/jpeg', 0.95);
           const photo: PhotoData = {
             id: `up-${batchId}-${idx}`,
             preview,
