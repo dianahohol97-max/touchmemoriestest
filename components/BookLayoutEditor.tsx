@@ -5265,7 +5265,7 @@ export default function BookLayoutEditor() {
         {!isMobile && (
           <div style={{
             position:'absolute', bottom:0, left:0, right:0,
-            height: 110, background:'#fff', borderTop:'1px solid #e2e8f0',
+            height: 138, background:'#fff', borderTop:'1px solid #e2e8f0',
             display:'flex', flexDirection:'column', zIndex:50,
           }}>
             {/* Header */}
@@ -5291,9 +5291,11 @@ export default function BookLayoutEditor() {
                     </button>
                   </>
                 )}
-                {selectedPhotoIds.size > 1 && (
+                {selectedPhotoIds.size > 0 && (
                   <span style={{ fontSize:10, color:'#7c3aed', fontWeight:600, background:'#f5f3ff', padding:'2px 8px', borderRadius:6 }}>
-                    {selectedPhotoIds.size} вибрано — тягніть на сторінку
+                    {selectedPhotoIds.size === 1
+                      ? 'Перетягніть на сторінку або клікніть на слот'
+                      : `${selectedPhotoIds.size} вибрано — тягніть на сторінку`}
                   </span>
                 )}
                 <input id="photo-upload-timeline" type="file" multiple accept="image/*" style={{ display:'none' }} onChange={handleUpload}/>
@@ -5315,10 +5317,12 @@ export default function BookLayoutEditor() {
                 const used = pages.some(pg => pg.slots.some(s => s.photoId === ph.id)) ||
                   Object.values(freeSlots).some((arr: any[]) => arr.some((fs: any) => fs.photoId === ph.id));
                 const ratio = ph.width / ph.height;
-                const thumbH = isMobile ? 80 : 68;
+                // Desktop thumbnails were tiny (68px) — bumped to 96px for visibility.
+                // Mobile stays at 80px because vertical space is at a premium there.
+                const thumbH = isMobile ? 80 : 96;
                 const thumbW = Math.round(thumbH * ratio);
                 const shortName = ph.name.replace(/\.[^.]+$/, '');
-                const displayName = shortName.length > 10 ? shortName.slice(0, 8) + '..' : shortName;
+                const displayName = shortName.length > 12 ? shortName.slice(0, 10) + '..' : shortName;
                 const isSel = selectedPhotoIds.has(ph.id);
                 const hasCutAfter = timelineCuts.has(i);
                 // Compute group number (which spread this photo belongs to)
@@ -5342,14 +5346,27 @@ export default function BookLayoutEditor() {
                     onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
                     onClick={(e) => {
                       if (used) return;
+                      // Cmd/Ctrl-click — keep current set, just toggle this one.
+                      // Plain click — also toggle this one in selectedPhotoIds, so the
+                      // very first photo gets a number badge (1) instead of disappearing
+                      // into a separate single-tap state. Drag-to-page works off
+                      // selectedPhotoIds when there's >1, and falls back to the dragged
+                      // photo when there's 1, so this is consistent for both flows.
                       if (e.ctrlKey || e.metaKey) {
                         setSelectedPhotoIds(prev => {
                           const next = new Set(prev);
                           if (next.has(ph.id)) next.delete(ph.id); else next.add(ph.id);
                           return next;
                         });
+                        setTapSelectedPhotoId(null);
                       } else {
-                        setSelectedPhotoIds(new Set());
+                        setSelectedPhotoIds(prev => {
+                          const next = new Set(prev);
+                          if (next.has(ph.id)) next.delete(ph.id); else next.add(ph.id);
+                          return next;
+                        });
+                        // Keep tap-selection in sync for the rest of the editor that
+                        // still consults tapSelectedPhotoId for click-to-place.
                         setTapSelectedPhotoId(tapSelectedPhotoId === ph.id ? null : ph.id);
                       }
                     }}
@@ -5363,13 +5380,13 @@ export default function BookLayoutEditor() {
                     <div style={{ position:'relative', width:thumbW, height:thumbH, borderRadius:4, overflow:'hidden', flexShrink:0 }}>
                       <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                       {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>}
-                      {isSel && <div style={{ position:'absolute', top:2, right:2, width:18, height:18, borderRadius:'50%', background:'#7c3aed', color:'#fff', fontSize:10, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
-                      <span style={{ position:'absolute', top:2, left:2, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 3px', borderRadius:2 }}>{i+1}</span>
+                      {isSel && <div style={{ position:'absolute', top:3, right:3, width:22, height:22, borderRadius:'50%', background:'#7c3aed', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
+                      <span style={{ position:'absolute', top:3, left:3, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:10, fontWeight:700, padding:'1px 5px', borderRadius:3 }}>{i+1}</span>
                       {timelineCuts.size > 0 && (
                         <span style={{ position:'absolute', bottom:2, left:2, background:'#7c3aed', color:'#fff', fontSize:7, fontWeight:800, padding:'1px 4px', borderRadius:2 }}>Р{groupNum}</span>
                       )}
                     </div>
-                    <span style={{ fontSize:8, color:'#64748b', fontWeight:500, maxWidth:thumbW+10, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center' }}>{displayName}</span>
+                    <span style={{ fontSize:11, color:'#64748b', fontWeight:500, maxWidth:thumbW+10, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center' }}>{displayName}</span>
                   </div>
                   {/* CUT DIVIDER — SmartAlbums style: click between photos to split into groups */}
                   {i < photos.length - 1 && (
