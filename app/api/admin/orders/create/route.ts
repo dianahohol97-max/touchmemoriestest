@@ -123,7 +123,10 @@ export async function POST(request: Request) {
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
             await fetch(`${siteUrl}/api/email/transactional`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-cron-secret': process.env.CRON_SECRET || '',
+                },
                 body: JSON.stringify({ action: 'placed', orderId: order.id })
             });
             console.log(`[Manual Order] Triggered Order Placed email for ${order.id}`);

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,9 @@ export const dynamic = 'force-dynamic';
 const NOVA_POSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 
 export async function POST(req: Request) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     try {
         const body = await req.json();
         const {

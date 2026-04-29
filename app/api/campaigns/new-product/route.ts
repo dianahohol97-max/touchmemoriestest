@@ -4,12 +4,16 @@ import NewProductEmail from '@/emails/NewProductEmail';
 import { render } from '@react-email/components';
 
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function POST(request: Request) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const supabase = getAdminClient();
     try {
         const { product_id, segment = 'all' } = await request.json();
