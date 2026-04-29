@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { updatePhotosMetadata } from '@/lib/designer-service/brief-helpers';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { supabaseAdmin, getAdminClient } from '@/lib/supabase/admin';
 import type { PhotoMetadata } from '@/lib/types/designer-service';
+
+const TOKEN_RE = /^[A-Za-z0-9_-]{16,128}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SAFE_EXT_RE = /^[a-zA-Z0-9]{1,8}$/;
+
+// design-briefs bucket is private; signed URLs expire in this window.
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days — long enough for designer review pass
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,15 +24,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    // Validate inputs to prevent path traversal & PostgREST filter abuse.
+    if (!TOKEN_RE.test(token) || !UUID_RE.test(orderId)) {
+      return NextResponse.json({ error: 'Invalid token or orderId' }, { status: 400 });
+    }
+    if (!(file instanceof File) || file.size === 0) {
+      return NextResponse.json({ error: 'Invalid file' }, { status: 400 });
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File too large (max 50MB)' }, { status: 400 });
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      return NextResponse.json({ error: 'Only image files allowed' }, { status: 400 });
+    }
 
-    // Generate unique filename
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const admin = getAdminClient();
+
+    // Cross-validate: the supplied token must actually belong to the
+    // supplied orderId. Without this check, a customer with a brief token
+    // for order A could upload photos that get attached to order B by
+    // passing orderId=B (the actual file goes into design-briefs/B/...).
+    const { data: brief } = await admin
+      .from('design_briefs')
+      .select('order_id, photos_metadata')
+      .eq('token', token)
+      .maybeSingle();
+    if (!brief || brief.order_id !== orderId) {
+      return NextResponse.json({ error: 'Token does not match orderId' }, { status: 403 });
+    }
+
+    // Generate unique filename — file extension is sanity-checked, the rest
+    // is a UUID so users can't influence the storage path.
+    const rawExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const fileExt = SAFE_EXT_RE.test(rawExt) ? rawExt : 'jpg';
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
     const filePath = `design-briefs/${orderId}/${fileName}`;
 
-    // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    // Upload to Supabase Storage (private bucket)
+    const { error: uploadError } = await supabaseAdmin.storage
       .from('design-briefs')
       .upload(filePath, file, {
         cacheControl: '3600',
@@ -35,30 +70,23 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) throw uploadError;
 
-    // Get public URL
-    const { data: urlData } = supabaseAdmin.storage
+    // Generate a signed URL — bucket is private, so getPublicUrl would fail.
+    const { data: signed, error: signedErr } = await supabaseAdmin.storage
       .from('design-briefs')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
 
-    if (!urlData?.publicUrl) {
-      return NextResponse.json({ error: 'Failed to get public URL' }, { status: 500 });
+    if (signedErr || !signed?.signedUrl) {
+      return NextResponse.json({ error: 'Failed to create signed URL' }, { status: 500 });
     }
 
     // Create photo metadata
     const photoMetadata: PhotoMetadata = {
       id: crypto.randomUUID(),
       filename: file.name,
-      url: urlData.publicUrl,
+      url: signed.signedUrl,
       size: file.size,
       uploadedAt: new Date().toISOString(),
     };
-
-    // Get current photos metadata
-    const { data: brief } = await supabase
-      .from('design_briefs')
-      .select('photos_metadata')
-      .eq('token', token)
-      .single();
 
     const currentPhotos = (brief?.photos_metadata as PhotoMetadata[]) || [];
     const updatedPhotos = [...currentPhotos, photoMetadata];
@@ -94,12 +122,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    if (!TOKEN_RE.test(token)) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 400 });
+    }
 
-    // Get current photos
-    const { data: brief } = await supabase
+    const admin = getAdminClient();
+
+    // Get current photos via service-role admin client.
+    // (design_briefs RLS no longer permits anon access by token.)
+    const { data: brief } = await admin
       .from('design_briefs')
-      .select('photos_metadata, photos_folder')
+      .select('order_id, photos_metadata, photos_folder')
       .eq('token', token)
       .single();
 
@@ -120,12 +153,27 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete from storage (use admin client to bypass RLS)
-    const filePath = photoToDelete.url.split('/').slice(-3).join('/'); // Extract path from URL
-    const { error: storageError } = await supabaseAdmin.storage.from('design-briefs').remove([filePath]);
-    if (storageError) {
-      console.error('Storage delete error (non-fatal):', storageError.message);
-      // Continue — still remove from metadata even if file deletion fails
+    // The stored `url` may now be a signed URL (long path with ?token= query
+    // string). Reconstruct the storage path from order_id and the trailing
+    // filename portion of the URL path, ignoring the query string.
+    let filePath: string | null = null;
+    try {
+      const u = new URL(photoToDelete.url);
+      const parts = u.pathname.split('/');
+      const fileName = parts[parts.length - 1];
+      // Only proceed if filename looks like our UUID.ext pattern — anything
+      // else and we don't risk deleting an unintended path.
+      if (fileName && /^[0-9a-f-]{36}\.[a-zA-Z0-9]{1,8}$/i.test(fileName)) {
+        filePath = `design-briefs/${brief.order_id}/${fileName}`;
+      }
+    } catch { /* ignore — fall through and skip storage delete */ }
+
+    if (filePath) {
+      const { error: storageError } = await supabaseAdmin.storage.from('design-briefs').remove([filePath]);
+      if (storageError) {
+        console.error('Storage delete error (non-fatal):', storageError.message);
+        // Continue — still remove from metadata even if file deletion fails
+      }
     }
 
     // Update metadata

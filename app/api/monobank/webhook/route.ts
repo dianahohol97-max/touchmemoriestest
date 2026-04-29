@@ -85,6 +85,57 @@ export async function POST(req: Request) {
 
         const supabase = getAdminClient();
 
+        // Validate reference looks like a UUID (our order_id format) so a
+        // malformed payload can't cause oddities in the WHERE clause below.
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (typeof reference !== 'string' || !UUID_RE.test(reference)) {
+            console.error('Monobank webhook: invalid reference format', { reference });
+            return NextResponse.json({ error: 'Invalid reference' }, { status: 400 });
+        }
+
+        // Idempotency + amount verification: load the order first.
+        // Two reasons:
+        //  1. Monobank retries webhooks. If we've already marked this
+        //     invoice as paid for this order, skip the rest of the work.
+        //  2. Verify the paid amount matches the order's stored total
+        //     (in kopecks). A mismatch should never happen with a valid
+        //     signature + our own create-invoice flow, but a defence in
+        //     depth check costs nothing and would catch e.g. a hijacked
+        //     keypair situation.
+        const { data: existingOrder } = await supabase
+            .from('orders')
+            .select('id, total, payment_status, monobank_invoice_status, monobank_invoice_id')
+            .eq('id', reference)
+            .single();
+
+        if (!existingOrder) {
+            console.error('Monobank webhook: order not found', { reference });
+            return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        }
+
+        // If we've already processed this exact invoice with this status, skip.
+        if (
+            existingOrder.monobank_invoice_id === invoiceId &&
+            existingOrder.monobank_invoice_status === status
+        ) {
+            console.log('Monobank webhook: duplicate notification, skipping', { reference, invoiceId, status });
+            return NextResponse.json({ success: true, idempotent: true });
+        }
+
+        // Amount verification (only meaningful on 'success' / 'hold').
+        if ((status === 'success' || status === 'hold') && typeof amount === 'number') {
+            const expectedKopecks = Math.round(Number(existingOrder.total) * 100);
+            if (Math.abs(amount - expectedKopecks) > 1) {
+                // Off-by-one tolerance for rounding, but anything bigger is suspicious.
+                console.error('Monobank webhook: amount mismatch', {
+                    reference,
+                    invoice_amount: amount,
+                    order_total_kopecks: expectedKopecks,
+                });
+                return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
+            }
+        }
+
         // Map Monobank status to payment status
         let paymentStatus = 'pending';
         let notes = '';
@@ -119,10 +170,14 @@ export async function POST(req: Request) {
             .from('orders')
             .update({
                 payment_status: paymentStatus,
+                monobank_invoice_id: invoiceId,
                 monobank_invoice_status: status,
                 monobank_approval_code: approvalCode || null,
                 monobank_rrn: rrn || null,
-                paid_at: status === 'success' ? new Date().toISOString() : null,
+                // Only set paid_at on the first successful notification.
+                ...(status === 'success' && existingOrder.payment_status !== 'paid'
+                    ? { paid_at: new Date().toISOString() }
+                    : {}),
                 updated_at: new Date().toISOString()
             })
             .eq('id', reference);
