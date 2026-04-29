@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth/guards';
 
 export const AI_PORTRAIT_PRICE = 75;
 
@@ -92,16 +93,30 @@ async function generateWithReplicate(dataUrl: string, prompt: string): Promise<a
 }
 
 export async function POST(request: Request) {
+  // Require auth — this calls paid AI providers (HF + Replicate). Without auth
+  // anyone could burn through the daily HF quota or rack up Replicate spend.
+  const guard = await requireAuth();
+  if (!guard.ok) return guard.response;
+
   try {
     const formData = await request.formData();
     const imageFile = formData.get('image') as File | null;
     const style = (formData.get('style') as string) || 'pixar';
     const provider = (formData.get('provider') as string) || 'auto';
 
+    // Reject styles that are not in our allowlist (don't trust client-provided
+    // prompt overrides — STYLE_PROMPTS is the only source of generation prompts).
+    if (!Object.prototype.hasOwnProperty.call(STYLE_PROMPTS, style)) {
+      return NextResponse.json({ error: 'Invalid style' }, { status: 400 });
+    }
+
     if (!imageFile) return NextResponse.json({ error: 'Image file required' }, { status: 400 });
     if (imageFile.size > 10 * 1024 * 1024) return NextResponse.json({ error: 'Image too large (max 10MB)' }, { status: 400 });
+    // Reject anything that's not an image — client could send arbitrary blobs.
+    const mimeOk = (imageFile.type || '').startsWith('image/');
+    if (!mimeOk) return NextResponse.json({ error: 'Only images allowed' }, { status: 400 });
 
-    const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.pixar;
+    const stylePrompt = STYLE_PROMPTS[style];
     const bytes = await imageFile.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
     const mimeType = imageFile.type || 'image/jpeg';
@@ -133,9 +148,17 @@ export async function POST(request: Request) {
 
 // GET — poll Replicate prediction (HF returns image immediately, no polling)
 export async function GET(request: Request) {
+  const guard = await requireAuth();
+  if (!guard.ok) return guard.response;
+
   const { searchParams } = new URL(request.url);
   const predictionId = searchParams.get('id');
   if (!predictionId) return NextResponse.json({ error: 'Prediction ID required' }, { status: 400 });
+  // Replicate prediction IDs are URL-safe alphanumerics; reject anything weird
+  // before pasting it into a fetch URL.
+  if (!/^[A-Za-z0-9_-]{6,64}$/.test(predictionId)) {
+    return NextResponse.json({ error: 'Invalid prediction ID' }, { status: 400 });
+  }
 
   const apiToken = process.env.REPLICATE_API_TOKEN;
   if (!apiToken) return NextResponse.json({ error: 'REPLICATE_API_TOKEN not configured' }, { status: 500 });

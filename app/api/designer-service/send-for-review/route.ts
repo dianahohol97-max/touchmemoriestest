@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { sendDesignReadyEmail } from '@/lib/designer-service/emails';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export async function POST(request: NextRequest) {
+  // Designers / admins only — this endpoint marks a design as ready and emails
+  // the customer. If left open, anyone could spam customers with "design ready"
+  // notifications and flip brief.status by guessing brief IDs.
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const { briefId, projectId } = await request.json();
 

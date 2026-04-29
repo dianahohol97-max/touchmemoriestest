@@ -1,7 +1,11 @@
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export async function POST(request: NextRequest) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     try {
         const body = await request.json();
         const { slug, paths } = body;
