@@ -2147,6 +2147,37 @@ export default function BookLayoutEditor() {
   };
 
   const [showCartModal, setShowCartModal] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [exitSaving, setExitSaving] = useState(false);
+
+  const handleSaveAndExit = async () => {
+    setExitSaving(true);
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) {
+        const contentPages = pages.length - 1;
+        await sb.from('projects').insert({
+          user_id: user.id,
+          product_type: 'photobook',
+          format: config?.selectedSize || '',
+          cover_type: config?.selectedCoverType || '',
+          total_pages: contentPages,
+          status: 'draft',
+          pages_data: pages,
+          cover_data: coverState,
+          uploaded_photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })),
+          updated_at: new Date().toISOString(),
+        });
+      }
+    } catch (e) {
+      console.warn('Save on exit failed:', e);
+    }
+    setExitSaving(false);
+    setShowExitModal(false);
+    router.back();
+  };
   const [uploadState, setUploadState] = useState<{
     active: boolean;
     done: number;
@@ -2276,7 +2307,7 @@ export default function BookLayoutEditor() {
         <div style={{ background:'#fff', borderBottom:'1px solid #e2e8f0', flexShrink:0, paddingTop:'env(safe-area-inset-top)' }}>
           <div style={{ display:'flex', alignItems:'center', padding:'8px 10px', gap:8, minHeight:48 }}>
             {/* Back */}
-            <button onClick={()=>{ if(window.confirm('Вийти?')) router.back(); }}
+            <button onClick={() => setShowExitModal(true)}
               style={{ display:'flex', alignItems:'center', background:'none', border:'none', cursor:'pointer', color:'#374151', padding:'6px', borderRadius:8, flexShrink:0, touchAction:'manipulation' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             </button>
@@ -2321,7 +2352,7 @@ export default function BookLayoutEditor() {
         /* DESKTOP: original single-row topbar */
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={()=>{ if(window.confirm('Вийти з редактора? Незбережені зміни буде втрачено.')) router.back(); }}
+            <button onClick={() => setShowExitModal(true)}
               style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, background:'none', border:'none', cursor:'pointer', padding:'4px 8px', borderRadius:6, color:'#374151' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
               <span style={{ fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase' }}>НАЗАД</span>
@@ -6377,6 +6408,46 @@ export default function BookLayoutEditor() {
           hasKalka={hasKalka}
         />
       )}
+
+      {/* Exit confirmation modal */}
+      {showExitModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:9997,
+          display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+          onClick={() => setShowExitModal(false)}>
+          <div style={{ background:'#fff', borderRadius:16, padding:28, maxWidth:380, width:'100%',
+            boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize:36, textAlign:'center', marginBottom:12 }}>💾</div>
+            <h2 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', textAlign:'center', marginBottom:6 }}>
+              Зберегти макет?
+            </h2>
+            <p style={{ color:'#64748b', fontSize:13, textAlign:'center', marginBottom:24, lineHeight:1.5 }}>
+              Ви можете зберегти поточний макет у розділі «Мої дизайни» і повернутись до нього пізніше.
+            </p>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <button onClick={handleSaveAndExit} disabled={exitSaving}
+                style={{ width:'100%', padding:'13px', background:'#1e2d7d', color:'#fff',
+                  borderRadius:10, fontWeight:800, fontSize:15, border:'none', cursor: exitSaving ? 'wait' : 'pointer',
+                  opacity: exitSaving ? 0.7 : 1, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                {exitSaving ? (
+                  <><span style={{ display:'inline-block', width:16, height:16, border:'2px solid rgba(255,255,255,0.4)', borderTop:'2px solid #fff', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/> Збереження...</>
+                ) : '💾 Зберегти макет і вийти'}
+              </button>
+              <button onClick={() => { setShowExitModal(false); router.back(); }}
+                style={{ width:'100%', padding:'13px', background:'#fff', color:'#ef4444',
+                  borderRadius:10, fontWeight:700, fontSize:14, border:'1px solid #fee2e2', cursor:'pointer' }}>
+                Вийти без збереження
+              </button>
+              <button onClick={() => setShowExitModal(false)}
+                style={{ width:'100%', padding:'13px', background:'#f1f5f9', color:'#374151',
+                  borderRadius:10, fontWeight:600, fontSize:14, border:'none', cursor:'pointer' }}>
+                Скасувати
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Upload progress overlay */}
       {uploadState && (
