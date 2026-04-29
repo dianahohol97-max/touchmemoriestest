@@ -217,13 +217,13 @@ These are the recurring "why is this still broken" issues. Update this list when
 8. **Cart/checkout end-to-end audit** — known to have edge-case breakages, full walkthrough as a customer is a recurring TODO.
 9. **47 markdown files in repo root** — historical implementation summaries. These should be moved into a `docs/archive/` folder once everything they cover is reflected in this ARCHITECTURE.md.
 10. **Schema drift between repo and prod Supabase** — production schema has been extended directly via the Supabase dashboard with no corresponding migrations. Two migrations bring the worst offenders back in line:
-    - `20260429_sync_projects_schema_with_prod.sql` — covers `projects` (name, uploaded_photos, notified_*_at, relaxed CHECK constraints, consolidated RLS policy).
-    - `20260429_create_missing_infrastructure_tables.sql` — creates 6 infra tables that code references but prod never had: `automation_settings`, `email_templates`, `notification_log`, `staff_shifts`, `qc_error_log`, `salary_calculations`. Also adds `is_recurring`, `recurring_interval`, `name`, `period_start`, `period_end`, `supplier`, `invoice_number` to `expenses` so the recurring-expenses cron can run.
+    - `20260429_sync_projects_schema_with_prod.sql` — covers `projects` (name, uploaded_photos, notified_*_at, relaxed CHECK constraints, consolidated RLS policy). **Applied to prod 2026-04-29.**
+    - `20260429_create_missing_infrastructure_tables.sql` — creates 6 infra tables that code references but prod never had: `automation_settings`, `email_templates`, `notification_log`, `staff_shifts`, `qc_error_log`, `salary_calculations`. Also adds `is_recurring`, `recurring_interval`, `name`, `period_start`, `period_end`, `supplier`, `invoice_number` to `expenses` so the recurring-expenses cron can run. **Applied to prod 2026-04-29.**
 
-    Known still-broken bits not covered by these migrations:
-    - `subscribers.birthday_month` is read by `birthday-emails` cron but doesn't exist (whole birthday-email path has likely never run successfully).
-    - `ai_chat_*` tables (3) referenced by `lib/ai/claude-chat.ts` don't exist; the visitor-facing AI chatbot was never deployed. Either build the tables or delete the dead code.
-    - `db_backups` storage bucket is created lazily by the cron, but if the cron has never run cleanly, no backups exist yet.
+    Resolved follow-ups (also applied 2026-04-29):
+    - `birthday-emails` cron rewritten to read birthday via join `subscribers.email = customers.email` (the `subscribers.birthday_month/_day` columns the cron used to read never existed in prod, and the subscribe form had already moved birthday collection to user registration).
+    - `lib/ai/claude-chat.ts` (and its schema reference `lib/supabase/schema/ai-chat.sql`) deleted — visitor-facing AI chatbot was never deployed and nothing imports it.
+    - `db_backups` storage bucket created explicitly on prod (private, 100MB limit) so `backup-db` cron stops needing to lazy-create it.
 
 ---
 

@@ -21,17 +21,38 @@ export async function GET(request: Request) {
     const currentYear = today.getFullYear();
 
     try {
-        // 2. Fetch active subscribers whose birthday is today
+        // 2. Fetch active subscribers whose birthday is today.
+        // Birthday lives on `customers.birthday` (DATE) — subscribers are joined by email.
+        // PG can't easily filter by month+day across years without extract(), so we pull
+        // all customers with a birthday and filter in JS. Customer count is small enough
+        // (low thousands) that this is fine for a once-a-day cron.
+        const { data: birthdayCustomers, error: bdayErr } = await supabase
+            .from('customers')
+            .select('email, name, first_name, birthday')
+            .not('birthday', 'is', null);
+        if (bdayErr) throw bdayErr;
+
+        const todayMatch = (birthdayCustomers || []).filter((c: any) => {
+            if (!c.birthday) return false;
+            const d = new Date(c.birthday);
+            return d.getMonth() + 1 === currentMonth && d.getDate() === currentDay;
+        });
+
+        if (todayMatch.length === 0) {
+            return NextResponse.json({ message: 'No birthdays today', processed: 0 });
+        }
+
+        // Pull the matching active subscribers (only those who opted in to email).
+        const emails = todayMatch.map((c: any) => c.email).filter(Boolean);
         const { data: subscribers, error: subError } = await supabase
             .from('subscribers')
             .select('*')
             .eq('is_active', true)
-            .eq('birthday_month', currentMonth)
-            .eq('birthday_day', currentDay);
-
+            .in('email', emails);
         if (subError) throw subError;
+
         if (!subscribers || subscribers.length === 0) {
-            return NextResponse.json({ message: 'No birthdays today', processed: 0 });
+            return NextResponse.json({ message: 'No birthdays today (no active subscribers match)', processed: 0 });
         }
 
         let sentCount = 0;
