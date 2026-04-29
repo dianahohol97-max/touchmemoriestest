@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop } from 'lucide-react';
 import { QRCodeGenerator } from './ui/QRCodeGenerator';
 import { autoBuild } from '@/lib/editor/auto-build';
 import { AutoBuildModal } from './editor/AutoBuildModal';
@@ -29,6 +29,7 @@ import {
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
+import { applySnap } from '@/lib/editor/snap';
 
 // Cyrillic decorative fonts
 const CYRILLIC_DECORATIVE_FONTS = [
@@ -1028,6 +1029,9 @@ export default function BookLayoutEditor() {
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [hoveredSpreadSlot, setHoveredSpreadSlot] = useState<number | null>(null);
   const [editSlotKey, setEditSlotKey] = useState<string | null>(null); // "spread-pageIdx-slotIdx" when editing slot size/position
+  // Active snap-to-align guide lines while a slot is being moved/resized.
+  // Cleared on pointer up. Each entry is a coordinate in canvas-space.
+  const [snapGuides, setSnapGuides] = useState<{ v: number[]; h: number[] }>({ v: [], h: [] });
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [crossPageDragShapeId, setCrossPageDragShapeId] = useState<string|null>(null);
   const [crossDragPos, setCrossDragPos] = useState<{x:number;y:number}|null>(null);
@@ -4243,6 +4247,21 @@ export default function BookLayoutEditor() {
                         const origTop = Number(slotStyle.top) || 0;
                         const origW = Number(slotStyle.width) || 100;
                         const origH = Number(slotStyle.height) || 100;
+                        // Snap targets: every OTHER slot on this spread, in canvas-space.
+                        // We exclude the slot being dragged so it doesn't snap to itself.
+                        const others = spreadDefs
+                          .filter(({ i: idx }) => idx !== i)
+                          .map(({ i: idx, s: ss }) => {
+                            const otherSlot = spreadPage?.slots[idx];
+                            const oCustom = otherSlot?.customX !== undefined;
+                            return oCustom ? {
+                              left: otherSlot!.customX!, top: otherSlot!.customY!,
+                              width: otherSlot!.customW!, height: otherSlot!.customH!,
+                            } : {
+                              left: Number(ss.left)||0, top: Number(ss.top)||0,
+                              width: Number(ss.width)||0, height: Number(ss.height)||0,
+                            };
+                          });
                         pushHistory();
                         startPointerDrag(e2, (dx, dy) => {
                           let nx = origLeft, ny = origTop, nw = origW, nh = origH;
@@ -4251,12 +4270,21 @@ export default function BookLayoutEditor() {
                           else if (type === 'sw') { nx = origLeft + dx; nw = Math.max(40, origW - dx); nh = Math.max(40, origH + dy); }
                           else if (type === 'ne') { ny = origTop + dy; nw = Math.max(40, origW + dx); nh = Math.max(40, origH - dy); }
                           else if (type === 'nw') { nx = origLeft + dx; ny = origTop + dy; nw = Math.max(40, origW - dx); nh = Math.max(40, origH - dy); }
+                          // Apply snap-to-align before clamping. Snap may shift coordinates
+                          // by up to ~6px to align with neighbouring slot edges or canvas
+                          // centerlines; the visual guides come back via guidesV/guidesH.
+                          const snapped = applySnap({ x: nx, y: ny, w: nw, h: nh }, others, spreadW, cH, type);
+                          nx = snapped.x; ny = snapped.y; nw = snapped.w; nh = snapped.h;
                           // Clamp to canvas boundaries
                           nx = Math.max(0, Math.min(spreadW - nw, nx));
                           ny = Math.max(0, Math.min(cH - nh, ny));
                           nw = Math.min(nw, spreadW - nx);
                           nh = Math.min(nh, cH - ny);
+                          setSnapGuides({ v: snapped.guidesV, h: snapped.guidesH });
                           setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: nx, customY: ny, customW: nw, customH: nh }) }));
+                        }, () => {
+                          // Drag end — clear snap guides
+                          setSnapGuides({ v: [], h: [] });
                         });
                       };
                       
@@ -4385,8 +4413,20 @@ export default function BookLayoutEditor() {
                                       <span style={{color:'rgba(255,255,255,0.7)',fontSize:8,minWidth:18,textAlign:'center'}}>{slot!.rotation||0}°</span>
                                       <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)+90)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути +90°">↷</button>
                                       <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                      <button onPointerDown={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}></button>
-                                      <button onPointerDown={e=>{e.stopPropagation();setEditSlotKey(editSlotKey===key?null:key);setPhotoEditSlot(null);}} style={{background:'rgba(59,130,246,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}></button>
+                                      <button
+                                        onPointerDown={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}}
+                                        title="Видалити фото зі слота"
+                                        style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
+                                        <Trash2 size={11}/>
+                                        <span style={{fontSize:9,fontWeight:700}}>Видалити</span>
+                                      </button>
+                                      <button
+                                        onPointerDown={e=>{e.stopPropagation();setEditSlotKey(editSlotKey===key?null:key);setPhotoEditSlot(null);}}
+                                        title="Змінити форму або розмір слота"
+                                        style={{background:'rgba(59,130,246,0.85)',border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
+                                        <Crop size={11}/>
+                                        <span style={{fontSize:9,fontWeight:700}}>Слот</span>
+                                      </button>
                                     </div>
                                   </div>
                                 )}
@@ -4462,6 +4502,15 @@ export default function BookLayoutEditor() {
                               {/* Canvas center guides */}
                               <div style={{position:'absolute',left:spreadW/2,top:0,width:1,height:cH,background:'rgba(239,68,68,0.15)',zIndex:12,pointerEvents:'none'}}/>
                               <div style={{position:'absolute',left:0,top:cH/2,width:spreadW,height:1,background:'rgba(239,68,68,0.15)',zIndex:12,pointerEvents:'none'}}/>
+                              {/* Active snap-to-align guides — Canva-style. Bright magenta line
+                                  appears the moment the dragged edge snaps onto another slot's
+                                  edge or the canvas center. Disappears on pointer up. */}
+                              {snapGuides.v.map((vx, gi) => (
+                                <div key={`snap-v-${gi}`} style={{position:'absolute',left:vx-0.5,top:0,width:1.5,height:cH,background:'#ec4899',zIndex:17,pointerEvents:'none',boxShadow:'0 0 4px rgba(236,72,153,0.6)'}}/>
+                              ))}
+                              {snapGuides.h.map((hy, gi) => (
+                                <div key={`snap-h-${gi}`} style={{position:'absolute',left:0,top:hy-0.5,width:spreadW,height:1.5,background:'#ec4899',zIndex:17,pointerEvents:'none',boxShadow:'0 0 4px rgba(236,72,153,0.6)'}}/>
+                              ))}
                               {/* Resize handles */}
                               {(['nw','ne','se','sw'] as const).map(dir => {
                                 const hx = (dir==='ne'||dir==='se') ? lx+sw : lx;
@@ -4823,7 +4872,13 @@ export default function BookLayoutEditor() {
                                         <span style={{color:'rgba(255,255,255,0.7)',fontSize:8,fontWeight:600,minWidth:18,textAlign:'center'}}>{slot!.rotation||0}°</span>
                                         <button onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:((sl.rotation||0)+90)%360})}));}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути +90°">↷</button>
                                         <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                        <button onPointerDown={e=>{e.stopPropagation();clearSlot(pageIdx,i);setPhotoEditSlot(null);}} style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,touchAction:'manipulation'}}></button>
+                                        <button
+                                          onPointerDown={e=>{e.stopPropagation();clearSlot(pageIdx,i);setPhotoEditSlot(null);}}
+                                          title="Видалити фото зі слота"
+                                          style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
+                                          <Trash2 size={11}/>
+                                          <span style={{fontSize:9,fontWeight:700}}>Видалити</span>
+                                        </button>
                                       </div>
                                     </div>
                                   )}
