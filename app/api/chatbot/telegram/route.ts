@@ -7,10 +7,28 @@ import { processReceivedMessage } from '@/lib/chatbot/core';
 const token = process.env.TELEGRAM_PUBLIC_BOT_TOKEN;
 const bot = token ? new TelegramBot(token, { polling: false }) : null;
 
+// Telegram sends an X-Telegram-Bot-Api-Secret-Token header on every webhook
+// when you set a secret_token in setWebhook. Without verifying it, anyone can
+// POST forged update payloads and spam customers via the bot.
+const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
+
 export async function POST(req: Request) {
     if (!bot) {
         console.error('Telegram bot token not configured');
         return NextResponse.json({ error: 'Not configured' }, { status: 500 });
+    }
+
+    if (TELEGRAM_WEBHOOK_SECRET) {
+        const headerSecret = req.headers.get('x-telegram-bot-api-secret-token');
+        if (headerSecret !== TELEGRAM_WEBHOOK_SECRET) {
+            return NextResponse.json({ error: 'Invalid webhook secret' }, { status: 401 });
+        }
+    } else if (process.env.NODE_ENV === 'production') {
+        // In production, refuse to accept unverified webhooks. Set
+        // TELEGRAM_WEBHOOK_SECRET in env vars and pass it as the secret_token
+        // when calling setWebhook on the bot.
+        console.error('TELEGRAM_WEBHOOK_SECRET not configured in production — refusing webhook');
+        return NextResponse.json({ error: 'Webhook signing not configured' }, { status: 503 });
     }
 
     try {
