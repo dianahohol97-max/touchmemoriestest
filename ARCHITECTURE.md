@@ -1,6 +1,6 @@
 # TouchMemories — Architecture
 
-> **Last updated:** 2026-04-28 · **Maintained by:** Diana + Claude
+> **Last updated:** 2026-04-29 · **Maintained by:** Diana + Claude
 > **Production:** touchmemories1.vercel.app
 > **Repo:** github.com/dianahohol97-max/touchmemoriestest
 > **Read this first** before any feature work or debugging session. Update at the bottom of any major change.
@@ -57,7 +57,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 
 ## High-level stack
 
-- **Framework:** Next.js 14 App Router · TypeScript
+- **Framework:** Next.js 16 (Turbopack) App Router · TypeScript
 - **Styling:** Tailwind + shadcn/ui (Radix primitives)
 - **Database:** Supabase (Postgres + Auth + Storage)
 - **Hosting:** Vercel (team `team_Qve9hriFT9sNYnjWZolAcFXl`, project `prj_Oz13dkGF3W1JvSVToT8WvZBseBba`)
@@ -216,6 +216,7 @@ These are the recurring "why is this still broken" issues. Update this list when
 7. **Designer cabinet revision lifecycle gaps** — known but not yet documented in detail. Audit the flow when next touching `app/admin/designer/`.
 8. **Cart/checkout end-to-end audit** — known to have edge-case breakages, full walkthrough as a customer is a recurring TODO.
 9. **47 markdown files in repo root** — historical implementation summaries. These should be moved into a `docs/archive/` folder once everything they cover is reflected in this ARCHITECTURE.md.
+10. **Schema drift between repo and prod Supabase** — production schema has been extended directly via the Supabase dashboard (e.g. `projects` got `name`, `uploaded_photos`, `notified_*_at` columns plus relaxed CHECK constraints, with no corresponding migration in `supabase/migrations/`). Migration `20260429_sync_projects_schema_with_prod.sql` brings `projects` back in line. Audit the rest of the schema (especially `orders`, `customers`, `photobook_projects`) for similar drift before any `supabase db reset`.
 
 ---
 
