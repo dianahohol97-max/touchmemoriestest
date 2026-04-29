@@ -33,6 +33,23 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Введіть номер замовлення та контактні дані' }, { status: 400 });
         }
 
+        // Validate contact: must look like an email or a phone number.
+        // Without this, a caller could pass `*,customer_email.like.*` and break
+        // the PostgREST `or()` filter to retrieve any order with the given
+        // order_number, regardless of who the customer is.
+        const trimmedContact = String(contact).trim();
+        const isEmail = /^[^\s@,()]+@[^\s@,()]+\.[^\s@,()]+$/.test(trimmedContact);
+        const isPhone = /^\+?[0-9 ()\-]{6,20}$/.test(trimmedContact);
+        if (!isEmail && !isPhone) {
+            return NextResponse.json({ error: 'Невірний формат контактних даних' }, { status: 400 });
+        }
+
+        // Validate orderNumber to a strict alphanumeric/dash format too.
+        const trimmedOrderNumber = String(orderNumber).trim().toUpperCase();
+        if (!/^[A-Z0-9\-]{3,40}$/.test(trimmedOrderNumber)) {
+            return NextResponse.json({ error: 'Невірний номер замовлення' }, { status: 400 });
+        }
+
         // 2. Fetch Order with verification
         // Support either email or phone match
         const { data: order, error } = await supabase
@@ -43,8 +60,8 @@ export async function POST(req: Request) {
                 ttn, items, total, delivery_method, delivery_address,
                 customer_name, customer_email, customer_phone
             `)
-            .eq('order_number', orderNumber.toUpperCase())
-            .or(`customer_email.eq.${contact},customer_phone.eq.${contact}`)
+            .eq('order_number', trimmedOrderNumber)
+            .or(`customer_email.eq.${trimmedContact},customer_phone.eq.${trimmedContact}`)
             .single();
 
         if (error || !order) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail } from '@/lib/email/brevo';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,9 @@ function buildHtml(body_html: string, unsubEmail: string) {
 }
 
 export async function POST(request: Request) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const supabase = getAdminClient();
     try {
         const { subject, body_html, segment = 'all' } = await request.json();
@@ -66,6 +70,9 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const supabase = getAdminClient();
     const { data } = await supabase
         .from('email_campaigns')

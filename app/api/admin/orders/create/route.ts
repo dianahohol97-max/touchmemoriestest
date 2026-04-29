@@ -1,9 +1,13 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     try {
         const payload = await request.json();
         const { customer, items, delivery, totals, notes, source, payment, with_designer, designer_note, created_by } = payload;

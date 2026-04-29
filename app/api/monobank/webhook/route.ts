@@ -15,23 +15,43 @@ export async function POST(req: Request) {
         const body = await req.text();
         const data = JSON.parse(body);
 
-        // Verify signature (recommended for production)
+        // Verify signature.
+        // If MONOBANK_PUB_KEY is configured, the signature is REQUIRED — reject
+        // requests that lack the header or fail verification. Previously the
+        // verification was skipped when the header was absent, which made the
+        // endpoint trivially forgeable: any unauthenticated caller could POST
+        // {reference, status:'success'} and mark an order as paid.
         const pubKey = process.env.MONOBANK_PUB_KEY;
         if (pubKey) {
             const xSignBase64 = req.headers.get('X-Sign');
-            if (xSignBase64) {
-                const verify = crypto.createVerify('SHA256');
-                verify.update(body);
-                verify.end();
+            if (!xSignBase64) {
+                console.error('Monobank webhook: missing X-Sign header');
+                return NextResponse.json(
+                    { error: 'Missing signature' },
+                    { status: 401 }
+                );
+            }
+            const verify = crypto.createVerify('SHA256');
+            verify.update(body);
+            verify.end();
 
-                const isValid = verify.verify(pubKey, xSignBase64, 'base64');
-                if (!isValid) {
-                    console.error('Monobank webhook signature verification failed');
-                    return NextResponse.json(
-                        { error: 'Invalid signature' },
-                        { status: 401 }
-                    );
-                }
+            const isValid = verify.verify(pubKey, xSignBase64, 'base64');
+            if (!isValid) {
+                console.error('Monobank webhook signature verification failed');
+                return NextResponse.json(
+                    { error: 'Invalid signature' },
+                    { status: 401 }
+                );
+            }
+        } else {
+            // Hard-fail in production if the env var was forgotten. Better to
+            // 503 the webhook than silently process unsigned payloads.
+            if (process.env.NODE_ENV === 'production') {
+                console.error('Monobank webhook: MONOBANK_PUB_KEY not configured in production');
+                return NextResponse.json(
+                    { error: 'Webhook not configured' },
+                    { status: 503 }
+                );
             }
         }
 

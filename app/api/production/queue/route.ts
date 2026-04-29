@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const supabase = getAdminClient();
     try {
         // Fetch orders in production-related statuses

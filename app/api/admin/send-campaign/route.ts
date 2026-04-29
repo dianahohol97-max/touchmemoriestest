@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,9 @@ async function sendBrevoEmail(to: string, subject: string, htmlContent: string, 
 }
 
 export async function POST(req: NextRequest) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     try {
         const supabase = await createClient();
         const body = await req.json();

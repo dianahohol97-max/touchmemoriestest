@@ -1,5 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,9 @@ export const dynamic = 'force-dynamic';
 // Sends reminder emails to customers who have items in their wishlist for X days
 // Body: { days?: number (default 7) } or triggered by cron
 export async function POST(req: Request) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const supabase = getAdminClient();
     const { days = 7 } = await req.json().catch(() => ({}));
 
@@ -102,6 +106,9 @@ export async function POST(req: Request) {
 
 // GET — preview how many customers would receive reminders
 export async function GET(req: Request) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const supabase = getAdminClient();
     const { searchParams } = new URL(req.url);
     const days = parseInt(searchParams.get('days') || '7');

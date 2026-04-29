@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,9 @@ export async function GET(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const { id } = await params;
     const supabase = getAdminClient();
     try {
@@ -27,6 +31,9 @@ export async function PUT(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const { id } = await params;
     const supabase = getAdminClient();
     try {
@@ -49,6 +56,9 @@ export async function DELETE(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const { id } = await params;
     const supabase = getAdminClient();
     try {
