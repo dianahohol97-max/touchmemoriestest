@@ -1774,12 +1774,14 @@ export default function BookLayoutEditor() {
       layouts: LAYOUTS.filter(l => {
         if (isSpreadMode && !l.id.startsWith('sp-')) return false;
         if (!isSpreadMode && l.id.startsWith('sp-')) return false;
-        // Avoid spine: exclude layouts that span across center (sp-full, sp-2-h, sp-3-col, sp-4-strip-h)
         if (opts.avoidSpine && ['sp-full','sp-2-h','sp-3-col','sp-4-strip-h','sp-3-hero-top','sp-3-hero-bottom'].includes(l.id)) return false;
         return true;
       }),
       currentPageCount: pages.length,
       minPages: minPagesLen,
+      // maxPages = ordered content pages (pages[0]=cover, so content = pages.length-1)
+      // Must be even for spread pairing
+      maxPages: Math.max(minPageCount, pages.length - 1),
       density: opts.density,
       variety: opts.variety,
       coverPhotoEnabled: opts.coverPhoto,
@@ -1835,8 +1837,9 @@ export default function BookLayoutEditor() {
     while ((newPages.length - 1) % 2 !== 0) {
       newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
-    // Ensure minimum pages for this product
-    while (newPages.length - 1 < minPageCount) {
+    // Ensure minimum pages for this product — but never exceed the originally ordered amount
+    const targetPages = pages.length - 1; // ordered content pages
+    while (newPages.length - 1 < Math.min(minPageCount, targetPages)) {
       newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
 
@@ -1880,8 +1883,8 @@ export default function BookLayoutEditor() {
       reader.onload = ev => {
         const img = new window.Image();
         img.onload = () => {
-          // Compress: cap at 2400px on longest side, JPEG quality 0.88
-          const MAX = 2400;
+          // Compress: cap at 3600px on longest side (A4@300dpi=3508px), JPEG quality 0.92
+          const MAX = 3600;
           let { width, height } = img;
           if (width > MAX || height > MAX) {
             if (width >= height) { height = Math.round(height * MAX / width); width = MAX; }
@@ -1891,8 +1894,10 @@ export default function BookLayoutEditor() {
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d')!;
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, width, height);
-          const preview = canvas.toDataURL('image/jpeg', 0.88);
+          const preview = canvas.toDataURL('image/jpeg', 0.92);
           const photo: PhotoData = {
             id: `up-${batchId}-${idx}`,
             preview,

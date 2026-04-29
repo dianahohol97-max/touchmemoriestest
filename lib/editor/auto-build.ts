@@ -127,7 +127,8 @@ export interface AutoBuildOptions {
   layouts: { id: string; slots: number }[];
   currentPageCount: number;
   minPages: number;
-  density: 'sparse' | 'balanced' | 'dense'; // 1-2 / 2-3 / 3-5 per page
+  maxPages?: number;  // hard cap — never exceed ordered page count
+  density: 'sparse' | 'balanced' | 'dense';
   variety: 'min' | 'medium' | 'max';
   coverPhotoEnabled: boolean;
   hasKalka: boolean;
@@ -141,7 +142,7 @@ export interface AutoBuildResult {
 }
 
 export function autoBuild(options: AutoBuildOptions): AutoBuildResult {
-  const { photos, layouts, density, variety, coverPhotoEnabled, hasKalka, hasEndpaper } = options;
+  const { photos, layouts, density, variety, coverPhotoEnabled, hasKalka, hasEndpaper, maxPages } = options;
   
   if (photos.length === 0) {
     return { pages: [], coverPhotoId: null, totalSpreads: 0 };
@@ -172,22 +173,21 @@ export function autoBuild(options: AutoBuildOptions): AutoBuildResult {
   const pageGroups: PhotoClassified[][] = [];
   let idx = 0;
   while (idx < remaining.length) {
-    // Pick a target count for this page
     const left = remaining.length - idx;
     let target: number;
     if (left <= photosPerPage[0]) {
-      target = left; // use what's left
+      target = left;
     } else {
-      // Pick from the range, biased toward the middle
-      const midIdx = Math.floor(photosPerPage.length / 2);
       const jitter = Math.floor(Math.random() * photosPerPage.length);
       target = photosPerPage[Math.min(jitter, photosPerPage.length - 1)];
-      // Don't leave orphan photos (1 photo on last page when it could join previous)
       if (left - target === 1 && target < photosPerPage[photosPerPage.length - 1]) target++;
     }
     target = Math.min(target, left);
     pageGroups.push(remaining.slice(idx, idx + target));
     idx += target;
+
+    // Stop if we've reached maxPages (cap to ordered page count)
+    if (maxPages && pageGroups.length >= maxPages) break;
   }
 
   // Step 5: Build pages with optimal layouts
