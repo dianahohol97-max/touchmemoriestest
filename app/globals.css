@@ -500,3 +500,21 @@ button[class*="border-primary"][class*="px-"] {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ─── Photo rendering quality ───────────────────────────────────────────────
+   Browsers default to fast bilinear (sometimes nearest-neighbour on perf-
+   constrained paths) when scaling <img> elements. For the editor canvas and
+   product previews — where we deliberately downscale a 4-12 MP photo into
+   a small slot — that produces visibly soft, "blurry" edges.
+
+   `image-rendering: high-quality` (modern Chrome/Edge, Firefox via auto)
+   forces a bicubic-or-better resampler. Safari ignores this property but
+   uses a high-quality default for <img>, so behaviour stays consistent
+   cross-browser.
+
+   We scope this to `img` because applying it globally to backgrounds also
+   bumps GPU cost on icons and gradients with no visible benefit. */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+}

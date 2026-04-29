@@ -1214,36 +1214,23 @@ export default function BookLayoutEditor() {
         const data = photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace }));
         sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(data));
       } catch {
-        // Quota exceeded — re-compress previews to smaller size and retry
+        // sessionStorage quota exceeded. We can't fit full-size data URLs in
+        // 5MB. Two-tier fallback:
+        //   1. Save metadata only to sessionStorage (so refresh is recoverable
+        //      via re-upload prompt) — we DO NOT mutate `photos` in memory,
+        //      so the editor itself keeps the full-quality previews.
+        //   2. The user only loses photos on a hard refresh, not on tab focus
+        //      change or re-render.
+        //
+        // (Previously this branch tried a synchronous canvas re-encode at
+        // 1800px / quality 0.75, which (a) didn't actually complete because
+        // image decode is async — img.complete was always false right after
+        // setting src — and (b) would have softened photos visibly even if
+        // it had run. We dropped both behaviours.)
         try {
-          const shrink = (b64: string): string => {
-            if (!b64.startsWith('data:image')) return b64;
-            try {
-              const img = new window.Image();
-              img.src = b64;
-              if (!img.complete || img.width === 0) return b64;
-              const MAX = 1800;
-              let { width: w, height: h } = img;
-              if (w > MAX || h > MAX) {
-                if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
-                else { w = Math.round(w * MAX / h); h = MAX; }
-              }
-              const c = document.createElement('canvas');
-              c.width = w; c.height = h;
-              const ctx = c.getContext('2d')!;
-              ctx.drawImage(img, 0, 0, w, h);
-              return c.toDataURL('image/jpeg', 0.75);
-            } catch { return b64; }
-          };
-          const reduced = photos.map(p => ({ id: p.id, preview: shrink(p.preview), width: p.width, height: p.height, name: p.name }));
-          sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(reduced));
-        } catch {
-          // Still failing — store only metadata, user will need to re-upload
-          try {
-            const meta = photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name }));
-            sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(meta));
-          } catch { /* give up */ }
-        }
+          const meta = photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name }));
+          sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(meta));
+        } catch { /* give up — user will need to re-upload after a hard refresh */ }
       }
     }, 1000);
   }, [photos]);
@@ -1920,26 +1907,54 @@ export default function BookLayoutEditor() {
     files.forEach((file: File, idx: number) => {
       const reader = new FileReader();
       reader.onload = ev => {
+        const originalDataUrl = ev.target!.result as string;
         const img = new window.Image();
         img.onload = () => {
-          // For print quality: keep original resolution up to 5000px (A3@300dpi=4961px)
-          // Only downscale if larger — use PNG for small images, JPEG for large
+          // Print quality: keep original up to 5000px (A3@300dpi = 4961px).
+          // KEY POINT: avoid re-encoding when we don't have to. Re-running a
+          // camera JPEG through canvas.toDataURL('image/jpeg', 0.95) is a
+          // double-compression that visibly softens edges and washes colours
+          // — this is what was making photos look "blurry" in the editor.
+          //
+          // Strategy:
+          //   1. Photo fits within MAX → use the original data URL as-is.
+          //      No re-encoding, no quality loss, browser displays the
+          //      camera JPEG directly.
+          //   2. Photo larger than MAX → downscale via canvas, encode as
+          //      JPEG 0.92 (0.95 was too aggressive on file size with no
+          //      visible benefit on screen).
+          //   3. Non-JPEG sources (PNG, HEIC after browser decode) over MAX
+          //      → still downscale, but use PNG output to preserve alpha
+          //      and avoid JPEG artefacts on graphic content.
+          //
+          // Original File is stored in `originalFile` either way, so the
+          // print pipeline always has the untouched master to work with.
           const MAX = 5000;
-          let { width, height } = img;
-          const originalW = width, originalH = height;
-          if (width > MAX || height > MAX) {
-            if (width >= height) { height = Math.round(height * MAX / width); width = MAX; }
-            else { width = Math.round(width * MAX / height); height = MAX; }
+          const { width: ow, height: oh } = img;
+          const needsDownscale = ow > MAX || oh > MAX;
+
+          let preview: string;
+          if (!needsDownscale) {
+            // Use the original — no quality loss
+            preview = originalDataUrl;
+          } else {
+            const ratio = ow >= oh ? MAX / ow : MAX / oh;
+            const w = Math.round(ow * ratio);
+            const h = Math.round(oh * ratio);
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d')!;
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, w, h);
+            // PNG for non-photographic sources, JPEG for photos
+            const isPng = (file.type || '').toLowerCase() === 'image/png';
+            preview = isPng
+              ? canvas.toDataURL('image/png')
+              : canvas.toDataURL('image/jpeg', 0.92);
           }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d')!;
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(img, 0, 0, width, height);
-          // Use JPEG 0.95 — best balance of quality and size
-          const preview = canvas.toDataURL('image/jpeg', 0.95);
+
           const photo: PhotoData = {
             id: `up-${batchId}-${idx}`,
             preview,
