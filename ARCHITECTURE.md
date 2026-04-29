@@ -225,6 +225,21 @@ These are the recurring "why is this still broken" issues. Update this list when
     - `lib/ai/claude-chat.ts` (and its schema reference `lib/supabase/schema/ai-chat.sql`) deleted — visitor-facing AI chatbot was never deployed and nothing imports it.
     - `db_backups` storage bucket created explicitly on prod (private, 100MB limit) so `backup-db` cron stops needing to lazy-create it.
 
+11. **Security hardening** — full audit on 2026-04-29 found 24 critical/high/medium issues across RLS, API auth, webhook verification, and dependency vulnerabilities. Three migrations + extensive code changes resolve them. **All applied to prod 2026-04-29.**
+    - `20260429_security_hardening.sql` — enable RLS on `magazine_briefs` (was off; PII questionnaires were anon-readable), drop public SELECT on `subscribers` / `wishlists` / `gift_certificates` / `inventory_movements`, drop `Free Designer Orders Read` (anon-leaked customer PII for designer-service orders), drop anon FOR ALL on `photobook_projects` / `recipes`, restrict `bank_accounts` / `fiscal_accounts` / `np_accounts` to admin only, drop `staff` "any authenticated reads" policy, drop `design_briefs` / `design_revisions` `USING (true)` policies, lock down orphan tables from sibling projects.
+    - `20260429_security_hardening_admin_check_fix.sql` — fixes the previous migration's admin check. The first attempt used `EXISTS (admin_users WHERE id = auth.uid())` but `admin_users.id` is its own UUID, NOT `auth.users.id`. Replaced with the existing `is_admin()` DB function (matches via `auth.jwt()->>'email'`).
+    - `20260429_close_customer_projects.sql` — `customer_projects` had a policy literally named "Admin full access" but with `USING (true)` and no role restriction; full table was anon-readable. Closed with admin/owner policies; the customer review link path now goes through `/api/review/[token]/[action]` with token-validated service-role access.
+
+    Code-side fixes:
+    - `lib/auth/guards.ts` — new `requireAuth` / `requireAdmin` / `requireOwnerOrAdmin` helpers for API routes.
+    - 24 `/api/admin/*` routes — added `requireAdmin()` at the top of every handler. Previously they used the service-role client with no auth check; anyone could GET/PATCH any order, change `payment_status`, etc.
+    - 5 dangerous non-admin routes guarded similarly: `/api/orders/[id]/{duplicate,send-email,create-ttn}`, `/api/production/queue`, `/api/monobank/sync-balance`.
+    - `/api/orders` (no params) was leaking ALL orders with customer PII to anyone — now requires admin.
+    - `/api/orders/track` — added input validation to prevent PostgREST `or()` filter injection via the `contact` field.
+    - `/api/monobank/webhook` — was silently skipping signature verification when the `X-Sign` header was missing (trivially forgeable: anyone could mark an order as paid). Header now required when `MONOBANK_PUB_KEY` is set; 503 in production if the env var is missing.
+    - `app/[locale]/review/[token]/{page,ReviewPageClient}.tsx` — switched to use `/api/review/[token]/[action]` server route + admin client for the page query, so token-based public review still works after RLS lockdown.
+    - `npm audit fix` ran: 3 vulnerabilities remain unfixed and are accepted risks: `xlsx` (no upstream fix; we generate xlsx, never parse untrusted input), `request` + `form-data` (transitive via `node-telegram-bot-api` → no maintained alternative; runs server-side over HTTPS to Telegram API).
+
 ---
 
 ## How to update this doc

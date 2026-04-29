@@ -45,19 +45,20 @@ export async function requireAdmin(): Promise<Guard> {
     }
 
     // Admin if either:
-    //   - email is in admin_users (legacy)
+    //   - email matches admin_users.email
+    //     (admin_users has its own UUID, NOT the auth.users.id, so we match by email)
     //   - staff row exists with role='admin'
     const admin = getAdminClient();
-
-    const { data: adminRow } = await admin
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-    if (adminRow) return { ok: true, userId: user.id };
-
     const email = user.email;
+
     if (email) {
+        const { data: adminRow } = await admin
+            .from('admin_users')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle();
+        if (adminRow) return { ok: true, userId: user.id };
+
         const { data: staffRow } = await admin
             .from('staff')
             .select('id, role')
@@ -82,14 +83,17 @@ export async function requireOwnerOrAdmin(customerId: string | null): Promise<Gu
     }
 
     const admin = getAdminClient();
+    const email = user.email;
 
-    // Admin path
-    const { data: adminRow } = await admin
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-    if (adminRow) return { ok: true, userId: user.id };
+    // Admin path (match by email, since admin_users.id is not auth.users.id)
+    if (email) {
+        const { data: adminRow } = await admin
+            .from('admin_users')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle();
+        if (adminRow) return { ok: true, userId: user.id };
+    }
 
     // Ownership path
     if (customerId) {

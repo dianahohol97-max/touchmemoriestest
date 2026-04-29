@@ -1,17 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { CheckCircle, XCircle, Loader2, MessageSquare } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 
 export default function ReviewPageClient({ project: initialProject, token }: { project: any; token: string }) {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   const [project] = useState(initialProject);
   const [action, setAction] = useState<'idle' | 'loading' | 'done'>('idle');
   const [revisionNote, setRevisionNote] = useState('');
@@ -23,28 +17,24 @@ export default function ReviewPageClient({ project: initialProject, token }: { p
 
   const handleApprove = async () => {
     setAction('loading');
-    await supabase.from('customer_projects').update({
-      status: 'approved',
-      approved_at: new Date().toISOString(),
-    }).eq('share_token', token);
-    if (project.order_id) {
-      await supabase.from('design_briefs').update({ status: 'approved' }).eq('order_id', project.order_id);
+    const res = await fetch(`/api/review/${encodeURIComponent(token)}/approve`, { method: 'POST' });
+    if (res.ok) {
+      setResult('approved');
     }
-    setResult('approved');
     setAction('done');
   };
 
   const handleRevision = async () => {
     if (!revisionNote.trim()) return;
     setAction('loading');
-    await supabase.from('customer_projects').update({
-      status: 'revision_requested',
-      revision_notes: revisionNote,
-    }).eq('share_token', token);
-    if (project.order_id) {
-      await supabase.from('design_briefs').update({ status: 'revision_requested' }).eq('order_id', project.order_id);
+    const res = await fetch(`/api/review/${encodeURIComponent(token)}/revision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: revisionNote }),
+    });
+    if (res.ok) {
+      setResult('revision');
     }
-    setResult('revision');
     setAction('done');
   };
 
