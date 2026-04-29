@@ -6,30 +6,6 @@ const supabase = createClient(
 )
 
 // 
-// CONSTRUCTOR ORDER SUBMISSION (for photobook/magazine constructor)
-// 
-
-export async function submitConstructorOrder(data: {
-  product_type: string
-  product_size: string
-  pages: number
-  total_price: number
-  cover_type?: string | null
-  photo_count: number
-  customer_name: string
-  customer_phone: string
-  customer_email?: string | null
-  delivery_method: string
-  payment_method: string
-  notes?: string | null
-  status: string
-  constructor_data?: string | null
-}) {
-  const { error } = await supabase.from('orders').insert([data])
-  if (error) throw error
-}
-
-// 
 // LEGACY ORDER SUBMISSION (for cart-based checkout)
 // 
 

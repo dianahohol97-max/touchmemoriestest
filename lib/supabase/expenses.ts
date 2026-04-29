@@ -307,29 +307,49 @@ export async function getExpenseMetrics(): Promise<ExpenseMetrics> {
 export async function getPLReport(startDate: string, endDate: string): Promise<PLReportData> {
   const supabase = await createClient();
 
-  // Get revenue from orders
+  // Get revenue from orders.
+  // Order line items live in `orders.items` JSONB (no separate order_items table).
+  // We fetch orders once and pull category/cost data by joining product_name → products.title.
   const { data: orders } = await supabase
     .from('orders')
-    .select(`
-      total_price,
-      items:order_items(
-        quantity,
-        price,
-        product:products(category)
-      )
-    `)
+    .select('total_price, items')
     .gte('paid_at', startDate)
     .lte('paid_at', endDate)
     .not('paid_at', 'is', null);
 
-  const revenue = orders?.reduce((sum, order) => sum + Number(order.total_price), 0) || 0;
+  const revenue = orders?.reduce((sum, order: any) => sum + Number(order.total_price), 0) || 0;
 
-  // Revenue by category
+  // Build a lookup of product_name → { category, cost_price } by fetching products
+  // we'll need for category breakdown and COGS.
+  const allItemNames = new Set<string>();
+  orders?.forEach((order: any) => {
+    (order.items || []).forEach((it: any) => {
+      if (it?.product_name) allItemNames.add(it.product_name);
+    });
+  });
+
+  const productLookup = new Map<string, { category: string | null; cost_price: number }>();
+  if (allItemNames.size > 0) {
+    const { data: products } = await supabase
+      .from('products')
+      .select('name, cost_price, category:categories(name)')
+      .in('name', Array.from(allItemNames));
+    products?.forEach((p: any) => {
+      productLookup.set(p.name, {
+        category: p.category?.name ?? null,
+        cost_price: Number(p.cost_price) || 0,
+      });
+    });
+  }
+
+  // Revenue by category (best-effort: matches `items[].product_name` against `products.title`)
   const categoryRevenue = new Map<string, number>();
   orders?.forEach((order: any) => {
-    order.items?.forEach((item: any) => {
-      const category = item.product?.category || 'Інше';
-      const itemRevenue = Number(item.quantity) * Number(item.price);
+    (order.items || []).forEach((item: any) => {
+      const lookup = productLookup.get(item.product_name);
+      const category = lookup?.category || 'Інше';
+      const itemRevenue = Number(item.total_price)
+        || (Number(item.unit_price) || 0) * (Number(item.quantity) || 0);
       categoryRevenue.set(category, (categoryRevenue.get(category) || 0) + itemRevenue);
     });
   });
@@ -339,21 +359,15 @@ export async function getPLReport(startDate: string, endDate: string): Promise<P
     amount,
   }));
 
-  // COGS (Cost of Goods Sold)
-  const { data: soldItems } = await supabase
-    .from('order_items')
-    .select(`
-      quantity,
-      product:products(cost_price),
-      order:orders!inner(paid_at)
-    `)
-    .gte('order.paid_at', startDate)
-    .lte('order.paid_at', endDate)
-    .not('order.paid_at', 'is', null);
-
-  const cogs = soldItems?.reduce((sum, item: any) => {
-    return sum + (Number(item.quantity) * Number(item.product?.cost_price || 0));
-  }, 0) || 0;
+  // COGS (Cost of Goods Sold) — same best-effort matching as above
+  let cogs = 0;
+  orders?.forEach((order: any) => {
+    (order.items || []).forEach((item: any) => {
+      const lookup = productLookup.get(item.product_name);
+      const cost = lookup?.cost_price || 0;
+      cogs += cost * (Number(item.quantity) || 0);
+    });
+  });
 
   // Operational expenses
   const { data: expenses } = await supabase

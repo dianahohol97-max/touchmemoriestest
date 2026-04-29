@@ -102,12 +102,12 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
             const filePath = `categories/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('images')
+                .from('category-images')
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
 
-            const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+            const { data } = supabase.storage.from('category-images').getPublicUrl(filePath);
 
             setFormData({ ...formData, cover_image: data.publicUrl });
         } catch (error: any) {

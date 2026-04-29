@@ -98,31 +98,30 @@ export async function generateWeeklyReport(
   }
 
   // TOP PRODUCTS
-  const { data: orderItems } = await supabase
-    .from('order_items')
-    .select(`
-      product_id,
-      quantity,
-      price,
-      product:products(title)
-    `)
-    .in('order_id', orders?.map((o) => o.id) || []);
+  // Order line items live in `orders.items` JSONB (no separate order_items table).
+  // We re-fetch to include the items column, since the earlier `orders` query only
+  // selected id/total_price/customer_id/paid_at for performance.
+  const { data: ordersWithItems } = await supabase
+    .from('orders')
+    .select('id, items')
+    .in('id', orders?.map((o) => o.id) || []);
 
   const productMap = new Map<string, { title: string; count: number; revenue: number }>();
 
-  orderItems?.forEach((item: any) => {
-    const productId = item.product_id;
-    const title = item.product?.title || 'Unknown Product';
-    const count = Number(item.quantity);
-    const itemRevenue = Number(item.quantity) * Number(item.price);
-
-    if (productMap.has(productId)) {
-      const existing = productMap.get(productId)!;
-      existing.count += count;
-      existing.revenue += itemRevenue;
-    } else {
-      productMap.set(productId, { title, count, revenue: itemRevenue });
-    }
+  ordersWithItems?.forEach((order: any) => {
+    const items: any[] = Array.isArray(order.items) ? order.items : [];
+    items.forEach((item) => {
+      const title = item.product_name || 'Unknown Product';
+      const count = Number(item.quantity) || 0;
+      const itemRevenue = Number(item.total_price) || (Number(item.unit_price) || 0) * count;
+      const existing = productMap.get(title);
+      if (existing) {
+        existing.count += count;
+        existing.revenue += itemRevenue;
+      } else {
+        productMap.set(title, { title, count, revenue: itemRevenue });
+      }
+    });
   });
 
   const topProducts = Array.from(productMap.values())
