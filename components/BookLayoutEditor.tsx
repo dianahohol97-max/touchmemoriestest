@@ -930,14 +930,13 @@ export default function BookLayoutEditor() {
     const check = () => {
       const w = window.innerWidth;
       setIsMobile(w < 640);
-      // Auto-fit zoom for mobile
       if (w < 640) {
-        // Canvas is ~2 pages wide for spread, or 1 page for page mode
-        // Available width = screen width - padding (16px each side)
+        // Available width = screen width - padding
         const available = w - 32;
-        const canvasW = 680; // approximate canvas width at 100% zoom
-        const fit = Math.round((available / canvasW) * 100);
-        setZoom(Math.max(28, Math.min(70, fit)));
+        // At 100% zoom, spread canvas width ≈ 700 * 2 * prop.w/prop.h ≈ 1040px for square book
+        const canvasW100 = 1040;
+        const fit = Math.round((available / canvasW100) * 100);
+        setZoom(Math.max(24, Math.min(55, fit)));
       }
     };
     check();
@@ -955,13 +954,14 @@ export default function BookLayoutEditor() {
   const [pages, setPages] = useState<Page[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [zoom, setZoom] = useState(() => {
-    if (typeof window === 'undefined') return 70;
+    if (typeof window === 'undefined') return 80;
     const w = window.innerWidth;
     if (w < 400) return 28;  // very small phones
     if (w < 480) return 34;  // small phones
     if (w < 640) return 42;  // medium phones
     if (w < 768) return 52;  // large phones / small tablets
-    return 70;               // desktop
+    if (w < 1200) return 70; // small laptops
+    return 80;               // large desktop
   });
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'|'qr'>('layouts');
   const [coverState, setCoverState] = useState<CoverState>(() => {
@@ -1411,8 +1411,8 @@ export default function BookLayoutEditor() {
 
   const sizeKey = getSizeKeyForProduct(config);
   const prop = PAGE_PROPORTIONS[sizeKey] ?? PAGE_PROPORTIONS['A4'];
-  // Spread = 2 pages side by side
-  const baseH = 460;
+  // Spread = 2 pages side by side. baseH=700 gives sharp rendering at 70% zoom (490px page height)
+  const baseH = 700;
   const baseW = baseH * (2 * prop.w) / prop.h; // spread width = 2 pages
   const cW = baseW * zoom / 100; // full spread width
   const cH = baseH * zoom / 100;

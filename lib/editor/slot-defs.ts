@@ -54,16 +54,39 @@ export function getSlotDefs(layout: string, W: number, H: number): SlotDef[] {
   if (layout === 'p-5-hero')      { const bh=H*0.55; const sw=(W-2*g)/4; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3].map(i=>S(i+1,i*(sw+g),bh+g,sw,sh))]; }
   if (layout === 'p-5-grid')      return [S(0,0,0,w2,h2), S(1,w2+g,0,w2,h2), S(2,0,h2+g,w3,h2), S(3,w3+g,h2+g,w3,h2), S(4,(w3+g)*2,h2+g,w3,h2)];
   if (layout === 'p-5-strip')     { const bh=H*0.55; const sw=(W-3*g)/4; const sh=H-bh-g; return [S(0,0,0,W,bh), ...[0,1,2,3].map(i=>S(i+1,i*(sw+g),bh+g,sw,sh))]; }
+  if (layout === 'p-5-col-hero')  { const bh=H*0.4; const sw=(W-3*g)/4; return [S(0,0,0,W,bh),...[0,1,2,3].map(i=>S(i+1,i*(sw+g),bh+g,sw,H-bh-g))]; }
+  if (layout === 'p-5-2-3')      { const sh=(H-g)/2; const sw2=(W-g)/2; const sw3=(W-2*g)/3; return [S(0,0,0,sw2,sh),S(1,sw2+g,0,sw2,sh),...[0,1,2].map(i=>S(i+2,i*(sw3+g),sh+g,sw3,sh))]; }
+  if (layout === 'p-5-3-2')      { const sh=(H-g)/2; const sw3=(W-2*g)/3; const sw2=(W-g)/2; return [...[0,1,2].map(i=>S(i,i*(sw3+g),0,sw3,sh)),S(3,0,sh+g,sw2,sh),S(4,sw2+g,sh+g,sw2,sh)]; }
+  if (layout === 'p-5-cross')     { const cw=W*0.4; const ch=H*0.4; const sx=(W-cw)/2; const sy=(H-ch)/2; const sw2=(W-cw-g*2)/2; const sh2=(H-ch-g*2)/2; return [S(0,0,0,sw2,sh2),S(1,W-sw2,0,sw2,sh2),S(2,sx,0,cw,H),S(3,0,H-sh2,sw2,sh2),S(4,W-sw2,H-sh2,sw2,sh2)]; }
+  if (layout === 'p-5-l-hero')    { const bw=W*0.55; const sw=(W-bw-g)/2; const sh=(H-g)/2; return [S(0,0,0,bw,H),S(1,bw+g,0,sw,sh),S(2,bw+g+sw+g,0,sw,sh),S(3,bw+g,sh+g,sw,sh),S(4,bw+g+sw+g,sh+g,sw,sh)]; }
+  if (layout === 'p-5-r-hero')    { const bw=W*0.55; const sw=(W-bw-g)/2; const sh=(H-g)/2; return [S(0,W-bw,0,bw,H),S(1,0,0,sw,sh),S(2,sw+g,0,sw,sh),S(3,0,sh+g,sw,sh),S(4,sw+g,sh+g,sw,sh)]; }
 
   // 6 photos
   if (layout === 'p-6-grid')      return [0,1].flatMap(col=>[0,1,2].map(row=>S(col*3+row, col*(w2+g), row*(h3+g), w2, h3)));
   if (layout === 'p-6-3x2')       return [0,1,2].flatMap(col=>[0,1].map(row=>S(col*2+row, col*(w3+g), row*(h2+g), w3, h2)));
   if (layout === 'p-6-hero')      { const bh=H*0.5; const sw=(W-2*g)/3; const sh2=(H-bh-g-g)/2; return [S(0,0,0,W*0.5,bh), S(1,W*0.5+g,0,W*0.5-g,bh), ...[0,1,2].map(i=>S(i+2,i*(sw+g),bh+g,sw,sh2)), ...[0,1,2].map(i=>S(i+5,i*(sw+g),bh+g+sh2+g,sw,sh2))]; }
+  if (layout === 'p-6-2col')      { const sw=(W-g)/2; const sh=(H-2*g)/3; return [0,1].flatMap(col=>[0,1,2].map(row=>S(col*3+row,col*(sw+g),row*(sh+g),sw,sh))); }
+  if (layout === 'p-6-hero-bot')  { const bh=H*0.5; const sw=(W-2*g)/3; return [...[0,1,2].map(i=>S(i,i*(sw+g),0,sw,bh)), ...[0,1,2].map(i=>S(i+3,i*(sw+g),bh+g,sw,H-bh-g))]; }
+  if (layout === 'p-6-strip-h')   { const sw=(W-5*g)/6; return [0,1,2,3,4,5].map(i=>S(i,i*(sw+g),0,sw,H)); }
 
-  // 7-9 photos
+  // 7 photos
   if (layout === 'p-7-grid')      { const sw=(W-2*g)/3, sh=(H-2*g)/3; return [0,1,2].flatMap(col=>[0,1].map(row=>S(col*2+row,col*(sw+g),row*(sh+g),sw,sh))).concat(S(6,0,(sh+g)*2,W,sh)); }
+  if (layout === 'p-7-hero')      { const bh=H*0.5; const sw=(W-2*g)/3; const shs=(H-bh-g)/2-g/2; return [S(0,0,0,W,bh),...[0,1,2].map(i=>S(i+1,i*(sw+g),bh+g,sw,shs)),...[0,1,2].map(i=>S(i+4,i*(sw+g),bh+g+shs+g,sw,shs))]; }
+
+  // 8 photos
   if (layout === 'p-8-grid')      return [0,1,2,3].flatMap(col=>[0,1].map(row=>S(col*2+row,col*(w4+g),row*(h2+g),w4,h2)));
+  if (layout === 'p-8-2x4')       { const sw=(W-3*g)/4; const sh=(H-g)/2; return [0,1,2,3].flatMap(col=>[0,1].map(row=>S(col*2+row,col*(sw+g),row*(sh+g),sw,sh))); }
+
+  // 9 photos
   if (layout === 'p-9-grid')      return [0,1,2].flatMap(col=>[0,1,2].map(row=>S(col*3+row,col*(w3+g),row*(h3+g),w3,h3)));
+  if (layout === 'p-9-hero')      { const bh=H*0.45; const sw=(W-3*g)/4; const sh=(H-bh-g)/2-g/2; return [S(0,0,0,W*0.5,bh),S(1,W*0.5+g,0,W*0.5-g,bh),...[0,1,2,3].map(i=>S(i+2,i*(sw+g),bh+g,sw,sh)),...[0,1,2,3].map(i=>S(i+6,i*(sw+g),bh+g+sh+g,sw,sh))]; }
+
+  // 10-16 photos (grid layouts)
+  if (layout === 'p-10-grid')     { const sw=(W-4*g)/5; const sh=(H-g)/2; return [0,1,2,3,4].flatMap(col=>[0,1].map(row=>S(col*2+row,col*(sw+g),row*(sh+g),sw,sh))); }
+  if (layout === 'p-12-grid')     { const sw=(W-3*g)/4; const sh=(H-2*g)/3; return [0,1,2,3].flatMap(col=>[0,1,2].map(row=>S(col*3+row,col*(sw+g),row*(sh+g),sw,sh))); }
+  if (layout === 'p-12-3x4')     { const sw=(W-2*g)/3; const sh=(H-3*g)/4; return [0,1,2].flatMap(col=>[0,1,2,3].map(row=>S(col*4+row,col*(sw+g),row*(sh+g),sw,sh))); }
+  if (layout === 'p-15-grid')     { const sw=(W-4*g)/5; const sh=(H-2*g)/3; return [0,1,2,3,4].flatMap(col=>[0,1,2].map(row=>S(col*3+row,col*(sw+g),row*(sh+g),sw,sh))); }
+  if (layout === 'p-16-grid')     return [0,1,2,3].flatMap(col=>[0,1,2,3].map(row=>S(col*4+row,col*(w4+g),row*((H-3*g)/4+g),w4,(H-3*g)/4)));
 
   // Text
   if (layout === 'p-text')        return [];
