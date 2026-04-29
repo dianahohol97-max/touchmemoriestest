@@ -48,7 +48,7 @@ import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from 
 import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
-interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; }
+interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; }
 interface BookConfig { productSlug: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
@@ -1935,6 +1935,7 @@ export default function BookLayoutEditor() {
             width: img.width,
             height: img.height,
             name: file.name,
+            originalFile: file, // keep original for high-quality upload on order
           };
           results.push({ idx, photo });
           tryCommit();
@@ -2135,15 +2136,33 @@ export default function BookLayoutEditor() {
   };
 
   const [showCartModal, setShowCartModal] = useState(false);
+  const [uploadState, setUploadState] = useState<{
+    active: boolean;
+    done: number;
+    total: number;
+    failed: number;
+    orderId: string;
+  } | null>(null);
 
-  const addToCart = () => {
+  // Show cart modal after upload completes (or immediately if no files to upload)
+  useEffect(() => {
+    if (uploadState && !uploadState.active) {
+      const timer = setTimeout(() => {
+        setUploadState(null);
+        setShowCartModal(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadState?.active]);
+
+  const addToCart = async () => {
     if (!config) return;
-    // pages[0] = cover, so content pages = pages.length - 1
     const contentPages = pages.length - 1;
-    // Use product image from config if available, otherwise use cover photo preview
     const productImage = config.productImage || getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '';
+    const orderId = `pb-${Date.now()}`;
+
     addItem({
-      id: `pb-${Date.now()}`,
+      id: orderId,
       name: config.productName || 'Фотокнига',
       price: dynamicPrice,
       qty: 1,
@@ -2155,16 +2174,45 @@ export default function BookLayoutEditor() {
       },
       personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}`,
     } as any);
-    // Clear draft
+
     sessionStorage.removeItem('bookEditorDraft');
     sessionStorage.removeItem('bookConstructorConfig');
-    // Save design to Supabase (non-blocking)
-    saveDesignToProjects(contentPages, productImage);
-    // Show modal instead of redirect
-    setShowCartModal(true);
+
+    // Save design layout to Supabase projects (non-blocking)
+    saveDesignToProjects(contentPages, productImage, orderId);
+
+    // Upload originals to Supabase Storage with progress
+    const photosWithFile = photos.filter(p => p.originalFile);
+    if (photosWithFile.length > 0) {
+      setUploadState({ active: true, done: 0, total: photosWithFile.length, failed: 0, orderId });
+      let done = 0, failed = 0;
+      // Upload in parallel batches of 3 to avoid overwhelming the connection
+      const BATCH = 3;
+      for (let i = 0; i < photosWithFile.length; i += BATCH) {
+        const batch = photosWithFile.slice(i, i + BATCH);
+        await Promise.all(batch.map(async (photo) => {
+          try {
+            const fd = new FormData();
+            fd.append('file', photo.originalFile!);
+            fd.append('orderId', orderId);
+            fd.append('photoId', photo.id);
+            fd.append('photoName', photo.name);
+            const res = await fetch('/api/photobook/upload-photos', { method: 'POST', body: fd });
+            if (!res.ok) failed++;
+            else done++;
+          } catch { failed++; }
+          setUploadState(prev => prev ? { ...prev, done: done, failed: failed } : null);
+        }));
+      }
+      setUploadState(prev => prev ? { ...prev, active: false } : null);
+    }
+
+    setPhotos([]);
+    // If no files to upload, show cart modal immediately
+    if (photosWithFile.length === 0) setShowCartModal(true);
   };
 
-  const saveDesignToProjects = async (contentPages: number, productImage: string) => {
+  const saveDesignToProjects = async (contentPages: number, productImage: string, orderId?: string) => {
     try {
       const { createClient } = await import('@/lib/supabase/client');
       const sb = createClient();
@@ -2181,6 +2229,7 @@ export default function BookLayoutEditor() {
         cover_data: coverState,
         uploaded_photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })),
         updated_at: new Date().toISOString(),
+        ...(orderId ? { order_ref: orderId } : {}),
       });
     } catch (e) {
       console.warn('Design save skipped:', e);
@@ -6316,6 +6365,37 @@ export default function BookLayoutEditor() {
           isSpreadMode={isSpreadMode}
           hasKalka={hasKalka}
         />
+      )}
+
+      {/* Upload progress overlay */}
+      {uploadState && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:9998,
+          display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:360, width:'100%',
+            textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.25)' }}>
+            <div style={{ fontSize:36, marginBottom:12 }}>📤</div>
+            <h2 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:6 }}>
+              {uploadState.active ? 'Завантаження фото...' : 'Фото завантажено!'}
+            </h2>
+            <p style={{ color:'#64748b', fontSize:13, marginBottom:16 }}>
+              {uploadState.active
+                ? `${uploadState.done} з ${uploadState.total} фото`
+                : `${uploadState.done} фото завантажено${uploadState.failed > 0 ? `, ${uploadState.failed} помилок` : ''}`}
+            </p>
+            <div style={{ width:'100%', height:8, background:'#e2e8f0', borderRadius:8, overflow:'hidden', marginBottom:12 }}>
+              <div style={{
+                height:'100%', borderRadius:8, transition:'width 0.3s ease',
+                background: uploadState.active ? '#1e2d7d' : uploadState.failed > 0 ? '#f59e0b' : '#10b981',
+                width: `${Math.round((uploadState.done + uploadState.failed) / uploadState.total * 100)}%`,
+              }}/>
+            </div>
+            {!uploadState.active && (
+              <p style={{ fontSize:11, color:'#94a3b8' }}>
+                Оригінальні файли збережено для друку у найвищій якості
+              </p>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Cart modal — after adding to cart */}
