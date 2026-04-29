@@ -2267,14 +2267,31 @@ export default function BookLayoutEditor() {
         console.warn('saveDesignToProjects: no user logged in');
         return;
       }
-      const sizeLabel = config?.selectedSize || '';
+
+      // Normalise the size — config.selectedSize can come through as
+      // "20×30" (Unicode ×, U+00D7) or "20х30" (Cyrillic х) or "20x30 см".
+      // The DB used to have a CHECK constraint that rejected anything except
+      // ASCII "x"; the constraint is now dropped, but we still want clean values.
+      const sizeLabelRaw = config?.selectedSize || '';
+      const sizeLabel = normalizeSizeKey(sizeLabelRaw);
       const coverLabel = config?.selectedCoverType || '';
+
+      // Derive product_type from the slug — same editor handles photobook,
+      // travelbook, magazine, wishbook, journal, planner, etc.
+      const slug = (config?.productSlug || '').toLowerCase();
+      let productType: string = 'photobook';
+      if (slug.includes('travel')) productType = 'travelbook';
+      else if (slug.includes('magazine') || slug.includes('zhurnal') || slug.includes('fotozhurnal')) productType = 'magazine';
+      else if (slug.includes('wish') || slug.includes('pobazhan') || slug.includes('guest')) productType = 'wishbook';
+      else if (slug.includes('journal')) productType = 'journal';
+      else if (slug.includes('planner')) productType = 'planner';
+
       const name = `${config?.productName || 'Фотокнига'} ${sizeLabel} · ${contentPages} стор.`;
 
       const { error } = await sb.from('projects').insert({
         user_id: user.id,
         name,
-        product_type: 'photobook',
+        product_type: productType,
         format: sizeLabel,
         cover_type: coverLabel,
         total_pages: contentPages,
