@@ -1,11 +1,30 @@
 import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import type { DesignBrief, BriefFormData, PhotoMetadata } from '@/lib/types/designer-service';
 
 /**
- * Get design brief by token (public access)
+ * Token-based brief access.
+ *
+ * IMPORTANT: design_briefs RLS no longer permits anonymous access by token —
+ * the previous USING (true) policy was a footgun (it allowed enumeration of
+ * any brief by anyone). All token-keyed reads/writes here go through the
+ * service-role admin client, which bypasses RLS but only after we explicitly
+ * validate the token at the application layer. The token itself is the
+ * capability — knowing it grants access, not knowing it does not.
+ */
+
+const TOKEN_RE = /^[A-Za-z0-9_-]{16,128}$/;
+
+function isValidToken(token: string | undefined | null): token is string {
+  return typeof token === 'string' && TOKEN_RE.test(token);
+}
+
+/**
+ * Get design brief by token (public access — token IS the capability).
  */
 export async function getDesignBriefByToken(token: string): Promise<DesignBrief | null> {
-  const supabase = await createClient();
+  if (!isValidToken(token)) return null;
+  const supabase = getAdminClient();
 
   const { data, error } = await supabase
     .from('design_briefs')
@@ -32,8 +51,9 @@ export async function submitBrief(
   token: string,
   formData: BriefFormData
 ): Promise<{ success: boolean; error?: string }> {
+  if (!isValidToken(token)) return { success: false, error: 'Invalid token' };
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     const { error } = await supabase
       .from('design_briefs')
@@ -59,8 +79,9 @@ export async function updatePhotosMetadata(
   token: string,
   photos: PhotoMetadata[]
 ): Promise<{ success: boolean; error?: string }> {
+  if (!isValidToken(token)) return { success: false, error: 'Invalid token' };
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     const { error } = await supabase
       .from('design_briefs')
@@ -118,7 +139,8 @@ export async function uploadPhoto(
 }
 
 /**
- * Get order details for brief
+ * Get order details for brief — admin-only path (no token here, called from
+ * authenticated admin/designer contexts).
  */
 export async function getOrderForBrief(orderId: string) {
   const supabase = await createClient();
@@ -132,12 +154,7 @@ export async function getOrderForBrief(orderId: string) {
       designer_service_fee,
       brief_token,
       customer:customers(name, email, phone),
-      items:order_items(
-        product:products(
-          title,
-          custom_attributes
-        )
-      )
+      items
     `)
     .eq('id', orderId)
     .single();
@@ -147,10 +164,12 @@ export async function getOrderForBrief(orderId: string) {
 }
 
 /**
- * Check if brief is accessible (paid order with designer service)
+ * Check if brief is accessible (paid order with designer service).
+ * Uses service role + token validation for the same reason as above.
  */
 export async function isBriefAccessible(token: string): Promise<boolean> {
-  const supabase = await createClient();
+  if (!isValidToken(token)) return false;
+  const supabase = getAdminClient();
 
   const { data } = await supabase
     .from('design_briefs')

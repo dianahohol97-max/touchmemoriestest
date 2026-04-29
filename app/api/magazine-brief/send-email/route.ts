@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = getAdminClient();
 
 export async function POST(request: NextRequest) {
+  // Internal endpoint: called from cron and admin UI. Either cron secret or
+  // admin auth is required so a stranger can't spam customers via this route.
+  const cronSecret = request.headers.get('x-cron-secret');
+  const cronOk = !!process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET;
+  if (!cronOk) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+  }
+
   try {
     const { briefId, customerEmail, customerName, subjectName } = await request.json();
     if (!customerEmail || !briefId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });

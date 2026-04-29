@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/guards';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = getAdminClient();
 
 const TOPIC_PROMPTS: Record<string, string> = {
   'intro': 'передмова — хто ця людина, яка вона є насправді',
@@ -77,6 +75,17 @@ ${details}
 }
 
 export async function POST(request: NextRequest) {
+  // Auth: this endpoint is called from the admin UI and from the magazine-brief
+  // cron loop. Both need access. Either path is acceptable; everything else
+  // is denied so a stranger can't repeatedly trigger LLM generation (which
+  // costs money and can be used to enumerate brief contents).
+  const cronSecret = request.headers.get('x-cron-secret');
+  const cronOk = !!process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET;
+  if (!cronOk) {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+  }
+
   try {
     const { briefId } = await request.json();
     if (!briefId) return NextResponse.json({ error: 'briefId required' }, { status: 400 });
@@ -128,11 +137,14 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     }).eq('id', briefId);
 
-    // Notify email
+    // Notify email — internal call, pass cron secret so send-email accepts it.
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
     fetch(`${siteUrl}/api/magazine-brief/send-email`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-cron-secret': process.env.CRON_SECRET || '',
+      },
       body: JSON.stringify({ briefId, customerEmail: brief.customer_email, customerName: brief.customer_name, subjectName: brief.subject_name }),
     }).catch(() => {});
 

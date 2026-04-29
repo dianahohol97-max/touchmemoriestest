@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { getAdminClient } from '@/lib/supabase/admin';
 
 // Called by Make.com every 15 minutes
 // Make.com scenario: Schedule (every 15 min) → HTTP POST to /api/magazine-brief/cron
 export async function POST(request: NextRequest) {
-  // Simple secret check
+  // Cron auth: require the secret to be configured AND match. No fallback
+  // value (the previous fallback to 'tm_cron_2026' was checked into git
+  // history, so anyone could call this endpoint and trigger generation).
   const secret = request.headers.get('x-cron-secret');
-  if (secret !== (process.env.CRON_SECRET || 'tm_cron_2026')) {
+  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const supabase = getAdminClient();
 
   // Check current Kyiv time (UTC+3)
   const now = new Date();
@@ -42,7 +41,10 @@ export async function POST(request: NextRequest) {
     // Fire generation (don't await — let it run)
     fetch(`${siteUrl}/api/magazine-brief/generate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-cron-secret': process.env.CRON_SECRET || '',
+      },
       body: JSON.stringify({ briefId: brief.id }),
     }).catch(e => console.error('[cron] generate error:', e));
 

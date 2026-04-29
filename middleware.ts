@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { updateSession } from '@/lib/supabase/middleware';
 
 const LOCALES = ['uk', 'en', 'ro', 'pl', 'de'];
@@ -9,6 +10,8 @@ const SKIP_PREFIXES = [
     '/robots', '/sitemap', '/public',
     '/auth', // supabase auth callback
 ];
+
+const PUBLIC_ADMIN_PATHS = new Set(['/admin/login', '/admin/no-access']);
 
 function getLocaleFromAcceptLanguage(acceptLang: string | null): string {
     if (!acceptLang) return DEFAULT_LOCALE;
@@ -23,8 +26,79 @@ function getLocaleFromAcceptLanguage(acceptLang: string | null): string {
     return DEFAULT_LOCALE;
 }
 
+/**
+ * Look up whether the currently-authenticated session belongs to an admin or
+ * owner staff member. Uses the service-role admin client because regular RLS
+ * would prevent the staff lookup before the admin can be recognised.
+ *
+ * Returns true if user is admin/owner, false otherwise (including no session).
+ */
+async function isAdminSession(request: NextRequest): Promise<boolean> {
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() { return request.cookies.getAll(); },
+                setAll() { /* no-op: middleware guard does not set cookies */ },
+            },
+        }
+    );
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    // Service role client for the admin/staff lookup (bypasses RLS).
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !serviceKey) return false;
+
+    const adminCheckUrl = `${url}/rest/v1/admin_users?select=id&id=eq.${user.id}`;
+    try {
+        const res = await fetch(adminCheckUrl, {
+            headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+            cache: 'no-store',
+        });
+        if (res.ok) {
+            const rows = await res.json();
+            if (Array.isArray(rows) && rows.length > 0) return true;
+        }
+    } catch { /* fall through to staff check */ }
+
+    if (!user.email) return false;
+    const staffCheckUrl = `${url}/rest/v1/staff?select=role&email=eq.${encodeURIComponent(user.email)}`;
+    try {
+        const res = await fetch(staffCheckUrl, {
+            headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+            cache: 'no-store',
+        });
+        if (res.ok) {
+            const rows = await res.json();
+            if (Array.isArray(rows) && rows.length > 0) {
+                const role = rows[0]?.role;
+                return role === 'admin' || role === 'owner';
+            }
+        }
+    } catch { /* deny on error */ }
+
+    return false;
+}
+
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+
+    // ─── /admin/* gating ────────────────────────────────────────────────
+    // Before this guard, anyone could load /admin URLs and see the admin UI
+    // shell. Data was protected by RLS + API guards, but the UI was open.
+    if (pathname.startsWith('/admin') && !PUBLIC_ADMIN_PATHS.has(pathname)) {
+        const ok = await isAdminSession(request);
+        if (!ok) {
+            const loginUrl = new URL('/admin/login', request.url);
+            loginUrl.searchParams.set('error', 'unauthorized');
+            return NextResponse.redirect(loginUrl);
+        }
+        // Admin path with valid session — fall through to session refresh.
+    }
 
     // Skip non-page routes
     if (SKIP_PREFIXES.some(prefix => pathname.startsWith(prefix))) {

@@ -2,13 +2,20 @@
  * /api/upload — general-purpose image upload to Supabase Storage.
  * Previously used local filesystem (BROKEN on Vercel). Now uses Supabase Storage bucket 'uploads'.
  * Bucket must exist and be set to public in Supabase dashboard.
+ *
+ * Auth: requires an authenticated user. Without this guard the endpoint was
+ * an open file-host: anyone could fill our storage quota with 50MB files.
  */
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAuth } from '@/lib/auth/guards';
 
 const BUCKET = 'uploads';
 
 export async function POST(request: Request) {
+  const guard = await requireAuth();
+  if (!guard.ok) return guard.response;
+
   try {
     const formData = await request.formData();
     const files = formData.getAll('file') as File[];
@@ -17,9 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = getAdminClient();
 
     const uploadedUrls: string[] = [];
 

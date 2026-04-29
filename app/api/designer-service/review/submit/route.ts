@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { sendTelegramMessage } from '@/lib/automation/telegram-notifications';
+
+const TOKEN_RE = /^[A-Za-z0-9_-]{16,128}$/;
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +15,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // design_revisions RLS no longer has a USING (true) policy; the
+    // client-supplied token IS the capability. We validate format then use
+    // the service role client to look up the matching row.
+    if (typeof token !== 'string' || !TOKEN_RE.test(token)) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 400 });
+    }
+
     if (!['approved', 'revision_requested'].includes(decision)) {
       return NextResponse.json(
         { error: 'Invalid decision' },
@@ -20,7 +29,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     // Get revision
     const { data: revision, error: revisionError } = await supabase
