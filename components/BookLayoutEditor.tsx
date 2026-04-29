@@ -1775,7 +1775,7 @@ export default function BookLayoutEditor() {
         if (n === 0) { newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }); continue; }
         const pool = LAYOUTS.filter(l => l.slots === n);
         const layout = (pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : LAYOUTS.find(l => l.id === 'p-full')!);
-        newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: layout.id as LayoutType, slots: ids.map(id => ({ photoId: id, cropX: 50, cropY: 50, zoom: 1 })), textBlocks: [] });
+        newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: layout.id as LayoutType, slots: ids.map(id => ({ photoId: id, ...getFocalCrop(id), zoom: 1 })), textBlocks: [] });
       }
     }
     if (hasKalka) { newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }); newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }); }
@@ -1840,9 +1840,14 @@ export default function BookLayoutEditor() {
       const slotCount = layoutDef?.slots || 1;
       
       // Create page with slots
+      // Use focal-point crop instead of dead-center: faces in portraits sit
+      // around 35-40% from the top, and a centered crop chops them out.
+      // getFocalCrop falls back to the saliency-detected focal point if
+      // available, otherwise to a portrait-friendly default.
       const slots = Array.from({ length: slotCount }, (_, si) => ({
         photoId: rp.photoIds[si] || null,
-        cropX: 50, cropY: 50, zoom: 1,
+        ...getFocalCrop(rp.photoIds[si] || null),
+        zoom: 1,
       }));
       
       newPages.push({
@@ -4407,7 +4412,7 @@ export default function BookLayoutEditor() {
                                       <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:30,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
                                       <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>+</button>
                                       <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                      <button title="Скинути" onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50,rotation:0})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontSize:12,padding:'2px 3px',touchAction:'manipulation'}}>↺</button>
+                                      <button title="Скинути все: масштаб, кадр, поворот" onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50,rotation:0})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.85)',cursor:'pointer',padding:'2px 6px',touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}><RotateCcw size={11}/><span style={{fontSize:9,fontWeight:600}}>Скинути</span></button>
                                       <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
                                       <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{
                                         e.stopPropagation();
@@ -4893,7 +4898,7 @@ export default function BookLayoutEditor() {
                                         <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:30,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
                                         <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>+</button>
                                         <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                        <button title="Скинути" onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50,rotation:0})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontSize:12,padding:'2px 3px',touchAction:'manipulation'}}>↺</button>
+                                        <button title="Скинути все: масштаб, кадр, поворот" onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50,rotation:0})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.85)',cursor:'pointer',padding:'2px 6px',touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}><RotateCcw size={11}/><span style={{fontSize:9,fontWeight:600}}>Скинути</span></button>
                                         <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
                                         <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{
                                           e.stopPropagation();
@@ -5427,7 +5432,11 @@ export default function BookLayoutEditor() {
                 const thumbH = isMobile ? 80 : 96;
                 const thumbW = Math.round(thumbH * ratio);
                 const shortName = ph.name.replace(/\.[^.]+$/, '');
-                const displayName = shortName.length > 12 ? shortName.slice(0, 10) + '..' : shortName;
+                // Let CSS handle truncation via text-overflow:ellipsis on the
+                // span below — that gives a proper '…' character at the right
+                // pixel boundary instead of chopping at a fixed character count
+                // and tacking on '..', which often visually overflowed anyway.
+                const displayName = shortName;
                 const isSel = selectedPhotoIds.has(ph.id);
                 const hasCutAfter = timelineCuts.has(i);
                 // Compute group number (which spread this photo belongs to)
@@ -5491,7 +5500,7 @@ export default function BookLayoutEditor() {
                         <span style={{ position:'absolute', bottom:2, left:2, background:'#7c3aed', color:'#fff', fontSize:7, fontWeight:800, padding:'1px 4px', borderRadius:2 }}>Р{groupNum}</span>
                       )}
                     </div>
-                    <span style={{ fontSize:11, color:'#64748b', fontWeight:500, maxWidth:thumbW+10, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center' }}>{displayName}</span>
+                    <span title={shortName} style={{ fontSize:11, color:'#64748b', fontWeight:500, maxWidth:thumbW+10, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center' }}>{displayName}</span>
                   </div>
                   {/* CUT DIVIDER — SmartAlbums style: click between photos to split into groups */}
                   {i < photos.length - 1 && (

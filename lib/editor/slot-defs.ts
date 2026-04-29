@@ -341,7 +341,7 @@ if (layout === 'sp-1-top-strip') return [S(0, 0, 0, W, H*0.4)];
   if (layout === 'sp-2-inset-small') return [S(0, 0, 0, W, H), S(1, W*0.7, H*0.6, W*0.25, H*0.3)];
 
   if (layout === 'sp-3-magazine')    return [S(0, 0, 0, W*0.5, H), S(1, W*0.5+g, 0, W*0.5-g, h2), S(2, W*0.5+g, h2+g, W*0.5-g, h2)];
-  if (layout === 'sp-3-focus')       return [S(0, 0, 0, W*0.7, H), S(1, W*0.7+g, 0, W*0.3-g, h2), S(2, W*0.7+g, h2+g, W*0.3-g, h2)];
+  if (layout === 'sp-3-focus')       return [S(0, 0, 0, W, H*0.6), S(1, 0, H*0.6+g, W, H*0.2-g/2), S(2, 0, H*0.8+g/2, W, H*0.2-g/2)];
   if (layout === 'sp-3-diagonal')    { const sw=W*0.4; const sh=H*0.4; return [S(0, 0, 0, sw, sh), S(1, W*0.3, H*0.3, sw, sh), S(2, W-sw, H-sh, sw, sh)]; }
   if (layout === 'sp-3-editorial')   return [S(0, 0, 0, W*0.6, H*0.65), S(1, W*0.6+g, 0, W*0.4-g, H), S(2, 0, H*0.65+g, W*0.6, H*0.35-g)];
   if (layout === 'sp-3-scattered')   { const sw=W*0.35; const sh=H*0.45; return [S(0, W*0.05, H*0.05, sw, sh), S(1, W*0.55, H*0.15, sw, sh), S(2, W*0.3, H*0.5, sw, sh)]; }
