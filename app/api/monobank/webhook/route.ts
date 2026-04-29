@@ -165,8 +165,13 @@ export async function POST(req: Request) {
                 notes = `Статус оплати змінено на: ${status}. Invoice: ${invoiceId}`;
         }
 
-        // Update order payment status
-        const { error: updateError } = await supabase
+        // Update order payment status — atomic conditional UPDATE.
+        // Only writes if the invoice/status combo isn't already recorded,
+        // which is what makes this race-safe: two concurrent webhook
+        // deliveries can't both succeed and both insert an order_history
+        // row. Whichever UPDATE runs first wins; the second observes 0
+        // affected rows and short-circuits.
+        const { data: updateResult, error: updateError } = await supabase
             .from('orders')
             .update({
                 payment_status: paymentStatus,
@@ -174,13 +179,17 @@ export async function POST(req: Request) {
                 monobank_invoice_status: status,
                 monobank_approval_code: approvalCode || null,
                 monobank_rrn: rrn || null,
-                // Only set paid_at on the first successful notification.
                 ...(status === 'success' && existingOrder.payment_status !== 'paid'
                     ? { paid_at: new Date().toISOString() }
                     : {}),
                 updated_at: new Date().toISOString()
             })
-            .eq('id', reference);
+            .eq('id', reference)
+            // Race-safety: only update if the (invoice_id, status) tuple
+            // hasn't already been applied. Use 'or' to handle the first-time
+            // case where monobank_invoice_id is NULL.
+            .or(`monobank_invoice_id.is.null,monobank_invoice_id.neq.${invoiceId},monobank_invoice_status.neq.${status}`)
+            .select('id');
 
         if (updateError) {
             console.error('Error updating order payment status:', updateError);
@@ -188,6 +197,13 @@ export async function POST(req: Request) {
                 { error: 'Database update failed' },
                 { status: 500 }
             );
+        }
+
+        // 0 rows affected means another concurrent webhook for this same
+        // invoice+status got there first.
+        if (!updateResult || updateResult.length === 0) {
+            console.log('Monobank webhook: concurrent duplicate, skipping', { reference, invoiceId, status });
+            return NextResponse.json({ success: true, idempotent: true });
         }
 
         // Log payment event in order history

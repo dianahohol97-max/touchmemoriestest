@@ -56,7 +56,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       ] = await Promise.all([
         supabase
           .from('products')
-          .select('*, categories(name, slug, translations)')
+          .select('id, name, slug, price, price_from, sale_price, short_description, images, is_popular, popular_order, category_id, translations, categories(name, slug, translations)')
           .eq('is_active', true)
           .eq('is_popular', true)
           .order('popular_order', { ascending: true })

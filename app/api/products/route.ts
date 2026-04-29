@@ -5,6 +5,13 @@ import { requireAdmin } from '@/lib/auth/guards';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+    // Admin-only: this returns all products including cost_price,
+    // stock_quantity, cost_price_notes (internal margin / inventory data).
+    // Public product browsing goes through SSR pages and the catalog page,
+    // which select only public-safe columns.
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const supabase = getAdminClient();
     const { data, error } = await supabase
         .from('products')

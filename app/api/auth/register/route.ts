@@ -3,7 +3,41 @@ import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
+const EMAIL_RE = /^[^\s@,()]+@[^\s@,()]+\.[^\s@,()]+$/;
+const PHONE_RE = /^\+?[0-9 ()\-]{6,20}$/;
+
+// In-memory rate limit: 5 registrations per IP per hour. Simple, but
+// effective at preventing scripted account-creation abuse during a
+// single-instance deploy. For multi-instance Vercel, this resets per
+// invocation, which is OK as a stop-gap — replace with Upstash or
+// similar if abuse is detected.
+const registrationRate = new Map<string, { count: number; resetAt: number }>();
+const REGISTER_LIMIT_PER_HOUR = 5;
+const REGISTER_WINDOW_MS = 60 * 60 * 1000;
+
+function isWithinRegisterLimit(ip: string): boolean {
+    const now = Date.now();
+    const entry = registrationRate.get(ip);
+    if (!entry || now >= entry.resetAt) {
+        registrationRate.set(ip, { count: 1, resetAt: now + REGISTER_WINDOW_MS });
+        return true;
+    }
+    if (entry.count >= REGISTER_LIMIT_PER_HOUR) return false;
+    entry.count++;
+    return true;
+}
+
 export async function POST(request: Request) {
+    // Rate-limit by IP — register has no auth, so it's a DDoS / account-spam
+    // surface without it.
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+    if (!isWithinRegisterLimit(ip)) {
+        return NextResponse.json(
+            { error: 'Забагато реєстрацій з цієї IP. Спробуйте за годину.' },
+            { status: 429 }
+        );
+    }
+
     const supabase = getAdminClient();
     try {
         const {
@@ -22,6 +56,29 @@ export async function POST(request: Request) {
                 { error: 'Email, password, and name are required' },
                 { status: 400 }
             );
+        }
+
+        // Input format validation. Without these, the route silently
+        // accepts anything that fits the rough shape and forwards it to
+        // Supabase Auth — which does its own checks but lets through a lot
+        // of degenerate cases (extremely long names, control characters,
+        // weird phone formats, etc).
+        if (typeof email !== 'string' || !EMAIL_RE.test(email) || email.length > 254) {
+            return NextResponse.json({ error: 'Невірний формат email' }, { status: 400 });
+        }
+        if (typeof password !== 'string' || password.length < 8 || password.length > 200) {
+            return NextResponse.json(
+                { error: 'Пароль повинен містити мінімум 8 символів' },
+                { status: 400 }
+            );
+        }
+        if (typeof name !== 'string' || name.trim().length === 0 || name.length > 200) {
+            return NextResponse.json({ error: 'Невірне ім\'я' }, { status: 400 });
+        }
+        if (phone !== undefined && phone !== null && phone !== '') {
+            if (typeof phone !== 'string' || !PHONE_RE.test(phone)) {
+                return NextResponse.json({ error: 'Невірний формат телефону' }, { status: 400 });
+            }
         }
 
         // 1. Create auth user with Supabase Auth
