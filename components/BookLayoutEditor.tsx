@@ -1147,21 +1147,43 @@ export default function BookLayoutEditor() {
       try { toast.error(t('constructor.config_not_found')); } catch {}
       router.push('/order/book');
     }
-    const ph = sessionStorage.getItem('bookConstructorPhotos');
-    if (ph) {
-      try {
-        const parsed: PhotoData[] = JSON.parse(ph);
-        // Only keep photos with valid compressed preview (data:image, <3MB, valid dimensions)
-        const valid = parsed.filter(p =>
-          p.preview &&
-          p.preview.startsWith('data:image') &&
-          p.preview.length > 100 &&
-          p.preview.length < 8_000_000 &&  // allow up to ~6MB per photo (5000px JPEG 0.95)
-          p.width > 0 &&
-          p.height > 0
-        );
-        setPhotos(valid);
-      } catch {}
+    // Photo source priority on mount:
+    //   1. window.__bookPhotoOriginals — set by BookPhotoUpload during the
+    //      same SPA navigation. These are FULL-QUALITY originals (camera
+    //      JPEGs verbatim up to 5000px). This is the path users hit on a
+    //      normal upload → editor flow, and it's the only path that
+    //      preserves print-grade resolution.
+    //   2. sessionStorage('bookConstructorPhotos') — the backup, used
+    //      after a hard refresh. Quality varies: full originals if the
+    //      browser's quota allowed it, 1800px JPEG 0.85 if quota fell
+    //      back, or empty-preview metadata if even that failed (in
+    //      which case the user has to re-upload).
+    const inMem = (window as unknown as { __bookPhotoOriginals?: PhotoData[] }).__bookPhotoOriginals;
+    const inMemValid = Array.isArray(inMem) ? inMem.filter(p =>
+      p && p.preview && p.preview.startsWith('data:image') && p.width > 0 && p.height > 0
+    ) : [];
+
+    if (inMemValid.length > 0) {
+      setPhotos(inMemValid);
+    } else {
+      const ph = sessionStorage.getItem('bookConstructorPhotos');
+      if (ph) {
+        try {
+          const parsed: PhotoData[] = JSON.parse(ph);
+          // Only keep photos with valid preview (data:image, sane size,
+          // valid dimensions). The 8MB ceiling lets through originals up
+          // to ~5000px JPEG 0.92 (which is the editor's PRINT_MAX).
+          const valid = parsed.filter(p =>
+            p.preview &&
+            p.preview.startsWith('data:image') &&
+            p.preview.length > 100 &&
+            p.preview.length < 8_000_000 &&
+            p.width > 0 &&
+            p.height > 0
+          );
+          setPhotos(valid);
+        } catch {}
+      }
     }
     // Restore editor draft if user navigated back
     const draft = sessionStorage.getItem('bookEditorDraft');

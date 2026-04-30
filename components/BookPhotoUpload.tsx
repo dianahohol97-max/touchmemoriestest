@@ -201,30 +201,67 @@ export default function BookPhotoUpload() {
             return;
         }
 
-        // Convert photos to base64 — compress large images to stay within sessionStorage quota (~5MB)
-        const compressImage = (file: File): Promise<string> => new Promise((resolve) => {
+        // Photo handoff to editor.
+        //
+        // Old behaviour: every photo was unconditionally re-encoded to
+        // max 1200px @ JPEG 0.82, then on sessionStorage quota fallback
+        // recompressed AGAIN to 400px @ 0.60. The fallback was the whole
+        // problem — once it ran (and on iPhone with 30+ photos it always
+        // ran), every photo arrived in the editor as a 300x400 thumbnail
+        // and the editor's <img> happily upscaled that to a print-size
+        // cover slot, producing the blurry mess users complained about.
+        //
+        // New behaviour:
+        //   1. Read each photo as a data URL. If it's already <= 5000px
+        //      on the long edge, USE THE ORIGINAL — no re-encode, no
+        //      quality loss. This matches BookLayoutEditor.handleUpload.
+        //   2. Only if the original is bigger than 5000px (rare — even
+        //      iPhone Pro is 4032px), downscale to 5000px @ JPEG 0.92.
+        //      A3 at 300dpi is 4961px, so 5000px is the print-grade ceiling.
+        //   3. Try to write originals to sessionStorage. If quota is
+        //      exceeded, fall back to writing METADATA-ONLY entries
+        //      (id/width/height/name with empty preview) and surface a
+        //      gentle re-upload prompt on hard refresh — but do NOT
+        //      destroy the in-memory originals. They go into the editor
+        //      at full quality via window.__bookPhotoOriginals (the
+        //      editor reads this on mount).
+        const readAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new window.Image();
-                img.onload = () => {
-                    // If image is large, compress to max 1200px while keeping aspect ratio
-                    const MAX = 1200;
-                    let { width, height } = img;
-                    if (width > MAX || height > MAX) {
-                        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
-                        else { width = Math.round(width * MAX / height); height = MAX; }
-                    }
-                    const canvas = document.createElement('canvas');
-                    canvas.width = width; canvas.height = height;
-                    canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.82));
-                };
-                img.src = e.target?.result as string;
-            };
+            reader.onload = e => resolve(e.target!.result as string);
+            reader.onerror = () => reject(new Error('FileReader failed'));
             reader.readAsDataURL(file);
         });
 
-        Promise.all(photos.map(p => compressImage(p.file).then(preview => ({
+        const loadImage = (src: string): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
+            const img = new window.Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('Image decode failed'));
+            img.src = src;
+        });
+
+        const PRINT_MAX = 5000;
+        const prepareForEditor = async (file: File): Promise<string> => {
+            const original = await readAsDataUrl(file);
+            const img = await loadImage(original);
+            const { width: ow, height: oh } = img;
+            if (ow <= PRINT_MAX && oh <= PRINT_MAX) {
+                // Fits — use the original camera JPEG bytes verbatim.
+                return original;
+            }
+            const ratio = ow >= oh ? PRINT_MAX / ow : PRINT_MAX / oh;
+            const w = Math.round(ow * ratio);
+            const h = Math.round(oh * ratio);
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d')!;
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, w, h);
+            const isPng = (file.type || '').toLowerCase() === 'image/png';
+            return isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.92);
+        };
+
+        Promise.all(photos.map(p => prepareForEditor(p.file).then(preview => ({
             id: p.id,
             preview,
             width: p.width,
@@ -232,29 +269,51 @@ export default function BookPhotoUpload() {
             name: p.file.name,
             size: p.file.size,
         })))).then(photosData => {
+            // Stash originals on window so the editor can pick them up at
+            // full quality even when sessionStorage can't hold all of them.
+            // sessionStorage stays as the post-refresh recovery layer.
+            try {
+                (window as unknown as { __bookPhotoOriginals?: typeof photosData }).__bookPhotoOriginals = photosData;
+            } catch { /* ignore */ }
+
             try {
                 sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(photosData));
             } catch {
-                // sessionStorage quota exceeded — recompress to tiny 400px thumbnails
+                // sessionStorage quota exceeded. Two-tier fallback:
+                //   1. Try to write a smaller-but-still-usable version
+                //      (1800px @ 0.85) — good enough to redraw the editor
+                //      after a refresh, still readable in slot previews.
+                //   2. If THAT also fails, write metadata only and rely
+                //      on the in-memory __bookPhotoOriginals.
                 const recompress = async () => {
-                    const tiny = await Promise.all(photosData.map(p => new Promise<typeof p>(res => {
-                        const img = new window.Image();
-                        img.onload = () => {
-                            const MAX = 400;
-                            let w = img.width, h = img.height;
-                            if (w > MAX || h > MAX) {
-                                if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
-                                else { w = Math.round(w * MAX / h); h = MAX; }
+                    const reduced = await Promise.all(photosData.map(p => new Promise<typeof p>(res => {
+                        const im = new window.Image();
+                        im.onload = () => {
+                            const M = 1800;
+                            let w = im.width, h = im.height;
+                            if (w > M || h > M) {
+                                if (w >= h) { h = Math.round(h * M / w); w = M; }
+                                else { w = Math.round(w * M / h); h = M; }
                             }
                             const cv = document.createElement('canvas');
                             cv.width = w; cv.height = h;
-                            cv.getContext('2d')!.drawImage(img, 0, 0, w, h);
-                            res({ ...p, preview: cv.toDataURL('image/jpeg', 0.6) });
+                            const c2 = cv.getContext('2d')!;
+                            c2.imageSmoothingEnabled = true;
+                            c2.imageSmoothingQuality = 'high';
+                            c2.drawImage(im, 0, 0, w, h);
+                            res({ ...p, preview: cv.toDataURL('image/jpeg', 0.85) });
                         };
-                        img.onerror = () => res(p);
-                        img.src = p.preview;
+                        im.onerror = () => res(p);
+                        im.src = p.preview;
                     })));
-                    try { sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(tiny)); } catch {}
+                    try {
+                        sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(reduced));
+                    } catch {
+                        try {
+                            const meta = photosData.map(p => ({ ...p, preview: '' }));
+                            sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(meta));
+                        } catch { /* give up */ }
+                    }
                 };
                 recompress();
             }
