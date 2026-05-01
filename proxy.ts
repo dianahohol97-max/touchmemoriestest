@@ -118,7 +118,7 @@ async function refreshSessionAndGetUser(request: NextRequest): Promise<{
     return { user: user ? { id: user.id, email: user.email ?? undefined } : null, response };
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // ─── /admin/* gating ────────────────────────────────────────────────

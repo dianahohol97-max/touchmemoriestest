@@ -125,7 +125,7 @@ The product-type detection is in BookLayoutEditor via `_slug.includes('...')` ch
 
 - All public routes live under `app/[locale]/` — locale is one of `uk`, `en`, `ro`, `pl`, `de`
 - Default locale: `uk`
-- Middleware handles locale detection and redirects (`middleware.ts`)
+- Middleware handles locale detection and redirects (`proxy.ts`)
 - Static labels: `locales/{locale}.json` files, accessed via the `useT()` hook
 - DB-driven content (product names, category names, footer sections etc.) uses a `translations` JSONB column with shape `{ uk: {...}, en: {...}, ro: {...}, pl: {...}, de: {...} }`
 - The `getLocalized(record, field, locale)` helper in `lib/i18n/localize.ts` reads `translations[locale].field || record.field` (fallback to base column)

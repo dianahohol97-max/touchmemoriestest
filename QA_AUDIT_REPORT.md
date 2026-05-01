@@ -22,7 +22,7 @@
 ## 🔧 CRITICAL FIXES APPLIED
 
 ### 1. ❌ → ✅ Middleware Parsing Error (CRITICAL)
-**File:** `middleware.ts`
+**File:** `proxy.ts` (formerly `middleware.ts`, renamed in Next.js 16)
 **Error:** `Error: Could not parse module '[project]/middleware.ts'`
 **Impact:** Blocking ALL routes, complete site failure
 **Root Cause:** Complex Supabase SSR integration causing parsing issues in Next.js 16
@@ -36,7 +36,7 @@
 const supabase = createServerClient(...)
 
 // After: Simple routing, auth in components
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const response = NextResponse.next();
   // Only handle referral tracking
   return response;
@@ -213,7 +213,7 @@ if (!process.env.ANTHROPIC_API_KEY) {
 ## 📝 FILES MODIFIED
 
 ### Modified Files (7):
-1. `middleware.ts` - Simplified for Next.js 16 compatibility
+1. `proxy.ts` (formerly `middleware.ts`) - Simplified for Next.js 16 compatibility
 2. `app/api/admin/ai/generate/route.ts` - Added error handling
 3. `app/admin/orders/page.tsx` - Secure auth
 4. `app/admin/social-inbox/page.tsx` - Secure auth

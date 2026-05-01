@@ -20,7 +20,7 @@ Complete end-to-end QA audit performed on the entire Touch Memories platform, in
 ### 1. Middleware Parsing Error (CRITICAL - SITE-WIDE)
 **Status:** ✅ FIXED
 **Impact:** Complete site failure - all routes blocked
-**File:** `middleware.ts`
+**File:** `proxy.ts` (formerly `middleware.ts`, renamed in Next.js 16)
 
 **Problem:**
 ```
@@ -32,7 +32,7 @@ Return statement not allowed
 
 **Solution:** Simplified middleware to basic routing functionality
 ```typescript
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const response = NextResponse.next();
 
   // Capture Referral Code
