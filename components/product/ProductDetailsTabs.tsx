@@ -2,7 +2,7 @@
 
 import { Star } from 'lucide-react';
 import { getLocalized } from '@/lib/i18n/localize';
-import styles from '@/app/[locale]/catalog/[slug]/product-page.module.css';
+import styles from './ProductDetailsTabs.module.css';
 
 /**
  * ProductDetailsTabs — the "Description / Specs / Reviews" tab block on product

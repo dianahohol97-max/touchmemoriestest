@@ -1,0 +1,26 @@
+/* Local styles for ProductDetailsTabs.
+ * Mirrors .tabBtn and .customScrollbar from product-page.module.css so
+ * the component doesn't import a CSS module from another folder (which
+ * Next.js's build resolver doesn't handle reliably when the source path
+ * contains dynamic segments like [slug]).
+ */
+
+.customScrollbar::-webkit-scrollbar {
+    height: 6px;
+}
+
+.customScrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.customScrollbar::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
+@media (max-width: 768px) {
+    .tabBtn {
+        font-size: 16px !important;
+        padding-bottom: 12px !important;
+    }
+}
