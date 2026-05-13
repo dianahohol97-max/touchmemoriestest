@@ -1049,7 +1049,7 @@ export default function BookLayoutEditor() {
   const [saveStatus, setSaveStatus] = useState<'idle'|'saving'|'saved'>('idle');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Калька state: text, uploaded illustration
-  const [kalkaState, setKalkaState] = useState<{ text: string; textColor: string; fontSize: number; fontFamily: string; imageUrl: string | null; imgCropX: number; imgCropY: number; imgZoom: number; imgScale: number; imgX: number; imgY: number; }>({ text: '', textColor: '#333333', fontSize: 24, fontFamily: 'Playfair Display', imageUrl: null, imgCropX: 50, imgCropY: 50, imgZoom: 1, imgScale: 80, imgX: 50, imgY: 50 });
+  const [kalkaState, setKalkaState] = useState<{ text: string; textColor: string; fontSize: number; fontFamily: string; bold: boolean; italic: boolean; textAlign: 'left' | 'center' | 'right'; textX: number; textY: number; imageUrl: string | null; imgCropX: number; imgCropY: number; imgZoom: number; imgScale: number; imgX: number; imgY: number; }>({ text: '', textColor: '#333333', fontSize: 24, fontFamily: 'Playfair Display', bold: false, italic: false, textAlign: 'center', textX: 50, textY: 50, imageUrl: null, imgCropX: 50, imgCropY: 50, imgZoom: 1, imgScale: 80, imgX: 50, imgY: 50 });
   const kalkaImageInputRef = useRef<HTMLInputElement>(null);
   // Форзац state: each endpaper can have optional content (costs +200₴)
   const [endpaperState, setEndpaperState] = useState<{ first: { enabled: boolean; text: string; textColor: string; imageUrl: string | null }; last: { enabled: boolean; text: string; textColor: string; imageUrl: string | null } }>({
@@ -3477,6 +3477,36 @@ export default function BookLayoutEditor() {
                     </label>
                   </div>
                 </div>
+
+                {/* Style (Bold / Italic) + Alignment */}
+                <div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Стиль</div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    <button onClick={() => setKalkaState(p => ({ ...p, bold: !p.bold }))}
+                      title="Жирний"
+                      style={{ flex:1, padding:'6px', border: kalkaState.bold ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: kalkaState.bold ? '#f0f3ff' : '#fff', cursor:'pointer', fontWeight:900, fontSize:14, color: kalkaState.bold ? '#1e2d7d' : '#374151' }}>B</button>
+                    <button onClick={() => setKalkaState(p => ({ ...p, italic: !p.italic }))}
+                      title="Курсив"
+                      style={{ flex:1, padding:'6px', border: kalkaState.italic ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: kalkaState.italic ? '#f0f3ff' : '#fff', cursor:'pointer', fontStyle:'italic', fontSize:14, color: kalkaState.italic ? '#1e2d7d' : '#374151' }}>I</button>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Вирівнювання</div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    {(['left','center','right'] as const).map(align => (
+                      <button key={align} onClick={() => setKalkaState(p => ({ ...p, textAlign: align }))}
+                        title={align === 'left' ? 'По лівому' : align === 'center' ? 'По центру' : 'По правому'}
+                        style={{ flex:1, padding:'6px 4px', border: kalkaState.textAlign === align ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: kalkaState.textAlign === align ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:14, color: kalkaState.textAlign === align ? '#1e2d7d' : '#374151', fontWeight:700 }}>
+                        {align === 'left' ? '⬅' : align === 'center' ? '↔' : '➡'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Position note */}
+                <div style={{ background:'#f0f3ff', border:'1px solid #c7d2fe', borderRadius:8, padding:'8px 10px', fontSize:11, color:'#1e2d7d', lineHeight:1.5 }}>
+                   Перетягніть текст на калці мишкою щоб змінити позицію
+                </div>
               </div>
             )}
 
@@ -4176,8 +4206,41 @@ export default function BookLayoutEditor() {
                     </div>
                   )}
                   {kalkaState.text && (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                      <span style={{ fontSize: kalkaState.fontSize * (pageW / 400), fontFamily: kalkaState.fontFamily, color: kalkaState.textColor, textAlign: 'center' as const, padding: '0 16px', opacity: 0.75, whiteSpace: 'pre-wrap' as const, lineHeight: 1.3 }}>{kalkaState.text}</span>
+                    <div
+                      onPointerDown={e => {
+                        e.stopPropagation();
+                        const startTX = kalkaState.textX;
+                        const startTY = kalkaState.textY;
+                        startPointerDrag(e, (dx, dy) => {
+                          const newX = Math.max(0, Math.min(100, startTX + (dx / pageW) * 100));
+                          const newY = Math.max(0, Math.min(100, startTY + (dy / cH) * 100));
+                          setKalkaState(p => ({ ...p, textX: newX, textY: newY }));
+                        });
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: `${kalkaState.textX}%`,
+                        top: `${kalkaState.textY}%`,
+                        transform: 'translate(-50%, -50%)',
+                        maxWidth: '90%',
+                        cursor: 'grab',
+                        touchAction: 'none',
+                        userSelect: 'none',
+                      }}>
+                      <span style={{
+                        display: 'inline-block',
+                        fontSize: kalkaState.fontSize * (pageW / 400),
+                        fontFamily: kalkaState.fontFamily,
+                        color: kalkaState.textColor,
+                        fontWeight: kalkaState.bold ? 700 : 400,
+                        fontStyle: kalkaState.italic ? 'italic' : 'normal',
+                        textAlign: kalkaState.textAlign,
+                        padding: '0 8px',
+                        opacity: 0.75,
+                        whiteSpace: 'pre-wrap' as const,
+                        lineHeight: 1.3,
+                        pointerEvents: 'none',
+                      }}>{kalkaState.text}</span>
                     </div>
                   )}
                   {!kalkaState.text && !kalkaState.imageUrl && (
@@ -4696,8 +4759,41 @@ export default function BookLayoutEditor() {
                       )}
                       {/* Text */}
                       {kalkaState.text && (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                          <span style={{ fontSize: kalkaState.fontSize * (pageW / 400), fontFamily: kalkaState.fontFamily, color: kalkaState.textColor, textAlign: 'center', padding: '0 16px', opacity: 0.75, whiteSpace: 'pre-wrap', lineHeight: 1.3 }}>{kalkaState.text}</span>
+                        <div
+                          onPointerDown={e => {
+                            e.stopPropagation();
+                            const startTX = kalkaState.textX;
+                            const startTY = kalkaState.textY;
+                            startPointerDrag(e, (dx, dy) => {
+                              const newX = Math.max(0, Math.min(100, startTX + (dx / pageW) * 100));
+                              const newY = Math.max(0, Math.min(100, startTY + (dy / cH) * 100));
+                              setKalkaState(p => ({ ...p, textX: newX, textY: newY }));
+                            });
+                          }}
+                          style={{
+                            position: 'absolute',
+                            left: `${kalkaState.textX}%`,
+                            top: `${kalkaState.textY}%`,
+                            transform: 'translate(-50%, -50%)',
+                            maxWidth: '90%',
+                            cursor: 'grab',
+                            touchAction: 'none',
+                            userSelect: 'none',
+                          }}>
+                          <span style={{
+                            display: 'inline-block',
+                            fontSize: kalkaState.fontSize * (pageW / 400),
+                            fontFamily: kalkaState.fontFamily,
+                            color: kalkaState.textColor,
+                            fontWeight: kalkaState.bold ? 700 : 400,
+                            fontStyle: kalkaState.italic ? 'italic' : 'normal',
+                            textAlign: kalkaState.textAlign,
+                            padding: '0 8px',
+                            opacity: 0.75,
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.3,
+                            pointerEvents: 'none',
+                          }}>{kalkaState.text}</span>
                         </div>
                       )}
                       {/* Empty state hint */}
