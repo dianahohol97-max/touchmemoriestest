@@ -5328,7 +5328,7 @@ export default function BookLayoutEditor() {
             <span style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>Розвороти</span>
             <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{Math.ceil((pages.length - 1) / 2)}{hasEndpaper ? ' +2ФЗ' : ''}</span>
           </div>
-          <div style={{ flex: 1, overflow: 'auto', padding: 6, paddingBottom: 120, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ flex: 1, overflow: 'auto', padding: 6, paddingBottom: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {/* Cover spread */}
             {(() => {
               const active = currentIdx === 0;
@@ -5514,10 +5514,13 @@ export default function BookLayoutEditor() {
           </div>
         )}
 
-        {/* PHOTO TIMELINE — desktop only, horizontal strip at bottom (SmartAlbums style) */}
+        {/* PHOTO TIMELINE — desktop only, horizontal strip at bottom (SmartAlbums style).
+            Stops at the right panel (`Розвороти`) — that panel needs to scroll independently
+            without being clipped by the timeline. Wishbook has no right panel, so when
+            isWishbook the timeline extends across the full width. */}
         {!isMobile && (
           <div style={{
-            position:'absolute', bottom:0, left:0, right:0,
+            position:'absolute', bottom:0, left:0, right: isWishbook ? 0 : 180,
             height: 138, background:'#fff', borderTop:'1px solid #e2e8f0',
             display:'flex', flexDirection:'column', zIndex:50,
           }}>
