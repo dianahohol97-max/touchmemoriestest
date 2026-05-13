@@ -15,8 +15,6 @@ import styles from './ProductDetailsTabs.module.css';
  * know which placement it is in.
  */
 
-type ActiveTab = 'description' | 'specs' | 'reviews';
-
 type Spec = {
   label?: string;
   key?: string;
@@ -33,8 +31,8 @@ type ProductForTabs = {
 
 interface ProductDetailsTabsProps {
   product: ProductForTabs;
-  activeTab: ActiveTab;
-  setActiveTab: (tab: ActiveTab) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
   locale: string;
   t: (key: string) => string;
   /** Optional top border. Defaults to true. Set false when rendered inside the
