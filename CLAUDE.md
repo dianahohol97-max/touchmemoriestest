@@ -130,6 +130,17 @@ GitHub auth: use `gh auth login` once on the local machine. Never paste tokens i
 - Auto-deploys on push to `main`, takes ~60–90 seconds
 - Manual trigger if needed (deploy hook): `POST https://api.vercel.com/v1/integrations/deploy/prj_Oz13dkGF3W1JvSVToT8WvZBseBba/e1HuPQmmq1` — call from browser DevTools or `curl`, not from Claude bash (api.vercel.com isn't in the allowlist)
 
+### Post-push verification — MANDATORY for every frontend push
+
+After `git push origin main` on any TS/TSX/CSS/JSON change, wait ~2 minutes then verify the deploy succeeded. Vercel does NOT block bad commits — it just marks the deployment ERROR and leaves production on the last good build. Multiple failed deploys can stack up silently if you skip this check.
+
+Use Vercel MCP `list_deployments` (or visit the dashboard) to confirm state is `READY`, not `ERROR` or stuck in `BUILDING`. If `ERROR`, fetch the build log — common failures:
+- **TypeScript prop type mismatches** — components consuming `useState<string>` from a parent must accept `string` props, not a narrow union
+- **Cross-folder CSS module imports** with `@/` alias through dynamic segments like `[slug]` — use local `./Name.module.css` instead
+- **Missing dependency** in package.json after a hand-written import — run `npm install` locally first
+
+Do NOT continue making more frontend commits without confirming the previous one deployed. Stacked broken commits make it harder to bisect later.
+
 ---
 
 ## Supabase
