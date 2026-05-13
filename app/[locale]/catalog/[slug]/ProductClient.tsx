@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { SizeVisualizer } from '@/components/ui/SizeVisualizer';
 import { ProductFeaturesBlock } from '@/components/ui/ProductFeaturesBlock';
+import { ProductDetailsTabs } from '@/components/product/ProductDetailsTabs';
 import { CheckCircle2, Star, Loader2, Image as ImageIcon, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -667,6 +668,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                 )}
                             </div>
                         )}
+
+                        {/* Desktop placement: tabs under the gallery in the left column.
+                            Hidden on mobile (≤900px) — mobile uses the .tabsMobile copy below. */}
+                        <div className={styles.tabsDesktop}>
+                            <ProductDetailsTabs
+                                product={product}
+                                activeTab={activeTab}
+                                setActiveTab={setActiveTab}
+                                locale={locale}
+                                t={t}
+                                showTopBorder={false}
+                            />
+                        </div>
                     </div>
 
                     {/* Right Column: Details */}
@@ -1412,112 +1426,17 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     </div>
                 </div>
 
-                {/* Tabs Area */}
-                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '60px', marginBottom: '80px' }}>
-                    <div style={{ display: 'flex', gap: '40px', borderBottom: '1px solid #e2e8f0', marginBottom: '40px', overflowX: 'auto' }} className={styles.customScrollbar}>
-                        <button
-                            onClick={() => setActiveTab('description')}
-                            className={styles.tabBtn}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                borderBottom: activeTab === 'description' ? '3px solid var(--primary)' : '3px solid transparent',
-                                paddingBottom: '16px',
-                                fontSize: '18px',
-                                fontWeight: activeTab === 'description' ? 800 : 500,
-                                color: activeTab === 'description' ? '#263A99' : '#64748b',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                whiteSpace: 'nowrap'
-                            }}
-                        >
-                            {t('product_page.description_tab')}
-                        </button>
-                        {product.specs && product.specs.length > 0 && (
-                            <button
-                                onClick={() => setActiveTab('specs')}
-                                className={styles.tabBtn}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    borderBottom: activeTab === 'specs' ? '3px solid var(--primary)' : '3px solid transparent',
-                                    paddingBottom: '16px',
-                                    fontSize: '18px',
-                                    fontWeight: activeTab === 'specs' ? 800 : 500,
-                                    color: activeTab === 'specs' ? '#263A99' : '#64748b',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    whiteSpace: 'nowrap'
-                                }}
-                            >
-                                {t('product_page.specs_tab')}
-                            </button>
-                        )}
-                        <button
-                            onClick={() => setActiveTab('reviews')}
-                            className={styles.tabBtn}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                borderBottom: activeTab === 'reviews' ? '3px solid var(--primary)' : '3px solid transparent',
-                                paddingBottom: '16px',
-                                fontSize: '18px',
-                                fontWeight: activeTab === 'reviews' ? 800 : 500,
-                                color: activeTab === 'reviews' ? '#263A99' : '#64748b',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                whiteSpace: 'nowrap'
-                            }}
-                        >
-                            {t('product_page.reviews_tab')}
-                        </button>
-                    </div>
-
-                    <div>
-                        {activeTab === 'description' && (
-                            (() => {
-                                const localizedDesc = getLocalized(product, locale, 'description');
-                                return localizedDesc ? (
-                                    <div style={{ maxWidth: '800px', lineHeight: 1.8, fontSize: '16px', color: '#475569' }} dangerouslySetInnerHTML={{ __html: localizedDesc }} />
-                                ) : (
-                                    <div className="text-slate-500 py-8">{t('product_page.no_description')}</div>
-                                );
-                            })()
-                        )}
-
-                        {activeTab === 'specs' && product.specs && product.specs.length > 0 && (
-                            <div style={{ maxWidth: 600 }}>
-                                {product.specs.map((spec: any, idx: number) => (
-                                    <div key={idx} style={{
-                                        display: 'flex', alignItems: 'baseline', gap: 16,
-                                        padding: '14px 0',
-                                        borderBottom: idx < product.specs.length - 1 ? '1px solid #f1f5f9' : 'none'
-                                    }}>
-                                        <div style={{ minWidth: 160, fontSize: 14, color: '#64748b', fontWeight: 500, flexShrink: 0 }}>
-                                            {(locale !== 'uk' && spec[`label_${locale}`]) ? spec[`label_${locale}`] : (spec.label || spec.key || spec.name)}
-                                        </div>
-                                        <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#1e2d7d' }}>
-                                            {(locale !== 'uk' && spec[`value_${locale}`]) ? spec[`value_${locale}`] : spec.value}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {activeTab === 'reviews' && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} style={{ backgroundColor: '#f8f9fa', padding: '24px', borderRadius: "3px", border: '1px solid #f1f5f9' }}>
-                                        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
-                                            {[1, 2, 3, 4, 5].map(s => <Star key={s} size={16} fill="#fbbf24" color="#fbbf24" />)}
-                                        </div>
-                                        <p style={{ fontSize: '15px', color: '#475569', lineHeight: 1.6, marginBottom: '16px' }}>{t('product_page.review_text')}</p>
-                                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#263A99' }}>{t('product_page.review_author')}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                {/* Mobile placement: tabs after the two-column grid.
+                    Hidden on desktop (≥901px) — desktop uses the .tabsDesktop copy
+                    inside the left gallery column. */}
+                <div className={styles.tabsMobile}>
+                    <ProductDetailsTabs
+                        product={product}
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
+                        locale={locale}
+                        t={t}
+                    />
                 </div>
 
                 {/* Features + Covers Block */}

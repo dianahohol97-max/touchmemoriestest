@@ -69,3 +69,25 @@
         gap: 12px !important;
     }
 }
+
+/* Responsive placement for the Description / Specs / Reviews tab block.
+ * On desktop (≥901px) the tabs sit under the gallery in the left column.
+ * On mobile (≤900px) the tabs move below the entire two-column block so
+ * the buy button stays close to the top of the page. */
+.tabsDesktop {
+    display: block;
+}
+
+.tabsMobile {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .tabsDesktop {
+        display: none;
+    }
+
+    .tabsMobile {
+        display: block;
+    }
+}
