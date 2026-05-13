@@ -3851,8 +3851,8 @@ export default function BookLayoutEditor() {
             (e.currentTarget as any)._swipeStartX = null;
             (e.currentTarget as any)._swipeMoved = false;
           }}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', overflow: 'auto', padding: isMobile ? `8px 8px ${mobilePanel ? '370px' : '115px'} 8px` : '24px 32px 160px 32px', background: '#f4f6fb', position:'relative', WebkitOverflowScrolling:'touch' as any }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: isMobile ? 6 : 16, display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12 }}>
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'auto', padding: isMobile ? `8px 8px ${mobilePanel ? '370px' : '115px'} 8px` : '24px 32px 160px 32px', background: '#f4f6fb', position:'relative', WebkitOverflowScrolling:'touch' as any }}>
+          <div style={{ position: isMobile ? 'static' : 'sticky', top: 0, zIndex: 30, background: '#f4f6fb', padding: isMobile ? 0 : '8px 0', fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: isMobile ? 6 : 12, display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12, flexShrink: 0, alignSelf: 'center' }}>
             {isWishbook ? (
               <span>Обкладинка</span>
             ) : (<>
