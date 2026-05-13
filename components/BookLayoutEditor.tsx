@@ -4364,7 +4364,7 @@ export default function BookLayoutEditor() {
                             }
                           }}
                           style={{ ...slotStyle,
-                            overflow: 'hidden',
+                            overflow: photoEditSlot === key ? 'visible' : 'hidden',
                             transform: undefined,
                             background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
                             border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : '1px solid rgba(255,255,255,0.4)') : '1.5px dashed #c7d2fe'),
@@ -4372,7 +4372,7 @@ export default function BookLayoutEditor() {
                             cursor: dragPhotoId ? 'copy' : 'default',
                             boxSizing: 'border-box',
                             borderRadius: (() => { const sh = (slot as any)?.shape || 'rect'; return sh === 'circle' ? '50%' : sh === 'rounded' ? 12 : photo ? 0 : 4; })(),
-                            zIndex: 1,
+                            zIndex: photoEditSlot === key ? 50 : 1,
                           }}
                         >
                           {photo ? (
@@ -4428,7 +4428,7 @@ export default function BookLayoutEditor() {
                                   </div>
                                 )}
                                 {photoEditSlot===key && (
-                                  <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:40,maxWidth:'calc(100% - 4px)'}}>
+                                  <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',top:-44,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace:'nowrap'}}>
                                     <div style={{display:'flex',alignItems:'center',gap:2,flexWrap:'nowrap'}}>
                                       <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
                                       <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:30,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
@@ -4484,9 +4484,9 @@ export default function BookLayoutEditor() {
                                     </div>
                                   </div>
                                 )}
-                                {/* Shape selector — visible in crop mode */}
-                                {photoEditSlot===key && (
-                                  <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',top:4,left:'50%',transform:'translateX(-50%)',display:'flex',gap:2,background:'rgba(0,0,0,0.6)',borderRadius:12,padding:'2px 4px',zIndex:40}}>
+                                {/* Shape selector — visible only in slot edit mode (when user clicked "Слот" button) */}
+                                {editSlotKey===key && (
+                                  <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',top:-44,left:'50%',transform:'translateX(-50%)',display:'flex',gap:2,background:'rgba(0,0,0,0.6)',borderRadius:12,padding:'2px 4px',zIndex:60,whiteSpace:'nowrap'}}>
                                     {((['rect','rounded','circle','heart'] as const)).map(sh => {
                                       const curShape = (slot as any)?.shape || 'rect';
                                       return (
@@ -4913,7 +4913,7 @@ export default function BookLayoutEditor() {
                                   )}
                                   <style>{`.zoom-hint{opacity:0!important}div:hover>.zoom-hint{opacity:1!important}`}</style>
                                   {photoEditSlot===key && (
-                                    <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:40,maxWidth:'calc(100% - 4px)'}}>
+                                    <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',top:-44,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace:'nowrap'}}>
                                       {/* Row 1: zoom + rotate + delete */}
                                       <div style={{display:'flex',alignItems:'center',gap:2,flexWrap:'nowrap'}}>
                                         <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
