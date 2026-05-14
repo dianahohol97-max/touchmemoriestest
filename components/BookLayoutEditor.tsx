@@ -2731,11 +2731,19 @@ export default function BookLayoutEditor() {
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #263a99', borderRadius: 10, background: '#f0f3ff', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#1e2d7d', width: '100%' }}>
                   <ImageIcon size={15} /> Завантажити фото
                 </button>
-                {/* AI Portrait button */}
+                {/* AI Portrait button — TEMPORARILY HIDDEN.
+                    Backend route /api/pixar-portrait, the Gemini integration,
+                    and the GOOGLE_AI_API_KEY env var are all still in place.
+                    Diana wants to refine Pixar output quality before exposing
+                    this to customers again. To restore: remove the `false &&`
+                    wrap below (and the matching one on the mobile panel and
+                    the leftTab==='pixar' render block lower in this file). */}
+                {false && (
                 <button onClick={() => setLeftTab('pixar' as any)}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #a855f7', borderRadius: 10, background: '#faf5ff', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#7c3aed', width: '100%' }}>
                    AI Портрет (Піксар / Аніме / Акварель)
                 </button>
+                )}
                 {/* Add free slot button — only on content pages */}
                 {currentIdx !== 0 && (
                   <button onClick={addFreeSlot}
@@ -3360,8 +3368,8 @@ export default function BookLayoutEditor() {
               </div>
             )}
             {/* BACKGROUND */}
-            {/* PIXAR AI PORTRAIT PANEL */}
-            {(leftTab as string) === 'pixar' && (
+            {/* PIXAR AI PORTRAIT PANEL — TEMPORARILY HIDDEN, see button comment above */}
+            {false && (leftTab as string) === 'pixar' && (
               <div style={{ padding:'0 4px' }}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
                   <span style={{ fontSize:14, fontWeight:800, color:'#7c3aed' }}> AI Портрет</span>
