@@ -31,6 +31,10 @@ import {
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import { applySnap } from '@/lib/editor/snap';
+import {
+  QROverlay, QR_PRICE_PER_GENERATION, QR_DEFAULT_SIZE, QR_MIN_SIZE, QR_MAX_SIZE,
+  generateQRDataUrl, looksLikeUrl,
+} from '@/lib/editor/qrOverlay';
 
 // Cyrillic decorative fonts
 const CYRILLIC_DECORATIVE_FONTS = [
@@ -1077,6 +1081,8 @@ export default function BookLayoutEditor() {
     freeSlots: Record<number, FreeSlot[]>;
     pageShapes: Record<number, Shape[]>;
     pageStickers: Record<number, any[]>;
+    qrOverlays: Record<number, QROverlay[]>;
+    generatedQRCount: number;
     pageBgs: Record<number, PageBackground>;
     coverState: CoverState;
   };
@@ -1087,6 +1093,8 @@ export default function BookLayoutEditor() {
       freeSlots: JSON.parse(JSON.stringify(freeSlots)),
       pageShapes: JSON.parse(JSON.stringify(pageShapes)),
       pageStickers: JSON.parse(JSON.stringify(pageStickers)),
+      qrOverlays: JSON.parse(JSON.stringify(qrOverlays)),
+      generatedQRCount,
       pageBgs: JSON.parse(JSON.stringify(pageBgs)),
       coverState: JSON.parse(JSON.stringify(coverState)),
     }]);
@@ -1098,6 +1106,8 @@ export default function BookLayoutEditor() {
     setFreeSlots(prev.freeSlots);
     setPageShapes(prev.pageShapes);
     setPageStickers(prev.pageStickers);
+    setQrOverlays(prev.qrOverlays || {});
+    setGeneratedQRCount(prev.generatedQRCount || 0);
     setPageBgs(prev.pageBgs);
     setCoverState(prev.coverState);
     setHistory(h => h.slice(0, -1));
@@ -1124,6 +1134,18 @@ export default function BookLayoutEditor() {
   const [coverColorOverride, setCoverColorOverride] = useState<string|null>(null);
   const effectiveCoverColor = coverColorOverride ?? (config?.selectedCoverColor || '');
   const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;emoji?:string;x:number;y:number;w:number|string;h:number|string}[]>>({});
+  // QR overlays — keyed by page index, multiple allowed per page.
+  // generatedQRCount tracks how many times the user has clicked "Generate"
+  // (whether or not the result was added to a page). Pricing is +50₴ per
+  // generation — see the QR section near the price calculation below.
+  const [qrOverlays, setQrOverlays] = useState<Record<number, QROverlay[]>>({});
+  const [generatedQRCount, setGeneratedQRCount] = useState(0);
+  // Sidebar QR composer state
+  const [qrText, setQrText] = useState('');
+  const [qrPreview, setQrPreview] = useState<string | null>(null); // data URL after pressing Generate
+  const [qrGenerating, setQrGenerating] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const qrUploadInputRef = useRef<HTMLInputElement>(null);
   const [dbStickers, setDbStickers] = useState<{id:string;name:string;category:string;image_url:string}[]>([]);
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
@@ -1307,6 +1329,8 @@ export default function BookLayoutEditor() {
             if (d.pageShapes) setPageShapes(d.pageShapes);
             if (d.pageBgs) setPageBgs(d.pageBgs);
             if (d.coverState) setCoverState(d.coverState);
+            if (d.qrOverlays) setQrOverlays(d.qrOverlays);
+            if (typeof d.generatedQRCount === 'number') setGeneratedQRCount(d.generatedQRCount);
           }
         }
       } catch {}
@@ -1351,7 +1375,7 @@ export default function BookLayoutEditor() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       try {
-        const draft = { pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState };
+        const draft = { pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount };
         sessionStorage.setItem('bookEditorDraft', JSON.stringify(draft));
         setSaveStatus('saved');
         // Reset to idle after 3 seconds
@@ -1361,7 +1385,7 @@ export default function BookLayoutEditor() {
       }
     }, 1500); // debounce 1500ms — wait for user to stop editing
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState]);
+  }, [pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount]);
 
   // Auto-switch to cover tab on page 0
   useEffect(() => {
@@ -2423,6 +2447,22 @@ export default function BookLayoutEditor() {
 
       const name = `${config?.productName || 'Фотокнига'} ${sizeLabel} · ${contentPages} стор.`;
 
+      // Overlays bundle — everything the editor renders on top of pages_data
+      // that wasn't being saved before. This is what lets us reconstruct a
+      // user's design across sessions and verify what actually goes to print.
+      // Previously only pages_data + cover_data were persisted, so any QR
+      // codes, stickers, custom shapes, page backgrounds and free-floating
+      // slots were lost on save. Stored as a single jsonb column to avoid
+      // schema churn each time we add a new overlay type.
+      const overlaysData = {
+        pageStickers,
+        pageShapes,
+        pageBgs,
+        freeSlots,
+        qrOverlays,
+        generatedQRCount,
+      };
+
       const { error } = await sb.from('projects').insert({
         user_id: user.id,
         name,
@@ -2433,6 +2473,7 @@ export default function BookLayoutEditor() {
         status: 'draft',
         pages_data: pages,
         cover_data: coverState,
+        overlays_data: overlaysData,
         uploaded_photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })),
         updated_at: new Date().toISOString(),
       });
@@ -2462,8 +2503,12 @@ export default function BookLayoutEditor() {
   // Add endpaper surcharge for unlocked forzats pages
   // Flat surcharge: 200₴ total regardless of how many endpapers are printed
   const endpaperExtra = (endpaperUnlocked.first || endpaperUnlocked.last) ? endpaperSurcharge : 0;
-  const dynamicPrice = baseDynamicPrice + endpaperExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
-  const priceDiff = basePriceDiff + endpaperExtra;
+  // QR surcharge: +50₴ per generation (not per placement). Tracked by
+  // generatedQRCount which increments on each successful "Згенерувати QR"
+  // click. Uploaded QR (user's own PNG) does not add to this count.
+  const qrExtra = generatedQRCount * QR_PRICE_PER_GENERATION;
+  const dynamicPrice = baseDynamicPrice + endpaperExtra + qrExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
+  const priceDiff = basePriceDiff + endpaperExtra + qrExtra;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
@@ -3835,7 +3880,142 @@ export default function BookLayoutEditor() {
 
             {/* QR CODE GENERATOR PANEL */}
             {(leftTab as string) === 'qr' && (
-              <QRCodeGenerator compact={false} label="Генератор QR-коду" />
+              <div style={{ display:'flex', flexDirection:'column' }}>
+                {/* Price disclaimer — shown BEFORE generation. Surcharge applies per
+                    generated QR added to the book; uploaded PNGs are free. The
+                    big orange banner makes the +50₴ unmissable so customers
+                    don't feel ambushed at checkout. */}
+                <div style={{ background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:8, padding:'10px 12px', margin:'10px 12px 0', fontSize:11, color:'#9a3412', lineHeight:1.5 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:800, marginBottom:4 }}>
+                    <span>💡</span>
+                    <span>+{QR_PRICE_PER_GENERATION}₴ за кожен QR-код</span>
+                  </div>
+                  Доплата нараховується за кожен згенерований QR, доданий у книгу. Власний PNG (внизу) — без доплати.
+                  {generatedQRCount > 0 && (
+                    <div style={{ marginTop:6, padding:'4px 8px', background:'#fed7aa', borderRadius:4, fontWeight:700, color:'#7c2d12', fontSize:11 }}>
+                      Згенеровано: {generatedQRCount} × {QR_PRICE_PER_GENERATION}₴ = +{generatedQRCount * QR_PRICE_PER_GENERATION}₴
+                    </div>
+                  )}
+                </div>
+
+                {/* The generator itself — uses api.qrserver.com via QRCodeGenerator
+                    (already used in 14 other constructors). On "Add to design"
+                    we (a) increment generatedQRCount for pricing, (b) fetch the
+                    PNG and convert to data URL for embedding, (c) drop it on
+                    the current spread. */}
+                <QRCodeGenerator
+                  compact={false}
+                  label="Згенерувати QR"
+                  showAddToDesign={true}
+                  onAddToDesign={async (qrImageUrl: string, source: string) => {
+                    // Don't allow generated QR on the cover page — cover has its
+                    // own pipeline and a QR there visually clashes with cover art.
+                    if (currentIdx === 0) {
+                      alert('QR-код не можна додавати на обкладинку. Перейдіть до розвороту.');
+                      return;
+                    }
+                    try {
+                      pushHistory();
+                      // Convert the api.qrserver URL into a data URL so the
+                      // overlay doesn't break if the user is offline later or
+                      // the external service goes down.
+                      const res = await fetch(qrImageUrl);
+                      const blob = await res.blob();
+                      const dataUrl = await new Promise<string>((resolve, reject) => {
+                        const fr = new FileReader();
+                        fr.onload = () => resolve(fr.result as string);
+                        fr.onerror = () => reject(new Error('FileReader failed'));
+                        fr.readAsDataURL(blob);
+                      });
+                      // Place on the LEFT page of the current spread for
+                      // photobooks. spreadPageIdx points at the right page,
+                      // (spreadPageIdx-1) at the left. For single-page formats
+                      // (magazine/travelbook) just use currentIdx.
+                      const targetPageIdx = currentIdx;
+                      const newQR: QROverlay = {
+                        id: `qr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                        kind: 'generated',
+                        source,
+                        dataUrl,
+                        x: 40,
+                        y: 40,
+                        w: QR_DEFAULT_SIZE,
+                        h: QR_DEFAULT_SIZE,
+                      };
+                      setQrOverlays(prev => ({ ...prev, [targetPageIdx]: [...(prev[targetPageIdx] || []), newQR] }));
+                      setGeneratedQRCount(c => c + 1);
+                    } catch (err: any) {
+                      setQrError(err?.message || 'Не вдалось додати QR');
+                    }
+                  }}
+                />
+
+                {/* Custom upload — your own QR PNG, no surcharge. */}
+                <div style={{ padding:'0 12px 12px', borderTop:'1px solid #f1f5f9', marginTop:8 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:10, marginBottom:6 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                      Або завантажте свій QR
+                    </div>
+                    <span style={{ fontSize:10, fontWeight:700, color:'#16a34a', background:'#f0fdf4', border:'1px solid #bbf7d0', padding:'2px 6px', borderRadius:4 }}>
+                      БЕЗ ДОПЛАТИ
+                    </span>
+                  </div>
+                  <input
+                    ref={qrUploadInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    style={{ display:'none' }}
+                    onChange={async e => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      if (currentIdx === 0) {
+                        alert('QR-код не можна додавати на обкладинку.');
+                        if (qrUploadInputRef.current) qrUploadInputRef.current.value = '';
+                        return;
+                      }
+                      try {
+                        const dataUrl = await new Promise<string>((resolve, reject) => {
+                          const fr = new FileReader();
+                          fr.onload = () => resolve(fr.result as string);
+                          fr.onerror = () => reject(new Error('FileReader failed'));
+                          fr.readAsDataURL(f);
+                        });
+                        pushHistory();
+                        const targetPageIdx = currentIdx;
+                        const newQR: QROverlay = {
+                          id: `qr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                          kind: 'uploaded',
+                          source: '',
+                          dataUrl,
+                          x: 40,
+                          y: 40,
+                          w: QR_DEFAULT_SIZE,
+                          h: QR_DEFAULT_SIZE,
+                        };
+                        setQrOverlays(prev => ({ ...prev, [targetPageIdx]: [...(prev[targetPageIdx] || []), newQR] }));
+                      } catch (err: any) {
+                        setQrError(err?.message || 'Не вдалось завантажити QR');
+                      } finally {
+                        if (qrUploadInputRef.current) qrUploadInputRef.current.value = '';
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => qrUploadInputRef.current?.click()}
+                    style={{ width:'100%', padding:'10px', border:'1.5px dashed #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:600, color:'#1e2d7d' }}>
+                    Завантажити PNG/JPG
+                  </button>
+                  <div style={{ fontSize:10, color:'#94a3b8', marginTop:6, lineHeight:1.4 }}>
+                    Без доплати. Підказка: QR-код краще друкується у форматі PNG зі сторонами не менше 600 пікселів.
+                  </div>
+                </div>
+
+                {qrError && (
+                  <div style={{ margin:'0 12px 10px', padding:'6px 10px', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:6, fontSize:11, color:'#b91c1c' }}>
+                    {qrError}
+                  </div>
+                )}
+              </div>
             )}
 
             {leftTab === 'text' && (
@@ -4798,6 +4978,37 @@ export default function BookLayoutEditor() {
                         <button onClick={()=>setPageStickers(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(s=>s.id!==st.id)}))} style={{position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
                       </div>
                     ))}
+                    {/* QR overlays on spread — draggable + resizable from the SE handle,
+                        delete via × button. Higher z-index than stickers so they stay
+                        scannable on top of layered content. Note: QR is always rendered
+                        as a perfect square (w === h is enforced during resize), since a
+                        stretched QR cannot be scanned. */}
+                    {(qrOverlays[spreadPageIdx] || []).map(qr => (
+                      <div key={qr.id} style={{ position:'absolute', left:qr.x, top:qr.y, width:qr.w, height:qr.h, cursor:'move', zIndex:14, touchAction:'none' }}
+                        onPointerDown={e => {
+                          e.stopPropagation();
+                          const origX = qr.x; const origY = qr.y;
+                          startPointerDrag(e, (dx:number,dy:number) => {
+                            setQrOverlays(prev => ({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(q=>q.id===qr.id?{...q,x:origX+dx,y:origY+dy}:q)}));
+                          });
+                        }}>
+                        <img src={qr.dataUrl} alt="QR" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block', background:'#fff' }} draggable={false}/>
+                        {/* Delete */}
+                        <button onClick={()=>setQrOverlays(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(q=>q.id!==qr.id)}))}
+                          style={{position:'absolute',top:-7,right:-7,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:11,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,zIndex:20}}>×</button>
+                        {/* SE resize handle — drag to resize keeping square ratio. */}
+                        <div onPointerDown={e => {
+                          e.stopPropagation();
+                          const origW = qr.w;
+                          startPointerDrag(e, (dx:number) => {
+                            // Use horizontal delta and apply same to height to stay square.
+                            const next = Math.max(QR_MIN_SIZE, Math.min(QR_MAX_SIZE, origW + dx));
+                            setQrOverlays(prev => ({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(q=>q.id===qr.id?{...q,w:next,h:next}:q)}));
+                          });
+                        }}
+                          style={{ position:'absolute', bottom:-5, right:-5, width:14, height:14, borderRadius:3, background:'#fff', border:'2px solid #1e2d7d', cursor:'se-resize', zIndex:21 }}/>
+                      </div>
+                    ))}
                     {/* Trim line — production cut warning. Anything OUTSIDE this rectangle
                         will be cut off by the trimmer at the bindery. Important content
                         (faces, text, key objects) must stay INSIDE. Background photos may
@@ -5356,6 +5567,37 @@ export default function BookLayoutEditor() {
                           )}
                         </div>
                       ))}
+                      {/* QR overlays — single-page mode (magazine/travelbook).
+                          Like stickers above, x/y are stored as % of page so the
+                          QR scales correctly across screen sizes. Always rendered
+                          as a square. */}
+                      {(qrOverlays[pageIdx] || []).map(qr => {
+                        const qrSizePct = (qr.w / pageW) * 100;
+                        return (
+                          <div key={qr.id} style={{ position:'absolute', left:qr.x+'%', top:qr.y+'%', width:`${qrSizePct}%`, aspectRatio:'1/1', cursor:'move', zIndex:42, touchAction:'none' }}
+                            onPointerDown={e => {
+                              e.stopPropagation();
+                              haptic.light();
+                              const origX = qr.x; const origY = qr.y;
+                              startPointerDrag(e, (dx, dy) =>
+                                setQrOverlays(prev => ({...prev,[pageIdx]:(prev[pageIdx]||[]).map(q=>q.id===qr.id?{...q,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:q)}))
+                              );
+                            }}>
+                            <img src={qr.dataUrl} alt="QR" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block', background:'#fff' }} draggable={false}/>
+                            <button onClick={e=>{e.stopPropagation();setQrOverlays(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(q=>q.id!==qr.id)}));}}
+                              style={{ position:'absolute',top:-7,right:-7,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:11,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,zIndex:20 }}>×</button>
+                            <div onPointerDown={e => {
+                              e.stopPropagation();
+                              const origW = qr.w;
+                              startPointerDrag(e, (dx:number) => {
+                                const next = Math.max(QR_MIN_SIZE, Math.min(QR_MAX_SIZE, origW + dx));
+                                setQrOverlays(prev => ({...prev,[pageIdx]:(prev[pageIdx]||[]).map(q=>q.id===qr.id?{...q,w:next,h:next}:q)}));
+                              });
+                            }}
+                              style={{ position:'absolute', bottom:-5, right:-5, width:14, height:14, borderRadius:3, background:'#fff', border:'2px solid #1e2d7d', cursor:'se-resize', zIndex:21 }}/>
+                          </div>
+                        );
+                      })}
                       {/* Text alignment guides */}
                       {(textGuides.x.length > 0 || textGuides.y.length > 0) && (
                         <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:55}} viewBox={`0 0 ${pageW} ${cH}`}>

@@ -170,7 +170,8 @@ Photobook prices are NOT hardcoded in the codebase. They live in Supabase, in th
 - **`automation_rules`** — automation config
 - **`email_promo_*`** — email marketing
 - **`ai_chat_*`** — chatbot conversations
-- **`photobook_projects`** — saved editor sessions (used to restore in-progress books)
+- **`photobook_projects`** — legacy table, last writes March 2026. New saves go to `projects`
+- **`projects`** — saved editor sessions (photobook, travelbook, magazine, wishbook). Columns: `pages_data`, `cover_data`, `overlays_data`, `uploaded_photos`. The `overlays_data` jsonb bundle holds `pageStickers`, `pageShapes`, `pageBgs`, `freeSlots`, `qrOverlays`, `generatedQRCount` — everything the editor renders on top of `pages_data` that wouldn't otherwise be persisted
 - **`reporting_*`** — analytics aggregations
 - **`footer_sections`** — site footer content (has `translations` JSONB, application is incomplete — see Known gaps)
 - **`material_*`, `inventory_*`** — production materials
