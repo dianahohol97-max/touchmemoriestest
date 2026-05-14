@@ -547,6 +547,46 @@ const BLEED_MARGINS: Record<string, { top: number; bottom: number; left: number;
   '23×23':        { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
 };
 
+/**
+ * Real fold/turn-in margins for the COVER (велюр / fabric / leatherette / printed
+ * hard cover). Cover dimensions include the area that wraps around the inside of
+ * the board, so anything beyond this rectangle gets folded inward and won't be
+ * visible from the front of the book. Customers should treat the rectangle as
+ * "anything important stays inside this line".
+ *
+ * Per partner specs (May 2026), FULL cover sheet sizes (mm):
+ *   20×20  cover 457×243  fold-in: 18 all sides
+ *   25×25  cover 566×293  fold-in: top/bottom 18, left/right 20
+ *   20×30  cover 470×328  fold-in: top/bottom 18, left/right 20
+ *   30×20  cover 646×238  fold-in: top/bottom 18, left/right 20
+ *   30×30  cover 646×330  fold-in: top/bottom 18, left/right 20
+ *
+ * Values stored as fractions of the cover sheet (0..1).
+ */
+const COVER_BLEED_MARGINS: Record<string, { top: number; bottom: number; left: number; right: number }> = {
+  // 20×20 — cover 457×243 mm, 18 mm all round
+  '20x20': { top: 18/243, bottom: 18/243, left: 18/457, right: 18/457 },
+  '20×20': { top: 18/243, bottom: 18/243, left: 18/457, right: 18/457 },
+  // 25×25 — cover 566×293 mm, 18 TB / 20 LR
+  '25x25': { top: 18/293, bottom: 18/293, left: 20/566, right: 20/566 },
+  '25×25': { top: 18/293, bottom: 18/293, left: 20/566, right: 20/566 },
+  // 20×30 — cover 470×328 mm, 18 TB / 20 LR
+  '20x30': { top: 18/328, bottom: 18/328, left: 20/470, right: 20/470 },
+  '20×30': { top: 18/328, bottom: 18/328, left: 20/470, right: 20/470 },
+  // 30×20 — cover 646×238 mm, 18 TB / 20 LR
+  '30x20': { top: 18/238, bottom: 18/238, left: 20/646, right: 20/646 },
+  '30×20': { top: 18/238, bottom: 18/238, left: 20/646, right: 20/646 },
+  // 30×30 — cover 646×330 mm, 18 TB / 20 LR
+  '30x30': { top: 18/330, bottom: 18/330, left: 20/646, right: 20/646 },
+  '30×30': { top: 18/330, bottom: 18/330, left: 20/646, right: 20/646 },
+  // Fallbacks for sizes we don't have explicit data for — 6% generic fold-in
+  'A4':           { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
+  'magazine-A4':  { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
+  'travelbook':   { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
+  '23x23':        { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
+  '23×23':        { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
+};
+
 // Auto-detect size key from product slug and config
 function getSizeKeyForProduct(config: BookConfig | null): string {
   if (!config) return 'A4';
@@ -1468,6 +1508,9 @@ export default function BookLayoutEditor() {
   // Real bleed margins from print partner — fall back to a small conservative inset
   // for sizes we don't yet have explicit data for (1.5% all round ≈ 3 mm on a small book).
   const bleed = BLEED_MARGINS[sizeKey] ?? { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 };
+  // Cover fold-in margins — what wraps around the inside of the board (much larger
+  // than the spread bleed, typically 18–20 mm on hardcover books).
+  const coverBleed = COVER_BLEED_MARGINS[sizeKey] ?? { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 };
   // Spread = 2 pages side by side. baseH=700 gives sharp rendering at 70% zoom (490px page height)
   const baseH = 700;
   const baseW = baseH * (2 * prop.w) / prop.h; // spread width = 2 pages
@@ -2483,7 +2526,7 @@ export default function BookLayoutEditor() {
             <div>
               <div style={{ fontWeight:800, fontSize:15, color:'#1e2d7d' }}>{config.productName || 'Фотокнига'}</div>
               <div style={{ fontSize:11, color:'#64748b' }}>
-                Редактор • {photos.length} фото • {isWishbook ? '32 сторінки (фіксовано)' : `${pages.length} сторінок`}
+                Редактор • {photos.length} фото • {isWishbook ? '32 сторінки (фіксовано)' : `${pages.length - 1} сторінок`}
                 {_slug.includes('travel') ? ' • 20×30 см' : (_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')) ? ' • A4' : config?.selectedSize ? ` • ${config.selectedSize} см` : ''}
                 {saveStatus === 'saving' && <span style={{ color:'#f59e0b', marginLeft:6, fontSize:10 }}> Зберігаю...</span>}
                 {saveStatus === 'saved' && <span style={{ color:'#10b981', marginLeft:6, fontSize:10 }}> Збережено</span>}
@@ -4134,25 +4177,25 @@ export default function BookLayoutEditor() {
                       </div>
                     </div>
                   )}
-                  {/* Safe zone on cover */}
-                  <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:20}} viewBox={`0 0 ${pageW} ${cH}`}>
-                    {(() => {
-                      const mx = 5 / prop.w * pageW;
-                      const my = 5 / prop.h * cH;
-                      const d = 8;
-                      return (
-                        <>
-                          <rect x={mx} y={my} width={pageW-2*mx} height={cH-2*my} fill="none" stroke="rgba(239,68,68,0.25)" strokeWidth="0.5" strokeDasharray="4 3"/>
-                          {[[mx,my],[pageW-mx,my],[pageW-mx,cH-my],[mx,cH-my]].map(([cx,cy],ci) => (
-                            <g key={ci}>
-                              <line x1={cx-(ci===0||ci===3?d:0)} y1={cy} x2={cx+(ci===1||ci===2?d:0)} y2={cy} stroke="rgba(239,68,68,0.4)" strokeWidth="0.8"/>
-                              <line x1={cx} y1={cy-(ci===0||ci===1?d:0)} x2={cx} y2={cy+(ci===2||ci===3?d:0)} stroke="rgba(239,68,68,0.4)" strokeWidth="0.8"/>
-                            </g>
-                          ))}
-                        </>
-                      );
-                    })()}
+                </div>
+                {/* Cover fold-in (turn-in) margins — full cover overlay covering back + spine + front.
+                    Anything outside this rectangle wraps around the inside of the board and won't
+                    be visible from the front. Customers should keep important content INSIDE this line.
+                    Margins from COVER_BLEED_MARGINS by sizeKey (partner-supplied values). */}
+                <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:20}}>
+                  <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}} viewBox={`0 0 ${cW} ${cH}`} preserveAspectRatio="none">
+                    <rect x={cW*coverBleed.left}
+                          y={cH*coverBleed.top}
+                          width={cW*(1 - coverBleed.left - coverBleed.right)}
+                          height={cH*(1 - coverBleed.top - coverBleed.bottom)}
+                          fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
+                    {/* Spine marker — vertical line at the middle (where the book folds) */}
+                    <line x1={cW/2} y1={cH*coverBleed.top} x2={cW/2} y2={cH*(1 - coverBleed.bottom)}
+                          stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                   </svg>
+                  <div style={{position:'absolute',top:6,left:6,background:'rgba(239,68,68,0.85)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,letterSpacing:0.3,boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}>
+                    Зона загину
+                  </div>
                 </div>
               </div>
           ) : (
@@ -4210,26 +4253,23 @@ export default function BookLayoutEditor() {
                       </div>
                     </div>
                   )}
-                  {/* Safe zone on cover */}
-                  <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:20}} viewBox={`0 0 ${pageW} ${cH}`}>
-                    {(() => {
-                      const mx = 5 / prop.w * pageW;
-                      const my = 5 / prop.h * cH;
-                      const d = 8;
-                      return (
-                        <>
-                          <rect x={mx} y={my} width={pageW-2*mx} height={cH-2*my} fill="none" stroke="rgba(239,68,68,0.25)" strokeWidth="0.5" strokeDasharray="4 3"/>
-                          {[[mx,my],[pageW-mx,my],[pageW-mx,cH-my],[mx,cH-my]].map(([cx,cy],ci) => (
-                            <g key={ci}>
-                              <line x1={cx-(ci===0||ci===3?d:0)} y1={cy} x2={cx+(ci===1||ci===2?d:0)} y2={cy} stroke="rgba(239,68,68,0.4)" strokeWidth="0.8"/>
-                              <line x1={cx} y1={cy-(ci===0||ci===1?d:0)} x2={cx} y2={cy+(ci===2||ci===3?d:0)} stroke="rgba(239,68,68,0.4)" strokeWidth="0.8"/>
-                            </g>
-                          ))}
-                        </>
-                      );
-                    })()}
+                </div>
+                {/* Cover fold-in (turn-in) margins — see comment in first cover render */}
+                <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:20}}>
+                  <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}} viewBox={`0 0 ${cW} ${cH}`} preserveAspectRatio="none">
+                    <rect x={cW*coverBleed.left}
+                          y={cH*coverBleed.top}
+                          width={cW*(1 - coverBleed.left - coverBleed.right)}
+                          height={cH*(1 - coverBleed.top - coverBleed.bottom)}
+                          fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
+                    <line x1={cW/2} y1={cH*coverBleed.top} x2={cW/2} y2={cH*(1 - coverBleed.bottom)}
+                          stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                   </svg>
-                </div>              </div>
+                  <div style={{position:'absolute',top:6,left:6,background:'rgba(239,68,68,0.85)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,letterSpacing:0.3,boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}>
+                    Зона загину
+                  </div>
+                </div>
+              </div>
             ) : isSpreadMode && currentIdx !== 0 && hasKalka && currentIdx === 1 ? (
               /* SPREAD MODE — KALKA: first spread shows forзац (left) + kalka (right) */
               <div style={{ display:'flex' }}>
@@ -5312,24 +5352,6 @@ export default function BookLayoutEditor() {
                           )}
                         </div>
                       ))}
-                      {/* Safe zone — 5mm from edge, very subtle, mainly for reference */}
-                      <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:6,opacity:0.3}} viewBox={`0 0 ${pageW} ${cH}`}>
-                        {(() => {
-                          const mx = 5 / prop.w * pageW;
-                          const my = 5 / prop.h * cH;
-                          return (
-                            <>
-                              {/* Corner marks only — no full rectangle to avoid visual clutter */}
-                              {[[mx,my,1,1],[pageW-mx,my,-1,1],[pageW-mx,cH-my,-1,-1],[mx,cH-my,1,-1]].map(([cx,cy,dx,dy],ci) => (
-                                <g key={ci}>
-                                  <line x1={cx} y1={cy} x2={cx+6*(dx as number)} y2={cy} stroke="rgba(239,68,68,0.5)" strokeWidth="0.5"/>
-                                  <line x1={cx} y1={cy} x2={cx} y2={cy+6*(dy as number)} stroke="rgba(239,68,68,0.5)" strokeWidth="0.5"/>
-                                </g>
-                              ))}
-                            </>
-                          );
-                        })()}
-                      </svg>
                       {/* Text alignment guides */}
                       {(textGuides.x.length > 0 || textGuides.y.length > 0) && (
                         <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:55}} viewBox={`0 0 ${pageW} ${cH}`}>
