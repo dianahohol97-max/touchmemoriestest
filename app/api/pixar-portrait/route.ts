@@ -12,17 +12,24 @@ const STYLE_PROMPTS: Record<string, string> = {
   oilpainting:'classical oil painting portrait, rich textures, old masters style, museum quality',
 };
 
-// Gemini image-to-image prompts. These are richer than the Replicate/HF prompts
-// because Gemini 2.5 Flash Image responds better to narrative instruction than
-// to keyword-stuffed prompts. The first line of every prompt explicitly tells
-// the model to preserve identity — without that, Gemini sometimes invents a
-// completely new face from the same hair/clothing.
+// Gemini image-to-image prompts. Tuned through trial — Gemini 2.5 Flash
+// Image (Nano Banana) tends to under-transform when the prompt frames the
+// task as "preserve identity in this style". The model reads "preserve"
+// as "minimal changes" and returns something close to the original photo.
 //
-// Currently only "pixar" is wired through Gemini — other styles fall through
-// to Replicate as before, so we can validate Gemini quality on one style
-// before rolling out the rest.
+// The fix is to lead with an explicit transformation command framed as
+// "Generate a new image" rather than "edit this image". The identity
+// instruction comes second, narrower in scope (likeness + features, not
+// the photograph itself), and we explicitly state that the output must
+// be illustrated/animated/painted — not a photo. This pattern matches
+// what works in the official Nano Banana subject-customization examples
+// (e.g. "Create a pencil sketch image of this dog wearing a cowboy hat").
+//
+// Currently only "pixar" is wired through Gemini — other styles fall
+// through to Replicate as before, so we can validate Gemini quality on
+// one style before rolling out the rest.
 const GEMINI_STYLE_PROMPTS: Record<string, string> = {
-  pixar: 'Transform this person into a Pixar 3D animation style character. Preserve their exact face structure, hair color and style, skin tone, age, and expression — they should be clearly recognisable as the same person. Render in vibrant Pixar/Disney CGI style with smooth 3D shading, slightly enlarged expressive eyes, warm cinematic lighting, and a soft pastel background. High-quality, family-friendly portrait.',
+  pixar: 'Create a fully Pixar-3D-animated character portrait of the person in this photo. The output must look like a CGI animated character from a Pixar feature film, NOT a photograph and NOT a photo with a filter. Render with: smooth stylised 3D shading, soft subsurface skin tones, slightly enlarged expressive cartoon eyes, simplified rounded facial features in classic Pixar proportions, warm cinematic three-point lighting, and a soft pastel background. Keep the same hairstyle, hair color, skin tone, age, gender and facial expression so the person is recognisable as themselves — but the entire image must read as a Pixar animated still, not a real photograph.',
 };
 
 // Gemini 2.5 Flash Image (nano-banana) image-to-image.
