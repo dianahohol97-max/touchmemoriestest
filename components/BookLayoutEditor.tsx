@@ -506,6 +506,47 @@ const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
   'travelbook': { w: 300, h: 200 },
 };
 
+/**
+ * Real bleed margins from our print partner (May 2026), measured in mm from
+ * each edge of the FULL SPREAD (both pages). The visible safe-area overlay
+ * uses these to mark where the trimmer will cut — anything outside this
+ * rectangle risks being cropped at the bindery.
+ *
+ * Spread sizes per partner:
+ *   20×20  spread 405×203 mm — bleed: top/bottom 2, left/right 3
+ *   25×25  spread 500×254 mm — bleed: all 4 sides 2
+ *   20×30  spread 420×305 mm — bleed: top 9, bottom 8, left/right 4
+ *   30×20  spread 610×203 mm — bleed: top/bottom 4, left/right 10
+ *   30×30  spread 610×305 mm — bleed: top 9, bottom 8, left/right 10
+ *
+ * Values stored as fractions of the spread (0..1) so they apply to the
+ * scaled canvas regardless of zoom.
+ */
+const BLEED_MARGINS: Record<string, { top: number; bottom: number; left: number; right: number }> = {
+  // 20×20 — spread 405×203 mm
+  '20x20': { top: 2/203, bottom: 2/203, left: 3/405, right: 3/405 },
+  '20×20': { top: 2/203, bottom: 2/203, left: 3/405, right: 3/405 },
+  // 25×25 — spread 500×254 mm
+  '25x25': { top: 2/254, bottom: 2/254, left: 2/500, right: 2/500 },
+  '25×25': { top: 2/254, bottom: 2/254, left: 2/500, right: 2/500 },
+  // 20×30 — spread 420×305 mm
+  '20x30': { top: 9/305, bottom: 8/305, left: 4/420, right: 4/420 },
+  '20×30': { top: 9/305, bottom: 8/305, left: 4/420, right: 4/420 },
+  // 30×20 — spread 610×203 mm
+  '30x20': { top: 4/203, bottom: 4/203, left: 10/610, right: 10/610 },
+  '30×20': { top: 4/203, bottom: 4/203, left: 10/610, right: 10/610 },
+  // 30×30 — spread 610×305 mm
+  '30x30': { top: 9/305, bottom: 8/305, left: 10/610, right: 10/610 },
+  '30×30': { top: 9/305, bottom: 8/305, left: 10/610, right: 10/610 },
+  // Fallback for magazines/travel/wishbook — use a conservative 3 mm all round
+  // applied as a generic 1.5% inset (no partner data yet for these formats).
+  'A4':           { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
+  'magazine-A4':  { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
+  'travelbook':   { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
+  '23x23':        { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
+  '23×23':        { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
+};
+
 // Auto-detect size key from product slug and config
 function getSizeKeyForProduct(config: BookConfig | null): string {
   if (!config) return 'A4';
@@ -1424,6 +1465,9 @@ export default function BookLayoutEditor() {
 
   const sizeKey = getSizeKeyForProduct(config);
   const prop = PAGE_PROPORTIONS[sizeKey] ?? PAGE_PROPORTIONS['A4'];
+  // Real bleed margins from print partner — fall back to a small conservative inset
+  // for sizes we don't yet have explicit data for (1.5% all round ≈ 3 mm on a small book).
+  const bleed = BLEED_MARGINS[sizeKey] ?? { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 };
   // Spread = 2 pages side by side. baseH=700 gives sharp rendering at 70% zoom (490px page height)
   const baseH = 700;
   const baseW = baseH * (2 * prop.w) / prop.h; // spread width = 2 pages
@@ -4710,20 +4754,27 @@ export default function BookLayoutEditor() {
                         <button onClick={()=>setPageStickers(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(s=>s.id!==st.id)}))} style={{position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
                       </div>
                     ))}
-                    {/* Safe area — production bleed warning. Anything outside this rectangle
-                        risks being cropped by the print machine. 6% inset on all sides ≈ 12mm
-                        on a 200×300mm spread, which matches typical book-bindery tolerances.
-                        Rendered as overlay only — does NOT affect saved/exported files. */}
+                    {/* Trim line — production cut warning. Anything OUTSIDE this rectangle
+                        will be cut off by the trimmer at the bindery. Important content
+                        (faces, text, key objects) must stay INSIDE. Background photos may
+                        and should extend to the canvas edge — the bleed area outside this
+                        line is intentionally there to absorb tolerance during cutting.
+                        Margins come from BLEED_MARGINS keyed by sizeKey — real values from
+                        the print partner, not a generic percentage. Editor-only overlay,
+                        does NOT affect saved/exported files. */}
                     <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:15}} viewBox={`0 0 ${spreadW} ${cH}`} preserveAspectRatio="none">
-                      <rect x={spreadW*0.06} y={cH*0.06} width={spreadW*0.88} height={cH*0.88}
+                      <rect x={spreadW*bleed.left}
+                            y={cH*bleed.top}
+                            width={spreadW*(1 - bleed.left - bleed.right)}
+                            height={cH*(1 - bleed.top - bleed.bottom)}
                             fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
-                      {/* Center line for spread (gutter) — text shouldn't run too close to the spine either */}
-                      <line x1={spreadW/2} y1={cH*0.06} x2={spreadW/2} y2={cH*0.94}
+                      {/* Centre line marks the spine fold — text/faces shouldn't sit on it */}
+                      <line x1={spreadW/2} y1={cH*bleed.top} x2={spreadW/2} y2={cH*(1 - bleed.bottom)}
                             stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                     </svg>
-                    {/* Safe area label — corner badge */}
+                    {/* Trim line label — corner badge */}
                     <div style={{position:'absolute',top:6,left:6,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.85)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,letterSpacing:0.3,boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}>
-                      Безпечна зона
+                      Зона обрізки
                     </div>
                   </div>
                 );
@@ -5298,19 +5349,22 @@ export default function BookLayoutEditor() {
                     </div>
                   );
                 })}
-                {/* Safe area — applies across both pages of the page-mode spread.
+                {/* Trim line — same logic as in spread mode, applied across both pages.
                     Skipped on the first spread when it's the kalka pair (left=forzac, right=kalka)
                     since neither page is a normal photo page. */}
                 {!(hasKalka && currentIdx === 1) && (
                   <>
                     <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:15}} viewBox={`0 0 ${pageW*2} ${cH}`} preserveAspectRatio="none">
-                      <rect x={pageW*2*0.06} y={cH*0.06} width={pageW*2*0.88} height={cH*0.88}
+                      <rect x={pageW*2*bleed.left}
+                            y={cH*bleed.top}
+                            width={pageW*2*(1 - bleed.left - bleed.right)}
+                            height={cH*(1 - bleed.top - bleed.bottom)}
                             fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
-                      <line x1={pageW} y1={cH*0.06} x2={pageW} y2={cH*0.94}
+                      <line x1={pageW} y1={cH*bleed.top} x2={pageW} y2={cH*(1 - bleed.bottom)}
                             stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                     </svg>
                     <div style={{position:'absolute',top:6,left:6,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.85)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,letterSpacing:0.3,boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}>
-                      Безпечна зона
+                      Зона обрізки
                     </div>
                   </>
                 )}
