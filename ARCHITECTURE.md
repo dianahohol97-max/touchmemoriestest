@@ -119,6 +119,18 @@ The product-type detection is in BookLayoutEditor via `_slug.includes('...')` ch
 - **`BookPreviewModal` does not yet support:** multi-slot layouts (uses single-slot getSlotDefs), crop/zoom inside slots (photos render with objectFit:cover only). Frames, shapes, stickers, QR overlays, and cover stickers ARE rendered.
 - **`SpreadNavigation` keyboard arrow keys** sometimes conflict with text-editing inside slots — this is by design (focus check), but it can confuse first-time editors.
 
+### Overlay z-order (unified layer stack)
+
+All four overlay types — text blocks, shapes, stickers, QR codes — share a single z-order namespace per page via an optional `zOrder?: number` field on each object. This lets the user freely interleave them: text under a coloured rectangle, sticker above a frame, etc. Rendering uses `zIndexFor(obj.zOrder)` from `lib/editor/zOrder.ts`, which returns `Z_OVERLAY_BASE (100) + (zOrder ?? 0)` — putting the whole overlay stack above photo slots (zIndex 2) and below editor chrome (zIndex 50+).
+
+When the user selects an overlay (click/tap), a small floating `ZOrderToolbar` (`components/editor/ZOrderToolbar.tsx`) appears with four buttons: send to back / send backward / bring forward / bring to front. The toolbar is rendered as a sibling inside the overlay's wrapper, so it sticks above the selected element. Handlers funnel through `zOrderAction(kind, id, pageIdx, action)` in `BookLayoutEditor`, which dispatches to the right slice of state (pages.textBlocks, pageShapes, pageStickers, qrOverlays). All four mutations push history before applying so undo works.
+
+When a new overlay is created (`addShape`, new text, new sticker, new QR), it gets `zOrder: nextOverlayZ(pageIdx)`, which is `max(zOrder) + 1` across ALL overlay types on that page — so newly-placed objects always land on top of the current stack.
+
+`zOrder` is intentionally optional (`?: number`) so saved projects from before this feature continue to render. Undefined is treated as 0 everywhere — old objects appear at the bottom of the new layer system and the user can re-stack them via the toolbar.
+
+Cover overlays (pageIdx === 0) don't have the z-order toolbar yet — covers are simpler decoration surfaces and there hasn't been demand. The infrastructure is type-compatible (Shape/sticker types include zOrder), so adding it is a small follow-up if needed.
+
 ---
 
 ## Pricing flow

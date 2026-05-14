@@ -35,6 +35,11 @@ import {
   QROverlay, QR_PRICE_PER_GENERATION, QR_DEFAULT_SIZE, QR_MIN_SIZE, QR_MAX_SIZE,
   generateQRDataUrl, looksLikeUrl,
 } from '@/lib/editor/qrOverlay';
+import {
+  bringForward, sendBackward, bringToFront, sendToBack,
+  nextZOrder, zIndexFor,
+} from '@/lib/editor/zOrder';
+import { ZOrderToolbar } from './editor/ZOrderToolbar';
 
 // Cyrillic decorative fonts
 const CYRILLIC_DECORATIVE_FONTS = [
@@ -154,7 +159,7 @@ type LayoutType =
   'sp-5-editorial' | 'sp-6-editorial' | 'sp-8-editorial' | 'sp-11-grid' | 'sp-14-grid';
 
 interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; }
-interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; }
+interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; zOrder?: number; }
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
 const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[] = [
@@ -1133,7 +1138,12 @@ export default function BookLayoutEditor() {
     : null;
   const [coverColorOverride, setCoverColorOverride] = useState<string|null>(null);
   const effectiveCoverColor = coverColorOverride ?? (config?.selectedCoverColor || '');
-  const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;emoji?:string;x:number;y:number;w:number|string;h:number|string}[]>>({});
+  // Selection state for non-text overlays. Lets us show the z-order
+  // toolbar (and in the future, other contextual UI) when a sticker or QR
+  // is tapped. Shapes have their own selection inside ShapesLayer.
+  const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
+  const [selectedQrId, setSelectedQrId] = useState<string | null>(null);
+  const [pageStickers, setPageStickers] = useState<Record<number,{id:string;url:string;emoji?:string;x:number;y:number;w:number|string;h:number|string;zOrder?:number}[]>>({});
   // QR overlays — keyed by page index, multiple allowed per page.
   // generatedQRCount tracks how many times the user has clicked "Generate"
   // (whether or not the result was added to a page). Pricing is +50₴ per
@@ -1613,9 +1623,26 @@ export default function BookLayoutEditor() {
 
   const addShape = (type: ShapeType, pageIdx: number) => {
     const id = 'shape-' + Date.now();
-    const newShape: Shape = { id, type, x: pageW*0.2, y: cH*0.2, w: pageW*0.35, h: type==='line'?0:cH*0.25, fill: type==='line'?'transparent':'#1e2d7d', stroke: '#1e2d7d', strokeWidth: type==='line'?4:0, opacity: 80, rotation: 0 };
+    // New shapes sit on top of everything else on this page. Z-order is
+    // shared across shape/text/sticker/QR — we look at the max across all
+    // overlay types so the user doesn't see a freshly-added square land
+    // behind text they already placed.
+    const newShape: Shape = { id, type, x: pageW*0.2, y: cH*0.2, w: pageW*0.35, h: type==='line'?0:cH*0.25, fill: type==='line'?'transparent':'#1e2d7d', stroke: '#1e2d7d', strokeWidth: type==='line'?4:0, opacity: 80, rotation: 0, zOrder: nextOverlayZ(pageIdx) };
     setPageShapes(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx]||[]), newShape] }));
     setSelectedShapeId(id); // auto-select so style controls appear immediately
+  };
+
+  // Computes the next zOrder for a new overlay on a given page, based on
+  // the max across ALL overlay types (text/shape/sticker/QR). Ensures a
+  // newly-added object always lands on top of the existing stack.
+  const nextOverlayZ = (pageIdx: number): number => {
+    return Math.max(
+      ...(pageShapes[pageIdx] || []).map(s => s.zOrder ?? 0),
+      ...(pages[pageIdx]?.textBlocks || []).map(t => t.zOrder ?? 0),
+      ...((pageStickers[pageIdx] || []).map(s => s.zOrder ?? 0)),
+      ...((qrOverlays[pageIdx] || []).map(q => q.zOrder ?? 0)),
+      0,
+    ) + 1;
   };
 
   const addFreeSlot = () => {
@@ -2211,7 +2238,7 @@ export default function BookLayoutEditor() {
     const rect = e.currentTarget.getBoundingClientRect();
     const id = 'txt-' + Date.now();
     pushHistory();
-    setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
+    setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic, zOrder: nextOverlayZ(currentIdx) }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
   };
 
@@ -2222,7 +2249,7 @@ export default function BookLayoutEditor() {
     const id = 'txt-' + Date.now();
     const cW = rect.width; // actual canvas width (pageW for page mode, spreadW for spread mode)
     pushHistory();
-    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic }] }));
+    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic, zOrder: nextOverlayZ(pageIdx) }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
   };
   const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
@@ -2255,6 +2282,28 @@ export default function BookLayoutEditor() {
 
   const updateTxt = (id: string, ch: Partial<TextBlock>) => setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
   const deleteTxt = (id: string) => { setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) })); setSelectedTextId(null); setEditingTextId(null); };
+
+  //  z-order: bring forward / send backward / to top / to bottom
+  //  Applies to the currently-selected overlay. All four overlay types
+  //  (text, shape, sticker, QR) share one zOrder namespace per page so the
+  //  user can freely interleave them — e.g. text under a coloured shape.
+  type OverlayKind = 'text' | 'shape' | 'sticker' | 'qr';
+  const zOrderAction = (kind: OverlayKind, id: string, pageIdx: number, action: 'forward' | 'backward' | 'front' | 'back') => {
+    pushHistory();
+    const fn = action === 'forward' ? bringForward
+      : action === 'backward' ? sendBackward
+      : action === 'front' ? bringToFront
+      : sendToBack;
+    if (kind === 'text') {
+      setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: fn(p.textBlocks, id) }));
+    } else if (kind === 'shape') {
+      setPageShapes(prev => ({ ...prev, [pageIdx]: fn(prev[pageIdx] || [], id) }));
+    } else if (kind === 'sticker') {
+      setPageStickers(prev => ({ ...prev, [pageIdx]: fn(prev[pageIdx] || [], id) }));
+    } else if (kind === 'qr') {
+      setQrOverlays(prev => ({ ...prev, [pageIdx]: fn(prev[pageIdx] || [], id) }));
+    }
+  };
 
   const startTxtDrag = (e: React.PointerEvent, id: string, tx: number, ty: number) => {
     e.stopPropagation(); e.preventDefault();
@@ -3711,7 +3760,7 @@ export default function BookLayoutEditor() {
                 reader.onload = ev => {
                   const url = ev.target!.result as string;
                   const spi = getActivePageIdx();
-                  const newS = { id:'stk-custom-'+Date.now(), url, emoji:'', x:40, y:40, w:'25%', h:'25%' };
+                  const newS = { id:'stk-custom-'+Date.now(), url, emoji:'', x:40, y:40, w:'25%', h:'25%', zOrder: nextOverlayZ(spi) };
                   setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
                   toast.success('Стікер додано', { duration: 1500 });
                 };
@@ -3799,7 +3848,7 @@ export default function BookLayoutEditor() {
                           <button key={sticker.id}
                             onClick={() => {
                               const spi = getActivePageIdx();
-                              const newS = { id:'stk-'+Date.now(), url:sticker.image_url, emoji:'', x:42, y:42, w:'20%', h:'20%' };
+                              const newS = { id:'stk-'+Date.now(), url:sticker.image_url, emoji:'', x:42, y:42, w:'20%', h:'20%', zOrder: nextOverlayZ(spi) };
                               setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
                               toast.success('Стікер додано', { duration: 1500 });
                             }}
@@ -3820,7 +3869,7 @@ export default function BookLayoutEditor() {
                         <button key={sticker.name}
                           onClick={() => {
                             const spi = getActivePageIdx();
-                            const newS = { id:'stk-'+Date.now(), url:'', emoji:sticker.emoji, x:42, y:42, w:'20%', h:'20%' };
+                            const newS = { id:'stk-'+Date.now(), url:'', emoji:sticker.emoji, x:42, y:42, w:'20%', h:'20%', zOrder: nextOverlayZ(spi) };
                             setPageStickers(prev => ({...prev, [spi]: [...(prev[spi]||[]), newS]}));
                             toast.success('Стікер додано', { duration: 1500 });
                           }}
@@ -3941,6 +3990,7 @@ export default function BookLayoutEditor() {
                         y: 40,
                         w: QR_DEFAULT_SIZE,
                         h: QR_DEFAULT_SIZE,
+                        zOrder: nextOverlayZ(targetPageIdx),
                       };
                       setQrOverlays(prev => ({ ...prev, [targetPageIdx]: [...(prev[targetPageIdx] || []), newQR] }));
                       setGeneratedQRCount(c => c + 1);
@@ -3991,6 +4041,7 @@ export default function BookLayoutEditor() {
                           y: 40,
                           w: QR_DEFAULT_SIZE,
                           h: QR_DEFAULT_SIZE,
+                          zOrder: nextOverlayZ(targetPageIdx),
                         };
                         setQrOverlays(prev => ({ ...prev, [targetPageIdx]: [...(prev[targetPageIdx] || []), newQR] }));
                       } catch (err: any) {
@@ -4578,7 +4629,7 @@ export default function BookLayoutEditor() {
                         setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, layout: 'sp-full' as LayoutType, slots: [{ photoId, cropX: 50, cropY: 50, zoom: 1 }], textBlocks: p.textBlocks || [] }));
                       }
                     }}
-                    onClick={(e) => { setSelectedFreeSlotId(null); setSelectedTextId(null); if (textTool && spreadPage) onCanvasClickForPage(e, spreadPageIdx); }}
+                    onClick={(e) => { setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool && spreadPage) onCanvasClickForPage(e, spreadPageIdx); }}
                     style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
                   >
                     <BackgroundLayer bg={getCurBg(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
@@ -4954,39 +5005,87 @@ export default function BookLayoutEditor() {
                       const isEd = editingTextId === tb.id;
                       return (
                         <div key={tb.id}
-                          onPointerDown={e => { e.stopPropagation(); if(!isSel) { setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); setTFontSize(tb.fontSize||28); setTFontFamily(tb.fontFamily||'Open Sans'); setTColor(tb.color||'#000'); setTBold(!!tb.bold); setTItalic(!!tb.italic); startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx); } }}
+                          onPointerDown={e => {
+                            e.stopPropagation();
+                            // Don't intercept pointer down while in text-edit mode —
+                            // contentEditable needs the click for cursor placement.
+                            if (isEd) return;
+                            // Select on first interaction, drag on every pointer
+                            // down (the old `if(!isSel)` guard meant that once a
+                            // text was selected, subsequent drags were dead).
+                            if (!isSel) {
+                              setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx);
+                              setTFontSize(tb.fontSize||28); setTFontFamily(tb.fontFamily||'Open Sans');
+                              setTColor(tb.color||'#000'); setTBold(!!tb.bold); setTItalic(!!tb.italic);
+                            }
+                            startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx);
+                          }}
                           onClick={e => { e.stopPropagation(); if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${Math.max(5,Math.min(95,tb.x))}%`, top:`${Math.max(3,Math.min(97,tb.y))}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex:10, padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${Math.max(5,Math.min(95,tb.x))}%`, top:`${Math.max(3,Math.min(97,tb.y))}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
                           <div contentEditable={isEd} suppressContentEditableWarning onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
                             style={{ fontSize:tb.fontSize, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', outline:'none', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:'100%', userSelect: isEd ? 'text' : 'none' }}>
                             {tb.text}
                           </div>
+                          {isSel && !isEd && (
+                            <ZOrderToolbar
+                              onBringForward={() => zOrderAction('text', tb.id, spreadPageIdx, 'forward')}
+                              onSendBackward={() => zOrderAction('text', tb.id, spreadPageIdx, 'backward')}
+                              onBringToFront={() => zOrderAction('text', tb.id, spreadPageIdx, 'front')}
+                              onSendToBack={() => zOrderAction('text', tb.id, spreadPageIdx, 'back')}
+                            />
+                          )}
                           {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,spreadPageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
                         </div>
                       );
                     })}
                     {/* Shapes on spread */}
-                    <ShapesLayer shapes={getCurShapes(spreadPageIdx)} canvasW={spreadW} canvasH={cH} onChange={newShapes => setPageShapes(prev=>({...prev,[spreadPageIdx]:newShapes}))}/>
+                    <ShapesLayer
+                      shapes={getCurShapes(spreadPageIdx)} canvasW={spreadW} canvasH={cH}
+                      onChange={newShapes => setPageShapes(prev=>({...prev,[spreadPageIdx]:newShapes}))}
+                      zIndexForShape={sh => zIndexFor(sh.zOrder)}
+                      renderZOrderToolbar={id => (
+                        <ZOrderToolbar
+                          onBringForward={() => zOrderAction('shape', id, spreadPageIdx, 'forward')}
+                          onSendBackward={() => zOrderAction('shape', id, spreadPageIdx, 'backward')}
+                          onBringToFront={() => zOrderAction('shape', id, spreadPageIdx, 'front')}
+                          onSendToBack={() => zOrderAction('shape', id, spreadPageIdx, 'back')}
+                        />
+                      )}
+                    />
                     {/* Frames on spread */}
                     <FrameLayer frame={getCurFrame(spreadPageIdx)} canvasW={spreadW} canvasH={cH} interactive={leftTab === 'frames'} onChange={f => setPageFrames(prev=>({...prev,[spreadPageIdx]:f}))}/>
                     {/* Stickers on spread */}
-                    {(pageStickers[spreadPageIdx] || []).map(st => (
-                      <div key={st.id} style={{ position:'absolute', left:st.x, top:st.y, width:st.w, height:st.h, cursor:'move', zIndex:12, touchAction:'none', fontSize:typeof st.w==='number'?st.w*0.8:32 }}
-                        onPointerDown={e => { e.stopPropagation(); const origX = typeof st.x === 'number' ? st.x : 0; const origY = typeof st.y === 'number' ? st.y : 0; startPointerDrag(e, (dx:number,dy:number) => { setPageStickers(prev => ({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(s=>s.id===st.id?{...s,x:origX+dx,y:origY+dy}:s)})); }); }}>
+                    {(pageStickers[spreadPageIdx] || []).map(st => {
+                      const isStSel = selectedStickerId === st.id;
+                      return (
+                      <div key={st.id} style={{ position:'absolute', left:st.x, top:st.y, width:st.w, height:st.h, cursor:'move', zIndex: zIndexFor(st.zOrder), touchAction:'none', fontSize:typeof st.w==='number'?st.w*0.8:32, outline: isStSel ? '2px dashed #1e2d7d' : 'none', outlineOffset: 2 }}
+                        onPointerDown={e => { e.stopPropagation(); setSelectedStickerId(st.id); setSelectedQrId(null); setSelectedTextId(null); const origX = typeof st.x === 'number' ? st.x : 0; const origY = typeof st.y === 'number' ? st.y : 0; startPointerDrag(e, (dx:number,dy:number) => { setPageStickers(prev => ({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(s=>s.id===st.id?{...s,x:origX+dx,y:origY+dy}:s)})); }); }}>
                         {st.url ? <img src={st.url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block' }} draggable={false}/> : <span style={{ fontSize:typeof st.w==='string'&&st.w.endsWith('%')?Math.round(spreadW*parseFloat(st.w)/100*0.7):32, lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{st.emoji}</span>}
                         <button onClick={()=>setPageStickers(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(s=>s.id!==st.id)}))} style={{position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                        {isStSel && (
+                          <ZOrderToolbar
+                            onBringForward={() => zOrderAction('sticker', st.id, spreadPageIdx, 'forward')}
+                            onSendBackward={() => zOrderAction('sticker', st.id, spreadPageIdx, 'backward')}
+                            onBringToFront={() => zOrderAction('sticker', st.id, spreadPageIdx, 'front')}
+                            onSendToBack={() => zOrderAction('sticker', st.id, spreadPageIdx, 'back')}
+                          />
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
                     {/* QR overlays on spread — draggable + resizable from the SE handle,
                         delete via × button. Higher z-index than stickers so they stay
                         scannable on top of layered content. Note: QR is always rendered
                         as a perfect square (w === h is enforced during resize), since a
                         stretched QR cannot be scanned. */}
-                    {(qrOverlays[spreadPageIdx] || []).map(qr => (
-                      <div key={qr.id} style={{ position:'absolute', left:qr.x, top:qr.y, width:qr.w, height:qr.h, cursor:'move', zIndex:14, touchAction:'none' }}
+                    {(qrOverlays[spreadPageIdx] || []).map(qr => {
+                      const isQrSel = selectedQrId === qr.id;
+                      return (
+                      <div key={qr.id} style={{ position:'absolute', left:qr.x, top:qr.y, width:qr.w, height:qr.h, cursor:'move', zIndex: zIndexFor(qr.zOrder), touchAction:'none', outline: isQrSel ? '2px dashed #1e2d7d' : 'none', outlineOffset: 2 }}
                         onPointerDown={e => {
                           e.stopPropagation();
+                          setSelectedQrId(qr.id); setSelectedStickerId(null); setSelectedTextId(null);
                           const origX = qr.x; const origY = qr.y;
                           startPointerDrag(e, (dx:number,dy:number) => {
                             setQrOverlays(prev => ({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(q=>q.id===qr.id?{...q,x:origX+dx,y:origY+dy}:q)}));
@@ -5007,8 +5106,17 @@ export default function BookLayoutEditor() {
                           });
                         }}
                           style={{ position:'absolute', bottom:-5, right:-5, width:14, height:14, borderRadius:3, background:'#fff', border:'2px solid #1e2d7d', cursor:'se-resize', zIndex:21 }}/>
+                        {isQrSel && (
+                          <ZOrderToolbar
+                            onBringForward={() => zOrderAction('qr', qr.id, spreadPageIdx, 'forward')}
+                            onSendBackward={() => zOrderAction('qr', qr.id, spreadPageIdx, 'backward')}
+                            onBringToFront={() => zOrderAction('qr', qr.id, spreadPageIdx, 'front')}
+                            onSendToBack={() => zOrderAction('qr', qr.id, spreadPageIdx, 'back')}
+                          />
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
                     {/* Trim line — production cut warning. Anything OUTSIDE this rectangle
                         will be cut off by the trimmer at the bindery. Important content
                         (faces, text, key objects) must stay INSIDE. Background photos may
@@ -5237,7 +5345,7 @@ export default function BookLayoutEditor() {
                         toast.success('Фото додано на сторінку');
                       }}
                       style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
-                      onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); setSelectedTextId(null); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
+                      onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
                     >
                       {/* Background layer — MUST be first so it's below slots */}
                       <BackgroundLayer bg={getCurBg(pageIdx)} canvasW={pageW} canvasH={cH}/>
@@ -5423,11 +5531,28 @@ export default function BookLayoutEditor() {
                         const isEd = editingTextId === tb.id;
                         return (
                           <div key={tb.id}
-                            onPointerDown={e=>{e.stopPropagation();if(!isSel){setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);startTxtDragForPage(e,tb.id,tb.x,tb.y,pageIdx);}}}
+                            onPointerDown={e => {
+                              e.stopPropagation();
+                              if (isEd) return;
+                              if (!isSel) {
+                                setSelectedTextId(tb.id); setSelectedTextPageIdx(pageIdx);
+                                setTFontSize(tb.fontSize||28); setTFontFamily(tb.fontFamily||'Open Sans');
+                                setTColor(tb.color||'#000'); setTBold(!!tb.bold); setTItalic(!!tb.italic);
+                              }
+                              startTxtDragForPage(e, tb.id, tb.x, tb.y, pageIdx);
+                            }}
                             onClick={e=>{e.stopPropagation();if(isSel&&!isEd){setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}
-                            style={{position:'absolute',left:Math.max(5,Math.min(95,tb.x))+'%',top:Math.max(3,Math.min(97,tb.y))+'%',transform:'translate(-50%,-50%)',zIndex:20,cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30,maxWidth:'90%',touchAction:'none'}}>
+                            style={{position:'absolute',left:Math.max(5,Math.min(95,tb.x))+'%',top:Math.max(3,Math.min(97,tb.y))+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30,maxWidth:'90%',touchAction:'none'}}>
+                            {isSel && !isEd && (
+                              <ZOrderToolbar
+                                onBringForward={() => zOrderAction('text', tb.id, pageIdx, 'forward')}
+                                onSendBackward={() => zOrderAction('text', tb.id, pageIdx, 'backward')}
+                                onBringToFront={() => zOrderAction('text', tb.id, pageIdx, 'front')}
+                                onSendToBack={() => zOrderAction('text', tb.id, pageIdx, 'back')}
+                              />
+                            )}
                             {isEd?(
                               <textarea
                 autoFocus
@@ -5492,6 +5617,15 @@ export default function BookLayoutEditor() {
                           }));
                           setActiveSide(otherSide as 0 | 1);
                         }}
+                        zIndexForShape={sh => zIndexFor(sh.zOrder)}
+                        renderZOrderToolbar={id => (
+                          <ZOrderToolbar
+                            onBringForward={() => zOrderAction('shape', id, pageIdx, 'forward')}
+                            onSendBackward={() => zOrderAction('shape', id, pageIdx, 'backward')}
+                            onBringToFront={() => zOrderAction('shape', id, pageIdx, 'front')}
+                            onSendToBack={() => zOrderAction('shape', id, pageIdx, 'back')}
+                          />
+                        )}
                       />
                       {/* Cross-page drop zone: visible when dragging a shape */}
                       {crossPageDragShapeId && (() => {
@@ -5534,11 +5668,14 @@ export default function BookLayoutEditor() {
                       {/* Frame layer */}
                       <FrameLayer frame={getCurFrame(pageIdx)} canvasW={pageW} canvasH={cH} interactive={leftTab === 'frames'} onChange={f => setPageFrames(prev=>({...prev,[pageIdx]:f}))}/>
                       {/* Sticker layer */}
-                      {(pageStickers[pageIdx]||[]).map(stk => (
-                        <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
+                      {(pageStickers[pageIdx]||[]).map(stk => {
+                        const isStSel = selectedStickerId === stk.id;
+                        return (
+                        <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex: zIndexFor(stk.zOrder), touchAction:'none', pointerEvents:'auto', outline: isStSel ? '2px dashed #1e2d7d' : 'none', outlineOffset: 2 }}
                           onPointerDown={e => {
                             e.stopPropagation();
                             haptic.light();
+                            setSelectedStickerId(stk.id); setSelectedQrId(null); setSelectedTextId(null);
                             const origX=stk.x, origY=stk.y;
                             startPointerDrag(e, (dx,dy) =>
                               setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
@@ -5547,6 +5684,14 @@ export default function BookLayoutEditor() {
                           {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
                           <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(s=>s.id!==stk.id)}));}}
                             style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
+                          {isStSel && (
+                            <ZOrderToolbar
+                              onBringForward={() => zOrderAction('sticker', stk.id, pageIdx, 'forward')}
+                              onSendBackward={() => zOrderAction('sticker', stk.id, pageIdx, 'backward')}
+                              onBringToFront={() => zOrderAction('sticker', stk.id, pageIdx, 'front')}
+                              onSendToBack={() => zOrderAction('sticker', stk.id, pageIdx, 'back')}
+                            />
+                          )}
                           {stk.id.startsWith('stk-custom-') && stk.url && (
                             <button onPointerDown={e=>{e.stopPropagation();}} onClick={e=>{e.stopPropagation();
                               const img2=new window.Image(); img2.onload=()=>{
@@ -5566,18 +5711,21 @@ export default function BookLayoutEditor() {
                             style={{ position:'absolute',top:-6,left:-6,width:18,height:18,borderRadius:'50%',background:'#8b5cf6',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}></button>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                       {/* QR overlays — single-page mode (magazine/travelbook).
                           Like stickers above, x/y are stored as % of page so the
                           QR scales correctly across screen sizes. Always rendered
                           as a square. */}
                       {(qrOverlays[pageIdx] || []).map(qr => {
                         const qrSizePct = (qr.w / pageW) * 100;
+                        const isQrSel = selectedQrId === qr.id;
                         return (
-                          <div key={qr.id} style={{ position:'absolute', left:qr.x+'%', top:qr.y+'%', width:`${qrSizePct}%`, aspectRatio:'1/1', cursor:'move', zIndex:42, touchAction:'none' }}
+                          <div key={qr.id} style={{ position:'absolute', left:qr.x+'%', top:qr.y+'%', width:`${qrSizePct}%`, aspectRatio:'1/1', cursor:'move', zIndex: zIndexFor(qr.zOrder), touchAction:'none', outline: isQrSel ? '2px dashed #1e2d7d' : 'none', outlineOffset: 2 }}
                             onPointerDown={e => {
                               e.stopPropagation();
                               haptic.light();
+                              setSelectedQrId(qr.id); setSelectedStickerId(null); setSelectedTextId(null);
                               const origX = qr.x; const origY = qr.y;
                               startPointerDrag(e, (dx, dy) =>
                                 setQrOverlays(prev => ({...prev,[pageIdx]:(prev[pageIdx]||[]).map(q=>q.id===qr.id?{...q,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:q)}))
@@ -5595,6 +5743,14 @@ export default function BookLayoutEditor() {
                               });
                             }}
                               style={{ position:'absolute', bottom:-5, right:-5, width:14, height:14, borderRadius:3, background:'#fff', border:'2px solid #1e2d7d', cursor:'se-resize', zIndex:21 }}/>
+                            {isQrSel && (
+                              <ZOrderToolbar
+                                onBringForward={() => zOrderAction('qr', qr.id, pageIdx, 'forward')}
+                                onSendBackward={() => zOrderAction('qr', qr.id, pageIdx, 'backward')}
+                                onBringToFront={() => zOrderAction('qr', qr.id, pageIdx, 'front')}
+                                onSendToBack={() => zOrderAction('qr', qr.id, pageIdx, 'back')}
+                              />
+                            )}
                           </div>
                         );
                       })}
@@ -6676,7 +6832,8 @@ export default function BookLayoutEditor() {
                         textBlocks: [...p.textBlocks, {
                           id, text: 'Текст', x: 50, y: 50,
                           fontSize: tFontSize, fontFamily: tFontFamily,
-                          color: tColor, bold: tBold, italic: tItalic
+                          color: tColor, bold: tBold, italic: tItalic,
+                          zOrder: nextOverlayZ(currentIdx),
                         }]
                       }));
                       setSelectedTextId(id);

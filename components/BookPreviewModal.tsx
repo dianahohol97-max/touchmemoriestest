@@ -6,6 +6,7 @@ import { BackgroundLayer, PageBackground, DEFAULT_BG } from './BackgroundLayer';
 import type { Shape } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from './FramesLayer';
 import type { QROverlay } from '@/lib/editor/qrOverlay';
+import { zIndexFor } from '@/lib/editor/zOrder';
 
 //  Interfaces 
 
@@ -21,6 +22,7 @@ interface TextBlock {
   id: string; text: string; x: number; y: number;
   fontSize: number; fontFamily: string; color: string;
   bold: boolean; italic: boolean;
+  zOrder?: number;
 }
 
 interface PageData {
@@ -121,7 +123,7 @@ export function BookPreviewModal({
         position: 'absolute', left: sh.x, top: sh.y, width: sh.w, height: sh.h,
         opacity: sh.opacity / 100,
         transform: sh.rotation ? `rotate(${sh.rotation}deg)` : undefined,
-        pointerEvents: 'none', zIndex: 3,
+        pointerEvents: 'none', zIndex: zIndexFor(sh.zOrder),
       };
       if (sh.type === 'rect') return <div key={sh.id} style={{ ...style, background: sh.fill, border: sh.strokeWidth ? `${sh.strokeWidth}px solid ${sh.stroke}` : 'none', borderRadius: 2 }} />;
       if (sh.type === 'circle') return <div key={sh.id} style={{ ...style, background: sh.fill, border: sh.strokeWidth ? `${sh.strokeWidth}px solid ${sh.stroke}` : 'none', borderRadius: '50%' }} />;
@@ -140,7 +142,7 @@ export function BookPreviewModal({
   const renderStickers = (stickers: typeof pageStickers[0], cW: number) => {
     if (!stickers?.length) return null;
     return stickers.map(st => (
-      <div key={st.id} style={{ position: 'absolute', left: st.x, top: st.y, width: st.w, height: st.h, zIndex: 12, pointerEvents: 'none' }}>
+      <div key={st.id} style={{ position: 'absolute', left: st.x, top: st.y, width: st.w, height: st.h, zIndex: zIndexFor((st as any).zOrder), pointerEvents: 'none' }}>
         {st.url
           ? <img src={st.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable={false} />
           : st.emoji
@@ -152,12 +154,13 @@ export function BookPreviewModal({
 
   //  Render QR overlays (non-interactive, no controls in preview)
   //  QR is always square; w === h is enforced during edit so we just use w
-  //  on both axes here. zIndex 14 matches the editor so QR sits above
-  //  stickers (12) and shapes (3) consistently between edit and preview.
+  //  on both axes here. Uses zIndexFor(qr.zOrder) so QR participates in the
+  //  unified layer order with text/shapes/stickers — old saves without zOrder
+  //  fall back to Z_OVERLAY_BASE (100).
   const renderQR = (qrs: QROverlay[] | undefined) => {
     if (!qrs?.length) return null;
     return qrs.map(qr => (
-      <div key={qr.id} style={{ position: 'absolute', left: qr.x, top: qr.y, width: qr.w, height: qr.h, zIndex: 14, pointerEvents: 'none' }}>
+      <div key={qr.id} style={{ position: 'absolute', left: qr.x, top: qr.y, width: qr.w, height: qr.h, zIndex: zIndexFor(qr.zOrder), pointerEvents: 'none' }}>
         <img src={qr.dataUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: '#fff' }} draggable={false} />
       </div>
     ));
@@ -258,7 +261,7 @@ export function BookPreviewModal({
 
         {/* Text blocks */}
         {(page.textBlocks || []).map(tb => (
-          <div key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 8 }}>
+          <div key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: zIndexFor(tb.zOrder) }}>
             <span style={{
               fontSize: tb.fontSize * 0.85, fontFamily: tb.fontFamily, color: tb.color,
               fontWeight: tb.bold ? 700 : 400, fontStyle: tb.italic ? 'italic' : 'normal', whiteSpace: 'pre',

@@ -33,6 +33,11 @@ export interface QROverlay {
     y: number;
     w: number;
     h: number;
+    // Layer order — shared namespace with textBlocks, shapes, stickers on
+    // the same page. Higher zOrder = closer to viewer. Optional for
+    // backward compat: old saved projects without this field render in
+    // creation order (zOrder undefined === 0).
+    zOrder?: number;
 }
 
 // Generate a classic black-and-white QR PNG from a URL or text.

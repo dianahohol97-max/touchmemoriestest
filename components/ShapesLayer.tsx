@@ -15,6 +15,7 @@ export interface Shape {
   strokeWidth: number;
   opacity: number;
   rotation: number;
+  zOrder?: number;
 }
 
 const SHAPE_PRESETS: { type: ShapeType; icon: string; label: string }[] = [
@@ -75,11 +76,19 @@ interface ShapesLayerProps {
   onMoveToOtherPage?: (shape: Shape) => void;
   onDragShapeStart?: (shapeId: string) => void;
   onDragShapeEnd?: () => void;
+  // Optional renderer for the z-order toolbar (BookLayoutEditor passes
+  // a function that produces a <ZOrderToolbar> wired to its zOrderAction).
+  // Receives the currently-selected shape id; should return a React node
+  // or null.
+  renderZOrderToolbar?: (shapeId: string) => React.ReactNode;
+  // When provided, overrides the hardcoded zIndex per shape. Used to
+  // share the unified zOrder namespace with text/sticker/qr overlays.
+  zIndexForShape?: (shape: Shape) => number;
 }
 
 const HANDLE_SIZE = 8;
 
-export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: externalSelectedId, onSelectId, onMoveToOtherPage, onDragShapeStart, onDragShapeEnd }: ShapesLayerProps) {
+export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: externalSelectedId, onSelectId, onMoveToOtherPage, onDragShapeStart, onDragShapeEnd, renderZOrderToolbar, zIndexForShape }: ShapesLayerProps) {
   const [localSelectedId, setLocalSelectedId] = useState<string|null>(null);
   const selectedId = externalSelectedId !== undefined ? externalSelectedId : localSelectedId;
   const setSelectedId = (id: string|null) => { setLocalSelectedId(id); onSelectId?.(id); };
@@ -113,7 +122,7 @@ export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: ex
             onDragStart={e => { e.dataTransfer.setData('shape-id', shape.id); e.dataTransfer.effectAllowed = 'move'; onDragShapeStart?.(shape.id); }}
             onDragEnd={() => onDragShapeEnd?.()}
             onPointerDown={e=>{setSelectedId(shape.id);onSelectId?.(shape.id);startDrag(e,shape.id,'move');}}
-            style={{ position:'absolute', left:shape.x, top:shape.y, width:shape.w, height:shape.h, cursor:'move', zIndex:sel?45:25, outline:sel?'2px solid #3b82f6':'none', transform:`rotate(${shape.rotation}deg)`, transformOrigin:'center', pointerEvents:'auto' }}>
+            style={{ position:'absolute', left:shape.x, top:shape.y, width:shape.w, height:shape.h, cursor:'move', zIndex: zIndexForShape ? zIndexForShape(shape) : (sel?45:25), outline:sel?'2px solid #3b82f6':'none', transform:`rotate(${shape.rotation}deg)`, transformOrigin:'center', pointerEvents:'auto' }}>
             <svg width={shape.w} height={shape.h} style={{ display:'block', overflow:'visible' }}>
               {renderShapeSVG(shape)}
             </svg>
@@ -129,6 +138,8 @@ export function ShapesLayer({ shapes, canvasW, canvasH, onChange, selectedId: ex
                 <div onPointerDown={e=>{e.stopPropagation();startDrag(e,shape.id,'se');}} style={{ position:'absolute',bottom:-5,right:-5,width:HANDLE_SIZE+2,height:HANDLE_SIZE+2,borderRadius:2,background:'#fff',border:'2px solid #3b82f6',cursor:'se-resize',zIndex:60 }}/>
                 {/* Rotate */}
                 <div onPointerDown={e=>{e.stopPropagation();startDrag(e,shape.id,'rotate');}} style={{ position:'absolute',top:-24,left:'50%',transform:'translateX(-50%)',width:14,height:14,borderRadius:'50%',background:'#8b5cf6',border:'2px solid #fff',cursor:'grab',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'#fff' }}>↻</div>
+                {/* Z-order toolbar — provided by parent if it supports unified layering */}
+                {renderZOrderToolbar && renderZOrderToolbar(shape.id)}
               </>
             )}
           </div>
