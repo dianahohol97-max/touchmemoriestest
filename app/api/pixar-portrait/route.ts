@@ -12,6 +12,82 @@ const STYLE_PROMPTS: Record<string, string> = {
   oilpainting:'classical oil painting portrait, rich textures, old masters style, museum quality',
 };
 
+// Gemini image-to-image prompts. These are richer than the Replicate/HF prompts
+// because Gemini 2.5 Flash Image responds better to narrative instruction than
+// to keyword-stuffed prompts. The first line of every prompt explicitly tells
+// the model to preserve identity — without that, Gemini sometimes invents a
+// completely new face from the same hair/clothing.
+//
+// Currently only "pixar" is wired through Gemini — other styles fall through
+// to Replicate as before, so we can validate Gemini quality on one style
+// before rolling out the rest.
+const GEMINI_STYLE_PROMPTS: Record<string, string> = {
+  pixar: 'Transform this person into a Pixar 3D animation style character. Preserve their exact face structure, hair color and style, skin tone, age, and expression — they should be clearly recognisable as the same person. Render in vibrant Pixar/Disney CGI style with smooth 3D shading, slightly enlarged expressive eyes, warm cinematic lighting, and a soft pastel background. High-quality, family-friendly portrait.',
+};
+
+// Gemini 2.5 Flash Image (nano-banana) image-to-image.
+// Synchronous: returns the generated image in the same response, no polling.
+// Pricing as of 2025-08: $0.039 per generated image.
+// Docs: https://ai.google.dev/gemini-api/docs/image-generation
+async function generateWithGemini(
+  imageBase64: string,
+  mimeType: string,
+  prompt: string,
+): Promise<{ success: boolean; url?: string; error?: string; status?: number }> {
+  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  if (!apiKey) return { success: false, error: 'Gemini API key not configured', status: 500 };
+
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent',
+    {
+      method: 'POST',
+      headers: {
+        'x-goog-api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: mimeType, data: imageBase64 } },
+          ],
+        }],
+        generationConfig: {
+          // Both modalities required by the model — even though we only use
+          // the IMAGE part, omitting TEXT here makes the API reject the
+          // request as malformed.
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error('Gemini error:', res.status, errText.slice(0, 400));
+    return { success: false, error: `Gemini ${res.status}: ${errText.slice(0, 200)}`, status: res.status };
+  }
+
+  const data = await res.json();
+  // The response is candidates[0].content.parts[] — find the inline_data part
+  // that holds the PNG bytes. The text part (if any) is the model's
+  // commentary on what it did; we don't surface it to the user.
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  const imagePart = parts.find((p: any) => p?.inline_data?.data || p?.inlineData?.data);
+  const b64 = imagePart?.inline_data?.data || imagePart?.inlineData?.data;
+  const outMime = imagePart?.inline_data?.mime_type || imagePart?.inlineData?.mimeType || 'image/png';
+  if (!b64) {
+    // Sometimes Gemini refuses to edit identifiable people for safety. Surface
+    // a friendly error in that case so the client can fall back rather than
+    // showing the raw API noise.
+    const blockReason = data?.candidates?.[0]?.finishReason || data?.promptFeedback?.blockReason;
+    console.error('Gemini returned no image. Reason:', blockReason, 'parts:', JSON.stringify(parts).slice(0, 300));
+    return { success: false, error: blockReason ? `Gemini declined: ${blockReason}` : 'Gemini returned no image', status: 502 };
+  }
+  return { success: true, url: `data:${outMime};base64,${b64}` };
+}
+
 // HuggingFace Inference API — primary (free tier ~1000 req/day)
 async function generateWithHuggingFace(prompt: string): Promise<{ success: boolean; url?: string; error?: string; status?: number }> {
   const hfToken = process.env.HUGGINGFACE_API_TOKEN;
@@ -122,8 +198,32 @@ export async function POST(request: Request) {
     const mimeType = imageFile.type || 'image/jpeg';
     const dataUrl = `data:${mimeType};base64,${base64}`;
 
-    // Try HuggingFace first (free), fall back to Replicate on failure
-    if (provider === 'auto' || provider === 'hf') {
+    // Provider routing. We're rolling out Gemini one style at a time so we
+    // can compare quality and cost in isolation. Right now only "pixar"
+    // goes to Gemini; everything else uses the existing HF→Replicate
+    // pipeline. The `provider=replicate` override forces Replicate even
+    // for pixar (useful if Gemini starts failing in prod and we want to
+    // bypass without a deploy).
+    const geminiPromptForStyle = GEMINI_STYLE_PROMPTS[style];
+    const wantGemini = provider !== 'replicate' && provider !== 'hf' && !!geminiPromptForStyle;
+
+    if (wantGemini) {
+      const geminiResult = await generateWithGemini(base64, mimeType, geminiPromptForStyle);
+      if (geminiResult.success) {
+        return NextResponse.json({ success: true, url: geminiResult.url, provider: 'gemini' });
+      }
+      console.warn('Gemini failed, falling back to Replicate:', geminiResult.error);
+      if (provider === 'gemini') {
+        // Caller pinned Gemini — don't silently fall back, surface the error.
+        return NextResponse.json({ error: geminiResult.error || 'Gemini generation failed' }, { status: geminiResult.status || 500 });
+      }
+      // else fall through to Replicate below.
+    } else if (provider === 'auto' || provider === 'hf') {
+      // HuggingFace path for styles not yet on Gemini. Note that HF stable-
+      // diffusion is text-only and does NOT preserve the source face — so
+      // the output is "a person in this style" rather than "this exact
+      // person in this style". Acceptable for the cheaper styles, but
+      // that's why we're moving everyone to Gemini eventually.
       const hfResult = await generateWithHuggingFace(stylePrompt);
       if (hfResult.success) {
         return NextResponse.json({ success: true, url: hfResult.url, provider: 'hf' });
