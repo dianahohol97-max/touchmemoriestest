@@ -1,6 +1,5 @@
 'use client';
 
-import { Star } from 'lucide-react';
 import { getLocalized } from '@/lib/i18n/localize';
 import styles from './ProductDetailsTabs.module.css';
 
@@ -97,14 +96,6 @@ export function ProductDetailsTabs({
             {t('product_page.specs_tab')}
           </button>
         )}
-
-        <button
-          onClick={() => setActiveTab('reviews')}
-          className={styles.tabBtn}
-          style={tabButtonStyle(activeTab === 'reviews')}
-        >
-          {t('product_page.reviews_tab')}
-        </button>
       </div>
 
       {/* Tab content */}
@@ -169,47 +160,6 @@ export function ProductDetailsTabs({
                   {locale !== 'uk' && spec[`value_${locale}`]
                     ? spec[`value_${locale}`]
                     : spec.value}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'reviews' && (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '32px',
-            }}
-          >
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                style={{
-                  backgroundColor: '#f8f9fa',
-                  padding: '24px',
-                  borderRadius: '3px',
-                  border: '1px solid #f1f5f9',
-                }}
-              >
-                <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} size={16} fill="#fbbf24" color="#fbbf24" />
-                  ))}
-                </div>
-                <p
-                  style={{
-                    fontSize: '15px',
-                    color: '#475569',
-                    lineHeight: 1.6,
-                    marginBottom: '16px',
-                  }}
-                >
-                  {t('product_page.review_text')}
-                </p>
-                <div style={{ fontWeight: 700, fontSize: '14px', color: '#263A99' }}>
-                  {t('product_page.review_author')}
                 </div>
               </div>
             ))}
