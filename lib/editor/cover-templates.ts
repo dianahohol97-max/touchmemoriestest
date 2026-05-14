@@ -23,6 +23,19 @@ export interface CoverTemplate {
 }
 
 export const COVER_TEMPLATES: CoverTemplate[] = [
+  //  Пустий — для тих, хто хоче все зробити з нуля 
+  {
+    id: 'blank-white',
+    label: 'Чистий лист',
+    group: 'Пустий',
+    bgColor: '#ffffff',
+    // Empty central slot so the photo upload zone still appears (and the
+    // user can drop or add photos), but no template-imposed positioning
+    // or framing. They drive everything: photo placement, text content,
+    // colours, frames.
+    photoSlot: { x: 10, y: 10, w: 80, h: 80, shape: 'rect' },
+    texts: [],
+  },
   //  Мінімалістичні 
   {
     id: 'minimal-classic',

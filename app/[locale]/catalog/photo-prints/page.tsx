@@ -9,6 +9,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getProductSEO } from '@/lib/seoContent';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { compressImageFile } from '@/lib/compress-upload-image';
 
 const PRINT_TYPES = [
   { key: 'standard', label: 'Стандартні розміри', slug: 'photoprint-standard' },
@@ -198,15 +199,24 @@ export default function PhotoPrintsPage() {
   const totalPrice = subtotal;
 
   // File handling
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []) as File[];
-    const newPhotos = files.map(file => ({
+    // Compress large phone photos before storing them in state. Without
+    // this, 4-8 MB JPEGs from modern phones add up to over 200 MB on a
+    // single order and the upload silently fails server-side.
+    const compressedFiles = await Promise.all(files.map(async f => {
+      const { file } = await compressImageFile(f);
+      return file;
+    }));
+    const newPhotos = compressedFiles.map(file => ({
       file,
       name: file.name,
       preview: URL.createObjectURL(file as Blob),
       quantity: 1
     }));
     setPhotos(prev => [...prev, ...newPhotos]);
+    // Reset the input so picking the same file twice still fires onChange.
+    e.target.value = '';
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -231,11 +241,15 @@ export default function PhotoPrintsPage() {
     e.stopPropagation();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const files = (Array.from(e.dataTransfer.files) as File[]).filter((f: File) => f.type.startsWith('image/'));
-    const newPhotos = files.map(file => ({
+    const compressedFiles = await Promise.all(files.map(async f => {
+      const { file } = await compressImageFile(f);
+      return file;
+    }));
+    const newPhotos = compressedFiles.map(file => ({
       file,
       name: file.name,
       preview: URL.createObjectURL(file as Blob),
@@ -624,7 +638,7 @@ export default function PhotoPrintsPage() {
               Перетягніть фото або натисніть для вибору
             </p>
             <p style={{ fontSize: '13px', color: '#9ca3af' }}>
-              JPG, PNG, HEIC · мінімум 300 dpi · до 200 МБ на файл
+              JPG, PNG, HEIC · мінімум 300 dpi · великі фото стискаємо автоматично
             </p>
           </div>
 

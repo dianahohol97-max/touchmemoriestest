@@ -373,11 +373,19 @@ export function BookPreviewModal({
         {overlay.type === 'color' && <div style={{ position: 'absolute', inset: 0, background: overlay.color, opacity: overlay.opacity / 100, pointerEvents: 'none' }} />}
         {overlay.type === 'gradient' && <div style={{ position: 'absolute', inset: 0, backgroundImage: overlay.gradient, pointerEvents: 'none' }} />}
 
-        {(coverState?.printedTextBlocks || []).map((tb: any) => (
-          <div key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 5 }}>
-            <span style={{ fontSize: `${tb.fontSize * 0.85}px`, fontFamily: tb.fontFamily, color: tb.color, fontWeight: tb.bold ? 700 : 400, whiteSpace: 'nowrap', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>{tb.text}</span>
-          </div>
-        ))}
+        {(coverState?.printedTextBlocks || []).map((tb: any) => {
+          // Same 8..92% safe zone as the editor so what shows in preview
+          // matches what will go to print (and what the editor display
+          // is constrained to). Without this, old saves with y=95 still
+          // ended up cropped at the bleed line in preview.
+          const safeX = Math.max(8, Math.min(92, tb.x));
+          const safeY = Math.max(8, Math.min(92, tb.y));
+          return (
+            <div key={tb.id} style={{ position: 'absolute', left: `${safeX}%`, top: `${safeY}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 5, maxWidth: `${pageW * 0.84}px` }}>
+              <span style={{ fontSize: `${tb.fontSize * 0.85}px`, fontFamily: tb.fontFamily, color: tb.color, fontWeight: tb.bold ? 700 : 400, whiteSpace: 'normal', wordBreak: 'break-word', textAlign: 'center', lineHeight: 1.1, textShadow: '0 1px 3px rgba(0,0,0,0.5)', display: 'block' }}>{tb.text}</span>
+            </div>
+          );
+        })}
 
         {renderFrame(getFrame(0), pageW, pageH)}
         {renderShapes(pageShapes[0] || [])}
@@ -433,7 +441,9 @@ export function BookPreviewModal({
     );
   };
 
-  const spreadLabel = spread === 0 ? 'Обкладинка' : `Розворот ${spread} / ${spreadCount - 1}`;
+  const spreadLabel = spread === 0
+    ? 'Обкладинка'
+    : (hasKalka && spread === 1 ? 'Форзац / Калька' : `Розворот ${spread} / ${spreadCount - 1}`);
 
   return (
     <div
@@ -474,10 +484,22 @@ export function BookPreviewModal({
             <ChevronLeft size={20} />
           </button>
           <div style={{ display: 'flex', gap: 4, overflowX: 'auto', maxWidth: isMobile ? 'calc(100vw - 120px)' : 500, paddingBlock: 4 }}>
-            {Array.from({ length: spreadCount }).map((_, i) => (
-              <button key={i} onClick={() => setSpread(i)}
-                style={{ width: i === spread ? 24 : 14, height: 10, borderRadius: 3, border: 'none', cursor: 'pointer', background: i === spread ? '#fff' : 'rgba(255,255,255,0.25)', transition: 'all 0.2s', padding: 0, flexShrink: 0, outline: i === spread ? '2px solid rgba(255,255,255,0.3)' : 'none', outlineOffset: 2 }} />
-            ))}
+            {Array.from({ length: spreadCount }).map((_, i) => {
+              // Surface a friendly label for special spreads. spread 0 is
+              // the cover, spread 1 holds the kalka pages when the
+              // photobook has one. Plain content spreads stay unlabelled
+              // so the dot row stays compact.
+              const label = i === 0
+                ? 'Обкл.'
+                : (hasKalka && i === 1 ? 'Калька' : '');
+              return (
+                <button key={i} onClick={() => setSpread(i)} title={i === 0 ? 'Обкладинка' : (hasKalka && i === 1 ? 'Форзац / Калька' : `Розворот ${i}`)}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, border: 'none', cursor: 'pointer', background: 'transparent', padding: 0, flexShrink: 0 }}>
+                  <span style={{ width: i === spread ? 24 : 14, height: 10, borderRadius: 3, background: i === spread ? '#fff' : 'rgba(255,255,255,0.25)', transition: 'all 0.2s', outline: i === spread ? '2px solid rgba(255,255,255,0.3)' : 'none', outlineOffset: 2 }} />
+                  {label && <span style={{ fontSize: 8, color: i === spread ? '#fff' : 'rgba(255,255,255,0.5)', letterSpacing: 0.3, lineHeight: 1 }}>{label}</span>}
+                </button>
+              );
+            })}
           </div>
           <button onClick={() => navigate('next')} disabled={spread === spreadCount - 1}
             style={{ width: 40, height: 40, borderRadius: '50%', background: spread === spreadCount - 1 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.15)', border: 'none', cursor: spread === spreadCount - 1 ? 'not-allowed' : 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

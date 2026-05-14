@@ -7,6 +7,7 @@ import { Footer } from '@/components/ui/Footer';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { X, Upload } from 'lucide-react';
 import { submitOrder } from '@/lib/submitOrder';
+import { compressImageFile } from '@/lib/compress-upload-image';
 import Image from 'next/image';
 
 interface MagazineOrder {
@@ -240,19 +241,25 @@ function DesignerUploadContent() {
 
   const totalPrice = calculateTotalPrice();
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + photos.length > 50) {
       alert('Максимум 50 фото');
       return;
     }
 
-    const newPhotos = files.map(file => ({
+    // Compress oversized phone photos so the upload fits the API body limit.
+    const compressedFiles = await Promise.all(files.map(async f => {
+      const { file } = await compressImageFile(f);
+      return file;
+    }));
+    const newPhotos = compressedFiles.map(file => ({
       file,
       preview: URL.createObjectURL(file as Blob)
     }));
 
     setPhotos(prev => [...prev, ...newPhotos]);
+    e.target.value = '';
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -269,7 +276,7 @@ function DesignerUploadContent() {
     e.stopPropagation();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -279,7 +286,11 @@ function DesignerUploadContent() {
       return;
     }
 
-    const newPhotos = files.map(file => ({
+    const compressedFiles = await Promise.all(files.map(async f => {
+      const { file } = await compressImageFile(f);
+      return file;
+    }));
+    const newPhotos = compressedFiles.map(file => ({
       file,
       preview: URL.createObjectURL(file as Blob)
     }));
@@ -571,7 +582,7 @@ function DesignerUploadContent() {
               Перетягніть фото сюди або натисніть для вибору
             </p>
             <p style={{ fontSize: '13px', color: '#9ca3af' }}>
-              JPG, PNG, HEIC · мінімум 300 dpi · до 200 МБ на файл · максимум 50 фото
+              JPG, PNG, HEIC · мінімум 300 dpi · великі фото стискаємо автоматично · максимум 50 фото
             </p>
           </div>
 

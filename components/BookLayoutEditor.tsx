@@ -3086,9 +3086,11 @@ export default function BookLayoutEditor() {
                                   style={{ width:32, height:28, border:'1px solid #e2e8f0', borderRadius:4, cursor:'pointer', padding:1 }}/>
                                 <span style={{ fontSize:7, color:'#94a3b8' }}>колір</span>
                               </div>
-                              <input type="range" min={10} max={72} value={tb.fontSize} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontSize:+e.target.value}:t)}))}
-                                style={{ flex:1 }}/>
-                              <span style={{ fontSize:10, color:'#94a3b8', minWidth:20 }}>{tb.fontSize}</span>
+                              <div style={{ display:'flex', flexDirection:'column', flex:1, gap:1 }}>
+                                <input type="range" min={10} max={72} value={tb.fontSize} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontSize:+e.target.value}:t)}))}
+                                  style={{ width:'100%' }}/>
+                                <span style={{ fontSize:7, color:'#94a3b8', textAlign:'center' }}>розмір {tb.fontSize}px</span>
+                              </div>
                               <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,bold:!t.bold}:t)}))}
                                 style={{ padding:'2px 6px', border: tb.bold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:4, background: tb.bold?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:700 }}>B</button>
                             </div>
@@ -6727,10 +6729,12 @@ export default function BookLayoutEditor() {
                               <input type="color" value={tb.color}
                                 onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,color:e.target.value}:t)}))}
                                 style={{ width:32, height:32, border:'none', borderRadius:4, cursor:'pointer' }}/>
-                              <input type="range" min={10} max={72} value={tb.fontSize}
-                                onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontSize:+e.target.value}:t)}))}
-                                style={{ flex:1 }}/>
-                              <span style={{ fontSize:11, color:'#94a3b8', minWidth:28 }}>{tb.fontSize}</span>
+                              <div style={{ display:'flex', flexDirection:'column', flex:1, gap:2 }}>
+                                <span style={{ fontSize:9, color:'#64748b', fontWeight:700 }}>Розмір: {tb.fontSize}px</span>
+                                <input type="range" min={10} max={72} value={tb.fontSize}
+                                  onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontSize:+e.target.value}:t)}))}
+                                  style={{ width:'100%' }}/>
+                              </div>
                               <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,bold:!t.bold}:t)}))}
                                 style={{ padding:'4px 8px', border: tb.bold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: tb.bold?'#f0f3ff':'#fff', cursor:'pointer', fontSize:12, fontWeight:700 }}>B</button>
                             </div>

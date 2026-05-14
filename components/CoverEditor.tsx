@@ -203,7 +203,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
       setSnapLines({ x: lx.length ? lx : undefined, y: ly.length ? ly : undefined });
       onChange({
         printedTextBlocks: texts.map(t => t.id === id
-          ? { ...t, x: Math.max(2,Math.min(98, snX)), y: Math.max(2,Math.min(98, snY)) }
+          ? { ...t, x: Math.max(8,Math.min(92, snX)), y: Math.max(8,Math.min(92, snY)) }
           : t)
       });
     }, () => setSnapLines({})); // clear on release
@@ -441,21 +441,29 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
             })}
             {/* Text blocks */}
             {texts.map(tb => {
-              // Clamp x so text center never goes outside safe zone
-              // With translate(-50%,-50%), safe range is ~10%..90%
-              const safeX = Math.max(10, Math.min(90, tb.x));
-              const safeY = Math.max(5, Math.min(95, tb.y));
+              // Safe zone for cover text. The print bleed is ~3mm out of
+              // 200mm (≈1.5%), and a print-safe inner margin is another
+              // 5mm (2.5%) — so anything outside ~6%..94% risks getting
+              // trimmed off. We clamp tighter to 8..92 to give visual
+              // breathing room and match what designers expect.
+              const safeX = Math.max(8, Math.min(92, tb.x));
+              const safeY = Math.max(8, Math.min(92, tb.y));
+              // The text wraps inside its own box now (whiteSpace: normal
+              // + maxWidth) — this kills the right-edge overflow that
+              // happens when a long Ukrainian word at fontSize 38 spills
+              // past the spine. wordBreak handles glued long URLs/dates.
               return (
               <div key={tb.id} onPointerDown={e => startTextDrag(e, tb.id, tb.x, tb.y)}
                 style={{ position:'absolute', left:`${safeX}%`, top:`${safeY}%`, transform:'translate(-50%,-50%)',
-                  cursor:'move', zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'manipulation' }}>
+                  cursor:'move', zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'manipulation', maxWidth: `${canvasW * 0.84}px` }}>
                 <span contentEditable suppressContentEditableWarning
                   onBlur={e=>onChange({printedTextBlocks:texts.map(t=>t.id===tb.id?{...t,text:e.currentTarget.textContent||''}:t)})}
                   onPointerDown={e=>e.stopPropagation()}
                   onClick={e=>{e.stopPropagation();(e.target as HTMLElement).focus();}}
                   style={{ color:tb.color||'#fff', fontSize:tb.fontSize+'px', fontFamily:tb.fontFamily+',serif',
-                    fontWeight:tb.bold?700:400, outline:'none', cursor:'text', display:'block', whiteSpace:'nowrap',
-                    textShadow:'0 1px 3px rgba(0,0,0,0.5)', minWidth:'40px', maxWidth: canvasW*0.8+'px', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    fontWeight:tb.bold?700:400, outline:'none', cursor:'text', display:'block',
+                    whiteSpace:'normal', wordBreak:'break-word', textAlign:'center', lineHeight:1.1,
+                    textShadow:'0 1px 3px rgba(0,0,0,0.5)', minWidth:'40px' }}>
                   {tb.text}
                 </span>
                 <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}

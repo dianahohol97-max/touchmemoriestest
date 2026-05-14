@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { Suspense, useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, Mail, Phone, User } from 'lucide-react'
+import { compressImageFile } from '@/lib/compress-upload-image'
 
 interface UploadedFile {
   id: string
@@ -55,18 +56,34 @@ function StepIndicator({ current }: { current: number }) {
 
 function PhotoUploadStep({ data, onChange }: { data: UploadedFile[], onChange: (files: UploadedFile[]) => void }) {
   const [dragging, setDragging] = useState(false)
+  // Compression status: shows a spinner + "стискаємо N з M" while we shrink
+  // oversized photos to keep the upload under Vercel's body-size limit.
+  // Real iPhone HEIC/JPEG can be 8-15 MB each — without this, 30 photos
+  // blows past 200 MB and the request fails silently on the server.
+  const [compressing, setCompressing] = useState<{ done: number; total: number } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const processFiles = (fileList: FileList | null) => {
+  const processFiles = async (fileList: FileList | null) => {
     if (!fileList) return
-    const newFiles: UploadedFile[] = Array.from(fileList).map(file => ({
-      id: Math.random().toString(36).slice(2),
-      name: file.name,
-      size: file.size,
-      file,
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
-    }))
-    onChange([...data, ...newFiles])
+    const incoming = Array.from(fileList)
+    setCompressing({ done: 0, total: incoming.length })
+    const processed: UploadedFile[] = []
+    for (let i = 0; i < incoming.length; i++) {
+      const file = incoming[i]
+      // compressImageFile passes through small files and non-images (HEIC,
+      // ZIP) untouched, so this is safe to call on everything.
+      const { file: finalFile } = await compressImageFile(file)
+      processed.push({
+        id: Math.random().toString(36).slice(2),
+        name: finalFile.name,
+        size: finalFile.size,
+        file: finalFile,
+        preview: finalFile.type.startsWith('image/') ? URL.createObjectURL(finalFile) : undefined,
+      })
+      setCompressing({ done: i + 1, total: incoming.length })
+    }
+    setCompressing(null)
+    onChange([...data, ...processed])
   }
 
   const removeFile = (id: string) => onChange(data.filter(f => f.id !== id))
@@ -75,7 +92,7 @@ function PhotoUploadStep({ data, onChange }: { data: UploadedFile[], onChange: (
   return (
     <div>
       <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 1: Завантажте ваші фотографії</h2>
-      <p className="text-gray-500 text-sm mb-6">Підтримуються JPG, PNG, HEIC, ZIP. Максимум 200 МБ загалом.</p>
+      <p className="text-gray-500 text-sm mb-6">JPG, PNG, HEIC, ZIP. Великі фото з телефону ми автоматично стискаємо до якості, потрібної для друку — обмеження по розміру файлу немає.</p>
 
       <div
         onDragOver={e => { e.preventDefault(); setDragging(true) }}
@@ -86,9 +103,18 @@ function PhotoUploadStep({ data, onChange }: { data: UploadedFile[], onChange: (
       >
         <Upload className="w-10 h-10 text-[#1e2d7d] mx-auto mb-3" />
         <p className="font-semibold text-[#1e2d7d]">Перетягніть фото сюди або натисніть для вибору</p>
-        <p className="text-gray-400 text-sm mt-1">JPG, PNG, HEIC, ZIP — до 200 МБ</p>
+        <p className="text-gray-400 text-sm mt-1">JPG, PNG, HEIC, ZIP</p>
         <input ref={inputRef} type="file" multiple accept="image/*,.zip,.heic" className="hidden" onChange={e => processFiles(e.target.files)} />
       </div>
+
+      {compressing && (
+        <div className="mt-4 flex items-center gap-3 bg-[#dbeafe] rounded-lg p-3">
+          <div className="w-5 h-5 border-2 border-[#1e2d7d] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <p className="text-sm font-medium text-[#1e2d7d]">
+            Готуємо фото до завантаження… {compressing.done} з {compressing.total}
+          </p>
+        </div>
+      )}
 
       {data.length > 0 && (
         <div className="mt-5 space-y-3">
