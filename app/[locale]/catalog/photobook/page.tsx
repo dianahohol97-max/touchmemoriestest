@@ -9,6 +9,7 @@ import { goToConstructor } from '@/lib/constructorRouting';
 import { getProductSEO } from '@/lib/seoContent';
 import { useAuthModal } from '@/lib/auth-modal-context';
 import { lookupPrice } from '@/lib/editor/pricing';
+import { usePhotobookPrices } from '@/lib/editor/usePrices';
 
 const COVER_TYPES = [
   {
@@ -92,9 +93,18 @@ export default function PhotobookPage() {
     return false;
   };
 
-  // Calculate prices — same pricing table as the constructor, updates live with pages/size/cover
+  // Calculate prices — fetched live from Supabase via /api/pricing/photobook.
+  // The hook returns null while loading and on error; lookupPrice falls back
+  // to 0 in those cases, which keeps the existing UI shape (price label
+  // shows "0 ₴" briefly on first paint of a fresh browser). The localStorage
+  // cache inside the hook makes this near-instant on repeat visits.
+  // NOTE: tracing paper ("калька") shows "ціна уточнюється" copy and is
+  // intentionally NOT added to the displayed price here — this page is a
+  // lead-gen surface and the kalka surcharge is communicated by the team.
+  // The editor (where kalka is part of the live config) does add the surcharge.
+  const { table: priceTable } = usePhotobookPrices();
   const coverTypeLabel = COVER_TYPES.find(c => c.key === coverType)?.name || '';
-  const basePrice = lookupPrice(coverTypeLabel, size, pages, 0);
+  const basePrice = lookupPrice(priceTable, coverTypeLabel, size, pages, 0);
 
   let subtotal = basePrice * copies;
   if (photoRetouching && retouchChoice === 'specify') subtotal += retouchCount * 7;

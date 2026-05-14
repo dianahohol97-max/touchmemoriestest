@@ -4,6 +4,7 @@ import { ChevronLeft, ZoomIn, ZoomOut, Wand2, RotateCcw, Eye, HelpCircle } from 
 import { useRouter } from 'next/navigation';
 import { useBookEditorStore } from '@/lib/editor/store';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
+import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import { normalizeSizeKey, getProductFlags } from '@/lib/editor/utils';
 
 interface EditorTopBarProps {
@@ -13,6 +14,7 @@ interface EditorTopBarProps {
 
 export function EditorTopBar({ onAddToCart, onSaveDesigner }: EditorTopBarProps) {
   const router = useRouter();
+  const { table: priceTable } = usePhotobookPrices();
   const {
     config, photos, pages, isMobile, zoom, setZoom,
     history, undo, autoFill, setShowPreview, setShowTooltips, setTooltipStep,
@@ -26,8 +28,10 @@ export function EditorTopBar({ onAddToCart, onSaveDesigner }: EditorTopBarProps)
   const sizeVal = normalizeSizeKey(config.selectedSize || '20x20');
   const currentPageCount = Math.max(0, pages.length - 1);
   const { dynamicPrice, priceDiff } = calculateDynamicPrice(
+    priceTable,
     config.selectedCoverType || 'Велюр', sizeVal, currentPageCount,
-    config.selectedPageCount || '20', config.totalPrice
+    config.selectedPageCount || '20', config.totalPrice,
+    !!config.enableKalka,
   );
   const effectiveCoverColor = useBookEditorStore(s => s.getEffectiveCoverColor());
   const totalSpreads = Math.ceil((pages.length - 1) / 2);

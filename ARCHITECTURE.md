@@ -45,7 +45,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 | Supabase client | `lib/supabase/client.ts` (browser) · `lib/supabase/server.ts` (RSC) · `lib/supabase/admin.ts` (service role) | Three separate clients, do NOT mix |
 | Supabase migrations | `supabase/migrations/` | Run via Supabase CLI |
 | Schema reference | `lib/supabase/schema/*.sql` | Authoritative reference for table shapes |
-| Pricing engine | `lib/editor/pricing.ts` | Dynamic price calculation from cover + size + pages + decoration |
+| Pricing engine | `lib/editor/pricing.ts` (pure) + `lib/editor/usePrices.ts` (client hook) + `app/api/pricing/photobook/route.ts` (server) | Photobook prices live in Supabase (`photobook_prices` table). API endpoint caches the matrix for 60s; the client hook fetches it and stores it in localStorage so the editor never shows a "0 ₴" flicker on repeat visits. `pricing.ts` itself is pure — all functions take a `PriceTable` argument. See "Pricing flow" below |
 | Salary calculator | `lib/salary/` + `app/admin/expenses/` | For team payroll |
 | Reporting | `lib/reporting/` + `app/admin/analytics/` | Dashboards, automated weekly reports |
 | Automation rules | `lib/automation/` + `app/admin/automations/` | Deadline calc, assignment, telegram + email notifications |
@@ -118,6 +118,24 @@ The product-type detection is in BookLayoutEditor via `_slug.includes('...')` ch
 - **Frames are currently overlays only.** They render on top of photos but the photo isn't constrained to the transparent area of the frame. Making frames into actual photo slots (PNG-on-top, photo underneath in transparent zone, with crop/zoom inside the frame) is the biggest open editor task.
 - **`BookPreviewModal` does not support:** multi-slot layouts, frames in preview, crop/zoom in preview, or spread mode. Full rewrite is pending.
 - **`SpreadNavigation` keyboard arrow keys** sometimes conflict with text-editing inside slots — this is by design (focus check), but it can confuse first-time editors.
+
+---
+
+## Pricing flow
+
+Photobook prices are NOT hardcoded in the codebase. They live in Supabase, in the `photobook_prices` table (joined to `cover_types` and `photobook_sizes`). Three components work together:
+
+1. **`app/api/pricing/photobook/route.ts`** — GET endpoint, server-side. Reads the full matrix (~466 rows) from Supabase, flattens it into a `{ cover_type, size, page_count, base_price, kalka_surcharge }` shape, returns JSON. Uses Next.js `revalidate = 60`, so price changes propagate to prod within 60s of a migration without redeploy.
+
+2. **`lib/editor/usePrices.ts`** — client React hook (`usePhotobookPrices`). On mount, seeds state from `localStorage` (24h TTL) for instant first paint, then fetches `/api/pricing/photobook` in the background and updates state if anything changed. Returns `{ table, loading, error }`. Used by `BookLayoutEditor`, `EditorTopBar`, and the photobook product page.
+
+3. **`lib/editor/pricing.ts`** — pure module. All exported functions (`lookupPrice`, `lookupPriceWithKalka`, `findPriceRow`, `calculateDynamicPrice`) take a `PriceTable` (or `null` for the fallback path) as their first argument. Knows nothing about React, fetch, or Supabase. Handles cover-type aliasing (`Velour` / `велюр` / `Velvet` → canonical `Велюр`), size normalisation (`20x30` → `20×30`), nearest-page-count fallback, and graceful null-table fallback to the price the user already saw.
+
+**Why this shape:** the editor route uses `dynamic: 'force-dynamic'` + `ssr: false` (the editor needs browser APIs and is 200KB+), so a Server Component cannot pass prices in as a prop. Going through a thin API route lets us keep server-side caching while still letting the client refresh on its own schedule.
+
+**Tracing paper ("калька") on the product page is not added to the displayed price** — the radio is intentionally lead-gen ("ціна уточнюється"). The editor, where kalka is part of the live config, does add the `kalka_surcharge` from the DB.
+
+**Historical note:** Until 2026-05-14, `pricing.ts` shipped a hardcoded ~150-row table. The table drifted from the DB — `velour_20×30` was missing entirely, so the editor showed 1200₴ instead of 1985₴ for velour 20×30 / 10pp / +kalka. The hardcoded table has been removed; the DB is now the single source of truth.
 
 ---
 

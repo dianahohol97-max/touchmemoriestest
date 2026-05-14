@@ -29,6 +29,7 @@ import {
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
+import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import { applySnap } from '@/lib/editor/snap';
 
 // Cyrillic decorative fonts
@@ -1004,6 +1005,7 @@ function LayoutSVG({ layout, active }: { layout: LayoutType; active: boolean }) 
 export default function BookLayoutEditor() {
   const router = useRouter();
   const t = useT();
+  const { table: priceTable } = usePhotobookPrices();
   const [isMobile, setIsMobile] = useState(false);
   const [mobilePanel, setMobilePanel] = useState(false); // bottom sheet open
   const [mobileLayoutGroup, setMobileLayoutGroup] = useState<string | null>(null); // selected layout group on mobile
@@ -2449,11 +2451,13 @@ export default function BookLayoutEditor() {
 //  Pricing (imported from @/lib/editor/pricing) 
   const currentPageCount = Math.max(0, pages.length - 1);
   const { dynamicPrice: baseDynamicPrice, priceDiff: basePriceDiff } = calculateDynamicPrice(
+    priceTable,
     config.selectedCoverType || 'Велюр',
     config.selectedSize || '20x20',
     currentPageCount,
     config.selectedPageCount || '20',
     config.totalPrice,
+    !!config.enableKalka,
   );
   // Add endpaper surcharge for unlocked forzats pages
   // Flat surcharge: 200₴ total regardless of how many endpapers are printed
