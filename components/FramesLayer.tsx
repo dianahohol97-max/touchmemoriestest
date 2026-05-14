@@ -14,6 +14,22 @@ export interface FrameConfig {
 export const DEFAULT_FRAME: FrameConfig = { frameId: null, color: '#1e2d7d', opacity: 100, scale: 0.6, x: 0, y: 0, zIndex: 5 };
 
 // PNG frames — rendered as <img> overlay, black bg = transparent (mix-blend-mode: multiply not needed, these have real alpha)
+//
+// PNG_FRAME_FILTER softens dark-opaque pixels that survive in the source
+// PNGs. Many of our floral frame assets were processed through background
+// removal that wasn't accurate at the edges of leaves and stems — the
+// removed white background became transparent correctly, but the dark
+// shadow detail INSIDE the leaves (e.g. RGB 9,31,17 with alpha 255) was
+// kept and now reads as "black blotches" against the pastel page colour.
+// Filter applies brightness(1.18) + contrast(0.88) + saturate(0.9) which
+// lifts those near-black pixels into muted greens/greys without washing
+// out the rest of the frame. This is a visual softener — it does not
+// alter the source files, and a future task is to rebuild the PNGs with
+// a cleaner background-removal pipeline (matting-based, not threshold).
+// The filter is applied identically in FramesLayer (editor) and
+// BookPreviewModal (preview) so what the customer sees matches.
+export const PNG_FRAME_FILTER = 'brightness(1.18) contrast(0.88) saturate(0.9)';
+
 export const PNG_FRAMES = [
   //  Акварельні квіткові 
   { id: 'png-pink-roses-watercolor',  label: 'Рожеві троянди',    group: 'Акварельні', src: '/frames/pink-roses-watercolor.png' },
@@ -270,7 +286,7 @@ export function FrameLayer({ frame, canvasW, canvasH, onChange, interactive }: F
         onMouseLeave={() => !dragging && setHover(false)}
         onMouseDown={handleDragStart}
       >
-        <img src={pngDef.src} alt="" draggable={false} style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', pointerEvents:'none' }} />
+        <img src={pngDef.src} alt="" draggable={false} style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', pointerEvents:'none', filter: PNG_FRAME_FILTER }} />
         {showHandles && (
           <>
             <div data-resize-handle="tl" style={handleStyle('tl')} onMouseDown={handleResizeStart('tl')} />
@@ -416,7 +432,7 @@ export function FrameControls({ frame, onChange }: FrameControlsProps) {
                   style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'6px 4px', border: active?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: active?'#f0f3ff':'#fff', cursor:'pointer' }}>
                   <div style={{ width:thumbW, height:thumbH, position:'relative', overflow:'hidden', borderRadius:4, background:'#f8fafc' }}>
                     <img src={f.src} alt={f.label}
-                      style={{ width:'100%', height:'100%', objectFit:'contain' }} />
+                      style={{ width:'100%', height:'100%', objectFit:'contain', filter: PNG_FRAME_FILTER }} />
                   </div>
                   <span style={{ fontSize:9, fontWeight:600, color: active?'#1e2d7d':'#64748b', lineHeight:1.2, textAlign:'center' }}>{f.label}</span>
                 </button>

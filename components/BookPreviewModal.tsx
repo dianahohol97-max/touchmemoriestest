@@ -4,7 +4,8 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getSlotDefs } from '@/lib/editor/slot-defs';
 import { BackgroundLayer, PageBackground, DEFAULT_BG } from './BackgroundLayer';
 import type { Shape } from './ShapesLayer';
-import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES } from './FramesLayer';
+import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from './FramesLayer';
+import type { QROverlay } from '@/lib/editor/qrOverlay';
 
 //  Interfaces 
 
@@ -56,6 +57,7 @@ interface BookPreviewProps {
   pageFrames?: Record<number, FrameConfig>;
   pageShapes?: Record<number, Shape[]>;
   pageStickers?: Record<number, { id: string; url?: string; emoji?: string; x: number; y: number; w: number | string; h: number | string }[]>;
+  qrOverlays?: Record<number, QROverlay[]>;
   slotGap?: number;
   pageGap?: number;
   pageBorder?: { width: number; color: string };
@@ -70,7 +72,7 @@ export function BookPreviewModal({
   pages, photos, propW, propH, onClose,
   freeSlots = {},
   coverState, isPrinted, effectiveCoverColor,
-  pageBgs = {}, pageFrames = {}, pageShapes = {}, pageStickers = {},
+  pageBgs = {}, pageFrames = {}, pageShapes = {}, pageStickers = {}, qrOverlays = {},
   slotGap = 4, pageGap = 0, pageBorder = { width: 0, color: '#e2e8f0' },
   kalkaState, isSpreadMode = true, hasKalka = false,
 }: BookPreviewProps) {
@@ -148,6 +150,19 @@ export function BookPreviewModal({
     ));
   };
 
+  //  Render QR overlays (non-interactive, no controls in preview)
+  //  QR is always square; w === h is enforced during edit so we just use w
+  //  on both axes here. zIndex 14 matches the editor so QR sits above
+  //  stickers (12) and shapes (3) consistently between edit and preview.
+  const renderQR = (qrs: QROverlay[] | undefined) => {
+    if (!qrs?.length) return null;
+    return qrs.map(qr => (
+      <div key={qr.id} style={{ position: 'absolute', left: qr.x, top: qr.y, width: qr.w, height: qr.h, zIndex: 14, pointerEvents: 'none' }}>
+        <img src={qr.dataUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: '#fff' }} draggable={false} />
+      </div>
+    ));
+  };
+
   //  Render frame (non-interactive preview) 
   const renderFrame = (fc: FrameConfig, cW: number, cH: number) => {
     if (!fc.frameId) return null;
@@ -163,7 +178,7 @@ export function BookPreviewModal({
     return (
       <div style={{ position: 'absolute', left: fcx, top: fcy, width: fw, height: fh, zIndex: fc.zIndex ?? 35, pointerEvents: 'none', overflow: 'visible' }}>
         {pngDef ? (
-          <img src={pngDef.src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 2, opacity: fc.opacity / 100 }} />
+          <img src={pngDef.src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 2, opacity: fc.opacity / 100, filter: PNG_FRAME_FILTER }} />
         ) : svgDef ? (
           <svg width={fw} height={fh} style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 2, opacity: fc.opacity / 100 }}
             dangerouslySetInnerHTML={{ __html: svgDef.render(fw, fh, fc.color, 100) }} />
@@ -254,6 +269,7 @@ export function BookPreviewModal({
         {renderShapes(shapes)}
         {renderFrame(fc, cW, cH)}
         {renderStickers(stickers, cW)}
+        {renderQR(qrOverlays[pageIdx])}
 
         {/* Page number */}
         <div style={{ position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', fontSize: 8, color: 'rgba(0,0,0,0.2)', pointerEvents: 'none' }}>{pageIdx > 0 ? pageIdx : ''}</div>
@@ -322,6 +338,7 @@ export function BookPreviewModal({
           )}
           {renderFrame(getFrame(0), pageW, pageH)}
           {renderShapes(pageShapes[0] || [])}
+          {renderStickers(pageStickers[0], pageW)}
         </div>
       );
     }
@@ -361,6 +378,7 @@ export function BookPreviewModal({
 
         {renderFrame(getFrame(0), pageW, pageH)}
         {renderShapes(pageShapes[0] || [])}
+        {renderStickers(pageStickers[0], pageW)}
       </div>
     );
   };

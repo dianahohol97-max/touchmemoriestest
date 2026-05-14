@@ -7046,6 +7046,7 @@ export default function BookLayoutEditor() {
           pageFrames={pageFrames}
           pageShapes={pageShapes}
           pageStickers={pageStickers}
+          qrOverlays={qrOverlays}
           slotGap={slotGap}
           pageGap={pageGap}
           pageBorder={pageBorder}

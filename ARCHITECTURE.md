@@ -81,7 +81,7 @@ The photobook/travel book editor is the most complex part of the codebase. **80%
 - **`components/CoverEditor.tsx`** — separate cover editor, called by BookLayoutEditor for the cover spread.
 - **`components/FramesLayer.tsx`** — overlay layer for PNG + SVG frames on a page.
 - **`components/FreeSlotLayer.tsx`** — non-template free-floating photo slots with their own DPI checks.
-- **`components/BookPreviewModal.tsx`** — preview of the finished book (currently does NOT support multi-slot, frames, spread mode — pending rewrite).
+- **`components/BookPreviewModal.tsx`** — preview of the finished book. Renders backgrounds, photo slots, frames (PNG+SVG), shapes, stickers, QR overlays, and the kalka page. Multi-slot layout rendering is still pending — it currently uses single-slot getSlotDefs only.
 
 ### Supporting files in `lib/editor/`
 - **`types.ts`** — `PhotoData`, `BookConfig`, `CoverState`, `CoverDecoType`, `LayoutType` etc.
@@ -116,7 +116,7 @@ The product-type detection is in BookLayoutEditor via `_slug.includes('...')` ch
 - **Antigravity sometimes pushes broken `useT()` placement.** Run `npx tsc --noEmit | grep error TS | grep -v TS2307` after pulling. The `TS2307` filter is intentional — it ignores module-not-found errors that are not relevant.
 - **i18n in DB-driven content** (Footer, products, categories) requires the `getLocalized()` helper. Footer still uses raw fields in some places — this is a known incomplete task.
 - **Frames are currently overlays only.** They render on top of photos but the photo isn't constrained to the transparent area of the frame. Making frames into actual photo slots (PNG-on-top, photo underneath in transparent zone, with crop/zoom inside the frame) is the biggest open editor task.
-- **`BookPreviewModal` does not support:** multi-slot layouts, frames in preview, crop/zoom in preview, or spread mode. Full rewrite is pending.
+- **`BookPreviewModal` does not yet support:** multi-slot layouts (uses single-slot getSlotDefs), crop/zoom inside slots (photos render with objectFit:cover only). Frames, shapes, stickers, QR overlays, and cover stickers ARE rendered.
 - **`SpreadNavigation` keyboard arrow keys** sometimes conflict with text-editing inside slots — this is by design (focus check), but it can confuse first-time editors.
 
 ---
@@ -227,10 +227,10 @@ See `ENV_VARS_REQUIRED.md` and `VERCEL_ENV_VARS.md` for complete list.
 These are the recurring "why is this still broken" issues. Update this list when items are resolved.
 
 1. **Frames as photo slots** — frames are currently overlay-only. Photo doesn't fit into transparent zone. Files: `FramesLayer.tsx`, `BookLayoutEditor.tsx`. Critical for editor usability.
-2. **`BookPreviewModal` rewrite** — does not support multi-slot, frames, crop/zoom, spread mode. Full rewrite needed.
+2. **`BookPreviewModal` partial features** — Frames, shapes, stickers, QR overlays now render correctly in preview. Still missing: multi-slot layouts (uses single-slot only) and per-slot crop/zoom. Full multi-slot support needs `getSlotDefs` integration similar to the editor.
 3. **Footer i18n DB application** — `footer_sections.translations` exists but is not always applied; `Footer.tsx` falls back to raw `section_title` instead of `getLocalized(...)`.
 4. **Kalka FontPicker** — still uses basic `<select>` with 10 fonts; should use `components/editor/FontPicker.tsx` like the rest of the editor.
-5. **PNG frame quality** — current frames look basic vs Canva references. Need higher-quality botanical/gold/watercolour sets.
+5. **PNG frame quality** — current frames look basic vs Canva references. Need higher-quality botanical/gold/watercolour sets. ALSO: ~7% of opaque pixels in many of the floral frames are near-black (RGB <40, alpha 255) — leaf shadow detail that survived an incomplete background-removal pass. Currently softened at render time via `PNG_FRAME_FILTER` (brightness 1.18 / contrast 0.88 / saturate 0.9 applied in FramesLayer + BookPreviewModal). Proper fix is to rebuild the 34 PNGs with a matting-based BG removal pipeline (e.g. `@imgly/background-removal` which is already a dependency) instead of the colour-threshold tool that was used.
 6. **Cover templates breadth** — magazine and travel book templates are fewer than photobook. Expanding from Canva designs is ongoing.
 7. **Designer cabinet revision lifecycle gaps** — known but not yet documented in detail. Audit the flow when next touching `app/admin/designer/`.
 8. **Cart/checkout end-to-end audit** — known to have edge-case breakages, full walkthrough as a customer is a recurring TODO.
