@@ -683,7 +683,24 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             totalPrice: calculatePrice(),
             photoRecommendation: getPhotoRecommendation(),
             minPageCount: (() => {
-                // Minimum pages for this size/cover from available price entries
+                // Minimum pages varies by product type.
+                //
+                // For photobooks/journals/wishbooks we read it from the
+                // Supabase photobook_prices table (filtered by the chosen
+                // size and cover) since pricing tiers per format vary.
+                //
+                // For magazines and travelbooks we use the static
+                // PHOTO_RECOMMENDATIONS tier list declared at the top of
+                // this file — the price table in photobook_prices is
+                // photobook-only, so deriving min from it would always
+                // return the fallback (6) and let customers through the
+                // editor with too few pages. Magazine minimum is 8,
+                // travelbook minimum is 12 per the tier lists.
+                const pt = getProductType();
+                if (pt === 'magazine' || pt === 'travelbook') {
+                    const tiers = PHOTO_RECOMMENDATIONS[pt];
+                    return tiers && tiers.length > 0 ? tiers[0].pages : 8;
+                }
                 const available = photobookPrices
                     .filter((p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize)
                     .map((p: any) => p.page_count);

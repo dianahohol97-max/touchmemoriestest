@@ -29,6 +29,7 @@ import {
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
+import { getMagazinePrice } from '@/lib/products';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import { applySnap } from '@/lib/editor/snap';
 import {
@@ -1318,7 +1319,16 @@ export default function BookLayoutEditor() {
           }
           // draft pages includes cover (page[0]), so content = d.pages.length - 1
           const draftContent = d.pages.length - 1;
-          if (Math.abs(draftContent - expectedTotal) > 2) {
+          // For magazines specifically the minimum is 8 content pages —
+          // a draft saved before this validation could have 6 (when the
+          // editor's minPageCount fallback was wrong) and silently
+          // restore there, putting customers below the actual print
+          // minimum. If we see that, drop the draft and rebuild from
+          // the current selectedPageCount.
+          const cfgSlug = currentConfig ? (JSON.parse(currentConfig).productSlug || '') : '';
+          const isDraftMagazine = /magazine|journal|zhurnal/i.test(cfgSlug);
+          const magazineMinTooLow = isDraftMagazine && draftContent < 8;
+          if (Math.abs(draftContent - expectedTotal) > 2 || magazineMinTooLow) {
             // Draft is from a different order — discard it
             sessionStorage.removeItem('bookEditorDraft');
           } else {
@@ -2540,15 +2550,39 @@ export default function BookLayoutEditor() {
 
 //  Pricing (imported from @/lib/editor/pricing) 
   const currentPageCount = Math.max(0, pages.length - 1);
-  const { dynamicPrice: baseDynamicPrice, priceDiff: basePriceDiff } = calculateDynamicPrice(
-    priceTable,
-    config.selectedCoverType || 'Велюр',
-    config.selectedSize || '20x20',
-    currentPageCount,
-    config.selectedPageCount || '20',
-    config.totalPrice,
-    !!config.enableKalka,
-  );
+
+  // Pricing path differs by product type. Photobooks/journals/wishbooks use
+  // the Supabase photobook_prices table via calculateDynamicPrice — that
+  // function returns the fallback price for any product not in the table.
+  // Magazines/travelbooks aren't in that table, so without a separate
+  // pricing path they were stuck showing config.totalPrice from the
+  // product page and any "+X₴ for added pages" diff came from the wrong
+  // bucket. Now magazine prices come from getMagazinePrice() in
+  // lib/products.ts, which is the same function the product page uses,
+  // and includes the saddle-stitch / perfect-binding tiers.
+  let baseDynamicPrice: number;
+  let basePriceDiff: number;
+  if (isMagazine) {
+    // Use the magazine price table directly. selectedPageCount tells us
+    // what the customer originally ordered (basis for the +X₴ diff).
+    const orderedPages = parseInt((config.selectedPageCount || '8').match(/\d+/)?.[0] || '8', 10);
+    const baseOrdered = getMagazinePrice(orderedPages, false);
+    const baseCurrent = getMagazinePrice(currentPageCount, false);
+    baseDynamicPrice = baseCurrent;
+    basePriceDiff = baseCurrent - baseOrdered;
+  } else {
+    const result = calculateDynamicPrice(
+      priceTable,
+      config.selectedCoverType || 'Велюр',
+      config.selectedSize || '20x20',
+      currentPageCount,
+      config.selectedPageCount || '20',
+      config.totalPrice,
+      !!config.enableKalka,
+    );
+    baseDynamicPrice = result.dynamicPrice;
+    basePriceDiff = result.priceDiff;
+  }
   // Add endpaper surcharge for unlocked forzats pages
   // Flat surcharge: 200₴ total regardless of how many endpapers are printed
   const endpaperExtra = (endpaperUnlocked.first || endpaperUnlocked.last) ? endpaperSurcharge : 0;
