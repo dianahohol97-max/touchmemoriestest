@@ -66,6 +66,25 @@ const DESIGN_STATUSES: Record<string, { label: string; color: string; bg: string
     rejected:    { label: 'На доопрацюванні',color: '#ef4444', bg: '#fef2f2' },
 };
 
+// Product type → gradient + display label (quick-fix fallback when no thumbnail_url)
+function getProductVisual(productType?: string): { gradient: string; label: string } {
+    const pt = (productType || '').toLowerCase();
+    if (pt.includes('magazine') || pt.includes('journal') || pt.includes('zhurnal') || pt.includes('журнал')) {
+        return { gradient: 'linear-gradient(135deg, #ede9fe, #c4b5fd)', label: 'Журнал' };
+    }
+    if (pt.includes('travel')) {
+        return { gradient: 'linear-gradient(135deg, #d1fae5, #6ee7b7)', label: 'Travel book' };
+    }
+    if (pt.includes('wish')) {
+        return { gradient: 'linear-gradient(135deg, #fce7f3, #f9a8d4)', label: 'Wishbook' };
+    }
+    if (pt.includes('photobook') || pt.includes('photo') || pt.includes('фото')) {
+        return { gradient: 'linear-gradient(135deg, #dbeafe, #93c5fd)', label: 'Фотокнига' };
+    }
+    // Default — neutral but coloured (not grey)
+    return { gradient: 'linear-gradient(135deg, #e0e7ff, #a5b4fc)', label: 'Дизайн' };
+}
+
 function getOrderStatus(key: string) {
     return ORDER_STATUSES.find(s => s.key === key) || ORDER_STATUSES[0];
 }
@@ -91,6 +110,8 @@ export default function AccountPage() {
         first_name: '', last_name: '', phone: '', birthday: '', email_subscribed: false
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [editingDesignId, setEditingDesignId] = useState<string | null>(null);
+    const [editingDesignName, setEditingDesignName] = useState('');
 
     useEffect(() => {
         const init = async () => {
@@ -158,6 +179,39 @@ export default function AccountPage() {
         await supabase.from('wishlists').delete().eq('id', id);
         setWishlist(prev => prev.filter(w => w.id !== id));
         toast.success('Видалено зі списку бажань');
+    };
+
+    // Rename a design (editor → projects.name, designer → customer_projects.title)
+    const renameDesign = async (d: Design, newName: string) => {
+        const trimmed = newName.trim();
+        if (!trimmed) return;
+        const currentLabel = d.title || d.name || '';
+        if (trimmed === currentLabel) return;
+        try {
+            if (d.source === 'editor') {
+                await supabase.from('projects').update({ name: trimmed }).eq('id', d.id);
+                setDesigns(prev => prev.map(x => x.id === d.id && x.source === 'editor' ? { ...x, name: trimmed } : x));
+            } else {
+                await supabase.from('customer_projects').update({ title: trimmed }).eq('id', d.id);
+                setDesigns(prev => prev.map(x => x.id === d.id && x.source === 'designer' ? { ...x, title: trimmed } : x));
+            }
+            toast.success('Назву оновлено');
+        } catch {
+            toast.error('Не вдалося оновити назву');
+        }
+    };
+
+    // Delete a design (with confirm)
+    const removeDesign = async (d: Design) => {
+        if (!window.confirm('Видалити цей проєкт назавжди? Цю дію не можна скасувати.')) return;
+        try {
+            const table = d.source === 'editor' ? 'projects' : 'customer_projects';
+            await supabase.from(table).delete().eq('id', d.id);
+            setDesigns(prev => prev.filter(x => x.id !== d.id));
+            toast.success('Проєкт видалено');
+        } catch {
+            toast.error('Не вдалося видалити');
+        }
     };
 
     const saveProfile = async () => {
@@ -404,26 +458,65 @@ export default function AccountPage() {
                                             const label = d.title || d.name || (d.product_type ? `${d.product_type}${d.format ? ' ' + d.format : ''}` : 'Дизайн');
                                             const editUrl = d.source === 'editor' ? `/editor/${d.id}` : `/review/${d.id}`;
                                             const editLabel = d.source === 'editor' ? 'Продовжити редагування' : 'Переглянути';
+                                            const visual = getProductVisual(d.product_type);
+                                            const isEditing = editingDesignId === d.id;
 
                                             return (
                                                 <div key={d.id} style={{ background: 'white', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid #e9edf5', display: 'flex', flexDirection: 'column' }}>
                                                     {/* Thumbnail */}
-                                                    <div style={{ height: 140, background: 'linear-gradient(135deg, #f0f4ff, #e9edf5)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                                                    <div style={{ height: 140, background: d.thumbnail_url ? 'linear-gradient(135deg, #f0f4ff, #e9edf5)' : visual.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
                                                         {d.thumbnail_url ? (
                                                             <img src={d.thumbnail_url} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
                                                         ) : (
-                                                            <div style={{ textAlign: 'center' }}>
-                                                                <BookOpen size={36} color="#263a99" opacity={0.4}/>
+                                                            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                                                <BookOpen size={32} color="#fff" opacity={0.85}/>
+                                                                <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', letterSpacing: '0.02em', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
+                                                                    {visual.label}
+                                                                </span>
                                                             </div>
                                                         )}
                                                         {/* Source badge */}
                                                         <div style={{ position: 'absolute', top: 10, left: 10, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: d.source === 'editor' ? '#eff6ff' : '#f5f3ff', color: d.source === 'editor' ? '#3b82f6' : '#8b5cf6', border: `1px solid ${d.source === 'editor' ? '#bfdbfe' : '#ddd6fe'}` }}>
                                                             {d.source === 'editor' ? 'Редактор' : 'Дизайнер'}
                                                         </div>
+                                                        {/* Delete button (top-right, like wishlist) */}
+                                                        <button onClick={() => removeDesign(d)}
+                                                            title="Видалити проєкт"
+                                                            style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: '50%', background: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                                                            <Trash2 size={13} color="#ef4444"/>
+                                                        </button>
                                                     </div>
 
                                                     <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                                        <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+                                                        {isEditing ? (
+                                                            <input
+                                                                autoFocus
+                                                                value={editingDesignName}
+                                                                onChange={(e) => setEditingDesignName(e.target.value)}
+                                                                onBlur={async () => {
+                                                                    await renameDesign(d, editingDesignName);
+                                                                    setEditingDesignId(null);
+                                                                }}
+                                                                onKeyDown={async (e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        await renameDesign(d, editingDesignName);
+                                                                        setEditingDesignId(null);
+                                                                    } else if (e.key === 'Escape') {
+                                                                        setEditingDesignId(null);
+                                                                    }
+                                                                }}
+                                                                style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', border: '1px solid #c7d2fe', borderRadius: 6, padding: '4px 8px', outline: 'none', width: '100%', fontFamily: 'inherit' }}
+                                                            />
+                                                        ) : (
+                                                            <div
+                                                                onClick={() => {
+                                                                    setEditingDesignId(d.id);
+                                                                    setEditingDesignName(label);
+                                                                }}
+                                                                title="Натисніть, щоб перейменувати"
+                                                                style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'text', padding: '4px 0' }}
+                                                            >{label}</div>
+                                                        )}
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                             <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 20, background: dSt.bg, color: dSt.color }}>
                                                                 {dSt.label}

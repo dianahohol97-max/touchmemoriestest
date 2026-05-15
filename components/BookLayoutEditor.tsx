@@ -2956,43 +2956,53 @@ export default function BookLayoutEditor() {
                   const productTag = isMagazine ? 'magazine' : isWishbook ? 'wishbook' : 'magazine';
                   const textTemplates = PAGE_TEMPLATES.filter(t => !t.tags || t.tags.includes(productTag) || t.tags.includes('journal'));
                   const groups = [...new Set(textTemplates.map(t => t.group))];
+                  const tooltipMsg = !hasTextLayout ? 'Потрібна верстка тексту +195₴' : undefined;
                   return groups.map(group => (
                     <div key={'txt-'+group}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', padding: '8px 4px 4px', textTransform: 'uppercase' }}> {group}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                         {textTemplates.filter(t => t.group === group).map(tmpl => (
-                          <button key={tmpl.id} title={tmpl.label}
-                            onClick={() => {
-                              const pageIdx = getActivePageIdx();
-                              const existingBlocks = pages[pageIdx]?.textBlocks || [];
-                              if (existingBlocks.length > 0) {
-                                if (!window.confirm('Замінити поточний шаблон? Всі текстові блоки на сторінці будуть видалені.')) return;
-                              }
-                              pushHistory();
-                              const newBlocks = tmpl.texts.map((t, ti) => ({
-                                id: 'ptmpl-' + Date.now() + '-' + ti + '-' + Math.random().toString(36).slice(2,6),
-                                text: t.text, x: t.x, y: t.y,
-                                fontSize: t.fontSize, fontFamily: t.fontFamily,
-                                color: t.color, bold: t.bold, italic: t.italic || false,
-                              }));
-                              setPages(prev => prev.map((p, i) => i !== pageIdx ? p : {
-                                ...p,
-                                textBlocks: newBlocks,
-                              }));
-                              if (tmpl.bgColor && tmpl.bgColor !== '#ffffff') {
-                                setPageBgs(prev => ({ ...prev, [pageIdx]: { type: 'color' as const, color: tmpl.bgColor!, opacity: 100, imageUrl: null, blur: 0 } }));
-                              }
-                              toast.success(`"${tmpl.label}" застосовано`);
+                          <div
+                            key={tmpl.id}
+                            title={tooltipMsg}
+                            style={{
+                              opacity: hasTextLayout ? 1 : 0.45,
+                              pointerEvents: hasTextLayout ? 'auto' : 'none',
                             }}
-                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '7px 4px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>
-                            <div style={{ width: '100%', height: 48, borderRadius: 4, background: tmpl.bgColor || '#f8fafc', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#94a3b8', overflow: 'hidden', position: 'relative' }}>
-                              {tmpl.hasPhoto && <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 10 }}></span>}
-                              <span style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.2, padding: '0 4px', color: '#64748b' }}>
-                                {tmpl.texts[0]?.text.slice(0, 20)}...
-                              </span>
-                            </div>
-                            <span style={{ fontSize: 9, fontWeight: 600, color: '#374151', textAlign: 'center', lineHeight: 1.2 }}>{tmpl.label}</span>
-                          </button>
+                          >
+                            <button title={hasTextLayout ? tmpl.label : tooltipMsg}
+                              onClick={() => {
+                                const pageIdx = getActivePageIdx();
+                                const existingBlocks = pages[pageIdx]?.textBlocks || [];
+                                if (existingBlocks.length > 0) {
+                                  if (!window.confirm('Замінити поточний шаблон? Всі текстові блоки на сторінці будуть видалені.')) return;
+                                }
+                                pushHistory();
+                                const newBlocks = tmpl.texts.map((t, ti) => ({
+                                  id: 'ptmpl-' + Date.now() + '-' + ti + '-' + Math.random().toString(36).slice(2,6),
+                                  text: t.text, x: t.x, y: t.y,
+                                  fontSize: t.fontSize, fontFamily: t.fontFamily,
+                                  color: t.color, bold: t.bold, italic: t.italic || false,
+                                }));
+                                setPages(prev => prev.map((p, i) => i !== pageIdx ? p : {
+                                  ...p,
+                                  textBlocks: newBlocks,
+                                }));
+                                if (tmpl.bgColor && tmpl.bgColor !== '#ffffff') {
+                                  setPageBgs(prev => ({ ...prev, [pageIdx]: { type: 'color' as const, color: tmpl.bgColor!, opacity: 100, imageUrl: null, blur: 0 } }));
+                                }
+                                toast.success(`"${tmpl.label}" застосовано`);
+                              }}
+                              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '7px 4px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', width: '100%' }}>
+                              <div style={{ width: '100%', height: 48, borderRadius: 4, background: tmpl.bgColor || '#f8fafc', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#94a3b8', overflow: 'hidden', position: 'relative' }}>
+                                {tmpl.hasPhoto && <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 10 }}></span>}
+                                <span style={{ fontSize: 8, textAlign: 'center', lineHeight: 1.2, padding: '0 4px', color: '#64748b' }}>
+                                  {tmpl.texts[0]?.text.slice(0, 20)}...
+                                </span>
+                              </div>
+                              <span style={{ fontSize: 9, fontWeight: 600, color: '#374151', textAlign: 'center', lineHeight: 1.2 }}>{tmpl.label}</span>
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>
