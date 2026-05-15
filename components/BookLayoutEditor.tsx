@@ -2568,8 +2568,24 @@ export default function BookLayoutEditor() {
     const orderedPages = parseInt((config.selectedPageCount || '8').match(/\d+/)?.[0] || '8', 10);
     const baseOrdered = getMagazinePrice(orderedPages, false);
     const baseCurrent = getMagazinePrice(currentPageCount, false);
-    baseDynamicPrice = baseCurrent;
-    basePriceDiff = baseCurrent - baseOrdered;
+    // Apply per-customer add-ons that arrive via URL params from the
+    // configurator step. These multiply/add on top of both the ordered
+    // and current totals so the displayed price and the +X₴ diff for
+    // adjusting page count stay internally consistent.
+    //   text_layout=with → flat TYPESETTING_PRICE (195 ₴ for magazine)
+    //   urgent=<truthy>  → ×1.3 on the entire subtotal
+    // We compute typesetting first so urgent compounds on top of it,
+    // matching how the configurator and product page calculate it.
+    let typesettingExtra = 0;
+    if (hasTextLayout) {
+      typesettingExtra = 195; // TYPESETTING_PRICE for magazine
+    }
+    const urgentRaw = searchParams?.get('urgent') || '';
+    const isUrgent = !!urgentRaw && urgentRaw !== '0' && !urgentRaw.toLowerCase().includes('стандартна');
+    const surchargedOrdered = isUrgent ? Math.round((baseOrdered + typesettingExtra) * 1.3) : (baseOrdered + typesettingExtra);
+    const surchargedCurrent = isUrgent ? Math.round((baseCurrent + typesettingExtra) * 1.3) : (baseCurrent + typesettingExtra);
+    baseDynamicPrice = surchargedCurrent;
+    basePriceDiff = surchargedCurrent - surchargedOrdered;
   } else {
     const result = calculateDynamicPrice(
       priceTable,

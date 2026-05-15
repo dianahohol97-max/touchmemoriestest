@@ -1037,6 +1037,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                         'Колір шкіри': 'cover_color',
                                                         'Колір сторінок': 'page_color',
                                                         'Верстка тексту': 'text_layout',
+                                                        'Терміновість': 'urgent',
                                                     };
                                                     const url = new URL(base, 'http://x');
                                                     Object.entries(customProductOptions).forEach(([key, val]) => {

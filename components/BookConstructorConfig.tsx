@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getMagazinePrice, TYPESETTING_PRICE } from '@/lib/products';
+import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
@@ -480,6 +480,17 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             if (textLayout === 'with') {
                 magazineTotal += TYPESETTING_PRICE;
             }
+            // Urgent production surcharge (+30%). The product detail page
+            // sends this as either '1' or the full label string ('Термінова
+            // 1–3 дні (+30%)') depending on whether it came from a code
+            // path that set the boolean or one that copied the option
+            // value verbatim. Treat anything that isn't the explicit
+            // 'standard' value or empty as urgent.
+            const urgentRaw = searchParams.get('urgent');
+            const isUrgent = !!urgentRaw && urgentRaw !== '0' && !urgentRaw.toLowerCase().includes('стандартна');
+            if (isUrgent) {
+                magazineTotal = Math.round(magazineTotal * (1 + URGENT_MULTIPLIER));
+            }
             return magazineTotal;
         }
 
@@ -729,6 +740,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Pass through any URL params from catalog page (like text_layout)
         const textLayout = searchParams.get('text_layout');
         if (textLayout) params.set('text_layout', textLayout);
+        // Forward urgent flag (magazine only — passed by ProductClient via
+        // keyMap['Терміновість']='urgent'). The editor reads it the same
+        // way we did above to apply the +30% surcharge in its own price
+        // display.
+        const urgent = searchParams.get('urgent');
+        if (urgent) params.set('urgent', urgent);
         // Wishbook/guestbook — skip photo upload, go straight to full cover editor (same as photobook editor, cover-only mode)
         if (pt === 'wishbook') {
             router.push(`/editor/book/layout?${params.toString()}`);
@@ -1425,6 +1442,20 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             <span className="text-sm font-bold text-blue-800">+{TYPESETTING_PRICE} ₴</span>
                         </div>
                     )}
+                    {/* Urgent surcharge note — same check as the price
+                        calculation above. Shown only when the customer
+                        actually opted into urgent production from the
+                        product detail page. */}
+                    {(() => {
+                        const u = searchParams.get('urgent');
+                        const active = !!u && u !== '0' && !u.toLowerCase().includes('стандартна');
+                        return active ? (
+                            <div className="mb-4 flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-4 py-2">
+                                <span className="text-sm text-orange-800 font-medium">🚀 Термінове виготовлення (1–3 дні)</span>
+                                <span className="text-sm font-bold text-orange-800">+{Math.round(URGENT_MULTIPLIER * 100)}%</span>
+                            </div>
+                        ) : null;
+                    })()}
                     <div className="flex justify-between items-center">
                         <div>
                             <p className="text-sm text-gray-600 mb-1">{t('book_config.estimated_price')}</p>
