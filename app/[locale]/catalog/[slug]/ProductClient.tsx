@@ -19,6 +19,7 @@ import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
 import { ProductOptionsSelector, areAllRequiredOptionsFilled } from '@/components/ui/ProductOptionsSelector';
+import WishlistButton from '@/components/WishlistButton';
 import GuestBookConfigModal from '@/components/GuestBookConfigModal';
 import { useAuthModal } from '@/lib/auth-modal-context';
 
@@ -685,9 +686,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                     {/* Right Column: Details */}
                     <div>
-                        <h1 className={styles.productTitleMain} style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: '16px', lineHeight: 1.2 }}>
-                            {getLocalized(product, locale, "name")}
-                        </h1>
+                        {/* Title row with wishlist button — h1 takes available
+                            width, heart sits in top-right of the column.
+                            Using the same store-backed WishlistButton as
+                            ProductCard so the state is consistent between
+                            list and detail views. */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: '16px' }}>
+                            <h1 className={styles.productTitleMain} style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: 0, lineHeight: 1.2, flex: 1 }}>
+                                {getLocalized(product, locale, "name")}
+                            </h1>
+                            <div style={{ flexShrink: 0, marginTop: 4 }}>
+                                <WishlistButton productId={product.id} />
+                            </div>
+                        </div>
                         {product.short_description && (
                             <p style={{ fontSize: '16px', color: '#666', lineHeight: 1.6, marginBottom: '24px' }}>
                                 {getLocalized(product, locale, 'short_description')}

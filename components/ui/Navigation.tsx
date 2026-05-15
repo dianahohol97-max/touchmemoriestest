@@ -2,9 +2,10 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from './Navigation.module.css';
 import { usePathname } from 'next/navigation';
-import { Search, User, ShoppingCart, Menu, X, ChevronDown } from 'lucide-react';
+import { Search, User, ShoppingCart, Menu, X, ChevronDown, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cart-store';
+import { useWishlistStore } from '@/store/wishlist-store';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -48,6 +49,13 @@ export function Navigation() {
   const [navLinks, setNavLinks] = useState<any[]>([]);
   const [otherCategories, setOtherCategories] = useState<any[]>([]);
   const { items: cartItems, openDrawer } = useCartStore();
+  // Wishlist count — hydration-guarded to avoid SSR/CSR mismatch.
+  // The store reads from localStorage which is undefined on the server,
+  // so the first client render must match the empty SSR state, then we
+  // flip wishlistMounted=true to reveal the real count.
+  const { items: wishlistItems, initialize: initWishlist } = useWishlistStore();
+  const [wishlistMounted, setWishlistMounted] = useState(false);
+  useEffect(() => { initWishlist(); setWishlistMounted(true); }, [initWishlist]);
   const pathname = usePathname();
   const supabase = createClient();
 
@@ -236,6 +244,15 @@ export function Navigation() {
             </button>
             <UserAuthIcon />
             <LanguageSwitcher />
+            {/* Wishlist link — heart icon with item count, mirrors cart UX.
+                Hidden until store is mounted so SSR/CSR counts don't diverge. */}
+            <Link href="/wishlist" aria-label="Wishlist"
+              className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-inherit hover:opacity-70 transition-opacity no-underline">
+              <Heart size={20} fill={wishlistMounted && wishlistItems.length > 0 ? 'currentColor' : 'none'} />
+              {wishlistMounted && wishlistItems.length > 0 && (
+                <span className="text-[14px] font-bold">({wishlistItems.length})</span>
+              )}
+            </Link>
             <button onClick={openDrawer}
               className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-inherit hover:opacity-70 transition-opacity p-0">
               <ShoppingCart size={20} />
@@ -247,6 +264,13 @@ export function Navigation() {
         {/* Mobile */}
         <div className={cn('mobile-only flex items-center gap-5 text-primary', styles.navFlexMobile)}>
           <UserAuthIcon />
+          <Link href="/wishlist" aria-label="Wishlist"
+            className="flex items-center gap-1 bg-transparent border-none cursor-pointer text-inherit p-0 no-underline">
+            <Heart size={22} fill={wishlistMounted && wishlistItems.length > 0 ? 'currentColor' : 'none'} />
+            {wishlistMounted && wishlistItems.length > 0 && (
+              <span className="text-[14px] font-bold">({wishlistItems.length})</span>
+            )}
+          </Link>
           <button onClick={openDrawer} className="flex items-center gap-1 bg-transparent border-none cursor-pointer text-inherit p-0">
             <ShoppingCart size={22} />
             <span className="text-[14px] font-bold">({cartItems.length})</span>

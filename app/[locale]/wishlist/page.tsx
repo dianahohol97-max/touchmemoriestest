@@ -85,7 +85,7 @@ export default function WishlistPage() {
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     style={wishlistCard}
                                 >
-                                    <Link href={`/catalog/${product.categories?.slug}/${product.slug}`} style={imageContainer}>
+                                    <Link href={`/catalog/${product.slug}`} style={imageContainer}>
                                         <Image
                                             src={product.images[0]}
                                             alt={product.name}
@@ -99,7 +99,9 @@ export default function WishlistPage() {
 
                                     <div style={contentArea}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                            <h3 style={productName}>{product.name}</h3>
+                                            <Link href={`/catalog/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', flex: 1 }}>
+                                                <h3 style={productName}>{product.name}</h3>
+                                            </Link>
                                             <div style={priceStyle}>{product.price} ₴</div>
                                         </div>
 

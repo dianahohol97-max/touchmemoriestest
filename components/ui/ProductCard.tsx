@@ -50,7 +50,16 @@ export function ProductCard({ product }: ProductCardProps) {
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover object-center transition-transform duration-700 ease-[0.23,1,0.32,1] group-hover:scale-110"
                     />
-                    <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <div className="absolute top-3 right-3 z-10">
+                        {/* Always visible (no opacity-0 / group-hover gate).
+                            The previous hover-only reveal meant mobile users
+                            could never see or tap the wishlist button — they
+                            have no hover state — so the feature looked
+                            broken from a phone. On desktop the button
+                            stayed invisible until the cursor entered the
+                            card, which made it easy to miss entirely.
+                            Keeping it always visible matches what every
+                            e-commerce site does for save-for-later. */}
                         <WishlistButton productId={product.id} />
                     </div>
                 </div>
