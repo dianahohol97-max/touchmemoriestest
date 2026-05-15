@@ -28,6 +28,12 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     id: 'blank-white',
     label: 'Чистий лист',
     group: 'Пустий',
+    // Explicit tags so the picker shows this template for every product
+    // type. Without tags the CoverTemplatesPicker filter hides "tag-less"
+    // templates from magazine/journal/wishbook (it treats absent tags as
+    // "photobook/travelbook only"), which was the original bug — users
+    // making a magazine couldn't reach the blank template.
+    tags: ['photobook', 'magazine', 'journal', 'travelbook', 'wishbook'],
     bgColor: '#ffffff',
     // Empty central slot so the photo upload zone still appears (and the
     // user can drop or add photos), but no template-imposed positioning

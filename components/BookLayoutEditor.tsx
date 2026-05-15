@@ -4373,6 +4373,24 @@ export default function BookLayoutEditor() {
                       <div style={{position:'absolute',top:4,left:4,background:'rgba(0,0,0,0.5)',borderRadius:8,padding:'2px 8px',zIndex:20,pointerEvents:'none'}}>
                         <span style={{color:'#fff',fontSize:8,fontWeight:700}}>Задня</span>
                       </div>
+                      {/* Click-to-enable CTA — printed products with no back-cover photo yet.
+                          Without this the back cover looks like dead space and users (Diana
+                          specifically) can't tell it's editable. The sidebar has the same
+                          opt-in button but it's not discoverable from canvas. */}
+                      {isPrinted && !isWishbook && !(coverState as any).backCoverEnabled && (
+                        <button
+                          onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true } as any))}
+                          style={{ position:'absolute', inset:0, margin:'auto', width:'70%', maxWidth:280, height:'auto', padding:'14px 18px',
+                            border:'2px dashed rgba(99,102,241,0.6)', borderRadius:12,
+                            background:'rgba(255,255,255,0.65)', cursor:'pointer',
+                            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6,
+                            zIndex:5, top:'50%', transform:'translateY(-50%)',
+                            color:'#4f46e5', fontWeight:700, fontSize:12 }}>
+                          <span style={{fontSize:22, lineHeight:1}}>+</span>
+                          <span>Додати фото на задню обкладинку</span>
+                          <span style={{fontSize:10, fontWeight:500, color:'#64748b'}}>або змініть колір фону в боковій панелі</span>
+                        </button>
+                      )}
                       {!isPrinted && (
                         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
                           <span style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>

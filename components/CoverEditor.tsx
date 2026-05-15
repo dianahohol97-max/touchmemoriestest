@@ -453,15 +453,31 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               // happens when a long Ukrainian word at fontSize 38 spills
               // past the spine. wordBreak handles glued long URLs/dates.
               return (
-              <div key={tb.id} onPointerDown={e => startTextDrag(e, tb.id, tb.x, tb.y)}
+              <div key={tb.id}
                 style={{ position:'absolute', left:`${safeX}%`, top:`${safeY}%`, transform:'translate(-50%,-50%)',
-                  cursor:'move', zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'manipulation', maxWidth: `${canvasW * 0.84}px` }}>
+                  zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'manipulation', maxWidth: `${canvasW * 0.84}px` }}>
                 <span contentEditable suppressContentEditableWarning
                   onBlur={e=>onChange({printedTextBlocks:texts.map(t=>t.id===tb.id?{...t,text:e.currentTarget.textContent||''}:t)})}
-                  onPointerDown={e=>e.stopPropagation()}
+                  onPointerDown={e => {
+                    // Drag is wired directly on the editable span (not on
+                    // the wrapper div) because the span used to call
+                    // e.stopPropagation() here so that contentEditable
+                    // focus would land — that stopped the wrapper's
+                    // pointerDown from firing and made the text undraggable.
+                    // The new flow: if the user is already in edit mode
+                    // (focused contentEditable) we let pointer events pass
+                    // through to the browser so cursor placement and text
+                    // selection still work. Otherwise we hijack the
+                    // pointer and start a drag, exactly like the wrapper
+                    // used to.
+                    const target = e.currentTarget as HTMLElement;
+                    const isFocused = document.activeElement === target;
+                    if (isFocused) return; // editing mode — let cursor land
+                    startTextDrag(e, tb.id, tb.x, tb.y);
+                  }}
                   onClick={e=>{e.stopPropagation();(e.target as HTMLElement).focus();}}
                   style={{ color:tb.color||'#fff', fontSize:tb.fontSize+'px', fontFamily:tb.fontFamily+',serif',
-                    fontWeight:tb.bold?700:400, outline:'none', cursor:'text', display:'block',
+                    fontWeight:tb.bold?700:400, outline:'none', cursor:'move', display:'block',
                     whiteSpace:'normal', wordBreak:'break-word', textAlign:'center', lineHeight:1.1,
                     textShadow:'0 1px 3px rgba(0,0,0,0.5)', minWidth:'40px' }}>
                   {tb.text}
