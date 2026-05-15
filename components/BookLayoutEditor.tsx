@@ -6254,101 +6254,180 @@ export default function BookLayoutEditor() {
       </div>
 
       {/* Tooltips onboarding */}
-      {showTooltips && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:500, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:420, boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }}>
-            {tooltipStep === 0 && (
-              <>
-                <div style={{ fontSize:24, marginBottom:12 }}></div>
-                <h3 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:8 }}>Ласкаво просимо до редактора!</h3>
-                <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:20 }}>
-                  Тут ви можете створити свій унікальний {config?.productName ? `«${config.productName}»` : 'виріб'}. Давайте розберемось як це працює.
-                </p>
-                <button onClick={() => setTooltipStep(1)} style={{ width:'100%', padding:'12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
-                  Почати →
-                </button>
-              </>
-            )}
-            {tooltipStep === 1 && (
-              <>
-                <div style={{ fontSize:24, marginBottom:12 }}></div>
-                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Зображення</h3>
-                <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
-                  В панелі <b>Зображення</b> завантажте фото та перетягніть їх на слоти сторінки.
-                </p>
-                <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
-                  Натисніть <b>Авто</b> — редактор розставить всі фото автоматично.
-                </p>
-                <div style={{ display:'flex', gap:8 }}>
-                  <button onClick={() => setTooltipStep(0)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
-                  <button onClick={() => setTooltipStep(2)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
-                </div>
-              </>
-            )}
-            {tooltipStep === 2 && (
-              <>
-                <div style={{ fontSize:24, marginBottom:12 }}></div>
-                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Шаблони та активна сторінка</h3>
-                <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
-                  <b>Клікніть на ліву або праву сторінку</b> розвороту щоб зробити її активною.
-                </p>
-                <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
-                  Потім оберіть шаблон у лівій панелі — він застосується до активної сторінки.
-                </p>
-                <div style={{ display:'flex', gap:8 }}>
-                  <button onClick={() => setTooltipStep(1)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
-                  <button onClick={() => setTooltipStep(3)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
-                </div>
-              </>
-            )}
-            {tooltipStep === 3 && (
-              <>
-                <div style={{ fontSize:24, marginBottom:12 }}></div>
-                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Текст, фон та фігури</h3>
-                <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
-                  В панелі <b>Текст</b> — натисніть «Додати текст», потім клікніть на сторінку.
-                </p>
-                <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>
-                  <b>Фон</b> — колір або фото для кожної сторінки окремо.<br/>
-                  <b>Фігури</b> — геометричні елементи на сторінці.<br/>
-                  <b>Рамки</b> — декоративні рамки поверх сторінки.
-                </p>
-                <div style={{ display:'flex', gap:8 }}>
-                  <button onClick={() => setTooltipStep(2)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
-                  <button onClick={() => setTooltipStep(4)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
-                </div>
-              </>
-            )}
-            {tooltipStep === 4 && (
-              <>
-                <div style={{ fontSize:24, marginBottom:12 }}></div>
-                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:8 }}>Попередній перегляд та замовлення</h3>
-                <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:8 }}>
-                  Натисніть <b>Попередній перегляд</b> щоб переглянути виріб з перегортанням сторінок.
-                </p>
-                <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:8 }}>
-                  Хочете більше сторінок? Натисніть <b>+ Розворот</b> в правій панелі. Ціна оновлюється автоматично.
-                </p>
-                <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#15803d' }}>
-                   Коли завершите — натисніть зелену кнопку <b>«Зберегти та замовити»</b> у верхньому правому куті.
-                </div>
-                <button onClick={() => {
-                  setShowTooltips(false);
-                  localStorage.setItem('editor_tooltips_seen', '1');
-                }} style={{ width:'100%', padding:'12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
-                  Зрозуміло, почнемо! 
-                </button>
-                <button onClick={() => {
-                  setShowTooltips(false);
-                  localStorage.setItem('editor_tooltips_seen', '1');
-                }} style={{ width:'100%', padding:'8px', background:'none', border:'none', cursor:'pointer', fontSize:12, color:'#94a3b8', marginTop:8 }}>
-                  Більше не показувати
-                </button>
-              </>
-            )}
+      {showTooltips && (() => {
+        // Onboarding variant by product type
+        const variant: 'wishbook' | 'magazine' | 'photobook' =
+          isWishbook ? 'wishbook' : isMagazine ? 'magazine' : 'photobook';
+
+        // ---- Step 0: Welcome ----
+        const welcome = variant === 'wishbook' ? {
+          title: 'Вітаємо у редакторі wishbook!',
+          body: <>Wishbook — це книга побажань з персональною обкладинкою. Зараз ви налаштуєте обкладинку, а сторінки залишаться чистими, щоб гості могли їх заповнити вручну. Зазвичай це займає 5–10 хвилин.</>,
+        } : variant === 'magazine' ? {
+          title: 'Вітаємо у редакторі журналу!',
+          body: <>Тут ви зберете журнал сторінка за сторінкою — додасте фото, текст, оберете розкладку. Зазвичай це займає 20–40 хвилин. Прогрес зберігається автоматично, тож можна повернутись пізніше.</>,
+        } : {
+          title: 'Вітаємо у редакторі фотокниги!',
+          body: <>Тут ви самостійно зберете розворот за розворотом — додасте фото, оберете розкладку, додасте текст. Зазвичай це займає 15–30 хвилин. Прогрес зберігається автоматично, тож можна повернутись пізніше.</>,
+        };
+
+        // ---- Step 1: Photos ----
+        const photos = variant === 'wishbook' ? {
+          title: 'Крок 1. Фото обкладинки',
+          body: <>У панелі <b>«Фото»</b> завантажте фото для обкладинки. Перетягніть на слот обкладинки — або скористайтесь готовим шаблоном без фото.</>,
+          tip: null as React.ReactNode,
+        } : variant === 'magazine' ? {
+          title: 'Крок 1. Завантажте фото',
+          body: <>У панелі <b>«Фото»</b> оберіть або перетягніть фото з комп'ютера. Потім перетягніть їх на сторінку — або натисніть <b>«Авто»</b> для автоматичної розстановки.</>,
+          tip: null as React.ReactNode,
+        } : {
+          title: 'Крок 1. Завантажте фото',
+          body: <>У лівій панелі <b>«Фото»</b> перетягніть або оберіть фото з комп'ютера. Потім перетягніть фото з панелі на сторінку — або натисніть <b>«Авто»</b>, щоб редактор сам розставив усі фото по розворотах.</>,
+          tip: <>Для фотокниги потрібно мінімум 20 фото.</>,
+        };
+
+        // ---- Step 2: Pages & layouts ----
+        const layouts = variant === 'wishbook' ? {
+          title: 'Крок 2. Оберіть шаблон',
+          body: <>У панелі <b>«Обкладинка»</b> оберіть готовий дизайн або налаштуйте свій. Колір тканини / шкірзаму змінюється у правій панелі.</>,
+          extra: null as React.ReactNode,
+        } : variant === 'magazine' ? {
+          title: 'Крок 2. Розкладка сторінок',
+          body: <>Журнал складається з <b>окремих сторінок</b>. Гортайте їх внизу — поточна сторінка активна автоматично.</>,
+          extra: <>У панелі <b>«Шаблон»</b> оберіть розкладку: 1, 2, 3 фото… або <b>текстові шаблони</b> (якщо ви замовили верстку тексту).</>,
+        } : {
+          title: 'Крок 2. Розкладка сторінок',
+          body: <>Книга складається з <b>розворотів</b> (дві сторінки поруч). Клікніть на ліву або праву сторінку розвороту — вона стане активною (з'явиться синя рамка).</>,
+          extra: <>У панелі <b>«Шаблон»</b> оберіть розкладку для активної сторінки: 1, 2, 3 фото… Шаблон одразу застосується.</>,
+        };
+
+        // ---- Step 3: Text, background, decor ----
+        const decor = variant === 'wishbook' ? {
+          title: 'Крок 3. Підпис на обкладинці',
+          body: <>Додайте імена, дату події, цитату або хештег. Можна змінити шрифт, розмір, колір.</>,
+          extra: <>Декоративні елементи: <b>фігури, рамки, наліпки</b>.</>,
+          tip: null as React.ReactNode,
+        } : variant === 'magazine' ? {
+          title: 'Крок 3. Додайте акценти',
+          body: <>
+            • <b>Текст</b> — натисніть «Додати текст» і клікніть на сторінку.<br/>
+            • <b>Фон</b> — колір або фото для кожної сторінки.<br/>
+            • <b>Фігури, рамки, наліпки, QR</b> — декоративні елементи.
+          </>,
+          extra: null as React.ReactNode,
+          tip: !hasTextLayout ? <>Якщо ви не замовили верстку тексту, текстові шаблони показуються заблокованими. Її можна додати на сторінці товару (+195 ₴).</> : null,
+        } : {
+          title: 'Крок 3. Додайте акценти',
+          body: <>
+            • <b>Текст</b> — натисніть «Додати текст» і клікніть на сторінку. Можна змінити шрифт, розмір, колір.<br/>
+            • <b>Фон</b> — однотонний колір або фото для кожної сторінки.<br/>
+            • <b>Фігури, рамки, наліпки, QR</b> — декоративні елементи поверх фото.
+          </>,
+          extra: null as React.ReactNode,
+          tip: <>Довге натискання на елемент → меню «Редагувати / Видалити».</>,
+        };
+
+        // ---- Step 4: Save & order ----
+        const order = variant === 'wishbook' ? {
+          title: 'Крок 4. Замовлення',
+          body: <>Натисніть <b>«Попередній перегляд»</b>, щоб побачити обкладинку готовою.</>,
+          extra: null as React.ReactNode,
+        } : variant === 'magazine' ? {
+          title: 'Крок 4. Перегляд і замовлення',
+          body: <>Натисніть <b>«Попередній перегляд»</b>, щоб переглянути журнал гортанням.</>,
+          extra: <>Хочете більше сторінок? <b>«+ Сторінка»</b> у правій панелі — ціна оновиться автоматично.</>,
+        } : {
+          title: 'Крок 4. Перегляд і замовлення',
+          body: <>Натисніть <b>«Попередній перегляд»</b>, щоб гортати книгу як готовий виріб.</>,
+          extra: <>Хочете більше сторінок? <b>«+ Розворот»</b> у правій панелі — ціна оновиться автоматично.<br/><br/>Прогрес уже збережено в кабінеті — можна повертатись до нього зі сторінки <b>«Мої дизайни»</b>.</>,
+        };
+
+        return (
+          <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:500, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+            <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:440, width:'100%', boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }}>
+              {tooltipStep === 0 && (
+                <>
+                  <h3 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:10 }}>{welcome.title}</h3>
+                  <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom:20 }}>{welcome.body}</p>
+                  <button onClick={() => setTooltipStep(1)} style={{ width:'100%', padding:'12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
+                    Почати →
+                  </button>
+                </>
+              )}
+              {tooltipStep === 1 && (
+                <>
+                  <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:10 }}>{photos.title}</h3>
+                  <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom: photos.tip ? 12 : 20 }}>{photos.body}</p>
+                  {photos.tip && (
+                    <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'10px 14px', marginBottom:20, fontSize:13, color:'#92400e' }}>
+                      💡 {photos.tip}
+                    </div>
+                  )}
+                  <div style={{ display:'flex', gap:8 }}>
+                    <button onClick={() => setTooltipStep(0)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
+                    <button onClick={() => setTooltipStep(2)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
+                  </div>
+                </>
+              )}
+              {tooltipStep === 2 && (
+                <>
+                  <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:10 }}>{layouts.title}</h3>
+                  <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom: layouts.extra ? 10 : 20 }}>{layouts.body}</p>
+                  {layouts.extra && (
+                    <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:20 }}>{layouts.extra}</p>
+                  )}
+                  <div style={{ display:'flex', gap:8 }}>
+                    <button onClick={() => setTooltipStep(1)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
+                    <button onClick={() => setTooltipStep(3)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
+                  </div>
+                </>
+              )}
+              {tooltipStep === 3 && (
+                <>
+                  <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:10 }}>{decor.title}</h3>
+                  <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom: (decor.extra || decor.tip) ? 10 : 20 }}>{decor.body}</p>
+                  {decor.extra && (
+                    <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom: decor.tip ? 10 : 20 }}>{decor.extra}</p>
+                  )}
+                  {decor.tip && (
+                    <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'10px 14px', marginBottom:20, fontSize:13, color:'#92400e' }}>
+                      💡 {decor.tip}
+                    </div>
+                  )}
+                  <div style={{ display:'flex', gap:8 }}>
+                    <button onClick={() => setTooltipStep(2)} style={{ flex:1, padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:'pointer', fontSize:13, color:'#64748b' }}>← Назад</button>
+                    <button onClick={() => setTooltipStep(4)} style={{ flex:2, padding:'10px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>Далі →</button>
+                  </div>
+                </>
+              )}
+              {tooltipStep === 4 && (
+                <>
+                  <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:10 }}>{order.title}</h3>
+                  <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom: order.extra ? 10 : 16 }}>{order.body}</p>
+                  {order.extra && (
+                    <p style={{ color:'#64748b', fontSize:13, lineHeight:1.6, marginBottom:16 }}>{order.extra}</p>
+                  )}
+                  <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#15803d' }}>
+                    Все готово? Натисніть зелену <b>«Зберегти та замовити»</b> у верхньому правому куті.
+                  </div>
+                  <button onClick={() => {
+                    setShowTooltips(false);
+                    localStorage.setItem('editor_tooltips_seen', '1');
+                  }} style={{ width:'100%', padding:'12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
+                    Зрозуміло, почнемо!
+                  </button>
+                  <button onClick={() => {
+                    setShowTooltips(false);
+                    localStorage.setItem('editor_tooltips_seen', '1');
+                  }} style={{ width:'100%', padding:'8px', background:'none', border:'none', cursor:'pointer', fontSize:12, color:'#94a3b8', marginTop:8 }}>
+                    Більше не показувати
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* MOBILE: First-time guide overlay */}
       {/* Context menu (long-press) */}
