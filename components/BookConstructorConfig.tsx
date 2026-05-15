@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getMagazinePrice } from '@/lib/products';
+import { getMagazinePrice, TYPESETTING_PRICE } from '@/lib/products';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
@@ -475,10 +475,10 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 const copiesNum = parseInt(selectedCopies) || 1;
                 magazineTotal = (product.price || 475) * copiesNum;
             }
-            // Add text layout surcharge (+175 ₴)
+            // Add text layout surcharge (TYPESETTING_PRICE — magazine = 195 ₴)
             const textLayout = searchParams.get('text_layout');
             if (textLayout === 'with') {
-                magazineTotal += 175;
+                magazineTotal += TYPESETTING_PRICE;
             }
             return magazineTotal;
         }
@@ -1414,11 +1414,15 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
                 {/* Real-time Price Display */}
                 <div className="mt-8 pt-6 border-t border-gray-200">
-                    {/* Text layout surcharge note */}
+                    {/* Text layout surcharge note — uses TYPESETTING_PRICE
+                        from lib/products so the displayed amount stays in
+                        sync with the actual surcharge applied (magazine
+                        path adds TYPESETTING_PRICE; photobook path is
+                        handled separately and uses its own constant). */}
                     {searchParams.get('text_layout') === 'with' && (
                         <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg px-4 py-2">
                             <span className="text-sm text-blue-800 font-medium"> З версткою тексту</span>
-                            <span className="text-sm font-bold text-blue-800">+175 ₴</span>
+                            <span className="text-sm font-bold text-blue-800">+{TYPESETTING_PRICE} ₴</span>
                         </div>
                     )}
                     <div className="flex justify-between items-center">

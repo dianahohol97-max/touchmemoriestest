@@ -293,26 +293,26 @@ export const PHOTO_JOURNAL_SOFT: PhotoJournalProduct = {
   binding: 'staple ≤44 pages · glue/perfect binding >44 pages',
   pagesAvailable: [8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80, 92, 100],
   prices: {
-    8: 425,
-    12: 475,
-    16: 625,
-    20: 775,
-    24: 925,
-    28: 1075,
-    32: 1225,
-    36: 1375,
-    40: 1525,
-    44: 1675,
-    48: 1825,
-    52: 1950,
-    60: 2150,
-    72: 2450,
-    80: 2700,
-    92: 2850,
-    100: 3050
+    8: 525,
+    12: 575,
+    16: 725,
+    20: 875,
+    24: 1025,
+    28: 1175,
+    32: 1325,
+    36: 1475,
+    40: 1625,
+    44: 1775,
+    48: 1925,
+    52: 2050,
+    60: 2250,
+    72: 2550,
+    80: 2800,
+    92: 2950,
+    100: 3150
   },
   extras: {
-    'Text typesetting': '175 UAH',
+    'Text typesetting': '195 UAH',
     'Urgent production': '+30%'
   }
 };
@@ -553,7 +553,7 @@ export const MAGAZINE_PRICES_WITH_TYPESETTING = {
   100: 3225,
 } as const;
 
-export const TYPESETTING_PRICE = 175;
+export const TYPESETTING_PRICE = 195;
 export const RETOUCHING_PRICE_PER_PHOTO = 7;
 export const URGENT_MULTIPLIER = 0.3; // 30%
 

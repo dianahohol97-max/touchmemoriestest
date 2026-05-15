@@ -205,7 +205,7 @@ export default function MagazineA4Page() {
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-900">Верстка тексту</span>
-                  <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">+175 ₴</span>
+                  <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">+195 ₴</span>
                 </div>
                 <p className="text-sm text-gray-500 mt-0.5">Наш дизайнер додасть та відформатує текст у вашому журналі</p>
               </div>
@@ -451,7 +451,7 @@ export default function MagazineA4Page() {
           {textTypesetting && (
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
               <span>Верстка тексту</span>
-              <span>+175 ₴</span>
+              <span>+195 ₴</span>
             </div>
           )}
 
