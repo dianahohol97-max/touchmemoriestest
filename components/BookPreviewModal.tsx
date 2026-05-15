@@ -410,8 +410,19 @@ export function BookPreviewModal({
     const rightPI = (spreadIdx - 1) * 2 + 2;
     const leftPage = pages[leftPI];
 
-    // Spread layout (sp-*) → render as one wide page
-    const isSpread = leftPage && leftPage.layout && String(leftPage.layout).startsWith('sp-');
+    // Spread layout (sp-*) → render as one wide page.
+    //
+    // This is gated by isSpreadMode in addition to checking the page's own
+    // layout string because saved drafts can carry a stale sp-* layout
+    // value for products that aren't in spread mode any more (e.g. a magazine
+    // page that briefly held sp-full from an earlier session or import).
+    // Without this gate, the magazine preview falls through to the sp-*
+    // branch on the forzats page (page 1), renders the page-1 background
+    // as a full-spread image, and overlays page 2's actual content with
+    // an empty right half — which is what Diana hit. With the gate, page
+    // mode is the only legal render path for magazines and travelbooks,
+    // matching what the editor canvas does in single-page mode.
+    const isSpread = isSpreadMode && leftPage && leftPage.layout && String(leftPage.layout).startsWith('sp-');
 
     if (isSpread) {
       return (
