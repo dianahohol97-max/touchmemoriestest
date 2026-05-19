@@ -260,6 +260,11 @@ const LAYOUTS: Layout[] = [
 
 //  Size definitions 
 
+// AI Portrait (Pixar/Anime/Watercolour) is hidden for now per Diana.
+// Flip to true to bring the button + generator back. Pricing/state stays
+// wired so re-enabling is a one-line change.
+const SHOW_AI_PORTRAIT = false;
+
 const SIZES = [
   { id: 'a4',    label: 'A4 (21×30)',  price: 350, ratio: 21/30  },
   { id: 'a3',    label: 'A3 (30×42)',  price: 450, ratio: 30/42  },
@@ -530,9 +535,6 @@ function TextBlockEditor({ block, onUpdate, onDelete }: {
         ))}
         <button onClick={() => onUpdate(block.id, { bold: !block.bold })}
           style={{ flex:1, padding:'4px', border: block.bold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: block.bold?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:900, fontSize:12 }}>B</button>
-                  {/* QR Code Generator */}
-                  <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
-
         <button onClick={() => onUpdate(block.id, { italic: !block.italic })}
           style={{ flex:1, padding:'4px', border: block.italic?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: block.italic?'#f0f3ff':'#fff', cursor:'pointer', fontStyle:'italic', fontSize:12 }}>I</button>
       </div>
@@ -799,13 +801,15 @@ export default function PosterConstructor() {
                     cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:6 }}>
                   <Upload size={16}/> Завантажити фото ({config.photos.length}/{layout.slots})
                 </button>
-                <button onClick={() => setShowPixar(p => !p)}
-                  style={{ width:'100%', padding:'10px', border:'2px dashed #a855f7', borderRadius:10,
-                    background:'#faf5ff', color:'#7c3aed', fontWeight:700, fontSize:12,
-                    cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:12 }}>
-                   AI Портрет — Піксар / Аніме / Акварель
-                </button>
-                {showPixar && (
+                {SHOW_AI_PORTRAIT && (
+                  <button onClick={() => setShowPixar(p => !p)}
+                    style={{ width:'100%', padding:'10px', border:'2px dashed #a855f7', borderRadius:10,
+                      background:'#faf5ff', color:'#7c3aed', fontWeight:700, fontSize:12,
+                      cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:12 }}>
+                     AI Портрет — Піксар / Аніме / Акварель
+                  </button>
+                )}
+                {SHOW_AI_PORTRAIT && showPixar && (
                   <div style={{ border:'1px solid #e9d5ff', borderRadius:10, padding:12, marginBottom:12, background:'#fdf4ff' }}>
                     <PixarPortraitGenerator compact onResult={(url) => {
                       const newPhoto = { id: 'ai-'+Date.now(), photoUrl: url, cropX:50, cropY:50, zoom:1, rotation:0 };
@@ -978,6 +982,13 @@ export default function PosterConstructor() {
                   ))}
                 </div>
               )}
+
+              {/* QR code — one per poster, not per text block. It was
+                  mistakenly nested inside each text block's bold/italic
+                  button row, which broke that row's layout. */}
+              <div style={{ marginTop:16, paddingTop:16, borderTop:'1px solid #e2e8f0' }}>
+                <QRCodeGenerator compact label="QR-код до замовлення" />
+              </div>
             </div>
           )}
 
@@ -1154,8 +1165,8 @@ export default function PosterConstructor() {
                         const rect = el.getBoundingClientRect();
                         setDraggingTextId(tb.id);
                         const onMove = (ev: PointerEvent) => {
-                          const x = Math.max(2, Math.min(98, ((ev.clientX - rect.left) / rect.width) * 100));
-                          const y = Math.max(2, Math.min(98, ((ev.clientY - rect.top) / rect.height) * 100));
+                          const x = Math.round(Math.max(2, Math.min(98, ((ev.clientX - rect.left) / rect.width) * 100)));
+                          const y = Math.round(Math.max(2, Math.min(98, ((ev.clientY - rect.top) / rect.height) * 100)));
                           updateTextBlock(tb.id, { x, y });
                         };
                         const onUp = () => {
