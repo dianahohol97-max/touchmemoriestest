@@ -525,6 +525,19 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
   // Photobooks AND wishbook (non-printed) get colors + decoration options
   const hasColorAndDecoration = (isPhotobookProduct || isWishbookProduct) && !isPrintedProduct;
 
+  // The printed-vs-soft choice can also be a runtime option ("Матеріал
+  // обкладинки" -> "Друкована тверда") rather than baked into the slug.
+  // Printed hard covers have no decoration (acrylic/photo-insert/metal/
+  // engraving etc.), so the decoration selector must be hidden whenever the
+  // *selected* material is a printed/hard one — not only when the slug says
+  // so (slug check alone missed products like guestbook-wedding).
+  const selectedCoverMaterial = String(selectedOptions['Матеріал обкладинки'] || '').toLowerCase();
+  const isPrintedMaterialSelected =
+    selectedCoverMaterial.includes('друков') ||
+    selectedCoverMaterial.includes('printed') ||
+    selectedCoverMaterial.includes('тверда');
+  const showDecoration = hasColorAndDecoration && !isPrintedMaterialSelected;
+
   const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
   const [selectedWishbookColor, setSelectedWishbookColor] = useState<{code:string;name:string;hex:string}|null>(null);
   const [selectedOzdoblennya, setSelectedOzdoblennya] = useState('none');
@@ -697,6 +710,18 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         newOptions['Тип оздоблення'] = decorationLabel;
         // Clear flex color if switching away from flex
         if (selectedOzdoblennya !== 'flex') delete newOptions['Колір напису'];
+      }
+    }
+    // Printed/hard covers have no decoration. If the user switches the cover
+    // material to a printed one, drop any decoration that was selected while
+    // a soft cover was active, so it doesn't ride along into the order.
+    if (optionName === 'Матеріал обкладинки') {
+      const mat = String(value).toLowerCase();
+      if (mat.includes('друков') || mat.includes('printed') || mat.includes('тверда')) {
+        delete newOptions['Тип оздоблення'];
+        delete newOptions['Варіант оздоблення'];
+        setSelectedOzdoblennya('none');
+        setSelectedDecorationVariant('');
       }
     }
     const price = calculatePrice(newOptions);
@@ -929,8 +954,9 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         );
       })()}
 
-      {/* Decoration Type Selector (all non-printed photobooks) */}
-      {hasColorAndDecoration && (
+      {/* Decoration Type Selector (non-printed photobooks; hidden when a
+          printed/hard cover material is selected) */}
+      {showDecoration && (
         <div>
           <label style={{
             display: 'block',
@@ -977,7 +1003,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       )}
 
       {/* Decoration Sub-Options — only "Металева вставка" uses decoration_variants table */}
-      {hasColorAndDecoration && selectedOzdoblennya === 'metal' && (() => {
+      {showDecoration && selectedOzdoblennya === 'metal' && (() => {
         // Get size from either internal state or parent props
         const selectedSize = selectedOptions['Розмір'] || '';
         const sizeNormalized = selectedSize ? String(selectedSize).replace(/[хxXх]/g, '×') : '';
