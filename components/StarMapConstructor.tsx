@@ -210,7 +210,7 @@ export default function StarMapConstructor() {
             }
         }
 
-        addItem({
+        const cartPayload = {
             id: cartItemId,
             product_id: product.slug,
             name: product.name,
@@ -227,11 +227,15 @@ export default function StarMapConstructor() {
             },
             slug: product.slug,
             personalization_note: `Заголовок: ${config.headline}\nПідзаголовок: ${config.subtitle}\nДедикація: ${config.dedication}`
-        });
+        };
+
+        addItem(cartPayload);
 
         // Persist as a project so it shows up in "Мої дизайни" like the other
         // products do. Star map previously only went to the cart and never
         // wrote a projects row, so it was missing from the account page.
+        // cart_payload stores the exact addItem() argument so the account
+        // "Замовити" button replays it verbatim (correct price).
         // Non-blocking and only for logged-in users (same rule as the other
         // constructors): a failure here must not break the add-to-cart flow.
         try {
@@ -244,6 +248,7 @@ export default function StarMapConstructor() {
                     status: 'draft',
                     name: config.headline?.trim() || product.name,
                     pages_data: [{ ...config }],
+                    cart_payload: cartPayload,
                     uploaded_photos: canvas ? [canvas.toDataURL('image/jpeg', 0.7)] : [],
                     updated_at: new Date().toISOString(),
                 });

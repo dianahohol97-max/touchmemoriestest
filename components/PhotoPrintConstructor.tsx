@@ -580,7 +580,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     if (totalQty<minQty) { toast.error(`Мінімальне замовлення: ${minQty} шт. Зараз: ${totalQty}.`); return; }
     if (multiple>1&&totalQty%multiple!==0) { toast.error(`Кількість має бути кратною ${multiple}. Зараз: ${totalQty}.`); return; }
 
-    addItem({
+    const cartPayload = {
       id:`${product.id}_${Date.now()}`, product_id:product.id, name:product.name,
       price:calculatePrice(), image:product.images?.[0]||'', slug:product.slug,
       options:{ 'Кількість фото':totalQty.toString(),
@@ -590,7 +590,9 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       personalization_note: isPolaroid
         ? `${totalQty} фото. Написи: ${photos.filter(p=>p.showCaption&&p.polaroidText?.trim()).map((p,i)=>`фото ${photos.indexOf(p)+1}: "${p.polaroidText}"`).join(', ')||'немає'}`
         : `${totalQty} фото для друку`,
-    });
+    };
+
+    addItem(cartPayload);
 
     try {
       const { data:{user} } = await supabase.auth.getUser();
@@ -599,6 +601,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         pages_data:photos.map(p=>({id:p.id,cropX:p.cropX,cropY:p.cropY,zoom:p.zoom,
           rotation:p.rotation,orientation:p.orientation,qty:p.qty,sizeOverride:p.sizeOverride,
           polaroidText:p.polaroidText,showCaption:p.showCaption})),
+        cart_payload:cartPayload,
         uploaded_photos:photos.map(p=>p.preview), updated_at:new Date().toISOString(),
       });
     } catch(e) { console.warn('Design save skipped:',e); }

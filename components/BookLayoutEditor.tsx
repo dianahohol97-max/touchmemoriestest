@@ -2425,7 +2425,7 @@ export default function BookLayoutEditor() {
     const productImage = config.productImage || getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '';
     const orderId = `pb-${Date.now()}`;
 
-    addItem({
+    const cartPayload = {
       id: orderId,
       name: config.productName || 'Фотокнига',
       price: dynamicPrice,
@@ -2437,13 +2437,17 @@ export default function BookLayoutEditor() {
         'Обкладинка': config.selectedCoverType || '',
       },
       personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}`,
-    } as any);
+    };
+
+    addItem(cartPayload as any);
 
     sessionStorage.removeItem('bookEditorDraft');
     sessionStorage.removeItem('bookConstructorConfig');
 
-    // Save design layout to Supabase projects (non-blocking)
-    saveDesignToProjects(contentPages, productImage, orderId);
+    // Save design layout to Supabase projects (non-blocking). Pass the exact
+    // cart payload so the account "Замовити" button can replay it verbatim
+    // (correct price) instead of recomputing book pricing in a 4th place.
+    saveDesignToProjects(contentPages, productImage, orderId, cartPayload);
 
     // Upload originals to Supabase Storage with progress
     const photosWithFile = photos.filter(p => p.originalFile);
@@ -2476,7 +2480,7 @@ export default function BookLayoutEditor() {
     if (photosWithFile.length === 0) setShowCartModal(true);
   };
 
-  const saveDesignToProjects = async (contentPages: number, productImage: string, orderId?: string) => {
+  const saveDesignToProjects = async (contentPages: number, productImage: string, orderId?: string, cartPayload?: any) => {
     try {
       const { createClient } = await import('@/lib/supabase/client');
       const sb = createClient();
@@ -2533,6 +2537,7 @@ export default function BookLayoutEditor() {
         pages_data: pages,
         cover_data: coverState,
         overlays_data: overlaysData,
+        cart_payload: cartPayload ?? null,
         uploaded_photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })),
         updated_at: new Date().toISOString(),
       });

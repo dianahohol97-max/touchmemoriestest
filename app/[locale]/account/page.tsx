@@ -45,6 +45,7 @@ interface Design {
     updated_at: string;
     thumbnail_url?: string;
     source: 'editor' | 'designer';
+    cart_payload?: any;
 }
 
 //  Status config 
@@ -115,6 +116,47 @@ export default function AccountPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [editingDesignId, setEditingDesignId] = useState<string | null>(null);
     const [editingDesignName, setEditingDesignName] = useState('');
+    const [selectedDesignIds, setSelectedDesignIds] = useState<string[]>([]);
+    const addItem = useCartStore(s => s.addItem);
+
+    // Build a cart line for a design. Prefer the stored cart_payload (the exact
+    // payload the constructor used, with the correct price) so we never
+    // recompute pricing here — that was the recurring source of wrong prices.
+    const designToCartItem = (d: Design) => {
+        if (!d.cart_payload) return null;
+        return { ...d.cart_payload, id: `${d.cart_payload.id || d.id}_${Date.now()}` };
+    };
+
+    const orderSingleDesign = (d: Design) => {
+        const item = designToCartItem(d);
+        if (!item) {
+            toast.error('Цей дизайн потрібно відкрити в редакторі та додати в кошик звідти');
+            return;
+        }
+        addItem(item);
+        toast.success('Додано в кошик');
+    };
+
+    const toggleDesignSelected = (id: string) => {
+        setSelectedDesignIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
+    const orderSelectedDesigns = () => {
+        const chosen = designs.filter(d => selectedDesignIds.includes(d.id));
+        const items = chosen.map(designToCartItem).filter(Boolean) as any[];
+        const skipped = chosen.length - items.length;
+        if (items.length === 0) {
+            toast.error('Вибрані дизайни не можна замовити напряму — відкрий їх у редакторі');
+            return;
+        }
+        addItems(items);
+        setSelectedDesignIds([]);
+        toast.success(
+            skipped > 0
+                ? `Додано в кошик: ${items.length}. Пропущено (потребують редактора): ${skipped}`
+                : `Додано в кошик: ${items.length}`
+        );
+    };
 
     useEffect(() => {
         const init = async () => {
@@ -133,7 +175,7 @@ export default function AccountPage() {
                     .select('id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,tracking_number')
                     .or(`customer_email.eq.${email},customer_id.eq.${uid}`)
                     .order('created_at', { ascending: false }),
-                supabase.from('projects').select('id,name,product_type,format,status,updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(20),
+                supabase.from('projects').select('id,name,product_type,format,status,updated_at,cart_payload').eq('user_id', uid).order('updated_at', { ascending: false }).limit(20),
                 supabase.from('customer_projects').select('id,title,product_type,status,updated_at,thumbnail_url')
                     .in('customer_id', (await supabase.from('customers').select('id').eq('email', email)).data?.map((c: any) => c.id) || [])
                     .order('updated_at', { ascending: false }).limit(20),
@@ -169,6 +211,7 @@ export default function AccountPage() {
             const editorDesigns: Design[] = (editorRes.data || []).map((p: any) => ({
                 id: p.id, name: p.name, product_type: p.product_type, format: p.format,
                 status: p.status || 'draft', updated_at: p.updated_at, source: 'editor' as const,
+                cart_payload: p.cart_payload || null,
             }));
             const designerDesigns: Design[] = (designerRes.data || []).map((p: any) => ({
                 id: p.id, title: p.title, product_type: p.product_type,
@@ -463,6 +506,23 @@ export default function AccountPage() {
                         {tab === 'designs' && (
                             <div>
                                 <SectionHeader icon={<FileText size={20}/>} title="Мої дизайни" sub={`${designs.length} збережених проєктів`} />
+                                {designs.length > 0 && selectedDesignIds.length > 0 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px', marginBottom: 16, background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12 }}>
+                                        <span style={{ fontSize: 14, fontWeight: 700, color: '#1e2d7d' }}>
+                                            Вибрано: {selectedDesignIds.length}
+                                        </span>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button onClick={() => setSelectedDesignIds([])}
+                                                style={{ padding: '8px 14px', background: 'white', color: '#475569', border: '1px solid #cbd5e1', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                                                Скасувати
+                                            </button>
+                                            <button onClick={orderSelectedDesigns}
+                                                style={{ padding: '8px 18px', background: '#263a99', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                                                Замовити вибрані ({selectedDesignIds.length})
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                                 {designs.length === 0 ? (
                                     <Empty icon={<BookOpen size={40} color="#94a3b8"/>} title="Дизайнів ще немає" sub="Збережені конструктори та замовлення дизайнера з'являться тут" cta="До каталогу" href="/catalog" />
                                 ) : (
@@ -506,6 +566,20 @@ export default function AccountPage() {
                                                             style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: '50%', background: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
                                                             <Trash2 size={13} color="#ef4444"/>
                                                         </button>
+                                                        {/* Multi-select checkbox — only for designs that can be
+                                                            ordered directly (have a stored cart payload) */}
+                                                        {d.cart_payload && (
+                                                            <label
+                                                                title="Вибрати для замовлення"
+                                                                style={{ position: 'absolute', bottom: 10, right: 10, width: 28, height: 28, borderRadius: 8, background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedDesignIds.includes(d.id)}
+                                                                    onChange={() => toggleDesignSelected(d.id)}
+                                                                    style={{ width: 16, height: 16, accentColor: '#263a99', cursor: 'pointer' }}
+                                                                />
+                                                            </label>
+                                                        )}
                                                     </div>
 
                                                     <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -546,10 +620,18 @@ export default function AccountPage() {
                                                                 {new Date(d.updated_at).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })}
                                                             </span>
                                                         </div>
-                                                        <Link href={editUrl}
-                                                            style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#263a99', color: 'white', borderRadius: 8, textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>
-                                                            <Pencil size={13}/> {editLabel}
-                                                        </Link>
+                                                        <div style={{ marginTop: 'auto', display: 'flex', gap: 8 }}>
+                                                            <Link href={editUrl}
+                                                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: d.cart_payload ? '#eef2ff' : '#263a99', color: d.cart_payload ? '#263a99' : 'white', borderRadius: 8, textDecoration: 'none', fontSize: 12, fontWeight: 700, border: d.cart_payload ? '1px solid #c7d2fe' : 'none' }}>
+                                                                <Pencil size={13}/> {editLabel}
+                                                            </Link>
+                                                            {d.cart_payload && (
+                                                                <button onClick={() => orderSingleDesign(d)}
+                                                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#263a99', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                                                                    <ShoppingBag size={13}/> Замовити
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
