@@ -672,8 +672,14 @@ export default function PosterConstructor() {
   };
 
   //  Order 
+  // A poster is orderable if it has at least one photo OR at least one
+  // non-empty text block. Previously a photo was always required, so a
+  // text-only poster (a valid product) could never be ordered.
+  const hasMeaningfulText = config.textBlocks.some(tb => (tb.text || '').trim().length > 0);
+  const isPosterEmpty = config.photos.length === 0 && !hasMeaningfulText;
+
   const handleOrder = async () => {
-    if (config.photos.length === 0) { toast.error(t('poster.add_photo_first')); return; }
+    if (isPosterEmpty) { toast.error(t('poster.add_photo_first')); return; }
     setIsOrdering(true);
     try {
       let fileUrl = '';
@@ -1008,13 +1014,13 @@ export default function PosterConstructor() {
                 )}
               </div>
 
-              <button onClick={handleOrder} disabled={isOrdering || config.photos.length === 0}
-                style={{ width:'100%', padding:'14px', background: config.photos.length === 0 ? '#e2e8f0' : '#1e2d7d',
-                  color: config.photos.length === 0 ? '#94a3b8' : '#fff',
-                  border:'none', borderRadius:12, fontWeight:800, fontSize:15, cursor: config.photos.length === 0 ? 'not-allowed' : 'pointer',
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow: config.photos.length > 0 ? '0 4px 20px rgba(30,45,125,0.3)' : 'none' }}>
+              <button onClick={handleOrder} disabled={isOrdering || isPosterEmpty}
+                style={{ width:'100%', padding:'14px', background: isPosterEmpty ? '#e2e8f0' : '#1e2d7d',
+                  color: isPosterEmpty ? '#94a3b8' : '#fff',
+                  border:'none', borderRadius:12, fontWeight:800, fontSize:15, cursor: isPosterEmpty ? 'not-allowed' : 'pointer',
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow: !isPosterEmpty ? '0 4px 20px rgba(30,45,125,0.3)' : 'none' }}>
                 <ShoppingCart size={18}/>
-                {isOrdering ? 'Оформлюємо...' : config.photos.length === 0 ? 'Спочатку додайте фото' : `Замовити за ${sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0)} ₴`}
+                {isOrdering ? 'Оформлюємо...' : isPosterEmpty ? 'Додайте фото або текст' : `Замовити за ${sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0)} ₴`}
               </button>
             </div>
           )}
@@ -1161,7 +1167,7 @@ export default function PosterConstructor() {
                         window.addEventListener('pointerup', onUp);
                       }}
                     >
-                      <span style={{
+                      <span aria-hidden="true" style={{
                         fontFamily: tb.fontFamily,
                         fontSize: Math.max(8, tb.fontSize * (PREVIEW_W / 600) * 0.85),
                         color: tb.color,
@@ -1172,6 +1178,11 @@ export default function PosterConstructor() {
                         textAlign: tb.align,
                         display:'block',
                         pointerEvents:'none',
+                        // The text itself is rendered on the canvas (the actual
+                        // print output). This span only sizes the dashed drag
+                        // box to the text bounds — it must stay invisible, or
+                        // the text appears twice (overlay + canvas), offset.
+                        opacity:0,
                       }}>{tb.text || '...'}</span>
                     </div>
                   );
