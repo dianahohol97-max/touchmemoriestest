@@ -118,6 +118,65 @@ interface CoverEditorProps {
   hidePhotoSlot?: boolean;
 }
 
+/**
+ * Renders cover-template text and auto-shrinks the font so the text fits on a
+ * single line within `maxWidthPx`. Cover templates store an absolute fontSize
+ * (e.g. WEDDING = 56) tuned for a wide reference cover; on a narrower product
+ * (travelbook 20x30) that size overflows and the word breaks ("WED" / "DING").
+ * We measure the natural single-line width and scale down to fit, keeping the
+ * span contentEditable and draggable exactly as before.
+ */
+function FitText({
+  tb, maxWidthPx, onCommit, onPointerDownText, onClickText,
+}: {
+  tb: { id: string; text: string; fontSize: number; fontFamily: string; color: string; bold: boolean };
+  maxWidthPx: number;
+  onCommit: (text: string) => void;
+  onPointerDownText: (e: React.PointerEvent) => void;
+  onClickText: (e: React.MouseEvent) => void;
+}) {
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const [fitSize, setFitSize] = useState(tb.fontSize);
+
+  useEffect(() => {
+    const el = spanRef.current;
+    if (!el || maxWidthPx <= 0) return;
+    // Measure at the template's intended size with no wrapping, then scale
+    // down proportionally if the single-line width exceeds the safe box.
+    const prevWhiteSpace = el.style.whiteSpace;
+    const prevFont = el.style.fontSize;
+    el.style.whiteSpace = 'nowrap';
+    el.style.fontSize = tb.fontSize + 'px';
+    const natural = el.scrollWidth;
+    let next = tb.fontSize;
+    if (natural > maxWidthPx && natural > 0) {
+      next = Math.max(8, Math.floor(tb.fontSize * (maxWidthPx / natural)));
+    }
+    el.style.whiteSpace = prevWhiteSpace;
+    el.style.fontSize = prevFont;
+    setFitSize(next);
+  }, [tb.text, tb.fontSize, tb.fontFamily, tb.bold, maxWidthPx]);
+
+  return (
+    <span
+      ref={spanRef}
+      contentEditable
+      suppressContentEditableWarning
+      onBlur={e => onCommit(e.currentTarget.textContent || '')}
+      onPointerDown={onPointerDownText}
+      onClick={onClickText}
+      style={{
+        color: tb.color || '#fff', fontSize: fitSize + 'px', fontFamily: tb.fontFamily + ',serif',
+        fontWeight: tb.bold ? 700 : 400, outline: 'none', cursor: 'move', display: 'block',
+        whiteSpace: 'nowrap', textAlign: 'center', lineHeight: 1.1,
+        textShadow: '0 1px 3px rgba(0,0,0,0.5)', minWidth: '40px',
+      }}
+    >
+      {tb.text}
+    </span>
+  );
+}
+
 export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange, hidePhotoSlot = false }: CoverEditorProps) {
   const t = useT();
   const [dragOver, setDragOver] = useState(false);
@@ -448,40 +507,26 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               // breathing room and match what designers expect.
               const safeX = Math.max(8, Math.min(92, tb.x));
               const safeY = Math.max(8, Math.min(92, tb.y));
-              // The text wraps inside its own box now (whiteSpace: normal
-              // + maxWidth) — this kills the right-edge overflow that
-              // happens when a long Ukrainian word at fontSize 38 spills
-              // past the spine. wordBreak handles glued long URLs/dates.
+              // Single-line safe width for this text box (matches the wrapper
+              // maxWidth). FitText shrinks the font down to fit this width so
+              // long titles like "WEDDING" stay on one line on every product.
+              const safeBoxW = canvasW * 0.84 - 12; // minus wrapper padding
               return (
               <div key={tb.id}
                 style={{ position:'absolute', left:`${safeX}%`, top:`${safeY}%`, transform:'translate(-50%,-50%)',
                   zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'manipulation', maxWidth: `${canvasW * 0.84}px` }}>
-                <span contentEditable suppressContentEditableWarning
-                  onBlur={e=>onChange({printedTextBlocks:texts.map(t=>t.id===tb.id?{...t,text:e.currentTarget.textContent||''}:t)})}
-                  onPointerDown={e => {
-                    // Drag is wired directly on the editable span (not on
-                    // the wrapper div) because the span used to call
-                    // e.stopPropagation() here so that contentEditable
-                    // focus would land — that stopped the wrapper's
-                    // pointerDown from firing and made the text undraggable.
-                    // The new flow: if the user is already in edit mode
-                    // (focused contentEditable) we let pointer events pass
-                    // through to the browser so cursor placement and text
-                    // selection still work. Otherwise we hijack the
-                    // pointer and start a drag, exactly like the wrapper
-                    // used to.
+                <FitText
+                  tb={tb}
+                  maxWidthPx={safeBoxW}
+                  onCommit={(text) => onChange({ printedTextBlocks: texts.map(t => t.id===tb.id ? {...t, text} : t) })}
+                  onPointerDownText={(e) => {
                     const target = e.currentTarget as HTMLElement;
                     const isFocused = document.activeElement === target;
                     if (isFocused) return; // editing mode — let cursor land
                     startTextDrag(e, tb.id, tb.x, tb.y);
                   }}
-                  onClick={e=>{e.stopPropagation();(e.target as HTMLElement).focus();}}
-                  style={{ color:tb.color||'#fff', fontSize:tb.fontSize+'px', fontFamily:tb.fontFamily+',serif',
-                    fontWeight:tb.bold?700:400, outline:'none', cursor:'move', display:'block',
-                    whiteSpace:'normal', wordBreak:'break-word', textAlign:'center', lineHeight:1.1,
-                    textShadow:'0 1px 3px rgba(0,0,0,0.5)', minWidth:'40px' }}>
-                  {tb.text}
-                </span>
+                  onClickText={(e) => { e.stopPropagation(); (e.target as HTMLElement).focus(); }}
+                />
                 <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
                   onMouseDown={e=>e.stopPropagation()}
                   style={{ position:'absolute',top:-8,right:-8,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>
