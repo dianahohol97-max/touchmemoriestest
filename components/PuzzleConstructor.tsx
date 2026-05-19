@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/cart-store';
 import { useT } from '@/lib/i18n/context';
 
-// Puzzle formats: A5/A4/A3 in both orientations, piece counts from wolf.ua
+// Puzzle formats: A5 (15×21) and A4 (20×30) in both orientations.
 type PuzzleFormat = {
   id: string;
   label: string;
@@ -25,8 +25,6 @@ const PUZZLE_FORMATS: PuzzleFormat[] = [
   { id: 's-h', label: '21×15 см (горизонтальний)', sheet: 'A5', orientation: 'H', widthCm: 21,   heightCm: 15,   pieceCounts: [35, 60],  basePrice: 249 },
   { id: 'm-v', label: '20×30 см (вертикальний)',   sheet: 'A4', orientation: 'V', widthCm: 20,   heightCm: 30,   pieceCounts: [24, 104], basePrice: 349 },
   { id: 'm-h', label: '30×20 см (горизонтальний)', sheet: 'A4', orientation: 'H', widthCm: 30,   heightCm: 20,   pieceCounts: [24, 104], basePrice: 349 },
-  { id: 'l-v', label: '30×42 см (вертикальний)',   sheet: 'A3', orientation: 'V', widthCm: 29.7, heightCm: 42,   pieceCounts: [108, 216],     basePrice: 499 },
-  { id: 'l-h', label: '42×30 см (горизонтальний)', sheet: 'A3', orientation: 'H', widthCm: 42,   heightCm: 29.7, pieceCounts: [108, 216],     basePrice: 499 },
 ];
 
 const FINISHES = [
@@ -51,6 +49,7 @@ interface PuzzleConfig {
   textColor: string;
   bgColor: string;
   fontFamily: string;
+  fontScale: number; // user text-size multiplier (1 = default)
   qrValue: string;
 }
 
@@ -80,8 +79,10 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
   const initialFormat = (() => {
     const s = (productSlug || '').toLowerCase();
     if (s.includes('a5') || s.includes('15x21') || s.includes('15×21')) return 's-v';
-    if (s.includes('a3') || s.includes('30x42') || s.includes('30×42')) return 'l-v';
-    if (s.includes('20x30') || s.includes('20×30') || s.includes('a4')) return 'm-v';
+    // A3 (30×42) was discontinued — any old a3/30x42 link falls through to
+    // the largest available size (A4 20×30) instead of returning a now
+    // non-existent 'l-v' id (which would crash like the old 'a4-v' bug).
+    if (s.includes('20x30') || s.includes('20×30') || s.includes('a4') || s.includes('a3') || s.includes('30x42') || s.includes('30×42')) return 'm-v';
     return PUZZLE_FORMATS[0].id; // safe fallback — always a real id
   })();
   const initialFmtObj = PUZZLE_FORMATS.find(f => f.id === initialFormat) ?? PUZZLE_FORMATS[0];
@@ -97,6 +98,7 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
     textColor: '#1a1a1a',
     bgColor: '#f5ecd7',
     fontFamily: 'Playfair Display',
+    fontScale: 1,
     qrValue: 'https://touch.memories',
   });
   const [showCartModal, setShowCartModal] = useState(false);
@@ -269,13 +271,13 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
               )}
 
               {config.mode === 'photo-text' && config.photoUrl && (
-                <div style={{ position: 'absolute', left: 0, right: 0, bottom: '8%', padding: '10px 20px', textAlign: 'center', fontFamily: config.fontFamily + ', serif', fontSize: Math.max(14, previewW * 0.07), color: config.textColor, textShadow: '0 2px 8px rgba(0,0,0,0.6)', fontWeight: 700, wordWrap: 'break-word', lineHeight: 1.2 }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: '8%', padding: '10px 20px', textAlign: 'center', fontFamily: config.fontFamily + ', serif', fontSize: Math.max(14, previewW * 0.07) * config.fontScale, color: config.textColor, textShadow: '0 2px 8px rgba(0,0,0,0.6)', fontWeight: 700, wordWrap: 'break-word', lineHeight: 1.2 }}>
                   {config.text}
                 </div>
               )}
 
               {config.mode === 'text' && (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, textAlign: 'center', fontFamily: config.fontFamily + ', serif', fontSize: Math.max(18, previewW * 0.09), color: config.textColor, fontWeight: 700, wordWrap: 'break-word', lineHeight: 1.2 }}>
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, textAlign: 'center', fontFamily: config.fontFamily + ', serif', fontSize: Math.max(18, previewW * 0.09) * config.fontScale, color: config.textColor, fontWeight: 700, wordWrap: 'break-word', lineHeight: 1.2 }}>
                   {config.text}
                 </div>
               )}
@@ -284,7 +286,7 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
                 <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8%', gap: 10 }}>
                   <img src={qrImageUrl} alt="QR" style={{ width: '65%', maxWidth: '65%', objectFit: 'contain', background: '#fff', padding: 6, borderRadius: 4 }} />
                   {config.text && (
-                    <div style={{ fontSize: Math.max(11, previewW * 0.04), fontFamily: config.fontFamily + ', serif', color: config.textColor, textAlign: 'center', fontWeight: 600, wordWrap: 'break-word' }}>
+                    <div style={{ fontSize: Math.max(11, previewW * 0.04) * config.fontScale, fontFamily: config.fontFamily + ', serif', color: config.textColor, textAlign: 'center', fontWeight: 600, wordWrap: 'break-word' }}>
                       {config.text}
                     </div>
                   )}
@@ -389,6 +391,15 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
                   style={{ width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, background: '#fff' }}>
                   {FONTS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
                 </select>
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Розмір тексту</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#1e2d7d' }}>{Math.round(config.fontScale * 100)}%</span>
+                </div>
+                <input type="range" min={0.5} max={2} step={0.05} value={config.fontScale}
+                  onChange={e => update({ fontScale: parseFloat(e.target.value) })}
+                  style={{ width: '100%', accentColor: '#1e2d7d', cursor: 'pointer' }} />
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>{t('puzzle.textColor')}</div>
