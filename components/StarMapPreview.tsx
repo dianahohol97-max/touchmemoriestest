@@ -396,8 +396,12 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
         if(config.showConstellationNames!==false) {
             ctx.save();
             ctx.font=`9px ${config.fontFamily}`;
-            ctx.fillStyle=config.textColor; ctx.textAlign='center'; ctx.textBaseline='middle';
-            ctx.globalAlpha=isLight?0.35:0.4;
+            // Names sit on the (usually dark) sky circle, so they must use the
+            // star colour, not config.textColor — the poster text colour is
+            // tuned for the white margin and was dark-on-dark (invisible) here,
+            // which made the toggle look like it did nothing.
+            ctx.fillStyle=config.starColor; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.globalAlpha=isLight?0.55:0.5;
             const labelsForLang = config.constellationLang === 'en' ? CONSTELLATION_LABELS_EN
                 : config.constellationLang === 'pl' ? CONSTELLATION_LABELS_PL
                 : config.constellationLang === 'ro' ? CONSTELLATION_LABELS_RO

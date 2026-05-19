@@ -93,6 +93,16 @@ export default function StarMapConstructor() {
         textColor: '#0a0e1a',
         fontFamily: 'Georgia',
         showStarNames: true,
+        // Map-element toggles must be explicitly initialised. Previously they
+        // were undefined: the toggle UI treats undefined as ON (x!==false)
+        // while the grid renderer treats undefined as OFF (if(showGrid)), so
+        // the grid toggle showed ON yet drew nothing and needed two clicks to
+        // react. Setting explicit defaults keeps toggle state and render in
+        // sync (grid off by default, the rest on).
+        showConstellations: true,
+        showConstellationNames: true,
+        showMilkyWay: true,
+        showGrid: false,
 
         // Step 4 defaults
         size: initialStarMapSize,
