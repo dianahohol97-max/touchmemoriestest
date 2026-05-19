@@ -371,8 +371,11 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
   const setOrientationSelected = (o: 'portrait'|'landscape') => setPhotos(prev => prev.map(p => {
     if (!effectiveIds.has(p.id)) return p;
-    const natural = p.width >= p.height ? 'landscape' : 'portrait';
-    return { ...p, orientation: o, rotation: o === natural ? 0 : 90 };
+    // Orientation controls the PRINT (frame) shape only. The photo is fitted
+    // into that frame via objectFit:cover in the renderer, so we must NOT
+    // force-rotate it — doing so laid a normal photo on its side. The user's
+    // own rotation (rotateSelected) is preserved untouched.
+    return { ...p, orientation: o };
   }));
 
   const setBorderSelected  = (b: boolean) => setPhotos(prev => prev.map(p => effectiveIds.has(p.id) ? {...p,border:b} : p));
