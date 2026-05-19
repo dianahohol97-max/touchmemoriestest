@@ -156,12 +156,20 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
         if(isForest) drawForest(ctx,W,H);
         else { ctx.fillStyle=config.backgroundColor; ctx.fillRect(0,0,W,H); }
 
-        // Map geometry — give more room to the sky circle (was 60%, now 68%)
+        // Map geometry. The sky circle sits in the upper band (68% of H for
+        // non-full styles). Previously R was min(...)*0.99 with only a 12px
+        // inset, so the circle's top edge sat ~15px from the canvas top — any
+        // sub-pixel rounding in the aspect-ratio container then clipped the
+        // top of the circle (reported bug). Give the band a real, proportional
+        // top padding and shrink the radius so the whole circle is always
+        // visible with margin to spare.
+        const topPad = isFull ? 0 : Math.round(H * 0.05);
         const mapH = isFull ? H : Math.round(H*0.68);
-        const cx=W/2, cy = isFull ? H/2 : mapH/2;
+        const cx=W/2;
+        const cy = isFull ? H/2 : topPad + (mapH - topPad)/2;
         const R = isHeart
             ? Math.min(W,mapH)*0.46
-            : Math.min(W/2-12, mapH/2-12)*0.99;
+            : Math.min(W/2-12, (mapH - topPad)/2 - 12)*0.92;
 
         // Compute LST (RA of zenith in degrees)
         const jd = getJD(config.date, config.time);
@@ -531,7 +539,7 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
         <div style={{ display: 'flex', justifyContent: 'center' }}>
             <div
               ref={containerRef}
-              className="rounded-xl shadow-2xl overflow-hidden"
+              className="shadow-2xl overflow-hidden"
               style={{
                 backgroundColor: config.backgroundColor,
                 width: '100%',
