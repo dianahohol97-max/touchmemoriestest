@@ -803,21 +803,19 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           <div style={{ background:'#fff', borderRadius:12, border:'1px solid #e2e8f0', padding:20, marginBottom:16 }}>
             <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:16 }}>{t('photo_print.settings')}</h3>
 
-            {/* Counter */}
-            <div style={{ padding:'10px 14px', borderRadius:8, marginBottom:16,
-              background: photos.length>0&&!qtyOk ? '#fff7ed':'#eff6ff',
-              border:`1px solid ${photos.length>0&&!qtyOk?'#fed7aa':'#bfdbfe'}` }}>
-              <div style={{ fontWeight:700, fontSize:13, color: photos.length===0?'#c2410c':!qtyOk?'#d97706':'#1d4ed8' }}>
-                {photos.length} фото → {totalQty} шт.
-                {photos.length>0 && totalQty<minQty && <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>мінімум {minQty} шт.</span>}
-                {photos.length>0 && totalQty>=minQty && multiple>1 && totalQty%multiple!==0 && <span style={{ fontWeight:400, fontSize:11, color:'#d97706', marginLeft:8 }}>має ділитися на {multiple}</span>}
-              </div>
-              {(isNonstandard||isPolaroid) && selectedSize && multiple>1 && (
-                <div style={{ fontSize:11, color:'#64748b', marginTop:4 }}>
+            {/* Counter — only the multiple/example hint is shown (the
+                "N фото → N шт. мінімум N шт." summary line was removed at
+                Diana's request; the same info already appears per-size and
+                via the add-to-cart validation). */}
+            {(isNonstandard||isPolaroid) && selectedSize && multiple>1 && (
+              <div style={{ padding:'10px 14px', borderRadius:8, marginBottom:16,
+                background: photos.length>0&&!qtyOk ? '#fff7ed':'#eff6ff',
+                border:`1px solid ${photos.length>0&&!qtyOk?'#fed7aa':'#bfdbfe'}` }}>
+                <div style={{ fontSize:11, color:'#64748b' }}>
                   Мінімум <b>{minQty} шт.</b>, кратно <b>{multiple}</b> — наприклад: {Array.from({length:3},(_,i)=>(Math.ceil(minQty/multiple)+i)*multiple).join(', ')} і т.д.
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Size — для полароїд вже є візуалізатор вгорі, тому показуємо кнопки тільки якщо не полароїд */}
             {!isPolaroid && sizeOptions.length>0 && (
