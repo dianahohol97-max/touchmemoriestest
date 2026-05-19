@@ -247,6 +247,48 @@ export default function DeskCalendarConstructor(){
   const collage=COLLAGES.find(c=>c.id===collageId)||COLLAGES[0];
   const curPhotos=monthPhotos[active-1];
   const curMarks=marks[`m${active}`]||[];
+
+  const handleOrder = async () => {
+    const cartPayload = {
+      id:`desk-cal-${Date.now()}`,
+      name:`Настільний календар ${year}`,
+      price:325, qty:1,
+      image:monthPhotos.flat().find(p=>p.url!==null)?.url||'',
+      options:{ 'Дизайн':design.name, 'Мова':lang, 'Рік':String(year) },
+      personalization_note:`Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`,
+    };
+    addItem(cartPayload);
+
+    // Persist as a project so the calendar appears in "Мої дизайни" (it only
+    // went to the cart before). cart_payload lets the account "Замовити"
+    // button replay the exact priced payload. Non-blocking, logged-in only.
+    try {
+      const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+      const sb = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) {
+        await sb.from('projects').insert({
+          user_id: user.id,
+          product_type: 'desk-calendar',
+          format: String(year),
+          status: 'draft',
+          name: `Настільний календар ${year}`,
+          pages_data: [{ year, lang, designName: design.name, collageId, monthPhotos, marks }],
+          cart_payload: cartPayload,
+          uploaded_photos: monthPhotos.flat().map(p=>p?.url).filter(Boolean),
+          updated_at: new Date().toISOString(),
+        });
+      }
+    } catch (e) {
+      console.error('Saving desk-calendar project failed (non-blocking):', e);
+    }
+
+    toast.success(t('deskcal.order_success'));
+    setShowCartModal(true);
+  };
   const LANGS=[{code:'uk'as LangCode,flag:'',label:'Укр'},{code:'en'as LangCode,flag:'',label:'Eng'},{code:'de'as LangCode,flag:'',label:'Deu'},{code:'pl'as LangCode,flag:'',label:'Pol'},{code:'ro'as LangCode,flag:'',label:'Rom'}];
   return(
     <>
@@ -403,7 +445,7 @@ export default function DeskCalendarConstructor(){
           {/* QR Code Generator */}
           <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
 
-          <button onClick={()=>{addItem({id:`desk-cal-${Date.now()}`,name:`Настільний календар ${year}`,price:325,qty:1,image:monthPhotos.flat().find(p=>p.url!==null)?.url||'',options:{'Дизайн':design.name,'Мова':lang,'Рік':String(year)},personalization_note:`Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`});toast.success(t('deskcal.order_success'));setShowCartModal(true);}} style={{width:'100%',padding:'11px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:8,fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 4px 12px rgba(30,45,125,0.28)'}}>
+          <button onClick={handleOrder} style={{width:'100%',padding:'11px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:8,fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 4px 12px rgba(30,45,125,0.28)'}}>
             <ShoppingCart size={14}/> Замовити — 325 ₴
           </button>
         </div>

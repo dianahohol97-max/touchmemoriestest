@@ -82,6 +82,9 @@ function getProductVisual(productType?: string): { gradient: string; label: stri
     if (pt.includes('starmap') || pt.includes('star-map') || pt.includes('poster') || pt.includes('постер') || pt.includes('зоряне') || pt.includes('небо')) {
         return { gradient: 'linear-gradient(135deg, #1e293b, #0f172a)', label: 'Постер' };
     }
+    if (pt.includes('calendar') || pt.includes('календар') || pt.includes('desk-cal') || pt.includes('deskcal') || pt.includes('настільн')) {
+        return { gradient: 'linear-gradient(135deg, #fef3c7, #fcd34d)', label: 'Календар' };
+    }
     if (pt.includes('photobook') || pt.includes('photo') || pt.includes('фото')) {
         return { gradient: 'linear-gradient(135deg, #dbeafe, #93c5fd)', label: 'Фотокнига' };
     }
@@ -532,11 +535,15 @@ export default function AccountPage() {
                                             const label = d.title || d.name || (d.product_type ? `${d.product_type}${d.format ? ' ' + d.format : ''}` : 'Дизайн');
                                             const ptLower = (d.product_type || '').toLowerCase();
                                             const isStarmap = ptLower.includes('starmap') || ptLower.includes('star-map');
-                                            // Star map projects are built by the star-map constructor, not the
-                                            // book editor — /editor/{id} would load the wrong editor. Send them
-                                            // to /order/starmap (full constructor reload).
-                                            const editUrl = isStarmap
-                                                ? `/order/starmap`
+                                            const isPoster = ptLower === 'poster' || ptLower.includes('постер');
+                                            const isDeskCal = ptLower.includes('desk-cal') || ptLower.includes('deskcal') || ptLower.includes('настільн');
+                                            const isWallCal = !isDeskCal && (ptLower.includes('calendar') || ptLower.includes('календар'));
+                                            // These products have their own constructors — /editor/{id} would
+                                            // load the book editor (wrong). Route each to its constructor.
+                                            const editUrl = isStarmap ? `/order/starmap`
+                                                : isPoster ? `/order/poster`
+                                                : isDeskCal ? `/order/desk-calendar`
+                                                : isWallCal ? `/order/wall-calendar`
                                                 : d.source === 'editor' ? `/editor/${d.id}` : `/review/${d.id}`;
                                             const editLabel = d.source === 'editor' ? 'Продовжити редагування' : 'Переглянути';
                                             const visual = getProductVisual(d.product_type);

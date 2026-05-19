@@ -694,7 +694,7 @@ export default function PosterConstructor() {
         } catch {}
       }
 
-      addItem({
+      const cartPayload = {
         id: `poster-${Date.now()}`,
         name: `Постер ${sizeObj.label}`,
         price: sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0),
@@ -706,7 +706,39 @@ export default function PosterConstructor() {
           'Рамка': config.frameStyle,
         },
         personalization_note: fileUrl ? `Файл: ${fileUrl}` : `Макет: ${layout.name}`,
-      });
+      };
+
+      addItem(cartPayload);
+
+      // Persist as a project so the poster shows up in "Мої дизайни" (like
+      // books/photo-print/starmap). It only went to the cart before, so it
+      // was missing from the account page. cart_payload lets the account
+      // "Замовити" button replay the exact priced payload. Non-blocking,
+      // logged-in only — must not break the order flow.
+      try {
+        const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+        const sb = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data: { user } } = await sb.auth.getUser();
+        if (user) {
+          await sb.from('projects').insert({
+            user_id: user.id,
+            product_type: 'poster',
+            format: sizeObj.label,
+            status: 'draft',
+            name: `Постер ${sizeObj.label}`,
+            pages_data: [{ ...config }],
+            cart_payload: cartPayload,
+            uploaded_photos: config.photos.map(p => p.photoUrl).filter(Boolean),
+            updated_at: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        console.error('Saving poster project failed (non-blocking):', e);
+      }
+
       toast.success(' Постер додано до кошика!');
       setShowCartModal(true);
     } catch (err) {
