@@ -242,16 +242,27 @@ function PhotoPreview({
   const bPx = Math.round(((showBorder||isNonstandard)?3:0) * sc / 10);
   const cmL = 10; const cmG = 4;
 
+  // Cover-fit baseline. The img is rendered object-fit:contain (whole photo
+  // fits inside the frame, letterboxed), then scaled by coverFactor so that
+  // zoom===1 still exactly COVERS the frame — i.e. default behaviour is
+  // unchanged (full-bleed, no margins). Zooming below 1 shrinks the photo
+  // visible and nothing force-cropped, so the customer can finally reframe.
+  const frameAR = canvasW / canvasH;
+  const imgAR = (photo.width && photo.height) ? (photo.width / photo.height) : frameAR;
+  const coverFactor = imgAR > frameAR ? (imgAR / frameAR) : (frameAR / imgAR);
+  const effScale = (photo.zoom || 1) * coverFactor;
+  const belowCover = (photo.zoom || 1) < 0.999;
+
   return (
     <div style={{ display:'inline-block' }}>
-      <div style={{ width:canvasW, height:canvasH, position:'relative', background:'#f0f0f0',
+      <div style={{ width:canvasW, height:canvasH, position:'relative', background:'#fff',
         boxShadow:'0 4px 20px rgba(0,0,0,0.15)', userSelect:'none', overflow:'hidden' }} onWheel={handleWheel}>
         <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:canvasH,
           overflow:'hidden', cursor:'grab', touchAction:'none' }} onPointerDown={handleMouseDown}>
           <img src={photo.preview} draggable={false} style={{
-            position:'absolute', width:'100%', height:'100%', objectFit:'cover',
+            position:'absolute', width:'100%', height:'100%', objectFit:'contain',
             objectPosition:`${photo.cropX||50}% ${photo.cropY||50}%`, top:0, left:0,
-            transform:`scale(${photo.zoom||1}) rotate(${photo.rotation||0}deg)`,
+            transform:`scale(${effScale}) rotate(${photo.rotation||0}deg)`,
             transformOrigin:`${photo.cropX||50}% ${photo.cropY||50}%`,
             userSelect:'none', pointerEvents:'none' }}/>
         </div>
@@ -273,6 +284,10 @@ function PhotoPreview({
         {(photo.zoom||1)!==1 && <div style={{ position:'absolute', bottom:bPx+4, right:bPx+4,
           background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:9, fontWeight:700,
           padding:'2px 6px', borderRadius:8, pointerEvents:'none', zIndex:10 }}>{Math.round((photo.zoom||1)*100)}%</div>}
+        {belowCover && <div style={{ position:'absolute', top:bPx+4, left:'50%', transform:'translateX(-50%)',
+          background:'rgba(217,119,6,0.92)', color:'#fff', fontSize:9, fontWeight:700,
+          padding:'2px 8px', borderRadius:8, pointerEvents:'none', zIndex:10, whiteSpace:'nowrap' }}>
+          фото не заповнює рамку — будуть білі поля</div>}
       </div>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:6 }}>
         <button onClick={()=>onCropChange(photo.id,photo.cropX??50,photo.cropY??50,Math.max(0.1,(photo.zoom||1)-0.1))}
