@@ -156,11 +156,43 @@ function PhotoPreview({
     });
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
+  // React attaches onWheel as a PASSIVE listener (React 17+), so
+  // e.preventDefault() inside it is ignored and the wheel still scrolls/zooms
+  // the whole page while the user is only trying to zoom the photo. We attach
+  // our own NON-passive native wheel listener via a ref callback, where
+  // preventDefault() actually works. Latest photo state is read from a ref to
+  // avoid a stale closure.
+  const wheelStateRef = useRef({ zoom: photo.zoom || 1, cropX: photo.cropX ?? 50, cropY: photo.cropY ?? 50 });
+  wheelStateRef.current = { zoom: photo.zoom || 1, cropX: photo.cropX ?? 50, cropY: photo.cropY ?? 50 };
+  const wheelElRef = useRef<HTMLDivElement | null>(null);
+  const wheelZoom = (e: WheelEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    const st = wheelStateRef.current;
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
-    onCropChange(photo.id, photo.cropX ?? 50, photo.cropY ?? 50,
-      Math.max(0.1, Math.min(3, (photo.zoom || 1) + delta)));
+    onCropChange(photo.id, st.cropX, st.cropY,
+      Math.max(0.1, Math.min(3, st.zoom + delta)));
+  };
+  const setWheelRef = (el: HTMLDivElement | null) => {
+    if (wheelElRef.current) {
+      wheelElRef.current.removeEventListener('wheel', wheelZoom);
+    }
+    wheelElRef.current = el;
+    if (el) {
+      el.addEventListener('wheel', wheelZoom, { passive: false });
+    }
+  };
+  useEffect(() => {
+    return () => {
+      if (wheelElRef.current) wheelElRef.current.removeEventListener('wheel', wheelZoom);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    // Kept as a no-op safety net; real handling is the non-passive listener
+    // attached via setWheelRef. Calling preventDefault here is harmless.
+    e.preventDefault();
   };
 
   // ── POLAROID ──
@@ -260,8 +292,8 @@ function PhotoPreview({
 
   return (
     <div style={{ display:'inline-block' }}>
-      <div style={{ width:canvasW, height:canvasH, position:'relative', background:'#fff',
-        boxShadow:'0 4px 20px rgba(0,0,0,0.15)', userSelect:'none', overflow:'hidden' }} onWheel={handleWheel}>
+      <div ref={setWheelRef} style={{ width:canvasW, height:canvasH, position:'relative', background:'#fff',
+        boxShadow:'0 4px 20px rgba(0,0,0,0.15)', userSelect:'none', overflow:'hidden', touchAction:'none' }} onWheel={handleWheel}>
         <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:canvasH,
           overflow:'hidden', cursor:'grab', touchAction:'none' }} onPointerDown={handleMouseDown}>
           <img src={photo.preview} draggable={false} style={{
