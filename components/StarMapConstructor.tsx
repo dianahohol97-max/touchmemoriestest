@@ -229,6 +229,29 @@ export default function StarMapConstructor() {
             personalization_note: `Заголовок: ${config.headline}\nПідзаголовок: ${config.subtitle}\nДедикація: ${config.dedication}`
         });
 
+        // Persist as a project so it shows up in "Мої дизайни" like the other
+        // products do. Star map previously only went to the cart and never
+        // wrote a projects row, so it was missing from the account page.
+        // Non-blocking and only for logged-in users (same rule as the other
+        // constructors): a failure here must not break the add-to-cart flow.
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await supabase.from('projects').insert({
+                    user_id: user.id,
+                    product_type: 'starmap',
+                    format: config.size || '',
+                    status: 'draft',
+                    name: config.headline?.trim() || product.name,
+                    pages_data: [{ ...config }],
+                    uploaded_photos: canvas ? [canvas.toDataURL('image/jpeg', 0.7)] : [],
+                    updated_at: new Date().toISOString(),
+                });
+            }
+        } catch (err) {
+            console.error('Saving star map project failed (non-blocking):', err);
+        }
+
         toast.success(t('starmap.add_to_cart_success'));
     };
 

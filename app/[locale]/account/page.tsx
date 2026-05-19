@@ -78,6 +78,9 @@ function getProductVisual(productType?: string): { gradient: string; label: stri
     if (pt.includes('wish')) {
         return { gradient: 'linear-gradient(135deg, #fce7f3, #f9a8d4)', label: 'Wishbook' };
     }
+    if (pt.includes('starmap') || pt.includes('star-map') || pt.includes('poster') || pt.includes('постер') || pt.includes('зоряне') || pt.includes('небо')) {
+        return { gradient: 'linear-gradient(135deg, #1e293b, #0f172a)', label: 'Постер' };
+    }
     if (pt.includes('photobook') || pt.includes('photo') || pt.includes('фото')) {
         return { gradient: 'linear-gradient(135deg, #dbeafe, #93c5fd)', label: 'Фотокнига' };
     }
@@ -467,7 +470,14 @@ export default function AccountPage() {
                                         {designs.map(d => {
                                             const dSt = DESIGN_STATUSES[d.status] || DESIGN_STATUSES.draft;
                                             const label = d.title || d.name || (d.product_type ? `${d.product_type}${d.format ? ' ' + d.format : ''}` : 'Дизайн');
-                                            const editUrl = d.source === 'editor' ? `/editor/${d.id}` : `/review/${d.id}`;
+                                            const ptLower = (d.product_type || '').toLowerCase();
+                                            const isStarmap = ptLower.includes('starmap') || ptLower.includes('star-map');
+                                            // Star map projects are built by the star-map constructor, not the
+                                            // book editor — /editor/{id} would load the wrong editor. Send them
+                                            // to /order/starmap (full constructor reload).
+                                            const editUrl = isStarmap
+                                                ? `/order/starmap`
+                                                : d.source === 'editor' ? `/editor/${d.id}` : `/review/${d.id}`;
                                             const editLabel = d.source === 'editor' ? 'Продовжити редагування' : 'Переглянути';
                                             const visual = getProductVisual(d.product_type);
                                             const isEditing = editingDesignId === d.id;
