@@ -1493,9 +1493,15 @@ export default function BookLayoutEditor() {
     _slug.includes('zhurnal') || _slug.includes('fotozhurnal') ||
     _slug.includes('travel') ||
     _slug.includes('wish') || _slug.includes('guest') || _slug.includes('pobazhan') ||
+    // Graduation books: printed hard cover only. Cover type resolves to
+    // «Випускна» (price-matrix key); treat it as printed so the editor shows
+    // the photo slot + cover text like a normal printed photobook.
+    _slug.includes('graduation') || _slug.includes('vypusk') ||
+    (config?.selectedCoverType || '').toLowerCase().includes('випуск') ||
     (config?.productName || '').toLowerCase().includes('журнал') ||
     (config?.productName || '').toLowerCase().includes('тревел') ||
-    (config?.productName || '').toLowerCase().includes('побажань');
+    (config?.productName || '').toLowerCase().includes('побажань') ||
+    (config?.productName || '').toLowerCase().includes('випускн');
 
   // Wishbook + scrapbook share cover-only flow with fixed page count
   const isScrapbook = _slug.includes('scrapbook');

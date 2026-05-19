@@ -333,6 +333,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 else if (sl.includes('leather')) setSelectedCoverType('Шкірзамінник');
                 else if (sl.includes('fabric') || sl.includes('tkanina')) setSelectedCoverType('Тканина');
                 else if (sl.includes('printed') || sl.includes('drukov')) setSelectedCoverType('Друкована');
+                // Graduation photobooks are produced only with a printed hard
+                // cover (no velour/fabric variant). Use the canonical
+                // «Випускна» cover type: that is the cover_type the
+                // photobook_prices matrix is keyed by for graduation books, so
+                // the editor price lookup matches the catalog card. The editor
+                // treats «Випускна» as a printed cover (see isPrinted).
+                else if (sl.includes('graduation') || sl.includes('vypusk') || sl.includes('випуск')) setSelectedCoverType('Випускна');
             }
         }
 
