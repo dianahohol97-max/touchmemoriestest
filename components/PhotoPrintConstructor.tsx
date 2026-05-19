@@ -413,9 +413,23 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       if (photos.length+newPhotos.length>=500) { toast.error(t('photo_print.max_photos')); break; }
       const preview=URL.createObjectURL(file);
       try {
-        const img=await new Promise<HTMLImageElement>((res,rej)=>{const im=new window.Image();im.onload=()=>res(im);im.onerror=rej;im.src=preview;});
-        newPhotos.push({id:Math.random().toString(36).slice(7),file,preview,width:img.width,height:img.height,
-          cropX:50,cropY:50,zoom:1,rotation:0,orientation:img.width>=img.height?'landscape':'portrait',
+        // Phones store portrait photos as a physically-landscape file plus an
+        // EXIF "rotate 90°" flag. A plain <img> reports the raw (landscape)
+        // width/height, so img.width >= img.height wrongly defaulted vertical
+        // phone photos to 'landscape'. createImageBitmap with
+        // imageOrientation:'from-image' bakes in the EXIF rotation, giving the
+        // visually-correct dimensions; we fall back to <img> if unsupported.
+        let natW = 0, natH = 0;
+        try {
+          const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+          natW = bmp.width; natH = bmp.height;
+          bmp.close?.();
+        } catch {
+          const img=await new Promise<HTMLImageElement>((res,rej)=>{const im=new window.Image();im.onload=()=>res(im);im.onerror=rej;im.src=preview;});
+          natW = img.width; natH = img.height;
+        }
+        newPhotos.push({id:Math.random().toString(36).slice(7),file,preview,width:natW,height:natH,
+          cropX:50,cropY:50,zoom:1,rotation:0,orientation:natW>=natH?'landscape':'portrait',
           border:selectedBorder==='with',qty:1,showCaption:false});
       } catch { URL.revokeObjectURL(preview); }
     }
