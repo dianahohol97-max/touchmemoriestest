@@ -124,18 +124,29 @@ export default function AccountPage() {
             const uid = session.user.id;
 
             // Fetch all data in parallel
-            const [custRes, ordersRes, wishRes, editorRes, designerRes] = await Promise.all([
+            const [custRes, ordersRes, editorRes, designerRes] = await Promise.all([
                 supabase.from('customers').select('*').eq('email', email).single(),
                 supabase.from('orders')
                     .select('id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,tracking_number')
                     .or(`customer_email.eq.${email},customer_id.eq.${uid}`)
                     .order('created_at', { ascending: false }),
-                supabase.from('wishlists').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
                 supabase.from('projects').select('id,name,product_type,format,status,updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(20),
                 supabase.from('customer_projects').select('id,title,product_type,status,updated_at,thumbnail_url')
                     .in('customer_id', (await supabase.from('customers').select('id').eq('email', email)).data?.map((c: any) => c.id) || [])
                     .order('updated_at', { ascending: false }).limit(20),
             ]);
+
+            // Wishlist is keyed by customer_id (the store/API write it that way),
+            // so it must be fetched AFTER the customer row is resolved — querying
+            // a non-existent `user_id` column with the auth uid always returned [].
+            const customerId = custRes.data?.id;
+            let wishRes: { data: any[] | null } = { data: [] };
+            if (customerId) {
+                wishRes = await supabase.from('wishlists')
+                    .select('*')
+                    .eq('customer_id', customerId)
+                    .order('added_at', { ascending: false });
+            }
 
             if (custRes.data) {
                 setCustomer(custRes.data);
