@@ -350,43 +350,50 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   }, [productSlug]);
 
   // ── Selection ──────────────────────────────────────────────────────────────
-  const selectedPhotos = photos.filter(p => selectedPhotoIds.has(p.id));
   const allSelected    = photos.length > 0 && selectedPhotoIds.size === photos.length;
   const toggleSelect   = (id: string) => setSelectedPhotoIds(prev => { const n=new Set(prev); n.has(id)?n.delete(id):n.add(id); return n; });
   const selectAll      = () => setSelectedPhotoIds(new Set(photos.map(p=>p.id)));
   const clearSelection = () => setSelectedPhotoIds(new Set());
 
+  // The edit panel acts on the current selection; when nothing is selected it
+  // falls back to the single active photo (the one shown in the big preview),
+  // so the panel stays usable as long as there is at least one photo.
+  const effectiveIds: Set<string> = selectedPhotoIds.size > 0
+    ? selectedPhotoIds
+    : (photos[activePhotoIdx] ? new Set([photos[activePhotoIdx].id]) : new Set<string>());
+  const effectivePhotos = photos.filter(p => effectiveIds.has(p.id));
+
   // ── Bulk ops ───────────────────────────────────────────────────────────────
   const rotateSelected = (dir: 'cw'|'ccw') => setPhotos(prev => prev.map(p => {
-    if (!selectedPhotoIds.has(p.id)) return p;
+    if (!effectiveIds.has(p.id)) return p;
     return { ...p, rotation: ((p.rotation||0)+(dir==='cw'?90:-90)+360)%360 };
   }));
 
   const setOrientationSelected = (o: 'portrait'|'landscape') => setPhotos(prev => prev.map(p => {
-    if (!selectedPhotoIds.has(p.id)) return p;
+    if (!effectiveIds.has(p.id)) return p;
     const natural = p.width >= p.height ? 'landscape' : 'portrait';
     return { ...p, orientation: o, rotation: o === natural ? 0 : 90 };
   }));
 
-  const setBorderSelected  = (b: boolean) => setPhotos(prev => prev.map(p => selectedPhotoIds.has(p.id) ? {...p,border:b} : p));
-  const setQtySelected     = (d: number)  => setPhotos(prev => prev.map(p => selectedPhotoIds.has(p.id) ? {...p,qty:Math.max(1,(p.qty||1)+d)} : p));
-  const setQtyExact        = (qty: number)=> setPhotos(prev => prev.map(p => selectedPhotoIds.has(p.id) ? {...p,qty:Math.max(1,qty)} : p));
+  const setBorderSelected  = (b: boolean) => setPhotos(prev => prev.map(p => effectiveIds.has(p.id) ? {...p,border:b} : p));
+  const setQtySelected     = (d: number)  => setPhotos(prev => prev.map(p => effectiveIds.has(p.id) ? {...p,qty:Math.max(1,(p.qty||1)+d)} : p));
+  const setQtyExact        = (qty: number)=> setPhotos(prev => prev.map(p => effectiveIds.has(p.id) ? {...p,qty:Math.max(1,qty)} : p));
 
   const toggleCaptionSelected = () => setPhotos(prev => prev.map(p => {
-    if (!selectedPhotoIds.has(p.id)) return p;
+    if (!effectiveIds.has(p.id)) return p;
     const next = !p.showCaption;
     return { ...p, showCaption: next, polaroidText: next ? (p.polaroidText||'') : '' };
   }));
 
   const duplicateSelected = () => {
-    const dupes = photos.filter(p=>selectedPhotoIds.has(p.id)).map(p=>({...p,id:Math.random().toString(36).slice(7)+Date.now()}));
+    const dupes = photos.filter(p=>effectiveIds.has(p.id)).map(p=>({...p,id:Math.random().toString(36).slice(7)+Date.now()}));
     setPhotos(prev=>[...prev,...dupes]);
     toast.success(t('photo_print.duplicated').replace('{n}',String(dupes.length)));
   };
 
   const deleteSelected = () => {
-    const count = selectedPhotoIds.size;
-    setPhotos(prev=>prev.filter(p=>!selectedPhotoIds.has(p.id)));
+    const count = effectiveIds.size;
+    setPhotos(prev=>prev.filter(p=>!effectiveIds.has(p.id)));
     clearSelection(); setActivePhotoIdx(0);
     toast.success(t('photo_print.deleted').replace('{n}',String(count)));
   };
@@ -654,9 +661,13 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 )}
               </div>
 
-              {selectedPhotoIds.size>0 && (
+              {photos.length>0 && (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12 }}>
-                  <div style={{ fontWeight:700, fontSize:13, color:'#374151', marginBottom:10 }}>{t('photo_print.edit_selected')}</div>
+                  <div style={{ fontWeight:700, fontSize:13, color:'#374151', marginBottom:10 }}>
+                    {selectedPhotoIds.size>0
+                      ? t('photo_print.edit_selected')
+                      : `Редагувати активне фото (${activePhotoIdx+1} / ${photos.length})`}
+                  </div>
 
                   {/* Rotate + Orientation */}
                   <div style={{ display:'flex', gap:16, marginBottom:12 }}>
@@ -671,14 +682,14 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                       <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Орієнтація</div>
                       <div style={{ display:'flex', gap:4 }}>
                         <button onClick={()=>setOrientationSelected('portrait')} title="Вертикально"
-                          style={{ width:38, height:38, border:selectedPhotos.every(p=>p.orientation==='portrait')?'2px solid #1e2d7d':'1px solid #e2e8f0',
-                            borderRadius:8, background:selectedPhotos.every(p=>p.orientation==='portrait')?'#f0f3ff':'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          <div style={{ width:13, height:18, border:'2px solid currentColor', borderRadius:2, color:selectedPhotos.every(p=>p.orientation==='portrait')?'#1e2d7d':'#374151' }}/>
+                          style={{ width:38, height:38, border:effectivePhotos.every(p=>p.orientation==='portrait')?'2px solid #1e2d7d':'1px solid #e2e8f0',
+                            borderRadius:8, background:effectivePhotos.every(p=>p.orientation==='portrait')?'#f0f3ff':'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          <div style={{ width:13, height:18, border:'2px solid currentColor', borderRadius:2, color:effectivePhotos.every(p=>p.orientation==='portrait')?'#1e2d7d':'#374151' }}/>
                         </button>
                         <button onClick={()=>setOrientationSelected('landscape')} title="Горизонтально"
-                          style={{ width:38, height:38, border:selectedPhotos.every(p=>p.orientation==='landscape')?'2px solid #1e2d7d':'1px solid #e2e8f0',
-                            borderRadius:8, background:selectedPhotos.every(p=>p.orientation==='landscape')?'#f0f3ff':'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          <div style={{ width:18, height:13, border:'2px solid currentColor', borderRadius:2, color:selectedPhotos.every(p=>p.orientation==='landscape')?'#1e2d7d':'#374151' }}/>
+                          style={{ width:38, height:38, border:effectivePhotos.every(p=>p.orientation==='landscape')?'2px solid #1e2d7d':'1px solid #e2e8f0',
+                            borderRadius:8, background:effectivePhotos.every(p=>p.orientation==='landscape')?'#f0f3ff':'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          <div style={{ width:18, height:13, border:'2px solid currentColor', borderRadius:2, color:effectivePhotos.every(p=>p.orientation==='landscape')?'#1e2d7d':'#374151' }}/>
                         </button>
                       </div>
                     </div>
@@ -691,7 +702,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                       <div style={{ display:'flex', gap:6 }}>
                         {[{v:false,l:'Без рамки'},{v:true,l:'З рамкою 3мм'}].map(({v,l})=>(
                           <button key={String(v)} onClick={()=>setBorderSelected(v)}
-                            style={BTN(selectedPhotos.every(p=>p.border===v))}>{l}</button>
+                            style={BTN(effectivePhotos.every(p=>p.border===v))}>{l}</button>
                         ))}
                       </div>
                     </div>
@@ -703,8 +714,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                     <div style={{ display:'flex', alignItems:'center', gap:0, border:'1px solid #e2e8f0', borderRadius:8, overflow:'hidden', width:'fit-content' }}>
                       <button onClick={()=>setQtySelected(-1)} style={{ width:40, height:38, border:'none', background:'#f8fafc', cursor:'pointer', fontSize:18, color:'#374151', fontWeight:700 }}>−</button>
                       <input type="number" min={1} max={999}
-                        value={selectedPhotos.length===1?(selectedPhotos[0].qty||1):''}
-                        placeholder={selectedPhotos.length>1?'—':'1'}
+                        value={effectivePhotos.length===1?(effectivePhotos[0].qty||1):''}
+                        placeholder={effectivePhotos.length>1?'—':'1'}
                         onChange={e=>setQtyExact(parseInt(e.target.value)||1)}
                         style={{ width:60, height:38, border:'none', borderLeft:'1px solid #e2e8f0', borderRight:'1px solid #e2e8f0',
                           textAlign:'center', fontSize:14, fontWeight:700, color:'#1e2d7d', outline:'none', MozAppearance:'textfield' }}/>
@@ -717,14 +728,14 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                     <div style={{ marginBottom:12 }}>
                       <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Підпис</div>
                       <button onClick={toggleCaptionSelected}
-                        style={{ ...BTN(selectedPhotos.some(p=>p.showCaption)), display:'flex', alignItems:'center', gap:6, padding:'8px 14px' }}>
+                        style={{ ...BTN(effectivePhotos.some(p=>p.showCaption)), display:'flex', alignItems:'center', gap:6, padding:'8px 14px' }}>
                         <span>✏️</span>
-                        {selectedPhotos.some(p=>p.showCaption) ? 'Підпис увімкнено (+5 ₴)' : 'Додати підпис (+5 ₴)'}
+                        {effectivePhotos.some(p=>p.showCaption) ? 'Підпис увімкнено (+5 ₴)' : 'Додати підпис (+5 ₴)'}
                       </button>
-                      {selectedPhotos.some(p=>p.showCaption) && selectedPhotos.length===1 && (
+                      {effectivePhotos.some(p=>p.showCaption) && effectivePhotos.length===1 && (
                         <input type="text" placeholder="Введіть підпис…" maxLength={40}
-                          value={selectedPhotos[0].polaroidText||''}
-                          onChange={e=>updateText(selectedPhotos[0].id,e.target.value)}
+                          value={effectivePhotos[0].polaroidText||''}
+                          onChange={e=>updateText(effectivePhotos[0].id,e.target.value)}
                           style={{ marginTop:8, width:'100%', padding:'8px 12px', border:'1px solid #e2e8f0',
                             borderRadius:8, fontSize:13, outline:'none', fontFamily:polaroidFont, color:polaroidColor }}/>
                       )}
@@ -735,8 +746,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                   {sizeOptions.length>1 && (
                     <div style={{ marginBottom:12 }}>
                       <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Розмір для цих фото</div>
-                      <select value={selectedPhotos.length===1?(selectedPhotos[0].sizeOverride||''):''}
-                        onChange={e=>{const v=e.target.value;setPhotos(prev=>prev.map(p=>selectedPhotoIds.has(p.id)?{...p,sizeOverride:v||undefined}:p));}}
+                      <select value={effectivePhotos.length===1?(effectivePhotos[0].sizeOverride||''):''}
+                        onChange={e=>{const v=e.target.value;setPhotos(prev=>prev.map(p=>effectiveIds.has(p.id)?{...p,sizeOverride:v||undefined}:p));}}
                         style={{ width:'100%', padding:'7px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, background:'#fff', cursor:'pointer' }}>
                         <option value="">— як у замовленні ({selectedSize})</option>
                         {sizeOptions.map(o=><option key={o.name} value={o.name}>{o.name}</option>)}
