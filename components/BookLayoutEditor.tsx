@@ -1482,6 +1482,12 @@ export default function BookLayoutEditor() {
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
   const usedIds = React.useMemo(() => new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean))), [pages]);
   const _slug = (config?.productSlug || '').toLowerCase();
+  // Graduation photobooks have a minimum order of 5 copies (class sets are
+  // produced in batches — a single graduation book is never sold).
+  const isGraduation = _slug.includes('graduation') || _slug.includes('vypusk') ||
+    (config?.productName || '').toLowerCase().includes('випускн') ||
+    (config?.selectedCoverType || '').toLowerCase().includes('випуск');
+  const GRADUATION_MIN_QTY = 5;
   // Hard cover journal: isPrinted=true (uses color bg) but no photo slot
   const isHardCoverJournal = _slug.includes('tverd') || _slug.includes('hard-cover') ||
     (config?.productName || '').toLowerCase().includes('твердою');
@@ -2435,14 +2441,16 @@ export default function BookLayoutEditor() {
       id: orderId,
       name: config.productName || 'Фотокнига',
       price: dynamicPrice,
-      qty: 1,
+      qty: isGraduation ? GRADUATION_MIN_QTY : 1,
+      ...(isGraduation ? { min_qty: GRADUATION_MIN_QTY } : {}),
       image: productImage,
       options: {
         'Розмір': config.selectedSize || '',
         'Сторінок': `${contentPages} сторінок`,
         'Обкладинка': config.selectedCoverType || '',
+        ...(isGraduation ? { 'Мінімальне замовлення': `${GRADUATION_MIN_QTY} шт` } : {}),
       },
-      personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}`,
+      personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}${isGraduation ? ` · мінімум ${GRADUATION_MIN_QTY} шт` : ''}`,
     };
 
     addItem(cartPayload as any);
@@ -2703,6 +2711,9 @@ export default function BookLayoutEditor() {
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <div style={{ textAlign:'right', paddingRight:4 }}>
               <div style={{ fontSize:11, color:'#94a3b8' }}>{isWishbook ? 'Тільки обкладинка' : `${pages.length-1} стор. (${Math.ceil((pages.length-1)/2)} розворот${Math.ceil((pages.length-1)/2)===1?'':'и'})`}</div>
+              {isGraduation && (
+                <div style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>Мінімум {GRADUATION_MIN_QTY} шт · {dynamicPrice * GRADUATION_MIN_QTY} ₴ за {GRADUATION_MIN_QTY}</div>
+              )}
               <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d', display:'flex', alignItems:'center', gap:4 }}>
                 {dynamicPrice} ₴
                 {priceDiff !== 0 && (

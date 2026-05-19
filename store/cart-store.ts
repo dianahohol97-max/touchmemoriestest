@@ -13,6 +13,7 @@ export interface CartItem {
     category_slug?: string;
     slug?: string;
     personalization_note?: string;
+    min_qty?: number; // minimum orderable quantity for this item (default 1)
 }
 
 interface CartState {
@@ -68,7 +69,7 @@ export const useCartStore = create<CartState>()(
             })),
             updateQuantity: (id, qty) => set((state) => ({
                 items: state.items.map((i) =>
-                    i.id === id ? { ...i, qty: Math.max(1, qty) } : i
+                    i.id === id ? { ...i, qty: Math.max(i.min_qty ?? 1, qty) } : i
                 ),
             })),
             clearCart: () => set({ items: [] }),
