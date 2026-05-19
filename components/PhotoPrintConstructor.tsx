@@ -24,8 +24,8 @@ const POLAROID_SIZES: Record<string, {
   totalW: number; totalH: number;
   borderSide: number; borderTop: number; borderBottom: number; label: string;
 }> = {
-  '7.6x10.1': { totalW: 7.6, totalH: 10.1, borderSide: 0.6,  borderTop: 0.6,  borderBottom: 1.8, label: '7.6×10.1 см' },
-  '8.6x10.7': { totalW: 8.6, totalH: 10.7, borderSide: 0.65, borderTop: 0.65, borderBottom: 2.0, label: '8.6×10.7 см' },
+  '7.6x10.1': { totalW: 7.6, totalH: 10.1, borderSide: 0.57, borderTop: 0.54, borderBottom: 2.29, label: '7.6×10.1 см' },
+  '8.6x5.4':  { totalW: 5.4, totalH: 8.6,  borderSide: 0.40, borderTop: 0.46, borderBottom: 1.95, label: '8.6×5.4 см' },
 };
 
 // Nonstandard sizes: multiple = кратність замовлення.
@@ -51,7 +51,7 @@ const nonstandardMinQty = (m: number) =>
 
 const POLAROID_MULTIPLE: Record<string, number> = {
   '7.6x10.1': 8, '7.6×10.1': 8,
-  '8.6x10.7': 10,'8.6×10.7': 10,
+  '8.6x5.4':  10,'8.6×5.4':  10,
 };
 
 const POLAROID_FONTS = [
@@ -199,7 +199,18 @@ function PhotoPreview({
   if (isPolaroid) {
     const pKey = sizeKey.replace(/[^\d.x×]/g,'').replace('×','x').replace(/x+/,'x');
     const pSize = POLAROID_SIZES[pKey] || POLAROID_SIZES['7.6x10.1'];
-    const { borderSide, borderTop, borderBottom, totalW, totalH } = pSize;
+    const isLandscape = photo.orientation === 'landscape';
+    // Portrait = native polaroid (tall, thin border on top/sides, thick "lip"
+    // on the bottom). Landscape = wide polaroid: the outer frame becomes wide
+    // (W/H swap) but the thick lip STAYS on the bottom edge — that's the
+    // defining polaroid look and where captions sit. So only totalW/totalH
+    // swap; the per-edge borders keep their roles (thin top/sides, thick
+    // bottom).
+    const totalW = isLandscape ? pSize.totalH : pSize.totalW;
+    const totalH = isLandscape ? pSize.totalW : pSize.totalH;
+    const borderSide = pSize.borderSide;
+    const borderTop = pSize.borderTop;
+    const borderBottom = pSize.borderBottom;
     const photoW = totalW - borderSide * 2;
     const photoH = totalH - borderTop - borderBottom;
     const sc = MAX_W / totalW;
@@ -395,7 +406,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       if (data) {
         setProduct(data);
         const opts = (data.options as ProductOption[]) || [];
-        const sizeOpt = opts.find(o => o.name === 'Розмір');
+        const sizeOpt = opts.find(o => o.name === 'Розмір') || opts.find(o => o.name === 'Формат');
         const allSizes = sizeOpt?.values || sizeOpt?.options?.map(o=>({name:o.label})) || [];
         const filteredSizes = isNonstandard ? allSizes.filter(s => !!getNonstandardConfig(s.name)) : allSizes;
         if (filteredSizes.length > 0) setSelectedSize(filteredSizes[0].name || '');
@@ -510,7 +521,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const getSizeOptions = () => {
     if (!product) return [];
     const opts = (product.options as ProductOption[])||[];
-    const sizeOpt = opts.find(o=>o.name==='Розмір');
+    // Polaroid stores its size option under 'Формат' in the DB; standard /
+    // nonstandard use 'Розмір'. Without checking 'Формат' the polaroid size
+    // boxes were greyed-out and unclickable (no options resolved).
+    const sizeOpt = opts.find(o=>o.name==='Розмір') || opts.find(o=>o.name==='Формат');
     const all = sizeOpt?.values||sizeOpt?.options?.map(o=>({name:o.label,price:o.price}))||[];
     if (isNonstandard) return all.filter(o=>!!getNonstandardConfig(o.name));
     return all;
@@ -534,7 +548,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       if (!lbl) return base;
       const sel = sizeOpts.find(o=>o.name===lbl);
       if (!sel) return base;
-      if (sel.price!=null) return sel.price;
+      // Polaroid's Формат options carry price:0 in the DB — the real flat
+      // per-photo price (7.5) is product.price. A 0/absent option price means
+      // "use base", not "free". Only a positive option price overrides base.
+      if (sel.price!=null && sel.price>0) return sel.price;
       if ((sel as any).priceModifier!=null) return base+((sel as any).priceModifier||0);
       return base;
     };
@@ -547,12 +564,14 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   // ── Qty validation ─────────────────────────────────────────────────────────
   const nsConfig  = isNonstandard && selectedSize ? getNonstandardConfig(selectedSize) : null;
   const multiple  = isNonstandard ? (nsConfig?.multiple ?? 1) : (isPolaroid ? getPolaroidMultiple(selectedSize) : 1);
-  // Nonstandard minimum = smallest multiple >= 20 (so it's always valid by
-  // both the >=20 rule and the multiple-of rule simultaneously). Polaroid and
-  // standard keep their existing flat minimum of 20.
+  // Minimum = smallest multiple of `multiple` that is >= 20, so it is always
+  // valid by both the >=20 rule and the multiple-of rule at once. This fixes
+  // the polaroid contradiction where the hint said "мінімум 20, кратно 8"
+  // (20 is not a multiple of 8 — real minimum is 24). Standard photoprint
+  // (multiple === 1) keeps the flat minimum of 20.
   const minQty    = isNonstandard && nsConfig
     ? nonstandardMinQty(nsConfig.multiple)
-    : 20;
+    : (isPolaroid && multiple > 1 ? nonstandardMinQty(multiple) : 20);
   const qtyOk     = photos.length>0 && totalQty>=minQty && (multiple<=1 || totalQty%multiple===0);
 
   // ── Add to cart ────────────────────────────────────────────────────────────
@@ -635,8 +654,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                         height:1, background:active?'rgba(30,45,125,0.4)':'rgba(0,0,0,0.1)' }}/>
                     </div>
                     <div style={{ fontSize:9, marginTop:3, fontWeight:active?700:400,
-                      color:active?'#1e2d7d':'#64748b' }}>{s.totalW}×{s.totalH} см</div>
-                    {opt && <div style={{ fontSize:8, color:'#94a3b8' }}>{opt.price ?? product.price ?? 0} ₴</div>}
+                      color:active?'#1e2d7d':'#64748b' }}>{s.label}</div>
+                    {opt && <div style={{ fontSize:8, color:'#94a3b8' }}>{(opt.price && opt.price>0) ? opt.price : (product.price ?? 0)} ₴</div>}
                   </div>
                 );
               })}
