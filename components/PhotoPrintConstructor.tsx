@@ -103,7 +103,12 @@ interface PhotoPrintConstructorProps {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function normKey(s: string) {
-  return s.replace(/\s*\(.*?\)/g, '').trim().replace(/[xх]/g, '×');
+  return s
+    .replace(/\s*\(.*?\)/g, '')          // drop parenthesised notes
+    .replace(/\s*(см|cm|мм|mm)\s*$/i, '') // drop trailing size unit
+    .trim()
+    .replace(/[xх]/g, '×')
+    .replace(/\s+/g, '');
 }
 
 function getNonstandardConfig(sizeLabel: string) {
