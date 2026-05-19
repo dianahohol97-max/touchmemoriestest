@@ -629,14 +629,25 @@ export default function AccountPage() {
                                                         </div>
                                                         <div style={{ marginTop: 'auto', display: 'flex', gap: 8 }}>
                                                             <Link href={editUrl}
-                                                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: d.cart_payload ? '#eef2ff' : '#263a99', color: d.cart_payload ? '#263a99' : 'white', borderRadius: 8, textDecoration: 'none', fontSize: 12, fontWeight: 700, border: d.cart_payload ? '1px solid #c7d2fe' : 'none' }}>
+                                                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#eef2ff', color: '#263a99', borderRadius: 8, textDecoration: 'none', fontSize: 12, fontWeight: 700, border: '1px solid #c7d2fe' }}>
                                                                 <Pencil size={13}/> {editLabel}
                                                             </Link>
-                                                            {d.cart_payload && (
+                                                            {d.cart_payload ? (
+                                                                /* New designs: exact saved price -> add to cart directly */
                                                                 <button onClick={() => orderSingleDesign(d)}
                                                                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#263a99', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
                                                                     <ShoppingBag size={13}/> Замовити
                                                                 </button>
+                                                            ) : (
+                                                                /* Legacy designs (no saved price): route through the
+                                                                   editor/constructor where price is computed correctly,
+                                                                   then the user adds to cart from there. Never guesses
+                                                                   a price. */
+                                                                <Link href={editUrl}
+                                                                    title="Відкриється в редакторі — там підтвердьте та додайте в кошик"
+                                                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#263a99', color: 'white', borderRadius: 8, textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>
+                                                                    <ShoppingBag size={13}/> Замовити
+                                                                </Link>
                                                             )}
                                                         </div>
                                                     </div>
