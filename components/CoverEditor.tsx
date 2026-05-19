@@ -536,6 +536,47 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
         );
       })()}
 
+      {/* Printed cover text — independent of the photo slot.
+          The photo-slot IIFE above also renders text, but it only runs when
+          a photo slot exists and isn't hidden. Covers like the wedding
+          guestbook are printed with NO photo slot (or hidePhotoSlot), so
+          their text was added to state but never rendered. This block
+          renders printedTextBlocks for the printed cover whenever the
+          photo-slot block above did NOT (so text never double-renders). */}
+      {!isSoft && (hidePhotoSlot || config.printedPhotoSlot === null) && (() => {
+        const texts = config.printedTextBlocks ?? [];
+        if (texts.length === 0) return null;
+        return (
+          <>
+            {texts.map(tb => {
+              const safeX = Math.max(8, Math.min(92, tb.x));
+              const safeY = Math.max(8, Math.min(92, tb.y));
+              const safeBoxW = canvasW * 0.84 - 12;
+              return (
+              <div key={tb.id}
+                style={{ position:'absolute', left:`${safeX}%`, top:`${safeY}%`, transform:'translate(-50%,-50%)',
+                  zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'manipulation', maxWidth: `${canvasW * 0.84}px` }}>
+                <FitText
+                  tb={tb}
+                  maxWidthPx={safeBoxW}
+                  onCommit={(text) => onChange({ printedTextBlocks: texts.map(t => t.id===tb.id ? {...t, text} : t) })}
+                  onPointerDownText={(e) => {
+                    const target = e.currentTarget as HTMLElement;
+                    const isFocused = document.activeElement === target;
+                    if (isFocused) return;
+                    startTextDrag(e, tb.id, tb.x, tb.y);
+                  }}
+                  onClickText={(e) => { e.stopPropagation(); (e.target as HTMLElement).focus(); }}
+                />
+                <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
+                  onMouseDown={e=>e.stopPropagation()}
+                  style={{ position:'absolute',top:-8,right:-8,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>
+              </div>
+            );})}
+          </>
+        );
+      })()}
+
       {/* Soft cover decorations */}
       {isSoft && (
         <div style={{ position:'absolute', inset:0, zIndex:2 }}>
