@@ -520,9 +520,9 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
         toast.success(t('wallcal.photos_auto_filled'));
     };
 
-    const addToCart = () => {
+    const addToCart = async () => {
         const basePrice = product ? (size==='A3' ? Number(product.price)+100 : Number(product.price)) : 590;
-        addItem({
+        const cartPayload = {
             id:`wall-cal-${Date.now()}`,
             product_id: product?.id||'wall-calendar-2026',
             name:`Настінний фотокалендар 2026 · ${SIZE_DIMS[size].label}`,
@@ -530,7 +530,31 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
             image: photos[0]?.preview||'',
             options:{'Розмір':SIZE_DIMS[size].label},
             slug:'wall-calendar-2026',
-        });
+        };
+        addItem(cartPayload);
+
+        // Persist as a project so it appears in "Мої дизайни" (it only went
+        // to the cart before). cart_payload lets the account "Замовити"
+        // button replay the exact priced payload. Non-blocking, logged-in only.
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await supabase.from('projects').insert({
+                    user_id: user.id,
+                    product_type: 'wall-calendar',
+                    format: SIZE_DIMS[size].label,
+                    status: 'draft',
+                    name: `Настінний фотокалендар 2026 · ${SIZE_DIMS[size].label}`,
+                    pages_data: [{ size }],
+                    cart_payload: cartPayload,
+                    uploaded_photos: photos.map(p => p?.preview).filter(Boolean),
+                    updated_at: new Date().toISOString(),
+                });
+            }
+        } catch (e) {
+            console.error('Saving wall-calendar project failed (non-blocking):', e);
+        }
+
         toast.success(t('wallcal.calendar_added_to_cart'));
     };
 
