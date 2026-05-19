@@ -2786,6 +2786,19 @@ export default function BookLayoutEditor() {
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #263a99', borderRadius: 10, background: '#f0f3ff', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#1e2d7d', width: '100%' }}>
                   <ImageIcon size={15} /> Завантажити фото
                 </button>
+                {/* Printed cover with no photo slot (e.g. wedding guestbook
+                    ornament cover): there was no slot rendered and no way to
+                    add one (the free-slot button is content-pages only), so
+                    a dragged photo had nowhere to land. Offer an explicit
+                    "add photo to cover" that creates a default centred slot
+                    — CoverEditor already renders/drags/resizes it once it
+                    exists. */}
+                {currentIdx === 0 && isPrinted && (coverState.printedPhotoSlot === null || coverState.printedPhotoSlot === undefined) && (
+                  <button onClick={() => { pushHistory(); setCoverState(p => ({ ...p, printedPhotoSlot: { x: 15, y: 15, w: 70, h: 70, shape: 'rect' } })); }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', border: '2px dashed #10b981', borderRadius: 10, background: '#f0fdf4', cursor: 'pointer', fontWeight: 700, fontSize: 12, color: '#059669', width: '100%' }}>
+                    <ImageIcon size={15} /> Додати фото на обкладинку
+                  </button>
+                )}
                 {/* AI Portrait button — TEMPORARILY HIDDEN.
                     Backend route /api/pixar-portrait, the Gemini integration,
                     and the GOOGLE_AI_API_KEY env var are all still in place.
