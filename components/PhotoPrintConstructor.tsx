@@ -28,19 +28,26 @@ const POLAROID_SIZES: Record<string, {
   '8.6x10.7': { totalW: 8.6, totalH: 10.7, borderSide: 0.65, borderTop: 0.65, borderBottom: 2.0, label: '8.6×10.7 см' },
 };
 
-// Nonstandard sizes: multiple = кратність, minQty = мінімальне замовлення
-const NONSTANDARD_CONFIG: Record<string, { multiple: number; minQty: number }> = {
-  '5x7.5':  { multiple: 12, minQty: 24 },
-  '5×7.5':  { multiple: 12, minQty: 24 },
-  '6x9':    { multiple: 10, minQty: 20 },
-  '6×9':    { multiple: 10, minQty: 20 },
-  '7.5x10': { multiple: 8,  minQty: 24 },
-  '7.5×10': { multiple: 8,  minQty: 24 },
-  '9x9':    { multiple: 6,  minQty: 24 },
-  '9×9':    { multiple: 6,  minQty: 24 },
-  '10x10':  { multiple: 6,  minQty: 24 },
-  '10×10':  { multiple: 6,  minQty: 24 },
+// Nonstandard sizes: multiple = кратність замовлення.
+// Правило бізнесу: кількість має бути кратна `multiple`, але не менше 20 шт.
+// Тому фактичний мінімум — найменше кратне `multiple`, що >= 20. Обчислюємо
+// з `multiple`, щоб мінімум і кратність ніколи не розсинхронізувались.
+const NONSTANDARD_MIN_BASE = 20;
+const NONSTANDARD_CONFIG: Record<string, { multiple: number }> = {
+  '5x7.5':  { multiple: 12 },
+  '5×7.5':  { multiple: 12 },
+  '6x9':    { multiple: 10 },
+  '6×9':    { multiple: 10 },
+  '7.5x10': { multiple: 8  },
+  '7.5×10': { multiple: 8  },
+  '9x9':    { multiple: 6  },
+  '9×9':    { multiple: 6  },
+  '10x10':  { multiple: 6  },
+  '10×10':  { multiple: 6  },
 };
+// Smallest multiple of `m` that is >= NONSTANDARD_MIN_BASE (>= 20).
+const nonstandardMinQty = (m: number) =>
+  m > 0 ? Math.ceil(NONSTANDARD_MIN_BASE / m) * m : NONSTANDARD_MIN_BASE;
 
 const POLAROID_MULTIPLE: Record<string, number> = {
   '7.6x10.1': 8, '7.6×10.1': 8,
@@ -487,8 +494,13 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
   // ── Qty validation ─────────────────────────────────────────────────────────
   const nsConfig  = isNonstandard && selectedSize ? getNonstandardConfig(selectedSize) : null;
-  const minQty    = nsConfig?.minQty ?? 20;
   const multiple  = isNonstandard ? (nsConfig?.multiple ?? 1) : (isPolaroid ? getPolaroidMultiple(selectedSize) : 1);
+  // Nonstandard minimum = smallest multiple >= 20 (so it's always valid by
+  // both the >=20 rule and the multiple-of rule simultaneously). Polaroid and
+  // standard keep their existing flat minimum of 20.
+  const minQty    = isNonstandard && nsConfig
+    ? nonstandardMinQty(nsConfig.multiple)
+    : 20;
   const qtyOk     = photos.length>0 && totalQty>=minQty && (multiple<=1 || totalQty%multiple===0);
 
   // ── Add to cart ────────────────────────────────────────────────────────────
@@ -800,7 +812,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 </div>
                 {isNonstandard && nsConfig && selectedSize && (
                   <div style={{ marginTop:6, fontSize:11, color:'#64748b' }}>
-                    ℹ Для розміру <b>{normKey(selectedSize)}</b> — мінімум <b>{nsConfig.minQty} шт.</b>, кратно <b>{nsConfig.multiple}</b>
+                    ℹ Для розміру <b>{normKey(selectedSize)}</b> — мінімум <b>{minQty} шт.</b>, кратно <b>{nsConfig.multiple}</b>
                   </div>
                 )}
               </div>
