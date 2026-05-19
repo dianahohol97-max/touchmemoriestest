@@ -263,9 +263,6 @@ const LAYOUTS: Layout[] = [
 const SIZES = [
   { id: 'a4',    label: 'A4 (21×30)',  price: 350, ratio: 21/30  },
   { id: 'a3',    label: 'A3 (30×42)',  price: 450, ratio: 30/42  },
-  { id: '30x40', label: '30×40 см',   price: 500, ratio: 30/40  },
-  { id: '40x50', label: '40×50 см',   price: 650, ratio: 40/50  },
-  { id: '50x70', label: '50×70 см',   price: 850, ratio: 50/70  },
 ];
 
 const FRAME_STYLES = [
@@ -569,9 +566,12 @@ export default function PosterConstructor() {
     const s = (searchParams?.get('size') || 'a4').toLowerCase().replace(/[×x ]/g, 'x').replace('cm','').trim();
     // Map common aliases
     if (s === 'a3' || s === 'a3') return 'a3';
-    if (s === '30x40' || s === '30×40') return '30x40';
-    if (s === '40x50' || s === '40×50') return '40x50';
-    if (s === '50x70' || s === '50×70') return '50x70';
+    // 30×40 / 40×50 / 50×70 were removed — fall back to the closest still
+    // available size (A3) so any old saved config / draft keeps a valid,
+    // priceable size instead of an id that's no longer in SIZES.
+    if (s === '30x40' || s === '30×40') return 'a3';
+    if (s === '40x50' || s === '40×50') return 'a3';
+    if (s === '50x70' || s === '50×70') return 'a3';
     return 'a4'; // default
   })();
 
