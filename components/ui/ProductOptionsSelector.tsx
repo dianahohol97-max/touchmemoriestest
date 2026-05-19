@@ -1141,11 +1141,28 @@ export function getCalculatedPrice(slug: string, selectedOptions: Record<string,
 
   // Фотодрук/полароїд/магніти
   if (productType === 'photoprint_standard' || productType === 'photoprint_nonstandard' || productType === 'polaroid' || productType === 'photomagnet') {
-    const size = selectedOptions['Розмір'];
+    const size = selectedOptions['Розмір'] ?? selectedOptions['Формат'];
     const options = PRODUCT_OPTIONS[productType];
-    const sizeOption = options.find(opt => opt.name === 'Розмір');
+    const sizeOption = options.find(opt => opt.name === 'Розмір' || opt.name === 'Формат');
     if (size && sizeOption?.prices) {
-      return sizeOption.prices[size as string] || null;
+      // Exact match first (hardcoded flow). Fall back to a normalized match
+      // because the DB option values ('10×10 см', value '10x10') differ from
+      // the hardcoded price keys ('10×10 (кратно 6)'). Without this the lookup
+      // returned null, dynamicPrice stayed null, and ProductClient's generic
+      // fallback wrongly summed base + size price (e.g. 7.5 + 8 = 15.5 ₴).
+      const exact = sizeOption.prices[size as string];
+      if (exact != null) return exact;
+      const norm = (s: string) => s
+        .replace(/\s*\(.*?\)/g, '')          // drop "(кратно N)"
+        .replace(/\s*(см|cm|мм|mm)\b/gi, '')  // drop unit
+        .replace(/[хx]/gi, '×')
+        .replace(/\s+/g, '')
+        .toLowerCase();
+      const target = norm(String(size));
+      for (const [k, v] of Object.entries(sizeOption.prices)) {
+        if (norm(k) === target) return v;
+      }
+      return null;
     }
   }
 
