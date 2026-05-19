@@ -65,15 +65,30 @@ const FONTS = [
 const BG_COLORS = ['#ffffff', '#f5ecd7', '#f8e1e1', '#e0f0e8', '#e3e8f5', '#1a1a1a', '#1e2d7d', '#8a4a4a'];
 const TEXT_COLORS = ['#1a1a1a', '#ffffff', '#1e2d7d', '#c09060', '#8a4a4a', '#5a7a3a'];
 
-export default function PuzzleConstructor(_props: { productSlug?: string } = {}) {
+export default function PuzzleConstructor({ productSlug }: { productSlug?: string } = {}) {
   const t = useT();
   const router = useRouter();
   const { addItem } = useCartStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Pick the initial format from the product the user chose. The slug encodes
+  // the sheet size (puzzle-a5 -> A5, puzzle-20x30 -> A4). MUST resolve to a
+  // real PUZZLE_FORMATS id: the previous default 'a4-v' did not exist in the
+  // array, so PUZZLE_FORMATS.find(...)! returned undefined and the very next
+  // line (format.pieceCounts) threw — crashing the whole page for every
+  // puzzle product.
+  const initialFormat = (() => {
+    const s = (productSlug || '').toLowerCase();
+    if (s.includes('a5') || s.includes('15x21') || s.includes('15×21')) return 's-v';
+    if (s.includes('a3') || s.includes('30x42') || s.includes('30×42')) return 'l-v';
+    if (s.includes('20x30') || s.includes('20×30') || s.includes('a4')) return 'm-v';
+    return PUZZLE_FORMATS[0].id; // safe fallback — always a real id
+  })();
+  const initialFmtObj = PUZZLE_FORMATS.find(f => f.id === initialFormat) ?? PUZZLE_FORMATS[0];
+
   const [config, setConfig] = useState<PuzzleConfig>({
-    formatId: 'a4-v',
-    pieceCount: 60,
+    formatId: initialFmtObj.id,
+    pieceCount: initialFmtObj.pieceCounts[1] || initialFmtObj.pieceCounts[0],
     finish: 'matte',
     mode: 'photo',
     photoUrl: null,
@@ -86,7 +101,8 @@ export default function PuzzleConstructor(_props: { productSlug?: string } = {})
   });
   const [showCartModal, setShowCartModal] = useState(false);
 
-  const format = PUZZLE_FORMATS.find(f => f.id === config.formatId)!;
+  // Defensive: never let an unknown formatId blow up the page again.
+  const format = PUZZLE_FORMATS.find(f => f.id === config.formatId) ?? PUZZLE_FORMATS[0];
 
   useEffect(() => {
     if (!format.pieceCounts.includes(config.pieceCount)) {
