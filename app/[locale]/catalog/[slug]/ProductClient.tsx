@@ -816,6 +816,41 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 );
                                                             })}
                                                         </select>}
+                                                        {(() => {
+                                                            // Level-1 cover inscription: when the selected value of
+                                                            // this DB option signals a custom inscription, show a
+                                                            // free-text field. Enable per album purely by adding
+                                                            // such an option value in products.options — no code.
+                                                            const sel = customProductOptions[opt.name];
+                                                            if (sel === undefined || sel === null || sel === '') return null;
+                                                            const selStr = String(sel).toLowerCase();
+                                                            const match = items.find((it: any) =>
+                                                                String(it.value ?? it.name ?? it) === String(sel));
+                                                            const lbl = String(match?.label || match?.name || sel).toLowerCase();
+                                                            const isInscription =
+                                                                selStr.includes('custom-text') || selStr.includes('custom_text') ||
+                                                                lbl.includes('напис') || lbl.includes('індивідуальн') || lbl.includes('engrav');
+                                                            if (!isInscription) return null;
+                                                            const KEY = 'Напис на обкладинці';
+                                                            return (
+                                                                <div style={{ marginTop: 10 }}>
+                                                                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: 6 }}>
+                                                                        Текст напису на обкладинці <span style={{ color: '#e53e3e' }}>*</span>
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={String(customProductOptions[KEY] ?? '')}
+                                                                        maxLength={60}
+                                                                        placeholder="Напр.: Родина Петренків · 2026"
+                                                                        onChange={(e) => setCustomProductOptions(prev => ({ ...prev, [KEY]: e.target.value }))}
+                                                                        style={{ width: '100%', padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+                                                                    />
+                                                                    <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 5 }}>
+                                                                        До 60 символів. Напис буде нанесено на обкладинку.
+                                                                    </p>
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 );
                                             })}

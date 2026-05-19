@@ -1095,6 +1095,22 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
 export function areAllRequiredOptionsFilled(slug: string, selectedOptions: Record<string, string | number>): boolean {
   const productType = detectProductType(slug);
 
+  // Generic: if any selected option value signals a custom cover inscription
+  // (custom-text / напис / індивідуальн / engrav), the inscription text must
+  // be provided. Works for any product, driven purely by the selected
+  // values — no per-product code, matches the Level-1 album mechanism.
+  const hasInscriptionSelected = Object.values(selectedOptions).some(v => {
+    const s = String(v ?? '').toLowerCase();
+    return s.includes('custom-text') || s.includes('custom_text') ||
+           s.includes('напис') || s.includes('індивідуальн') || s.includes('engrav');
+  });
+  if (hasInscriptionSelected) {
+    const txt = selectedOptions['Напис на обкладинці'];
+    if (txt === undefined || txt === null || String(txt).trim() === '') {
+      return false;
+    }
+  }
+
   if (!productType) {
     return true;
   }
