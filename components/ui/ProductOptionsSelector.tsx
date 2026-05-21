@@ -522,8 +522,13 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
   const isPrintedProduct = s.includes('printed') || s.includes('drukov');
   const isPhotobookProduct = productType === 'photobook';
   const isWishbookProduct = productType === 'wishbook';
+  // Graduation photobooks: printed hard cover only, no decoration, no kalka.
+  // Lock it from the slug so neither the decoration selector nor any kalka
+  // option can ever appear on the page for випускні фотокниги.
+  const isGraduation = s.includes('graduation') || s.includes('vypusk');
+
   // Photobooks AND wishbook (non-printed) get colors + decoration options
-  const hasColorAndDecoration = (isPhotobookProduct || isWishbookProduct) && !isPrintedProduct;
+  const hasColorAndDecoration = (isPhotobookProduct || isWishbookProduct) && !isPrintedProduct && !isGraduation;
 
   // The printed-vs-soft choice can also be a runtime option ("Матеріал
   // обкладинки" -> "Друкована тверда") rather than baked into the slug.
@@ -738,6 +743,9 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
 
         // Skip "Тип ламінації" for non-printed photobooks (only printed covers have lamination)
         if (option.name === 'Тип ламінації' && isPhotobookProduct && !isPrintedProduct) return null;
+
+        // Graduation books: no калька (per Diana — printed cover only, no extras).
+        if (option.name === 'Калька перед першою сторінкою' && isGraduation) return null;
 
         const isText = option.type === 'text';
         const selectedValue = selectedOptions[option.name];
@@ -1116,7 +1124,17 @@ export function areAllRequiredOptionsFilled(slug: string, selectedOptions: Recor
   }
 
   const options = PRODUCT_OPTIONS[productType];
-  const requiredOptions = options.filter(opt => opt.required && opt.type !== 'text');
+  // Graduation books don't have калька (it's hidden in the render) — exclude
+  // it from the required check too, otherwise the gate would block ordering
+  // forever for випускні. Skip is by slug, not by productType, so the
+  // graduation rule lives in exactly one place (the slug check above).
+  const slugLower = slug.toLowerCase();
+  const isGraduationSlug = slugLower.includes('graduation') || slugLower.includes('vypusk');
+  const requiredOptions = options.filter(opt => {
+    if (!opt.required || opt.type === 'text') return false;
+    if (isGraduationSlug && opt.name === 'Калька перед першою сторінкою') return false;
+    return true;
+  });
 
   return requiredOptions.every(opt => {
     const value = selectedOptions[opt.name];

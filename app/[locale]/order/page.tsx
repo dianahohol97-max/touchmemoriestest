@@ -157,6 +157,87 @@ function CommentStep({ value, onChange }: { value: string, onChange: (v: string)
 }
 
 function DeliveryStep({ delivery, city, address, onChange }: { delivery: string, city: string, address: string, onChange: (f: string, v: string) => void }) {
+  // NP autocomplete state (mirrors the pattern already working in /cart).
+  // Local to this step; the chosen city/address still bubble up via onChange,
+  // so the parent state shape is unchanged.
+  const [citySearch, setCitySearch] = useState(city || '')
+  const [cities, setCities] = useState<any[]>([])
+  const [cityRef, setCityRef] = useState('')
+  const [showCityList, setShowCityList] = useState(false)
+  const [warehouses, setWarehouses] = useState<any[]>([])
+  const [warehouseSearch, setWarehouseSearch] = useState(address || '')
+  const [showWhList, setShowWhList] = useState(false)
+  const [isSearchingCities, setIsSearchingCities] = useState(false)
+  const cityRowRef = useRef<HTMLDivElement>(null)
+  const whRowRef = useRef<HTMLDivElement>(null)
+
+  // City search (debounced)
+  useEffect(() => {
+    if (citySearch.length < 2 || citySearch === city) { setCities([]); return }
+    const delay = setTimeout(async () => {
+      setIsSearchingCities(true)
+      try {
+        const res = await fetch('/api/novaposhta', {
+          method: 'POST',
+          body: JSON.stringify({
+            modelName: 'Address',
+            calledMethod: 'getCities',
+            methodProperties: { FindByString: citySearch, Limit: '20' },
+          }),
+        })
+        const data = await res.json()
+        if (data.success) setCities(data.data || [])
+      } catch (e) { console.error('NP city search error:', e) }
+      setIsSearchingCities(false)
+    }, 400)
+    return () => clearTimeout(delay)
+  }, [citySearch, city])
+
+  // Warehouse list when city picked
+  useEffect(() => {
+    if (!cityRef) { setWarehouses([]); return }
+    const fetchW = async () => {
+      try {
+        const res = await fetch('/api/novaposhta', {
+          method: 'POST',
+          body: JSON.stringify({
+            modelName: 'Address',
+            calledMethod: 'getWarehouses',
+            methodProperties: { CityRef: cityRef },
+          }),
+        })
+        const data = await res.json()
+        if (data.success) setWarehouses(data.data || [])
+      } catch (e) { console.error('NP warehouse fetch error:', e) }
+    }
+    fetchW()
+  }, [cityRef])
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (cityRowRef.current && !cityRowRef.current.contains(e.target as Node)) setShowCityList(false)
+      if (whRowRef.current && !whRowRef.current.contains(e.target as Node)) setShowWhList(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
+
+  const pickCity = (c: any) => {
+    const name = c.Description || c.DescriptionRu || ''
+    setCitySearch(name)
+    setCityRef(c.Ref || '')
+    onChange('city', name)
+    setShowCityList(false)
+    // Reset warehouse when city changes
+    setWarehouseSearch('')
+    onChange('address', '')
+  }
+
+  const filteredWarehouses = warehouseSearch.trim()
+    ? warehouses.filter(w => (w.Description || '').toLowerCase().includes(warehouseSearch.toLowerCase())).slice(0, 30)
+    : warehouses.slice(0, 30)
+
   return (
     <div>
       <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 3: Доставка</h2>
@@ -179,13 +260,62 @@ function DeliveryStep({ delivery, city, address, onChange }: { delivery: string,
       </div>
       {delivery === 'nova_poshta' && (
         <div className="space-y-4">
-          <div>
+          <div ref={cityRowRef} style={{ position: 'relative' }}>
             <label className="block text-sm font-medium text-gray-700 mb-1">Місто</label>
-            <input value={city} onChange={e => onChange('city', e.target.value)} placeholder="Наприклад: Київ" className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+            <input
+              value={citySearch}
+              onChange={e => {
+                setCitySearch(e.target.value)
+                setShowCityList(true)
+                // Clear chosen city/warehouse refs while user is editing
+                if (cityRef) { setCityRef(''); onChange('city', ''); setWarehouseSearch(''); onChange('address', '') }
+              }}
+              onFocus={() => { if (cities.length) setShowCityList(true) }}
+              placeholder="Почніть вводити: Київ, Львів..."
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]"
+              autoComplete="off"
+            />
+            {showCityList && (cities.length > 0 || isSearchingCities) && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', border: '1px solid #d1d5db', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.08)', maxHeight: 260, overflowY: 'auto', zIndex: 20 }}>
+                {isSearchingCities && cities.length === 0 && (
+                  <div style={{ padding: '10px 14px', fontSize: 13, color: '#94a3b8' }}>Шукаємо…</div>
+                )}
+                {cities.map(c => (
+                  <button key={c.Ref} type="button" onClick={() => pickCity(c)}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', fontSize: 14, color: '#1e293b' }}>
+                    {c.Description}
+                    {c.AreaDescription ? <span style={{ color: '#94a3b8', fontSize: 12, marginLeft: 6 }}>· {c.AreaDescription} обл.</span> : null}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <div>
+          <div ref={whRowRef} style={{ position: 'relative' }}>
             <label className="block text-sm font-medium text-gray-700 mb-1">Відділення або адреса</label>
-            <input value={address} onChange={e => onChange('address', e.target.value)} placeholder="Відділення №5 або вулиця" className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+            <input
+              value={warehouseSearch}
+              onChange={e => {
+                setWarehouseSearch(e.target.value)
+                onChange('address', e.target.value)
+                setShowWhList(true)
+              }}
+              onFocus={() => { if (cityRef && warehouses.length) setShowWhList(true) }}
+              placeholder={cityRef ? 'Почніть вводити номер або адресу відділення' : 'Спочатку оберіть місто'}
+              disabled={!cityRef}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] disabled:bg-gray-50 disabled:text-gray-400"
+              autoComplete="off"
+            />
+            {showWhList && cityRef && filteredWarehouses.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', border: '1px solid #d1d5db', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.08)', maxHeight: 260, overflowY: 'auto', zIndex: 20 }}>
+                {filteredWarehouses.map(w => (
+                  <button key={w.Ref} type="button"
+                    onClick={() => { setWarehouseSearch(w.Description); onChange('address', w.Description); setShowWhList(false) }}
+                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', fontSize: 13, color: '#1e293b' }}>
+                    {w.Description}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
