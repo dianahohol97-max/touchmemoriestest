@@ -778,15 +778,26 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
               </div>
             ) : (
               <>
-                {option.name === 'Розмір' && (
-                  <SizeVisualizer
-                    sizes={option.values}
-                    selected={selectedValue ?? null}
-                    onSelect={(size) => handleOptionChange(option.name, size)}
-                    prices={option.prices as Record<string, number> | undefined}
-                    wrap={option.values.length > 5}
-                  />
-                )}
+                {option.name === 'Розмір' && (() => {
+                  // Graduation books only offer 20×20, 25×25, 20×30 — drop
+                  // 30×20 / 30×30 from the hardcoded photobook size list so
+                  // the visualizer matches what the DB allows. Matches all
+                  // spellings (х / x / ×) since PRODUCT_OPTIONS uses Cyrillic.
+                  const allowed = new Set(['20x20','25x25','20x30']);
+                  const norm = (v: string | number) => String(v).toLowerCase().replace(/[х×]/g, 'x').replace(/\s*см\s*$/, '').trim();
+                  const sizes = isGraduation
+                    ? (option.values as (string|number)[]).filter(v => allowed.has(norm(v)))
+                    : option.values;
+                  return (
+                    <SizeVisualizer
+                      sizes={sizes}
+                      selected={selectedValue ?? null}
+                      onSelect={(size) => handleOptionChange(option.name, size)}
+                      prices={option.prices as Record<string, number> | undefined}
+                      wrap={sizes.length > 5}
+                    />
+                  );
+                })()}
                 {/* Special toggle UI for Терміновість */}
                 {option.name === 'Терміновість' && (
                   <div style={{ display: 'flex', gap: 10 }}>
