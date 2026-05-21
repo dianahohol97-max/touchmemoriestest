@@ -75,6 +75,12 @@ interface CoverState {
   textFontFamily: string;
   textFontSize: number;
   extraTexts: { id: string; text: string; x: number; y: number; fontFamily: string; fontSize: number; color: string; }[];
+  // Method used to apply the inscription on the non-printed cover (velour /
+  // fabric / leather / scrapbook). Set when the first extraText is added,
+  // cleared when the last one is removed. Customer picks: 'flex' (Друк
+  // кольором) or 'graviruvannya' (Гравірування). +180 ₴ is charged whenever
+  // extraTexts.length > 0 — flat, regardless of how many inscriptions.
+  inscriptionMethod?: 'flex' | 'graviruvannya' | null;
   printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' };
   printedPhotoSlots?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart'; photoId?: string|null; cropX?: number; cropY?: number; zoom?: number }[];
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
@@ -2474,8 +2480,15 @@ export default function BookLayoutEditor() {
         'Сторінок': `${contentPages} сторінок`,
         'Обкладинка': config.selectedCoverType || '',
         ...(isGraduation ? { 'Мінімальне замовлення': `${GRADUATION_MIN_QTY} шт` } : {}),
+        // Persist inscription details so production knows what to apply
+        // and the customer (and account "Замовити" replay) sees what was
+        // paid for.
+        ...(inscriptionExtra > 0 ? {
+          'Напис на обкладинці': (coverState.extraTexts || []).map(e => e.text).filter(Boolean).join(' · ') || 'так',
+          'Спосіб нанесення': coverState.inscriptionMethod === 'flex' ? 'Друк кольором' : 'Гравірування',
+        } : {}),
       },
-      personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}${isGraduation ? ` · мінімум ${GRADUATION_MIN_QTY} шт` : ''}`,
+      personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}${isGraduation ? ` · мінімум ${GRADUATION_MIN_QTY} шт` : ''}${inscriptionExtra > 0 ? ` · напис: ${coverState.inscriptionMethod === 'flex' ? 'друк кольором' : 'гравірування'} (+180 ₴)` : ''}`,
     };
 
     addItem(cartPayload as any);
@@ -2654,12 +2667,25 @@ export default function BookLayoutEditor() {
   // Add endpaper surcharge for unlocked forzats pages
   // Flat surcharge: 200₴ total regardless of how many endpapers are printed
   const endpaperExtra = (endpaperUnlocked.first || endpaperUnlocked.last) ? endpaperSurcharge : 0;
+  // Cover inscription as a second decoration: flat +180 ₴ when at least one
+  // extraText is added on a non-printed cover (велюр / тканина / шкірзамінник
+  // / scrapbook). Printed covers use printedTextBlocks instead and the
+  // inscription is included in the base price there. The block in the "Обкл."
+  // side panel (only shown when decoType is flex/graviruvannya/metal) adds
+  // extraTexts as part of the primary decoration — but in that case the
+  // inscription IS the decoration, so we still charge +180 only when the
+  // user explicitly picked a method via the "Текст" tab; the side-panel
+  // path leaves inscriptionMethod undefined so it stays free.
+  const INSCRIPTION_PRICE = 180;
+  const inscriptionExtra = (!isPrinted && (coverState.extraTexts || []).length > 0 && !!coverState.inscriptionMethod)
+    ? INSCRIPTION_PRICE
+    : 0;
   // QR surcharge: +50₴ per generation (not per placement). Tracked by
   // generatedQRCount which increments on each successful "Згенерувати QR"
   // click. Uploaded QR (user's own PNG) does not add to this count.
   const qrExtra = generatedQRCount * QR_PRICE_PER_GENERATION;
-  const dynamicPrice = baseDynamicPrice + endpaperExtra + qrExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
-  const priceDiff = basePriceDiff + endpaperExtra + qrExtra;
+  const dynamicPrice = baseDynamicPrice + endpaperExtra + qrExtra + inscriptionExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
+  const priceDiff = basePriceDiff + endpaperExtra + qrExtra + inscriptionExtra;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
@@ -3488,7 +3514,7 @@ export default function BookLayoutEditor() {
                     <div key={et.id} style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', marginBottom:4 }}>
                       <span style={{ flex:1, fontSize:11, color:'#374151', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{et.text}</span>
                       <input type="color" value={et.color.startsWith('#')?et.color:'#ffffff'} onChange={e=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,color:e.target.value}:t2)}))} style={{ width:22, height:22, border:'none', padding:0, cursor:'pointer' }}/>
-                      <button onClick={() => setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).filter(t2=>t2.id!==et.id)}))} style={{ width:18, height:18, borderRadius:'50%', background:'#fee2e2', color:'#ef4444', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>x</button>
+                      <button onClick={() => setCoverState(prev=>{ const updated=(prev.extraTexts||[]).filter(t2=>t2.id!==et.id); return {...prev, extraTexts: updated, ...(updated.length === 0 ? { inscriptionMethod: null } : {})}; })} style={{ width:18, height:18, borderRadius:'50%', background:'#fee2e2', color:'#ef4444', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>x</button>
                     </div>
                   ))}
                 </div>
@@ -4225,17 +4251,52 @@ export default function BookLayoutEditor() {
                         <Type size={15} /> Додати текст на обкладинку
                       </button>
                     ) : (
-                      <button onClick={() => {
-                        pushHistory();
-                        setCoverState(prev => ({...prev, extraTexts: [...(prev.extraTexts || []), {
-                          id: 'et-' + Date.now(), text: 'Ваш напис', x: 50, y: 75,
-                          fontFamily: tFontFamily, fontSize: tFontSize, color: '#ffffff',
-                        }]}));
-                        toast.success('Текст додано на обкладинку');
-                      }}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#374151' }}>
-                        <Type size={15} /> Додати напис на обкладинку
-                      </button>
+                      (() => {
+                        const hasDeco = coverState.decoType && coverState.decoType !== 'none';
+                        const hasInscription = (coverState.extraTexts || []).length > 0;
+                        if (!hasDeco) {
+                          return (
+                            <div style={{ padding: '10px 12px', background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 8, fontSize: 12, color: '#92400e' }}>
+                              Спершу оберіть тип оздоблення обкладинки. Напис — це додаткове оздоблення (+180 ₴).
+                            </div>
+                          );
+                        }
+                        return (
+                          <>
+                            <button onClick={() => {
+                              pushHistory();
+                              setCoverState(prev => ({
+                                ...prev,
+                                extraTexts: [...(prev.extraTexts || []), {
+                                  id: 'et-' + Date.now(), text: 'Ваш напис', x: 50, y: 75,
+                                  fontFamily: tFontFamily, fontSize: tFontSize, color: '#ffffff',
+                                }],
+                                // Pre-select Гравірування as the default method on first add.
+                                inscriptionMethod: prev.inscriptionMethod || 'graviruvannya',
+                              }));
+                              toast.success(hasInscription ? 'Напис додано' : 'Напис додано · +180 ₴');
+                            }}
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#374151' }}>
+                              <span style={{ display:'flex', alignItems:'center', gap:8 }}><Type size={15} /> Додати напис на обкладинку</span>
+                              {!hasInscription && <span style={{ fontSize: 11, color: '#1e2d7d', fontWeight: 800 }}>+180 ₴</span>}
+                            </button>
+                            {hasInscription && (
+                              <div style={{ marginTop:6, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc' }}>
+                                <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Спосіб нанесення напису</div>
+                                <div style={{ display:'flex', gap:6 }}>
+                                  {([['graviruvannya','Гравірування'],['flex','Друк кольором']] as const).map(([id,label]) => (
+                                    <button key={id} type="button"
+                                      onClick={() => setCoverState(p => ({ ...p, inscriptionMethod: id }))}
+                                      style={{ flex:1, padding:'7px', border: coverState.inscriptionMethod===id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: coverState.inscriptionMethod===id?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:700, color: coverState.inscriptionMethod===id?'#1e2d7d':'#374151' }}>
+                                      {label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()
                     )}
                     <div style={{ padding: '8px 10px', background: '#f0f3ff', borderRadius: 8, fontSize: 11, color: '#64748b' }}>
                        Перейдіть на внутрішні сторінки для вільного розміщення тексту кліком
@@ -7094,17 +7155,51 @@ export default function BookLayoutEditor() {
                           <span style={{fontSize:18}}>T</span> + Додати текст на обкладинку
                         </button>
                       ) : (
-                        <button onClick={() => {
-                          pushHistory();
-                          setCoverState(prev => ({...prev, extraTexts: [...(prev.extraTexts || []), {
-                            id: 'et-' + Date.now(), text: 'Ваш напис', x: 50, y: 75,
-                            fontFamily: tFontFamily, fontSize: tFontSize, color: '#ffffff',
-                          }]}));
-                          toast.success('Текст додано на обкладинку');
-                        }}
-                          style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
-                          <span style={{fontSize:18}}>T</span> + Додати напис на обкладинку
-                        </button>
+                        (() => {
+                          const hasDeco = coverState.decoType && coverState.decoType !== 'none';
+                          const hasInscription = (coverState.extraTexts || []).length > 0;
+                          if (!hasDeco) {
+                            return (
+                              <div style={{ padding:'10px 12px', background:'#fef3c7', border:'1px solid #fbbf24', borderRadius:10, fontSize:12, color:'#92400e' }}>
+                                Спершу оберіть тип оздоблення обкладинки. Напис — це додаткове оздоблення (+180 ₴).
+                              </div>
+                            );
+                          }
+                          return (
+                            <>
+                              <button onClick={() => {
+                                pushHistory();
+                                setCoverState(prev => ({
+                                  ...prev,
+                                  extraTexts: [...(prev.extraTexts || []), {
+                                    id: 'et-' + Date.now(), text: 'Ваш напис', x: 50, y: 75,
+                                    fontFamily: tFontFamily, fontSize: tFontSize, color: '#ffffff',
+                                  }],
+                                  inscriptionMethod: prev.inscriptionMethod || 'graviruvannya',
+                                }));
+                                toast.success(hasInscription ? 'Напис додано' : 'Напис додано · +180 ₴');
+                              }}
+                                style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, padding:'12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
+                                <span style={{ display:'flex', alignItems:'center', gap:8 }}><span style={{fontSize:18}}>T</span> + Додати напис на обкладинку</span>
+                                {!hasInscription && <span style={{ fontSize:11, fontWeight:800 }}>+180 ₴</span>}
+                              </button>
+                              {hasInscription && (
+                                <div style={{ marginTop:4, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:10, background:'#f8fafc' }}>
+                                  <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Спосіб нанесення напису</div>
+                                  <div style={{ display:'flex', gap:6 }}>
+                                    {([['graviruvannya','Гравірування'],['flex','Друк кольором']] as const).map(([id,label]) => (
+                                      <button key={id} type="button"
+                                        onClick={() => setCoverState(p => ({ ...p, inscriptionMethod: id }))}
+                                        style={{ flex:1, padding:'8px', border: coverState.inscriptionMethod===id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: coverState.inscriptionMethod===id?'#f0f3ff':'#fff', cursor:'pointer', fontSize:12, fontWeight:700, color: coverState.inscriptionMethod===id?'#1e2d7d':'#374151' }}>
+                                        {label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()
                       )}
                       <div style={{ padding:'8px 10px', background:'#f8fafc', borderRadius:8, fontSize:11, color:'#94a3b8' }}>
                         Перейдіть на внутрішні сторінки для вільного тексту

@@ -782,7 +782,10 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               onClick={(e) => {
                 e.stopPropagation();
                 const updated = (config.extraTexts||[]).filter(t => t.id !== et.id);
-                onChange({ extraTexts: updated });
+                // When the last inscription is gone the +180 ₴ method is
+                // no longer relevant — clear it so reopening the editor
+                // starts clean.
+                onChange({ extraTexts: updated, ...(updated.length === 0 ? { inscriptionMethod: null } : {}) } as any);
               }}
               style={{
                 position:'absolute', top:-10, right:-10, width:22, height:22, borderRadius:'50%',
