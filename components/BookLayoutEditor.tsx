@@ -6289,11 +6289,35 @@ export default function BookLayoutEditor() {
                       borderRadius:6, padding:2, transition:'border-color 0.15s',
                       background: isSel ? 'rgba(124,58,237,0.06)' : 'transparent',
                     }}>
-                    <div style={{ position:'relative', width:thumbW, height:thumbH, borderRadius:4, overflow:'hidden', flexShrink:0 }}>
+                    <div style={{ position:'relative', width:thumbW, height:thumbH, borderRadius:4, overflow:'hidden', flexShrink:0 }}
+                         onMouseEnter={(e) => { const x = e.currentTarget.querySelector<HTMLElement>('[data-del-photo]'); if (x && !used) x.style.opacity = '1'; }}
+                         onMouseLeave={(e) => { const x = e.currentTarget.querySelector<HTMLElement>('[data-del-photo]'); if (x) x.style.opacity = '0'; }}>
                       <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                       {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>}
                       {isSel && <div style={{ position:'absolute', top:3, right:3, width:22, height:22, borderRadius:'50%', background:'#7c3aed', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
                       <span style={{ position:'absolute', top:3, left:3, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:10, fontWeight:700, padding:'1px 5px', borderRadius:3 }}>{i+1}</span>
+                      {/* Delete from project — hover-only, blocked when the photo is used on the canvas */}
+                      {!used && !isSel && (
+                        <button
+                          data-del-photo
+                          title="Видалити фото з проєкту"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!confirm('Видалити це фото з проєкту?')) return;
+                            pushHistory();
+                            setPhotos(prev => prev.filter(p => p.id !== ph.id));
+                            setSelectedPhotoIds(prev => { const n = new Set(prev); n.delete(ph.id); return n; });
+                            if (tapSelectedPhotoId === ph.id) setTapSelectedPhotoId(null);
+                          }}
+                          style={{
+                            position:'absolute', top:3, right:3, width:20, height:20, borderRadius:'50%',
+                            background:'rgba(239,68,68,0.95)', color:'#fff', border:'none', cursor:'pointer',
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            fontSize:14, lineHeight:1, fontWeight:700, padding:0,
+                            opacity: isMobile ? 1 : 0, transition:'opacity 0.15s', boxShadow:'0 1px 3px rgba(0,0,0,0.35)',
+                          }}
+                        >×</button>
+                      )}
                       {timelineCuts.size > 0 && (
                         <span style={{ position:'absolute', bottom:2, left:2, background:'#7c3aed', color:'#fff', fontSize:7, fontWeight:800, padding:'1px 4px', borderRadius:2 }}>Р{groupNum}</span>
                       )}
