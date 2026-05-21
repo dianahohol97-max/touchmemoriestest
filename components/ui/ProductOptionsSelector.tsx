@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { SizeVisualizer } from './SizeVisualizer';
 import { useT } from '@/lib/i18n/context';
-import { getMagazinePrice, TYPESETTING_PRICE, MAGAZINE_PRICES_WITHOUT_TYPESETTING } from '@/lib/products';
+import { getMagazinePrice, TYPESETTING_PRICE, MAGAZINE_PRICES_WITHOUT_TYPESETTING, getPhotojournalHardPrice, getTravelBookPrice, PHOTO_JOURNAL_HARD, TRAVEL_BOOK, LAMINATION_PRICE_PER_PAGE } from '@/lib/products';
 
 type ProductOption = {
   name: string;
@@ -31,23 +31,16 @@ const PHOTOBOOK_SIZE_PRICES: Record<string, number> = {
 // never drift between the catalog card and the configurator.
 const MAGAZINE_PAGE_PRICES: Record<number, number> = MAGAZINE_PRICES_WITHOUT_TYPESETTING;
 
-const PHOTOJOURNAL_PAGE_PRICES: Record<number, number> = {
-  12: 675, 16: 825, 20: 975, 24: 1125, 28: 1275, 32: 1425,
-  36: 1575, 40: 1725, 44: 1875, 48: 2025, 52: 2150,
-  60: 2350, 72: 2650, 80: 2900,
-};
+// Derived from the single source of truth (lib/products) — soft journal
+// uses the same scale as the glossy magazine (8–100 ст starting at 525 ₴).
+const PHOTOJOURNAL_PAGE_PRICES: Record<number, number> = MAGAZINE_PRICES_WITHOUT_TYPESETTING;
 
-const PHOTOJOURNAL_HARD_PAGE_PRICES: Record<number, number> = {
-  12: 675, 16: 825, 20: 975, 24: 1125, 28: 1275, 32: 1425,
-  36: 1575, 40: 1725, 44: 1875, 48: 2025, 52: 2150,
-  60: 2350, 72: 2650, 80: 2900,
-};
+// Derived from PHOTO_JOURNAL_HARD.prices (lib/products) — single source.
+const PHOTOJOURNAL_HARD_PAGE_PRICES: Record<number, number> = PHOTO_JOURNAL_HARD.prices;
 
-const TRAVELBOOK_PAGE_PRICES: Record<number, number> = {
-  12: 675, 16: 825, 20: 975, 24: 1125, 28: 1275, 32: 1425,
-  36: 1575, 40: 1725, 44: 1875, 48: 2025, 52: 2150,
-  60: 2350, 72: 2650, 80: 2900,
-};
+// Derived from TRAVEL_BOOK.prices (lib/products) — single source. Travel
+// Book scale is identical to hard journal.
+const TRAVELBOOK_PAGE_PRICES: Record<number, number> = TRAVEL_BOOK.prices;
 
 // Wishbook (книга побажань) prices by material × size. This constant is the
 // single source of truth — both ProductOptionsSelector (card price) and
@@ -663,9 +656,9 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         let total = PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || 0;
         if (!total) return null;
         // Add typesetting price
-        if (String(opts['Верстка тексту'] || '').includes('текстом') || String(opts['Верстка тексту'] || '').includes('верстк')) total += 195;
-        // Add lamination: 5 UAH per page
-        if (opts['Ламінування сторінок'] === 'З ламінуванням (+5 ₴/стор)') total += pages * 5;
+        if (String(opts['Верстка тексту'] || '').includes('текстом') || String(opts['Верстка тексту'] || '').includes('верстк')) total += TYPESETTING_PRICE;
+        // Lamination: 7 UAH per page (Diana's price list, May 2026)
+        if (opts['Ламінування сторінок'] === 'З ламінуванням (+7 ₴/стор)' || opts['Ламінування сторінок'] === 'З ламінуванням (+5 ₴/стор)') total += pages * LAMINATION_PRICE_PER_PAGE;
         return total;
       }
     }
@@ -676,8 +669,8 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       if (pages && typeof pages === 'number') {
         let total = TRAVELBOOK_PAGE_PRICES[pages] || 0;
         if (!total) return null;
-        // Lamination: 5 UAH per page
-        if (opts['Ламінація сторінок'] === 'З ламінацією сторінок') total += (pages as number) * 5;
+        // Lamination: 7 UAH per page (Diana's price list, May 2026)
+        if (opts['Ламінація сторінок'] === 'З ламінацією сторінок' || opts['Ламінація сторінок'] === 'З ламінацією (+7 ₴/стор)') total += (pages as number) * LAMINATION_PRICE_PER_PAGE;
         // Individual cover: +500 UAH
         if (opts['Індивідуальна обкладинка'] === 'Індивідуальна (+50 ₴)') total += 50;
         return total;
@@ -1200,7 +1193,7 @@ export function getCalculatedPrice(slug: string, selectedOptions: Record<string,
     if (pages && typeof pages === 'number') {
       let total = TRAVELBOOK_PAGE_PRICES[pages] || 0;
       if (!total) return null;
-      if (selectedOptions['Ламінація сторінок'] === 'З ламінацією сторінок') total += (pages as number) * 5;
+      if (selectedOptions['Ламінація сторінок'] === 'З ламінацією сторінок' || selectedOptions['Ламінація сторінок'] === 'З ламінацією (+7 ₴/стор)') total += (pages as number) * LAMINATION_PRICE_PER_PAGE;
       if (selectedOptions['Індивідуальна обкладинка'] === 'Індивідуальна (+50 ₴)') total += 50;
       return total;
     }

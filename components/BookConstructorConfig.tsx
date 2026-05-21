@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
+import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER, getPhotojournalHardPrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE } from '@/lib/products';
 import { WISHBOOK_PRICES } from './ui/ProductOptionsSelector';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -481,23 +481,44 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         }
 
         // ==============================
-        // MAGAZINE / JOURNAL PRICING (uses getMagazinePrice)
+        // ==============================
+        // MAGAZINE / JOURNAL PRICING (single-source helpers per product type)
         // ==============================
         if (productType === 'magazine' || productType === 'photo-journal-soft' || productType === 'photo-journal-hard') {
             const pageNum = parseInt(selectedPageCount?.match(/\d+/)?.[0] || '0');
-            let magazineTotal = 0;
-            if (pageNum > 0) {
-                const copiesNum = parseInt(selectedCopies) || 1;
-                magazineTotal = getMagazinePrice(pageNum, false) * copiesNum;
-            } else {
-                const copiesNum = parseInt(selectedCopies) || 1;
-                magazineTotal = (product.price || 475) * copiesNum;
-            }
-            // Add text layout surcharge (TYPESETTING_PRICE — magazine = 195 ₴)
+            const copiesNum = parseInt(selectedCopies) || 1;
             const textLayout = searchParams.get('text_layout');
-            if (textLayout === 'with') {
+            const hasText = textLayout === 'with';
+
+            // Pick the right helper. Hard journal uses its own scale
+            // (12–80 ст starting at 675 ₴), not the soft/magazine scale.
+            let basePrice: number;
+            if (pageNum > 0) {
+                if (productType === 'photo-journal-hard') {
+                    basePrice = getPhotojournalHardPrice(pageNum);
+                } else {
+                    // magazine + soft journal share the same scale
+                    basePrice = getMagazinePrice(pageNum, hasText);
+                }
+            } else {
+                basePrice = product.price || 525;
+            }
+
+            let magazineTotal = basePrice * copiesNum;
+
+            // For hard journal the text-typesetting surcharge is added
+            // separately (getPhotojournalHardPrice doesn't fold it in).
+            // For magazine/soft it's already in getMagazinePrice(pages, hasText).
+            if (productType === 'photo-journal-hard' && hasText) {
                 magazineTotal += TYPESETTING_PRICE;
             }
+
+            // Page lamination — flat per-page surcharge (7 ₴/стор). Applies
+            // to hard journal and Travel Book per Diana's price list.
+            if ((productType === 'photo-journal-hard') && selectedPageLamination && selectedPageLamination !== 'Без ламінації') {
+                magazineTotal += pageNum * LAMINATION_PRICE_PER_PAGE;
+            }
+
             // Urgent production surcharge (+30%). The product detail page
             // sends this as either '1' or the full label string ('Термінова
             // 1–3 дні (+30%)') depending on whether it came from a code
@@ -610,10 +631,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             });
         }
 
-        // Add lamination surcharge for travelbook: 5 UAH per page
+        // Page lamination — flat per-page surcharge (7 ₴/стор per Diana's
+        // May 2026 price list). Applies to Travel Book; hard journal handles
+        // it in the magazine/journal branch above.
         if (productType === 'travelbook' && selectedPageLamination && selectedPageLamination !== 'Без ламінації') {
             const pageNum = parseInt(selectedPageCount?.match(/\d+/)?.[0] || '0');
-            if (pageNum > 0) total += pageNum * 5;
+            if (pageNum > 0) total += pageNum * LAMINATION_PRICE_PER_PAGE;
         }
 
         // Add surcharges for endpaper (travel book and hard cover magazines)

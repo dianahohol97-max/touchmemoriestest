@@ -259,24 +259,25 @@ export const TRAVEL_BOOK: TravelBookProduct = {
   canvasDimensions: '2480×3508 px',
   productionTime: 'до 10 робочих днів',
   pagesAvailable: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
+  // Per Diana's price list (May 2026). Identical scale to hard journal.
   prices: {
-    12: 550,
-    16: 700,
-    20: 850,
-    24: 1000,
-    28: 1150,
-    32: 1300,
-    36: 1450,
-    40: 1600,
-    44: 1750,
-    48: 1900,
-    52: 2025,
-    60: 2225,
-    72: 2525,
-    80: 2775
+    12: 675,
+    16: 825,
+    20: 975,
+    24: 1125,
+    28: 1275,
+    32: 1425,
+    36: 1575,
+    40: 1725,
+    44: 1875,
+    48: 2025,
+    52: 2150,
+    60: 2350,
+    72: 2650,
+    80: 2900
   },
   extras: {
-    'Lamination': '5 UAH/page',
+    'Lamination': '7 UAH/page',
     'Endpapers': '100 UAH',
     'QR code': '50 UAH',
     'Custom cover': '50 UAH'
@@ -325,26 +326,30 @@ export const PHOTO_JOURNAL_HARD: PhotoJournalProduct = {
   canvasDimensions: '2480×3508 px',
   productionTime: '5–7 business days',
   pagesAvailable: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
+  // Per Diana's price list (May 2026). Hard journal and Travel Book share
+  // the identical scale — both are +100 ₴ over the soft journal at every
+  // page count (12–80).
   prices: {
-    12: 600,
-    16: 750,
-    20: 900,
-    24: 1050,
-    28: 1200,
-    32: 1350,
-    36: 1500,
-    40: 1650,
-    44: 1800,
-    48: 1950,
-    52: 2075,
-    60: 2275,
-    72: 2575,
-    80: 2825
+    12: 675,
+    16: 825,
+    20: 975,
+    24: 1125,
+    28: 1275,
+    32: 1425,
+    36: 1575,
+    40: 1725,
+    44: 1875,
+    48: 2025,
+    52: 2150,
+    60: 2350,
+    72: 2650,
+    80: 2900
   },
   extras: {
-    'Lamination': '5 UAH/page',
+    'Lamination': '7 UAH/page',
     'Endpapers': '100 UAH',
-    'QR code': '50 UAH'
+    'QR code': '50 UAH',
+    'Text typesetting': '195 UAH'
   }
 };
 
@@ -538,32 +543,66 @@ export const MAGAZINE_PRICES_WITHOUT_TYPESETTING = PHOTO_JOURNAL_SOFT.prices;
 export const TYPESETTING_PRICE = 195;
 export const RETOUCHING_PRICE_PER_PHOTO = 7;
 export const URGENT_MULTIPLIER = 0.3; // 30%
+// Travel Book / journal page lamination — flat per-page surcharge added to
+// the base scale (NOT a separate table with absolute prices). 7 ₴ × page count.
+export const LAMINATION_PRICE_PER_PAGE = 7;
+// Travel Book / hard journal endpaper printing — flat surcharge.
+export const ENDPAPER_PRICE = 100;
+// QR code generation (Travel Book / hard journal).
+export const QR_PRICE = 50;
 
 /**
- * Single source of truth for magazine pricing. All callers (catalog card,
- * configurator, editor) must use this — no duplicated tables. Adding the
- * text-layout surcharge is just +TYPESETTING_PRICE, not a second lookup
- * table, so the two prices can never drift.
+ * Generic page-count price lookup with next-higher-tier fallback. Used by
+ * every page-priced product so the lookup behaviour stays uniform.
+ */
+function lookupPagePrice(table: Record<number, number>, pages: number): number {
+  if (pages in table) {
+    return table[pages];
+  }
+  const available = Object.keys(table).map(Number).sort((a, b) => a - b);
+  const nextHigher = available.find(p => p >= pages);
+  if (nextHigher) return table[nextHigher];
+  // Pages above the max — fall back to the most expensive tier.
+  return table[available[available.length - 1]];
+}
+
+/**
+ * Single source of truth for soft-cover magazine / journal pricing. All
+ * callers (catalog card, configurator, editor) must use this — no
+ * duplicated tables. Adding the text-layout surcharge is just
+ * +TYPESETTING_PRICE, not a second lookup table, so the two prices can
+ * never drift.
  */
 export function getMagazinePrice(pages: number, withTypesetting: boolean): number {
-  const priceTable = MAGAZINE_PRICES_WITHOUT_TYPESETTING;
-
-  let basePrice: number;
-  if (pages in priceTable) {
-    basePrice = priceTable[pages as keyof typeof priceTable];
-  } else {
-    // Find the next higher page count in the table
-    const availablePages = Object.keys(priceTable).map(Number).sort((a, b) => a - b);
-    const nextHigher = availablePages.find(p => p >= pages);
-    if (nextHigher) {
-      basePrice = priceTable[nextHigher as keyof typeof priceTable];
-    } else {
-      // Fallback to highest price if pages exceed max
-      basePrice = priceTable[100 as keyof typeof priceTable] || 3150;
-    }
-  }
-
+  const basePrice = lookupPagePrice(MAGAZINE_PRICES_WITHOUT_TYPESETTING as Record<number, number>, pages);
   return withTypesetting ? basePrice + TYPESETTING_PRICE : basePrice;
+}
+
+/**
+ * Soft-cover photojournal price. This is the same product as the glossy
+ * magazine internally (same paper, same binding, same price scale starting
+ * at 8 pages) — the alias exists so call sites can read clearly.
+ */
+export function getPhotojournalSoftPrice(pages: number, withTypesetting: boolean = false): number {
+  return getMagazinePrice(pages, withTypesetting);
+}
+
+/**
+ * Hard-cover photojournal price. Scale: 12–80 ст, identical to Travel Book.
+ * Includes optional per-page lamination (+7 ₴ × pages), endpapers (+100),
+ * QR code (+50), and text typesetting (+195) — callers add these on top.
+ */
+export function getPhotojournalHardPrice(pages: number): number {
+  return lookupPagePrice(PHOTO_JOURNAL_HARD.prices, pages);
+}
+
+/**
+ * Travel Book price. Scale: 12–80 ст, identical to hard journal. Same
+ * extras as hard journal apply (+7 ₴/page lamination, +100 endpapers,
+ * +50 QR, +50 custom cover).
+ */
+export function getTravelBookPrice(pages: number): number {
+  return lookupPagePrice(TRAVEL_BOOK.prices, pages);
 }
 
 // Backward-compat alias for any code that still imports the with-typesetting
