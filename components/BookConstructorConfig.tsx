@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
+import { WISHBOOK_PRICES } from './ui/ProductOptionsSelector';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
@@ -536,17 +537,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 return total * copiesNum;
             }
 
-            // Same price table as ProductOptionsSelector.WISHBOOK_PRICES — kept
-            // in sync manually. Format: { material: { size: priceUAH } }
-            const WISHBOOK_PRICES: Record<string, Record<string, number>> = {
-                'Друкована':       { '23×23': 559, '30×20': 599, '20×30': 559, '23x23': 559, '30x20': 599, '20x30': 559 },
-                'Друкована тверда':{ '23×23': 559, '30×20': 599, '20×30': 559, '23x23': 559, '30x20': 599, '20x30': 559 },
-                'Тканина':         { '23×23': 999, '30×20': 1059, '20×30': 1059, '23x23': 999, '30x20': 1059, '20x30': 1059 },
-                'Із тканини':      { '23×23': 999, '30×20': 1059, '20×30': 1059, '23x23': 999, '30x20': 1059, '20x30': 1059 },
-                'Велюр':           { '23×23': 999, '30×20': 1059, '20×30': 1059, '23x23': 999, '30x20': 1059, '20x30': 1059 },
-                'Велюрова':        { '23×23': 999, '30×20': 1059, '20×30': 1059, '23x23': 999, '30x20': 1059, '20x30': 1059 },
-                'Шкірзамінник':    { '23×23': 1099, '30×20': 1159, '20×30': 1159, '23x23': 1099, '30x20': 1159, '20x30': 1159 },
-            };
+            // Same price table as ProductOptionsSelector.WISHBOOK_PRICES —
+            // imported from there as the single source of truth, so the
+            // configurator can't drift out of sync with the card price (which
+            // is exactly what made a 30×20 velour wishbook show 1059 ₴ here
+            // and 1209 ₴ on the catalog card). Format: { material: { size: ₴ } }.
 
             const sizeKey = selectedSize || '30×20';
             const coverKey = selectedCoverType || 'Велюр';

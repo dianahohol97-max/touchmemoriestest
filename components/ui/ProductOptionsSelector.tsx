@@ -50,11 +50,20 @@ const TRAVELBOOK_PAGE_PRICES: Record<number, number> = {
   60: 2350, 72: 2650, 80: 2900,
 };
 
-const WISHBOOK_PRICES: Record<string, Record<string, number>> = {
-  'Друкована тверда': { '23x23': 629, '30x20': 679, '20x30': 679 },
-  'З тканини':        { '23x23': 1159, '30x20': 1209, '20x30': 1209 },
-  'Велюрова':         { '23x23': 1159, '30x20': 1209, '20x30': 1209 },
-  'Шкірзамінник':     { '23x23': 1159, '30x20': 1209, '20x30': 1209 },
+// Wishbook (книга побажань) prices by material × size. This constant is the
+// single source of truth — both ProductOptionsSelector (card price) and
+// BookConstructorConfig (configurator price) import from here. Keep both
+// '23×23' and '23x23' style keys so a lookup works regardless of how the
+// caller spells the size (BD uses 'x', display uses '×').
+export const WISHBOOK_PRICES: Record<string, Record<string, number>> = {
+  'Друкована':        { '23x23': 629, '30x20': 679, '20x30': 679, '23×23': 629, '30×20': 679, '20×30': 679 },
+  'Друкована тверда': { '23x23': 629, '30x20': 679, '20x30': 679, '23×23': 629, '30×20': 679, '20×30': 679 },
+  'З тканини':        { '23x23': 1159, '30x20': 1209, '20x30': 1209, '23×23': 1159, '30×20': 1209, '20×30': 1209 },
+  'Із тканини':       { '23x23': 1159, '30x20': 1209, '20x30': 1209, '23×23': 1159, '30×20': 1209, '20×30': 1209 },
+  'Тканина':          { '23x23': 1159, '30x20': 1209, '20x30': 1209, '23×23': 1159, '30×20': 1209, '20×30': 1209 },
+  'Велюрова':         { '23x23': 1159, '30x20': 1209, '20x30': 1209, '23×23': 1159, '30×20': 1209, '20×30': 1209 },
+  'Велюр':            { '23x23': 1159, '30x20': 1209, '20x30': 1209, '23×23': 1159, '30×20': 1209, '20×30': 1209 },
+  'Шкірзамінник':     { '23x23': 1159, '30x20': 1209, '20x30': 1209, '23×23': 1159, '30×20': 1209, '20×30': 1209 },
 };
 
 const PHOTOPRINT_STANDARD_PRICES: Record<string, number> = {
