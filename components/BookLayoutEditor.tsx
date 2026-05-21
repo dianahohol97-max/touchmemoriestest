@@ -1050,12 +1050,37 @@ export default function BookLayoutEditor() {
   const [zoom, setZoom] = useState(() => {
     if (typeof window === 'undefined') return 80;
     const w = window.innerWidth;
-    if (w < 400) return 28;  // very small phones
-    if (w < 480) return 34;  // small phones
-    if (w < 640) return 42;  // medium phones
-    if (w < 768) return 52;  // large phones / small tablets
-    if (w < 1200) return 70; // small laptops
-    return 80;               // large desktop
+    // Base zoom by viewport width (tuned for square ~2:1 spread aspect, e.g. 20×20).
+    let base: number;
+    if (w < 400) base = 28;  // very small phones
+    else if (w < 480) base = 34;  // small phones
+    else if (w < 640) base = 42;  // medium phones
+    else if (w < 768) base = 52;  // large phones / small tablets
+    else if (w < 1200) base = 70; // small laptops
+    else base = 80;               // large desktop
+    // Landscape spreads (e.g. 30×20 → spread aspect 3:1) need a lower zoom to
+    // fit the same horizontal space. We read selectedSize from the config in
+    // sessionStorage (set by BookConstructorConfig before the editor mounts)
+    // and shrink proportionally — the square spread is 2:1, so for a wider
+    // spread we scale by (2/aspect). This avoids the right edge being clipped
+    // by the canvas container at the default zoom.
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        const cfg = sessionStorage.getItem('bookConstructorConfig');
+        if (cfg) {
+          const c = JSON.parse(cfg);
+          const sizeKey = String(c.selectedSize || '').toLowerCase().replace(/[×х]/g, 'x').replace(/\s*см/g, '').trim();
+          const prop = PAGE_PROPORTIONS[sizeKey];
+          if (prop && prop.w > prop.h) {
+            const spreadAspect = (2 * prop.w) / prop.h; // e.g. 30×20 → 3
+            const squareSpreadAspect = 2;               // baseline (20×20)
+            const scale = squareSpreadAspect / spreadAspect; // <1 for landscape
+            base = Math.max(20, Math.round(base * scale));
+          }
+        }
+      }
+    } catch { /* ignore — fall back to base */ }
+    return base;
   });
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'|'qr'>('layouts');
   const [coverState, setCoverState] = useState<CoverState>(() => {
