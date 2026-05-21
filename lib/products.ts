@@ -534,49 +534,43 @@ export const PRODUCTS: ProductCatalog = {
 // ====== MAGAZINE CONSTRUCTOR HELPERS ======
 
 export const MAGAZINE_PRICES_WITHOUT_TYPESETTING = PHOTO_JOURNAL_SOFT.prices;
-export const MAGAZINE_PRICES_WITH_TYPESETTING = {
-  12: 650,
-  16: 800,
-  20: 950,
-  24: 1100,
-  28: 1350,
-  32: 1400,
-  36: 1550,
-  40: 1700,
-  44: 1850,
-  48: 2000,
-  52: 2125,
-  60: 2225,
-  72: 2625,
-  80: 2875,
-  92: 3025,
-  100: 3225,
-} as const;
 
 export const TYPESETTING_PRICE = 195;
 export const RETOUCHING_PRICE_PER_PHOTO = 7;
 export const URGENT_MULTIPLIER = 0.3; // 30%
 
-// Helper function to get exact magazine price for any page count
+/**
+ * Single source of truth for magazine pricing. All callers (catalog card,
+ * configurator, editor) must use this — no duplicated tables. Adding the
+ * text-layout surcharge is just +TYPESETTING_PRICE, not a second lookup
+ * table, so the two prices can never drift.
+ */
 export function getMagazinePrice(pages: number, withTypesetting: boolean): number {
-  const priceTable = withTypesetting ? MAGAZINE_PRICES_WITH_TYPESETTING : MAGAZINE_PRICES_WITHOUT_TYPESETTING;
+  const priceTable = MAGAZINE_PRICES_WITHOUT_TYPESETTING;
 
-  // If exact match exists, return it
+  let basePrice: number;
   if (pages in priceTable) {
-    return priceTable[pages as keyof typeof priceTable];
+    basePrice = priceTable[pages as keyof typeof priceTable];
+  } else {
+    // Find the next higher page count in the table
+    const availablePages = Object.keys(priceTable).map(Number).sort((a, b) => a - b);
+    const nextHigher = availablePages.find(p => p >= pages);
+    if (nextHigher) {
+      basePrice = priceTable[nextHigher as keyof typeof priceTable];
+    } else {
+      // Fallback to highest price if pages exceed max
+      basePrice = priceTable[100 as keyof typeof priceTable] || 3150;
+    }
   }
 
-  // Find the next higher page count in the table
-  const availablePages = Object.keys(priceTable).map(Number).sort((a, b) => a - b);
-  const nextHigher = availablePages.find(p => p >= pages);
-
-  if (nextHigher) {
-    return priceTable[nextHigher as keyof typeof priceTable];
-  }
-
-  // Fallback to highest price if pages exceed max
-  return priceTable[100 as keyof typeof priceTable] || 3225;
+  return withTypesetting ? basePrice + TYPESETTING_PRICE : basePrice;
 }
+
+// Backward-compat alias for any code that still imports the with-typesetting
+// table. Computed from the single source so it can never drift.
+export const MAGAZINE_PRICES_WITH_TYPESETTING = Object.fromEntries(
+  Object.entries(MAGAZINE_PRICES_WITHOUT_TYPESETTING).map(([k, v]) => [k, Number(v) + TYPESETTING_PRICE])
+) as Record<number, number>;
 
 export type BindingType = 'saddle-stitch' | 'perfect-binding';
 

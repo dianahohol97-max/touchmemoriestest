@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { SizeVisualizer } from './SizeVisualizer';
 import { useT } from '@/lib/i18n/context';
+import { getMagazinePrice, TYPESETTING_PRICE, MAGAZINE_PRICES_WITHOUT_TYPESETTING } from '@/lib/products';
 
 type ProductOption = {
   name: string;
@@ -26,11 +27,9 @@ const PHOTOBOOK_SIZE_PRICES: Record<string, number> = {
   '30х30': 1700,
 };
 
-const MAGAZINE_PAGE_PRICES: Record<number, number> = {
-  8: 525, 12: 575, 16: 725, 20: 875, 24: 1025, 28: 1175, 32: 1325,
-  36: 1475, 40: 1625, 44: 1775, 48: 1925, 52: 2050,
-  60: 2250, 72: 2550, 80: 2800, 92: 2950, 100: 3150,
-};
+// Derived from the single source of truth (lib/products) so prices can
+// never drift between the catalog card and the configurator.
+const MAGAZINE_PAGE_PRICES: Record<number, number> = MAGAZINE_PRICES_WITHOUT_TYPESETTING;
 
 const PHOTOJOURNAL_PAGE_PRICES: Record<number, number> = {
   12: 675, 16: 825, 20: 975, 24: 1125, 28: 1275, 32: 1425,
@@ -640,15 +639,12 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
     if (productType === 'magazine') {
       const pages = opts['Кількість сторінок'];
       if (pages && typeof pages === 'number') {
-        const basePrice = MAGAZINE_PAGE_PRICES[pages] || null;
-        if (!basePrice) return null;
-        // Text layout surcharge
+        // Text layout surcharge: getMagazinePrice handles it (single source)
         const textVal = String(opts['Верстка тексту'] || '');
         const hasText = textVal.includes('текстом') || textVal.includes('верстк') || textVal === 'with';
-        const textPrice = hasText ? 195 : 0;
         // Urgency surcharge is applied centrally in ProductClient via surcharge_pct,
         // don't apply it here (would double the +30%)
-        return basePrice + textPrice;
+        return getMagazinePrice(pages, hasText);
       }
     }
 
