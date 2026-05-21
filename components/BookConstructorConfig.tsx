@@ -387,6 +387,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             // Pass through via URL → editor will read it
         }
 
+        // Auto-advance to editor is for the FIRST entry from the product
+        // card only. If a bookConstructorConfig already lives in
+        // sessionStorage, it means the user was in the editor and pressed
+        // "Назад" — pushing them forward again would trap them in a loop
+        // (back → config page → 150ms timer → editor → repeat). Only the
+        // editor's addToCart clears this key, so its presence is a reliable
+        // "user has been past this step already" marker.
+        if (typeof window !== 'undefined' && sessionStorage.getItem('bookConstructorConfig')) {
+            return;
+        }
         setAutoAdvance(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loading, product, photobookSizes.length]);
