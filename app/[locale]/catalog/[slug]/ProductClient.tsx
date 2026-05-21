@@ -819,8 +819,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                         {(() => {
                                                             // Level-1 cover inscription: when the selected value of
                                                             // this DB option signals a custom inscription, show a
-                                                            // free-text field. Enable per album purely by adding
-                                                            // such an option value in products.options — no code.
+                                                            // free-text field. Primary trigger is item.allows_text
+                                                            // (toggle in admin); the legacy value/label heuristics
+                                                            // (custom-text / напис / індивідуальн / engrav) stay as
+                                                            // fallback so existing data keeps working without
+                                                            // requiring re-edits in admin.
                                                             const sel = customProductOptions[opt.name];
                                                             if (sel === undefined || sel === null || sel === '') return null;
                                                             const selStr = String(sel).toLowerCase();
@@ -828,6 +831,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 String(it.value ?? it.name ?? it) === String(sel));
                                                             const lbl = String(match?.label || match?.name || sel).toLowerCase();
                                                             const isInscription =
+                                                                match?.allows_text === true ||
                                                                 selStr.includes('custom-text') || selStr.includes('custom_text') ||
                                                                 lbl.includes('напис') || lbl.includes('індивідуальн') || lbl.includes('engrav');
                                                             if (!isInscription) return null;
