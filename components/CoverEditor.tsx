@@ -773,6 +773,25 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               style={{ display:'block', fontSize:(et.fontSize||20)+'px', fontFamily:(et.fontFamily||'Playfair Display')+',serif', color:et.color||'#fff', fontWeight:600, outline:'none', cursor:'text', whiteSpace:'nowrap', textShadow:isSoft?'none':'0 1px 3px rgba(0,0,0,0.4)' }}>
               {et.text}
             </span>
+            {/* Delete button — hover on desktop, always shown on touch.
+                Sits at top-right corner of the text frame. */}
+            <button
+              data-del-extra-text
+              title="Видалити напис"
+              onPointerDown={(e) => { e.stopPropagation(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                const updated = (config.extraTexts||[]).filter(t => t.id !== et.id);
+                onChange({ extraTexts: updated });
+              }}
+              style={{
+                position:'absolute', top:-10, right:-10, width:22, height:22, borderRadius:'50%',
+                background:'#ef4444', color:'#fff', border:'2px solid #fff', cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:13, lineHeight:1, fontWeight:800, padding:0, zIndex:25,
+                opacity:1, transition:'opacity 0.15s', boxShadow:'0 1px 3px rgba(0,0,0,0.35)',
+              }}
+            >×</button>
           </div>
         );
       })}

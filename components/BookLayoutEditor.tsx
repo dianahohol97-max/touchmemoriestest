@@ -2630,6 +2630,14 @@ export default function BookLayoutEditor() {
     const surchargedCurrent = isUrgent ? Math.round((baseCurrent + typesettingExtra) * 1.3) : (baseCurrent + typesettingExtra);
     baseDynamicPrice = surchargedCurrent;
     basePriceDiff = surchargedCurrent - surchargedOrdered;
+  } else if (isScrapbook) {
+    // Scrapbooks (альбоми для вклейки фото) share the wishbook UI flow but
+    // are priced as their own simple product — fixed DB price, no per-page
+    // matrix, no velour-style size×pages lookup. Pulling them through the
+    // photobook_prices table makes them inherit wishbook velour pricing
+    // (a 30×20 / 32pp would land on ~2075 ₴ instead of the real 525 ₴).
+    baseDynamicPrice = config.totalPrice || 0;
+    basePriceDiff = 0;
   } else {
     const result = calculateDynamicPrice(
       priceTable,

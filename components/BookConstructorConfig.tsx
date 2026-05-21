@@ -505,6 +505,27 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // WISHBOOK PRICING (cover material × size, table-based)
         // ==============================
         if (productType === 'wishbook') {
+            // Scrapbooks share the wishbook UI flow but are simple
+            // fixed-price products (no per-size velour matrix). Diverting
+            // them through WISHBOOK_PRICES makes a 30×20 scrapbook cost
+            // ~1059 ₴ instead of its real 525 ₴ from products.price.
+            // Detect by slug, take the DB price, add decoration surcharge
+            // like wishbook does, multiply by copies.
+            if (productSlug.includes('scrapbook')) {
+                let total = product.price || 0;
+                if (selectedDecorationType !== 'none' && selectedDecorationVariant) {
+                    const decVariant = decorationVariants.find(
+                        (dv: any) => dv.decoration_type?.name === selectedDecorationType &&
+                        dv.variant_name === selectedDecorationVariant &&
+                        dv.cover_type?.name === selectedCoverType &&
+                        dv.size?.name === selectedSize
+                    );
+                    if (decVariant) total += Number(decVariant.surcharge) || 0;
+                }
+                const copiesNum = parseInt(selectedCopies) || 1;
+                return total * copiesNum;
+            }
+
             // Same price table as ProductOptionsSelector.WISHBOOK_PRICES — kept
             // in sync manually. Format: { material: { size: priceUAH } }
             const WISHBOOK_PRICES: Record<string, Record<string, number>> = {
