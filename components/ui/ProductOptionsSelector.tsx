@@ -18,15 +18,12 @@ type ProductOptionsConfig = {
   [key: string]: ProductOption[];
 };
 
-// Price mappings
-const PHOTOBOOK_SIZE_PRICES: Record<string, number> = {
-  '20х20': 1050,
-  '25х25': 1290,
-  '20х30': 1235,
-  '30х20': 1235,
-  '30х30': 1700,
-};
-
+// Photobook prices are NOT defined here. They live in the `photobook_prices`
+// Supabase table and are read by ProductClient via state photobookPricesData
+// (for the catalog card) and by the editor via lib/editor/pricing.ts. Adding
+// a hardcoded photobook table here causes exactly the drift we spent the
+// pricing audit eliminating — selector preview vs DB editor vs DB card.
+//
 // Derived from the single source of truth (lib/products) so prices can
 // never drift between the catalog card and the configurator.
 const MAGAZINE_PAGE_PRICES: Record<number, number> = MAGAZINE_PRICES_WITHOUT_TYPESETTING;
@@ -138,131 +135,15 @@ const VELOUR_OZDOBLENNYA = [
 ];
 
 
-// 3D Price table for Velour photobooks: Size -> Pages -> Калька -> Price
-const VELOUR_PRICES: Record<string, Record<string, Record<string, number>>> = {
-  '20х20': {
-    '6':  { 'Без кальки': 1050, 'З калькою': 1350 },
-    '8':  { 'Без кальки': 1100, 'З калькою': 1300 },
-    '10': { 'Без кальки': 1150, 'З калькою': 1450 },
-    '12': { 'Без кальки': 1200, 'З калькою': 1500 },
-    '14': { 'Без кальки': 1250, 'З калькою': 1550 },
-    '16': { 'Без кальки': 1300, 'З калькою': 1600 },
-    '18': { 'Без кальки': 1350, 'З калькою': 1650 },
-    '20': { 'Без кальки': 1400, 'З калькою': 1700 },
-    '22': { 'Без кальки': 1450, 'З калькою': 1750 },
-    '24': { 'Без кальки': 1500, 'З калькою': 1800 },
-    '26': { 'Без кальки': 1550, 'З калькою': 1850 },
-    '28': { 'Без кальки': 1600, 'З калькою': 1900 },
-    '30': { 'Без кальки': 1650, 'З калькою': 1950 },
-    '32': { 'Без кальки': 1700, 'З калькою': 2000 },
-    '34': { 'Без кальки': 1750, 'З калькою': 2050 },
-    '36': { 'Без кальки': 1800, 'З калькою': 2100 },
-    '38': { 'Без кальки': 1850, 'З калькою': 2150 },
-    '40': { 'Без кальки': 1900, 'З калькою': 2200 },
-    '42': { 'Без кальки': 1950, 'З калькою': 2250 },
-    '44': { 'Без кальки': 2000, 'З калькою': 2300 },
-    '46': { 'Без кальки': 2050, 'З калькою': 2350 },
-    '48': { 'Без кальки': 2100, 'З калькою': 2400 },
-    '50': { 'Без кальки': 2150, 'З калькою': 2450 },
-  },
-  '25х25': {
-    '8':  { 'Без кальки': 1290, 'З калькою': 1590 },
-    '10': { 'Без кальки': 1365, 'З калькою': 1665 },
-    '12': { 'Без кальки': 1445, 'З калькою': 1745 },
-    '14': { 'Без кальки': 1525, 'З калькою': 1825 },
-    '16': { 'Без кальки': 1605, 'З калькою': 1905 },
-    '18': { 'Без кальки': 1685, 'З калькою': 1985 },
-    '20': { 'Без кальки': 1765, 'З калькою': 2065 },
-    '22': { 'Без кальки': 1840, 'З калькою': 2140 },
-    '24': { 'Без кальки': 1925, 'З калькою': 2225 },
-    '26': { 'Без кальки': 2010, 'З калькою': 2310 },
-    '28': { 'Без кальки': 2095, 'З калькою': 2395 },
-    '30': { 'Без кальки': 2175, 'З калькою': 2475 },
-    '32': { 'Без кальки': 2255, 'З калькою': 2555 },
-    '34': { 'Без кальки': 2335, 'З калькою': 2635 },
-    '36': { 'Без кальки': 2415, 'З калькою': 2715 },
-    '38': { 'Без кальки': 2495, 'З калькою': 2795 },
-    '40': { 'Без кальки': 2575, 'З калькою': 2875 },
-    '42': { 'Без кальки': 2655, 'З калькою': 2955 },
-    '44': { 'Без кальки': 2735, 'З калькою': 3035 },
-    '46': { 'Без кальки': 2820, 'З калькою': 3120 },
-    '48': { 'Без кальки': 2905, 'З калькою': 3205 },
-    '50': { 'Без кальки': 2990, 'З калькою': 3290 },
-  },
-  '20х30 (книжкова орієнтація)': {
-    '10': { 'Без кальки': 1235, 'З калькою': 1535 },
-    '12': { 'Без кальки': 1365, 'З калькою': 1665 },
-    '14': { 'Без кальки': 1430, 'З калькою': 1730 },
-    '16': { 'Без кальки': 1495, 'З калькою': 1795 },
-    '18': { 'Без кальки': 1560, 'З калькою': 1860 },
-    '20': { 'Без кальки': 1625, 'З калькою': 1925 },
-    '22': { 'Без кальки': 1680, 'З калькою': 1980 },
-    '24': { 'Без кальки': 1755, 'З калькою': 2055 },
-    '26': { 'Без кальки': 1840, 'З калькою': 2140 },
-    '28': { 'Без кальки': 1920, 'З калькою': 2220 },
-    '30': { 'Без кальки': 2000, 'З калькою': 2300 },
-    '32': { 'Без кальки': 2080, 'З калькою': 2380 },
-    '34': { 'Без кальки': 2160, 'З калькою': 2460 },
-    '36': { 'Без кальки': 2240, 'З калькою': 2540 },
-    '38': { 'Без кальки': 2320, 'З калькою': 2620 },
-    '40': { 'Без кальки': 2400, 'З калькою': 2700 },
-    '42': { 'Без кальки': 2480, 'З калькою': 2780 },
-    '44': { 'Без кальки': 2560, 'З калькою': 2860 },
-    '46': { 'Без кальки': 2640, 'З калькою': 2940 },
-    '48': { 'Без кальки': 2720, 'З калькою': 3020 },
-    '50': { 'Без кальки': 2800, 'З калькою': 3100 },
-  },
-  '30х20 (альбомна орієнтація)': {
-    '10': { 'Без кальки': 1235, 'З калькою': 1535 },
-    '12': { 'Без кальки': 1365, 'З калькою': 1665 },
-    '14': { 'Без кальки': 1430, 'З калькою': 1730 },
-    '16': { 'Без кальки': 1495, 'З калькою': 1795 },
-    '18': { 'Без кальки': 1560, 'З калькою': 1860 },
-    '20': { 'Без кальки': 1625, 'З калькою': 1925 },
-    '22': { 'Без кальки': 1680, 'З калькою': 1980 },
-    '24': { 'Без кальки': 1755, 'З калькою': 2055 },
-    '26': { 'Без кальки': 1840, 'З калькою': 2140 },
-    '28': { 'Без кальки': 1920, 'З калькою': 2220 },
-    '30': { 'Без кальки': 2000, 'З калькою': 2300 },
-    '32': { 'Без кальки': 2080, 'З калькою': 2380 },
-    '34': { 'Без кальки': 2160, 'З калькою': 2460 },
-    '36': { 'Без кальки': 2240, 'З калькою': 2540 },
-    '38': { 'Без кальки': 2320, 'З калькою': 2620 },
-    '40': { 'Без кальки': 2400, 'З калькою': 2700 },
-    '42': { 'Без кальки': 2480, 'З калькою': 2780 },
-    '44': { 'Без кальки': 2560, 'З калькою': 2860 },
-    '46': { 'Без кальки': 2640, 'З калькою': 2940 },
-    '48': { 'Без кальки': 2720, 'З калькою': 3020 },
-    '50': { 'Без кальки': 2800, 'З калькою': 3100 },
-  },
-  '30х30': {
-    '16': { 'Без кальки': 1700, 'З калькою': 2000 },
-    '18': { 'Без кальки': 1790, 'З калькою': 2090 },
-    '20': { 'Без кальки': 1880, 'З калькою': 2180 },
-    '22': { 'Без кальки': 1970, 'З калькою': 2270 },
-    '24': { 'Без кальки': 2060, 'З калькою': 2360 },
-    '26': { 'Без кальки': 2150, 'З калькою': 2450 },
-    '28': { 'Без кальки': 2240, 'З калькою': 2540 },
-    '30': { 'Без кальки': 2330, 'З калькою': 2630 },
-    '32': { 'Без кальки': 2420, 'З калькою': 2720 },
-    '34': { 'Без кальки': 2510, 'З калькою': 2810 },
-    '36': { 'Без кальки': 2600, 'З калькою': 2900 },
-    '38': { 'Без кальки': 2690, 'З калькою': 2990 },
-    '40': { 'Без кальки': 2780, 'З калькою': 3080 },
-    '42': { 'Без кальки': 2875, 'З калькою': 3175 },
-    '44': { 'Без кальки': 2970, 'З калькою': 3270 },
-    '46': { 'Без кальки': 3065, 'З калькою': 3365 },
-    '48': { 'Без кальки': 3160, 'З калькою': 3460 },
-    '50': { 'Без кальки': 3255, 'З калькою': 3555 },
-  },
-};
+// VELOUR_PRICES and PHOTOBOOK_SIZE_PRICES removed — see comment block at
+// the top of the constants section. All photobook pricing now flows from
+// the DB photobook_prices table.
 
 const PRODUCT_OPTIONS: ProductOptionsConfig = {
   photobook: [
     {
       name: 'Розмір',
       values: ['20х20', '25х25', '20х30', '30х20', '30х30'],
-      prices: PHOTOBOOK_SIZE_PRICES,
       required: true
     },
     {
@@ -426,14 +307,8 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
   ],
 };
 
-// Helper function to calculate velour photobook price based on 3 dimensions
-function calculateVelourPrice(
-  size: string,
-  pages: string,
-  kalka: string
-): number | null {
-  return VELOUR_PRICES[size]?.[pages]?.[kalka] ?? null;
-}
+// calculateVelourPrice removed — VELOUR_PRICES table is gone; photobook
+// prices are looked up from the DB by ProductClient via photobookPricesData.
 
 function detectProductType(slug: string): string | null {
   const s = slug.toLowerCase();
@@ -604,28 +479,10 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
   const calculatePrice = (opts: Record<string, string | number>): number | null => {
     // Фотокниги - check if velour for 3D pricing, otherwise use simple size pricing
     if (productType === 'photobook') {
-      const s = slug.toLowerCase();
-      const isVelour = s.includes('velyur') || s.includes('velour') || s.includes('велюр');
-
-      if (isVelour) {
-        // Velour photobooks use 3D pricing: size + pages + калька
-        const size = opts['Розмір'];
-        const pages = opts['Кількість сторінок'];
-        const kalka = opts['Калька перед першою сторінкою'];
-
-        if (size && pages && kalka &&
-            typeof size === 'string' &&
-            typeof kalka === 'string') {
-          const pagesStr = String(pages);
-          return calculateVelourPrice(size, pagesStr, kalka);
-        }
-      } else {
-        // Non-velour photobooks use simple size-based pricing
-        const size = opts['Розмір'];
-        if (size && typeof size === 'string') {
-          return PHOTOBOOK_SIZE_PRICES[size] || null;
-        }
-      }
+      // Photobook prices come from DB photobook_prices via ProductClient
+      // (Source 1) — selector returns null and ProductClient will display
+      // the DB price as soon as photobookPricesData loads.
+      return null;
     }
 
     // Журнали - ціна залежить від кількості сторінок
@@ -1157,10 +1014,9 @@ export function getCalculatedPrice(slug: string, selectedOptions: Record<string,
 
   // Фотокниги
   if (productType === 'photobook') {
-    const size = selectedOptions['Розмір'];
-    if (size && typeof size === 'string') {
-      return PHOTOBOOK_SIZE_PRICES[size] || null;
-    }
+    // Photobook prices live in DB photobook_prices, not here. Return null
+    // so callers know to source from the DB (ProductClient does this).
+    return null;
   }
 
   // Журнали
