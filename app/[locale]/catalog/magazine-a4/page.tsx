@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { goToConstructor } from '@/lib/constructorRouting';
 import { getProductSEO } from '@/lib/seoContent';
 import { useAuthModal } from '@/lib/auth-modal-context';
+import { TYPESETTING_PRICE } from '@/lib/products';
 
 const PAGE_PRICES: Record<number, number> = {
   8: 525, 12: 575, 16: 725, 20: 875, 24: 1025, 28: 1175,
@@ -63,7 +64,7 @@ export default function MagazineA4Page() {
   const basePrice = PAGE_PRICES[pages] || 0;
 
   let subtotal = basePrice * copies;
-  if (textTypesetting) subtotal += 175;
+  if (textTypesetting) subtotal += TYPESETTING_PRICE;
   if (photoRetouching && retouchChoice === 'specify') subtotal += retouchCount * 7;
   if (qrCode) subtotal += 50;
   const totalPrice = urgentProduction ? Math.round(subtotal * 1.3) : subtotal;
@@ -205,7 +206,7 @@ export default function MagazineA4Page() {
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-900">Верстка тексту</span>
-                  <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">+195 ₴</span>
+                  <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">+{TYPESETTING_PRICE} ₴</span>
                 </div>
                 <p className="text-sm text-gray-500 mt-0.5">Наш дизайнер додасть та відформатує текст у вашому журналі</p>
               </div>
@@ -451,7 +452,7 @@ export default function MagazineA4Page() {
           {textTypesetting && (
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
               <span>Верстка тексту</span>
-              <span>+195 ₴</span>
+              <span>+{TYPESETTING_PRICE} ₴</span>
             </div>
           )}
 

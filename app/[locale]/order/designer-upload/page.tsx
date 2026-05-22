@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { X, Upload } from 'lucide-react';
 import { submitOrder } from '@/lib/submitOrder';
 import { compressImageFile } from '@/lib/compress-upload-image';
+import { TYPESETTING_PRICE } from '@/lib/products';
 import Image from 'next/image';
 
 interface MagazineOrder {
@@ -233,7 +234,7 @@ function DesignerUploadContent() {
     if (!orderData) return 0;
 
     let subtotal = orderData.basePrice * orderData.copies;
-    if (textTypesetting) subtotal += 175;
+    if (textTypesetting) subtotal += TYPESETTING_PRICE;
     if (photoRetouching && retouchChoice === 'specify') subtotal += retouchCount * 7;
     if (qrCode) subtotal += 50;
     return urgentProduction ? Math.round(subtotal * 1.3) : subtotal;
@@ -642,7 +643,7 @@ function DesignerUploadContent() {
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-gray-900">Верстка тексту</span>
-                    <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">+175 ₴</span>
+                    <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">+{TYPESETTING_PRICE} ₴</span>
                   </div>
                   <p className="text-sm text-gray-500 mt-0.5">Наш дизайнер додасть та відформатує текст у вашому журналі</p>
                 </div>

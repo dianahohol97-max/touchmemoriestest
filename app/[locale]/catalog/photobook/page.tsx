@@ -10,6 +10,7 @@ import { getProductSEO } from '@/lib/seoContent';
 import { useAuthModal } from '@/lib/auth-modal-context';
 import { lookupPrice } from '@/lib/editor/pricing';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
+import { TYPESETTING_PRICE } from '@/lib/products';
 
 const COVER_TYPES = [
   {
@@ -109,7 +110,7 @@ export default function PhotobookPage() {
   let subtotal = basePrice * copies;
   if (photoRetouching && retouchChoice === 'specify') subtotal += retouchCount * 7;
   if (qrCode) subtotal += 50;
-  if (textTypesetting) subtotal += 175;
+  if (textTypesetting) subtotal += TYPESETTING_PRICE;
   const totalPrice = urgentProduction ? Math.round(subtotal * 1.3) : subtotal;
 
   const handleConstructor = () => {
@@ -514,7 +515,7 @@ export default function PhotobookPage() {
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-900">Верстка тексту</span>
-                  <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">+175 ₴</span>
+                  <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">+{TYPESETTING_PRICE} ₴</span>
                 </div>
                 <p className="text-sm text-gray-500 mt-0.5">Додавання підписів або поетичних текстів у фотокнигу</p>
               </div>
@@ -609,7 +610,7 @@ export default function PhotobookPage() {
           {textTypesetting && (
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
               <span>Верстка тексту</span>
-              <span>+175 ₴</span>
+              <span>+{TYPESETTING_PRICE} ₴</span>
             </div>
           )}
 
