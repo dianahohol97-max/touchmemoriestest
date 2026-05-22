@@ -331,6 +331,29 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     if (savedPages > 0 && savedPages < savedMinPages) {
                         mergedOpts['Кількість сторінок'] = String(savedMinPages);
                     }
+                    // Normalize verbatim labels back to canonical values. The
+                    // selector's toggle UI for «Терміновість» stores the full
+                    // label (e.g. 'Термінова 1–3 дні (+30%)'), which on a
+                    // second visit re-hydrates as the selected value. The
+                    // surcharge_pct gate already matches both label and
+                    // value, but the toggle UI's `isActive` check is strict
+                    // equality, so the urgent button silently stays selected
+                    // across sessions even though the user never clicked it.
+                    // Map any saved label back to its DB value when the
+                    // product's options list provides a match.
+                    if (Array.isArray(data.options)) {
+                        data.options.forEach((opt: any) => {
+                            const savedVal = mergedOpts[opt.name];
+                            if (typeof savedVal !== 'string') return;
+                            const items = opt.options || [];
+                            const exactValue = items.find((i: any) => String(i.value) === savedVal);
+                            if (exactValue) return; // already canonical
+                            const byLabel = items.find((i: any) => i.label === savedVal);
+                            if (byLabel && byLabel.value !== undefined) {
+                                mergedOpts[opt.name] = byLabel.value;
+                            }
+                        });
+                    }
                     setCustomProductOptions(mergedOpts);
                 } else {
                     setCustomProductOptions(defaultOptions);
@@ -461,6 +484,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             'Матеріал обкладинки', 'Колір сторінок',
             'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка',
             'Терміновість',
+            // 'Верстка тексту' is folded into dynamicPrice via
+            // getMagazinePrice(pages, hasText), so exclude it from Source 3
+            // to avoid double-counting the +195 ₴ typesetting fee. Only do
+            // this when dynamicPrice actually fired (otherwise — defensive
+            // for product shapes without a Selector preview — let Source 3
+            // pick it up).
+            ...(dynamicPrice !== null ? ['Верстка тексту'] : []),
             // Exclude 'Розмір' only when already handled by ProductOptionsSelector or photobook lookup
             ...(dynamicPrice !== null || isPhotobook ? ['Розмір'] : []),
         ]);

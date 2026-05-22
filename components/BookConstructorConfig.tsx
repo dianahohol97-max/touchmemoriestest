@@ -487,8 +487,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (productType === 'magazine' || productType === 'photo-journal-soft' || productType === 'photo-journal-hard') {
             const pageNum = parseInt(selectedPageCount?.match(/\d+/)?.[0] || '0');
             const copiesNum = parseInt(selectedCopies) || 1;
-            const textLayout = searchParams.get('text_layout');
-            const hasText = textLayout === 'with';
+            // text_layout can arrive in three shapes:
+            //   'with' / 'none'            — value from PRODUCT_OPTIONS DB enum
+            //   'З текстом (+195 ₴)'       — verbatim label from card click
+            //   '' / null                   — option not selected (treat as no text)
+            // Match anything that signals text. Mirror logic used elsewhere in
+            // ProductOptionsSelector (textVal.includes('текстом') ...).
+            const textLayoutRaw = searchParams.get('text_layout') || '';
+            const hasText = textLayoutRaw === 'with' ||
+                            textLayoutRaw.toLowerCase().includes('текстом') ||
+                            textLayoutRaw.toLowerCase().includes('верстк');
 
             // Pick the right helper. Hard journal uses its own scale
             // (12–80 ст starting at 675 ₴), not the soft/magazine scale.
@@ -520,13 +528,17 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             }
 
             // Urgent production surcharge (+30%). The product detail page
-            // sends this as either '1' or the full label string ('Термінова
-            // 1–3 дні (+30%)') depending on whether it came from a code
-            // path that set the boolean or one that copied the option
-            // value verbatim. Treat anything that isn't the explicit
-            // 'standard' value or empty as urgent.
-            const urgentRaw = searchParams.get('urgent');
-            const isUrgent = !!urgentRaw && urgentRaw !== '0' && !urgentRaw.toLowerCase().includes('стандартна');
+            // sends this either as the canonical value ('standard' / 'urgent')
+            // or as the verbatim label ('Термінова 1–3 дні (+30%)') depending
+            // on whether the option was just chosen (canonical) or hydrated
+            // from sessionStorage (label). isUrgent must be true only when
+            // the value is explicitly urgent — anything else (empty, '0',
+            // 'standard', or a label containing 'стандартна') means standard.
+            const urgentRaw = (searchParams.get('urgent') || '').toLowerCase();
+            const isUrgent = urgentRaw !== '' &&
+                             urgentRaw !== '0' &&
+                             urgentRaw !== 'standard' &&
+                             !urgentRaw.includes('стандартна');
             if (isUrgent) {
                 magazineTotal = Math.round(magazineTotal * (1 + URGENT_MULTIPLIER));
             }

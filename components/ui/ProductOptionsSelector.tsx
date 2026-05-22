@@ -659,7 +659,14 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                     {option.values.map((value: string | number, vi: number) => {
                       const v = String(value);
                       const isUrgent = v.includes('Термінова') || v.includes('+30');
-                      const isActive = String(selectedValue) === v;
+                      // selectedValue may be either the verbatim label
+                      // ('Термінова 1–3 дні (+30%)') or the canonical DB value
+                      // ('urgent' / 'standard'). Match both so the button
+                      // reflects state correctly after sessionStorage
+                      // re-hydration normalised labels back to values.
+                      const sel = String(selectedValue ?? '');
+                      const canonical = isUrgent ? 'urgent' : 'standard';
+                      const isActive = sel === v || sel === canonical;
                       return (
                         <button key={vi} type="button"
                           onClick={() => handleOptionChange(option.name, v)}
