@@ -104,7 +104,7 @@ export async function POST(req: Request) {
         //     keypair situation.
         const { data: existingOrder } = await supabase
             .from('orders')
-            .select('id, total, payment_status, monobank_invoice_status, monobank_invoice_id')
+            .select('id, total, payment_status, monobank_invoice_status, monobank_invoice_id, with_designer')
             .eq('id', reference)
             .single();
 
@@ -237,6 +237,30 @@ export async function POST(req: Request) {
                     action: 'status_changed',
                     notes: 'Статус автоматично змінено на "Підтверджено" після оплати',
                     added_by: null
+                });
+            }
+
+            // Designer service handoff. If the customer paid for an order
+            // with with_designer=true, this is the moment to:
+            //  - create the design_brief row (so the customer's brief link
+            //    works on first click)
+            //  - email the customer the brief link
+            //  - ping the designer's Telegram chat
+            // The actual work lives in /api/designer-service/on-payment so
+            // both this webhook and any manual "mark as paid" admin action
+            // can call into the same code path. We fire-and-forget here so
+            // a Brevo / Telegram hiccup never makes Monobank retry the
+            // payment webhook. The downstream route is idempotent (it
+            // checks for an existing brief before insert), so retries are
+            // safe if we ever do wire one up.
+            if (existingOrder.with_designer && existingOrder.payment_status !== 'paid') {
+                const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
+                fetch(`${baseUrl}/api/designer-service/on-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId: reference }),
+                }).catch(err => {
+                    console.error('designer-service/on-payment trigger failed:', err);
                 });
             }
         }

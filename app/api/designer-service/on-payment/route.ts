@@ -20,22 +20,26 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Get order details
+    // Get order details. Two things to note about this query:
+    //
+    // 1. There is no `order_items` table — order line items live as JSONB
+    //    in `orders.items`. The earlier version of this handler joined a
+    //    nonexistent table and silently bailed out; the products it
+    //    needed to look up (`has_designer_option`, `designer_service_price`,
+    //    `max_free_revisions`) aren't actually used downstream anyway —
+    //    this handler only needs the customer's name/email/order_number
+    //    + the designer fee already stored on the order.
+    //
+    // 2. customer_id is optional on orders (guest checkout). When it's
+    //    null we fall back to the inline customer_* fields on the order
+    //    itself so the brief email and Telegram ping still go out.
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
-        *,
-        customer:customers(name, email),
-        items:order_items(
-          *,
-          product:products(
-            id,
-            title,
-            has_designer_option,
-            designer_service_price,
-            max_free_revisions
-          )
-        )
+        id, order_number, with_designer, paid_at,
+        designer_service_fee,
+        customer_id, customer_name, customer_email,
+        customer:customers(name, email)
       `)
       .eq('id', orderId)
       .single();
@@ -46,6 +50,17 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Resolve customer info: prefer the joined customers row, fall back
+    // to the inline guest-checkout fields. Either path can fail (the
+    // join is nullable, the inline fields can be empty for incomplete
+    // submissions) — if we have no email at all, the email send below
+    // will skip on its own.
+    const customerRecord = Array.isArray((order as any).customer)
+      ? (order as any).customer[0]
+      : (order as any).customer;
+    const customerName = customerRecord?.name || order.customer_name || 'Клієнт';
+    const customerEmail = customerRecord?.email || order.customer_email || '';
 
     // Check if order has designer service
     if (!order.with_designer) {
@@ -97,17 +112,21 @@ export async function POST(request: NextRequest) {
       briefToken = newBrief.token;
     }
 
-    // Send email to customer
-    const emailResult = await sendBriefLinkEmail({
-      customerEmail: order.customer.email,
-      customerName: order.customer.name,
-      orderNumber: order.order_number,
-      token: briefToken,
-    });
-
-    if (!emailResult.success) {
-      console.error('Failed to send brief link email:', emailResult.error);
-      // Don't fail the request, just log the error
+    // Send email to customer (only if we actually have an address)
+    let emailResult: { success: boolean; error?: string } = { success: false };
+    if (customerEmail) {
+      emailResult = await sendBriefLinkEmail({
+        customerEmail,
+        customerName,
+        orderNumber: order.order_number,
+        token: briefToken,
+      });
+      if (!emailResult.success) {
+        console.error('Failed to send brief link email:', emailResult.error);
+        // Don't fail the request, just log the error
+      }
+    } else {
+      console.warn('on-payment: order has no customer email; skipping brief link email', { orderId });
     }
 
     // Send Telegram notification to designer
@@ -117,10 +136,12 @@ export async function POST(request: NextRequest) {
         chat_id: telegramChatId,
         text: ` Нове замовлення з послугою дизайнера!\n\n` +
           `Замовлення: #${order.order_number}\n` +
-          `Клієнт: ${order.customer.name}\n` +
-          `Email: ${order.customer.email}\n` +
+          `Клієнт: ${customerName}\n` +
+          `Email: ${customerEmail || '(відсутній)'}\n` +
           `Вартість послуги: ${order.designer_service_fee || 500} грн\n\n` +
-          `Клієнту надіслано email з посиланням на бриф.\n` +
+          (customerEmail
+            ? `Клієнту надіслано email з посиланням на бриф.\n`
+            : `Email клієнта відсутній — зв'яжіться іншим каналом.\n`) +
           `Токен: ${briefToken}`,
       });
     }
