@@ -46,6 +46,10 @@ export interface CoverState {
   printedBgColor?: string;
   backCoverBgColor?: string;
   backCoverPhotoId?: string | null;
+  // Free-positioned text blocks rendered on the back cover. Same shape as
+  // printedTextBlocks (which lives on the front cover) so cart payload,
+  // preview, and editor logic can reuse the same helpers.
+  backCoverTexts?: PrintedTextBlock[];
 }
 
 export interface ExtraText {

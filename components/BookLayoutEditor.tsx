@@ -92,6 +92,10 @@ interface CoverState {
   backCoverCropY?: number;
   backCoverZoom?: number;
   backCoverSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' };
+  // Free-positioned text blocks rendered on the back cover. Same shape as
+  // printedTextBlocks. Optional; presence of items means the back cover
+  // has been customised with text. Renders only when isPrinted.
+  backCoverTexts?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
 }
 
 type LayoutType =
@@ -2487,6 +2491,13 @@ export default function BookLayoutEditor() {
           'Напис на обкладинці': (coverState.extraTexts || []).map(e => e.text).filter(Boolean).join(' · ') || 'так',
           'Спосіб нанесення': coverState.inscriptionMethod === 'flex' ? 'Друк кольором' : 'Гравірування',
         } : {}),
+        // Free-positioned text blocks on the back cover (printed covers
+        // only). Joined with " · " into one option value so production
+        // sees the exact text(s) the customer placed.
+        ...(((coverState as any).backCoverTexts || []).length > 0 ? {
+          'Текст на задній обкладинці': ((coverState as any).backCoverTexts || [])
+            .map((t: any) => t.text).filter(Boolean).join(' · '),
+        } : {}),
       },
       personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}${isGraduation ? ` · мінімум ${GRADUATION_MIN_QTY} шт` : ''}${inscriptionExtra > 0 ? ` · напис: ${coverState.inscriptionMethod === 'flex' ? 'друк кольором' : 'гравірування'} (+180 ₴)` : ''}`,
     };
@@ -4239,17 +4250,35 @@ export default function BookLayoutEditor() {
                 {currentIdx === 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {isPrinted ? (
-                      <button onClick={() => {
-                        pushHistory();
-                        setCoverState(p => ({...p, printedTextBlocks: [...(p.printedTextBlocks || []), {
-                          id: 'ptxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
-                          fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
-                        }]}));
-                        toast.success('Текст додано на обкладинку');
-                      }}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#374151' }}>
-                        <Type size={15} /> Додати текст на обкладинку
-                      </button>
+                      <>
+                        <button onClick={() => {
+                          pushHistory();
+                          setCoverState(p => ({...p, printedTextBlocks: [...(p.printedTextBlocks || []), {
+                            id: 'ptxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
+                            fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
+                          }]}));
+                          toast.success('Текст додано на обкладинку');
+                        }}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#374151' }}>
+                          <Type size={15} /> Додати текст на обкладинку
+                        </button>
+                        {/* Back cover text — only on printed covers. Soft
+                            covers (велюр/тканина/шкірзамінник) use the
+                            extraTexts inscription flow on the front cover
+                            which is one paid +180 ₴ unit; the back cover
+                            stays plain by design. */}
+                        <button onClick={() => {
+                          pushHistory();
+                          setCoverState(p => ({...(p as any), backCoverTexts: [...(((p as any).backCoverTexts) || []), {
+                            id: 'btxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
+                            fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
+                          }]} as any));
+                          toast.success('Текст додано на задню обкладинку');
+                        }}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#374151' }}>
+                          <Type size={15} /> Додати текст на задню обкладинку
+                        </button>
+                      </>
                     ) : (
                       (() => {
                         const hasDeco = coverState.decoType && coverState.decoType !== 'none';
@@ -7143,17 +7172,30 @@ export default function BookLayoutEditor() {
                   {currentIdx === 0 ? (
                     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                       {isPrinted ? (
-                        <button onClick={() => {
-                          pushHistory();
-                          setCoverState(p => ({...p, printedTextBlocks: [...(p.printedTextBlocks || []), {
-                            id: 'ptxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
-                            fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
-                          }]}));
-                          toast.success('Текст додано на обкладинку');
-                        }}
-                          style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
-                          <span style={{fontSize:18}}>T</span> + Додати текст на обкладинку
-                        </button>
+                        <>
+                          <button onClick={() => {
+                            pushHistory();
+                            setCoverState(p => ({...p, printedTextBlocks: [...(p.printedTextBlocks || []), {
+                              id: 'ptxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
+                              fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
+                            }]}));
+                            toast.success('Текст додано на обкладинку');
+                          }}
+                            style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
+                            <span style={{fontSize:18}}>T</span> + Додати текст на обкладинку
+                          </button>
+                          <button onClick={() => {
+                            pushHistory();
+                            setCoverState(p => ({...(p as any), backCoverTexts: [...(((p as any).backCoverTexts) || []), {
+                              id: 'btxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
+                              fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
+                            }]} as any));
+                            toast.success('Текст додано на задню обкладинку');
+                          }}
+                            style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
+                            <span style={{fontSize:18}}>T</span> + Додати текст на задню обкладинку
+                          </button>
+                        </>
                       ) : (
                         (() => {
                           const hasDeco = coverState.decoType && coverState.decoType !== 'none';

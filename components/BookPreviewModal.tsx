@@ -314,6 +314,7 @@ export function BookPreviewModal({
     const backBg = isPrinted ? (coverState?.backCoverBgColor || '#f1f5f9') : (effectiveCoverColor || '#e8ecf4');
     const backPhoto = isPrinted && coverState?.backCoverPhotoId ? getPhoto(coverState.backCoverPhotoId) : null;
     const backSlot = coverState?.backCoverSlot;
+    const backTexts: any[] = isPrinted ? ((coverState as any)?.backCoverTexts || []) : [];
     return (
       <div style={{ width: pageW, height: pageH, background: backBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
         {backPhoto && backSlot ? (
@@ -323,7 +324,33 @@ export function BookPreviewModal({
         ) : backPhoto ? (
           <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} draggable={false} />
         ) : null}
-        <span style={{ color: 'rgba(0,0,0,0.15)', fontSize: 9, writingMode: 'vertical-rl', letterSpacing: 3, textTransform: 'uppercase', zIndex: 1 }}>ЗАДНЯ</span>
+        {/* Free-positioned back cover text. Read-only in preview; the
+            same x/y/fontSize/fontFamily/color/bold shape as the editor
+            renders, but no drag handles or delete buttons. */}
+        {backTexts.map((tb: any) => (
+          <div key={tb.id} style={{
+            position: 'absolute',
+            left: `${tb.x}%`,
+            top: `${tb.y}%`,
+            transform: 'translate(-50%, -50%)',
+            zIndex: 5,
+            padding: '2px 6px',
+            maxWidth: `${pageW * 0.84}px`,
+            pointerEvents: 'none',
+          }}>
+            <span style={{
+              fontSize: (tb.fontSize || 18) + 'px',
+              fontFamily: (tb.fontFamily || 'Montserrat') + ', sans-serif',
+              color: tb.color || (backPhoto ? '#fff' : '#1e2d7d'),
+              fontWeight: tb.bold ? 800 : 600,
+              whiteSpace: 'nowrap',
+              textShadow: backPhoto ? '0 1px 3px rgba(0,0,0,0.4)' : 'none',
+            }}>{tb.text}</span>
+          </div>
+        ))}
+        {backTexts.length === 0 && !backPhoto && (
+          <span style={{ color: 'rgba(0,0,0,0.15)', fontSize: 9, writingMode: 'vertical-rl', letterSpacing: 3, textTransform: 'uppercase', zIndex: 1 }}>ЗАДНЯ</span>
+        )}
       </div>
     );
   };

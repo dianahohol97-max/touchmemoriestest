@@ -103,6 +103,18 @@ The photobook/travel book editor is the most complex part of the codebase. **80%
 - **`SpreadNavigation.tsx`** — page-by-page navigation
 - **`PreviewModal.tsx`** — local-scope preview (different from the BookPreviewModal at component root)
 
+### Cover text model (front + back)
+
+The cover has two surfaces — front and back — and both can carry free-positioned text:
+
+- **`coverState.printedTextBlocks`** — front-cover text on printed covers (magazine / journal / photobook printed / travelbook / wishbook / scrapbook / graduation). Rendered by `CoverEditor`.
+- **`coverState.extraTexts`** — front-cover text on soft covers (велюр / тканина / шкірзамінник albums). One-shot inscription priced at +180 ₴ via `inscriptionMethod` (`flex` or `graviruvannya`). Rendered by `CoverEditor`.
+- **`coverState.backCoverTexts`** — back-cover text on printed covers. Same shape as `printedTextBlocks` (`{id,text,x,y,fontSize,fontFamily,color,bold}`, percent-positioned). Rendered by `CoverView` directly (the back cover lives in `CoverView`, not in `CoverEditor`). Free, no surcharge. Not supported on soft covers — the front-cover `extraTexts` flow already covers that audience.
+
+All three lists are serialised in `coverState` and persisted automatically via `cover_data` on `projects` (so saved sessions, the cart payload, and the "Замовити повторно" replay flow get them for free). The cart `options` map surfaces back-cover text as `'Текст на задній обкладинці'` when present so production sees the exact strings the customer placed.
+
+The editor's "Текст" tab on `currentIdx === 0` shows two buttons for printed covers: one for the front and one for the back. Both desktop and mobile have the pair.
+
 ### Product types the editor handles
 The editor switches behaviour based on slug:
 - `photobook` (photo book — default)
