@@ -223,21 +223,35 @@ The three webhook endpoints, the dual `mono_*` / `monobank_*` order columns, and
 - **`reviews`** — Instagram imports + manual entries for storefront social proof
 - **`design_briefs`** — designer-service customer brief (token-keyed, capability-based access; schema mirrors `lib/types/designer-service.ts`). Token generated server-side by `gen_brief_token()` Postgres function (32-char base64url).
 - **`design_revisions`** — one row per designer→customer review round-trip (revision_count tracks how many revision rounds; contract is 3 max)
+- **`magazine_briefs`** — parallel brief flow for magazine product (generic `brief_data` JSONB so the magazine form can evolve without schema changes; lifecycle scheduled → generating → done)
 - **`promo_codes`** + **`promo_code_usages`** — promo codes + per-customer usage tracking (lets us enforce single-use-per-customer promos)
 - **`notification_log`** — outbound Telegram + email status-change notifications, audit only
-- **`expenses`** — finance module
-- **`salary_records`** — payroll
-- **`automation_rules`** — automation config
-- **`email_promo_*`** — email marketing
-- **`ai_chat_*`** — chatbot conversations
+- **`email_logs`** — Brevo / Resend transactional send audit log (surfaced in admin order view)
+- **`email_campaigns`** + **`email_campaign_logs`** — newsletter campaigns + per-subscriber send results
+- **`expenses`** + **`expense_categories`** — finance module. `expenses.extras` JSONB captures form fields beyond the explicit columns.
+- **`salary_calculations`** + **`salary_periods`** + **`staff_shifts`** + **`staff_work_log`** — payroll. `is_locked` on salary_calculations freezes paid periods from re-computation. The earlier `salary_records` name in this doc referred to a table that never existed — the canonical name is `salary_calculations`.
+- **`qc_error_log`** — production QC errors attributed to staff for salary deductions
+- **`stock_alerts`** — out-of-stock / low-stock notification log so we don't double-notify
+- **`social_conversations`** + **`social_messages`** — AI chatbot social inbox (Instagram / FB). `lib/chatbot/core.ts` handles auto-replies; admin/social-inbox is the manual-reply UI. A trigger on `social_messages` insert updates the conversation's `last_message_at` + `is_read=false` (when sender is customer).
+- **`certificates`** — gift certificates. Canonical name; an earlier alias `gift_certificates` was unified into this table. Schema covers money + product certificates, electronic + printed, plus the 7-day-before-expiry reminder flag the cron route uses.
+- **`gift_hints`** — anonymous "gift hint" submissions (public insert, admin read)
+- **`order_tags`** + **`order_tag_assignments`** — many-to-many order-tag linkage (separate from the `tags` text[] column on orders, used by the admin UI for colour-coded tags)
 - **`photobook_projects`** — legacy table, last writes March 2026. New saves go to `projects`
 - **`projects`** — saved editor sessions (photobook, travelbook, magazine, wishbook). Columns: `pages_data`, `cover_data`, `overlays_data`, `uploaded_photos`. The `overlays_data` jsonb bundle holds `pageStickers`, `pageShapes`, `pageBgs`, `freeSlots`, `qrOverlays`, `generatedQRCount` — everything the editor renders on top of `pages_data` that wouldn't otherwise be persisted
-- **`reporting_*`** — analytics aggregations
 - **`footer_sections`** — site footer content (has `translations` JSONB, application is incomplete — see Known gaps)
-- **`material_*`, `inventory_*`** — production materials
-- **`team_members`** — staff
-- **`shipping_*`** — Nova Poshta + other carriers
-- **`birthday_*`** — customer birthday tracking for marketing
+
+Storage buckets (`storage.buckets`, not tables): `category-images`, `db_backups`, `design-briefs`, `order-files`, `photobook-uploads`, `poster-exports`, `products`, `touch-memories-assets`, `travel-covers`, `videos`. `db_backups` previously appeared in this doc as a "missing table" — it's a storage bucket and exists.
+
+### Removed from this doc
+
+Earlier drafts mentioned these tables/relations as if they existed. They do not, and the runtime code doesn't reference them:
+
+- `product_variants` — variants live INLINE in `products.variants` JSONB
+- `order_items` — line items live in `orders.items` JSONB
+- `carts` — abandoned/active cart tracking is `cart_events` (event-log shape)
+- `salary_records` — canonical name is `salary_calculations`
+- `automation_rules`, `email_promo_*`, `ai_chat_*`, `reporting_*`, `material_*`, `inventory_*`, `team_members`, `shipping_*`, `birthday_*` — placeholder names from earlier drafts; the actual tables are listed above (e.g. `automation_settings`, `email_campaigns`, `social_conversations`, `staff`)
+- `design_orders`, `designer_assignments` — designer flow uses `design_briefs` + `design_revisions` with `designer_id` directly on the orders row, no separate join table
 
 ---
 

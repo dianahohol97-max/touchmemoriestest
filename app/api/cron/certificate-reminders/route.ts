@@ -19,12 +19,12 @@ export async function GET(req: Request) {
     const in8 = new Date(now); in8.setDate(in8.getDate() + 8);
 
     const { data: certs, error } = await supabase
-        .from('gift_certificates')
-        .select('id, code, amount, recipient_name, recipient_email, expires_at, reminder_7d_sent')
-        .eq('status', 'active')
+        .from('certificates')
+        .select('id, code, amount, recipient_name, recipient_email, valid_until, reminder_7d_sent')
+        .eq('redeemed', false)
         .eq('reminder_7d_sent', false)
-        .gte('expires_at', in6.toISOString())
-        .lte('expires_at', in8.toISOString())
+        .gte('valid_until', in6.toISOString())
+        .lte('valid_until', in8.toISOString())
         .not('recipient_email', 'is', null);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -32,8 +32,8 @@ export async function GET(req: Request) {
 
     let sent = 0;
     for (const cert of certs) {
-        const expiryStr = new Date(cert.expires_at).toLocaleDateString('uk-UA', { day: '2-digit', month: 'long', year: 'numeric' });
-        const daysLeft = Math.ceil((new Date(cert.expires_at).getTime() - Date.now()) / 86400000);
+        const expiryStr = new Date(cert.valid_until).toLocaleDateString('uk-UA', { day: '2-digit', month: 'long', year: 'numeric' });
+        const daysLeft = Math.ceil((new Date(cert.valid_until).getTime() - Date.now()) / 86400000);
 
         const html = `
 <div style="font-family:'Montserrat',sans-serif;max-width:540px;margin:auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)">
@@ -70,7 +70,7 @@ export async function GET(req: Request) {
         });
 
         if (emailRes.ok) {
-            await supabase.from('gift_certificates')
+            await supabase.from('certificates')
                 .update({ reminder_7d_sent: true, reminder_sent_at: new Date().toISOString() })
                 .eq('id', cert.id);
             sent++;

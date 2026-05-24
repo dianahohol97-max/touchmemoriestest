@@ -15,7 +15,10 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // Fetch brief with all related data
+  // Fetch brief with related order + customer. Note that line items live
+  // in `orders.items` JSONB — there is no `order_items` table. The earlier
+  // version joined that nonexistent relation and the productInfo lookup
+  // below silently returned undefined.
   const { data: brief, error } = await supabase
     .from('design_briefs')
     .select(`
@@ -26,11 +29,10 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
         with_designer,
         designer_service_fee,
         paid_at,
-        customer:customers(name, email, phone),
-        items:order_items(
-          quantity,
-          product:products(title, custom_attributes)
-        )
+        items,
+        customer_name,
+        customer_email,
+        customer:customers(name, email, phone)
       )
     `)
     .eq('id', id)
@@ -42,7 +44,17 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
 
   const photos = (brief.photos_metadata as PhotoMetadata[]) || [];
   const order = (brief as any).order;
-  const productInfo = order?.items?.[0]?.product;
+  // Resolve customer info with prefer-joined-then-inline fallback so guest
+  // checkout orders (customer_id = null) still show a name.
+  const customerRecord = Array.isArray(order?.customer)
+    ? order.customer[0]
+    : order?.customer;
+  const customerName = customerRecord?.name || order?.customer_name || 'Клієнт';
+  const customerEmail = customerRecord?.email || order?.customer_email || '';
+  // Line items are JSONB on orders.items. Each item has product_name and
+  // options at minimum; use the first one's name as the headline product.
+  const firstItem = Array.isArray(order?.items) ? order.items[0] : null;
+  const productInfo = firstItem ? { title: firstItem.product_name, custom_attributes: firstItem.options } : null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -59,7 +71,7 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
           Замовлення #{order?.order_number}
         </h1>
         <p className="text-gray-600 mt-1">
-          Дизайн-бриф для {order?.customer?.name}
+          Дизайн-бриф для {customerName}
         </p>
       </div>
 
@@ -245,17 +257,17 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
               <div>
                 <dt className="text-sm text-gray-600">Ім'я</dt>
                 <dd className="text-sm font-medium text-gray-900">
-                  {order?.customer?.name}
+                  {customerName}
                 </dd>
               </div>
               <div>
                 <dt className="text-sm text-gray-600">Email</dt>
-                <dd className="text-sm text-gray-900">{order?.customer?.email}</dd>
+                <dd className="text-sm text-gray-900">{customerEmail || '—'}</dd>
               </div>
-              {order?.customer?.phone && (
+              {(customerRecord?.phone || (order as any)?.customer_phone) && (
                 <div>
                   <dt className="text-sm text-gray-600">Телефон</dt>
-                  <dd className="text-sm text-gray-900">{order.customer.phone}</dd>
+                  <dd className="text-sm text-gray-900">{customerRecord?.phone || (order as any).customer_phone}</dd>
                 </div>
               )}
             </dl>

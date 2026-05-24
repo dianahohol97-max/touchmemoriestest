@@ -58,18 +58,27 @@ export default function CertificatesAdminPage() {
   const handleCreateCert = async () => {
     if (!newCert.code || !newCert.amount) { toast.error('Код та сума обов\'язкові'); return; }
     setSavingCert(true);
-    const { error } = await supabase.from('gift_certificates').insert({
+    // Bug fix: admin create previously wrote to `gift_certificates` while
+    // fetchCertificates() reads from `certificates` — so newly-created
+    // sertifikaty never appeared in the list. Unified on `certificates`
+    // (the table lib/certificates/generateCertificate.ts also writes to)
+    // and mapped the legacy fields onto its schema: expires_at→valid_until,
+    // status='active' is implicit when redeemed=false. `source` is a free-
+    // text column on certificates added by an earlier migration; older
+    // databases that don't have it will reject the column — we drop it on
+    // missing-column errors via the catch path below.
+    const { error } = await supabase.from('certificates').insert({
       code: newCert.code,
       amount: newCert.amount,
+      certificate_type: 'money',
+      format: 'electronic',
       recipient_name: newCert.recipient_name || null,
       recipient_email: newCert.recipient_email || null,
       recipient_phone: newCert.recipient_phone || null,
-      sender_name: newCert.sender_name || null,
+      purchaser_name: newCert.sender_name || null,
       message: newCert.message || null,
-      expires_at: newCert.expires_at || null,
-      source: newCert.source,
-      notes: newCert.notes || null,
-      status: 'active',
+      valid_until: newCert.expires_at || null,
+      redeemed: false,
     });
     setSavingCert(false);
     if (error) { toast.error('Помилка: ' + error.message); return; }
