@@ -134,6 +134,29 @@ export async function POST(request: Request) {
             console.error('[Manual Order] Failed to trigger email:', emailErr);
         }
 
+        // 6. Audit row in order_history.
+        await supabase.from('order_history').insert({
+            order_id: order.id,
+            action: 'order_created',
+            notes: `Замовлення створено вручну в адмінці (${source || 'manual'})`,
+            added_by: created_by || null,
+        });
+
+        // 7. Designer handoff. If the admin marked the order as paid AND
+        // it's a designer-service order, fire the same handoff route the
+        // Monobank webhook uses. Fire-and-forget so a Brevo / Telegram
+        // hiccup doesn't block the admin form.
+        if ((with_designer || false) && (payment?.status === 'paid')) {
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+            fetch(`${siteUrl}/api/designer-service/on-payment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: order.id }),
+            }).catch(err => {
+                console.error('[Manual Order] designer-service/on-payment trigger failed:', err);
+            });
+        }
+
         return NextResponse.json({ success: true, id: order.id, order_number: order.order_number });
 
     } catch (err: any) {
