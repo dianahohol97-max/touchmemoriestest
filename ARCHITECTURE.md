@@ -194,6 +194,15 @@ The end-to-end path from cart to designer brief:
 
 8. **Revision round-trip.** Designer hits "Send for review" → creates a `design_revisions` row with its own `client_token`, emails customer the review link. Customer approves or asks for changes (`client_decision` + `client_comments` + `general_feedback`). `revision_count` increments per round; the contract caps at 3.
 
+### Manual order create (parallel entry point)
+
+The Monobank webhook is the path for orders the customer pays online. Most of Diana's real volume comes through Instagram DM, where an admin enters the order by hand in `app/admin/orders/create`. That route (`/api/admin/orders/create`) mirrors the webhook side effects so manually-created orders aren't second-class:
+
+- Inserts an `order_created` row in `order_history` with the source (`manual` / `instagram` / etc.) and `created_by` FK, so the order detail page's history feed shows when and how the order entered the system.
+- If `with_designer=true` AND the admin marks the order paid on the form, fires the same `POST /api/designer-service/on-payment` the webhook does — fire-and-forget, no await, downstream is idempotent.
+
+Both entry points converge on the same designer-handoff route, so the brief creation / email / Telegram ping logic lives in one place (`app/api/designer-service/on-payment/route.ts`) regardless of how the order was paid.
+
 The three webhook endpoints, the dual `mono_*` / `monobank_*` order columns, and the historical reference to `design_orders` / `designer_assignments` in earlier drafts of this doc are all artefacts of the same migration episode and have been straightened out — `monobank_*` is canonical, the older alias columns are dead code paths preserved only because dropping them is a DB migration risk for very little gain.
 
 ---
