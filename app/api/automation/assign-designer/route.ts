@@ -48,16 +48,26 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (designer?.telegram_chat_id) {
-          // Get order details
+          // Get order details. Schema:
+          //   - `deadline`, not `production_deadline`
+          //   - line items live in items JSONB
+          //   - customer:customers(...) is an object, not an array
           const { data: order } = await supabase
             .from('orders')
-            .select('id, order_number, customer:customers(name), product:products(title), custom_attributes, production_deadline')
+            .select('id, order_number, items, customer_name, customer:customers(name), custom_attributes, deadline')
             .eq('id', order_id)
             .single();
 
           if (order) {
             const customAttrs = order.custom_attributes as any;
             const isExpress = customAttrs?.tags?.includes(' Відправити швидше') || false;
+            const customerRecord = Array.isArray((order as any).customer)
+              ? (order as any).customer[0]
+              : (order as any).customer;
+            const customerName = customerRecord?.name || order.customer_name || 'N/A';
+            const productTitle = Array.isArray(order.items) && order.items[0]
+              ? ((order.items[0] as any).product_name || 'N/A')
+              : 'N/A';
 
             // Send Telegram notification
             await notifyDesignerNewOrder({
@@ -65,10 +75,12 @@ export async function POST(request: NextRequest) {
               telegramChatId: designer.telegram_chat_id,
               orderId: order.id,
               orderNumber: order.order_number,
-              customerName: (order.customer as any)?.[0]?.name || 'N/A',
-              productTitle: (order.product as any)?.[0]?.title || 'N/A',
+              customerName,
+              productTitle,
               pageCount: customAttrs?.page_count || 0,
-              deadline: new Date(order.production_deadline).toLocaleDateString('uk-UA'),
+              deadline: order.deadline
+                ? new Date(order.deadline).toLocaleDateString('uk-UA')
+                : '—',
               isExpress,
             });
           }

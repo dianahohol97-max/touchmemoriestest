@@ -32,16 +32,25 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Get order details
+    // Get order details. Schema notes:
+    //   - `deadline`, not `production_deadline`
+    //   - `ttn`, not `tracking_number`
+    //   - products has `name`, not `title`
+    //   - Line items live in `items` JSONB (no order_items / orders.product_id);
+    //     pull the first item's product_name for the email body.
+    //   - customer:customers(...) returns an object, not an array (Supabase
+    //     single-row foreign-key joins do not wrap in an array)
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
         id,
         order_number,
-        production_deadline,
-        tracking_number,
-        customer:customers(name, email),
-        product:products(title)
+        deadline,
+        ttn,
+        items,
+        customer_name,
+        customer_email,
+        customer:customers(name, email)
       `)
       .eq('id', order_id)
       .single();
@@ -55,24 +64,35 @@ export async function POST(request: NextRequest) {
 
     // Prepare tracking URL if available
     let trackingUrl = '';
-    if (order.tracking_number) {
+    if (order.ttn) {
       // Nova Poshta tracking URL
-      trackingUrl = `https://novaposhta.ua/tracking/?cargo_number=${order.tracking_number}`;
+      trackingUrl = `https://novaposhta.ua/tracking/?cargo_number=${order.ttn}`;
     }
+
+    // Customer info: prefer joined customers row, fall back to inline
+    // customer_email / customer_name on the order (guest checkout).
+    const customerRecord = Array.isArray((order as any).customer)
+      ? (order as any).customer[0]
+      : (order as any).customer;
+    const customerName = customerRecord?.name || order.customer_name || '';
+    const customerEmail = customerRecord?.email || order.customer_email || '';
+    const productTitle = Array.isArray(order.items) && order.items[0]
+      ? ((order.items[0] as any).product_name || '')
+      : '';
 
     // Send notification
     const result = await sendStatusChangeNotification({
       orderId: order.id,
-      customerEmail: (order.customer as any)?.[0]?.email || '',
-      customerName: (order.customer as any)?.[0]?.name || '',
+      customerEmail,
+      customerName,
       orderNumber: order.order_number,
-      productTitle: (order.product as any)?.[0]?.title || '',
+      productTitle,
       newStatus: new_status as OrderStatus,
       oldStatus: old_status as OrderStatus,
-      productionDeadline: order.production_deadline
-        ? new Date(order.production_deadline).toLocaleDateString('uk-UA')
+      productionDeadline: order.deadline
+        ? new Date(order.deadline).toLocaleDateString('uk-UA')
         : undefined,
-      trackingNumber: order.tracking_number || undefined,
+      trackingNumber: order.ttn || undefined,
       trackingUrl: trackingUrl || undefined,
     });
 

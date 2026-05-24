@@ -52,7 +52,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get order details
+    // Get order details. Schema notes:
+    //   - `products` has `name`, not `title`
+    //   - Line items live in items JSONB (no order_items / orders.product_id)
+    //   - customer:customers(...) returns an object, not an array
     const { data: order } = await supabase
       .from('orders')
       .select(`
@@ -60,8 +63,10 @@ export async function POST(request: NextRequest) {
         order_number,
         paid_at,
         custom_attributes,
-        customer:customers(id, name, email, is_vip),
-        product:products(id, title)
+        items,
+        customer_name,
+        customer_email,
+        customer:customers(id, name, email, is_vip)
       `)
       .eq('id', order_id)
       .single();
@@ -76,13 +81,21 @@ export async function POST(request: NextRequest) {
     const customAttrs = order.custom_attributes as any;
     const pageCount = customAttrs?.page_count || 0;
     const hasExpressTag = customAttrs?.tags?.includes(' Відправити швидше') || false;
-    const isVipCustomer = (order.customer as any)?.[0]?.is_vip || false;
+    const customerRecord = Array.isArray((order as any).customer)
+      ? (order as any).customer[0]
+      : (order as any).customer;
+    const isVipCustomer = customerRecord?.is_vip || false;
+    const customerName = customerRecord?.name || order.customer_name || '';
+    const customerEmail = customerRecord?.email || order.customer_email || '';
+    const productTitle = Array.isArray(order.items) && order.items[0]
+      ? ((order.items[0] as any).product_name || '')
+      : '';
 
-    // Get active orders count for queue load calculation
+    // Get active orders count for queue load calculation. order_status, not status.
     const { data: activeOrders } = await supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .in('status', ['confirmed', 'in_production', 'quality_check']);
+      .in('order_status', ['confirmed', 'in_production', 'quality_check']);
 
     const activeOrdersCount = activeOrders?.length || 0;
 
@@ -102,13 +115,14 @@ export async function POST(request: NextRequest) {
       is_vip_customer: isVipCustomer,
     });
 
-    // Update order with deadline and priority
+    // Update order with deadline and priority. Column is `deadline`,
+    // not `production_deadline`; status column is `order_status`.
     await supabase
       .from('orders')
       .update({
-        production_deadline: deadline.toISOString(),
+        deadline: deadline.toISOString(),
         priority_score: priorityScore,
-        status: 'confirmed',
+        order_status: 'confirmed',
       })
       .eq('id', order_id);
 
@@ -127,8 +141,8 @@ export async function POST(request: NextRequest) {
             telegramChatId: assignedDesigner.telegram_chat_id,
             orderId: order.id,
             orderNumber: order.order_number,
-            customerName: (order.customer as any)?.[0]?.name || 'N/A',
-            productTitle: (order.product as any)?.[0]?.title || 'N/A',
+            customerName: customerName || 'N/A',
+            productTitle: productTitle || 'N/A',
             pageCount,
             deadline: deadline.toLocaleDateString('uk-UA'),
             isExpress: hasExpressTag,
@@ -141,10 +155,10 @@ export async function POST(request: NextRequest) {
     if (settings.notify_customer_email) {
       await sendStatusChangeNotification({
         orderId: order.id,
-        customerEmail: (order.customer as any)?.[0]?.email || '',
-        customerName: (order.customer as any)?.[0]?.name || '',
+        customerEmail,
+        customerName,
         orderNumber: order.order_number,
-        productTitle: (order.product as any)?.[0]?.title || '',
+        productTitle,
         newStatus: 'confirmed' as OrderStatus,
         oldStatus: 'pending' as OrderStatus,
         productionDeadline: deadline.toLocaleDateString('uk-UA'),
