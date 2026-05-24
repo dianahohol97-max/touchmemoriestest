@@ -662,9 +662,9 @@ export const COVER_TEMPLATES: CoverTemplate[] = [
     overlay: { type: 'gradient', color: '#000000', opacity: 35, gradient: 'linear-gradient(180deg,rgba(0,0,0,0.5) 0%,transparent 22%,transparent 75%,rgba(0,0,0,0.2) 100%)' },
     texts: [
       { text: 'MAGAZINE SPECIAL EDITION', x: 50, y: 5, fontSize: 10, fontFamily: 'Montserrat', color: '#ffffff', bold: false },
-      { text: 'BIRTHDAY', x: 45, y: 14, fontSize: 38, fontFamily: 'Playfair Display', color: '#ffffff', bold: true },
-      { text: 'HAPPY 20TH BIRTHDAY', x: 25, y: 65, fontSize: 18, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
-      { text: 'THE BEST DAY', x: 62, y: 88, fontSize: 20, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
+      { text: 'BIRTHDAY', x: 50, y: 14, fontSize: 38, fontFamily: 'Playfair Display', color: '#ffffff', bold: true },
+      { text: 'HAPPY 20TH BIRTHDAY', x: 50, y: 65, fontSize: 18, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
+      { text: 'THE BEST DAY', x: 50, y: 88, fontSize: 20, fontFamily: 'Montserrat', color: '#ffffff', bold: true },
     ],
   },
   {

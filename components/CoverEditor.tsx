@@ -177,6 +177,88 @@ function FitText({
   );
 }
 
+/**
+ * Wraps a printed-cover text block and clamps its on-screen position so the
+ * block can't overflow the canvas. The template author specifies the CENTRE
+ * of the block via `tb.x` / `tb.y` (percent), and we render with
+ * `transform: translate(-50%, -50%)` to honour that — but the resulting
+ * left/right edges of the block depend on its actual rendered width, which
+ * we only know after layout.
+ *
+ * After the first render, measure the block's bounding box, compare it to
+ * the canvas, and apply a corrective translateX/Y so the block stays
+ * inside `[safeInsetPx, canvasW - safeInsetPx]`. This rescues templates
+ * like "Birthday Special" where `x: 25` was supposed to mean "left-leaning"
+ * but the text was so wide that the left half of the block ended up
+ * negative-positioned (off-canvas).
+ *
+ * The clamp is a soft correction — if `tb.x` is already safe, the offset
+ * is 0 and nothing moves. Drag still works because clamp only nudges
+ * the FINAL screen position; the saved `tb.x` (the template intent) is
+ * untouched.
+ */
+function ClampedTextWrapper({
+  tb, safeX, safeY, canvasW, canvasH, maxWidthPx, children,
+}: {
+  tb: { id: string; x: number; y: number };
+  safeX: number; safeY: number;
+  canvasW: number; canvasH: number;
+  maxWidthPx: number;
+  children: React.ReactNode;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  // Inset matches the safe zone used by FitText (~6% of canvas, see comment
+  // there). Keep clamp here in sync with that — if the print bleed changes,
+  // update both.
+  const safeInsetPx = Math.max(8, canvasW * 0.06);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || canvasW <= 0) return;
+    // Measure on next frame so FitText has applied its font-size adjustment.
+    const measure = () => {
+      if (!el.parentElement) return;
+      const parentRect = el.parentElement.getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
+      const left = rect.left - parentRect.left;
+      const right = rect.right - parentRect.left;
+      const top = rect.top - parentRect.top;
+      const bottom = rect.bottom - parentRect.top;
+      let dx = 0, dy = 0;
+      if (left < safeInsetPx) dx = safeInsetPx - left;
+      else if (right > canvasW - safeInsetPx) dx = (canvasW - safeInsetPx) - right;
+      if (top < safeInsetPx) dy = safeInsetPx - top;
+      else if (bottom > canvasH - safeInsetPx) dy = (canvasH - safeInsetPx) - bottom;
+      // Only update if it actually changed to avoid render loops.
+      setOffset(prev => (prev.x === dx && prev.y === dy) ? prev : { x: dx, y: dy });
+    };
+    // First measure synchronously, then one more on rAF after FitText settles.
+    measure();
+    const raf = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(raf);
+  }, [tb.x, tb.y, canvasW, canvasH, maxWidthPx, safeInsetPx]);
+
+  return (
+    <div ref={wrapRef}
+      style={{
+        position: 'absolute',
+        left: `${safeX}%`,
+        top: `${safeY}%`,
+        transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
+        zIndex: 12,
+        padding: '2px 6px',
+        border: '1px dashed rgba(255,255,255,0.5)',
+        borderRadius: 3,
+        touchAction: 'manipulation',
+        maxWidth: `${canvasW * 0.84}px`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange, hidePhotoSlot = false }: CoverEditorProps) {
   const t = useT();
   const [dragOver, setDragOver] = useState(false);
@@ -512,9 +594,9 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               // long titles like "WEDDING" stay on one line on every product.
               const safeBoxW = canvasW * 0.84 - 12; // minus wrapper padding
               return (
-              <div key={tb.id}
-                style={{ position:'absolute', left:`${safeX}%`, top:`${safeY}%`, transform:'translate(-50%,-50%)',
-                  zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'manipulation', maxWidth: `${canvasW * 0.84}px` }}>
+              <ClampedTextWrapper key={tb.id}
+                tb={tb} safeX={safeX} safeY={safeY}
+                canvasW={canvasW} canvasH={canvasH} maxWidthPx={safeBoxW}>
                 <FitText
                   tb={tb}
                   maxWidthPx={safeBoxW}
@@ -530,7 +612,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
                   onMouseDown={e=>e.stopPropagation()}
                   style={{ position:'absolute',top:-8,right:-8,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>
-              </div>
+              </ClampedTextWrapper>
             );})}
           </>
         );
@@ -553,9 +635,9 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               const safeY = Math.max(8, Math.min(92, tb.y));
               const safeBoxW = canvasW * 0.84 - 12;
               return (
-              <div key={tb.id}
-                style={{ position:'absolute', left:`${safeX}%`, top:`${safeY}%`, transform:'translate(-50%,-50%)',
-                  zIndex:12, padding:'2px 6px', border:'1px dashed rgba(255,255,255,0.5)', borderRadius:3, touchAction:'manipulation', maxWidth: `${canvasW * 0.84}px` }}>
+              <ClampedTextWrapper key={tb.id}
+                tb={tb} safeX={safeX} safeY={safeY}
+                canvasW={canvasW} canvasH={canvasH} maxWidthPx={safeBoxW}>
                 <FitText
                   tb={tb}
                   maxWidthPx={safeBoxW}
@@ -571,7 +653,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
                   onMouseDown={e=>e.stopPropagation()}
                   style={{ position:'absolute',top:-8,right:-8,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>
-              </div>
+              </ClampedTextWrapper>
             );})}
           </>
         );
