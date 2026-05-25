@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
     Loader2,
     Download,
+    Info,
     Save,
     CheckCircle,
     Calculator,
@@ -36,10 +38,23 @@ export default function SalaryPage() {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+    const [staffList, setStaffList] = useState<any[]>([]);
+    const [showFormula, setShowFormula] = useState(false);
 
     useEffect(() => {
         fetchSalaries();
+        fetchStaffRates();
     }, [dateFrom, dateTo]);
+
+    const fetchStaffRates = async () => {
+        try {
+            const res = await fetch('/api/admin/staff');
+            if (res.ok) {
+                const data = await res.json();
+                setStaffList(Array.isArray(data) ? data : data.staff || []);
+            }
+        } catch {}
+    };
 
     const fetchSalaries = async () => {
         setLoading(true);
@@ -94,6 +109,10 @@ export default function SalaryPage() {
         }
     };
 
+    const allRatesZero = staffList.length > 0 && staffList.every(
+        (s: any) => !s.daily_base_rate && !s.commission_percentage && !s.piece_rate
+    );
+
     const filteredSalaries = salaries.filter(s => {
         const matchesTab = s.staff?.role === activeTab || (activeTab === 'production' && s.staff?.name.toLowerCase().includes('андрій'));
         const matchesSearch = s.staff?.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -105,7 +124,19 @@ export default function SalaryPage() {
             {/* Header Area */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: 950, letterSpacing: '-0.02em', marginBottom: '8px' }}>Розрахунок Зарплат </h1>
+                    <h1 style={{ fontSize: '32px', fontWeight: 950, letterSpacing: '-0.02em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        Розрахунок Зарплат
+                        <span style={{ position: 'relative', display: 'inline-flex' }}>
+                            <button onClick={() => setShowFormula(!showFormula)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }} title="Формула розрахунку">
+                                <Info size={20} />
+                            </button>
+                            {showFormula && (
+                                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 8, padding: '14px 18px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, fontSize: 13, fontWeight: 600, lineHeight: 1.6, whiteSpace: 'nowrap', zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+                                    Зарплата = (днів × добова ставка) + (виручка × % комісії / 100) + (одиниць × ставка/од.) + бонус − утримання
+                                </div>
+                            )}
+                        </span>
+                    </h1>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '15px' }}>
                         <Clock size={16} />
                         <span>Керування виплатами та бонусами команди</span>
@@ -199,11 +230,20 @@ export default function SalaryPage() {
                                     />
                                 ))}
                             </div>
+                        ) : allRatesZero ? (
+                            <div style={emptyState}>
+                                <div style={emptyIcon}><AlertCircle size={32} /></div>
+                                <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>Виставте ставки в Команді</h3>
+                                <p style={{ color: '#64748b', marginBottom: '20px' }}>У всіх співробітників добова ставка, комісія та ставка за одиницю рівні нулю — розрахунок неможливий</p>
+                                <Link href="/admin/team" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 24px', background: '#6366f1', color: '#fff', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+                                    Перейти до команди <ChevronRight size={16} />
+                                </Link>
+                            </div>
                         ) : (
                             <div style={emptyState}>
                                 <div style={emptyIcon}><Search size={32} /></div>
-                                <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>Нічого не знайдено</h3>
-                                <p style={{ color: '#64748b' }}>Спробуйте змінити період або фільтри</p>
+                                <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>За цей період немає даних для розрахунку</h3>
+                                <p style={{ color: '#64748b' }}>Спробуйте змінити період або натисніть «Розрахувати»</p>
                             </div>
                         )}
                 </div>
