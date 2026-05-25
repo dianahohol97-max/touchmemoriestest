@@ -7,13 +7,9 @@ import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { motion } from 'framer-motion';
 import { Package, Truck, CheckCircle2, Clock, MapPin, ExternalLink } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n/context';
 
-const getSupabase = () => createClient();
-
 export default function TrackOrderPage() {
-    const supabase = getSupabase();
     const params = useParams();
     const t = useT();
     const [order, setOrder] = useState<any>(null);
@@ -21,25 +17,26 @@ export default function TrackOrderPage() {
 
     useEffect(() => {
         async function fetchOrder() {
-            const { data } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('id', params.id)
-                .single();
-
-            if (data) setOrder(data);
+            try {
+                const res = await fetch(`/api/orders/${params.id}/public`);
+                if (res.ok) setOrder(await res.json());
+            } catch (e) { console.error('Order fetch error:', e); }
             setLoading(false);
         }
         fetchOrder();
 
-        const channel = supabase
-            .channel(`track-${params.id}`)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${params.id}` }, (payload) => {
-                setOrder(payload.new);
-            })
-            .subscribe();
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/orders/${params.id}/public`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setOrder(data);
+                    if (data?.order_status === 'delivered' || data?.order_status === 'cancelled') clearInterval(interval);
+                }
+            } catch {}
+        }, 10000);
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { clearInterval(interval); };
     }, [params.id]);
 
     if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('ui.loading') || '...'}</div>;

@@ -8,12 +8,8 @@ import { Footer } from '@/components/ui/Footer';
 import { motion } from 'framer-motion';
 import { CheckCircle, FileText, Package, Truck } from 'lucide-react';
 import { trackPurchase } from '@/components/providers/AnalyticsProvider';
-import { createClient } from '@/lib/supabase/client';
-
-const getSupabase = () => createClient();
 
 export default function OrderSuccessPage() {
-    const supabase = getSupabase();
     const params = useParams();
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -21,31 +17,26 @@ export default function OrderSuccessPage() {
 
     useEffect(() => {
         async function fetchOrder() {
-            const { data, error } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('id', params.id)
-                .single();
-
-            if (data) setOrder(data);
+            try {
+                const res = await fetch(`/api/orders/${params.id}/public`);
+                if (res.ok) setOrder(await res.json());
+            } catch (e) { console.error('Order fetch error:', e); }
             setLoading(false);
         }
         fetchOrder();
 
-        // Set up realtime listener for payment sync
-        const channel = supabase
-            .channel(`order-${params.id}`)
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'orders',
-                filter: `id=eq.${params.id}`
-            }, (payload) => {
-                setOrder(payload.new);
-            })
-            .subscribe();
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/orders/${params.id}/public`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setOrder(data);
+                    if (data?.payment_status === 'paid') clearInterval(interval);
+                }
+            } catch {}
+        }, 3000);
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { clearInterval(interval); };
     }, [params.id]);
 
     if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;

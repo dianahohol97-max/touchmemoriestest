@@ -7,7 +7,6 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { createClient } from '@/lib/supabase/client';
 import { CheckCircle2, Clock, XCircle, ShoppingBag, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -21,20 +20,24 @@ function DyakuiemoContent() {
 
     useEffect(() => {
         if (!orderId) { setLoading(false); return; }
-        const supabase = createClient();
-        // Poll order status for up to 10 seconds (webhook may not have arrived yet)
         let attempts = 0;
         const poll = async () => {
-            const { data } = await supabase
-                .from('orders')
-                .select('id, order_number, total, payment_status, customer_name')
-                .eq('id', orderId)
-                .single();
-            if (data) setOrder(data);
-            attempts++;
-            if (data?.payment_status !== 'paid' && attempts < 5) {
-                setTimeout(poll, 2000);
-            } else {
+            try {
+                const res = await fetch(`/api/orders/${orderId}/public`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setOrder(data);
+                    attempts++;
+                    if (data?.payment_status !== 'paid' && attempts < 5) {
+                        setTimeout(poll, 2000);
+                    } else {
+                        setLoading(false);
+                    }
+                } else {
+                    setLoading(false);
+                }
+            } catch (e) {
+                console.error('Order poll error:', e);
                 setLoading(false);
             }
         };
