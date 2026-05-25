@@ -4,6 +4,7 @@ import { Montserrat, Open_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import { AnalyticsProvider } from '@/components/providers/AnalyticsProvider';
+import { ConsentProvider } from '@/lib/consent/ConsentProvider';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NewsletterPopup } from '@/components/ui/NewsletterPopup';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
@@ -56,21 +57,23 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=optional" />
       </head>
       <body className="font-body bg-background text-textPrimary antialiased">
-        <ThemeProvider>
-          <I18nProvider>
-          {children}
-          <CartDrawer />
-          <Toaster position="top-right" richColors />
-          <NewsletterPopup />
-          </I18nProvider>
-          <Suspense fallback={null}>
-            <AnalyticsProvider />
-          </Suspense>
-          <SpeedInsights />
-          <Suspense fallback={null}>
-            <OAuthCallbackHandler />
-          </Suspense>
-        </ThemeProvider>
+        <ConsentProvider>
+          <ThemeProvider>
+            <I18nProvider>
+              {children}
+              <CartDrawer />
+              <Toaster position="top-right" richColors />
+              <NewsletterPopup />
+            </I18nProvider>
+            <Suspense fallback={null}>
+              <AnalyticsProvider />
+            </Suspense>
+            <SpeedInsights />
+            <Suspense fallback={null}>
+              <OAuthCallbackHandler />
+            </Suspense>
+          </ThemeProvider>
+        </ConsentProvider>
       </body>
     </html>
   );
