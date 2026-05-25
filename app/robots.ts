@@ -1,29 +1,25 @@
 import { MetadataRoute } from 'next';
-
-// Use same domain as sitemap — NEXT_PUBLIC_SITE_URL must be set in Vercel env vars
-const DOMAIN = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
+import { getBaseUrl } from '@/lib/seo/locales';
 
 export default function robots(): MetadataRoute.Robots {
+  const base = getBaseUrl();
   return {
     rules: [
       {
         userAgent: '*',
         allow: '/',
         disallow: [
-          '/api/',
           '/admin/',
-          '/cart',
-          '/checkout',
-          '/order/',
-          '/editor/',
-          '/constructor/',
-          '/photobooth/',
+          '/api/',
           '/account/',
-          '/*?*', // block query params duplicates
+          '/checkout/',
+          '/dyakuiemo',
+          '/order/',
+          '/review/',
         ],
       },
     ],
-    sitemap: `${DOMAIN}/sitemap.xml`,
-    host: DOMAIN,
+    sitemap: `${base}/sitemap.xml`,
+    host: base,
   };
 }

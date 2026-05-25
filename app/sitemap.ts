@@ -1,97 +1,99 @@
 import { MetadataRoute } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase/admin';
+import { LOCALES, getCanonicalUrl, HREFLANG_MAP } from '@/lib/seo/locales';
 
-const LOCALES = ['uk', 'en', 'ro', 'pl', 'de'];
-const DOMAIN = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
-
-// Universal static routes (all locales)
-const UNIVERSAL_PATHS = [
-    { path: '', priority: 1.0, freq: 'daily' as const },
-    { path: '/catalog', priority: 0.9, freq: 'daily' as const },
-    { path: '/blog', priority: 0.8, freq: 'weekly' as const },
-    { path: '/faq', priority: 0.5, freq: 'monthly' as const },
-    { path: '/wedding', priority: 0.7, freq: 'monthly' as const },
-];
-
-// Ukrainian-only routes (UA-specific slug paths)
-const UK_ONLY_PATHS = [
-    { path: '/kontakty', priority: 0.6, freq: 'monthly' as const },
-    { path: '/oplata-i-dostavka', priority: 0.6, freq: 'monthly' as const },
-    { path: '/pro-nas', priority: 0.5, freq: 'monthly' as const },
-];
+export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const entries: MetadataRoute.Sitemap = [];
-    const now = new Date();
+  const admin = getAdminClient();
+  const entries: MetadataRoute.Sitemap = [];
 
-    // Universal static pages for all locales
+  const STATIC_ROUTES = [
+    { path: '', priority: 1.0, changeFreq: 'daily' as const },
+    { path: '/catalog', priority: 0.9, changeFreq: 'daily' as const },
+    { path: '/about', priority: 0.6, changeFreq: 'monthly' as const },
+    { path: '/contact', priority: 0.6, changeFreq: 'monthly' as const },
+    { path: '/blog', priority: 0.8, changeFreq: 'weekly' as const },
+    { path: '/privacy', priority: 0.3, changeFreq: 'yearly' as const },
+    { path: '/terms', priority: 0.3, changeFreq: 'yearly' as const },
+    { path: '/cookies', priority: 0.3, changeFreq: 'yearly' as const },
+    { path: '/refund', priority: 0.3, changeFreq: 'yearly' as const },
+  ];
+
+  for (const route of STATIC_ROUTES) {
     for (const locale of LOCALES) {
-        for (const { path, priority, freq } of UNIVERSAL_PATHS) {
-            entries.push({
-                url: `${DOMAIN}/${locale}${path}`,
-                lastModified: now,
-                changeFrequency: freq,
-                priority,
-            });
-        }
+      const alternates: Record<string, string> = {};
+      for (const altLoc of LOCALES) {
+        alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, route.path);
+      }
+      entries.push({
+        url: getCanonicalUrl(locale, route.path),
+        lastModified: new Date(),
+        changeFrequency: route.changeFreq,
+        priority: route.priority,
+        alternates: { languages: alternates },
+      });
     }
+  }
 
-    // Ukrainian-only pages
-    for (const { path, priority, freq } of UK_ONLY_PATHS) {
-        entries.push({
-            url: `${DOMAIN}/uk${path}`,
-            lastModified: now,
-            changeFrequency: freq,
-            priority,
-        });
+  const { data: products } = await admin
+    .from('products')
+    .select('slug, updated_at')
+    .eq('is_active', true);
+
+  for (const p of products || []) {
+    const path = `/catalog/${p.slug}`;
+    const alternates: Record<string, string> = {};
+    for (const altLoc of LOCALES) {
+      alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, path);
     }
-
-    // Dynamic product pages
-    try {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
-        const { data: products } = await supabase
-            .from('products')
-            .select('slug, updated_at')
-            .eq('is_active', true);
-
-        if (products) {
-            for (const locale of LOCALES) {
-                for (const product of products) {
-                    entries.push({
-                        url: `${DOMAIN}/${locale}/catalog/${product.slug}`,
-                        lastModified: product.updated_at ? new Date(product.updated_at) : now,
-                        changeFrequency: 'weekly',
-                        priority: 0.8,
-                    });
-                }
-            }
-        }
-
-        // Blog posts
-        const { data: posts } = await supabase
-            .from('blog_posts')
-            .select('slug, updated_at')
-            .eq('is_published', true);
-
-        if (posts) {
-            for (const locale of LOCALES) {
-                for (const post of posts) {
-                    entries.push({
-                        url: `${DOMAIN}/${locale}/blog/${post.slug}`,
-                        lastModified: post.updated_at ? new Date(post.updated_at) : now,
-                        changeFrequency: 'monthly',
-                        priority: 0.6,
-                    });
-                }
-            }
-        }
-    } catch (e) {
-        // Ignore DB errors in sitemap
+    for (const locale of LOCALES) {
+      entries.push({
+        url: getCanonicalUrl(locale, path),
+        lastModified: p.updated_at ? new Date(p.updated_at) : new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.8,
+        alternates: { languages: alternates },
+      });
     }
+  }
 
-    return entries;
+  const { data: categories } = await admin
+    .from('categories')
+    .select('slug, updated_at')
+    .eq('is_active', true);
+
+  for (const c of categories || []) {
+    entries.push({
+      url: getCanonicalUrl('uk', `/catalog?category=${c.slug}`),
+      lastModified: c.updated_at ? new Date(c.updated_at) : new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    });
+  }
+
+  const { data: posts } = await admin
+    .from('blog_posts')
+    .select('slug, updated_at')
+    .eq('is_published', true);
+
+  for (const post of posts || []) {
+    const path = `/blog/${post.slug}`;
+    const alternates: Record<string, string> = {};
+    for (const altLoc of LOCALES) {
+      alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, path);
+    }
+    for (const locale of LOCALES) {
+      entries.push({
+        url: getCanonicalUrl(locale, path),
+        lastModified: post.updated_at ? new Date(post.updated_at) : new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.5,
+        alternates: { languages: alternates },
+      });
+    }
+  }
+
+  return entries;
 }
-// i18n deploy trigger Wed Apr  1 15:42:51 UTC 2026
