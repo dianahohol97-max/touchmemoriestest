@@ -46,23 +46,28 @@ export default function CheckoutPage() {
         setPromoLoading(true);
         setPromoError('');
         const code = promoInput.trim().toUpperCase();
-        const { data } = await supabase
-            .from('promo_codes')
-            .select('*')
-            .eq('code', code)
-            .eq('is_active', true)
-            .maybeSingle();
-        setPromoLoading(false);
-        if (!data) { setPromoError('Промокод не знайдено або він не активний'); return; }
-        if (data.min_order_amount && rawTotal < data.min_order_amount) {
-            setPromoError(`Мінімальна сума замовлення для цього промокоду: ${data.min_order_amount} ₴`);
-            return;
+        try {
+            const res = await fetch('/api/promo/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, cart_total: rawTotal }),
+            });
+            const result = await res.json();
+            setPromoLoading(false);
+            if (!result.valid) {
+                setPromoError(result.message || 'Промокод не знайдено або він не активний');
+                return;
+            }
+            const discount = typeof result.discount_amount === 'number'
+                ? result.discount_amount
+                : 0;
+            setPromoDiscount(Math.min(discount, rawTotal));
+            setPromoCode(code);
+        } catch (err) {
+            console.error('Promo validation error:', err);
+            setPromoLoading(false);
+            setPromoError('Помилка перевірки промокоду');
         }
-        const discount = data.type === 'percent'
-            ? Math.round(rawTotal * data.value / 100)
-            : Number(data.value); // type is 'percent' or 'fixed'
-        setPromoDiscount(Math.min(discount, rawTotal));
-        setPromoCode(code);
     };
 
     // Form State
