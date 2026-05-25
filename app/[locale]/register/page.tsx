@@ -60,6 +60,28 @@ export default function Register() {
 
             if (error) throw error;
 
+            if (data.user?.id) {
+                fetch('/api/consent/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'terms_accepted',
+                        categories: { terms_version: 1, email },
+                    }),
+                }).catch(() => {});
+
+                if (subscribe) {
+                    fetch('/api/consent/log', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'marketing_accepted',
+                            categories: { email, source: 'registration' },
+                        }),
+                    }).catch(() => {});
+                }
+            }
+
             toast.success('Реєстрація успішна! Будь ласка, перевірте пошту.');
             router.push('/login');
         } catch (error: any) {
@@ -208,7 +230,7 @@ export default function Register() {
                                     style={{ marginTop: '3px' }}
                                 />
                                 <span>
-                                    Я погоджуюсь з <Link href="/privacy-policy" target="_blank" style={{ color: 'var(--primary)', fontWeight: 600 }}>Політикою конфіденційності</Link> та <Link href="/public-offer" target="_blank" style={{ color: 'var(--primary)', fontWeight: 600 }}>Публічною офертою</Link>
+                                    Я погоджуюсь з <Link href="/privacy" target="_blank" style={{ color: 'var(--primary)', fontWeight: 600 }}>Політикою конфіденційності</Link> та <Link href="/terms" target="_blank" style={{ color: 'var(--primary)', fontWeight: 600 }}>Умовами використання</Link>
                                 </span>
                             </label>
                         </div>
