@@ -8,6 +8,7 @@ import {
     Copy,
     Trash2,
     Power,
+    Pencil,
     Activity,
     Tag,
     TrendingUp,
@@ -65,8 +66,17 @@ export default function PromoPage() {
         max_uses: null as number | null,
         valid_from: '',
         valid_until: '',
-        is_active: true
+        is_active: true,
+        applies_to: 'all' as string,
+        applicable_product_ids: [] as string[],
+        applicable_category_ids: [] as string[],
     });
+
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingCode, setEditingCode] = useState<PromoCode | null>(null);
+    const [editForm, setEditForm] = useState<any>({});
+    const [products, setProducts] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
 
     useEffect(() => {
         fetchData();
@@ -82,6 +92,11 @@ export default function PromoPage() {
 
             if (error) throw error;
             setPromoCodes(data || []);
+
+            const { data: prods } = await supabase.from('products').select('id, name').eq('is_active', true).order('name');
+            setProducts(prods || []);
+            const { data: cats } = await supabase.from('categories').select('id, name').eq('is_active', true).order('name');
+            setCategories(cats || []);
 
             // Calculate stats
             calculateStats(data || []);
@@ -135,7 +150,10 @@ export default function PromoPage() {
                 min_order_amount: formData.min_order_amount || null,
                 max_uses: formData.max_uses || null,
                 valid_from: formData.valid_from || null,
-                valid_until: formData.valid_until || null
+                valid_until: formData.valid_until || null,
+                applies_to: formData.applies_to,
+                applicable_product_ids: formData.applies_to === 'products' ? formData.applicable_product_ids : [],
+                applicable_category_ids: formData.applies_to === 'categories' ? formData.applicable_category_ids : [],
             };
 
             const res = await fetch('/api/admin/promocodes', {
@@ -241,8 +259,60 @@ export default function PromoPage() {
             max_uses: null,
             valid_from: '',
             valid_until: '',
-            is_active: true
+            is_active: true,
+            applies_to: 'all' as string,
+            applicable_product_ids: [] as string[],
+            applicable_category_ids: [] as string[],
         });
+    };
+
+    const openEditModal = (promo: PromoCode) => {
+        setEditingCode(promo);
+        setEditForm({
+            code: promo.code,
+            type: promo.type,
+            value: promo.value,
+            min_order_amount: (promo as any).min_order_amount || 0,
+            max_uses: (promo as any).max_uses || null,
+            valid_from: (promo as any).valid_from ? (promo as any).valid_from.slice(0, 10) : '',
+            valid_until: (promo as any).valid_until ? (promo as any).valid_until.slice(0, 10) : '',
+            is_active: promo.is_active,
+            applies_to: (promo as any).applies_to || 'all',
+            applicable_product_ids: (promo as any).applicable_product_ids || [],
+            applicable_category_ids: (promo as any).applicable_category_ids || [],
+            notes: (promo as any).notes || '',
+        });
+        setShowEditModal(true);
+    };
+
+    const handleEditSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingCode) return;
+        setIsSaving(true);
+        try {
+            const res = await fetch(`/api/admin/promocodes/${editingCode.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...editForm,
+                    min_order_amount: editForm.min_order_amount || null,
+                    max_uses: editForm.max_uses || null,
+                    valid_from: editForm.valid_from || null,
+                    valid_until: editForm.valid_until || null,
+                    applicable_product_ids: editForm.applies_to === 'products' ? editForm.applicable_product_ids : [],
+                    applicable_category_ids: editForm.applies_to === 'categories' ? editForm.applicable_category_ids : [],
+                }),
+            });
+            if (!res.ok) throw new Error('Помилка оновлення');
+            toast.success('Промокод оновлено');
+            setShowEditModal(false);
+            setEditingCode(null);
+            await fetchData();
+        } catch (error: any) {
+            toast.error(error.message || 'Помилка збереження');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const getTypeBadge = (type: string, value: number) => {
@@ -470,6 +540,13 @@ export default function PromoPage() {
                                                 <Power size={16} />
                                             </button>
                                             <button
+                                                onClick={() => openEditModal(promo)}
+                                                style={{ ...actionBtn, backgroundColor: '#eff6ff', color: '#263A99' }}
+                                                title="Редагувати"
+                                            >
+                                                <Pencil size={16} />
+                                            </button>
+                                            <button
                                                 onClick={() => deletePromo(promo.id)}
                                                 style={{ ...actionBtn, backgroundColor: '#fef2f2', color: '#ef4444' }}
                                                 title="Видалити"
@@ -555,6 +632,41 @@ export default function PromoPage() {
                                             />
                                         </div>
                                     </div>
+
+                                    <div>
+                                        <label style={labelStyle}>Застосовується до</label>
+                                        <select
+                                            value={formData.applies_to}
+                                            onChange={(e) => setFormData({ ...formData, applies_to: e.target.value, applicable_product_ids: [], applicable_category_ids: [] })}
+                                            style={inputStyle}
+                                        >
+                                            <option value="all">Усе</option>
+                                            <option value="products">Конкретні товари</option>
+                                            <option value="categories">Окремі категорії</option>
+                                        </select>
+                                    </div>
+                                    {formData.applies_to === 'products' && (
+                                        <div>
+                                            <label style={labelStyle}>Товари</label>
+                                            <select multiple value={formData.applicable_product_ids}
+                                                onChange={(e) => setFormData({ ...formData, applicable_product_ids: Array.from(e.target.selectedOptions, o => o.value) })}
+                                                style={{ ...inputStyle, height: '120px' }}>
+                                                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                            </select>
+                                            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Ctrl+Click для вибору кількох</div>
+                                        </div>
+                                    )}
+                                    {formData.applies_to === 'categories' && (
+                                        <div>
+                                            <label style={labelStyle}>Категорії</label>
+                                            <select multiple value={formData.applicable_category_ids}
+                                                onChange={(e) => setFormData({ ...formData, applicable_category_ids: Array.from(e.target.selectedOptions, o => o.value) })}
+                                                style={{ ...inputStyle, height: '120px' }}>
+                                                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                            </select>
+                                            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Ctrl+Click для вибору кількох</div>
+                                        </div>
+                                    )}
 
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                         <div>
@@ -650,6 +762,125 @@ export default function PromoPage() {
                         </div>
                     </>
                 )}
+
+            {showEditModal && editingCode && (
+                <>
+                    <div style={overlay} onClick={() => setShowEditModal(false)} />
+                    <div style={modal} onClick={(e) => e.stopPropagation()}>
+                        <div style={modalHeader}>
+                            <h2 style={{ fontSize: '22px', fontWeight: 900, color: '#263A99', margin: 0 }}>
+                                Редагувати промокод
+                            </h2>
+                            <button onClick={() => setShowEditModal(false)} style={closeBtn}><X size={24} /></button>
+                        </div>
+                        <form onSubmit={handleEditSave} style={{ padding: '32px' }}>
+                            <div style={{ display: 'grid', gap: '20px' }}>
+                                <div>
+                                    <label style={labelStyle}>Код *</label>
+                                    <input type="text" value={editForm.code}
+                                        onChange={(e) => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })}
+                                        required style={{ ...inputStyle, fontFamily: 'monospace', fontWeight: 700 }} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div>
+                                        <label style={labelStyle}>Тип знижки *</label>
+                                        <select value={editForm.type}
+                                            onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
+                                            style={inputStyle}>
+                                            <option value="percent">Відсоток (%)</option>
+                                            <option value="fixed">Фіксована сума (₴)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={labelStyle}>Значення *</label>
+                                        <input type="number" value={editForm.value}
+                                            onChange={(e) => setEditForm({ ...editForm, value: Number(e.target.value) })}
+                                            required min="0" style={inputStyle} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Застосовується до</label>
+                                    <select value={editForm.applies_to}
+                                        onChange={(e) => setEditForm({ ...editForm, applies_to: e.target.value, applicable_product_ids: [], applicable_category_ids: [] })}
+                                        style={inputStyle}>
+                                        <option value="all">Усе</option>
+                                        <option value="products">Конкретні товари</option>
+                                        <option value="categories">Окремі категорії</option>
+                                    </select>
+                                </div>
+                                {editForm.applies_to === 'products' && (
+                                    <div>
+                                        <label style={labelStyle}>Товари</label>
+                                        <select multiple value={editForm.applicable_product_ids}
+                                            onChange={(e) => setEditForm({ ...editForm, applicable_product_ids: Array.from(e.target.selectedOptions, o => o.value) })}
+                                            style={{ ...inputStyle, height: '120px' }}>
+                                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        </select>
+                                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Ctrl+Click для вибору кількох</div>
+                                    </div>
+                                )}
+                                {editForm.applies_to === 'categories' && (
+                                    <div>
+                                        <label style={labelStyle}>Категорії</label>
+                                        <select multiple value={editForm.applicable_category_ids}
+                                            onChange={(e) => setEditForm({ ...editForm, applicable_category_ids: Array.from(e.target.selectedOptions, o => o.value) })}
+                                            style={{ ...inputStyle, height: '120px' }}>
+                                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Ctrl+Click для вибору кількох</div>
+                                    </div>
+                                )}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div>
+                                        <label style={labelStyle}>Мінімальна сума (₴)</label>
+                                        <input type="number" value={editForm.min_order_amount}
+                                            onChange={(e) => setEditForm({ ...editForm, min_order_amount: Number(e.target.value) })}
+                                            min="0" style={inputStyle} />
+                                    </div>
+                                    <div>
+                                        <label style={labelStyle}>Максимум використань</label>
+                                        <input type="number" value={editForm.max_uses || ''}
+                                            onChange={(e) => setEditForm({ ...editForm, max_uses: e.target.value ? Number(e.target.value) : null })}
+                                            min="1" style={inputStyle} />
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div>
+                                        <label style={labelStyle}>Дійсний від</label>
+                                        <input type="date" value={editForm.valid_from}
+                                            onChange={(e) => setEditForm({ ...editForm, valid_from: e.target.value })}
+                                            style={inputStyle} />
+                                    </div>
+                                    <div>
+                                        <label style={labelStyle}>Дійсний до</label>
+                                        <input type="date" value={editForm.valid_until}
+                                            onChange={(e) => setEditForm({ ...editForm, valid_until: e.target.value })}
+                                            style={inputStyle} />
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '3px' }}>
+                                    <input type="checkbox" checked={editForm.is_active}
+                                        onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
+                                        style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+                                    <label style={{ fontSize: '14px', fontWeight: 600, color: '#475569' }}>Активний</label>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Нотатки</label>
+                                    <input type="text" value={editForm.notes || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                                        style={inputStyle} placeholder="Внутрішні нотатки" />
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
+                                <button type="button" onClick={() => setShowEditModal(false)} style={cancelBtn}>Скасувати</button>
+                                <button type="submit" disabled={isSaving} style={saveBtn}>
+                                    {isSaving ? <><Loader2 className="animate-spin" size={18} /> Збереження...</> : <><Save size={18} /> Зберегти</>}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </>
+            )}
 
         </div>
     );

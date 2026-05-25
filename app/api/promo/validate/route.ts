@@ -85,9 +85,31 @@ export async function POST(request: Request) {
             }
         }
 
+        // 6.5 Validate applies_to scope
+        if (promo.applies_to === 'products' && Array.isArray(promo.applicable_product_ids) && promo.applicable_product_ids.length > 0) {
+            const cartProductIds = (items || []).map((i: any) => i.product_id).filter(Boolean);
+            const hasMatch = cartProductIds.some((pid: string) => promo.applicable_product_ids.includes(pid));
+            if (!hasMatch) {
+                return NextResponse.json({ valid: false, message: 'Промокод не діє на товари у кошику' }, { status: 400 });
+            }
+        }
+        if (promo.applies_to === 'categories' && Array.isArray(promo.applicable_category_ids) && promo.applicable_category_ids.length > 0) {
+            const productIds = (items || []).map((i: any) => i.product_id).filter(Boolean);
+            if (productIds.length === 0) {
+                return NextResponse.json({ valid: false, message: 'Немає товарів у кошику' }, { status: 400 });
+            }
+            const { data: prods } = await supabase
+                .from('products')
+                .select('id, category_id')
+                .in('id', productIds);
+            const cartCategoryIds = (prods || []).map((p: any) => p.category_id).filter(Boolean);
+            const hasMatch = cartCategoryIds.some((cid: string) => promo.applicable_category_ids.includes(cid));
+            if (!hasMatch) {
+                return NextResponse.json({ valid: false, message: 'Промокод не діє на категорії у кошику' }, { status: 400 });
+            }
+        }
+
         // 7. Calculate Discount Amount
-        // TODO: Advanced applies_to logic evaluating `items` against specific categories could go here.
-        // For now, assuming applies_to === 'all' or bypassing complex category validations for speed.
 
         let discount_amount = 0;
         if (promo.type === 'percent') {
