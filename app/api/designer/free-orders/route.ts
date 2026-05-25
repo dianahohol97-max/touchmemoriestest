@@ -17,12 +17,14 @@ export async function GET() {
 
     // Allow admin or any staff member.
     let allowed = false;
-    const { data: adminRow } = await admin
-        .from('admin_users')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-    if (adminRow) allowed = true;
+    if (user.email) {
+        const { data: adminRow } = await admin
+            .from('admin_users')
+            .select('id')
+            .eq('email', user.email)
+            .maybeSingle();
+        if (adminRow) allowed = true;
+    }
 
     if (!allowed && user.email) {
         const { data: staffRow } = await admin

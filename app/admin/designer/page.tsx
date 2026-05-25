@@ -30,7 +30,9 @@ export default function DesignerCabinetPage() {
   const [myOrders, setMyOrders] = useState<any[]>([]);
   const [freeOrders, setFreeOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'dashboard' | 'projects' | 'free' | 'revisions'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'orders' | 'projects' | 'free' | 'revisions'>('dashboard');
+  const [briefByOrder, setBriefByOrder] = useState<Record<string, string>>({});
+  const [ordersWithUploads, setOrdersWithUploads] = useState<Record<string, number>>({});
 
   useEffect(() => { loadData(); }, []);
 
@@ -63,11 +65,38 @@ export default function DesignerCabinetPage() {
     // Orders assigned to me
     const { data: orders } = await supabase
       .from('orders')
-      .select('id, order_number, customer_name, items, order_status, created_at, designer_project_id, with_designer, designer_note')
+      .select('id, order_number, customer_name, items, order_status, created_at, designer_project_id, with_designer, designer_note, deadline, paid_at')
       .eq('designer_id', designerId)
       .eq('with_designer', true)
       .order('created_at', { ascending: false });
     setMyOrders(orders || []);
+
+    // Load upload counts + brief ids for assigned orders
+    if (orders && orders.length > 0) {
+      const orderIds = orders.map((o: any) => o.id);
+      const { data: files } = await supabase
+        .from('order_files')
+        .select('order_id')
+        .in('order_id', orderIds)
+        .eq('file_type', 'upload');
+      const uploadCounts: Record<string, number> = {};
+      (files || []).forEach((f: any) => {
+        uploadCounts[f.order_id] = (uploadCounts[f.order_id] || 0) + 1;
+      });
+      setOrdersWithUploads(uploadCounts);
+
+      const { data: briefs } = await supabase
+        .from('design_briefs')
+        .select('id, order_id, photos_count')
+        .in('order_id', orderIds);
+      const briefMap: Record<string, string> = {};
+      (briefs || []).forEach((b: any) => {
+        briefMap[b.order_id] = b.id;
+        if (b.photos_count) uploadCounts[b.order_id] = (uploadCounts[b.order_id] || 0) + b.photos_count;
+      });
+      setBriefByOrder(briefMap);
+      setOrdersWithUploads({ ...uploadCounts });
+    }
 
     // Free orders — use server API to bypass RLS restrictions
     const freeRes = await fetch('/api/designer/free-orders');
@@ -144,6 +173,7 @@ export default function DesignerCabinetPage() {
       <div style={{ display: 'flex', gap: 4, marginBottom: 28, background: '#f8fafc', padding: 4, borderRadius: 10, width: 'fit-content' }}>
         {([
           { id: 'dashboard', label: 'Огляд', icon: <TrendingUp size={14} /> },
+          { id: 'orders',    label: `Мої замовлення (${myOrders.length})`, icon: <ClipboardList size={14} /> },
           { id: 'projects',  label: `Мої проекти (${myProjects.length})`, icon: <Palette size={14} /> },
           { id: 'free',      label: `Вільні (${freeOrders.length})`, icon: <Inbox size={14} />, alert: freeOrders.length > 0 },
           { id: 'revisions', label: `Правки (${revisionProjects.length})`, icon: <AlertCircle size={14} />, alert: revisionProjects.length > 0 },
@@ -231,6 +261,68 @@ export default function DesignerCabinetPage() {
                 ))
               }
             </div>
+          </div>
+        </div>
+      )}
+
+      {/*  MY ORDERS  */}
+      {tab === 'orders' && (
+        <div>
+          <div style={{ display: 'grid', gap: 12 }}>
+            {myOrders.map(o => {
+              const items = (o.items || []) as any[];
+              const productName = items[0]?.name || 'Товар';
+              const photoCount = ordersWithUploads[o.id] || 0;
+              const hasBrief = !!briefByOrder[o.id];
+              const hasProject = !!o.designer_project_id;
+              return (
+                <div key={o.id} style={{ ...cardStyle, display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 10, background: hasProject ? '#f0fdf4' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {hasProject ? <CheckCircle size={22} color="#10b981" /> : <ClipboardList size={22} color="#3b82f6" />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 2 }}>
+                      #{o.order_number} · {o.customer_name}
+                    </div>
+                    <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>{productName}</div>
+                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#94a3b8', flexWrap: 'wrap' }}>
+                      <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: 10, fontWeight: 600 }}>{ORDER_STATUS_LABEL[o.order_status] || o.order_status}</span>
+                      <span><Calendar size={10} style={{ display: 'inline', marginRight: 3 }} />{new Date(o.created_at).toLocaleDateString('uk-UA')}</span>
+                      {o.deadline && <span style={{ color: '#d97706' }}>Дедлайн: {new Date(o.deadline).toLocaleDateString('uk-UA')}</span>}
+                      {photoCount > 0 && <span style={{ background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: 10, fontWeight: 600 }}>{photoCount} фото від клієнта</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
+                    <a href={getConstructorUrl(o, o.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                      <Palette size={14} /> Конструктор
+                    </a>
+                    {hasBrief ? (
+                      <Link href={`/admin/design-orders/${briefByOrder[o.id]}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+                        <ClipboardList size={14} /> Бриф + фото ({photoCount})
+                      </Link>
+                    ) : photoCount > 0 ? (
+                      <Link href={`/admin/orders/${o.id}/files`}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: '#f0f9ff', color: '#1e40af', border: '1px solid #bfdbfe', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+                        <Eye size={14} /> Фото ({photoCount})
+                      </Link>
+                    ) : null}
+                    <Link href={`/admin/orders/${o.id}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: '#f8fafc', color: '#374151', border: '1px solid #e2e8f0', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+                      <Eye size={14} /> Деталі
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+            {myOrders.length === 0 && (
+              <div style={{ ...cardStyle, textAlign: 'center', padding: 48 }}>
+                <ClipboardList size={40} color="#e2e8f0" style={{ marginBottom: 12 }} />
+                <p style={{ fontSize: 15, color: '#94a3b8', fontWeight: 600 }}>Призначених замовлень немає</p>
+                <p style={{ fontSize: 13, color: '#cbd5e1' }}>Візьміть замовлення зі списку вільних</p>
+              </div>
+            )}
           </div>
         </div>
       )}
