@@ -10,6 +10,7 @@ import { useTheme } from '@/components/providers/ThemeProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { useConsent } from '@/lib/consent/ConsentProvider';
 
 interface Category {
     id: string;
@@ -27,9 +28,11 @@ function NewsletterFormFooter() {
     const [email, setEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [agreeMarketing, setAgreeMarketing] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!agreeMarketing) return;
         setLoading(true);
 
         try {
@@ -42,6 +45,11 @@ function NewsletterFormFooter() {
             if (res.ok) {
                 setSubscribed(true);
                 setEmail('');
+                fetch('/api/consent/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'marketing_accepted', categories: { email, source: 'newsletter_footer' } }),
+                }).catch(() => {});
             }
         } catch (err) {
             console.error('Newsletter subscription error:', err);
@@ -69,9 +77,13 @@ function NewsletterFormFooter() {
                             disabled={loading}
                             className="flex-1 bg-white border border-primary/5 rounded-brand px-4 py-3 text-[14px] outline-none shadow-sm focus:border-primary/20 transition-all text-primary disabled:opacity-50"
                         />
+                        <label className="flex gap-2 items-start text-[12px] text-primary/40 leading-tight cursor-pointer">
+                            <input type="checkbox" checked={agreeMarketing} onChange={e => setAgreeMarketing(e.target.checked)} className="mt-0.5" />
+                            <span>{t('footer.newsletter_consent') || 'Я погоджуюся з обробкою моїх даних для отримання маркетингових розсилок'}</span>
+                        </label>
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || !agreeMarketing}
                             className="px-6 py-3 bg-[#1e2d7d] text-white rounded-full font-bold text-sm whitespace-nowrap flex-shrink-0 hover:bg-[#152158] shadow-[0_4px_16px_rgba(38,58,153,0.35)] transition-all duration-200 disabled:opacity-50"
                         >
                             {loading ? '...' : t('ui.subscribe')}
@@ -79,6 +91,31 @@ function NewsletterFormFooter() {
                     </form>
                 )}
             </div>
+        </div>
+    );
+}
+
+function FooterLegalLinks() {
+    const t = useT();
+    const { reopenBanner } = useConsent();
+    return (
+        <div className="flex flex-wrap gap-x-12 gap-y-4">
+            {[
+                { label: t('footer.privacy'), href: '/privacy' },
+                { label: t('footer.offer'), href: '/terms' },
+                { label: t('footer.cookies_policy') || 'Cookies', href: '/cookies' },
+                { label: t('footer.refund_policy') || 'Повернення', href: '/refund' },
+            ].map((link) => (
+                <Link key={link.href} href={link.href} className="text-[13px] text-primary/20 hover:text-primary transition-colors font-medium no-underline">
+                    {link.label}
+                </Link>
+            ))}
+            <button
+                onClick={reopenBanner}
+                className="text-[13px] text-primary/20 hover:text-primary transition-colors font-medium bg-transparent border-none cursor-pointer p-0"
+            >
+                {t('footer.cookie_settings') || 'Cookie settings'}
+            </button>
         </div>
     );
 }
@@ -275,16 +312,7 @@ export function Footer({ categories = [] }: FooterProps) {
                     <p className="text-[13px] text-primary/20 font-medium tracking-tight m-0">
                         © {new Date().getFullYear()} {content['footer_copyright'] || 'Touch.Memories'}. {t('footer.rights')}
                     </p>
-                    <div className="flex gap-12">
-                        {[
-                            { label: t('footer.privacy'), href: '/privacy-policy' },
-                            { label: t('footer.offer'), href: '/public-offer' }
-                        ].map((link) => (
-                            <Link key={link.label} href={link.href} className="text-[13px] text-primary/20 hover:text-primary transition-colors font-medium no-underline">
-                                {link.label}
-                            </Link>
-                        ))}
-                    </div>
+                    <FooterLegalLinks />
                 </div>
             </div>
         </footer>

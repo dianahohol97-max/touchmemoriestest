@@ -164,7 +164,11 @@
     "posters": "Poster",
     "calendars": "Kalender",
     "wishbook": "Gästebuch",
-    "address": "Ternopil, Kyivska Str. 2"
+    "address": "Ternopil, Kyivska Str. 2",
+    "cookies_policy": "Cookie-Richtlinie",
+    "refund_policy": "Rückgabe",
+    "cookie_settings": "Cookie-Einstellungen",
+    "newsletter_consent": "Ich stimme dem Erhalt von Marketing-E-Mails zu"
   },
   "cart": {
     "empty": "Warenkorb ist leer",

@@ -164,7 +164,11 @@
     "posters": "Plakaty",
     "calendars": "Kalendarze",
     "wishbook": "Księga Gości",
-    "address": "Tarnopol, ul. Kijowska 2"
+    "address": "Tarnopol, ul. Kijowska 2",
+    "cookies_policy": "Polityka cookies",
+    "refund_policy": "Zwroty",
+    "cookie_settings": "Ustawienia cookies",
+    "newsletter_consent": "Wyrażam zgodę na otrzymywanie wiadomości marketingowych"
   },
   "cart": {
     "empty": "Koszyk jest pusty",
