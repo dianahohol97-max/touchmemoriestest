@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import React from 'react'
 import { useCartStore } from '@/store/cart-store';
+import { trackViewItem, trackAddToCart } from '@/components/providers/AnalyticsProvider';
 import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
 import { ProductOptionsSelector, areAllRequiredOptionsFilled } from '@/components/ui/ProductOptionsSelector';
@@ -264,6 +265,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 setIsNotFound(true);
             } else {
                 setProduct(data);
+                trackViewItem(data);
                 if (data.images && data.images.length > 0) {
                     setMainImage(data.images[0]);
                     setMainVideo('');
@@ -568,6 +570,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             personalization_note: personalizationNote
         });
 
+        trackAddToCart(product, quantity);
         toast.success(t('product_page.added_to_cart'));
     };
 

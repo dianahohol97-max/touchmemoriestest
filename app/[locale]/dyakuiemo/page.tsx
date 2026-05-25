@@ -3,12 +3,13 @@ import { useT } from '@/lib/i18n/context';
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { CheckCircle2, Clock, XCircle, ShoppingBag, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { trackPurchase } from '@/components/providers/AnalyticsProvider';
 
 function DyakuiemoContent() {
     const searchParams = useSearchParams();
@@ -43,6 +44,18 @@ function DyakuiemoContent() {
         };
         poll();
     }, [orderId]);
+
+    const purchaseTracked = useRef(false);
+    useEffect(() => {
+        if (order?.payment_status === 'paid' && !purchaseTracked.current) {
+            trackPurchase(
+                order.order_number || order.id,
+                order.items || [],
+                order.total
+            );
+            purchaseTracked.current = true;
+        }
+    }, [order]);
 
     const isPaid = order?.payment_status === 'paid';
     const isPending = !order || order.payment_status === 'pending';

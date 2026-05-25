@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from './checkout.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { useCartStore } from '@/store/cart-store';
+import { trackBeginCheckout } from '@/components/providers/AnalyticsProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ChevronRight,
@@ -80,11 +81,16 @@ export default function CheckoutPage() {
         paymentMethod: 'card'
     });
 
+    const checkoutTracked = useRef(false);
     useEffect(() => {
         if (items.length === 0 && currentStep !== 'complete') {
             router.push('/catalog');
         }
-    }, [items, currentStep, router]);
+        if (items.length > 0 && !checkoutTracked.current) {
+            trackBeginCheckout(items, rawTotal);
+            checkoutTracked.current = true;
+        }
+    }, [items, currentStep, router, rawTotal]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
