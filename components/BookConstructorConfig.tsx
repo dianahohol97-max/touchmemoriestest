@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER, getPhotojournalHardPrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE } from '@/lib/products';
-import { WISHBOOK_PRICES } from './ui/ProductOptionsSelector';
+import { WISHBOOK_PRICES, getWishbookPrice } from './ui/ProductOptionsSelector';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
@@ -124,6 +124,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [selectedPageCount, setSelectedPageCount] = useState<string>(_saved?.selectedPageCount || '');
     const [selectedCopies, setSelectedCopies] = useState<string>(_saved?.selectedCopies || '');
     const [selectedPageLamination, setSelectedPageLamination] = useState<string>(_saved?.selectedPageLamination || '');
+    const [selectedPageColor, setSelectedPageColor] = useState<string>(_saved?.selectedPageColor || 'Білі');
     const [enableEndpaper, setEnableEndpaper] = useState(_saved?.enableEndpaper || false);
     const [enableKalka, setEnableKalka] = useState(_saved?.enableKalka || false);
 
@@ -270,12 +271,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const state = {
             selectedSize, selectedCoverType, selectedPageCount, selectedCopies,
             enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant,
-            selectedLamination, selectedCoverColor, selectedPageLamination,
+            selectedLamination, selectedCoverColor, selectedPageLamination, selectedPageColor,
         };
         sessionStorage.setItem(`bookConfig_${productSlug}`, JSON.stringify(state));
     }, [selectedSize, selectedCoverType, selectedPageCount, selectedCopies,
         enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant,
-        selectedLamination, selectedCoverColor, selectedPageLamination, productSlug]);
+        selectedLamination, selectedCoverColor, selectedPageLamination, selectedPageColor, productSlug]);
 
     // Pre-fill from URL query params (when coming from catalog product page)
     useEffect(() => {
@@ -384,8 +385,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         // Page color (wishbook only)
         if (pageColor) {
-            // No setter for page color in this component — stored in editor state
-            // Pass through via URL → editor will read it
+            setSelectedPageColor(pageColor);
         }
 
         // Auto-advance to editor is for the FIRST entry from the product
@@ -570,20 +570,17 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 return total * copiesNum;
             }
 
-            // Same price table as ProductOptionsSelector.WISHBOOK_PRICES —
-            // imported from there as the single source of truth, so the
-            // configurator can't drift out of sync with the card price (which
-            // is exactly what made a 30×20 velour wishbook show 1059 ₴ here
-            // and 1209 ₴ on the catalog card). Format: { material: { size: ₴ } }.
+            // Price table: WISHBOOK_PRICES[cover_type][page_color][size]
+            // Black/Cream pages use thicker stock → higher price.
 
             const sizeKey = selectedSize || '30×20';
             const coverKey = selectedCoverType || 'Велюр';
-            let total = WISHBOOK_PRICES[coverKey]?.[sizeKey];
+            const colorKey = selectedPageColor || 'Білі';
+            let total = getWishbookPrice(coverKey, colorKey, sizeKey);
 
-            // Fallback: try without ×/x normalization
             if (!total) {
                 const altSize = sizeKey.replace(/×/g, 'x');
-                total = WISHBOOK_PRICES[coverKey]?.[altSize];
+                total = getWishbookPrice(coverKey, colorKey, altSize);
             }
             if (!total) total = product.price || 559;
 
@@ -737,6 +734,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             enableKalka,
             selectedLamination: selectedLamination || null,
             selectedPageLamination: selectedPageLamination || null,
+            selectedPageColor: selectedPageColor || 'Білі',
             selectedCoverColor: selectedCoverColor || null,
             selectedDecorationType: selectedDecorationType !== 'none' ? selectedDecorationType : null,
             selectedDecorationVariant: selectedDecorationVariant || null,
@@ -1006,6 +1004,29 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                                 : 'border-gray-200 hover:border-gray-400 text-gray-700'
                                         }`}>
                                         <span className="block text-base font-bold">{lam}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/*  Wishbook: Page color  */}
+                    {productType === 'wishbook' && selectedCoverType && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                Колір сторінок <span className="text-red-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-3 gap-3">
+                                {(['Білі', 'Чорні', 'Кремові'] as const).map(color => (
+                                    <button key={color} type="button"
+                                        onClick={() => setSelectedPageColor(color)}
+                                        className={`p-4 rounded-lg border-2 text-center transition-all ${
+                                            selectedPageColor === color
+                                                ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                                : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                        }`}>
+                                        <span className="block text-base font-bold">{color}</span>
+                                        {color !== 'Білі' && <span className="block text-xs text-gray-500 mt-1">+300–380 ₴</span>}
                                     </button>
                                 ))}
                             </div>
