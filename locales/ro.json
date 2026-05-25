@@ -1696,5 +1696,17 @@
     "burgundy": "Bordo",
     "green": "Verde",
     "pink": "Roz"
+  },
+  "cookieBanner": {
+    "title": "Folosim cookies",
+    "description": "Folosim cookies pentru a îmbunătăți experiența pe site, pentru analitică și marketing. Puteți alege ce categorii de cookies să acceptați.",
+    "acceptAll": "Acceptă toate",
+    "rejectAll": "Doar necesare",
+    "settings": "Setări",
+    "save": "Salvează alegerea",
+    "necessary": { "title": "Necesare", "description": "Tehnic obligatorii pentru funcționarea site-ului (autentificare, coș, securitate). Nu pot fi dezactivate." },
+    "functional": { "title": "Funcționale", "description": "Rețin preferințele dvs. — limba, moneda, regiunea de livrare." },
+    "analytics": { "title": "Analitică", "description": "Ne ajută să înțelegem cum folosiți site-ul (Google Analytics)." },
+    "marketing": { "title": "Marketing", "description": "Permit afișarea de reclame relevante pe rețele sociale (Meta Pixel)." }
   }
 }

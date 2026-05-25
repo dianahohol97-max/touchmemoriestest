@@ -1696,5 +1696,17 @@
     "burgundy": "Burgund",
     "green": "Grün",
     "pink": "Rosa"
+  },
+  "cookieBanner": {
+    "title": "Wir verwenden Cookies",
+    "description": "Wir verwenden Cookies, um Ihre Erfahrung auf der Website zu verbessern, für Analytik und Marketing. Sie können wählen, welche Cookie-Kategorien Sie akzeptieren.",
+    "acceptAll": "Alle akzeptieren",
+    "rejectAll": "Nur notwendige",
+    "settings": "Einstellungen",
+    "save": "Auswahl speichern",
+    "necessary": { "title": "Notwendige", "description": "Technisch erforderlich für die Funktion der Website (Anmeldung, Warenkorb, Sicherheit). Können nicht deaktiviert werden." },
+    "functional": { "title": "Funktionale", "description": "Speichern Ihre Präferenzen — Sprache, Währung, Lieferregion." },
+    "analytics": { "title": "Analytische", "description": "Helfen uns zu verstehen, wie Sie die Website nutzen (Google Analytics)." },
+    "marketing": { "title": "Marketing", "description": "Ermöglichen relevante Werbung in sozialen Netzwerken (Meta Pixel)." }
   }
 }

@@ -1716,5 +1716,17 @@
     "burgundy": "Burgundy",
     "green": "Green",
     "pink": "Pink"
+  },
+  "cookieBanner": {
+    "title": "We use cookies",
+    "description": "We use cookies to improve your experience on the site, for analytics and marketing. You can choose which categories of cookies to accept.",
+    "acceptAll": "Accept all",
+    "rejectAll": "Necessary only",
+    "settings": "Settings",
+    "save": "Save choices",
+    "necessary": { "title": "Necessary", "description": "Technically required for the site to function (auth, cart, security). Cannot be disabled." },
+    "functional": { "title": "Functional", "description": "Remember your preferences — language, currency, delivery region." },
+    "analytics": { "title": "Analytics", "description": "Help us understand how you use the site (Google Analytics)." },
+    "marketing": { "title": "Marketing", "description": "Allow showing relevant ads on social media (Meta Pixel)." }
   }
 }

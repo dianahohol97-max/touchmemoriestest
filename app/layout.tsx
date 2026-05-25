@@ -7,6 +7,7 @@ import { AnalyticsProvider } from '@/components/providers/AnalyticsProvider';
 import { ConsentProvider } from '@/lib/consent/ConsentProvider';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NewsletterPopup } from '@/components/ui/NewsletterPopup';
+import { CookieBanner } from '@/components/cookies/CookieBanner';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { I18nProvider } from '@/lib/i18n/context';
 import CartDrawer from '@/components/cart/CartDrawer';
@@ -64,6 +65,7 @@ export default function RootLayout({
               <CartDrawer />
               <Toaster position="top-right" richColors />
               <NewsletterPopup />
+              <CookieBanner />
             </I18nProvider>
             <Suspense fallback={null}>
               <AnalyticsProvider />

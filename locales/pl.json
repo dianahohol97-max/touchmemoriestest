@@ -1696,5 +1696,17 @@
     "burgundy": "Bordowy",
     "green": "Zielony",
     "pink": "Różowy"
+  },
+  "cookieBanner": {
+    "title": "Używamy plików cookie",
+    "description": "Używamy plików cookie, aby poprawić Twoje doświadczenie na stronie, do analityki i marketingu. Możesz wybrać, które kategorie plików cookie zaakceptować.",
+    "acceptAll": "Zaakceptuj wszystkie",
+    "rejectAll": "Tylko niezbędne",
+    "settings": "Ustawienia",
+    "save": "Zapisz wybór",
+    "necessary": { "title": "Niezbędne", "description": "Technicznie wymagane do działania strony (logowanie, koszyk, bezpieczeństwo). Nie można wyłączyć." },
+    "functional": { "title": "Funkcjonalne", "description": "Zapamiętują Twoje preferencje — język, walutę, region dostawy." },
+    "analytics": { "title": "Analityczne", "description": "Pomagają nam zrozumieć, jak korzystasz ze strony (Google Analytics)." },
+    "marketing": { "title": "Marketingowe", "description": "Umożliwiają wyświetlanie odpowiednich reklam w mediach społecznościowych (Meta Pixel)." }
   }
 }
