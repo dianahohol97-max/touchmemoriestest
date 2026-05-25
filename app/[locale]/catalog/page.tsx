@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import CatalogClient from './CatalogClient';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
 export const revalidate = 60;
 
@@ -13,8 +14,25 @@ const CATALOG_META: Record<string, { title: string; description: string }> = {
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
-  const { locale } = await params;
-  return CATALOG_META[locale] || CATALOG_META.uk;
+  const { locale: rawLocale } = await params;
+  const locale = (rawLocale || 'uk') as Locale;
+  const m = CATALOG_META[locale] || CATALOG_META.uk;
+  return {
+    title: m.title,
+    description: m.description,
+    alternates: {
+      canonical: getCanonicalUrl(locale, '/catalog'),
+      languages: getAlternateLanguages('/catalog'),
+    },
+    openGraph: {
+      title: m.title,
+      description: m.description,
+      url: getCanonicalUrl(locale, '/catalog'),
+      siteName: 'Touch.Memories',
+      locale: OG_LOCALE_MAP[locale],
+      type: 'website',
+    },
+  };
 }
 
 export default async function CatalogPage() {

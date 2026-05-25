@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,6 +9,7 @@ import { Footer } from '@/components/ui/Footer';
 import MarkdownViewer from '@/components/ui/MarkdownViewer';
 import BlogShareButton from '@/components/ui/BlogShareButton';
 import { getLocalized } from '@/lib/i18n/localize';
+import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
 // ISR: revalidate every 2 hours — blog posts rarely change
 export const revalidate = 7200;
@@ -19,34 +21,49 @@ const stripEmoji = (text?: string) => {
 
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; locale: string }> }) {
-    const { slug, locale } = await params;
+    const { slug, locale: rawLocale } = await params;
+    const locale = (rawLocale || 'uk') as Locale;
 
     try {
-        const supabase = await createClient();
-        const { data: post, error } = await supabase.from('blog_posts').select('*').eq('slug', slug).single();
+        const admin = getAdminClient();
+        const { data: post, error } = await admin.from('blog_posts').select('*').eq('slug', slug).maybeSingle();
 
         if (error || !post) {
-            return {
-                title: 'Статтю не знайдено | TouchMemories'
-            };
+            return { title: 'Статтю не знайдено | Touch.Memories' };
         }
 
+        const tr = ((post.translations as any) || {})[locale] || {};
+        const title = tr.meta_title || tr.title || post.meta_title || getLocalized(post, locale, 'title') || 'Article';
+        const description = (tr.meta_description || tr.excerpt || post.meta_description || getLocalized(post, locale, 'excerpt') || '').toString().slice(0, 160);
+        const path = `/blog/${slug}`;
+
         return {
-            title: post?.meta_title || `${getLocalized(post, locale, 'title') || 'Article'} | TouchMemories`,
-            description: post?.meta_description || getLocalized(post, locale, 'excerpt') || '',
+            title: `${title} | Touch.Memories`,
+            description,
+            alternates: {
+                canonical: getCanonicalUrl(locale, path),
+                languages: getAlternateLanguages(path),
+            },
             openGraph: {
-                title: post?.og_title || post?.meta_title || getLocalized(post, locale, 'title') || 'Article',
-                description: post?.meta_description || getLocalized(post, locale, 'excerpt') || '',
-                images: post?.cover_image ? [{ url: post.cover_image, width: 1200, height: 630 }] : [],
+                title: post.og_title || title,
+                description: description.slice(0, 200),
+                images: post.cover_image ? [{ url: post.cover_image, width: 1200, height: 630 }] : [],
                 type: 'article',
-                publishedTime: post?.published_at,
-                authors: post?.author_name ? [post.author_name] : []
-            }
+                publishedTime: post.published_at,
+                authors: post.author_name ? [post.author_name] : [],
+                locale: OG_LOCALE_MAP[locale],
+                url: getCanonicalUrl(locale, path),
+                siteName: 'Touch.Memories',
+            },
+            twitter: {
+                card: 'summary_large_image',
+                title,
+                description: description.slice(0, 200),
+                images: post.cover_image ? [post.cover_image] : [],
+            },
         };
-    } catch (error) {
-        return {
-            title: 'Статтю не знайдено | TouchMemories'
-        };
+    } catch {
+        return { title: 'Статтю не знайдено | Touch.Memories' };
     }
 }
 
