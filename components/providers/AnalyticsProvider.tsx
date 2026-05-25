@@ -3,11 +3,12 @@
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import { MetaPixel } from '@/components/analytics/MetaPixel';
 
 declare global {
   interface Window {
     gtag: (...args: any[]) => void;
-    fbq: (...args: any[]) => void;
+    fbq: any;
     dataLayer: any[];
     _fbq: any;
   }
@@ -23,12 +24,14 @@ export function AnalyticsProvider() {
         page_path: pathname,
       });
     }
-    if (pathname && window.fbq) {
-      window.fbq('track', 'PageView');
-    }
   }, [pathname, searchParams]);
 
-  return <GoogleAnalytics />;
+  return (
+    <>
+      <GoogleAnalytics />
+      <MetaPixel />
+    </>
+  );
 }
 
 export const trackViewItem = (product: any) => {
