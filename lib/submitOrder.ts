@@ -1,13 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
 // 
-// LEGACY ORDER SUBMISSION (for cart-based checkout)
+// Client-side order submission helper.
 // 
+// Previously this file inserted into `orders` directly via the anon
+// Supabase client. That stopped working when we tightened RLS on
+// `orders` — there's no anon INSERT policy, and giving anon write
+// access to orders means trusting the client not to set
+// payment_status='paid' / skip Monobank. Bad bet.
+//
+// Now we POST to /api/orders/submit, which validates the payload
+// server-side and inserts via service role. Same shape, same return
+// contract — callers in the checkout flow don't change.
+//
 
 export interface OrderItem {
   product_type: string
@@ -32,31 +35,25 @@ export interface OrderData {
   delivery_method: string
   delivery_address?: any
   notes?: string
+  with_designer?: boolean
+  designer_service_fee?: number
 }
 
-export async function submitOrder(data: OrderData): Promise<{ success: boolean; order_number?: string; error?: string }> {
-  const order_number = `TM-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
-
-  const { error } = await supabase.from('orders').insert({
-    order_number,
-    customer_name: data.customer_name,
-    customer_phone: data.customer_phone,
-    customer_email: data.customer_email || null,
-    items: data.items as any,
-    subtotal: data.subtotal,
-    delivery_cost: data.delivery_cost,
-    total: data.total,
-    delivery_method: data.delivery_method,
-    delivery_address: data.delivery_address || null,
-    notes: data.notes || null,
-    order_status: 'new',
-    payment_status: 'pending',
-  })
-
-  if (error) {
-    console.error('Order submission error:', error)
-    return { success: false, error: error.message }
+export async function submitOrder(data: OrderData): Promise<{ success: boolean; order_id?: string; order_number?: string; error?: string }> {
+  try {
+    const res = await fetch('/api/orders/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      console.error('Order submission failed:', res.status, json);
+      return { success: false, error: json?.error || `HTTP ${res.status}` };
+    }
+    return { success: true, order_id: json.order_id, order_number: json.order_number };
+  } catch (err: any) {
+    console.error('Order submission error:', err);
+    return { success: false, error: err?.message || 'Network error' };
   }
-
-  return { success: true, order_number }
 }
