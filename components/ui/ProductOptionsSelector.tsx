@@ -218,7 +218,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Ламінування сторінок',
-      values: ['Без ламінування', 'З ламінуванням (+5 ₴/стор)'],
+      values: ['Без ламінування', 'З ламінуванням (+7 ₴/стор)'],
       required: true
     },
   ],
@@ -239,7 +239,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       name: 'Ламінація сторінок',
       values: ['Без ламінації', 'З ламінацією сторінок'],
       required: true,
-      note: '+5 ₴ × кількість сторінок'
+      note: '+7 ₴ × кількість сторінок'
     },
   ],
   wishbook: [
