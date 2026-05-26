@@ -221,6 +221,12 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       values: ['Без ламінування', 'З ламінуванням (+7 ₴/стор)'],
       required: true
     },
+    {
+      name: 'Терміновість',
+      values: ['Стандартна (5–8 днів)', 'Термінова до 5 робочих днів (+30%)'],
+      required: false,
+      note: 'Пришвидшене виробництво — +30% до вартості'
+    },
   ],
   travelbook: [
     { name: 'Розмір', values: ['A4'], type: 'text', required: false },
