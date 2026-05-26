@@ -250,6 +250,7 @@ export default function GuestBookConstructor() {
                 path: filePath,
                 fileName: 'guestbook_config.json',
                 fileCategory: 'guestbook-config',
+                productType: 'wishbook',
                 size: configBlob.size,
                 mimeType: 'application/json',
             }));

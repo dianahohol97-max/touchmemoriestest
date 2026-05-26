@@ -15,6 +15,8 @@ export async function POST(request: NextRequest) {
     const orderId = formData.get('orderId') as string;
     const photoId = formData.get('photoId') as string;
     const photoName = formData.get('photoName') as string;
+    const productType = (formData.get('productType') as string) || 'photobook';
+    const fileCategory = (formData.get('fileCategory') as string) || 'photo-upload';
 
     if (!file || !orderId || !photoId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -43,6 +45,33 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) throw uploadError;
+
+    // Create record in order_files so the admin /admin/orders/[id]/files
+    // page can show this upload with the correct product_type badge and
+    // category tag. The orderId may be either a real order UUID (post-
+    // checkout) or a temporary placeholder used by BookPhotoUpload before
+    // the order exists; the row is best-effort and a failure here must
+    // not block the storage upload, since the file is already saved.
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+    if (isUuid) {
+      const { error: recordError } = await supabaseAdmin
+        .from('order_files')
+        .insert({
+          order_id: orderId,
+          file_path: filePath,
+          file_name: photoName || file.name,
+          file_type: 'upload',
+          file_category: fileCategory,
+          product_type: productType,
+          bucket_name: BUCKET,
+          file_size: file.size,
+          mime_type: file.type || 'image/jpeg',
+        });
+      if (recordError) {
+        // Storage upload succeeded; just log so the client gets its URL.
+        console.error('[photobook upload] order_files insert failed:', recordError);
+      }
+    }
 
     // Signed URL valid for 7 days (for manager to download)
     const { data: signedData } = await supabaseAdmin.storage

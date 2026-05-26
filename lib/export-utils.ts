@@ -18,6 +18,7 @@ export interface OrderFileRecord {
   file_name: string
   file_type: 'upload' | 'export'
   file_category?: string
+  product_type?: string
   bucket_name: string
   page_number?: number
   file_size?: number
@@ -136,12 +137,13 @@ export async function exportAndUploadCanvas(opts: {
   fileName: string
   orderId: string
   fileCategory?: string
+  productType?: string
   pageNumber?: number
   onProgress?: ProgressCallback
   current?: number
   total?: number
 }): Promise<void> {
-  const { canvas, bucket, path, fileName, orderId, fileCategory, pageNumber, onProgress, current = 1, total = 1 } = opts
+  const { canvas, bucket, path, fileName, orderId, fileCategory, productType, pageNumber, onProgress, current = 1, total = 1 } = opts
 
   onProgress?.(current, total, fileName)
 
@@ -154,6 +156,7 @@ export async function exportAndUploadCanvas(opts: {
     file_name: fileName,
     file_type: 'export',
     file_category: fileCategory,
+    product_type: productType,
     bucket_name: bucket,
     page_number: pageNumber,
     file_size: size,
@@ -172,6 +175,8 @@ export async function registerUploadedFile(opts: {
   fileName: string
   fileSize?: number
   mimeType?: string
+  fileCategory?: string
+  productType?: string
 }): Promise<void> {
   await createOrderFileRecord({
     order_id: opts.orderId,
@@ -181,5 +186,7 @@ export async function registerUploadedFile(opts: {
     bucket_name: opts.bucket,
     file_size: opts.fileSize,
     mime_type: opts.mimeType ?? 'image/jpeg',
+    file_category: opts.fileCategory,
+    product_type: opts.productType,
   })
 }

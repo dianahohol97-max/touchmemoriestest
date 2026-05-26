@@ -157,6 +157,7 @@ export default function CalendarConstructor({ productType }: CalendarConstructor
                 path: `pending/${cartItemId}/`,
                 fileName: 'calendar_pages.json',
                 fileCategory: 'calendar-config',
+                productType: 'calendar',
                 pageCount: pages.length,
             }));
 

@@ -103,6 +103,7 @@ export default function CartPage() {
                     file_name: data.fileName,
                     file_type: 'export',
                     file_category: data.fileCategory,
+                    product_type: data.productType,
                     bucket_name: data.bucket,
                     file_size: data.size,
                     mime_type: data.mimeType || 'image/png',

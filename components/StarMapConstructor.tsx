@@ -197,6 +197,7 @@ export default function StarMapConstructor() {
                     path: filePath,
                     fileName: 'starmap_300dpi.png',
                     fileCategory: 'star-map',
+                    productType: 'star-map',
                     size: blob.size,
                 }));
 
