@@ -2512,72 +2512,159 @@ export default function BookLayoutEditor() {
     // (correct price) instead of recomputing book pricing in a 4th place.
     saveDesignToProjects(contentPages, productImage, orderId, cartPayload);
 
-    // Upload originals to Supabase Storage with progress
-    const photosWithFile = photos.filter(p => p.originalFile);
-    if (photosWithFile.length > 0) {
-      setUploadState({ active: true, done: 0, total: photosWithFile.length, failed: 0, orderId });
-      let done = 0, failed = 0;
-      // Derive product_type from the slug so the admin /admin/orders/[id]/files
-      // page can show the right badge ("Фотокнига" / "Travel Book" / "Журнал" /
-      // "Книга побажань" etc.) on each uploaded original. The slug-to-type
-      // mapping mirrors the one used by saveDesignToProjects below so that
-      // both the project row and the file rows agree on the product family.
-      const uploadSlug = (config?.productSlug || '').toLowerCase();
-      let uploadProductType: string = 'photobook';
-      if (uploadSlug.includes('travel')) uploadProductType = 'travelbook';
-      else if (uploadSlug.includes('magazine') || uploadSlug.includes('zhurnal') || uploadSlug.includes('fotozhurnal')) uploadProductType = 'journal';
-      else if (uploadSlug.includes('wish') || uploadSlug.includes('pobazhan') || uploadSlug.includes('guest')) uploadProductType = 'wishbook';
-      else if (uploadSlug.includes('journal')) uploadProductType = 'journal';
-      else if (uploadSlug.includes('planner')) uploadProductType = 'planner';
-      // Track uploaded files so cart.linkPendingExports can write order_files
-      // rows once the real order id is known. The API also tries an insert when
-      // it receives a UUID, but here the orderId is a pre-checkout pb-{ts}
-      // placeholder, so the source of truth is this sessionStorage list.
-      const exportedFiles: any[] = [];
-      // Upload in parallel batches of 3 to avoid overwhelming the connection
-      const BATCH = 3;
-      for (let i = 0; i < photosWithFile.length; i += BATCH) {
-        const batch = photosWithFile.slice(i, i + BATCH);
-        await Promise.all(batch.map(async (photo) => {
-          try {
-            const fd = new FormData();
-            fd.append('file', photo.originalFile!);
-            fd.append('orderId', orderId);
-            fd.append('photoId', photo.id);
-            fd.append('photoName', photo.name);
-            fd.append('productType', uploadProductType);
-            fd.append('fileCategory', 'photo-upload');
-            const res = await fetch('/api/photobook/upload-photos', { method: 'POST', body: fd });
-            if (!res.ok) { failed++; return; }
-            done++;
-            const body = await res.json().catch(() => ({} as any));
-            if (body && body.path) {
-              exportedFiles.push({
-                path: body.path,
-                fileName: photo.name,
-                bucket: 'photobook-uploads',
-                fileCategory: 'photo-upload',
-                productType: uploadProductType,
-                fileType: 'upload',
-                size: photo.originalFile!.size,
-                mimeType: photo.originalFile!.type || 'image/jpeg',
-              });
-            }
-          } catch { failed++; }
-          setUploadState(prev => prev ? { ...prev, done: done, failed: failed } : null);
-        }));
-      }
-      if (exportedFiles.length > 0) {
-        try {
-          sessionStorage.setItem(`export_${orderId}`, JSON.stringify(exportedFiles));
-        } catch (e) {
-          // sessionStorage quota — skip; the API insert path still covers
-          // the case when the order id is a real UUID.
-          console.warn('Could not persist export list for cart linking:', e);
-        }
-      }
-      setUploadState(prev => prev ? { ...prev, active: false } : null);
+    // Snapshot every spread + cover and build a print-ready PDF.
+    //
+    // Approach: switch currentIdx through 0..lastSpreadIdx, on each step
+    // wait for React to paint and for any new images inside the spread to
+    // decode, then html2canvas the [data-spread-snapshot="root"] node. The
+    // resulting canvases are assembled into a single PDF (one page per
+    // spread / cover) via jsPDF and uploaded to order-files. We don't
+    // upload the original photo files anymore — Diana asked for the
+    // customer-built layout, not the raw photos.
+    const uploadSlug = (config?.productSlug || '').toLowerCase();
+    let uploadProductType: string = 'photobook';
+    if (uploadSlug.includes('travel')) uploadProductType = 'travelbook';
+    else if (uploadSlug.includes('magazine') || uploadSlug.includes('zhurnal') || uploadSlug.includes('fotozhurnal')) uploadProductType = 'journal';
+    else if (uploadSlug.includes('wish') || uploadSlug.includes('pobazhan') || uploadSlug.includes('guest')) uploadProductType = 'wishbook';
+    else if (uploadSlug.includes('journal')) uploadProductType = 'journal';
+    else if (uploadSlug.includes('planner')) uploadProductType = 'planner';
+
+    // Total number of "views" to capture: cover (idx 0) plus each spread
+    // (idx 1..). lastSpreadIdx is Math.ceil((pages.length - 1) / 2).
+    const lastSpreadIdx = Math.max(0, Math.ceil((pages.length - 1) / 2));
+    const totalViews = lastSpreadIdx + 1; // include cover
+    const originalIdx = currentIdx;
+
+    setUploadState({ active: true, done: 0, total: totalViews, failed: 0, orderId });
+
+    // Lazy-load the renderer libs so the editor itself stays light.
+    let html2canvas: any = null;
+    let jsPDFCtor: any = null;
+    try {
+      const mod1: any = await import('html2canvas');
+      html2canvas = mod1.default || mod1;
+      const mod2: any = await import('jspdf');
+      jsPDFCtor = mod2.jsPDF || mod2.default || mod2;
+    } catch (e) {
+      console.warn('snapshot libs import failed:', e);
     }
+
+    // Wait until web fonts are ready (text overlays use custom fonts and
+    // html2canvas would otherwise fall back to defaults).
+    try { await (document as any).fonts?.ready; } catch {}
+
+    // Helper: wait one paint frame, give images a moment to decode, then
+    // resolve. Two RAFs are safer than one for React state -> DOM commit.
+    const waitForRender = async (ms = 350) => {
+      await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+      // Allow background images to decode
+      const root = document.querySelector('[data-spread-snapshot="root"]') as HTMLElement | null;
+      if (root) {
+        const imgs = Array.from(root.querySelectorAll('img'));
+        await Promise.all(imgs.map(im => (im.complete ? Promise.resolve() : new Promise<void>(r => {
+          const done = () => { im.removeEventListener('load', done); im.removeEventListener('error', done); r(); };
+          im.addEventListener('load', done);
+          im.addEventListener('error', done);
+        }))));
+      }
+      await new Promise(r => setTimeout(r, ms));
+    };
+
+    const snapshots: { canvas: HTMLCanvasElement; idx: number }[] = [];
+    let captured = 0;
+    let failed = 0;
+
+    if (html2canvas) {
+      for (let i = 0; i < totalViews; i++) {
+        try {
+          setCurrentIdx(i);
+          await waitForRender(i === 0 ? 500 : 350); // cover often slower
+          const root = document.querySelector('[data-spread-snapshot="root"]') as HTMLElement | null;
+          if (!root) { failed++; continue; }
+          const canvas: HTMLCanvasElement = await html2canvas(root, {
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            scale: 2, // 2× for crisper PDF output; 3× was running out of memory on big books
+            logging: false,
+            allowTaint: false,
+          });
+          snapshots.push({ canvas, idx: i });
+          captured++;
+        } catch (e) {
+          console.warn(`spread snapshot ${i} failed:`, e);
+          failed++;
+        }
+        setUploadState(prev => prev ? { ...prev, done: captured, failed } : null);
+      }
+      // Restore the original page the user was on
+      setCurrentIdx(originalIdx);
+    }
+
+    // Compose PDF and upload
+    const exportedFiles: any[] = [];
+    if (snapshots.length > 0 && jsPDFCtor) {
+      try {
+        // Use the first snapshot's aspect to set PDF page size in mm.
+        // 1 px @ 96 DPI = 0.264583 mm.
+        const first = snapshots[0].canvas;
+        const widthMm = (first.width * 25.4) / (96 * 2); // /2 because we scaled 2×
+        const heightMm = (first.height * 25.4) / (96 * 2);
+        const pdf = new jsPDFCtor({
+          orientation: widthMm > heightMm ? 'landscape' : 'portrait',
+          unit: 'mm',
+          format: [widthMm, heightMm],
+          compress: true,
+        });
+        for (let i = 0; i < snapshots.length; i++) {
+          if (i > 0) pdf.addPage([widthMm, heightMm], widthMm > heightMm ? 'landscape' : 'portrait');
+          const dataUrl = snapshots[i].canvas.toDataURL('image/jpeg', 0.9);
+          pdf.addImage(dataUrl, 'JPEG', 0, 0, widthMm, heightMm, undefined, 'FAST');
+        }
+        const blob: Blob = pdf.output('blob');
+
+        // Upload the PDF. Bucket photobook-uploads has no size limit;
+        // order-files is capped at 50 MB which can fail for big books.
+        const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+        const sb = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data: { user } } = await sb.auth.getUser();
+        const userKey = user?.id || 'anon';
+        const path = `${userKey}/${orderId}/book_layout.pdf`;
+        const { error: uploadError } = await sb.storage
+          .from('photobook-uploads')
+          .upload(path, blob, {
+            cacheControl: '31536000', upsert: true, contentType: 'application/pdf',
+          });
+        if (uploadError) {
+          console.warn('book pdf upload failed:', uploadError);
+        } else {
+          exportedFiles.push({
+            path,
+            fileName: 'book_layout.pdf',
+            bucket: 'photobook-uploads',
+            fileCategory: 'book-layout',
+            productType: uploadProductType,
+            fileType: 'export',
+            size: blob.size,
+            mimeType: 'application/pdf',
+            pageNumber: 1,
+          });
+        }
+      } catch (e) {
+        console.warn('book pdf compose failed:', e);
+      }
+    }
+
+    if (exportedFiles.length > 0) {
+      try {
+        sessionStorage.setItem(`export_${orderId}`, JSON.stringify(exportedFiles));
+      } catch (e) {
+        console.warn('Could not persist export list for cart linking:', e);
+      }
+    }
+    setUploadState(prev => prev ? { ...prev, active: false } : null);
 
     setPhotos([]);
     // If no files to upload, show cart modal immediately
@@ -4532,7 +4619,7 @@ export default function BookLayoutEditor() {
             </div>
           )}
           {currentIdx === 0 ? (
-            <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
+            <div data-spread-snapshot="root" style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — editable */}
                 {(() => {
                   const backBg = isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor);
@@ -4722,6 +4809,7 @@ export default function BookLayoutEditor() {
               </div>
           ) : (
           <div
+            data-spread-snapshot="root"
             style={{ position: 'relative', width: cW, height: cH, display: 'flex', flexShrink: 0 }}
           >
             {currentIdx === 0 ? (
