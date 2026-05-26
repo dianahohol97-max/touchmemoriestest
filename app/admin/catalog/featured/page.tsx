@@ -115,6 +115,7 @@ export default function FeaturedProductsPage() {
             .from('products')
             .select('id, name, images, price, popular_order')
             .eq('is_popular', true)
+            .eq('is_active', true) // Не показувати в популярних товари, які деактивовані: вони не побачать на сайті
             .order('popular_order', { ascending: true });
 
         if (error) {
