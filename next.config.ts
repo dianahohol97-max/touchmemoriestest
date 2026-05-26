@@ -60,6 +60,15 @@ const nextConfig = {
         destination: '/',
         permanent: false,
       },
+      // Wishbook duplicates → canonical
+      { source: '/:locale(uk|en|pl|ro|de)/catalog/guestbook-wedding',       destination: '/:locale/catalog/wishbook', permanent: true },
+      { source: '/:locale(uk|en|pl|ro|de)/catalog/guestbook-kids',          destination: '/:locale/catalog/wishbook', permanent: true },
+      { source: '/:locale(uk|en|pl|ro|de)/catalog/knyha-pobazhan-dytyacha', destination: '/:locale/catalog/wishbook', permanent: true },
+      { source: '/:locale(uk|en|pl|ro|de)/catalog/knyha-pobazhan-vesillia', destination: '/:locale/catalog/wishbook', permanent: true },
+      { source: '/catalog/guestbook-wedding',       destination: '/catalog/wishbook', permanent: true },
+      { source: '/catalog/guestbook-kids',          destination: '/catalog/wishbook', permanent: true },
+      { source: '/catalog/knyha-pobazhan-dytyacha', destination: '/catalog/wishbook', permanent: true },
+      { source: '/catalog/knyha-pobazhan-vesillia', destination: '/catalog/wishbook', permanent: true },
     ];
   },
   async headers() {
