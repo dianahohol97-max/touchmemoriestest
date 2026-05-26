@@ -1,30 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { computePaymentAmounts, getAvailablePaymentOptions, type CartItemPayment } from '@/lib/payment/options';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Server-side order submission.
  *
- * This replaces the legacy client-side `lib/submitOrder.ts` flow that
- * inserted directly into `orders` using the anon key. That stopped
- * working after we tightened RLS on `orders` — checkout was silently
- * blocked. The right architectural answer is: customers should never
- * write into `orders` directly. The server validates the payload (so
- * a malicious client can't set payment_status='paid' or skip Monobank),
- * generates the order_number, links to the authenticated customer if
- * logged in, and uses the service role to insert.
+ * Customers never write into `orders` directly. The server validates the
+ * payload (so a malicious client can't set payment_status='paid' or skip
+ * Monobank), generates the order_number, and inserts via the service role.
  *
- * The route does NOT require auth — guest checkout is supported. If the
- * caller IS authenticated (Supabase session cookie present), we look up
- * their customer row and attach customer_id so the order appears in
- * their /account/orders feed.
- *
- * The route DOES rate-limit at the application layer (TODO when traffic
- * justifies — currently checkout volume is low enough that PostgREST's
- * default protections plus Vercel's request limits are sufficient).
+ * Payment type validation: the server re-checks whether the cart is
+ * actually eligible for split payment (queries products.payment_mode by
+ * slug). A client can't unlock split by lying — if any item is full_only,
+ * the order is forced to payment_type='full' regardless of payload.
  */
+
 interface OrderItem {
   product_type: string;
   product_name: string;
@@ -35,6 +28,7 @@ interface OrderItem {
   unit_price: number;
   total_price: number;
   options?: Record<string, unknown>;
+  slug?: string; // needed for payment_mode lookup
 }
 
 interface OrderPayload {
@@ -50,6 +44,7 @@ interface OrderPayload {
   notes?: string;
   with_designer?: boolean;
   designer_service_fee?: number;
+  payment_type?: 'full' | 'split';
 }
 
 function isValidPhone(s: unknown): s is string {
@@ -67,8 +62,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // Validate. Reject anything that doesn't look like a real checkout
-  // payload so a malformed POST can't fill the orders table with junk.
+  // Validate. Reject anything that doesn't look like a real checkout payload.
   if (!body.customer_name || typeof body.customer_name !== 'string' || body.customer_name.length < 1 || body.customer_name.length > 200) {
     return NextResponse.json({ error: 'customer_name required' }, { status: 400 });
   }
@@ -81,9 +75,6 @@ export async function POST(request: NextRequest) {
   if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 50) {
     return NextResponse.json({ error: 'items must be a non-empty array (max 50)' }, { status: 400 });
   }
-  // Coerce numbers and clamp to reasonable bounds. Server NEVER trusts
-  // client-supplied totals for payment — Monobank validates the amount
-  // against this row before accepting payment.
   const subtotal = Number(body.subtotal);
   const delivery_cost = Number(body.delivery_cost);
   const total = Number(body.total);
@@ -100,15 +91,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'delivery_method required' }, { status: 400 });
   }
 
-  // If the caller is authenticated, attach customer_id. Anonymous
-  // checkout works fine — the order just has no customer_id (guest).
+  // If the caller is authenticated, attach customer_id.
   let customer_id: string | null = null;
   try {
     const userClient = await createClient();
     const { data: { user } } = await userClient.auth.getUser();
     if (user) {
-      const admin = getAdminClient();
-      const { data: customer } = await admin
+      const admin0 = getAdminClient();
+      const { data: customer } = await admin0
         .from('customers')
         .select('id')
         .eq('auth_user_id', user.id)
@@ -116,17 +106,45 @@ export async function POST(request: NextRequest) {
       customer_id = customer?.id || null;
     }
   } catch (e) {
-    // Auth lookup failure doesn't block checkout — fall back to guest.
     console.warn('orders/submit: customer lookup failed, falling back to guest', e);
   }
 
-  // Generate order_number. Format mirrors what submitOrder.ts produced,
-  // so admin UIs that pattern-match TM-* keep working.
+  // ──────────────────────────────────────────────────────────────
+  // Server-side payment_type validation
+  //   - Look up payment_mode for every item slug
+  //   - Re-compute allowSplit; if client requested 'split' but it's not allowed → force 'full'
+  // ──────────────────────────────────────────────────────────────
+  const admin = getAdminClient();
+
+  let payment_type: 'full' | 'split' = body.payment_type === 'split' ? 'split' : 'full';
+  if (payment_type === 'split') {
+    const slugs = Array.from(new Set(body.items.map(i => i.slug).filter(Boolean))) as string[];
+    if (slugs.length > 0) {
+      const { data: prodRows } = await admin
+        .from('products')
+        .select('slug, payment_mode')
+        .in('slug', slugs);
+      const modeBySlug = new Map<string, string>();
+      (prodRows || []).forEach(r => modeBySlug.set(r.slug, r.payment_mode));
+      const cartForCheck: CartItemPayment[] = body.items.map(i => ({
+        slug: i.slug,
+        payment_mode: (modeBySlug.get(i.slug || '') as any) || 'full_only',
+      }));
+      const opts = getAvailablePaymentOptions(cartForCheck);
+      if (!opts.allowSplit) {
+        // Client requested split but cart isn't eligible — silently downgrade.
+        payment_type = 'full';
+      }
+    } else {
+      payment_type = 'full';
+    }
+  }
+
+  const amounts = computePaymentAmounts(total, payment_type, body.delivery_method);
+
+  // Generate order_number.
   const order_number = `TM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
-  // Insert via service role — RLS doesn't apply, but we just hand-validated
-  // every field above, so this is safe.
-  const admin = getAdminClient();
   const { data: inserted, error } = await admin
     .from('orders')
     .insert({
@@ -146,8 +164,12 @@ export async function POST(request: NextRequest) {
       designer_service_fee: body.with_designer ? (Number(body.designer_service_fee) || 0) : 0,
       order_status: 'new',
       payment_status: 'pending',
+      payment_type,
+      prepaid_amount: amounts.prepaid_amount,
+      cod_amount: amounts.cod_amount,
+      pickup_unpaid_balance: amounts.pickup_unpaid_balance,
     })
-    .select('id, order_number')
+    .select('id, order_number, payment_type, prepaid_amount, cod_amount, pickup_unpaid_balance')
     .single();
 
   if (error || !inserted) {
@@ -155,16 +177,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }
 
-  // Audit trail entry — same pattern as admin/orders/create + webhook.
+  // Audit trail
   await admin.from('order_history').insert({
     order_id: inserted.id,
     action: 'order_created',
-    notes: `Замовлення створено через checkout (${customer_id ? 'авторизований клієнт' : 'guest checkout'})`,
+    notes: payment_type === 'split'
+      ? `Замовлення створено через checkout (50% передоплата = ${amounts.prepaid_amount} ₴, ${amounts.cod_amount > 0 ? `накладений ${amounts.cod_amount} ₴` : `при отриманні ${amounts.pickup_unpaid_balance} ₴`})`
+      : `Замовлення створено через checkout (повна оплата онлайн)`,
   });
 
   return NextResponse.json({
     success: true,
     order_id: inserted.id,
     order_number: inserted.order_number,
+    payment_type: inserted.payment_type,
+    prepaid_amount: inserted.prepaid_amount,
+    cod_amount: inserted.cod_amount,
+    pickup_unpaid_balance: inserted.pickup_unpaid_balance,
   });
 }

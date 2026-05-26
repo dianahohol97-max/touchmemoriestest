@@ -4,6 +4,7 @@ import styles from './checkout.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { useCartStore } from '@/store/cart-store';
+import { getAvailablePaymentOptions, computePaymentAmounts } from '@/lib/payment/options';
 import { trackBeginCheckout } from '@/components/providers/AnalyticsProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -78,8 +79,23 @@ export default function CheckoutPage() {
         email: '',
         city: '',
         branch: '',
-        paymentMethod: 'card'
+        paymentChoice: 'full_online' as 'full_online' | 'split_50_50',
     });
+
+    // Determine available payment options based on current cart contents
+    const paymentOptions = getAvailablePaymentOptions(
+        items.map((it: any) => ({
+            slug: it.slug,
+            payment_mode: it.payment_mode,
+        }))
+    );
+
+    // Auto-downgrade split → full if cart changes and split is no longer eligible
+    useEffect(() => {
+        if (!paymentOptions.allowSplit && formData.paymentChoice === 'split_50_50') {
+            setFormData(p => ({ ...p, paymentChoice: 'full_online' }));
+        }
+    }, [paymentOptions.allowSplit, formData.paymentChoice]);
 
     const checkoutTracked = useRef(false);
     useEffect(() => {
@@ -123,71 +139,73 @@ export default function CheckoutPage() {
     const handleSubmitOrder = async (paymentRegion: 'ua' | 'international' = getDefaultRegion()) => {
         setIsSubmitting(true);
         try {
-            const orderNumber = `TM-${Math.floor(100000 + Math.random() * 900000)}`;
             const needsDesigner = items.some((item: any) => item.with_designer || item.options?.with_designer);
-            const isOnlinePayment = formData.paymentMethod === 'card';
+            const paymentType: 'full' | 'split' = formData.paymentChoice === 'split_50_50' ? 'split' : 'full';
 
-            const orderData = {
-                order_number: orderNumber,
-                customer_name: formData.name,
-                customer_phone: formData.phone,
-                customer_email: formData.email,
-                items: items,
-                total: total,
-                delivery_method: 'Нова Пошта',
-                delivery_address: { city: formData.city, branch: formData.branch },
-                payment_method: isOnlinePayment ? 'Онлайн оплата' : 'Накладений платіж',
-                payment_status: 'pending',
-                order_status: 'new',
-                with_designer: needsDesigner,
-                promo_code: promoCode || null,
-                discount_amount: promoDiscount || 0,
-                created_at: new Date().toISOString()
-            };
+            // 1. Create order via validated server endpoint.
+            // Server re-checks payment_type against products.payment_mode and
+            // silently downgrades to 'full' if the cart contains any full_only product.
+            const submitRes = await fetch('/api/orders/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customer_name: formData.name,
+                    customer_phone: formData.phone,
+                    customer_email: formData.email,
+                    items: items.map((it: any) => ({
+                        product_type: it.category_slug || 'product',
+                        product_name: it.name,
+                        quantity: it.qty,
+                        unit_price: it.price,
+                        total_price: it.price * it.qty,
+                        slug: it.slug,
+                        options: it.options || {},
+                    })),
+                    subtotal: rawTotal,
+                    delivery_cost: 0,
+                    total,
+                    delivery_method: 'nova_poshta',
+                    delivery_address: { city: formData.city, branch: formData.branch },
+                    with_designer: needsDesigner,
+                    payment_type: paymentType,
+                }),
+            });
+            const submitData = await submitRes.json();
+            if (!submitRes.ok || !submitData.order_id) {
+                throw new Error(submitData?.error || 'Не вдалося створити замовлення');
+            }
+            const orderId = submitData.order_id;
+            // submitData.payment_type is authoritative (may have been downgraded server-side)
+            const actualPaymentType = submitData.payment_type as 'full' | 'split';
+            const prepaidAmount = Number(submitData.prepaid_amount || 0);
 
-            // 1. Save order to DB
-            const { data: savedOrder, error: orderError } = await supabase
-                .from('orders')
-                .insert([orderData])
-                .select('id')
-                .single();
+            // 2. ALWAYS create Monobank invoice — invoice is 100% if 'full', 50% if 'split'.
+            toast.loading(actualPaymentType === 'split'
+                ? `Створюємо посилання на передоплату ${prepaidAmount} ₴...`
+                : 'Створюємо посилання на оплату...');
+            const invoiceRes = await fetch('/api/monobank/create-invoice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, paymentRegion }),
+            });
+            const invoiceData = await invoiceRes.json();
 
-            if (orderError) throw orderError;
-
-            // 2. If online payment → create Monobank invoice and redirect
-            if (isOnlinePayment) {
-                toast.loading('Створюємо посилання на оплату...');
-                const invoiceRes = await fetch('/api/monobank/create-invoice', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId: savedOrder.id, paymentRegion }),
-                });
-                const invoiceData = await invoiceRes.json();
-
-                if (!invoiceRes.ok || !invoiceData.pageUrl) {
-                    // Monobank not configured — show success page anyway
-                    console.warn('Monobank invoice failed:', invoiceData.error);
-                    toast.dismiss();
-                    clearCart();
-                    setCurrentStep('complete');
-                    return;
-                }
-
-                clearCart();
+            if (!invoiceRes.ok || !invoiceData.pageUrl) {
+                // Monobank not configured — show success page anyway
+                console.warn('Monobank invoice failed:', invoiceData.error);
                 toast.dismiss();
-                // Redirect to Monobank payment page
-                window.location.href = invoiceData.pageUrl;
+                clearCart();
+                setCurrentStep('complete');
                 return;
             }
 
-            // 3. Cash on delivery — show success page
-            toast.success(t('checkout.success'));
             clearCart();
-            setCurrentStep('complete');
+            toast.dismiss();
+            window.location.href = invoiceData.pageUrl;
 
         } catch (error: any) {
             console.error('Checkout error:', error);
-            toast.error('Помилка при оформленні: ' + error.message);
+            toast.error('Помилка при оформленні: ' + (error?.message || 'спробуйте ще раз'));
         } finally {
             setIsSubmitting(false);
         }
@@ -344,24 +362,37 @@ export default function CheckoutPage() {
                                     <h2 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '24px' }}>Спосіб оплати</h2>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         <PaymentOption
-                                            id="card"
-                                            label={t('checkout.payment_card')}
-                                            active={formData.paymentMethod === 'card'}
-                                            onClick={() => setFormData(p => ({ ...p, paymentMethod: 'card' }))}
+                                            id="full_online"
+                                            label="Повна оплата онлайн (Monobank)"
+                                            active={formData.paymentChoice === 'full_online'}
+                                            onClick={() => setFormData(p => ({ ...p, paymentChoice: 'full_online' }))}
                                             icon={<CreditCard size={24} />}
                                         />
-                                        <PaymentOption
-                                            id="cash"
-                                            label={t('checkout.payment_cash')}
-                                            active={formData.paymentMethod === 'cash'}
-                                            onClick={() => setFormData(p => ({ ...p, paymentMethod: 'cash' }))}
-                                            icon={<Truck size={24} />}
-                                        />
+                                        {paymentOptions.allowSplit ? (
+                                            <PaymentOption
+                                                id="split_50_50"
+                                                label={`50% передоплата онлайн (${Math.round(total / 2)} ₴), решта при отриманні`}
+                                                active={formData.paymentChoice === 'split_50_50'}
+                                                onClick={() => setFormData(p => ({ ...p, paymentChoice: 'split_50_50' }))}
+                                                icon={<Truck size={24} />}
+                                            />
+                                        ) : (
+                                            <div style={{
+                                                padding: '12px 16px',
+                                                backgroundColor: '#f9fafb',
+                                                border: '1px solid #e5e7eb',
+                                                borderRadius: '3px',
+                                                fontSize: '13px',
+                                                color: '#6b7280',
+                                            }}>
+                                                {paymentOptions.splitBlockedReason || 'Опція 50% передоплати недоступна для цього кошика'}
+                                            </div>
+                                        )}
                                     </div>
                                     <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between' }}>
                                         <BackButton onClick={prevStep} />
                                         <button
-                                            onClick={() => formData.paymentMethod === 'card' ? setShowRegionModal(true) : handleSubmitOrder()}
+                                            onClick={() => setShowRegionModal(true)}
                                             disabled={isSubmitting}
                                             style={{
                                                 padding: '16px 32px',
@@ -381,11 +412,12 @@ export default function CheckoutPage() {
                                         >
                                             {isSubmitting ? (
                                                 <><Loader2 className="animate-spin" size={20} />
-                                                {formData.paymentMethod === 'card' ? 'Переходимо до оплати...' : 'Оформлення...'}</>
-                                            ) : formData.paymentMethod === 'card' ? (
-                                                <><CreditCard size={20} /> Перейти до оплати</>
+                                                {formData.paymentChoice === 'split_50_50' ? 'Переходимо до передоплати...' : 'Переходимо до оплати...'}</>
                                             ) : (
-                                                <>Підтвердити замовлення <ArrowRight size={20} /></>
+                                                <><CreditCard size={20} />
+                                                {formData.paymentChoice === 'split_50_50'
+                                                    ? `Сплатити ${Math.round(total / 2)} ₴`
+                                                    : 'Перейти до оплати'}</>
                                             )}
                                         </button>
                                     </div>

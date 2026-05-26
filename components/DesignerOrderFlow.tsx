@@ -464,15 +464,17 @@ export default function DesignerOrderFlow() {
                                     <div className="flex justify-between"><span className="text-gray-600">Доставка:</span><span>{deliveryMethod === 'pickup' ? 'Самовивіз' : `НП: ${city}, ${branch}`}</span></div>
                                 </div>
 
-                                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-sm text-blue-800">
-                                    Точну вартість буде розраховано дизайнером після створення макету. Ми зв'яжемось з вами для підтвердження.
-                                </div>
-
-                                {/* Payment */}
+                                {/* Payment preference */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-3">Спосіб оплати</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-3">Бажаний спосіб оплати</label>
+                                    <p className="text-xs text-gray-500 mb-3">
+                                        Після створення макету дизайнером ми надішлемо вам рахунок на email або в Telegram.
+                                    </p>
                                     <div className="space-y-2">
-                                        {([['online', 'Онлайн (Monobank)'], ['cod', 'При отриманні (накладений платіж)']] as const).map(([val, label]) => (
+                                        {([
+                                            ['online', 'Повна оплата онлайн (Monobank)'],
+                                            ['cod', '50% передоплата онлайн, решта при отриманні'],
+                                        ] as const).map(([val, label]) => (
                                             <button key={val} type="button" onClick={() => setPaymentMethod(val)}
                                                 className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left ${
                                                     paymentMethod === val ? 'border-[#1e2d7d] bg-[#f0f3ff]' : 'border-gray-200'

@@ -173,11 +173,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             if (data.print_profile_id) setSelectedPrintProfile(data.print_profile_id);
 
             // Initialize TTN form with order data
-            const paymentIsCOD = data.payment_method === 'Післяплата' || data.payment_method === 'COD';
+            // Recognize both legacy payment_method='Післяплата'/'COD' and new payment_type='split'
+            const isSplit = data.payment_type === 'split';
+            const paymentIsCOD = isSplit
+                || data.payment_method === 'Післяплата'
+                || data.payment_method === 'COD';
             setTTNFormData({
                 weight: 0.5,
                 declaredValue: data.total || 0,
-                codAmount: paymentIsCOD ? data.total : 0,
+                // For split orders, use the server-computed cod_amount (= remaining 50%).
+                // For legacy COD, default to full total. For neither, 0.
+                codAmount: isSplit
+                    ? Number(data.cod_amount || 0)
+                    : (paymentIsCOD ? data.total : 0),
                 description: 'Фотокниги та фотовироби'
             });
 
@@ -851,6 +859,35 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 </div>
                             </div>
 
+                            {/* Payment type summary (full vs split) */}
+                            {order.payment_type && (
+                                <div style={{
+                                    marginBottom: 16,
+                                    padding: 12,
+                                    backgroundColor: order.payment_type === 'split' ? '#fffbeb' : '#f0fdf4',
+                                    border: `1px solid ${order.payment_type === 'split' ? '#fde68a' : '#bbf7d0'}`,
+                                    borderRadius: 4,
+                                    fontSize: 13,
+                                    lineHeight: 1.6,
+                                }}>
+                                    <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                                        {order.payment_type === 'split' ? '50% передоплата онлайн' : 'Повна оплата онлайн'}
+                                    </div>
+                                    <div>Передоплачено онлайн: <b>{order.prepaid_amount || 0} ₴</b></div>
+                                    {Number(order.cod_amount) > 0 && (
+                                        <div>Накладений (Нова Пошта): <b>{order.cod_amount} ₴</b></div>
+                                    )}
+                                    {Number(order.pickup_unpaid_balance) > 0 && (
+                                        <div style={{ color: '#b45309' }}>
+                                            При самовивозі взяти готівкою: <b>{order.pickup_unpaid_balance} ₴</b>
+                                        </div>
+                                    )}
+                                    <div style={{ marginTop: 6, color: '#6b7280' }}>
+                                        Усього: <b>{order.total} ₴</b>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Monobank Payment Link */}
                             {order.payment_status !== 'paid' && (
                                 <div style={{ marginBottom: '16px' }}>
@@ -1299,15 +1336,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             </div>
                         </div>
 
-                        {(order.payment_method === 'Післяплата' || order.payment_method === 'COD') && (
+                        {(order.payment_type === 'split' || order.payment_method === 'Післяплата' || order.payment_method === 'COD') && (
                             <div style={{ marginBottom: '24px' }}>
-                                <label style={smallLabelStyle}>Сума післяплати (₴)</label>
+                                <label style={smallLabelStyle}>Сума післяплати — накладений платіж (₴)</label>
                                 <input
                                     type="number"
                                     value={ttnFormData.codAmount}
                                     onChange={e => setTTNFormData({ ...ttnFormData, codAmount: parseFloat(e.target.value) })}
                                     style={{ ...modalInputStyle, width: '100%' }}
                                 />
+                                {order.payment_type === 'split' && (
+                                    <p style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>
+                                        Клієнт обрав 50% передоплату. Сума накладеного платежу = решта 50% від замовлення.
+                                        За замовчуванням підставлено {order.cod_amount} ₴ із замовлення.
+                                    </p>
+                                )}
                             </div>
                         )}
 

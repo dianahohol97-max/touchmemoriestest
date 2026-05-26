@@ -32,7 +32,7 @@ export async function POST(req: Request) {
         const supabase = getAdminClient();
         const { data: order, error: orderError } = await supabase
             .from('orders')
-            .select('id, total, customer_name, customer_email, customer_phone, order_number')
+            .select('id, total, customer_name, customer_email, customer_phone, order_number, payment_type, prepaid_amount')
             .eq('id', orderId)
             .single();
 
@@ -45,7 +45,20 @@ export async function POST(req: Request) {
             .update({ payment_region: paymentRegion, updated_at: new Date().toISOString() })
             .eq('id', orderId);
 
-        const amountInKopecks = Math.round(Number(order.total) * 100);
+        // ──────────────────────────────────────────────────────────────
+        // Invoice amount:
+        //   - If payment_type='split' and prepaid_amount is set, charge prepaid_amount (= 50%)
+        //   - Otherwise charge the full total
+        // The remaining 50% (for split orders) is collected on delivery:
+        //   - Nova Poshta: via BackwardDeliveryData (cod_amount) when TTN is created
+        //   - Pickup: as pickup_unpaid_balance, collected cash by the manager
+        // ──────────────────────────────────────────────────────────────
+        const isSplit = order.payment_type === 'split' && Number(order.prepaid_amount) > 0;
+        const chargeAmount = isSplit
+            ? Number(order.prepaid_amount)
+            : Number(order.total);
+        const amountInKopecks = Math.round(chargeAmount * 100);
+
         const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
 
         const monoResponse = await fetch(MONOBANK_API_URL, {
@@ -59,10 +72,14 @@ export async function POST(req: Request) {
                 ccy: 980, // UAH
                 merchantPaymInfo: {
                     reference: orderId,
-                    destination: `Замовлення TouchMemories ${order.order_number || orderId.substring(0, 8)}`,
+                    destination: isSplit
+                        ? `Передоплата 50% за замовлення TouchMemories ${order.order_number || orderId.substring(0, 8)}`
+                        : `Замовлення TouchMemories ${order.order_number || orderId.substring(0, 8)}`,
                     comment: order.customer_name || '',
                     basketOrder: [{
-                        name: `Замовлення ${order.order_number || '#' + orderId.substring(0, 8)}`,
+                        name: isSplit
+                            ? `Передоплата 50% — замовлення ${order.order_number || '#' + orderId.substring(0, 8)}`
+                            : `Замовлення ${order.order_number || '#' + orderId.substring(0, 8)}`,
                         qty: 1,
                         sum: amountInKopecks,
                         code: orderId
@@ -99,11 +116,13 @@ export async function POST(req: Request) {
         await supabase.from('order_history').insert({
             order_id: orderId,
             action: 'payment_link_created',
-            notes: `Посилання на оплату створено (${isInternational ? 'міжнародний рахунок' : 'Україна'}). Invoice: ${invoiceId}`,
+            notes: isSplit
+                ? `Посилання на передоплату 50% створено (${isInternational ? 'міжнародний рахунок' : 'Україна'}). Сума: ${chargeAmount} ₴. Invoice: ${invoiceId}`
+                : `Посилання на оплату створено (${isInternational ? 'міжнародний рахунок' : 'Україна'}). Invoice: ${invoiceId}`,
             added_by: null
         });
 
-        return NextResponse.json({ success: true, invoiceId, pageUrl, amount: order.total });
+        return NextResponse.json({ success: true, invoiceId, pageUrl, amount: chargeAmount, isSplit });
 
     } catch (error: any) {
         return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });

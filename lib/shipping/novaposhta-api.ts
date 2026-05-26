@@ -19,7 +19,7 @@ export interface CreateTTNParams {
   recipientCityRef: string;
   recipientWarehouseRef: string;
   weight: number; // kg
-  cost: number; // UAH
+  cost: number; // UAH (declared cargo value)
   description: string;
   orderRef: string; // Your order ID
   paymentMethod?: 'Cash' | 'NonCash';
@@ -27,6 +27,13 @@ export interface CreateTTNParams {
   serviceType?: 'WarehouseWarehouse' | 'WarehouseDoors' | 'DoorsWarehouse' | 'DoorsDoors';
   cargoType?: 'Parcel' | 'Cargo';
   seatsAmount?: number;
+  /** Cash-on-delivery amount (накладений платіж) in UAH. For split-payment
+   * orders the recipient pays the remaining 50% at the Nova Poshta branch
+   * on pickup. Leave undefined or 0 to skip COD. */
+  codAmount?: number;
+  /** Bank account ref for COD payout. If not provided, Nova Poshta uses
+   * the default account configured on the sender's contract. */
+  codPayerBankAccountRef?: string;
 }
 
 export interface TTNResponse {
@@ -112,32 +119,50 @@ export async function createTTN(
   params: CreateTTNParams
 ): Promise<TTNResponse> {
   try {
+    const ttnPayload: any = {
+      PayerType: params.payerType || 'Recipient',
+      PaymentMethod: params.paymentMethod || 'Cash',
+      DateTime: new Date().toISOString().split('T')[0],
+      CargoType: params.cargoType || 'Parcel',
+      Weight: params.weight.toString(),
+      ServiceType: params.serviceType || 'WarehouseWarehouse',
+      SeatsAmount: (params.seatsAmount || 1).toString(),
+      Description: params.description,
+      Cost: params.cost.toString(),
+      CitySender: config.senderCityRef,
+      Sender: config.senderWarehouseRef,
+      SenderAddress: config.senderWarehouseRef,
+      ContactSender: config.senderContactPerson,
+      SendersPhone: config.senderPhone,
+      CityRecipient: params.recipientCityRef,
+      Recipient: params.recipientName,
+      RecipientAddress: params.recipientWarehouseRef,
+      ContactRecipient: params.recipientName,
+      RecipientsPhone: params.recipientPhone,
+      InfoRegClientBarcodes: params.orderRef,
+    };
+
+    // Cash-on-delivery (накладений платіж) — required for split-payment
+    // orders shipping via Nova Poshta. The recipient pays params.codAmount
+    // at the branch when picking up; Nova Poshta wires that money back.
+    if (params.codAmount && params.codAmount > 0) {
+      ttnPayload.BackwardDeliveryData = [
+        {
+          PayerType: 'Recipient',
+          CargoType: 'Money',
+          RedeliveryString: params.codAmount.toString(),
+          ...(params.codPayerBankAccountRef
+            ? { RedeliveryPayerBankAccountRef: params.codPayerBankAccountRef }
+            : {}),
+        },
+      ];
+    }
+
     const data = await makeNovaPoshtaRequest(
       config.apiKey,
       'InternetDocument',
       'save',
-      {
-        PayerType: params.payerType || 'Recipient',
-        PaymentMethod: params.paymentMethod || 'Cash',
-        DateTime: new Date().toISOString().split('T')[0],
-        CargoType: params.cargoType || 'Parcel',
-        Weight: params.weight.toString(),
-        ServiceType: params.serviceType || 'WarehouseWarehouse',
-        SeatsAmount: (params.seatsAmount || 1).toString(),
-        Description: params.description,
-        Cost: params.cost.toString(),
-        CitySender: config.senderCityRef,
-        Sender: config.senderWarehouseRef,
-        SenderAddress: config.senderWarehouseRef,
-        ContactSender: config.senderContactPerson,
-        SendersPhone: config.senderPhone,
-        CityRecipient: params.recipientCityRef,
-        Recipient: params.recipientName,
-        RecipientAddress: params.recipientWarehouseRef,
-        ContactRecipient: params.recipientName,
-        RecipientsPhone: params.recipientPhone,
-        InfoRegClientBarcodes: params.orderRef,
-      }
+      ttnPayload
     );
 
     const docData = data.data[0];

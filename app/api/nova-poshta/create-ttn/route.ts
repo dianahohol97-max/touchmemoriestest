@@ -38,8 +38,11 @@ export async function POST(req: Request) {
             );
         }
 
-        // Determine payment control
-        const paymentControl = paymentMethod === 'Післяплата' || paymentMethod === 'COD' ? codAmount : 0;
+        // Determine payment control: enable COD whenever a positive amount
+        // is passed (handles both legacy payment_method='Післяплата' and new
+        // payment_type='split' orders, where the admin pre-fills codAmount
+        // from order.cod_amount).
+        const paymentControl = Number(codAmount) > 0 ? Number(codAmount) : 0;
 
         // Create TTN via Nova Poshta API
         const npResponse = await fetch(NOVA_POSHTA_API_URL, {

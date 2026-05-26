@@ -14,6 +14,10 @@ export interface CartItem {
     slug?: string;
     personalization_note?: string;
     min_qty?: number; // minimum orderable quantity for this item (default 1)
+    /** Product-level payment mode pulled from products.payment_mode.
+     * Affects which payment options are offered at checkout (full only,
+     * or full / split 50%). If missing, checkout falls back to 'full_only'. */
+    payment_mode?: 'full_only' | 'full_or_split' | 'full_only_if_alone';
 }
 
 interface CartState {

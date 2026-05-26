@@ -567,7 +567,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             image: mainImage,
             options: itemOptions,
             slug: product.slug,
-            personalization_note: personalizationNote
+            personalization_note: personalizationNote,
+            payment_mode: (product as any).payment_mode, // for split payment eligibility at checkout
         });
 
         trackAddToCart(product, quantity);
