@@ -702,6 +702,21 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               } else {
                 ctx.drawImage(img, cx, cy, srcW, srcH, 0, 0, targetW, targetH);
               }
+              // 3 mm white border, drawn as four rectangles on top of the
+              // photo. Triggered by photo.border (per-photo) or by the
+              // nonstandard product which always carries a white border.
+              // 3 mm at 300 DPI = (3 / 25.4) * 300 ≈ 35 px.
+              const drawBorder = photo.border === true || isNonstandard;
+              if (drawBorder) {
+                // Reset any transform left over from rotation
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                const bw = Math.round((3 / 25.4) * dpi);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, targetW, bw);                    // top
+                ctx.fillRect(0, targetH - bw, targetW, bw);          // bottom
+                ctx.fillRect(0, 0, bw, targetH);                     // left
+                ctx.fillRect(targetW - bw, 0, bw, targetH);          // right
+              }
               canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.95);
             } catch (e) {
               console.warn('renderStandard failed:', e);
@@ -883,7 +898,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
           {activePhoto ? (
             <div>
-              <PhotoPreview photo={activePhoto} sizeKey={sizeKey||'10x15'} showBorder={showBorder}
+              <PhotoPreview photo={activePhoto} sizeKey={sizeKey||'10x15'} showBorder={isNonstandard || (!isPolaroid && activePhoto.border)}
                 isPolaroid={isPolaroid} isNonstandard={isNonstandard}
                 onCropChange={updateCrop} onTextChange={isPolaroid?updateText:undefined}
                 polaroidFont={polaroidFont} polaroidColor={polaroidColor}/>
