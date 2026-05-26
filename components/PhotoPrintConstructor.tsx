@@ -595,34 +595,212 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
     addItem(cartPayload);
 
-    // Upload originals to Supabase Storage and persist a list under
-    // sessionStorage.export_{cartItemId} so cart.linkPendingExports can
-    // create order_files rows once the real order id is known. Without
-    // this step the manager would only see low-res previews in the
-    // `projects` row, which is no use for production.
+    // Render and upload the customer's adjusted print, NOT the original
+    // file. Diana wants the manager to receive "ready-to-print" images
+    // that look pixel-for-pixel like what the customer saw on screen:
+    //
+    //   • Standard prints — apply crop / zoom / rotation onto a canvas at
+    //     the chosen physical size × 300 DPI (e.g. 10×15 cm → 1181×1772),
+    //     export JPEG q=0.95. This is a pure canvas draw, no DOM walk.
+    //
+    //   • Polaroid prints — build a hidden, full-resolution copy of the
+    //     same DOM the customer sees (image + white frame + caption with
+    //     their chosen font and colour), then html2canvas it. The hidden
+    //     copy lives at totalW×totalH × 300 DPI cm so the resulting JPEG
+    //     is print-ready. Fonts are awaited before the snapshot so the
+    //     caption isn't a fallback.
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const userKey = user?.id || 'anon';
       const exportedFiles: any[] = [];
+
+      // Wait once for any web fonts to be ready so polaroid captions
+      // don't render in a fallback. document.fonts.ready resolves
+      // immediately once all currently-loading fonts are settled.
+      try { await (document as any).fonts?.ready; } catch {}
+
+      // Lazy-load html2canvas only on checkout so the page itself stays
+      // fast. The package is already in the bundle so this is just a
+      // dynamic import resolution.
+      let html2canvas: any = null;
+      try {
+        const mod: any = await import('html2canvas');
+        html2canvas = mod.default || mod;
+      } catch (e) {
+        console.warn('html2canvas import failed:', e);
+      }
+
+      // Resolve the physical print size in centimetres for this order so
+      // the canvas can be sized at 300 DPI.
+      const dpi = 300;
+      const cmToPx = (cm: number) => Math.round((cm / 2.54) * dpi);
+
+      const stdKey = (selectedSize || '').replace(/\s*\(.*\)/g, '').trim()
+        .replace(/([0-9])х([0-9])/g, '$1×$2').replace(/([0-9])×([0-9])/g, '$1x$2');
+      const stdSize = STANDARD_SIZES[stdKey];
+      const polKey = (selectedSize || '').replace(/[^\d.x×]/g, '').replace('×', 'x').replace(/x+/, 'x');
+      const polSize = POLAROID_SIZES[polKey];
+
+      // Render one standard print (crop + zoom + rotation, no frame)
+      const renderStandard = async (photo: any): Promise<Blob | null> => {
+        return await new Promise((resolve) => {
+          const img = new window.Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              // Decide the print size in pixels at 300 DPI. Take the
+              // per-photo sizeOverride if the customer set one (used by
+              // nonstandard); otherwise use the cart-level size.
+              const sizeKey = (photo.sizeOverride || selectedSize || '10x15')
+                .replace(/\s*\(.*\)/g, '').trim()
+                .replace(/([0-9])х([0-9])/g, '$1×$2').replace(/([0-9])×([0-9])/g, '$1x$2');
+              const sized = STANDARD_SIZES[sizeKey];
+              // Default to 10×15 cm if the size string is unrecognised.
+              const baseW = sized ? sized.w : 10;
+              const baseH = sized ? sized.h : 15;
+              // Honour landscape orientation by swapping dimensions.
+              const isLandscape = photo.orientation === 'landscape';
+              const targetW = cmToPx(isLandscape ? baseH : baseW);
+              const targetH = cmToPx(isLandscape ? baseW : baseH);
+
+              const z = photo.zoom || 1;
+              const naturalW = img.naturalWidth;
+              const naturalH = img.naturalHeight;
+              // Aspect-fit the source into the target while zooming.
+              // The CSS `objectFit:cover` semantics: scale image so its
+              // shorter side fills the box, longer side overflows, then
+              // position by cropX/cropY.
+              const sourceRatio = naturalW / naturalH;
+              const targetRatio = targetW / targetH;
+              // Visible source rectangle inside the natural image
+              let srcW: number, srcH: number;
+              if (sourceRatio > targetRatio) {
+                // Source is wider than target — crop horizontally
+                srcH = naturalH / z;
+                srcW = srcH * targetRatio;
+              } else {
+                srcW = naturalW / z;
+                srcH = srcW / targetRatio;
+              }
+              // cropX/Y are 0–100 % positions inside the natural image.
+              const cx = ((photo.cropX ?? 50) / 100) * (naturalW - srcW);
+              const cy = ((photo.cropY ?? 50) / 100) * (naturalH - srcH);
+
+              const canvas = document.createElement('canvas');
+              canvas.width = targetW;
+              canvas.height = targetH;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) { resolve(null); return; }
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+              const rot = photo.rotation || 0;
+              if (rot !== 0) {
+                ctx.translate(targetW / 2, targetH / 2);
+                ctx.rotate((rot * Math.PI) / 180);
+                ctx.drawImage(img, cx, cy, srcW, srcH,
+                              -targetW / 2, -targetH / 2, targetW, targetH);
+              } else {
+                ctx.drawImage(img, cx, cy, srcW, srcH, 0, 0, targetW, targetH);
+              }
+              canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.95);
+            } catch (e) {
+              console.warn('renderStandard failed:', e);
+              resolve(null);
+            }
+          };
+          img.onerror = () => resolve(null);
+          img.src = photo.preview;
+        });
+      };
+
+      // Render one polaroid: build the same DOM the user saw, scaled up
+      // to 300 DPI, then snapshot it with html2canvas.
+      const renderPolaroid = async (photo: any): Promise<Blob | null> => {
+        if (!polSize || !html2canvas) return null;
+        const isLandscape = photo.orientation === 'landscape';
+        const totalW = isLandscape ? polSize.totalH : polSize.totalW;
+        const totalH = isLandscape ? polSize.totalW : polSize.totalH;
+        const canvasW = cmToPx(totalW);
+        const canvasH = cmToPx(totalH);
+        const bS = cmToPx(polSize.borderSide);
+        const bT = cmToPx(polSize.borderTop);
+        const bB = cmToPx(polSize.borderBottom);
+        const aW = canvasW - bS * 2;
+        const aH = canvasH - bT - bB;
+
+        // Build the hidden DOM. It mirrors the preview component above,
+        // just sized at print resolution and parked off-screen.
+        const root = document.createElement('div');
+        root.style.cssText = `position:fixed;left:-99999px;top:0;width:${canvasW}px;height:${canvasH}px;background:#fff;`;
+        const photoBox = document.createElement('div');
+        photoBox.style.cssText = `position:absolute;left:${bS}px;top:${bT}px;width:${aW}px;height:${aH}px;overflow:hidden;background:#f0f0f0;`;
+        const im = document.createElement('img');
+        im.crossOrigin = 'anonymous';
+        im.src = photo.preview;
+        im.style.cssText = `width:${(photo.zoom || 1) * 100}%;height:${(photo.zoom || 1) * 100}%;object-fit:cover;object-position:${photo.cropX}% ${photo.cropY}%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(${photo.rotation || 0}deg);`;
+        photoBox.appendChild(im);
+        root.appendChild(photoBox);
+
+        if (photo.showCaption && photo.polaroidText) {
+          const caption = document.createElement('div');
+          // Caption position mirrors the preview: sat inside the thick
+          // bottom border, vertically centred on the lower 20 % of it.
+          const captionBottom = Math.round(bB * 0.2);
+          const fontPx = Math.max(20, Math.round(bB * 0.28));
+          caption.style.cssText = `position:absolute;left:${bS}px;bottom:${captionBottom}px;width:${aW}px;display:flex;align-items:center;justify-content:center;font-family:${polaroidFont || 'Dancing Script, cursive'};color:${polaroidColor || '#222'};font-size:${fontPx}px;text-align:center;line-height:1;`;
+          caption.textContent = photo.polaroidText;
+          root.appendChild(caption);
+        }
+
+        document.body.appendChild(root);
+        try {
+          // Wait one paint frame so the image is decoded and laid out.
+          await new Promise<void>((r) => requestAnimationFrame(() => r()));
+          // And give the <img> a moment to actually load if it isn't ready
+          if (!im.complete) {
+            await new Promise<void>((r) => { im.onload = () => r(); im.onerror = () => r(); });
+          }
+          const snap: HTMLCanvasElement = await html2canvas(root, {
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            scale: 1, // root is already at full print size
+            logging: false,
+            width: canvasW,
+            height: canvasH,
+          });
+          return await new Promise<Blob | null>((resolve) => {
+            snap.toBlob((b) => resolve(b), 'image/jpeg', 0.95);
+          });
+        } catch (e) {
+          console.warn('renderPolaroid failed:', e);
+          return null;
+        } finally {
+          try { document.body.removeChild(root); } catch {}
+        }
+      };
+
+      // Now render and upload each photo at print resolution
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
-        if (!photo.file) continue;
-        const ext = (photo.file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const safeName = photo.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const path = `${userKey}/${cartItemId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
+        const blob = isPolaroid ? await renderPolaroid(photo) : await renderStandard(photo);
+        if (!blob) continue;
+        const baseRaw = (photo.file?.name || `photo_${i + 1}.jpg`)
+          .replace(/[^a-zA-Z0-9._-]/g, '_')
+          .replace(/\.(jpe?g|png|webp|heic|heif|tiff?)$/i, '');
+        const fileName = `${String(i + 1).padStart(3, '0')}_${baseRaw}_print.jpg`;
+        const path = `${userKey}/${cartItemId}/${fileName}`;
         const { error: uploadError } = await supabase.storage
           .from('order-files')
-          .upload(path, photo.file, {
-            cacheControl: '31536000',
-            upsert: true,
-            contentType: photo.file.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+          .upload(path, blob, {
+            cacheControl: '31536000', upsert: true, contentType: 'image/jpeg',
           });
-        if (uploadError) { console.warn('photo-print upload failed:', uploadError); continue; }
+        if (uploadError) { console.warn('photo-print render upload failed:', uploadError); continue; }
         exportedFiles.push({
-          path, fileName: photo.file.name, bucket: 'order-files',
-          fileCategory: 'photo-upload', productType: 'photoprint',
-          fileType: 'upload', size: photo.file.size,
-          mimeType: photo.file.type || 'image/jpeg', pageNumber: i + 1,
+          path, fileName, bucket: 'order-files',
+          fileCategory: isPolaroid ? 'polaroid-print' : 'photo-print',
+          productType: 'photoprint',
+          fileType: 'export', size: blob.size, mimeType: 'image/jpeg',
+          pageNumber: i + 1,
         });
       }
       if (exportedFiles.length > 0) {
