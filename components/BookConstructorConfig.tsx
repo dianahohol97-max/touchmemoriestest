@@ -29,50 +29,39 @@ interface BookProduct {
 
 interface PhotoRecommendation {
     pages: number;
-    photoCount: string;
+    mixed: string;   // "Великі фото + колажі" range, e.g. "12-16 фото"
+    collage: string; // "Багато колажів" single number or range, e.g. "20 фото"
 }
 
-// Photo recommendations by product type and page count
+// Photo capacity recommendations per page count. Source: Diana's print-sheet
+// (May 2026). Two columns reflect the two layout strategies: a mix of large
+// photos and collages, vs predominantly collage layouts (which fit more
+// photos per spread).
 const PHOTO_RECOMMENDATIONS: Record<string, PhotoRecommendation[]> = {
     photobook: [
-        { pages: 10, photoCount: '11-16' },
-        { pages: 12, photoCount: '13-18' },
-        { pages: 16, photoCount: '17-22' },
-        { pages: 20, photoCount: '21-26' },
-        { pages: 24, photoCount: '25-30' },
-        { pages: 28, photoCount: '29-34' },
-        { pages: 32, photoCount: '33-38' },
-        { pages: 36, photoCount: '37-42' },
-        { pages: 40, photoCount: '41-46' },
-        { pages: 48, photoCount: '49-54' },
-        { pages: 56, photoCount: '57-62' },
-        { pages: 64, photoCount: '65-70' },
-        { pages: 72, photoCount: '73-78' },
-        { pages: 80, photoCount: '81-86' }
+        { pages: 8,  mixed: '12-16 фото', collage: '20 фото' },
+        { pages: 10, mixed: '15-20 фото', collage: '25 фото' },
+        { pages: 12, mixed: '18-24 фото', collage: '30 фото' },
+        { pages: 14, mixed: '21-28 фото', collage: '35 фото' },
+        { pages: 16, mixed: '24-32 фото', collage: '40 фото' },
+        { pages: 18, mixed: '27-36 фото', collage: '45 фото' },
+        { pages: 20, mixed: '30-40 фото', collage: '50 фото' },
+        { pages: 22, mixed: '33-44 фото', collage: '55 фото' },
+        { pages: 24, mixed: '36-48 фото', collage: '60 фото' },
+        { pages: 26, mixed: '39-52 фото', collage: '65 фото' },
+        { pages: 28, mixed: '42-56 фото', collage: '70 фото' },
+        { pages: 30, mixed: '45-60 фото', collage: '75 фото' },
+        { pages: 32, mixed: '48-66 фото', collage: '80 фото' },
+        { pages: 34, mixed: '51-70 фото', collage: '85 фото' },
+        { pages: 36, mixed: '54-74 фото', collage: '90 фото' },
+        { pages: 38, mixed: '57-78 фото', collage: '95 фото' },
+        { pages: 40, mixed: '60-82 фото', collage: '100 фото' },
+        { pages: 42, mixed: '63-86 фото', collage: '105 фото' },
+        { pages: 44, mixed: '66-90 фото', collage: '110 фото' },
+        { pages: 46, mixed: '69-94 фото', collage: '115 фото' },
+        { pages: 48, mixed: '72-98 фото', collage: '120 фото' },
+        { pages: 50, mixed: '75-100 фото', collage: '125-135 фото' },
     ],
-    magazine: [
-        { pages: 8, photoCount: '9-14' },
-        { pages: 12, photoCount: '13-23' },
-        { pages: 16, photoCount: '17-27' },
-        { pages: 20, photoCount: '21-31' },
-        { pages: 24, photoCount: '25-35' },
-        { pages: 28, photoCount: '29-39' },
-        { pages: 32, photoCount: '33-43' },
-        { pages: 36, photoCount: '37-47' }
-    ],
-    travelbook: [
-        { pages: 12, photoCount: '13-23' },
-        { pages: 16, photoCount: '17-27' },
-        { pages: 20, photoCount: '21-31' },
-        { pages: 24, photoCount: '25-35' },
-        { pages: 32, photoCount: '33-43' },
-        { pages: 40, photoCount: '41-51' },
-        { pages: 48, photoCount: '49-59' },
-        { pages: 56, photoCount: '57-67' },
-        { pages: 64, photoCount: '65-75' },
-        { pages: 72, photoCount: '73-83' },
-        { pages: 80, photoCount: '81-91' }
-    ]
 };
 
 interface BookConstructorConfigProps {
@@ -672,31 +661,38 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         return '';
     };
 
-    const getPhotoRecommendation = (): string => {
-        if (!selectedPageCount) return '';
+    const getPhotoRecommendation = (): { mixed: string; collage: string } | null => {
+        if (!selectedPageCount) return null;
 
         const pageNum = parseInt(selectedPageCount.match(/\d+/)?.[0] || '0');
-        if (pageNum === 0) return '';
+        if (pageNum === 0) return null;
 
         const productType = getProductType();
         const recommendations = PHOTO_RECOMMENDATIONS[productType] || [];
+        if (recommendations.length === 0) return null;
 
         // Try exact match first
         const exact = recommendations.find(r => r.pages === pageNum);
-        if (exact) return exact.photoCount;
+        if (exact) return { mixed: exact.mixed, collage: exact.collage };
 
-        // Fallback: closest lower match
+        // Fallback: closest lower match (extend the range proportionally)
         const lower = [...recommendations].reverse().find(r => r.pages <= pageNum);
         if (lower) {
             const diff = pageNum - lower.pages;
-            const [lo, hi] = lower.photoCount.split('-').map(Number);
-            return `${lo + diff}-${hi + diff}`;
+            const [lo, hi] = lower.mixed.replace(/[^\d-]/g, '').split('-').map(Number);
+            const collageNum = parseInt(lower.collage.replace(/[^\d]/g, '')) || 0;
+            return {
+                mixed: `${lo + diff}-${(hi || lo) + diff} фото`,
+                collage: collageNum ? `${collageNum + Math.round(diff * 2.5)} фото` : lower.collage,
+            };
         }
 
-        // Ultimate fallback: formula — 1 photo per page + 20% extra
-        const min = pageNum + 1;
-        const max = Math.round(pageNum * 1.3);
-        return `${min}-${max}`;
+        // Ultimate fallback: rough formula (used if recommendations are missing
+        // for this product type — shouldn't happen for photobook).
+        return {
+            mixed: `${pageNum + 1}-${Math.round(pageNum * 1.5)} фото`,
+            collage: `${Math.round(pageNum * 2.5)} фото`,
+        };
     };
 
     const shouldShowEndpaperOption = (): boolean => {
@@ -1498,18 +1494,25 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
                 </div>
 
-                {/* Photo Recommendation */}
+                {/* Photo Recommendation — two columns reflect the two layout
+                    strategies from the price-sheet: mix of large photos with
+                    collages, vs predominantly collage layouts. Helps clients
+                    pick the right page count without having to guess. */}
                 {photoRec && (
                     <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-start gap-3">
                             <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-sm font-semibold text-blue-900 mb-1">
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-blue-900 mb-2">
                                     {t('book_config.photo_rec_title')}
                                 </p>
-                                <p className="text-sm text-blue-700">
-                                    Для {selectedPageCount} рекомендуємо підготувати <strong>{photoRec} фото</strong>
+                                <p className="text-sm text-blue-700 mb-1">
+                                    Для <strong>{selectedPageCount}</strong> орієнтовно:
                                 </p>
+                                <ul className="text-sm text-blue-700 space-y-1 ml-1">
+                                    <li>• <strong>{photoRec.mixed}</strong> — великі фото + колажі</li>
+                                    <li>• <strong>{photoRec.collage}</strong> — багато колажів</li>
+                                </ul>
                                 <p className="text-xs text-blue-600 mt-2">
                                     {t('book_config.photo_rec_note')}
                                 </p>

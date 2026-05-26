@@ -19,7 +19,7 @@ interface BookConfig {
     productName: string;
     selectedSize?: string;
     selectedPageCount: string;
-    photoRecommendation: string;
+    photoRecommendation: { mixed: string; collage: string } | string | null;
     totalPrice: number;
     selectedCoverType?: string;
     selectedCoverColor?: string;
@@ -346,7 +346,10 @@ export default function BookPhotoUpload() {
     }
 
     const lowQualityCount = photos.filter(p => !checkPhotoQuality(p).ok).length;
-    const recommendedRange = config.photoRecommendation || '';
+    // photoRecommendation can be the new object form {mixed, collage} or the
+    // legacy string from older saved configs. Handle both shapes.
+    const photoRec = config.photoRecommendation;
+    const recommendedRange: { mixed: string; collage: string } | string | null = photoRec || null;
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
@@ -375,7 +378,14 @@ export default function BookPhotoUpload() {
                                 const lamCost = pages > 0 ? pages * 5 : 0;
                                 return <p>• {t('photo_upload.lamination_pages')} {config.selectedPageLamination}{lamCost > 0 ? ` (+${lamCost} ₴)` : ''}</p>;
                             })()}
-                            {recommendedRange && <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange}</b></p>}
+                            {recommendedRange && (
+                                typeof recommendedRange === 'string'
+                                    ? <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange}</b></p>
+                                    : <>
+                                        <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange.mixed}</b> (великі + колажі)</p>
+                                        <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange.collage}</b> (багато колажів)</p>
+                                      </>
+                            )}
                             {(() => {
                                 const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
                                 const textLayout = params.get('text_layout');
