@@ -45,7 +45,7 @@ interface PosterConfig {
   layoutId: string;
   // Design
   bgColor: string;
-  frameStyle: 'none' | 'thin' | 'thick' | 'double' | 'rounded';
+  frameStyle: 'none' | 'thick' | 'double' | 'rounded';
   frameColor: string;
   padding: number; // px
   // Text
@@ -272,7 +272,6 @@ const SIZES = [
 
 const FRAME_STYLES = [
   { id: 'none',    label: 'Без рамки' },
-  { id: 'thin',    label: 'Тонка' },
   { id: 'thick',   label: 'Товста' },
   { id: 'double',  label: 'Подвійна' },
   { id: 'rounded', label: 'Округла' },
@@ -581,7 +580,7 @@ export default function PosterConstructor() {
     photos: [],
     layoutId: 'single',
     bgColor: '#ffffff',
-    frameStyle: 'thin',
+    frameStyle: 'none',
     frameColor: '#1a1a1a',
     padding: 20,
     textBlocks: [],
