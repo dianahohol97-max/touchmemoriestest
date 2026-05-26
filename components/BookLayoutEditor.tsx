@@ -2667,8 +2667,10 @@ export default function BookLayoutEditor() {
     setUploadState(prev => prev ? { ...prev, active: false } : null);
 
     setPhotos([]);
-    // If no files to upload, show cart modal immediately
-    if (photosWithFile.length === 0) setShowCartModal(true);
+    // After snapshots and upload, always show the cart modal —
+    // either the PDF made it through or not, the order itself is
+    // already in the cart and we should let the user proceed.
+    setShowCartModal(true);
   };
 
   const saveDesignToProjects = async (contentPages: number, productImage: string, orderId?: string, cartPayload?: any) => {
