@@ -62,6 +62,8 @@ export default function DesignerOrderFlow() {
     // Step 2
     const [orderComment, setOrderComment] = useState('');
     const [coverComment, setCoverComment] = useState('');
+    // Travel Book only — destination (country/city/place of the trip)
+    const [tripDestination, setTripDestination] = useState('');
 
     // Step 3
     const [firstName, setFirstName] = useState('');
@@ -182,7 +184,12 @@ export default function DesignerOrderFlow() {
                         size, pages, cover, tracing, color, decoration, decoration_variant: decorationVariant,
                         quantity: 1,
                     }],
-                    notes: [orderComment, coverComment].filter(Boolean).join('\n---\n'),
+                    notes: [
+                        tripDestination && productSlug.toLowerCase().includes('travel')
+                            ? `Країна/місце подорожі: ${tripDestination}` : '',
+                        orderComment,
+                        coverComment,
+                    ].filter(Boolean).join('\n---\n'),
                     delivery_method: deliveryMethod,
                     delivery_address: deliveryMethod === 'nova_poshta' ? { city, branch } : { pickup: 'Тернопіль' },
                     payment_method: paymentMethod,
@@ -222,7 +229,10 @@ export default function DesignerOrderFlow() {
     const canGoNext = (): boolean => {
         switch (step) {
             case 1: return photos.length > 0;
-            case 2: return true; // Comments are optional
+            case 2:
+                // Travel Book requires destination to be filled in
+                if (productSlug.toLowerCase().includes('travel') && !tripDestination.trim()) return false;
+                return true;
             case 3:
                 if (!firstName.trim() || !lastName.trim() || !phone.trim()) return false;
                 if (contactMethod === 'telegram' && !telegram.trim()) return false;
@@ -341,6 +351,18 @@ export default function DesignerOrderFlow() {
                         {step === 2 && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-bold text-[#1e2d7d]">Побажання до замовлення</h2>
+                                {/* Travel Book specific — destination of the trip */}
+                                {productSlug.toLowerCase().includes('travel') && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Країна / місце подорожі <span className="text-red-500">*</span>
+                                        </label>
+                                        <input type="text" value={tripDestination} onChange={e => setTripDestination(e.target.value)}
+                                            placeholder="Наприклад: Італія, Рим; Греція; Карпати"
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+                                        <p className="text-xs text-gray-500 mt-1">Допоможе дизайнеру підібрати тематичне оформлення</p>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Коментар до замовлення</label>
                                     <textarea value={orderComment} onChange={e => setOrderComment(e.target.value)} rows={4}

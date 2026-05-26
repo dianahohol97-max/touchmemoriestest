@@ -349,13 +349,16 @@ function detectProductType(slug: string): string | null {
     return 'magazine';
   }
 
-  // Журнал з твердою обкладинкою (new hard cover variant)
-  if (s.includes('photojournal-hard')) {
+  // Журнал з твердою обкладинкою (new hard cover variant with full options:
+  // тип обкладинки, верстка тексту, ламінування сторінок). Slugs containing
+  // 'tverd'/'tverda'/'hardcover' route here too — they're the same physical
+  // product, the old 'photojournal' productType lacked these options.
+  if (s.includes('photojournal-hard') || s.includes('tverd') || s.includes('tverda') || s.includes('hardcover')) {
     return 'photojournal-hard';
   }
 
-  // Фотожурнал з твердою обкладинкою
-  if (s.includes('photojournal') || s.includes('tverda') || s.includes('hardcover')) {
+  // Фотожурнал з м'якою обкладинкою (legacy soft variant)
+  if (s.includes('photojournal')) {
     return 'photojournal';
   }
 
