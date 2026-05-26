@@ -163,17 +163,46 @@ export default function ProductsAdminPage() {
         if (!files || !sel) return;
         const remaining = 10 - sel.images.length;
         if (remaining <= 0) { toast.error('Максимум 10 фото'); return; }
-        const filesArr = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, remaining);
-        if (filesArr.length === 0) return;
+
+        // Collect detailed reasons if files are rejected at the client filter
+        const allFiles = Array.from(files);
+        const filesArr = allFiles.filter(f => f.type.startsWith('image/')).slice(0, remaining);
+        const skippedNonImage = allFiles.filter(f => !f.type.startsWith('image/'));
+        if (skippedNonImage.length > 0) {
+            toast.error(`Не зображення: ${skippedNonImage.map(f => f.name).join(', ')} (тип: ${skippedNonImage[0].type || 'невідомо'})`);
+        }
+        if (filesArr.length === 0) {
+            if (allFiles.length > 0 && skippedNonImage.length === allFiles.length) {
+                toast.error(`Усі файли пропущено: непідтримуваний тип`);
+            }
+            return;
+        }
+
         toast.loading(`Завантаження ${filesArr.length} фото...`, { id: 'img-upload' });
         const supabaseClient = createClient();
         const uploadedUrls: string[] = [];
+        const failureReasons: string[] = [];
+
         for (const file of filesArr) {
-            if (file.size > 10 * 1024 * 1024) { toast.error(`${file.name}: більше 10MB`, { id: 'img-upload' }); continue; }
+            if (file.size > 10 * 1024 * 1024) {
+                const msg = `${file.name}: ${(file.size / 1024 / 1024).toFixed(1)} МБ — перевищує ліміт 10 МБ`;
+                toast.error(msg, { id: 'img-upload' });
+                failureReasons.push(msg);
+                continue;
+            }
             const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
             const path = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-            const { error } = await supabaseClient.storage.from('touch-memories-assets').upload(path, file, { upsert: true });
-            if (error) { toast.error(`Помилка: ${error.message}`, { id: 'img-upload' }); continue; }
+            const { error } = await supabaseClient.storage
+                .from('touch-memories-assets')
+                .upload(path, file, { upsert: true, contentType: file.type || undefined });
+            if (error) {
+                // Common: mime type not in bucket allowlist, RLS denying upload (not admin), or quota.
+                const msg = `${file.name}: ${error.message}`;
+                console.error('[admin upload]', file.name, file.type, file.size, error);
+                toast.error(msg, { id: 'img-upload', duration: 8000 });
+                failureReasons.push(msg);
+                continue;
+            }
             const { data: { publicUrl } } = supabaseClient.storage.from('touch-memories-assets').getPublicUrl(path);
             uploadedUrls.push(publicUrl);
         }
@@ -194,7 +223,11 @@ export default function ProductsAdminPage() {
                 toast.success(`Додано ${uploadedUrls.length} фото ✓`, { id: 'img-upload' });
             }
         } else {
-            toast.error('Жодне фото не завантажено', { id: 'img-upload' });
+            // Tell the user WHY nothing was uploaded — never the silent generic message.
+            const reason = failureReasons.length > 0
+                ? failureReasons.join('; ')
+                : 'Невідома причина — перевірте права адміна та з\'єднання';
+            toast.error(`Жодне фото не завантажено: ${reason}`, { id: 'img-upload', duration: 10000 });
         }
     }
 
