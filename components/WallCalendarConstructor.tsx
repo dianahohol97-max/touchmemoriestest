@@ -16,7 +16,7 @@ import {
 import { useT } from '@/lib/i18n/context';
 
 //  Types 
-interface Photo { id: string; preview: string; width: number; height: number; name: string; }
+interface Photo { id: string; preview: string; width: number; height: number; name: string; file?: File; }
 interface Slot  { photoId: string | null; cropX: number; cropY: number; zoom: number; }
 type Layout = '1-full'|'1-top'|'2-h'|'2-v'|'3-top1-bot2'|'3-left1-right2'|'4-grid'|'5-2top3bot'|'5-cross'|'6-grid'|'6-2rows';
 type PageStyle = 'classic' | 'half' | 'photo-dominant' | 'footer-band' | 'side-by-side' | 'mini-cal';
@@ -485,7 +485,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
             if (!file.type.startsWith('image/')) continue;
             const preview = URL.createObjectURL(file);
             const img = await new Promise<HTMLImageElement>((res,rej)=>{const i=new window.Image();i.onload=()=>res(i);i.onerror=rej;i.src=preview;});
-            news.push({id:`p-${Date.now()}-${Math.random().toString(36).slice(7)}`,preview,width:img.width,height:img.height,name:file.name});
+            news.push({id:`p-${Date.now()}-${Math.random().toString(36).slice(7)}`,preview,width:img.width,height:img.height,name:file.name,file});
         }
         setPhotos(prev=>[...prev,...news]);
         if (news.length) toast.success(`Додано ${news.length} фото`);
@@ -519,8 +519,9 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
 
     const addToCart = async () => {
         const basePrice = product ? (size==='A3' ? Number(product.price)+100 : Number(product.price)) : 590;
+        const cartItemId = `wall-cal-${Date.now()}`;
         const cartPayload = {
-            id:`wall-cal-${Date.now()}`,
+            id: cartItemId,
             product_id: product?.id||'wall-calendar-2026',
             name:`Настінний фотокалендар 2026 · ${SIZE_DIMS[size].label}`,
             price: basePrice, qty:1,
@@ -529,6 +530,39 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
             slug:'wall-calendar-2026',
         };
         addItem(cartPayload);
+
+        // Upload originals to Storage so the manager has the source files when
+        // producing the calendar. Without this only low-res previews land in
+        // the projects row, which is not enough for print.
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const userKey = user?.id || 'anon';
+            const exportedFiles: any[] = [];
+            for (let i = 0; i < photos.length; i++) {
+                const p = photos[i];
+                if (!p.file) continue;
+                const safeName = p.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                const path = `${userKey}/${cartItemId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('order-files')
+                    .upload(path, p.file, {
+                        cacheControl: '31536000', upsert: true,
+                        contentType: p.file.type || 'image/jpeg',
+                    });
+                if (uploadError) { console.warn('wall-cal upload failed:', uploadError); continue; }
+                exportedFiles.push({
+                    path, fileName: p.file.name, bucket: 'order-files',
+                    fileCategory: 'photo-upload', productType: 'wall-calendar',
+                    fileType: 'upload', size: p.file.size,
+                    mimeType: p.file.type || 'image/jpeg', pageNumber: i + 1,
+                });
+            }
+            if (exportedFiles.length > 0) {
+                sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
+            }
+        } catch (e) {
+            console.warn('wall-cal storage step skipped:', e);
+        }
 
         // Persist as a project so it appears in "Мої дизайни" (it only went
         // to the cart before). cart_payload lets the account "Замовити"

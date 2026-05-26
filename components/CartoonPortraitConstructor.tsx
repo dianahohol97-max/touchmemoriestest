@@ -333,14 +333,10 @@ const { addItem } = useCartStore();
         }
 
         const totalPrice = calculatePrice();
-
-        // TODO: Save generated portrait to Supabase Storage
-        // const { data: uploadData } = await supabase.storage
-        //     .from('generated-portraits')
-        //     .upload(`${Date.now()}-portrait.png`, generatedPortraitBlob);
+        const cartItemId = `cartoon-portrait-${Date.now()}`;
 
         addItem({
-            id: `cartoon-portrait-${Date.now()}`,
+            id: cartItemId,
             name: t('cartoon.header_title'),
             price: totalPrice,
             qty: 1,
@@ -361,6 +357,75 @@ ${config.addName ? `Ім'я: ${config.customName}` : ''}
 ${config.addDate ? `Дата: ${new Date().toLocaleDateString('uk-UA')}` : ''}
             `.trim()
         });
+
+        // Upload both the source photo and the generated portrait so the
+        // manager has the full picture in /admin/orders/[id]/files: the
+        // original face shot and what the AI produced. Both go under the
+        // same cartItemId so they cluster together.
+        try {
+            const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+            const sb = createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
+            const { data: { user } } = await sb.auth.getUser();
+            const userKey = user?.id || 'anon';
+            const exportedFiles: any[] = [];
+
+            // Source photo (the customer's face)
+            if (config.uploadedPhoto) {
+                const safeName = config.uploadedPhoto.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                const path = `${userKey}/${cartItemId}/source_${safeName}`;
+                const { error: uploadError } = await sb.storage
+                    .from('order-files')
+                    .upload(path, config.uploadedPhoto, {
+                        cacheControl: '31536000', upsert: true,
+                        contentType: config.uploadedPhoto.type || 'image/jpeg',
+                    });
+                if (!uploadError) {
+                    exportedFiles.push({
+                        path, fileName: `source_${config.uploadedPhoto.name}`,
+                        bucket: 'order-files', fileCategory: 'photo-upload',
+                        productType: 'cartoon-portrait', fileType: 'upload',
+                        size: config.uploadedPhoto.size,
+                        mimeType: config.uploadedPhoto.type || 'image/jpeg',
+                        pageNumber: 1,
+                    });
+                }
+            }
+
+            // Generated portrait (the AI-rendered output) — typically a data URL
+            if (config.generatedPortrait && config.generatedPortrait.startsWith('data:')) {
+                try {
+                    const blob = await (await fetch(config.generatedPortrait)).blob();
+                    const ext = (blob.type.split('/')[1] || 'png').replace(/[^a-z0-9]/g, '');
+                    const path = `${userKey}/${cartItemId}/generated.${ext}`;
+                    const { error: uploadError } = await sb.storage
+                        .from('order-files')
+                        .upload(path, blob, {
+                            cacheControl: '31536000', upsert: true,
+                            contentType: blob.type || 'image/png',
+                        });
+                    if (!uploadError) {
+                        exportedFiles.push({
+                            path, fileName: `generated.${ext}`,
+                            bucket: 'order-files', fileCategory: 'ai-generated',
+                            productType: 'cartoon-portrait', fileType: 'export',
+                            size: blob.size, mimeType: blob.type || 'image/png',
+                            pageNumber: 2,
+                        });
+                    }
+                } catch (e) {
+                    console.warn('cartoon generated upload failed:', e);
+                }
+            }
+
+            if (exportedFiles.length > 0) {
+                sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
+            }
+        } catch (e) {
+            console.warn('cartoon storage step skipped:', e);
+        }
 
         toast.success('Портрет додано до кошика!');
     };

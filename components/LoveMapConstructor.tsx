@@ -149,16 +149,17 @@ export default function LoveMapConstructor() {
         return sizePrice + typePrice;
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!config.hasValidLocations) {
             toast.error(t('lovemap.error_locations_required'));
             return;
         }
 
         const totalPrice = calculatePrice();
+        const cartItemId = `love-map-${Date.now()}`;
 
         addItem({
-            id: `love-map-${Date.now()}`,
+            id: cartItemId,
             name: 'Карта кохання',
             price: totalPrice,
             qty: 1,
@@ -179,6 +180,38 @@ export default function LoveMapConstructor() {
 Координати 2: ${config.latitude2.toFixed(4)}°, ${config.longitude2.toFixed(4)}°
             `.trim()
         });
+
+        // Persist the config as JSON in Storage. LoveMap has no customer
+        // photo — it's a template product driven entirely by the inputs
+        // (names, date, two locations, colour scheme), so the designer
+        // needs the exact values to render.
+        try {
+            const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+            const sb = createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
+            const { data: { user } } = await sb.auth.getUser();
+            const userKey = user?.id || 'anon';
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const path = `${userKey}/${cartItemId}/lovemap_config.json`;
+            const { error: uploadError } = await sb.storage
+                .from('order-files')
+                .upload(path, blob, {
+                    cacheControl: '31536000', upsert: true,
+                    contentType: 'application/json',
+                });
+            if (!uploadError) {
+                sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
+                    path, fileName: 'lovemap_config.json',
+                    bucket: 'order-files', fileCategory: 'lovemap-config',
+                    productType: 'lovemap', fileType: 'export',
+                    size: blob.size, mimeType: 'application/json',
+                }));
+            }
+        } catch (e) {
+            console.warn('lovemap config save skipped:', e);
+        }
 
         toast.success(t('lovemap.add_to_cart_success'));
     };

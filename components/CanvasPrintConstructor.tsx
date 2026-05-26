@@ -79,10 +79,11 @@ export default function CanvasPrintConstructor() {
         setPhoto({ id: Date.now().toString(), file, preview, width: img.width, height: img.height });
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!selectedSize || !photo) return;
+        const cartItemId = `canvas-${Date.now()}`;
         addItem({
-            id: `canvas-${Date.now()}`,
+            id: cartItemId,
             product_id: product?.id || 'druk-na-polotni',
             name: `Друк на полотні ${selectedSize.label}`,
             price: selectedSize.price * qty,
@@ -92,6 +93,40 @@ export default function CanvasPrintConstructor() {
             slug: 'druk-na-polotni',
             personalization_note: `Файл: ${photo.file.name} (${photo.width}×${photo.height}px)`,
         });
+
+        // Upload the canvas-print original to Storage so the manager has the
+        // source file at production time. Without this step the order shows
+        // only a low-res preview from the projects table.
+        try {
+            const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+            const sb = createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
+            const { data: { user } } = await sb.auth.getUser();
+            const userKey = user?.id || 'anon';
+            const safeName = photo.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = `${userKey}/${cartItemId}/${safeName}`;
+            const { error: uploadError } = await sb.storage
+                .from('order-files')
+                .upload(path, photo.file, {
+                    cacheControl: '31536000', upsert: true,
+                    contentType: photo.file.type || 'image/jpeg',
+                });
+            if (!uploadError) {
+                sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
+                    path, fileName: photo.file.name, bucket: 'order-files',
+                    fileCategory: 'photo-upload', productType: 'canvas-print',
+                    fileType: 'upload', size: photo.file.size,
+                    mimeType: photo.file.type || 'image/jpeg',
+                }));
+            } else {
+                console.warn('canvas-print upload failed:', uploadError);
+            }
+        } catch (e) {
+            console.warn('canvas-print storage step skipped:', e);
+        }
+
         toast.success(t('canvasprint.added_to_cart'));
         setStep(3);
     };

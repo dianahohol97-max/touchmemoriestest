@@ -249,8 +249,9 @@ export default function DeskCalendarConstructor(){
   const curMarks=marks[`m${active}`]||[];
 
   const handleOrder = async () => {
+    const cartItemId = `desk-cal-${Date.now()}`;
     const cartPayload = {
-      id:`desk-cal-${Date.now()}`,
+      id: cartItemId,
       name:`Настільний календар ${year}`,
       price:325, qty:1,
       image:monthPhotos.flat().find(p=>p.url!==null)?.url||'',
@@ -258,6 +259,54 @@ export default function DeskCalendarConstructor(){
       personalization_note:`Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`,
     };
     addItem(cartPayload);
+
+    // Upload originals to Storage. The slot state only keeps blob URLs, so
+    // for each filled slot we fetch the blob and persist it. Without this
+    // step the manager only sees previews and has no source to print from.
+    try {
+      const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+      const sb = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: { user } } = await sb.auth.getUser();
+      const userKey = user?.id || 'anon';
+      const exportedFiles: any[] = [];
+      let pageIdx = 0;
+      for (let m = 0; m < monthPhotos.length; m++) {
+        for (let s = 0; s < monthPhotos[m].length; s++) {
+          const url = monthPhotos[m][s]?.url;
+          if (!url) continue;
+          pageIdx++;
+          try {
+            const blob = await (await fetch(url)).blob();
+            const ext = (blob.type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/g, '');
+            const path = `${userKey}/${cartItemId}/m${String(m + 1).padStart(2, '0')}-s${s + 1}.${ext === 'jpg' ? 'jpeg' : ext}`;
+            const { error: uploadError } = await sb.storage
+              .from('order-files')
+              .upload(path, blob, {
+                cacheControl: '31536000', upsert: true,
+                contentType: blob.type || 'image/jpeg',
+              });
+            if (uploadError) { console.warn('desk-cal upload failed:', uploadError); continue; }
+            exportedFiles.push({
+              path, fileName: `month_${m + 1}_slot_${s + 1}.${ext === 'jpg' ? 'jpeg' : ext}`,
+              bucket: 'order-files', fileCategory: 'photo-upload',
+              productType: 'desk-calendar', fileType: 'upload',
+              size: blob.size, mimeType: blob.type || 'image/jpeg',
+              pageNumber: pageIdx,
+            });
+          } catch (e) {
+            console.warn('desk-cal blob fetch failed:', e);
+          }
+        }
+      }
+      if (exportedFiles.length > 0) {
+        sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
+      }
+    } catch (e) {
+      console.warn('desk-cal storage step skipped:', e);
+    }
 
     // Persist as a project so the calendar appears in "Мої дизайни" (it only
     // went to the cart before). cart_payload lets the account "Замовити"

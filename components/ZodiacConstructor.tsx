@@ -217,11 +217,12 @@ const { addItem } = useCartStore();
         return sizePrice + typePrice;
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         const totalPrice = calculatePrice();
+        const cartItemId = `zodiac-${Date.now()}`;
 
         addItem({
-            id: `zodiac-${Date.now()}`,
+            id: cartItemId,
             name: t('zodiac.header_title'),
             price: totalPrice,
             qty: 1,
@@ -240,6 +241,35 @@ const { addItem } = useCartStore();
 Стиль: ${stylePresets[config.style].name}
             `.trim()
         });
+
+        // Persist the config so the designer has all the inputs.
+        try {
+            const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+            const sb = createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
+            const { data: { user } } = await sb.auth.getUser();
+            const userKey = user?.id || 'anon';
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const path = `${userKey}/${cartItemId}/zodiac_config.json`;
+            const { error: uploadError } = await sb.storage
+                .from('order-files')
+                .upload(path, blob, {
+                    cacheControl: '31536000', upsert: true,
+                    contentType: 'application/json',
+                });
+            if (!uploadError) {
+                sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
+                    path, fileName: 'zodiac_config.json',
+                    bucket: 'order-files', fileCategory: 'zodiac-config',
+                    productType: 'zodiac', fileType: 'export',
+                    size: blob.size, mimeType: 'application/json',
+                }));
+            }
+        } catch (e) {
+            console.warn('zodiac config save skipped:', e);
+        }
 
         toast.success('Постер знаку зодіаку додано до кошика!');
     };

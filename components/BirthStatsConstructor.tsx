@@ -176,16 +176,17 @@ const { addItem } = useCartStore();
         return sizePrice + typePrice;
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!config.babyName || !config.weight || !config.height) {
             toast.error('Будь ласка, заповніть всі обов\'язкові поля');
             return;
         }
 
         const totalPrice = calculatePrice();
+        const cartItemId = `birth-stats-${Date.now()}`;
 
         addItem({
-            id: `birth-stats-${Date.now()}`,
+            id: cartItemId,
             name: t('birthstats.header_title'),
             price: totalPrice,
             qty: 1,
@@ -205,6 +206,35 @@ const { addItem } = useCartStore();
 Знак зодіаку: ${config.zodiacSign}
             `.trim()
         });
+
+        // Persist the config so the designer has all the inputs.
+        try {
+            const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+            const sb = createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
+            const { data: { user } } = await sb.auth.getUser();
+            const userKey = user?.id || 'anon';
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const path = `${userKey}/${cartItemId}/birthstats_config.json`;
+            const { error: uploadError } = await sb.storage
+                .from('order-files')
+                .upload(path, blob, {
+                    cacheControl: '31536000', upsert: true,
+                    contentType: 'application/json',
+                });
+            if (!uploadError) {
+                sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
+                    path, fileName: 'birthstats_config.json',
+                    bucket: 'order-files', fileCategory: 'birthstats-config',
+                    productType: 'birth-stats', fileType: 'export',
+                    size: blob.size, mimeType: 'application/json',
+                }));
+            }
+        } catch (e) {
+            console.warn('birthstats config save skipped:', e);
+        }
 
         toast.success(t('birthstats.birthstats_added'));
     };

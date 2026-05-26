@@ -710,6 +710,51 @@ export default function PosterConstructor() {
 
       addItem(cartPayload);
 
+      // Upload originals from the blob URLs to Storage. Poster keeps photos as
+      // photoUrl strings (URL.createObjectURL) rather than File refs, so we
+      // fetch each one and persist the blob. Without this the manager only
+      // has a low-res preview from the projects row.
+      try {
+        const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+        const sb = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data: { user } } = await sb.auth.getUser();
+        const userKey = user?.id || 'anon';
+        const exportedFiles: any[] = [];
+        for (let i = 0; i < config.photos.length; i++) {
+          const p = config.photos[i];
+          if (!p.photoUrl) continue;
+          try {
+            const blob = await (await fetch(p.photoUrl)).blob();
+            const ext = (blob.type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/g, '');
+            const path = `${userKey}/${cartPayload.id}/${String(i + 1).padStart(3, '0')}.${ext === 'jpg' ? 'jpeg' : ext}`;
+            const { error: uploadError } = await sb.storage
+              .from('order-files')
+              .upload(path, blob, {
+                cacheControl: '31536000', upsert: true,
+                contentType: blob.type || 'image/jpeg',
+              });
+            if (uploadError) { console.warn('poster upload failed:', uploadError); continue; }
+            exportedFiles.push({
+              path, fileName: `poster_slot_${i + 1}.${ext === 'jpg' ? 'jpeg' : ext}`,
+              bucket: 'order-files', fileCategory: 'photo-upload',
+              productType: 'poster', fileType: 'upload',
+              size: blob.size, mimeType: blob.type || 'image/jpeg',
+              pageNumber: i + 1,
+            });
+          } catch (e) {
+            console.warn('poster blob fetch failed:', e);
+          }
+        }
+        if (exportedFiles.length > 0) {
+          sessionStorage.setItem(`export_${cartPayload.id}`, JSON.stringify(exportedFiles));
+        }
+      } catch (e) {
+        console.warn('poster storage step skipped:', e);
+      }
+
       // Persist as a project so the poster shows up in "Мої дизайни" (like
       // books/photo-print/starmap). It only went to the cart before, so it
       // was missing from the account page. cart_payload lets the account

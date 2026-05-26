@@ -131,7 +131,7 @@ export default function CityMapConstructor() {
         }
     }, [config.mapStyle]);
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!product) {
             toast.error(t('citymap.product_not_found'));
             return;
@@ -142,8 +142,9 @@ export default function CityMapConstructor() {
             return;
         }
 
+        const cartItemId = `citymap_${Date.now()}`;
         addItem({
-            id: `citymap_${Date.now()}`,
+            id: cartItemId,
             product_id: product.slug,
             name: product.name,
             price: config.price,
@@ -160,6 +161,38 @@ export default function CityMapConstructor() {
             slug: product.slug,
             personalization_note: `Заголовок: ${config.title}\nПідзаголовок: ${config.subtitle}\nНотатка: ${config.textNote}\nКоординати: ${config.coordinates}`
         });
+
+        // The CityMap product has no customer-supplied photo — it's generated
+        // from the location config. So we persist the full config as a JSON
+        // file in Storage, which is what the designer needs to lay out the
+        // print: the exact location, title, subtitle, style, all the inputs.
+        try {
+            const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+            const sb = createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
+            const { data: { user } } = await sb.auth.getUser();
+            const userKey = user?.id || 'anon';
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const path = `${userKey}/${cartItemId}/citymap_config.json`;
+            const { error: uploadError } = await sb.storage
+                .from('order-files')
+                .upload(path, blob, {
+                    cacheControl: '31536000', upsert: true,
+                    contentType: 'application/json',
+                });
+            if (!uploadError) {
+                sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
+                    path, fileName: 'citymap_config.json',
+                    bucket: 'order-files', fileCategory: 'citymap-config',
+                    productType: 'citymap', fileType: 'export',
+                    size: blob.size, mimeType: 'application/json',
+                }));
+            }
+        } catch (e) {
+            console.warn('citymap config save skipped:', e);
+        }
 
         toast.success(t('citymap.add_to_cart_success'));
     };
