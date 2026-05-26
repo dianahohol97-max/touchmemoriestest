@@ -327,7 +327,7 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
                                     {file.product_type && (
                                         <div style={{ marginBottom: '8px' }}>
                                             <span style={{ fontSize: '10px', fontWeight: 700, background: '#eff6ff', color: '#263A99', padding: '2px 7px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                                                {{ photobook:'Фотокнига', photoprint:'Фотодрук', journal:'Журнал', poster:'Постер', calendar:'Календар', travelbook:'Travel Book', photomagnets:'Магніти', puzzle:'Пазл' }[file.product_type] || file.product_type}
+                                                {{ photobook:'Фотокнига', photoprint:'Фотодрук', journal:'Журнал', poster:'Постер', calendar:'Календар', travelbook:'Travel Book', photomagnets:'Магніти', puzzle:'Пазл', 'star-map':'Карта зір', wishbook:'Книга побажань', planner:'Планер' }[file.product_type] || file.product_type}
                                             </span>
                                         </div>
                                     )}
