@@ -3,7 +3,7 @@ import { Footer } from '@/components/ui/Footer';
 
 export const metadata = {
   title: 'Контакти | Touch.Memories',
-  description: 'Зв\'яжіться з Touch.Memories: Тернопіль, вул. Київська 2. Telegram @touchmemories, email touch.memories3@gmail.com.',
+  description: 'Зв\'яжіться з Touch.Memories: Тернопіль, вул. Омеляна Польового, 4а. Telegram @touchmemories, email touch.memories3@gmail.com.',
 };
 
 export default function Kontakty() {
@@ -28,7 +28,7 @@ export default function Kontakty() {
 
                             <div style={{ marginBottom: '20px' }}>
                                 <h3 className="text-sm font-medium text-[#6b7280]" style={{ marginBottom: '4px' }}>Адреса</h3>
-                                <p style={{ fontSize: '18px', fontWeight: 600 }}>Тернопіль, вул. Київська 2</p>
+                                <p style={{ fontSize: '18px', fontWeight: 600 }}>Тернопіль, вул. Омеляна Польового, 4а</p>
                             </div>
 
                             <div className="flex flex-col gap-3 mt-4">
