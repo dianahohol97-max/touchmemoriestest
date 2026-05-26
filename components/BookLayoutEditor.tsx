@@ -2517,6 +2517,23 @@ export default function BookLayoutEditor() {
     if (photosWithFile.length > 0) {
       setUploadState({ active: true, done: 0, total: photosWithFile.length, failed: 0, orderId });
       let done = 0, failed = 0;
+      // Derive product_type from the slug so the admin /admin/orders/[id]/files
+      // page can show the right badge ("Фотокнига" / "Travel Book" / "Журнал" /
+      // "Книга побажань" etc.) on each uploaded original. The slug-to-type
+      // mapping mirrors the one used by saveDesignToProjects below so that
+      // both the project row and the file rows agree on the product family.
+      const uploadSlug = (config?.productSlug || '').toLowerCase();
+      let uploadProductType: string = 'photobook';
+      if (uploadSlug.includes('travel')) uploadProductType = 'travelbook';
+      else if (uploadSlug.includes('magazine') || uploadSlug.includes('zhurnal') || uploadSlug.includes('fotozhurnal')) uploadProductType = 'journal';
+      else if (uploadSlug.includes('wish') || uploadSlug.includes('pobazhan') || uploadSlug.includes('guest')) uploadProductType = 'wishbook';
+      else if (uploadSlug.includes('journal')) uploadProductType = 'journal';
+      else if (uploadSlug.includes('planner')) uploadProductType = 'planner';
+      // Track uploaded files so cart.linkPendingExports can write order_files
+      // rows once the real order id is known. The API also tries an insert when
+      // it receives a UUID, but here the orderId is a pre-checkout pb-{ts}
+      // placeholder, so the source of truth is this sessionStorage list.
+      const exportedFiles: any[] = [];
       // Upload in parallel batches of 3 to avoid overwhelming the connection
       const BATCH = 3;
       for (let i = 0; i < photosWithFile.length; i += BATCH) {
@@ -2528,12 +2545,36 @@ export default function BookLayoutEditor() {
             fd.append('orderId', orderId);
             fd.append('photoId', photo.id);
             fd.append('photoName', photo.name);
+            fd.append('productType', uploadProductType);
+            fd.append('fileCategory', 'photo-upload');
             const res = await fetch('/api/photobook/upload-photos', { method: 'POST', body: fd });
-            if (!res.ok) failed++;
-            else done++;
+            if (!res.ok) { failed++; return; }
+            done++;
+            const body = await res.json().catch(() => ({} as any));
+            if (body && body.path) {
+              exportedFiles.push({
+                path: body.path,
+                fileName: photo.name,
+                bucket: 'photobook-uploads',
+                fileCategory: 'photo-upload',
+                productType: uploadProductType,
+                fileType: 'upload',
+                size: photo.originalFile!.size,
+                mimeType: photo.originalFile!.type || 'image/jpeg',
+              });
+            }
           } catch { failed++; }
           setUploadState(prev => prev ? { ...prev, done: done, failed: failed } : null);
         }));
+      }
+      if (exportedFiles.length > 0) {
+        try {
+          sessionStorage.setItem(`export_${orderId}`, JSON.stringify(exportedFiles));
+        } catch (e) {
+          // sessionStorage quota — skip; the API insert path still covers
+          // the case when the order id is a real UUID.
+          console.warn('Could not persist export list for cart linking:', e);
+        }
       }
       setUploadState(prev => prev ? { ...prev, active: false } : null);
     }

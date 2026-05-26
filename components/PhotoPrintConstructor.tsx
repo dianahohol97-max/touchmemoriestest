@@ -580,8 +580,9 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     if (totalQty<minQty) { toast.error(`Мінімальне замовлення: ${minQty} шт. Зараз: ${totalQty}.`); return; }
     if (multiple>1&&totalQty%multiple!==0) { toast.error(`Кількість має бути кратною ${multiple}. Зараз: ${totalQty}.`); return; }
 
+    const cartItemId = `${product.id}_${Date.now()}`;
     const cartPayload = {
-      id:`${product.id}_${Date.now()}`, product_id:product.id, name:product.name,
+      id: cartItemId, product_id:product.id, name:product.name,
       price:calculatePrice(), image:product.images?.[0]||'', slug:product.slug,
       options:{ 'Кількість фото':totalQty.toString(),
         ...(selectedSize&&{'Розмір':selectedSize}), ...(selectedFinish&&{'Покриття':selectedFinish}),
@@ -593,6 +594,43 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     };
 
     addItem(cartPayload);
+
+    // Upload originals to Supabase Storage and persist a list under
+    // sessionStorage.export_{cartItemId} so cart.linkPendingExports can
+    // create order_files rows once the real order id is known. Without
+    // this step the manager would only see low-res previews in the
+    // `projects` row, which is no use for production.
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userKey = user?.id || 'anon';
+      const exportedFiles: any[] = [];
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        if (!photo.file) continue;
+        const ext = (photo.file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const safeName = photo.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${userKey}/${cartItemId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
+        const { error: uploadError } = await supabase.storage
+          .from('order-files')
+          .upload(path, photo.file, {
+            cacheControl: '31536000',
+            upsert: true,
+            contentType: photo.file.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+          });
+        if (uploadError) { console.warn('photo-print upload failed:', uploadError); continue; }
+        exportedFiles.push({
+          path, fileName: photo.file.name, bucket: 'order-files',
+          fileCategory: 'photo-upload', productType: 'photoprint',
+          fileType: 'upload', size: photo.file.size,
+          mimeType: photo.file.type || 'image/jpeg', pageNumber: i + 1,
+        });
+      }
+      if (exportedFiles.length > 0) {
+        sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
+      }
+    } catch (e) {
+      console.warn('photo-print storage step skipped:', e);
+    }
 
     try {
       const { data:{user} } = await supabase.auth.getUser();

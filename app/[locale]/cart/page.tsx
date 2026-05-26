@@ -88,26 +88,45 @@ export default function CartPage() {
     /**
      * After the order is created server-side, read export data stored in sessionStorage
      * by each constructor and create proper order_files records linked to the real order_id.
+     *
+     * Each constructor writes its data under sessionStorage.export_{cartItemId}. The
+     * value can be either:
+     *   - a single object {path, fileName, bucket, fileCategory, productType, ...}
+     *     for constructors that produce one file per cart item (star map, calendar,
+     *     guestbook, magnet, puzzle); OR
+     *   - an array of such objects for constructors that produce many files per cart
+     *     item (book layout editor uploads every original photo).
+     * Both shapes are normalised to a flat list of order_files rows here.
      */
     async function linkPendingExports(orderId: string, cartItemIds: string[]) {
         const records: OrderFileRecord[] = [];
+
+        const toRecord = (data: any): OrderFileRecord | null => {
+            if (!data || !data.path || !data.fileName || !data.bucket) return null;
+            return {
+                order_id: orderId,
+                file_path: data.path,
+                file_name: data.fileName,
+                file_type: data.fileType || 'export',
+                file_category: data.fileCategory,
+                product_type: data.productType,
+                bucket_name: data.bucket,
+                file_size: data.size,
+                mime_type: data.mimeType || 'image/png',
+                page_number: data.pageNumber,
+            };
+        };
 
         for (const itemId of cartItemIds) {
             const raw = sessionStorage.getItem(`export_${itemId}`);
             if (!raw) continue;
             try {
                 const data = JSON.parse(raw);
-                records.push({
-                    order_id: orderId,
-                    file_path: data.path,
-                    file_name: data.fileName,
-                    file_type: 'export',
-                    file_category: data.fileCategory,
-                    product_type: data.productType,
-                    bucket_name: data.bucket,
-                    file_size: data.size,
-                    mime_type: data.mimeType || 'image/png',
-                });
+                const items = Array.isArray(data) ? data : [data];
+                for (const item of items) {
+                    const r = toRecord(item);
+                    if (r) records.push(r);
+                }
                 sessionStorage.removeItem(`export_${itemId}`);
             } catch { /* skip malformed entries */ }
         }

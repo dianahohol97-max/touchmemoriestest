@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/cart-store';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
+import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 
 // Magnet sizes (cm) with aspect ratios
 const MAGNET_SIZES = [
@@ -125,7 +126,7 @@ const router = useRouter();
   });
   const hasMultipleErrors = multipleErrors.length > 0;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (magnets.length < MIN_QUANTITY) {
       toast.error(`Мінімум ${MIN_QUANTITY} магнітів в замовленні`);
       return;
@@ -134,9 +135,10 @@ const router = useRouter();
       toast.error('Виправте кількість магнітів (має бути кратна вказаному числу)');
       return;
     }
+    const cartItemId = `magnet-${Date.now()}`;
     const sizes = magnets.map(m => MAGNET_SIZES.find(s => s.id === m.sizeId)?.label).filter(Boolean);
     addItem({
-      id: `magnet-${Date.now()}`,
+      id: cartItemId,
       name: 'Фотомагніти',
       price: totalPrice,
       qty: 1,
@@ -144,6 +146,45 @@ const router = useRouter();
       options: { 'Кількість': `${magnets.length} шт`, 'Розміри': [...new Set(sizes)].join(', ') },
       personalization_note: `${magnets.length} магнітів`,
     });
+
+    // Upload originals to Supabase Storage so the admin can see and download
+    // the real photos in /admin/orders/[id]/files. Without this, magnets land
+    // in the order as a row in `projects` only and the manager has no file
+    // to send to print.
+    try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: { user } } = await supabase.auth.getUser();
+      const userKey = user?.id || 'anon';
+      const exportedFiles: any[] = [];
+      for (let i = 0; i < magnets.length; i++) {
+        const m = magnets[i];
+        if (!m.photoFile) continue;
+        const safeName = m.photoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${userKey}/${cartItemId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
+        const { error: uploadError } = await supabase.storage
+          .from('order-files')
+          .upload(path, m.photoFile, {
+            cacheControl: '31536000', upsert: true,
+            contentType: m.photoFile.type || 'image/jpeg',
+          });
+        if (uploadError) { console.warn('magnet upload failed:', uploadError); continue; }
+        exportedFiles.push({
+          path, fileName: m.photoFile.name, bucket: 'order-files',
+          fileCategory: 'photo-upload', productType: 'photomagnets',
+          fileType: 'upload', size: m.photoFile.size,
+          mimeType: m.photoFile.type || 'image/jpeg', pageNumber: i + 1,
+        });
+      }
+      if (exportedFiles.length > 0) {
+        sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
+      }
+    } catch (e) {
+      console.warn('magnet storage step skipped:', e);
+    }
+
     toast.success(t('magnet.magnets_added'));
     setShowCartModal(true);
   };

@@ -7,6 +7,7 @@ import { Upload, ShoppingCart, Image as ImageIcon, Type, QrCode, Sparkles } from
 import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/cart-store';
 import { useT } from '@/lib/i18n/context';
+import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 
 // Puzzle formats: A5 (15×21) and A4 (20×30) in both orientations.
 type PuzzleFormat = {
@@ -131,12 +132,13 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
   const finishData = FINISHES.find(f => f.id === config.finish)!;
   const totalPrice = format.basePrice + finishData.priceAdd + (config.mode === 'qr' ? QR_PRICE : 0);
 
-  const addToCart = () => {
+  const addToCart = async () => {
     if ((config.mode === 'photo' || config.mode === 'photo-text') && !config.photoUrl) { toast.error(t('puzzle.uploadPhoto')); return; }
     if (config.mode === 'text' && !config.text.trim()) { toast.error(t('puzzle.textPlaceholder')); return; }
     if (config.mode === 'qr' && !config.qrValue.trim()) { toast.error(t('puzzle.qrPlaceholder')); return; }
+    const cartItemId = `puzzle-${Date.now()}`;
     addItem({
-      id: `puzzle-${Date.now()}`,
+      id: cartItemId,
       name: 'Фотопазл',
       price: totalPrice,
       qty: 1,
@@ -149,6 +151,41 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
       },
       personalization_note: `${format.label} · ${config.pieceCount} деталей · ${finishData.label}`,
     });
+
+    // Upload the photo (if any) to Storage so admin sees it in
+    // /admin/orders/[id]/files with the Пазл badge. The photo lives in
+    // state as a data URL, so we convert it to a Blob first.
+    if ((config.mode === 'photo' || config.mode === 'photo-text') && config.photoUrl) {
+      try {
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data: { user } } = await supabase.auth.getUser();
+        const userKey = user?.id || 'anon';
+        // Fetch the data URL — works for any image/* MIME
+        const blob = await (await fetch(config.photoUrl)).blob();
+        const ext = (blob.type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/g, '');
+        const path = `${userKey}/${cartItemId}/puzzle.${ext === 'jpg' ? 'jpeg' : ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('order-files')
+          .upload(path, blob, {
+            cacheControl: '31536000', upsert: true,
+            contentType: blob.type || 'image/jpeg',
+          });
+        if (!uploadError) {
+          sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
+            path, fileName: `puzzle.${ext === 'jpg' ? 'jpeg' : ext}`,
+            bucket: 'order-files', fileCategory: 'photo-upload',
+            productType: 'puzzle', fileType: 'upload',
+            size: blob.size, mimeType: blob.type || 'image/jpeg',
+          }));
+        }
+      } catch (e) {
+        console.warn('puzzle storage step skipped:', e);
+      }
+    }
+
     toast.success(t('puzzle.addToCart'));
     setShowCartModal(true);
   };
