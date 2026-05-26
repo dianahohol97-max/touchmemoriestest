@@ -534,8 +534,6 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         if (!total) return null;
         // Lamination: 7 UAH per page (Diana's price list, May 2026)
         if (opts['Ламінація сторінок'] === 'З ламінацією сторінок' || opts['Ламінація сторінок'] === 'З ламінацією (+7 ₴/стор)') total += (pages as number) * LAMINATION_PRICE_PER_PAGE;
-        // Individual cover: +500 UAH
-        if (opts['Індивідуальна обкладинка'] === 'Індивідуальна (+50 ₴)') total += 50;
         return total;
       }
     }
@@ -1064,7 +1062,6 @@ export function getCalculatedPrice(slug: string, selectedOptions: Record<string,
       let total = TRAVELBOOK_PAGE_PRICES[pages] || 0;
       if (!total) return null;
       if (selectedOptions['Ламінація сторінок'] === 'З ламінацією сторінок' || selectedOptions['Ламінація сторінок'] === 'З ламінацією (+7 ₴/стор)') total += (pages as number) * LAMINATION_PRICE_PER_PAGE;
-      if (selectedOptions['Індивідуальна обкладинка'] === 'Індивідуальна (+50 ₴)') total += 50;
       return total;
     }
   }
