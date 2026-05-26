@@ -29,14 +29,14 @@ interface BookProduct {
 
 interface PhotoRecommendation {
     pages: number;
-    mixed: string;   // "Великі фото + колажі" range, e.g. "12-16 фото"
-    collage: string; // "Багато колажів" single number or range, e.g. "20 фото"
+    mixed: string;            // Primary range, e.g. "12-16 фото"
+    collage?: string;         // Optional "more collages" range (photobook only)
 }
 
 // Photo capacity recommendations per page count. Source: Diana's print-sheet
-// (May 2026). Two columns reflect the two layout strategies: a mix of large
-// photos and collages, vs predominantly collage layouts (which fit more
-// photos per spread).
+// (May 2026). Photobook has two columns (mixed vs collage strategies); travel
+// book, hard-cover journal and soft-cover magazine each have a single
+// recommended range from the printed price-sheet posters.
 const PHOTO_RECOMMENDATIONS: Record<string, PhotoRecommendation[]> = {
     photobook: [
         { pages: 8,  mixed: '12-16 фото', collage: '20 фото' },
@@ -61,6 +61,60 @@ const PHOTO_RECOMMENDATIONS: Record<string, PhotoRecommendation[]> = {
         { pages: 46, mixed: '69-94 фото', collage: '115 фото' },
         { pages: 48, mixed: '72-98 фото', collage: '120 фото' },
         { pages: 50, mixed: '75-100 фото', collage: '125-135 фото' },
+    ],
+    // Travel Book and hard-cover photojournal share the same physical book
+    // shape and the same recommendation scale (12 → 13-18, 80 → 81-120).
+    travelbook: [
+        { pages: 12, mixed: '13-23 фото' },
+        { pages: 16, mixed: '17-27 фото' },
+        { pages: 20, mixed: '21-31 фото' },
+        { pages: 24, mixed: '25-35 фото' },
+        { pages: 28, mixed: '29-40 фото' },
+        { pages: 32, mixed: '33-45 фото' },
+        { pages: 36, mixed: '37-50 фото' },
+        { pages: 40, mixed: '41-60 фото' },
+        { pages: 44, mixed: '45-65 фото' },
+        { pages: 48, mixed: '49-70 фото' },
+        { pages: 52, mixed: '53-75 фото' },
+        { pages: 60, mixed: '61-85 фото' },
+        { pages: 72, mixed: '73-105 фото' },
+        { pages: 80, mixed: '81-120 фото' },
+    ],
+    'photojournal-hard': [
+        { pages: 12, mixed: '13-23 фото' },
+        { pages: 16, mixed: '17-27 фото' },
+        { pages: 20, mixed: '21-31 фото' },
+        { pages: 24, mixed: '25-35 фото' },
+        { pages: 28, mixed: '29-40 фото' },
+        { pages: 32, mixed: '33-45 фото' },
+        { pages: 36, mixed: '37-50 фото' },
+        { pages: 40, mixed: '41-60 фото' },
+        { pages: 44, mixed: '45-65 фото' },
+        { pages: 48, mixed: '49-70 фото' },
+        { pages: 52, mixed: '53-75 фото' },
+        { pages: 60, mixed: '61-85 фото' },
+        { pages: 72, mixed: '73-105 фото' },
+        { pages: 80, mixed: '81-120 фото' },
+    ],
+    // Soft-cover magazine — has its own scale (8 → 9-13, up to 100 pages)
+    magazine: [
+        { pages: 8,   mixed: '9-13 фото' },
+        { pages: 12,  mixed: '13-17 фото' },
+        { pages: 16,  mixed: '17-21 фото' },
+        { pages: 20,  mixed: '21-25 фото' },
+        { pages: 24,  mixed: '25-29 фото' },
+        { pages: 28,  mixed: '29-35 фото' },
+        { pages: 32,  mixed: '33-43 фото' },
+        { pages: 36,  mixed: '37-47 фото' },
+        { pages: 40,  mixed: '41-55 фото' },
+        { pages: 44,  mixed: '45-55 фото' },
+        { pages: 48,  mixed: '49-65 фото' },
+        { pages: 52,  mixed: '53-70 фото' },
+        { pages: 60,  mixed: '61-75 фото' },
+        { pages: 72,  mixed: '73-85 фото' },
+        { pages: 80,  mixed: '81-95 фото' },
+        { pages: 92,  mixed: '93-110 фото' },
+        { pages: 100, mixed: '101-120 фото' },
     ],
 };
 
@@ -661,14 +715,25 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         return '';
     };
 
-    const getPhotoRecommendation = (): { mixed: string; collage: string } | null => {
+    // Photo recommendation lookup key — diverges from getProductType() because
+    // the hard-cover and soft-cover photojournals share the 'magazine' product
+    // type for pricing (legacy), but have different photo-capacity tables.
+    const getPhotoRecKey = (): string => {
+        if (productSlug.includes('photobook')) return 'photobook';
+        if (productSlug.includes('photojournal-hard') || productSlug.includes('tverd') || productSlug.includes('hardcover')) return 'photojournal-hard';
+        if (productSlug.includes('magazine') || productSlug.includes('journal') || productSlug.includes('zhurnal') || productSlug.includes('fotozhurnal')) return 'magazine';
+        if (productSlug.includes('travel')) return 'travelbook';
+        return '';
+    };
+
+    const getPhotoRecommendation = (): { mixed: string; collage?: string } | null => {
         if (!selectedPageCount) return null;
 
         const pageNum = parseInt(selectedPageCount.match(/\d+/)?.[0] || '0');
         if (pageNum === 0) return null;
 
-        const productType = getProductType();
-        const recommendations = PHOTO_RECOMMENDATIONS[productType] || [];
+        const recKey = getPhotoRecKey();
+        const recommendations = PHOTO_RECOMMENDATIONS[recKey] || [];
         if (recommendations.length === 0) return null;
 
         // Try exact match first
@@ -680,18 +745,19 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (lower) {
             const diff = pageNum - lower.pages;
             const [lo, hi] = lower.mixed.replace(/[^\d-]/g, '').split('-').map(Number);
-            const collageNum = parseInt(lower.collage.replace(/[^\d]/g, '')) || 0;
-            return {
+            const result: { mixed: string; collage?: string } = {
                 mixed: `${lo + diff}-${(hi || lo) + diff} фото`,
-                collage: collageNum ? `${collageNum + Math.round(diff * 2.5)} фото` : lower.collage,
             };
+            if (lower.collage) {
+                const collageNum = parseInt(lower.collage.replace(/[^\d]/g, '')) || 0;
+                result.collage = collageNum ? `${collageNum + Math.round(diff * 2.5)} фото` : lower.collage;
+            }
+            return result;
         }
 
-        // Ultimate fallback: rough formula (used if recommendations are missing
-        // for this product type — shouldn't happen for photobook).
+        // Ultimate fallback: rough formula
         return {
             mixed: `${pageNum + 1}-${Math.round(pageNum * 1.5)} фото`,
-            collage: `${Math.round(pageNum * 2.5)} фото`,
         };
     };
 
@@ -1506,13 +1572,21 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 <p className="text-sm font-semibold text-blue-900 mb-2">
                                     {t('book_config.photo_rec_title')}
                                 </p>
-                                <p className="text-sm text-blue-700 mb-1">
-                                    Для <strong>{selectedPageCount}</strong> орієнтовно:
-                                </p>
-                                <ul className="text-sm text-blue-700 space-y-1 ml-1">
-                                    <li>• <strong>{photoRec.mixed}</strong> — великі фото + колажі</li>
-                                    <li>• <strong>{photoRec.collage}</strong> — багато колажів</li>
-                                </ul>
+                                {photoRec.collage ? (
+                                    <>
+                                        <p className="text-sm text-blue-700 mb-1">
+                                            Для <strong>{selectedPageCount}</strong> орієнтовно:
+                                        </p>
+                                        <ul className="text-sm text-blue-700 space-y-1 ml-1">
+                                            <li>• <strong>{photoRec.mixed}</strong> — великі фото + колажі</li>
+                                            <li>• <strong>{photoRec.collage}</strong> — багато колажів</li>
+                                        </ul>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-blue-700">
+                                        Для <strong>{selectedPageCount}</strong> рекомендуємо підготувати <strong>{photoRec.mixed}</strong>
+                                    </p>
+                                )}
                                 <p className="text-xs text-blue-600 mt-2">
                                     {t('book_config.photo_rec_note')}
                                 </p>
