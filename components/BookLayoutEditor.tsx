@@ -2600,60 +2600,106 @@ export default function BookLayoutEditor() {
       setCurrentIdx(originalIdx);
     }
 
-    // Compose PDF and upload
+    // Output format depends on the product. Diana wants a single
+    // multi-page PDF only for the soft-cover magazine
+    // (slug: personalized-glossy-magazine), because that one is
+    // press-printed and the lab prefers a paginated file. Every other
+    // book — photobooks, travel books, hard-cover magazine, wishbooks,
+    // guestbooks, planners — is hand-bound or printed page-by-page, so
+    // the lab wants one JPEG per spread/page.
     const exportedFiles: any[] = [];
-    if (snapshots.length > 0 && jsPDFCtor) {
-      try {
-        // Use the first snapshot's aspect to set PDF page size in mm.
-        // 1 px @ 96 DPI = 0.264583 mm.
-        const first = snapshots[0].canvas;
-        const widthMm = (first.width * 25.4) / (96 * 2); // /2 because we scaled 2×
-        const heightMm = (first.height * 25.4) / (96 * 2);
-        const pdf = new jsPDFCtor({
-          orientation: widthMm > heightMm ? 'landscape' : 'portrait',
-          unit: 'mm',
-          format: [widthMm, heightMm],
-          compress: true,
-        });
-        for (let i = 0; i < snapshots.length; i++) {
-          if (i > 0) pdf.addPage([widthMm, heightMm], widthMm > heightMm ? 'landscape' : 'portrait');
-          const dataUrl = snapshots[i].canvas.toDataURL('image/jpeg', 0.9);
-          pdf.addImage(dataUrl, 'JPEG', 0, 0, widthMm, heightMm, undefined, 'FAST');
-        }
-        const blob: Blob = pdf.output('blob');
+    const slugLower = (config?.productSlug || '').toLowerCase();
+    const wantsPdf = slugLower === 'personalized-glossy-magazine';
 
-        // Upload the PDF. Bucket photobook-uploads has no size limit;
-        // order-files is capped at 50 MB which can fail for big books.
-        const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
-        const sb = createBrowserClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
-        const { data: { user } } = await sb.auth.getUser();
-        const userKey = user?.id || 'anon';
-        const path = `${userKey}/${orderId}/book_layout.pdf`;
-        const { error: uploadError } = await sb.storage
-          .from('photobook-uploads')
-          .upload(path, blob, {
-            cacheControl: '31536000', upsert: true, contentType: 'application/pdf',
+    if (snapshots.length > 0) {
+      const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
+      const sb = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: { user } } = await sb.auth.getUser();
+      const userKey = user?.id || 'anon';
+
+      if (wantsPdf && jsPDFCtor) {
+        // Soft-cover magazine → single multi-page PDF.
+        try {
+          // Use the first snapshot's aspect to set PDF page size in mm.
+          // 1 px @ 96 DPI = 0.264583 mm.
+          const first = snapshots[0].canvas;
+          const widthMm = (first.width * 25.4) / (96 * 2); // /2 because we scaled 2×
+          const heightMm = (first.height * 25.4) / (96 * 2);
+          const pdf = new jsPDFCtor({
+            orientation: widthMm > heightMm ? 'landscape' : 'portrait',
+            unit: 'mm',
+            format: [widthMm, heightMm],
+            compress: true,
           });
-        if (uploadError) {
-          console.warn('book pdf upload failed:', uploadError);
-        } else {
-          exportedFiles.push({
-            path,
-            fileName: 'book_layout.pdf',
-            bucket: 'photobook-uploads',
-            fileCategory: 'book-layout',
-            productType: uploadProductType,
-            fileType: 'export',
-            size: blob.size,
-            mimeType: 'application/pdf',
-            pageNumber: 1,
-          });
+          for (let i = 0; i < snapshots.length; i++) {
+            if (i > 0) pdf.addPage([widthMm, heightMm], widthMm > heightMm ? 'landscape' : 'portrait');
+            const dataUrl = snapshots[i].canvas.toDataURL('image/jpeg', 0.9);
+            pdf.addImage(dataUrl, 'JPEG', 0, 0, widthMm, heightMm, undefined, 'FAST');
+          }
+          const blob: Blob = pdf.output('blob');
+          const path = `${userKey}/${orderId}/book_layout.pdf`;
+          const { error: uploadError } = await sb.storage
+            .from('photobook-uploads')
+            .upload(path, blob, {
+              cacheControl: '31536000', upsert: true, contentType: 'application/pdf',
+            });
+          if (uploadError) {
+            console.warn('book pdf upload failed:', uploadError);
+          } else {
+            exportedFiles.push({
+              path,
+              fileName: 'book_layout.pdf',
+              bucket: 'photobook-uploads',
+              fileCategory: 'book-layout',
+              productType: uploadProductType,
+              fileType: 'export',
+              size: blob.size,
+              mimeType: 'application/pdf',
+              pageNumber: 1,
+            });
+          }
+        } catch (e) {
+          console.warn('book pdf compose failed:', e);
         }
-      } catch (e) {
-        console.warn('book pdf compose failed:', e);
+      } else {
+        // Hard-cover books and everything else → one JPEG per snapshot.
+        // The cover is index 0, every subsequent index is a spread.
+        for (let i = 0; i < snapshots.length; i++) {
+          try {
+            const blob: Blob | null = await new Promise((resolve) => {
+              snapshots[i].canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92);
+            });
+            if (!blob) continue;
+            const label = snapshots[i].idx === 0 ? 'cover' : `spread_${String(snapshots[i].idx).padStart(2, '0')}`;
+            const fileName = `${String(i + 1).padStart(2, '0')}_${label}.jpg`;
+            const path = `${userKey}/${orderId}/${fileName}`;
+            const { error: uploadError } = await sb.storage
+              .from('photobook-uploads')
+              .upload(path, blob, {
+                cacheControl: '31536000', upsert: true, contentType: 'image/jpeg',
+              });
+            if (uploadError) {
+              console.warn(`book spread ${i} upload failed:`, uploadError);
+              continue;
+            }
+            exportedFiles.push({
+              path,
+              fileName,
+              bucket: 'photobook-uploads',
+              fileCategory: snapshots[i].idx === 0 ? 'book-cover' : 'book-spread',
+              productType: uploadProductType,
+              fileType: 'export',
+              size: blob.size,
+              mimeType: 'image/jpeg',
+              pageNumber: i + 1,
+            });
+          } catch (e) {
+            console.warn(`book jpg compose for spread ${i} failed:`, e);
+          }
+        }
       }
     }
 
