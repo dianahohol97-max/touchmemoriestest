@@ -845,7 +845,17 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
 
       {/* Decoration Type Selector (non-printed photobooks; hidden when a
           printed/hard cover material is selected) */}
-      {showDecoration && (
+      {showDecoration && (() => {
+        // Шкірзамінник не підтримує "Друк кольором" і "Гравірування" —
+        // ці оздоблення непридатні до шкірзаму. Інші матеріали (велюр,
+        // тканина) можуть мати всі шість опцій.
+        const isLeatherette =
+          selectedCoverMaterial.includes('шкір') ||
+          selectedCoverMaterial.includes('leather');
+        const availableOzdoblennya = isLeatherette
+          ? VELOUR_OZDOBLENNYA.filter(o => o.value !== 'flex' && o.value !== 'graviruvannya')
+          : VELOUR_OZDOBLENNYA;
+        return (
         <div>
           <label style={{
             display: 'block',
@@ -862,7 +872,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
             flexWrap: 'wrap',
             gap: '8px'
           }}>
-            {VELOUR_OZDOBLENNYA.map(opt => (
+            {availableOzdoblennya.map(opt => (
               <button
                 key={opt.value}
                 type="button"
@@ -889,7 +899,8 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
             ))}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Decoration Sub-Options — only "Металева вставка" uses decoration_variants table */}
       {showDecoration && selectedOzdoblennya === 'metal' && (() => {
