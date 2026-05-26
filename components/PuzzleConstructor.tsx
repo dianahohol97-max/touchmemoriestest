@@ -28,11 +28,6 @@ const PUZZLE_FORMATS: PuzzleFormat[] = [
   { id: 'm-h', label: '30×20 см (горизонтальний)', sheet: 'A4', orientation: 'H', widthCm: 30,   heightCm: 20,   pieceCounts: [24, 104], basePrice: 349 },
 ];
 
-const FINISHES = [
-  { id: 'matte',  label: 'Матовий',  priceAdd: 0 },
-  { id: 'glossy', label: 'Глянцевий', priceAdd: 20 },
-];
-
 const QR_PRICE = 50;
 
 type Mode = 'photo' | 'text' | 'photo-text' | 'qr';
@@ -40,7 +35,6 @@ type Mode = 'photo' | 'text' | 'photo-text' | 'qr';
 interface PuzzleConfig {
   formatId: string;
   pieceCount: number;
-  finish: 'matte' | 'glossy';
   mode: Mode;
   photoUrl: string | null;
   cropX: number;
@@ -91,7 +85,6 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
   const [config, setConfig] = useState<PuzzleConfig>({
     formatId: initialFmtObj.id,
     pieceCount: initialFmtObj.pieceCounts[1] || initialFmtObj.pieceCounts[0],
-    finish: 'matte',
     mode: 'photo',
     photoUrl: null,
     cropX: 50, cropY: 50, zoom: 1,
@@ -129,8 +122,7 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
     ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(config.qrValue)}&margin=10`
     : null;
 
-  const finishData = FINISHES.find(f => f.id === config.finish)!;
-  const totalPrice = format.basePrice + finishData.priceAdd + (config.mode === 'qr' ? QR_PRICE : 0);
+  const totalPrice = format.basePrice + (config.mode === 'qr' ? QR_PRICE : 0);
 
   const addToCart = async () => {
     if ((config.mode === 'photo' || config.mode === 'photo-text') && !config.photoUrl) { toast.error(t('puzzle.uploadPhoto')); return; }
@@ -146,10 +138,9 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
       options: {
         'Формат': format.label,
         'Деталей': `${config.pieceCount}`,
-        'Покриття': finishData.label,
         'Тип': config.mode === 'photo' ? 'Фото' : config.mode === 'text' ? 'Текст' : config.mode === 'photo-text' ? 'Фото + текст' : 'QR-код',
       },
-      personalization_note: `${format.label} · ${config.pieceCount} деталей · ${finishData.label}`,
+      personalization_note: `${format.label} · ${config.pieceCount} деталей`,
     });
 
     // Upload the photo (if any) to Storage so admin sees it in
@@ -216,7 +207,7 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
 
       <div className="puzzle-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: 20, alignItems: 'start' }}>
 
-        {/* LEFT: Mode + format + pieces + finish */}
+        {/* LEFT: Mode + format + pieces */}
         <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           <div>
@@ -267,21 +258,6 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
             </div>
           </div>
 
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('puzzle.finish')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-              {FINISHES.map(f => {
-                const finishLabel = f.id === 'matte' ? t('puzzle.matte') : t('puzzle.glossy');
-                return (
-                  <button key={f.id} onClick={() => update({ finish: f.id as 'matte' | 'glossy' })}
-                    style={{ padding: '10px 8px', border: config.finish === f.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: config.finish === f.id ? '#f0f3ff' : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: config.finish === f.id ? '#1e2d7d' : '#475569' }}>
-                    <div>{finishLabel}</div>
-                    {f.priceAdd > 0 && <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>+{f.priceAdd}₴</div>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
 
         {/* CENTER: Preview */}
@@ -466,12 +442,6 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
               <span style={{ color: '#64748b' }}>{t('puzzle.basePrice')}</span>
               <span style={{ fontWeight: 600 }}>{format.basePrice} ₴</span>
             </div>
-            {finishData.priceAdd > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                <span style={{ color: '#64748b' }}>{t('puzzle.glossPrice')}</span>
-                <span style={{ fontWeight: 600 }}>+{finishData.priceAdd} ₴</span>
-              </div>
-            )}
             {config.mode === 'qr' && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                 <span style={{ color: '#64748b' }}>{t('puzzle.qrPrice')}</span>
