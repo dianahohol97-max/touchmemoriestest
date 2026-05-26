@@ -161,13 +161,10 @@ type CoverTemplate = {
     overlay?: { type: 'gradient' | 'none'; color: string; opacity: number; gradient: string };
 };
 const COVER_TEMPLATES: CoverTemplate[] = [
-    { id:'classic-bottom', label:'Класична',     bg:'#1e2d7d', textColor:'#ffffff', textX:50, textY:88, fontSize:22, bold:true,  font:'Playfair Display' },
-    { id:'big-center',     label:'Заголовок\nпо центру', bg:'#0a0e1a', textColor:'#ffffff', textX:50, textY:50, fontSize:34, bold:true,  font:'Playfair Display' },
-    { id:'minimal-top',    label:'Мінімал\nзверху',     bg:'#faf7f2', textColor:'#1a1a1a', textX:50, textY:14, fontSize:18, bold:false, font:'Cormorant Garamond' },
-    { id:'elegant-script', label:'Каліграфія', bg:'#3d2c1e', textColor:'#f5e6c8', textX:50, textY:50, fontSize:30, bold:false, font:'Dancing Script' },
-    { id:'photo-overlay',  label:'Фото +\nтемна смуга', bg:'#14532d', textColor:'#ffffff', textX:50, textY:90, fontSize:18, bold:true,  font:'Montserrat',
-        overlay: { type:'gradient', color:'#000', opacity:0.6, gradient:'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 40%)' } },
-    { id:'bordered',       label:'З рамкою',  bg:'#f8fafc', textColor:'#0a0e1a', textX:50, textY:50, fontSize:24, bold:true,  font:'Playfair Display' },
+    // Single white template — wall calendars are printed on white stock only.
+    // Coloured backgrounds were removed: настінний друкується на білому папері,
+    // тож кольорові підкладки створювали хибне очікування у клієнта.
+    { id:'bordered', label:'З рамкою',  bg:'#f8fafc', textColor:'#0a0e1a', textX:50, textY:50, fontSize:24, bold:true, font:'Playfair Display' },
 ];
 
 // Visual thumbnail for cover templates — shows real text position + bg color
@@ -214,10 +211,10 @@ const DEFAULT_COVER: CoverConfig = {
     decoText: '',
     textFontFamily: 'Playfair Display',
     textFontSize: 48,
-    printedBgColor: '#1e2d7d',
+    printedBgColor: '#ffffff',
     printedPhotoSlot: { x: 0, y: 0, w: 100, h: 75, shape: 'rect' },
     printedTextBlocks: [
-        { id: 'title', text: 'Мій календар 2026', x: 50, y: 82, fontSize: 22, fontFamily: 'Playfair Display', color: '#ffffff', bold: true },
+        { id: 'title', text: 'Мій календар 2026', x: 50, y: 82, fontSize: 22, fontFamily: 'Playfair Display', color: '#0a0e1a', bold: true },
     ],
     printedOverlay: { type: 'gradient', color: '#000000', opacity: 50, gradient: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,0.65) 100%)' },
 };
@@ -804,18 +801,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                 </div>
                             </div>
 
-                            {/* BG color */}
-                            <div>
-                                <div style={{fontSize:10,fontWeight:700,color:'#374151',marginBottom:5}}>{t('wallcal.bg_color_label')}</div>
-                                <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:4}}>
-                                    {['#1e2d7d','#0a0e1a','#14532d','#3d2c1e','#7c3aed','#be185d','#ffffff','#faf7f2','#1a1a1a','#0369a1'].map(c=>(
-                                        <button key={c} onClick={()=>setCoverConfig(prev=>({...prev,printedBgColor:c}))}
-                                            style={{width:22,height:22,borderRadius:'50%',background:c,border:(coverConfig.printedBgColor||'#1e2d7d')===c?'3px solid #1e2d7d':'1.5px solid #e2e8f0',cursor:'pointer',boxShadow:'0 0 0 0.5px #e2e8f0'}}/>
-                                    ))}
-                                    <input type="color" value={coverConfig.printedBgColor||'#1e2d7d'} onChange={e=>setCoverConfig(prev=>({...prev,printedBgColor:e.target.value}))}
-                                        style={{width:22,height:22,borderRadius:4,border:'1px solid #e2e8f0',cursor:'pointer',padding:1}}/>
-                                </div>
-                            </div>
+                            {/* BG color picker removed — настінний друкується тільки на білому. */}
 
                             {/* Text */}
                             <div>
@@ -823,7 +809,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                 <input type="text"
                                     value={coverConfig.printedTextBlocks?.[0]?.text || ''}
                                     onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
-                                        {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,fontSize:22,fontFamily:'Playfair Display',color:'#ffffff',bold:true}),text:e.target.value},
+                                        {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,fontSize:22,fontFamily:'Playfair Display',color:'#0a0e1a',bold:true}),text:e.target.value},
                                         ...(prev.printedTextBlocks?.slice(1)||[])
                                     ]}))}
                                     placeholder={t('wallcal.text_placeholder')}
@@ -832,7 +818,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                 <select
                                     value={coverConfig.printedTextBlocks?.[0]?.fontFamily||'Playfair Display'}
                                     onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
-                                        {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,fontSize:22,color:'#ffffff',bold:true}),fontFamily:e.target.value},
+                                        {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,fontSize:22,color:'#0a0e1a',bold:true}),fontFamily:e.target.value},
                                         ...(prev.printedTextBlocks?.slice(1)||[])
                                     ]}))}
                                     style={{width:'100%',padding:'5px 7px',border:'1px solid #e2e8f0',borderRadius:7,fontSize:10,marginBottom:6,cursor:'pointer'}}>
@@ -864,7 +850,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                     <input type="range" min={12} max={60}
                                         value={coverConfig.printedTextBlocks?.[0]?.fontSize||22}
                                         onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
-                                            {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,color:'#ffffff',fontFamily:'Playfair Display',bold:true}),fontSize:+e.target.value},
+                                            {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,y:82,color:'#0a0e1a',fontFamily:'Playfair Display',bold:true}),fontSize:+e.target.value},
                                             ...(prev.printedTextBlocks?.slice(1)||[])
                                         ]}))}
                                         style={{flex:1,accentColor:'#1e2d7d'}}/>
@@ -881,7 +867,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                         <input type="range" min={10} max={90}
                                             value={coverConfig.printedTextBlocks?.[0]?.x||50}
                                             onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
-                                                {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',y:82,fontSize:22,color:'#ffffff',fontFamily:'Playfair Display',bold:true}),x:+e.target.value},
+                                                {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',y:82,fontSize:22,color:'#0a0e1a',fontFamily:'Playfair Display',bold:true}),x:+e.target.value},
                                                 ...(prev.printedTextBlocks?.slice(1)||[])
                                             ]}))}
                                             style={{flex:1,accentColor:'#1e2d7d'}}/>
@@ -891,7 +877,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                         <input type="range" min={5} max={95}
                                             value={coverConfig.printedTextBlocks?.[0]?.y||82}
                                             onChange={e=>setCoverConfig(prev=>({...prev,printedTextBlocks:[
-                                                {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,fontSize:22,color:'#ffffff',fontFamily:'Playfair Display',bold:true}),y:+e.target.value},
+                                                {...(prev.printedTextBlocks?.[0]||{id:'t1',text:'',x:50,fontSize:22,color:'#0a0e1a',fontFamily:'Playfair Display',bold:true}),y:+e.target.value},
                                                 ...(prev.printedTextBlocks?.slice(1)||[])
                                             ]}))}
                                             style={{flex:1,accentColor:'#1e2d7d'}}/>
