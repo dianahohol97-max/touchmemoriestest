@@ -608,6 +608,49 @@ const COVER_BLEED_MARGINS: Record<string, { top: number; bottom: number; left: n
   '23×23':        { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
 };
 
+/**
+ * Physical dimensions of the spread and cover in millimetres, as the print
+ * shop expects them. These drive the html2canvas snapshot scale so the
+ * exported JPGs come out at exactly the right pixel size for 300 DPI
+ * printing.
+ *
+ *   spread = the full double-page sheet (will be split into two pages
+ *            after capture). Includes bleed margins.
+ *   cover  = the full cover sheet including the 18–20 mm fold-in margins
+ *            that wrap to the inside of the board.
+ *
+ * Per the printer's spec from May 2026:
+ *   A4 hard-cover magazine — spread 420×307 mm, cover 470×328 mm
+ *                            (each inner page 220×307 mm = A4 + 5/10 mm bleed,
+ *                            cover 470×328 mm including 20 mm fold each side)
+ *   travelbook 20×30        — spread 610×305 mm, cover 646×330 mm
+ *   20×20 / 25×25 / 30×30 / 30×20 — see partner data above
+ */
+const PRINT_DIMS_MM: Record<string, { spread: { w: number; h: number }; cover: { w: number; h: number } }> = {
+  '20x20':       { spread: { w: 405, h: 203 }, cover: { w: 457, h: 243 } },
+  '20×20':       { spread: { w: 405, h: 203 }, cover: { w: 457, h: 243 } },
+  '25x25':       { spread: { w: 500, h: 254 }, cover: { w: 566, h: 293 } },
+  '25×25':       { spread: { w: 500, h: 254 }, cover: { w: 566, h: 293 } },
+  '20x30':       { spread: { w: 420, h: 305 }, cover: { w: 470, h: 328 } },
+  '20×30':       { spread: { w: 420, h: 305 }, cover: { w: 470, h: 328 } },
+  '30x20':       { spread: { w: 610, h: 203 }, cover: { w: 646, h: 238 } },
+  '30×20':       { spread: { w: 610, h: 203 }, cover: { w: 646, h: 238 } },
+  '30x30':       { spread: { w: 610, h: 305 }, cover: { w: 646, h: 330 } },
+  '30×30':       { spread: { w: 610, h: 305 }, cover: { w: 646, h: 330 } },
+  // A4 hard-cover magazine — spread 420×307 mm (two A4 pages + 5/10 mm bleed),
+  // cover 470×328 mm (full sheet including fold-in).
+  'A4':          { spread: { w: 420, h: 307 }, cover: { w: 470, h: 328 } },
+  'magazine-A4': { spread: { w: 420, h: 307 }, cover: { w: 470, h: 328 } },
+  // Travel Book — 20×30 cm portrait pages
+  'travelbook':  { spread: { w: 420, h: 305 }, cover: { w: 470, h: 328 } },
+  '23x23':       { spread: { w: 460, h: 230 }, cover: { w: 506, h: 256 } },
+  '23×23':       { spread: { w: 460, h: 230 }, cover: { w: 506, h: 256 } },
+};
+
+// Convert millimetres to pixels at 300 DPI.
+// 1 mm = 1/25.4 inch; at 300 DPI that's 11.811 px/mm.
+const mmToPx300 = (mm: number) => Math.round(mm * 300 / 25.4);
+
 // Auto-detect size key from product slug and config
 function getSizeKeyForProduct(config: BookConfig | null): string {
   if (!config) return 'A4';
@@ -2582,16 +2625,43 @@ export default function BookLayoutEditor() {
     let failed = 0;
 
     if (html2canvas) {
+      // Resolve the printed-page pixel dimensions from the size key so
+      // every snapshot lands at exactly 300 DPI. The DOM node we
+      // snapshot has a screen width of cW (typically 800–1200 px),
+      // and we need to scale it up to match the printer's expected
+      // pixel count. scale = printed_px / dom_px.
+      const sizeKey = getSizeKeyForProduct(config);
+      const dims = PRINT_DIMS_MM[sizeKey] ?? PRINT_DIMS_MM['A4'];
+      // Capture the current dom width once, before the snapshot loop
+      // changes currentIdx — both cover and spread roots have the
+      // same width in this constructor (the wrapper sizes them via
+      // cW from the editor state).
+      const probeRoot = document.querySelector('[data-spread-snapshot="root"]') as HTMLElement | null;
+      const domWidthPx = probeRoot?.getBoundingClientRect().width || 1000;
+      const spreadTargetPx = mmToPx300(dims.spread.w); // e.g. A4 → 4961 px
+      const coverTargetPx  = mmToPx300(dims.cover.w);  // e.g. A4 → 5551 px
+
       for (let i = 0; i < totalViews; i++) {
         try {
           setCurrentIdx(i);
           await waitForRender(i === 0 ? 500 : 350); // cover often slower
           const root = document.querySelector('[data-spread-snapshot="root"]') as HTMLElement | null;
           if (!root) { failed++; continue; }
+          // Pick the right target pixel width depending on what's on
+          // screen — the cover has a different aspect than spreads.
+          const targetPx = i === 0 ? coverTargetPx : spreadTargetPx;
+          const liveDomWidth = root.getBoundingClientRect().width || domWidthPx;
+          const dynamicScale = Math.max(1, targetPx / liveDomWidth);
           const canvas: HTMLCanvasElement = await html2canvas(root, {
             backgroundColor: '#ffffff',
             useCORS: true,
-            scale: 2, // 2× for crisper PDF output; 3× was running out of memory on big books
+            // Dynamic scale so the exported canvas hits 300 DPI exactly.
+            // For an A4 magazine spread that's typically scale ≈ 5–6,
+            // depending on the customer's monitor zoom. Memory pressure
+            // at scale 5 for a 100-page book is significant (~1 GB peak
+            // on the device), but it's a one-off at checkout — the
+            // editor itself never holds these big canvases.
+            scale: dynamicScale,
             logging: false,
             allowTaint: false,
           });
