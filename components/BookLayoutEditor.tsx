@@ -2613,14 +2613,11 @@ export default function BookLayoutEditor() {
       await new Promise(r => setTimeout(r, ms));
     };
 
-    // Each snapshot is either the cover (idx=0, side='cover') or an
-    // individual page that came out of splitting a spread in half
-    // (idx > 0, side='left' or 'right'). The print shop wants left and
-    // right pages of every spread as separate JPGs, not one wide
-    // spread, so the snapshot loop captures whole spreads and then
-    // splits each canvas down the middle before pushing into this
-    // array.
-    const snapshots: { canvas: HTMLCanvasElement; idx: number; side: 'cover' | 'left' | 'right' }[] = [];
+    // pageIdx is the index into the editor's `pages` array — used to
+    // detect whether a captured page is one of the endpapers (forсаç).
+    // For the cover, pageIdx = 0; for spreads, the left page is
+    // pageIdx = (idx-1)*2 + 1 and the right page is pageIdx = (idx-1)*2 + 2.
+    const snapshots: { canvas: HTMLCanvasElement; idx: number; side: 'cover' | 'left' | 'right'; pageIdx: number }[] = [];
     let captured = 0;
     let failed = 0;
 
@@ -2668,7 +2665,7 @@ export default function BookLayoutEditor() {
           if (i === 0) {
             // Cover stays as a single image — it's printed as one
             // 470×328 mm sheet with the spine in the middle.
-            snapshots.push({ canvas, idx: i, side: 'cover' });
+            snapshots.push({ canvas, idx: i, side: 'cover', pageIdx: 0 });
           } else {
             // Spread → split down the middle into left + right pages.
             // The print shop wants each page as its own file.
@@ -2686,8 +2683,11 @@ export default function BookLayoutEditor() {
               }
               return c;
             };
-            snapshots.push({ canvas: makeHalf(0),       idx: i, side: 'left'  });
-            snapshots.push({ canvas: makeHalf(halfW),   idx: i, side: 'right' });
+            // Spread idx=k shows pages[(k-1)*2 + 1] (left) and (k-1)*2 + 2 (right).
+            const leftPageIdx  = (i - 1) * 2 + 1;
+            const rightPageIdx = (i - 1) * 2 + 2;
+            snapshots.push({ canvas: makeHalf(0),     idx: i, side: 'left',  pageIdx: leftPageIdx });
+            snapshots.push({ canvas: makeHalf(halfW), idx: i, side: 'right', pageIdx: rightPageIdx });
           }
           captured++;
         } catch (e) {
@@ -2769,18 +2769,21 @@ export default function BookLayoutEditor() {
         //
         // File naming follows the production spec from the printer:
         //   • cover.jpg    — the cover snapshot
-        //   • 01.jpg, 02.jpg, … — individual pages in book reading order
-        //     (left page of spread 1, right page of spread 1, left page
-        //     of spread 2, …) — the snapshot loop already split each
-        //     spread into two side='left'/'right' canvases so iterating
-        //     in order gives the right sequence.
-        //   • f1.jpg, f2.jpg — front and back endpapers (still pending —
-        //     captured in a later stage when the constructor learns to
-        //     render them).
+        //   • f1.jpg       — front endpaper (only when the customer
+        //                    paid for "Друк на форзаці" and unlocked
+        //                    the first endpaper in the editor)
+        //   • f2.jpg       — back endpaper (same conditions, last page)
+        //   • 01.jpg, 02.jpg, … — every other page in book reading order
+        //
+        // The pageCounter increments only for "regular" pages so that
+        // even when both endpapers are present, the numbered files
+        // still start at 01.jpg and run consecutively.
         //
         // JPEG quality is 0.98 — minimal compression for the print
         // shop's preference. This roughly doubles file size vs 0.92
         // but keeps the gradients and text edges sharp at 300 DPI.
+        const frontEndpaperIdx = hasEndpaper && endpaperUnlocked.first ? endpaperFirstIdx : -1;
+        const backEndpaperIdx  = hasEndpaper && endpaperUnlocked.last  ? endpaperLastIdx  : -1;
         let pageCounter = 0;
         for (let i = 0; i < snapshots.length; i++) {
           try {
@@ -2790,9 +2793,16 @@ export default function BookLayoutEditor() {
             if (!blob) continue;
             let fileName: string;
             let fileCategory: string;
-            if (snapshots[i].side === 'cover') {
+            const snap = snapshots[i];
+            if (snap.side === 'cover') {
               fileName = 'cover.jpg';
               fileCategory = 'book-cover';
+            } else if (snap.pageIdx === frontEndpaperIdx) {
+              fileName = 'f1.jpg';
+              fileCategory = 'book-endpaper';
+            } else if (snap.pageIdx === backEndpaperIdx) {
+              fileName = 'f2.jpg';
+              fileCategory = 'book-endpaper';
             } else {
               pageCounter++;
               fileName = `${String(pageCounter).padStart(2, '0')}.jpg`;
