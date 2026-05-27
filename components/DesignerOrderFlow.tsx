@@ -223,11 +223,17 @@ export default function DesignerOrderFlow() {
                     ].filter(Boolean).join('\n---\n'),
                     delivery_method: deliveryMethod,
                     delivery_address: deliveryMethod === 'nova_poshta' ? { city, branch } : { pickup: 'Тернопіль' },
-                    payment_method: paymentMethod,
+                    // The orders table has payment_type, total — not the
+                    // payment_method / total_price column names this flow
+                    // used to send. There is no contact_method column at
+                    // all, so we stash the preference inside the existing
+                    // custom_attributes jsonb where the admin view picks
+                    // it up alongside other free-form metadata.
+                    payment_type: paymentMethod,
                     order_status: 'new',
                     payment_status: 'pending',
-                    contact_method: contactMethod,
-                    total_price: 0, // Will be calculated by admin after design
+                    custom_attributes: { contact_method: contactMethod },
+                    total: 0, // Will be calculated by admin after design
                 })
                 .select('id')
                 .single();

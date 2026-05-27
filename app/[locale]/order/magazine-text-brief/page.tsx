@@ -215,8 +215,11 @@ function MagazineTextBriefContent() {
           ].filter(Boolean).join('\n---\n'),
           order_status: 'new',
           payment_status: 'pending',
-          contact_method: contactMethod,
-          total_price: 0,
+          // orders table uses `total` (not total_price) and has no
+          // contact_method column — store the contact preference inside
+          // custom_attributes so it's still surfaced for the manager.
+          custom_attributes: { contact_method: contactMethod },
+          total: 0,
           text_brief: {
             package: pkg,
             answers,
