@@ -3173,8 +3173,25 @@ export default function BookLayoutEditor() {
       config.totalPrice,
       !!config.enableKalka,
     );
-    baseDynamicPrice = result.dynamicPrice;
-    basePriceDiff = result.priceDiff;
+    // Urgent surcharge for hardcover journal / travelbook / photobook
+    // products that use the photobook_prices lookup. Same rule as the
+    // magazine branch above: ×1.3 applies to the base price only, not
+    // to the +/− diff caused by changing the page count from the
+    // originally-ordered count. So the customer's first total is rush-
+    // inflated, and any subsequent page tweak shows the delta against
+    // the rush-inflated baseline.
+    const urgentRawHC = searchParams?.get('urgent') || '';
+    const isUrgentHC = !!urgentRawHC && urgentRawHC !== '0' && !urgentRawHC.toLowerCase().includes('стандартна');
+    if (isUrgentHC) {
+      const orderedBase = result.dynamicPrice - result.priceDiff;
+      const orderedSurcharged = Math.round(orderedBase * 1.3);
+      const currentSurcharged = Math.round(result.dynamicPrice * 1.3);
+      baseDynamicPrice = currentSurcharged;
+      basePriceDiff = currentSurcharged - orderedSurcharged;
+    } else {
+      baseDynamicPrice = result.dynamicPrice;
+      basePriceDiff = result.priceDiff;
+    }
   }
   // Add endpaper surcharge for unlocked forzats pages
   // Flat surcharge: 200₴ total regardless of how many endpapers are printed
