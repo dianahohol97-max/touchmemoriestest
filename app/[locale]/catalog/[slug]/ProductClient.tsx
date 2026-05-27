@@ -511,9 +511,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 extraModifiers += Number(match.price || match.priceModifier || 0);
             }
         });
-        finalPrice += extraModifiers;
 
-        // Handle surcharge_pct options (e.g. Терміновість +30%)
+        // Apply percentage surcharges (e.g. Терміновість +30%) BEFORE
+        // adding the flat-rate extras. Урgency multiplies the base
+        // production price; typesetting / inscription / kalka are flat
+        // labour fees that don't compound with the rush. So:
+        //   525 base × 1.3 urgent + 195 typesetting = 878 ✅
+        // not the previous order which gave
+        //   (525 + 195) × 1.3 = 936 ❌
         if (product.options && Array.isArray(product.options)) {
             product.options.forEach((opt: any) => {
                 if (!opt.options) return;
@@ -527,6 +532,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 }
             });
         }
+        // Flat extras (typesetting, retouching, QR, etc.) ride on top
+        // of the rush-inflated baseline, not below it.
+        finalPrice += extraModifiers;
     }
 
     const handleAddToCart = () => {

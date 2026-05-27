@@ -381,17 +381,32 @@ export default function BookPhotoUpload() {
                             {recommendedRange && (
                                 typeof recommendedRange === 'string'
                                     ? <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange}</b></p>
-                                    : <>
-                                        <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange.mixed}</b> (великі + колажі)</p>
-                                        <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange.collage}</b> (багато колажів)</p>
-                                      </>
+                                    : recommendedRange.collage
+                                        ? <>
+                                            <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange.mixed}</b> (великі + колажі)</p>
+                                            <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange.collage}</b> (багато колажів)</p>
+                                          </>
+                                        // Magazines / travelbooks / hard-cover journals only have a
+                                        // single "mixed" recommendation — no separate collage
+                                        // strategy — so just show one line without the "+ колажі"
+                                        // suffix that confuses customers.
+                                        : <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange.mixed}</b></p>
                             )}
                             {(() => {
                                 const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
                                 const textLayout = params.get('text_layout');
+                                // 'Верстка тексту' values from DB:
+                                //   none     → no text
+                                //   own      → customer writes own text in the editor (+195 ₴)
+                                //   with     → legacy value, treated like 'own'
+                                //   we-basic / we-premium → we write the text, customer is in the
+                                //     anketа flow, never reaches this constructor
+                                const withText = textLayout === 'with' || textLayout === 'own';
+                                const noText = textLayout === 'none' || !textLayout;
                                 return (
                                     <>
-                                        {textLayout && <p>• {textLayout === 'with' ? t('photo_upload.with_text_layout') : t('photo_upload.without_text')}</p>}
+                                        {withText && <p>• {t('photo_upload.with_text_layout')}</p>}
+                                        {noText && textLayout === 'none' && <p>• {t('photo_upload.without_text')}</p>}
                                     </>
                                 );
                             })()}

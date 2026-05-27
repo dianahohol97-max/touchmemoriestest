@@ -738,7 +738,15 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         // Try exact match first
         const exact = recommendations.find(r => r.pages === pageNum);
-        if (exact) return { mixed: exact.mixed, collage: exact.collage };
+        if (exact) {
+          // For magazines / travelbooks / hard-cover journals the
+          // tier table has no `collage` column — only `mixed`. We
+          // intentionally omit the field rather than emitting
+          // undefined so the consumer can switch on its presence.
+          return exact.collage
+            ? { mixed: exact.mixed, collage: exact.collage }
+            : { mixed: exact.mixed };
+        }
 
         // Fallback: closest lower match (extend the range proportionally)
         const lower = [...recommendations].reverse().find(r => r.pages <= pageNum);
