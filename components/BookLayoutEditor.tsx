@@ -2667,14 +2667,34 @@ export default function BookLayoutEditor() {
       } else {
         // Hard-cover books and everything else → one JPEG per snapshot.
         // The cover is index 0, every subsequent index is a spread.
+        //
+        // File naming follows the production spec from the printer:
+        //   • cover.jpg     — the cover snapshot
+        //   • 01.jpg, 02.jpg, … — spread snapshots, in book order
+        //   • f1.jpg, f2.jpg — front and back endpapers (not yet
+        //     rendered here; placeholder for the future stage when
+        //     the constructor learns to capture them separately)
+        //
+        // JPEG quality is 0.98 — minimal compression for the print
+        // shop's preference. This roughly doubles file size vs 0.92
+        // but keeps the gradients and text edges sharp at 300 DPI.
+        let spreadCounter = 0;
         for (let i = 0; i < snapshots.length; i++) {
           try {
             const blob: Blob | null = await new Promise((resolve) => {
-              snapshots[i].canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92);
+              snapshots[i].canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
             });
             if (!blob) continue;
-            const label = snapshots[i].idx === 0 ? 'cover' : `spread_${String(snapshots[i].idx).padStart(2, '0')}`;
-            const fileName = `${String(i + 1).padStart(2, '0')}_${label}.jpg`;
+            let fileName: string;
+            let fileCategory: string;
+            if (snapshots[i].idx === 0) {
+              fileName = 'cover.jpg';
+              fileCategory = 'book-cover';
+            } else {
+              spreadCounter++;
+              fileName = `${String(spreadCounter).padStart(2, '0')}.jpg`;
+              fileCategory = 'book-spread';
+            }
             const path = `${userKey}/${orderId}/${fileName}`;
             const { error: uploadError } = await sb.storage
               .from('photobook-uploads')
@@ -2689,7 +2709,7 @@ export default function BookLayoutEditor() {
               path,
               fileName,
               bucket: 'photobook-uploads',
-              fileCategory: snapshots[i].idx === 0 ? 'book-cover' : 'book-spread',
+              fileCategory,
               productType: uploadProductType,
               fileType: 'export',
               size: blob.size,
