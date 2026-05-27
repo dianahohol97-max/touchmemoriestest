@@ -605,6 +605,29 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         setSelectedDecorationVariant('');
       }
     }
+    // When the customer switches Розмір, the new size's min_pages may
+    // be higher than the currently-selected page count. The dropdown
+    // filter below already hides invalid options, but the previously-
+    // selected value remains in state — so a customer who had picked
+    // 6 pages on 20×20 and then taps 20×30 (min 10) ends up with an
+    // invalid state where `Кількість сторінок = 6` for a size that
+    // requires at least 10. Bump it up to the new size's minimum.
+    if (optionName === 'Розмір') {
+      const MIN_PAGES_BY_SIZE: Record<string, number> = {
+        '20х20': 6, '20x20': 6, '20×20': 6,
+        '25х25': 8, '25x25': 8, '25×25': 8,
+        '20х30': 10, '20x30': 10, '20×30': 10,
+        '30х20': 10, '30x20': 10, '30×20': 10,
+        '30х30': 16, '30x30': 16, '30×30': 16,
+      };
+      const minForNewSize = MIN_PAGES_BY_SIZE[String(value)] || 0;
+      if (minForNewSize > 0) {
+        const currentPages = Number(newOptions['Кількість сторінок'] || 0);
+        if (currentPages > 0 && currentPages < minForNewSize) {
+          newOptions['Кількість сторінок'] = minForNewSize;
+        }
+      }
+    }
     const price = calculatePrice(newOptions);
     onChange(newOptions, price || undefined);
   };
