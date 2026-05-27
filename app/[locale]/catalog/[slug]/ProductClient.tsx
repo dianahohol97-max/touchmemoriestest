@@ -519,6 +519,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         //   525 base × 1.3 urgent + 195 typesetting = 878 ✅
         // not the previous order which gave
         //   (525 + 195) × 1.3 = 936 ❌
+        const _priceBeforeSurcharge = finalPrice;
         if (product.options && Array.isArray(product.options)) {
             product.options.forEach((opt: any) => {
                 if (!opt.options) return;
@@ -535,6 +536,22 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         // Flat extras (typesetting, retouching, QR, etc.) ride on top
         // of the rush-inflated baseline, not below it.
         finalPrice += extraModifiers;
+
+        // TEMP diagnostic — remove once Diana confirms pricing is correct.
+        // Logs exactly which inputs led to the displayed total so we can
+        // see where 883 ₴ comes from when the formula should give 878.
+        if (typeof window !== 'undefined' && (product.slug || '').includes('magazine')) {
+            console.log('[TM-price]', {
+                slug: product.slug,
+                dynamicPrice,
+                product_base: product.price,
+                priceBeforeSurcharge: _priceBeforeSurcharge,
+                extraModifiers,
+                hardcodedExcluded: Array.from(hardcodedNames),
+                customProductOptions,
+                finalPrice,
+            });
+        }
     }
 
     const handleAddToCart = () => {
@@ -548,8 +565,40 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 itemOptions['Калька'] = 'Так';
             }
         } else if (product.options && Array.isArray(product.options)) {
-            // For other products with standard options
+            // Pull every selected option from BOTH state shapes so the cart
+            // shows the full configuration to the customer and the manager.
+            //
+            // Two state buckets exist for historical reasons:
+            //   selectedOptions      — legacy numeric-index map, used by
+            //                          old `opt.values` array products
+            //   customProductOptions — newer string-value map used by
+            //                          modern `opt.options` array products
+            //                          (the format DB-driven products like
+            //                          the glossy magazine use today)
+            //
+            // Previously this only read selectedOptions, so all the
+            // magazine's "Верстка тексту" / "Терміновість" choices etc.
+            // never made it into the cart line — the customer just saw
+            // "8 сторінок" with no other context.
             product.options.forEach((opt: any) => {
+                // Modern shape: opt.options with {value,label}
+                if (opt.options && Array.isArray(opt.options)) {
+                    const selectedVal = customProductOptions[opt.name];
+                    if (selectedVal !== undefined && selectedVal !== '' && selectedVal !== 'none') {
+                        const match = opt.options.find((i: any) =>
+                            String(i.value) === String(selectedVal) ||
+                            i.label === selectedVal
+                        );
+                        if (match) {
+                            // Show the human label, not the slug value
+                            itemOptions[opt.name] = match.label || String(selectedVal);
+                        } else if (typeof selectedVal === 'string' || typeof selectedVal === 'number') {
+                            itemOptions[opt.name] = String(selectedVal);
+                        }
+                    }
+                    return;
+                }
+                // Legacy shape: opt.values with index from selectedOptions
                 const idx = selectedOptions[opt.name];
                 if (idx !== undefined && opt.values && opt.values[idx]) {
                     itemOptions[opt.name] = opt.values[idx].name;

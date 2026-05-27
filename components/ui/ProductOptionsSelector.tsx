@@ -504,9 +504,22 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
     if (productType === 'magazine') {
       const pages = opts['Кількість сторінок'];
       if (pages && typeof pages === 'number') {
-        // Text layout surcharge: getMagazinePrice handles it (single source)
+        // Text layout surcharge: getMagazinePrice handles it (single source).
+        // The DB option 'Верстка тексту' has four values: 'none', 'own',
+        // 'with', 'we-basic', 'we-premium'. Any non-empty / non-none value
+        // means the customer wants typesetting and should pay the +195 ₴
+        // surcharge. Previously this only matched legacy 'with' / labels
+        // containing 'текстом' or 'верстк', so the new 'own' value
+        // silently came through as "no text" and skipped the surcharge.
         const textVal = String(opts['Верстка тексту'] || '');
-        const hasText = textVal.includes('текстом') || textVal.includes('верстк') || textVal === 'with';
+        const hasText = textVal === 'own' ||
+                        textVal === 'with' ||
+                        textVal === 'we-basic' ||
+                        textVal === 'we-premium' ||
+                        textVal.includes('текстом') ||
+                        textVal.includes('верстк') ||
+                        textVal.includes('Власний') ||
+                        textVal.includes('Ми пишемо');
         // Urgency surcharge is applied centrally in ProductClient via surcharge_pct,
         // don't apply it here (would double the +30%)
         return getMagazinePrice(pages, hasText);
