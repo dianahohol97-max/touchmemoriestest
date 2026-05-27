@@ -229,15 +229,19 @@ function DesignerUploadContent() {
     }
   }, [orderType]);
 
-  // Recalculate total price when extras change
+  // Recalculate total price when extras change.
+  // Urgent surcharge applies only to the base product price (basePrice ×
+  // copies). Typesetting, retouching, QR code are flat labour fees that
+  // don't compound with the rush fee — applied after the multiplier.
   const calculateTotalPrice = () => {
     if (!orderData) return 0;
 
-    let subtotal = orderData.basePrice * orderData.copies;
+    const baseTotal = orderData.basePrice * orderData.copies;
+    let subtotal = urgentProduction ? Math.round(baseTotal * 1.3) : baseTotal;
     if (textTypesetting) subtotal += TYPESETTING_PRICE;
     if (photoRetouching && retouchChoice === 'specify') subtotal += retouchCount * 7;
     if (qrCode) subtotal += 50;
-    return urgentProduction ? Math.round(subtotal * 1.3) : subtotal;
+    return subtotal;
   };
 
   const totalPrice = calculateTotalPrice();

@@ -107,11 +107,16 @@ export default function PhotobookPage() {
   const coverTypeLabel = COVER_TYPES.find(c => c.key === coverType)?.name || '';
   const basePrice = lookupPrice(priceTable, coverTypeLabel, size, pages, 0);
 
-  let subtotal = basePrice * copies;
+  // Urgent surcharge applies only to the base photobook price
+  // (basePrice × copies). Retouching, QR code, typesetting are flat
+  // labour fees that don't compound with the rush fee — they're added
+  // after the multiplier.
+  const baseTotal = basePrice * copies;
+  let subtotal = urgentProduction ? Math.round(baseTotal * 1.3) : baseTotal;
   if (photoRetouching && retouchChoice === 'specify') subtotal += retouchCount * 7;
   if (qrCode) subtotal += 50;
   if (textTypesetting) subtotal += TYPESETTING_PRICE;
-  const totalPrice = urgentProduction ? Math.round(subtotal * 1.3) : subtotal;
+  const totalPrice = subtotal;
 
   const handleConstructor = () => {
     const coverTypeLabel = COVER_TYPES.find(c => c.key === coverType)?.name || '';

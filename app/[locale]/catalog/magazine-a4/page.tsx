@@ -63,11 +63,16 @@ export default function MagazineA4Page() {
   // Calculate prices
   const basePrice = PAGE_PRICES[pages] || 0;
 
-  let subtotal = basePrice * copies;
+  // Urgent surcharge applies only to the base journal price (basePrice ×
+  // copies). All extras — typesetting, retouching, QR code — are flat
+  // labour fees that don't compound with the rush fee. So we compute
+  // base × 1.3 first, then add the extras on top.
+  const baseTotal = basePrice * copies;
+  let subtotal = urgentProduction ? Math.round(baseTotal * 1.3) : baseTotal;
   if (textTypesetting) subtotal += TYPESETTING_PRICE;
   if (photoRetouching && retouchChoice === 'specify') subtotal += retouchCount * 7;
   if (qrCode) subtotal += 50;
-  const totalPrice = urgentProduction ? Math.round(subtotal * 1.3) : subtotal;
+  const totalPrice = subtotal;
 
   const handleConstructor = () => {
     const url = goToConstructor({

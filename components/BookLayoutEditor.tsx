@@ -3139,17 +3139,20 @@ export default function BookLayoutEditor() {
     // and current totals so the displayed price and the +X₴ diff for
     // adjusting page count stay internally consistent.
     //   text_layout=with → flat TYPESETTING_PRICE (195 ₴ for magazine)
-    //   urgent=<truthy>  → ×1.3 on the entire subtotal
-    // We compute typesetting first so urgent compounds on top of it,
-    // matching how the configurator and product page calculate it.
+    //   urgent=<truthy>  → ×1.3 on the BASE journal price only
+    // Urgency surcharge is applied to the base journal price first,
+    // then the typesetting fee is added on top — typesetting itself
+    // is a fixed labour cost and doesn't compound with the rush fee.
+    // Previously this multiplied (base + typesetting) by 1.3 which
+    // gave the wrong total — 525×1.3 + 195 = 878, not (525+195)×1.3 = 936.
     let typesettingExtra = 0;
     if (hasTextLayout) {
       typesettingExtra = 195; // TYPESETTING_PRICE for magazine
     }
     const urgentRaw = searchParams?.get('urgent') || '';
     const isUrgent = !!urgentRaw && urgentRaw !== '0' && !urgentRaw.toLowerCase().includes('стандартна');
-    const surchargedOrdered = isUrgent ? Math.round((baseOrdered + typesettingExtra) * 1.3) : (baseOrdered + typesettingExtra);
-    const surchargedCurrent = isUrgent ? Math.round((baseCurrent + typesettingExtra) * 1.3) : (baseCurrent + typesettingExtra);
+    const surchargedOrdered = (isUrgent ? Math.round(baseOrdered * 1.3) : baseOrdered) + typesettingExtra;
+    const surchargedCurrent = (isUrgent ? Math.round(baseCurrent * 1.3) : baseCurrent) + typesettingExtra;
     baseDynamicPrice = surchargedCurrent;
     basePriceDiff = surchargedCurrent - surchargedOrdered;
   } else if (isScrapbook) {
