@@ -964,8 +964,21 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
                                     {/* DB-only options not rendered by ProductOptionsSelector */}
                                     {product.options && Array.isArray(product.options) && (() => {
-                                        const isPhotobookOrMagazine = (product.slug || '').includes('photobook') || (product.slug || '').includes('magazine') || (product.slug || '').includes('graduation');
-                                        const isTravelbook = (product.slug || '').includes('travelbook') || (product.slug || '').includes('travel');
+                                        const slugL = (product.slug || '').toLowerCase();
+                                        // "Magazine-like" products that get their Кількість сторінок,
+                                        // Верстка тексту and Терміновість rendered by ProductOptionsSelector
+                                        // above — so the DB-driven fallback must NOT show them a second
+                                        // time. We catch both the English `magazine` slug and the
+                                        // Ukrainian `zhurnal` / `fotozhurnal` / `journal` slugs that the
+                                        // hard-cover journal product uses.
+                                        const isPhotobookOrMagazine =
+                                            slugL.includes('photobook') ||
+                                            slugL.includes('magazine') ||
+                                            slugL.includes('zhurnal') ||
+                                            slugL.includes('fotozhurnal') ||
+                                            slugL.includes('journal') ||
+                                            slugL.includes('graduation');
+                                        const isTravelbook = slugL.includes('travelbook') || slugL.includes('travel');
                                         const hardcodedNames = new Set(['Розмір', ...(isPhotobookOrMagazine || isTravelbook ? ['Кількість сторінок'] : []), 'Тип обкладинки',
                                             'Калька перед першою сторінкою', 'Тип ламінації', 'Текст', 'Оздоблення',
                                             'Варіант акрилу', 'Варіант фотовставки', 'Варіант металевої вставки',
