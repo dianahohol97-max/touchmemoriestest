@@ -1088,6 +1088,27 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             onClick={() => {
                                                 const slug = product.slug || resolvedParams.slug;
                                                 const base = getConstructorUrl(slug);
+                                                // Magazine "we write the text" packages bypass the
+                                                // constructor entirely and go to the questionnaire
+                                                // flow at /order/magazine-text-brief, which
+                                                // collects the briefing answers, photos and the
+                                                // cover inscription, then submits an order with
+                                                // text_brief jsonb attached.
+                                                const textLayout = String(customProductOptions['Верстка тексту'] || '');
+                                                if (textLayout === 'we-basic' || textLayout === 'we-premium') {
+                                                    const pkg = textLayout === 'we-premium' ? 'premium' : 'basic';
+                                                    const briefUrl = `/order/magazine-text-brief?product=${slug}&package=${pkg}`;
+                                                    // Carry over the other options so the brief page can
+                                                    // show the final price in the summary.
+                                                    const url = new URL(briefUrl, 'http://x');
+                                                    Object.entries(customProductOptions).forEach(([key, val]) => {
+                                                        if (val !== undefined && val !== '' && key !== 'Верстка тексту') {
+                                                            url.searchParams.set(key, String(val));
+                                                        }
+                                                    });
+                                                    requireAuth(() => router.push(url.pathname + '?' + url.searchParams.toString()), 'Щоб оформити замовлення з нашим текстом — увійдіть в акаунт');
+                                                    return;
+                                                }
                                                 let constructorUrl = base;
                                                 if (base.includes('/order/book') && Object.keys(customProductOptions).length > 0) {
                                                     const keyMap: Record<string, string> = {
