@@ -2523,26 +2523,98 @@ export default function BookLayoutEditor() {
       qty: isGraduation ? GRADUATION_MIN_QTY : 1,
       ...(isGraduation ? { min_qty: GRADUATION_MIN_QTY } : {}),
       image: productImage,
-      options: {
-        'Розмір': config.selectedSize || '',
-        'Сторінок': `${contentPages} сторінок`,
-        'Обкладинка': config.selectedCoverType || '',
-        ...(isGraduation ? { 'Мінімальне замовлення': `${GRADUATION_MIN_QTY} шт` } : {}),
-        // Persist inscription details so production knows what to apply
-        // and the customer (and account "Замовити" replay) sees what was
-        // paid for.
-        ...(inscriptionExtra > 0 ? {
-          'Напис на обкладинці': (coverState.extraTexts || []).map(e => e.text).filter(Boolean).join(' · ') || 'так',
-          'Спосіб нанесення': coverState.inscriptionMethod === 'flex' ? 'Друк кольором' : 'Гравірування',
-        } : {}),
+      options: (() => {
+        // Build the full set of options the manager needs to see in
+        // /admin/orders/[id]. Until now this only had 3 fields (size,
+        // pages, cover material). That was fine for a printed-cover
+        // photobook but useless for velour / fabric / leatherette with
+        // a decoration — the manager couldn't tell which colour, which
+        // decoration, what text was engraved, whether the customer
+        // chose kalka, lamination etc. All of that data is already in
+        // memory at this point (config.selectedXxx, coverState.decoXxx,
+        // hasKalka, hasEndpaper, plus the URL searchParams that carried
+        // lamination / urgent / spine / etc. from the catalog page).
+        const opts: Record<string, string> = {
+          'Розмір': config.selectedSize || '',
+          'Сторінок': `${contentPages} сторінок`,
+          'Обкладинка': config.selectedCoverType || '',
+        };
+        // Cover colour — only present for soft covers (velour / fabric /
+        // leatherette). For printed photo covers this is just blank.
+        const coverColor = config.selectedCoverColor || coverColorOverride || '';
+        if (coverColor) opts['Колір обкладинки'] = coverColor;
+        // Cover decoration — show whatever soft-cover decoration the
+        // customer set up in the editor (acryl, photo insert, metal
+        // plate, flex, gravirovka). decoType 'none' means no decoration.
+        if (coverState.decoType && coverState.decoType !== 'none') {
+          const decoLabel: Record<string, string> = {
+            'acryl': 'Акрилова вставка',
+            'photovstavka': 'Фотовставка',
+            'metal': 'Металева вставка',
+            'flex': 'Флекс (друк кольором)',
+            'graviruvannya': 'Гравірування',
+          };
+          opts['Декорація обкладинки'] = decoLabel[coverState.decoType] || coverState.decoType;
+          if (coverState.decoVariant) opts['Варіант декорації'] = coverState.decoVariant;
+          if (coverState.decoText) opts['Напис на декорації'] = coverState.decoText;
+          if (coverState.textFontFamily && coverState.decoText) opts['Шрифт напису'] = coverState.textFontFamily;
+        }
+        // Inscription added as a separate text overlay (extraTexts on
+        // the cover). Distinct from a decoration plate — this is text
+        // that sits directly on the velour / leatherette / fabric.
+        if ((coverState.extraTexts || []).length > 0 && coverState.inscriptionMethod) {
+          opts['Спосіб напису на обкладинці'] =
+            coverState.inscriptionMethod === 'flex' ? 'Друк кольором' : 'Гравірування';
+          const allText = (coverState.extraTexts || []).map(e => e.text).filter(Boolean).join(' · ');
+          if (allText) opts['Текст на обкладинці'] = allText;
+        }
         // Free-positioned text blocks on the back cover (printed covers
         // only). Joined with " · " into one option value so production
         // sees the exact text(s) the customer placed.
-        ...(((coverState as any).backCoverTexts || []).length > 0 ? {
-          'Текст на задній обкладинці': ((coverState as any).backCoverTexts || [])
-            .map((t: any) => t.text).filter(Boolean).join(' · '),
-        } : {}),
-      },
+        const backTexts = (coverState as any).backCoverTexts || [];
+        if (backTexts.length > 0) {
+          const joined = backTexts.map((t: any) => t.text).filter(Boolean).join(' · ');
+          if (joined) opts['Текст на задній обкладинці'] = joined;
+        }
+        // Kalka — translucent tracing-paper page that sits before the
+        // first content page. Only available on photobooks.
+        if (config.enableKalka || hasKalka) {
+          opts['Калька перед першою сторінкою'] = 'З калькою';
+        }
+        // Endpaper — separately purchased forzac printing for travelbook /
+        // magazine / journal. endpaperUnlocked tracks whether the
+        // customer confirmed the surcharge and unlocked the page.
+        if (hasEndpaper && (endpaperUnlocked.first || endpaperUnlocked.last)) {
+          const sides = [
+            endpaperUnlocked.first ? 'перший' : null,
+            endpaperUnlocked.last ? 'останній' : null,
+          ].filter(Boolean).join(' + ');
+          opts['Друк на форзаці'] = `Так (${sides})`;
+        }
+        // URL-carried options from the catalog page (lamination,
+        // spine, urgent etc.). Different products use different
+        // sets of params; we copy them in if present so anything the
+        // customer picked in the catalog persists to the manager view.
+        if (searchParams) {
+          const urlOpts: Array<[string, string]> = [
+            ['lamination', 'Ламінація'],
+            ['cover-lamination', 'Ламінація обкладинки'],
+            ['page-lamination', 'Ламінація сторінок'],
+            ['spine', 'Корінець'],
+            ['urgent', 'Терміновість'],
+            ['page_color', 'Колір сторінок'],
+          ];
+          for (const [key, label] of urlOpts) {
+            const v = searchParams.get(key);
+            if (v && v !== 'none' && v !== '0' && v !== '') {
+              opts[label] = v;
+            }
+          }
+        }
+        // Min-order info for graduation books.
+        if (isGraduation) opts['Мінімальне замовлення'] = `${GRADUATION_MIN_QTY} шт`;
+        return opts;
+      })(),
       personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}${isGraduation ? ` · мінімум ${GRADUATION_MIN_QTY} шт` : ''}${inscriptionExtra > 0 ? ` · напис: ${coverState.inscriptionMethod === 'flex' ? 'друк кольором' : 'гравірування'} (+180 ₴)` : ''}`,
     };
 
