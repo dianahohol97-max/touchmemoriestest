@@ -787,8 +787,19 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     };
 
     const handleContinue = () => {
-        // Validate cover color for soft covers
-        if (selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) {
+        // Validate cover color — but only for photobook products that
+        // have a soft material cover (velour / fabric / leatherette).
+        // Journals (soft and hard-cover), travelbooks and other product
+        // types either have a printed cover where the colour comes from
+        // the printed design itself, or have no cover-colour palette
+        // at all. Previously this check fired for every product with a
+        // non-"Друкована" cover type, but the hard-cover journal's
+        // "Глянцева"/"Матова" values describe the lamination finish,
+        // not the cover material, so the alert popped up asking for
+        // a colour the product doesn't have.
+        const productType = getProductType();
+        const isPhotobookProduct = productType === 'photobook';
+        if (isPhotobookProduct && selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) {
             alert(t('book_config.choose_cover_color_alert'));
             return;
         }
