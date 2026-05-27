@@ -194,37 +194,37 @@ export default function BookPhotoUpload() {
     };
 
     const navigatingForward = useRef(false);
+    // Processing state shown while the photos are being prepared for the
+    // editor. Without this the page froze for minutes on big uploads
+    // (53 professional photos × ~10 MB each = ~700 MB of base64 strings
+    // when readAsDataURL fired on all of them at once via Promise.all).
+    const [processing, setProcessing] = useState(false);
+    const [processed, setProcessed] = useState(0);
+    const [processTotal, setProcessTotal] = useState(0);
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         if (photos.length === 0) {
             toast.error(t('photo_upload.add_photo_first'));
             return;
         }
+        if (processing) return; // prevent double-fire from impatient clicking
 
         // Photo handoff to editor.
         //
-        // Old behaviour: every photo was unconditionally re-encoded to
-        // max 1200px @ JPEG 0.82, then on sessionStorage quota fallback
-        // recompressed AGAIN to 400px @ 0.60. The fallback was the whole
-        // problem — once it ran (and on iPhone with 30+ photos it always
-        // ran), every photo arrived in the editor as a 300x400 thumbnail
-        // and the editor's <img> happily upscaled that to a print-size
-        // cover slot, producing the blurry mess users complained about.
+        // The original implementation did Promise.all(photos.map(prepareForEditor))
+        // which kicked off readAsDataUrl + img.decode for every file
+        // simultaneously. With 50+ professional photos (10 MB each) the
+        // page froze for 2-3 minutes because the browser was holding
+        // ~700 MB of base64 strings in memory while decoding every
+        // image at the same time on the main thread.
         //
-        // New behaviour:
-        //   1. Read each photo as a data URL. If it's already <= 5000px
-        //      on the long edge, USE THE ORIGINAL — no re-encode, no
-        //      quality loss. This matches BookLayoutEditor.handleUpload.
-        //   2. Only if the original is bigger than 5000px (rare — even
-        //      iPhone Pro is 4032px), downscale to 5000px @ JPEG 0.92.
-        //      A3 at 300dpi is 4961px, so 5000px is the print-grade ceiling.
-        //   3. Try to write originals to sessionStorage. If quota is
-        //      exceeded, fall back to writing METADATA-ONLY entries
-        //      (id/width/height/name with empty preview) and surface a
-        //      gentle re-upload prompt on hard refresh — but do NOT
-        //      destroy the in-memory originals. They go into the editor
-        //      at full quality via window.__bookPhotoOriginals (the
-        //      editor reads this on mount).
+        // This version processes one photo at a time, yielding to the
+        // browser between each so the UI stays responsive, and shows
+        // a "Обробка X з Y" indicator on the button.
+        setProcessing(true);
+        setProcessed(0);
+        setProcessTotal(photos.length);
+
         const readAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = e => resolve(e.target!.result as string);
@@ -245,7 +245,6 @@ export default function BookPhotoUpload() {
             const img = await loadImage(original);
             const { width: ow, height: oh } = img;
             if (ow <= PRINT_MAX && oh <= PRINT_MAX) {
-                // Fits — use the original camera JPEG bytes verbatim.
                 return original;
             }
             const ratio = ow >= oh ? PRINT_MAX / ow : PRINT_MAX / oh;
@@ -261,70 +260,109 @@ export default function BookPhotoUpload() {
             return isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.92);
         };
 
-        Promise.all(photos.map(p => prepareForEditor(p.file).then(preview => ({
-            id: p.id,
-            preview,
-            width: p.width,
-            height: p.height,
-            name: p.file.name,
-            size: p.file.size,
-        })))).then(photosData => {
-            // Stash originals on window so the editor can pick them up at
-            // full quality even when sessionStorage can't hold all of them.
-            // sessionStorage stays as the post-refresh recovery layer.
+        // Yield to the event loop so React can paint the progress
+        // update and the button stays interactive.
+        const yieldToBrowser = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+
+        try {
+            const photosData: Array<{
+                id: string; preview: string; width: number; height: number; name: string; size: number;
+            }> = [];
+
+            for (let i = 0; i < photos.length; i++) {
+                const p = photos[i];
+                try {
+                    const preview = await prepareForEditor(p.file);
+                    photosData.push({
+                        id: p.id,
+                        preview,
+                        width: p.width,
+                        height: p.height,
+                        name: p.file.name,
+                        size: p.file.size,
+                    });
+                } catch (err) {
+                    console.warn(`prepareForEditor failed for ${p.file.name}:`, err);
+                    // Skip the broken photo but keep going — losing one
+                    // out of 50 photos is better than hanging the whole
+                    // batch.
+                }
+                setProcessed(i + 1);
+                // Every photo we yield to let the browser paint and the
+                // GC reclaim the previous base64. Without this, after
+                // 5-6 big files the browser is sitting on hundreds of
+                // megabytes of base64 it could otherwise release.
+                await yieldToBrowser();
+            }
+
             try {
                 (window as unknown as { __bookPhotoOriginals?: typeof photosData }).__bookPhotoOriginals = photosData;
             } catch { /* ignore */ }
 
+            // Try to write to sessionStorage. If it fails, we fall back
+            // to the smaller recompression — but only as a background
+            // task, the navigation doesn't wait for it.
+            let writtenOriginal = true;
             try {
                 sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(photosData));
             } catch {
-                // sessionStorage quota exceeded. Two-tier fallback:
-                //   1. Try to write a smaller-but-still-usable version
-                //      (1800px @ 0.85) — good enough to redraw the editor
-                //      after a refresh, still readable in slot previews.
-                //   2. If THAT also fails, write metadata only and rely
-                //      on the in-memory __bookPhotoOriginals.
-                const recompress = async () => {
-                    const reduced = await Promise.all(photosData.map(p => new Promise<typeof p>(res => {
-                        const im = new window.Image();
-                        im.onload = () => {
-                            const M = 1800;
-                            let w = im.width, h = im.height;
-                            if (w > M || h > M) {
-                                if (w >= h) { h = Math.round(h * M / w); w = M; }
-                                else { w = Math.round(w * M / h); h = M; }
-                            }
-                            const cv = document.createElement('canvas');
-                            cv.width = w; cv.height = h;
-                            const c2 = cv.getContext('2d')!;
-                            c2.imageSmoothingEnabled = true;
-                            c2.imageSmoothingQuality = 'high';
-                            c2.drawImage(im, 0, 0, w, h);
-                            res({ ...p, preview: cv.toDataURL('image/jpeg', 0.85) });
-                        };
-                        im.onerror = () => res(p);
-                        im.src = p.preview;
-                    })));
+                writtenOriginal = false;
+                // Quota exceeded — write metadata-only stub so a refresh
+                // doesn't crash, while keeping the originals on window
+                // for the editor to pick up.
+                try {
+                    const meta = photosData.map(p => ({ ...p, preview: '' }));
+                    sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(meta));
+                } catch { /* give up */ }
+            }
+
+            // Kick off the lower-resolution recompression in the
+            // background if needed — doesn't block navigation. This
+            // matters for the page-refresh-recovery layer.
+            if (!writtenOriginal) {
+                (async () => {
+                    const reduced: typeof photosData = [];
+                    for (const p of photosData) {
+                        try {
+                            const out = await new Promise<typeof p>(res => {
+                                const im = new window.Image();
+                                im.onload = () => {
+                                    const M = 1800;
+                                    let w = im.width, h = im.height;
+                                    if (w > M || h > M) {
+                                        if (w >= h) { h = Math.round(h * M / w); w = M; }
+                                        else { w = Math.round(w * M / h); h = M; }
+                                    }
+                                    const cv = document.createElement('canvas');
+                                    cv.width = w; cv.height = h;
+                                    const c2 = cv.getContext('2d')!;
+                                    c2.imageSmoothingEnabled = true;
+                                    c2.imageSmoothingQuality = 'high';
+                                    c2.drawImage(im, 0, 0, w, h);
+                                    res({ ...p, preview: cv.toDataURL('image/jpeg', 0.85) });
+                                };
+                                im.onerror = () => res(p);
+                                im.src = p.preview;
+                            });
+                            reduced.push(out);
+                        } catch { reduced.push(p); }
+                        await yieldToBrowser();
+                    }
                     try {
                         sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(reduced));
-                    } catch {
-                        try {
-                            const meta = photosData.map(p => ({ ...p, preview: '' }));
-                            sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(meta));
-                        } catch { /* give up */ }
-                    }
-                };
-                recompress();
+                    } catch { /* keep metadata-only stub */ }
+                })();
             }
+
             navigatingForward.current = true;
             const currentParams = new URLSearchParams(window.location.search);
             currentParams.set('product', config?.productSlug || '');
             router.push(`/editor/book/layout?${currentParams.toString()}`);
-        }).catch(err => {
+        } catch (err) {
             console.error('handleContinue error:', err);
             toast.error('Помилка при переході в редактор. Спробуйте ще раз.');
-        });
+            setProcessing(false);
+        }
     };
 
     // Cleanup blob URLs only when navigating back (not forward to editor)
@@ -594,15 +632,24 @@ export default function BookPhotoUpload() {
                 </button>
                 <button
                     onClick={handleContinue}
-                    disabled={photos.length === 0}
+                    disabled={photos.length === 0 || processing}
                     className={`w-full sm:flex-1 flex items-center justify-center gap-2 px-6 py-3 sm:py-4 rounded-lg font-semibold transition-colors text-base sm:text-lg ${
-                        photos.length > 0
+                        photos.length > 0 && !processing
                             ? 'bg-[#1e2d7d] text-white hover:bg-[#263a99]'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                 >
-                    {t('photo_upload.continue_editor')}
-                    <ChevronRight className="w-5 h-5" />
+                    {processing ? (
+                        <>
+                            <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Обробка {processed} з {processTotal}…
+                        </>
+                    ) : (
+                        <>
+                            {t('photo_upload.continue_editor')}
+                            <ChevronRight className="w-5 h-5" />
+                        </>
+                    )}
                 </button>
             </div>
         </div>
