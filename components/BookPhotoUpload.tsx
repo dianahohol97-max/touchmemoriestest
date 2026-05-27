@@ -207,6 +207,21 @@ export default function BookPhotoUpload() {
             toast.error(t('photo_upload.add_photo_first'));
             return;
         }
+        // Block the customer from moving to the editor with fewer photos
+        // than the journal has pages. The editor places one photo per
+        // page slot by default, so going in with 5 photos for a 12-page
+        // journal would leave half the journal blank. Better to stop
+        // them here with a clear message than to let them discover the
+        // problem in the editor.
+        const pageCountFromConfig = parseInt(config?.selectedPageCount?.match(/\d+/)?.[0] || '0', 10);
+        if (pageCountFromConfig > 0 && photos.length < pageCountFromConfig) {
+            const missing = pageCountFromConfig - photos.length;
+            toast.error(
+                `Завантажте ще щонайменше ${missing} фото — для ${pageCountFromConfig} сторінок потрібно мінімум ${pageCountFromConfig} фото, інакше частина сторінок буде порожня`,
+                { duration: 6000 }
+            );
+            return;
+        }
         if (processing) return; // prevent double-fire from impatient clicking
 
         // Photo handoff to editor.
@@ -486,17 +501,46 @@ export default function BookPhotoUpload() {
             </div>
 
             {/* Photo Counter */}
-            <div className={`mb-6 p-4 rounded-lg ${photos.length === 0 ? 'bg-orange-50 border border-orange-200' : 'bg-green-50 border border-green-200'}`}>
-                <div className="flex items-center justify-between">
-                    <div></div>
-                    {lowQualityCount > 0 && (
-                        <div className="flex items-center gap-2 text-yellow-700">
-                            <AlertTriangle className="w-5 h-5" />
-                            <span className="text-sm font-medium">{t('photo_upload.low_quality_photos').replace('{n}', String(lowQualityCount))}</span>
+            {(() => {
+                const pageCountReq = parseInt(config?.selectedPageCount?.match(/\d+/)?.[0] || '0', 10);
+                const meetsMinimum = pageCountReq > 0 ? photos.length >= pageCountReq : photos.length > 0;
+                const remaining = pageCountReq > 0 ? Math.max(0, pageCountReq - photos.length) : 0;
+                // Three states: empty (orange), short of the page-count
+                // minimum (red), at-or-above the minimum (green).
+                const bg = photos.length === 0
+                    ? 'bg-orange-50 border-orange-200'
+                    : !meetsMinimum
+                        ? 'bg-red-50 border-red-200'
+                        : 'bg-green-50 border-green-200';
+                const counterText = photos.length === 0
+                    ? 'Завантажте свої фото'
+                    : !meetsMinimum
+                        ? `Завантажено ${photos.length} з ${pageCountReq} — потрібно ще ${remaining} ${remaining === 1 ? 'фото' : 'фото'}`
+                        : `Завантажено ${photos.length} фото${pageCountReq ? ` (мінімум ${pageCountReq})` : ''}`;
+                return (
+                    <div className={`mb-6 p-4 rounded-lg border ${bg}`}>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="text-sm font-semibold text-[#1e2d7d]">
+                                {counterText}
+                            </div>
+                            {lowQualityCount > 0 && (
+                                <div className="flex items-center gap-2 text-yellow-700">
+                                    <AlertTriangle className="w-5 h-5" />
+                                    <span className="text-sm font-medium">{t('photo_upload.low_quality_photos').replace('{n}', String(lowQualityCount))}</span>
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-            </div>
+                        {!meetsMinimum && photos.length > 0 && pageCountReq > 0 && (
+                            // Explanation of why we require minimum=pages.
+                            // Customers expect to fill every page with at least
+                            // one photo, so we tell them upfront here.
+                            <div className="text-xs text-red-700 mt-2">
+                                Для журналу на {pageCountReq} сторінок потрібно мінімум {pageCountReq} фото, інакше частина сторінок буде порожня.
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
 
             {/* Upload Zone */}
             <div
