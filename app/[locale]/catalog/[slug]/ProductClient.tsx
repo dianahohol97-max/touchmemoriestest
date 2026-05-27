@@ -1182,7 +1182,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                     return;
                                                 }
                                                 let constructorUrl = base;
-                                                if (base.includes('/order/book') && Object.keys(customProductOptions).length > 0) {
+                                                if (base.includes('/order/book') && (Object.keys(customProductOptions).length > 0 || photobookOptions)) {
                                                     const keyMap: Record<string, string> = {
                                                         'Розмір': 'size',
                                                         'Кількість сторінок': 'pages',
@@ -1204,6 +1204,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                         'Терміновість': 'urgent',
                                                     };
                                                     const url = new URL(base, 'http://x');
+                                                    // For photobook products, size and pages live in
+                                                    // photobookOptions (not customProductOptions) because
+                                                    // they're rendered by the dedicated PhotobookOptions
+                                                    // component. Merge them in first so the constructor
+                                                    // URL carries the customer's actual selection
+                                                    // instead of the constructor's defaults (which was
+                                                    // sending the customer to 6-page / 20×20 even when
+                                                    // they picked 10 pages / 20×30 on the product page).
+                                                    if (isPhotobook && photobookOptions) {
+                                                        if (photobookOptions.size) url.searchParams.set('size', photobookOptions.size);
+                                                        if (photobookOptions.pages) url.searchParams.set('pages', String(photobookOptions.pages));
+                                                        if (photobookOptions.calca) url.searchParams.set('tracing', 'with');
+                                                    }
                                                     Object.entries(customProductOptions).forEach(([key, val]) => {
                                                         if (val !== undefined && val !== '') {
                                                             url.searchParams.set(keyMap[key] || key, String(val));

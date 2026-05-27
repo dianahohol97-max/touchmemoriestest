@@ -1,6 +1,6 @@
 'use client';
 import { SizeVisualizer } from './SizeVisualizer';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Check } from 'lucide-react';
 
 interface PhotobookOptionsProps {
@@ -10,6 +10,11 @@ interface PhotobookOptionsProps {
         slug: string;
         price: number;
         variants?: Array<{ name: string; price: number }>;
+        // product.options is the DB-side option list. When present, the
+        // 'Розмір' option contains the min_pages constraint per size
+        // (e.g. 20×30 → min_pages 10) which we use to filter and
+        // clamp the page count below.
+        options?: Array<any>;
     };
     onPriceChange?: (price: number) => void;
     onOptionsChange?: (options: {
@@ -36,10 +41,67 @@ const PAGE_PRICING: Record<string, number> = {
 export function PhotobookOptions({ product, onPriceChange, onOptionsChange }: PhotobookOptionsProps) {
     const variants = product.variants || [];
 
+    // Min-pages map by size label. Reads product.options['Розмір']
+    // for the min_pages constraint each size carries. 20×30 / 30×20
+    // require at least 10 pages, 25×25 at least 8, 30×30 at least
+    // 16; smaller 20×20 allows the 6-page minimum. Without this map
+    // the customer used to be able to select a page count smaller
+    // than the size physically supports.
+    const minPagesBySize = useMemo<Record<string, number>>(() => {
+        const out: Record<string, number> = {};
+        const sizeOpt = (product.options || []).find((o: any) => o?.name === 'Розмір');
+        if (sizeOpt && Array.isArray(sizeOpt.options)) {
+            for (const s of sizeOpt.options) {
+                const mp = Number(s?.min_pages || 0);
+                if (mp > 0) {
+                    if (s.label) out[s.label] = mp;
+                    if (s.value) out[s.value] = mp;
+                }
+            }
+        }
+        // Map variant names (e.g. "20×30 см") to the same min_pages.
+        // variants come from product.variants, options come from DB —
+        // labels don't always match character-for-character (×/x, "см"
+        // suffix), so normalize for lookup.
+        for (const v of variants) {
+            const norm = (v.name || '').replace(/[хxX]/g, '×').replace(/\s*см$/i, '').trim();
+            const matchKey = Object.keys(out).find((k) => {
+                const kn = k.replace(/[хxX]/g, '×').replace(/\s*см.*$/i, '').replace(/\s*\(.*\)$/, '').trim();
+                return kn === norm || kn.startsWith(norm) || norm.startsWith(kn);
+            });
+            if (matchKey && !out[v.name]) {
+                out[v.name] = out[matchKey];
+            }
+        }
+        return out;
+    }, [product.options, variants]);
+
     // State
     const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
-    const [selectedPages, setSelectedPages] = useState(6);
+    // Initial page count respects the first size's minimum (if any).
+    const initialMinPages = (() => {
+        const firstSize = variants[0]?.name;
+        return (firstSize && minPagesBySize[firstSize]) || 6;
+    })();
+    const [selectedPages, setSelectedPages] = useState(initialMinPages);
     const [calcaChecked, setCalcaChecked] = useState(false);
+
+    // Filtered page options for the currently-selected size.
+    const currentSizeName = variants[selectedSizeIndex]?.name;
+    const minPagesForCurrentSize = (currentSizeName && minPagesBySize[currentSizeName]) || 6;
+    const allowedPageOptions = useMemo(
+        () => PAGE_OPTIONS.filter((p) => p >= minPagesForCurrentSize),
+        [minPagesForCurrentSize]
+    );
+
+    // When the size changes, if the previous page count is below the
+    // new size's minimum, bump it up to the minimum so we never have
+    // an invalid configuration in state.
+    useEffect(() => {
+        if (selectedPages < minPagesForCurrentSize) {
+            setSelectedPages(minPagesForCurrentSize);
+        }
+    }, [minPagesForCurrentSize, selectedPages]);
 
     // Get price per page for this product
     const pricePerPage = PAGE_PRICING[product.slug] || 25;
@@ -155,7 +217,7 @@ export function PhotobookOptions({ product, onPriceChange, onOptionsChange }: Ph
                         }}
                         className="focus:border-primary focus:ring-1 focus:ring-primary"
                     >
-                        {PAGE_OPTIONS.map(pages => (
+                        {allowedPageOptions.map(pages => (
                             <option key={pages} value={pages}>
                                 {pages} сторінок
                                 {pages > 6 ? ` (+${(pages - 6) * pricePerPage} ₴)` : ''}

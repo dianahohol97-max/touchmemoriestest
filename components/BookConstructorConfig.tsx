@@ -1403,19 +1403,45 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
                             >
                                 <option value="">{t('book_config.choose_page_count')}</option>
-                                {[...new Set(photobookPrices
-                                    .filter((p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize)
-                                    .map((p: any) => p.page_count)
-                                )].sort((a: number, b: number) => a - b).map((pageCount) => {
-                                    const priceEntry = photobookPrices.find(
-                                        (p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize && p.page_count === pageCount
-                                    );
-                                    return (
-                                        <option key={pageCount} value={`${pageCount} сторінок`}>
-                                            {pageCount} сторінок — {priceEntry?.base_price || 0} ₴
-                                        </option>
-                                    );
-                                })}
+                                {(() => {
+                                    // Filter by min_pages from product.options. The
+                                    // photobook_prices table happens to contain rows
+                                    // for every page count regardless of size (a
+                                    // legacy of how the matrix is laid out), so
+                                    // without this gate the customer would see 6
+                                    // pages as an option even when they picked the
+                                    // 20×30 size whose minimum is 10. Pull min_pages
+                                    // off the matching size row in product.options
+                                    // and drop anything below it.
+                                    let minPagesForSize = 0;
+                                    const sizeOpt = (product?.options as any[])?.find((o: any) => o?.name === 'Розмір');
+                                    if (sizeOpt && Array.isArray(sizeOpt.options)) {
+                                        const sizeNorm = (selectedSize || '').replace(/[хxX]/g, '×');
+                                        const match = sizeOpt.options.find((s: any) =>
+                                            s?.label === selectedSize || s?.label === sizeNorm ||
+                                            s?.value === selectedSize || s?.value === sizeNorm ||
+                                            (s?.label && (s.label.includes(sizeNorm) || s.label.includes(selectedSize)))
+                                        );
+                                        minPagesForSize = Number(match?.min_pages || 0);
+                                    }
+                                    const allPageCounts = [...new Set(photobookPrices
+                                        .filter((p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize)
+                                        .map((p: any) => p.page_count)
+                                    )].sort((a: number, b: number) => a - b);
+                                    const filteredPageCounts = minPagesForSize > 0
+                                        ? allPageCounts.filter((pc) => pc >= minPagesForSize)
+                                        : allPageCounts;
+                                    return filteredPageCounts.map((pageCount) => {
+                                        const priceEntry = photobookPrices.find(
+                                            (p: any) => p.cover_type?.name === selectedCoverType && p.size?.name === selectedSize && p.page_count === pageCount
+                                        );
+                                        return (
+                                            <option key={pageCount} value={`${pageCount} сторінок`}>
+                                                {pageCount} сторінок — {priceEntry?.base_price || 0} ₴
+                                            </option>
+                                        );
+                                    });
+                                })()}
                             </select>
                         </div>
                     )}
