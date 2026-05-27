@@ -52,8 +52,20 @@ export default function DesignerOrderFlow() {
     const decorationVariant = searchParams.get('decoration_variant') || '';
 
     const pageCount = parseInt(pages) || 20;
-    const minPhotos = Math.ceil(pageCount * 0.8);
-    const maxPhotos = Math.ceil(pageCount * 1.2);
+    // Photo count bounds for designer-flow uploads.
+    //   minPhotos = pageCount      — every page needs at least one photo
+    //                                or the designer ends up filling pages
+    //                                with placeholders
+    //   maxPhotos = pageCount × 1.3 (rounded up) — gives the customer
+    //                                room to send variants ("here's
+    //                                three shots of the same scene,
+    //                                pick the best") but stops them
+    //                                from dumping their entire camera
+    //                                roll. 1.3 matches the upper end
+    //                                of the recommendation ranges we
+    //                                show on the regular flow.
+    const minPhotos = pageCount;
+    const maxPhotos = Math.ceil(pageCount * 1.3);
 
     // State
     const [step, setStep] = useState(1);
@@ -90,7 +102,29 @@ export default function DesignerOrderFlow() {
         const accepted = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
         const newPhotos: UploadedPhoto[] = [];
 
-        Array.from(files).forEach(file => {
+        // Check the cap up-front so we can either accept all of the
+        // selection or refuse the overflow with a clear message.
+        // photos.length is the count already in state; adding the new
+        // batch must not push it above maxPhotos.
+        const currentCount = photos.length;
+        const remainingSlots = Math.max(0, maxPhotos - currentCount);
+        const incoming = Array.from(files);
+        if (remainingSlots === 0) {
+            toast.error(
+                `Уже завантажено максимум ${maxPhotos} фото для ${pageCount} сторінок. Видаліть зайві фото щоб додати інші.`,
+                { duration: 6000 }
+            );
+            return;
+        }
+        if (incoming.length > remainingSlots) {
+            toast.error(
+                `Ви обрали ${incoming.length} фото, але можна додати ще тільки ${remainingSlots} (максимум ${maxPhotos} для ${pageCount} сторінок). Решту пропущено — оберіть найкращі.`,
+                { duration: 6000 }
+            );
+        }
+        const filesToProcess = incoming.slice(0, remainingSlots);
+
+        filesToProcess.forEach(file => {
             if (!accepted.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|heic|raw)$/i)) {
                 toast.error(`${file.name}: непідтримуваний формат`);
                 return;
@@ -109,7 +143,7 @@ export default function DesignerOrderFlow() {
         });
 
         setPhotos(prev => [...prev, ...newPhotos]);
-    }, []);
+    }, [photos.length, maxPhotos, pageCount]);
 
     const removePhoto = (id: string) => {
         setPhotos(prev => {
@@ -276,7 +310,12 @@ export default function DesignerOrderFlow() {
 
     const canGoNext = (): boolean => {
         switch (step) {
-            case 1: return photos.length > 0;
+            case 1:
+                // Minimum: one photo per page so the designer has at
+                // least one image to place on every spread. Maximum
+                // is already enforced at upload time in handleFiles,
+                // so we only need to check the lower bound here.
+                return photos.length >= minPhotos;
             case 2:
                 // Travel Book requires destination to be filled in
                 if (productSlug.toLowerCase().includes('travel') && !tripDestination.trim()) return false;
@@ -357,8 +396,46 @@ export default function DesignerOrderFlow() {
                             <div className="space-y-6">
                                 <div>
                                     <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Завантажте ваші фотографії</h2>
-                                    <p className="text-sm text-gray-600">Рекомендуємо {minPhotos}–{maxPhotos} фото для {pages} сторінок. Формати: JPG, PNG, HEIC.</p>
+                                    <p className="text-sm text-gray-600">
+                                        Для {pages} сторінок потрібно мінімум <b>{minPhotos}</b> фото, максимум <b>{maxPhotos}</b>.
+                                        Формати: JPG, PNG, HEIC.
+                                    </p>
                                 </div>
+
+                                {/* Live status — three states matching the regular
+                                    flow's photo upload step:
+                                      • orange — nothing yet
+                                      • red    — some photos but under the minimum
+                                      • green  — enough photos to proceed
+                                    The block also surfaces how many slots remain
+                                    before hitting the maximum so the customer
+                                    can pace their uploads. */}
+                                {(() => {
+                                    const meetsMin = photos.length >= minPhotos;
+                                    const atMax = photos.length >= maxPhotos;
+                                    const bg = photos.length === 0
+                                        ? 'bg-orange-50 border-orange-200'
+                                        : !meetsMin
+                                            ? 'bg-red-50 border-red-200'
+                                            : 'bg-green-50 border-green-200';
+                                    const text = photos.length === 0
+                                        ? 'Перетягніть фото сюди або натисніть нижче щоб обрати'
+                                        : !meetsMin
+                                            ? `Завантажено ${photos.length} з ${minPhotos} — потрібно ще ${minPhotos - photos.length}`
+                                            : atMax
+                                                ? `Завантажено ${photos.length} фото (максимум досягнуто)`
+                                                : `Завантажено ${photos.length} фото (можна ще ${maxPhotos - photos.length})`;
+                                    return (
+                                        <div className={`p-4 rounded-lg border ${bg}`}>
+                                            <p className="text-sm font-semibold text-[#1e2d7d]">{text}</p>
+                                            {!meetsMin && photos.length > 0 && (
+                                                <p className="text-xs text-red-700 mt-1">
+                                                    Для журналу на {pageCount} сторінок дизайнеру потрібно мінімум {minPhotos} фото, інакше частина сторінок буде порожня.
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Drop zone */}
                                 <div
@@ -377,7 +454,6 @@ export default function DesignerOrderFlow() {
                                 {/* Thumbnails */}
                                 {photos.length > 0 && (
                                     <div>
-                                        <p className="text-sm font-semibold text-gray-700 mb-3">{photos.length} фото завантажено</p>
                                         <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
                                             {photos.map((p, i) => (
                                                 <div key={p.id} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 group">
