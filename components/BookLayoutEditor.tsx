@@ -14,6 +14,7 @@ import { CoverTemplate } from '@/lib/editor/cover-templates';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
 import { useCartStore } from '@/store/cart-store';
+import { extendBleed, setJpegDpi300 } from '@/lib/jpeg-print-utils';
 import { CoverEditor } from './CoverEditor';
 import PixarPortraitGenerator, { AI_PORTRAIT_PRICE } from './PixarPortraitGenerator';
 import { BookPreviewModal } from './BookPreviewModal';
@@ -2787,13 +2788,25 @@ export default function BookLayoutEditor() {
         let pageCounter = 0;
         for (let i = 0; i < snapshots.length; i++) {
           try {
-            const blob: Blob | null = await new Promise((resolve) => {
-              snapshots[i].canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
+            const snap = snapshots[i];
+            // Inner pages and endpapers get a 5 mm mirrored bleed
+            // added on all four sides so the trimmer has room to drift
+            // by 1-2 mm without showing white at the edge. The cover
+            // already has its 18-20 mm fold-in baked in at the editor
+            // level, so we don't add bleed to it here.
+            const canvasToExport = snap.side === 'cover'
+              ? snap.canvas
+              : extendBleed(snap.canvas, 5, 300);
+            let blob: Blob | null = await new Promise((resolve) => {
+              canvasToExport.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
             });
             if (!blob) continue;
+            // Rewrite the JFIF DPI bytes from 96×96 to 300×300 so any
+            // automated prepress system that reads them gets the right
+            // physical size. Pixel data is untouched.
+            blob = await setJpegDpi300(blob);
             let fileName: string;
             let fileCategory: string;
-            const snap = snapshots[i];
             if (snap.side === 'cover') {
               fileName = 'cover.jpg';
               fileCategory = 'book-cover';
