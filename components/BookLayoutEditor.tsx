@@ -2570,7 +2570,14 @@ export default function BookLayoutEditor() {
       await new Promise(r => setTimeout(r, ms));
     };
 
-    const snapshots: { canvas: HTMLCanvasElement; idx: number }[] = [];
+    // Each snapshot is either the cover (idx=0, side='cover') or an
+    // individual page that came out of splitting a spread in half
+    // (idx > 0, side='left' or 'right'). The print shop wants left and
+    // right pages of every spread as separate JPGs, not one wide
+    // spread, so the snapshot loop captures whole spreads and then
+    // splits each canvas down the middle before pushing into this
+    // array.
+    const snapshots: { canvas: HTMLCanvasElement; idx: number; side: 'cover' | 'left' | 'right' }[] = [];
     let captured = 0;
     let failed = 0;
 
@@ -2588,7 +2595,30 @@ export default function BookLayoutEditor() {
             logging: false,
             allowTaint: false,
           });
-          snapshots.push({ canvas, idx: i });
+          if (i === 0) {
+            // Cover stays as a single image — it's printed as one
+            // 470×328 mm sheet with the spine in the middle.
+            snapshots.push({ canvas, idx: i, side: 'cover' });
+          } else {
+            // Spread → split down the middle into left + right pages.
+            // The print shop wants each page as its own file.
+            const halfW = Math.floor(canvas.width / 2);
+            const fullH = canvas.height;
+            const makeHalf = (sx: number): HTMLCanvasElement => {
+              const c = document.createElement('canvas');
+              c.width = halfW;
+              c.height = fullH;
+              const ctx = c.getContext('2d');
+              if (ctx) {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(canvas, sx, 0, halfW, fullH, 0, 0, halfW, fullH);
+              }
+              return c;
+            };
+            snapshots.push({ canvas: makeHalf(0),       idx: i, side: 'left'  });
+            snapshots.push({ canvas: makeHalf(halfW),   idx: i, side: 'right' });
+          }
           captured++;
         } catch (e) {
           console.warn(`spread snapshot ${i} failed:`, e);
@@ -2666,19 +2696,22 @@ export default function BookLayoutEditor() {
         }
       } else {
         // Hard-cover books and everything else → one JPEG per snapshot.
-        // The cover is index 0, every subsequent index is a spread.
         //
         // File naming follows the production spec from the printer:
-        //   • cover.jpg     — the cover snapshot
-        //   • 01.jpg, 02.jpg, … — spread snapshots, in book order
-        //   • f1.jpg, f2.jpg — front and back endpapers (not yet
-        //     rendered here; placeholder for the future stage when
-        //     the constructor learns to capture them separately)
+        //   • cover.jpg    — the cover snapshot
+        //   • 01.jpg, 02.jpg, … — individual pages in book reading order
+        //     (left page of spread 1, right page of spread 1, left page
+        //     of spread 2, …) — the snapshot loop already split each
+        //     spread into two side='left'/'right' canvases so iterating
+        //     in order gives the right sequence.
+        //   • f1.jpg, f2.jpg — front and back endpapers (still pending —
+        //     captured in a later stage when the constructor learns to
+        //     render them).
         //
         // JPEG quality is 0.98 — minimal compression for the print
         // shop's preference. This roughly doubles file size vs 0.92
         // but keeps the gradients and text edges sharp at 300 DPI.
-        let spreadCounter = 0;
+        let pageCounter = 0;
         for (let i = 0; i < snapshots.length; i++) {
           try {
             const blob: Blob | null = await new Promise((resolve) => {
@@ -2687,13 +2720,13 @@ export default function BookLayoutEditor() {
             if (!blob) continue;
             let fileName: string;
             let fileCategory: string;
-            if (snapshots[i].idx === 0) {
+            if (snapshots[i].side === 'cover') {
               fileName = 'cover.jpg';
               fileCategory = 'book-cover';
             } else {
-              spreadCounter++;
-              fileName = `${String(spreadCounter).padStart(2, '0')}.jpg`;
-              fileCategory = 'book-spread';
+              pageCounter++;
+              fileName = `${String(pageCounter).padStart(2, '0')}.jpg`;
+              fileCategory = 'book-page';
             }
             const path = `${userKey}/${orderId}/${fileName}`;
             const { error: uploadError } = await sb.storage
@@ -2702,7 +2735,7 @@ export default function BookLayoutEditor() {
                 cacheControl: '31536000', upsert: true, contentType: 'image/jpeg',
               });
             if (uploadError) {
-              console.warn(`book spread ${i} upload failed:`, uploadError);
+              console.warn(`book page ${i} upload failed:`, uploadError);
               continue;
             }
             exportedFiles.push({
@@ -2717,7 +2750,7 @@ export default function BookLayoutEditor() {
               pageNumber: i + 1,
             });
           } catch (e) {
-            console.warn(`book jpg compose for spread ${i} failed:`, e);
+            console.warn(`book jpg compose for page ${i} failed:`, e);
           }
         }
       }
