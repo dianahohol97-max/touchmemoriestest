@@ -225,28 +225,39 @@ export default function BookPhotoUpload() {
         setProcessed(0);
         setProcessTotal(photos.length);
 
-        const readAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = e => resolve(e.target!.result as string);
-            reader.onerror = () => reject(new Error('FileReader failed'));
-            reader.readAsDataURL(file);
-        });
-
-        const loadImage = (src: string): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
-            const img = new window.Image();
-            img.onload = () => resolve(img);
-            img.onerror = () => reject(new Error('Image decode failed'));
-            img.src = src;
-        });
-
         const PRINT_MAX = 5000;
-        const prepareForEditor = async (file: File): Promise<string> => {
-            const original = await readAsDataUrl(file);
-            const img = await loadImage(original);
-            const { width: ow, height: oh } = img;
-            if (ow <= PRINT_MAX && oh <= PRINT_MAX) {
-                return original;
+
+        // Fast path: most modern phone photos are 4032×3024 (iPhone) or
+        // ~4080×3060 (Samsung) — well under PRINT_MAX. For those we can
+        // skip base64 conversion entirely and pass the original File's
+        // blob URL straight to the editor. createObjectURL is essentially
+        // free (returns a reference, not a copy) — that's the difference
+        // between a few seconds for 50 photos and a few minutes.
+        //
+        // We already have `photo.preview` (a blob URL) created during
+        // upload, so for photos that fit print size we just reuse it.
+        // Photos larger than 5000px on the long edge still go through
+        // the canvas downscale path.
+        const prepareForEditor = async (photo: PhotoFile): Promise<string> => {
+            // photo.width / photo.height are set on upload via the
+            // probe Image — check them first to decide whether we even
+            // need to decode + downscale.
+            if (photo.width <= PRINT_MAX && photo.height <= PRINT_MAX) {
+                // Already small enough — just keep the blob URL.
+                return photo.preview;
             }
+            // Need to downscale. Use createImageBitmap (decodes off the
+            // main thread on modern browsers) instead of new Image().
+            const bitmap = typeof createImageBitmap === 'function'
+                ? await createImageBitmap(photo.file)
+                : await new Promise<HTMLImageElement>((resolve, reject) => {
+                    const im = new window.Image();
+                    im.onload = () => resolve(im);
+                    im.onerror = () => reject(new Error('decode failed'));
+                    im.src = URL.createObjectURL(photo.file);
+                });
+            const ow = (bitmap as { width: number }).width;
+            const oh = (bitmap as { height: number }).height;
             const ratio = ow >= oh ? PRINT_MAX / ow : PRINT_MAX / oh;
             const w = Math.round(ow * ratio);
             const h = Math.round(oh * ratio);
@@ -255,9 +266,22 @@ export default function BookPhotoUpload() {
             const ctx = canvas.getContext('2d')!;
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(img, 0, 0, w, h);
-            const isPng = (file.type || '').toLowerCase() === 'image/png';
-            return isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.92);
+            ctx.drawImage(bitmap as CanvasImageSource, 0, 0, w, h);
+            if ('close' in bitmap) {
+                try { (bitmap as ImageBitmap).close(); } catch {}
+            }
+            // For downscaled photos, the canvas IS the new preview. We
+            // still produce a blob URL rather than a base64 string so
+            // we don't pay the 33% size penalty in memory.
+            const blob = await new Promise<Blob | null>(resolve => {
+                const isPng = (photo.file.type || '').toLowerCase() === 'image/png';
+                canvas.toBlob(b => resolve(b), isPng ? 'image/png' : 'image/jpeg', 0.92);
+            });
+            if (!blob) {
+                // Fallback to base64 if toBlob returns null (rare)
+                return canvas.toDataURL('image/jpeg', 0.92);
+            }
+            return URL.createObjectURL(blob);
         };
 
         // Yield to the event loop so React can paint the progress
@@ -272,7 +296,7 @@ export default function BookPhotoUpload() {
             for (let i = 0; i < photos.length; i++) {
                 const p = photos[i];
                 try {
-                    const preview = await prepareForEditor(p.file);
+                    const preview = await prepareForEditor(p);
                     photosData.push({
                         id: p.id,
                         preview,
@@ -299,60 +323,67 @@ export default function BookPhotoUpload() {
                 (window as unknown as { __bookPhotoOriginals?: typeof photosData }).__bookPhotoOriginals = photosData;
             } catch { /* ignore */ }
 
-            // Try to write to sessionStorage. If it fails, we fall back
-            // to the smaller recompression — but only as a background
-            // task, the navigation doesn't wait for it.
-            let writtenOriginal = true;
+            // Storage strategy:
+            // photosData[i].preview is either a `blob:` URL (fast path
+            // for fits-print-size photos — reuses the File object) or a
+            // `blob:` URL pointing at a downscaled blob we just made.
+            // Either way the URL itself is tiny but tied to the
+            // current page session — a hard refresh invalidates them.
+            //
+            // For refresh-recovery, we kick off a background task that
+            // produces 1800px JPEG @ 0.85 base64 strings and writes
+            // those to sessionStorage. This used to be inline (and
+            // doubled the freeze time on big uploads); now it runs
+            // AFTER navigation so the user is already in the editor by
+            // the time it finishes.
             try {
+                // Stash blob-URL refs in sessionStorage anyway — useful
+                // when the user navigates back & forth within the same
+                // session without refresh.
                 sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(photosData));
             } catch {
-                writtenOriginal = false;
-                // Quota exceeded — write metadata-only stub so a refresh
-                // doesn't crash, while keeping the originals on window
-                // for the editor to pick up.
+                // Quota exceeded — write metadata stubs.
                 try {
                     const meta = photosData.map(p => ({ ...p, preview: '' }));
                     sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(meta));
                 } catch { /* give up */ }
             }
 
-            // Kick off the lower-resolution recompression in the
-            // background if needed — doesn't block navigation. This
-            // matters for the page-refresh-recovery layer.
-            if (!writtenOriginal) {
-                (async () => {
-                    const reduced: typeof photosData = [];
-                    for (const p of photosData) {
-                        try {
-                            const out = await new Promise<typeof p>(res => {
-                                const im = new window.Image();
-                                im.onload = () => {
-                                    const M = 1800;
-                                    let w = im.width, h = im.height;
-                                    if (w > M || h > M) {
-                                        if (w >= h) { h = Math.round(h * M / w); w = M; }
-                                        else { w = Math.round(w * M / h); h = M; }
-                                    }
-                                    const cv = document.createElement('canvas');
-                                    cv.width = w; cv.height = h;
-                                    const c2 = cv.getContext('2d')!;
-                                    c2.imageSmoothingEnabled = true;
-                                    c2.imageSmoothingQuality = 'high';
-                                    c2.drawImage(im, 0, 0, w, h);
-                                    res({ ...p, preview: cv.toDataURL('image/jpeg', 0.85) });
-                                };
-                                im.onerror = () => res(p);
-                                im.src = p.preview;
-                            });
-                            reduced.push(out);
-                        } catch { reduced.push(p); }
-                        await yieldToBrowser();
-                    }
+            // Background refresh-recovery: produce 1800px base64 fallback
+            // so a hard refresh in the editor doesn't lose the photos.
+            // Runs AFTER navigation — see comment above.
+            (async () => {
+                const reduced: typeof photosData = [];
+                for (const p of photosData) {
                     try {
-                        sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(reduced));
-                    } catch { /* keep metadata-only stub */ }
-                })();
-            }
+                        const out = await new Promise<typeof p>(res => {
+                            const im = new window.Image();
+                            im.onload = () => {
+                                const M = 1800;
+                                let w = im.width, h = im.height;
+                                if (w > M || h > M) {
+                                    if (w >= h) { h = Math.round(h * M / w); w = M; }
+                                    else { w = Math.round(w * M / h); h = M; }
+                                }
+                                const cv = document.createElement('canvas');
+                                cv.width = w; cv.height = h;
+                                const c2 = cv.getContext('2d')!;
+                                c2.imageSmoothingEnabled = true;
+                                c2.imageSmoothingQuality = 'high';
+                                c2.drawImage(im, 0, 0, w, h);
+                                res({ ...p, preview: cv.toDataURL('image/jpeg', 0.85) });
+                            };
+                            im.onerror = () => res(p);
+                            im.src = p.preview;
+                        });
+                        reduced.push(out);
+                    } catch { reduced.push(p); }
+                    await yieldToBrowser();
+                }
+                try {
+                    sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(reduced));
+                } catch { /* keep metadata-only stub */ }
+            })();
 
             navigatingForward.current = true;
             const currentParams = new URLSearchParams(window.location.search);

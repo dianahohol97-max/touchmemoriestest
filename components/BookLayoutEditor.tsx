@@ -1353,9 +1353,18 @@ export default function BookLayoutEditor() {
     //      browser's quota allowed it, 1800px JPEG 0.85 if quota fell
     //      back, or empty-preview metadata if even that failed (in
     //      which case the user has to re-upload).
+    //
+    // preview field can be either:
+    //   • data:image/...  — legacy path, base64 string inline
+    //   • blob:http://... — new fast path, just a reference to the
+    //     File object kept alive on window.__bookPhotoOriginals. No
+    //     base64 conversion = ~10× faster for big batches.
+    const isValidPreview = (s: string | undefined): boolean =>
+      !!s && (s.startsWith('data:image') || s.startsWith('blob:'));
+
     const inMem = (window as unknown as { __bookPhotoOriginals?: PhotoData[] }).__bookPhotoOriginals;
     const inMemValid = Array.isArray(inMem) ? inMem.filter(p =>
-      p && p.preview && p.preview.startsWith('data:image') && p.width > 0 && p.height > 0
+      p && isValidPreview(p.preview) && p.width > 0 && p.height > 0
     ) : [];
 
     if (inMemValid.length > 0) {
@@ -1365,17 +1374,20 @@ export default function BookLayoutEditor() {
       if (ph) {
         try {
           const parsed: PhotoData[] = JSON.parse(ph);
-          // Only keep photos with valid preview (data:image, sane size,
-          // valid dimensions). The 8MB ceiling lets through originals up
-          // to ~5000px JPEG 0.92 (which is the editor's PRINT_MAX).
-          const valid = parsed.filter(p =>
-            p.preview &&
-            p.preview.startsWith('data:image') &&
-            p.preview.length > 100 &&
-            p.preview.length < 8_000_000 &&
-            p.width > 0 &&
-            p.height > 0
-          );
+          // Only keep photos with valid preview (data: or blob:, sane
+          // size for data:, valid dimensions). The 8MB ceiling lets
+          // through originals up to ~5000px JPEG 0.92 (the editor's
+          // PRINT_MAX). blob: URLs are short references and need no
+          // size cap — they survive only as long as the File object
+          // on __bookPhotoOriginals does, which is fine for a single
+          // session.
+          const valid = parsed.filter(p => {
+            if (!p.preview || p.width <= 0 || p.height <= 0) return false;
+            if (p.preview.startsWith('blob:')) return true;
+            return p.preview.startsWith('data:image') &&
+                   p.preview.length > 100 &&
+                   p.preview.length < 8_000_000;
+          });
           setPhotos(valid);
         } catch {}
       }
