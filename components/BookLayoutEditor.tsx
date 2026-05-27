@@ -2785,7 +2785,25 @@ export default function BookLayoutEditor() {
         // but keeps the gradients and text edges sharp at 300 DPI.
         const frontEndpaperIdx = hasEndpaper && endpaperUnlocked.first ? endpaperFirstIdx : -1;
         const backEndpaperIdx  = hasEndpaper && endpaperUnlocked.last  ? endpaperLastIdx  : -1;
+        // Kalka pages for photobooks: when the customer ticked "Калька
+        // перед першою сторінкою" we treat the page index pair
+        // [kalkaForzatsIdx, kalkaPageIdx] as front matter and the two
+        // trailing pages as the back forzac. The kalka page (right
+        // page of spread 1) carries the customer's design — text +
+        // optional illustration — which html2canvas already includes
+        // in the regular spread capture. We just rename the output
+        // files so the print shop receives kalka.jpg, f1.jpg, f2.jpg
+        // instead of 01.jpg, 02.jpg, etc.
+        const kalkaForzatsPageIdx  = hasKalka ? kalkaForzatsIdx : -1;
+        const kalkaContentPageIdx  = hasKalka ? kalkaPageIdx    : -1;
+        const kalkaEndStartPageIdx = hasKalka ? kalkaEndPageIdxStart : -1;
         let pageCounter = 0;
+        // We may emit two end-forzac pages (f2_a / f2_b) when the
+        // back of the book also has a blank forzac pair from the
+        // kalka option. The first end-forzac becomes f2.jpg; if
+        // there's a second one it gets dropped (it's a duplicate
+        // blank page that the print shop doesn't need).
+        let backForzacEmitted = false;
         for (let i = 0; i < snapshots.length; i++) {
           try {
             const snap = snapshots[i];
@@ -2816,6 +2834,26 @@ export default function BookLayoutEditor() {
             if (snap.side === 'cover') {
               fileName = 'cover.jpg';
               fileCategory = 'book-cover';
+            } else if (snap.pageIdx === kalkaForzatsPageIdx) {
+              // Blank forzac before the kalka — corresponds to
+              // f1.jpg in the printer's nomenclature.
+              fileName = 'f1.jpg';
+              fileCategory = 'book-endpaper';
+            } else if (snap.pageIdx === kalkaContentPageIdx) {
+              // The kalka itself, with the customer's text /
+              // illustration on it. Colour, not monochrome — the
+              // tracing-paper print can carry full-colour artwork.
+              fileName = 'kalka.jpg';
+              fileCategory = 'book-kalka';
+            } else if (hasKalka && kalkaEndStartPageIdx > 0 && snap.pageIdx >= kalkaEndStartPageIdx) {
+              // Back-of-book blank forzac from the kalka option.
+              // Only the first one becomes f2.jpg; any second blank
+              // page gets dropped to avoid duplicates the print
+              // shop doesn't need.
+              if (backForzacEmitted) continue;
+              backForzacEmitted = true;
+              fileName = 'f2.jpg';
+              fileCategory = 'book-endpaper';
             } else if (snap.pageIdx === frontEndpaperIdx) {
               fileName = 'f1.jpg';
               fileCategory = 'book-endpaper';
