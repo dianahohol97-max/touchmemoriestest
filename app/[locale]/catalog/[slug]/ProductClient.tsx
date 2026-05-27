@@ -484,13 +484,15 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             'Матеріал обкладинки', 'Колір сторінок',
             'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка',
             'Терміновість',
-            // 'Верстка тексту' is folded into dynamicPrice via
-            // getMagazinePrice(pages, hasText), so exclude it from Source 3
-            // to avoid double-counting the +195 ₴ typesetting fee. Only do
-            // this when dynamicPrice actually fired (otherwise — defensive
-            // for product shapes without a Selector preview — let Source 3
-            // pick it up).
-            ...(dynamicPrice !== null ? ['Верстка тексту'] : []),
+            // Note: 'Верстка тексту' is INTENTIONALLY NOT excluded here.
+            // The ProductOptionsSelector returns the BASE magazine price
+            // without the typesetting surcharge, so the +195 ₴ has to be
+            // added by this Source 3 modifier loop. That way the
+            // surcharge × 1.3 (urgency) multiplies the base price only,
+            // and the flat typesetting fee rides on top — matching how
+            // the editor BookLayoutEditor and the catalog magazine-a4
+            // page calculate it. See lib/products.ts getMagazinePrice.
+            //
             // Exclude 'Розмір' only when already handled by ProductOptionsSelector or photobook lookup
             ...(dynamicPrice !== null || isPhotobook ? ['Розмір'] : []),
         ]);

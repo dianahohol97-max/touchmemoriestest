@@ -504,25 +504,19 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
     if (productType === 'magazine') {
       const pages = opts['Кількість сторінок'];
       if (pages && typeof pages === 'number') {
-        // Text layout surcharge: getMagazinePrice handles it (single source).
-        // The DB option 'Верстка тексту' has four values: 'none', 'own',
-        // 'with', 'we-basic', 'we-premium'. Any non-empty / non-none value
-        // means the customer wants typesetting and should pay the +195 ₴
-        // surcharge. Previously this only matched legacy 'with' / labels
-        // containing 'текстом' or 'верстк', so the new 'own' value
-        // silently came through as "no text" and skipped the surcharge.
-        const textVal = String(opts['Верстка тексту'] || '');
-        const hasText = textVal === 'own' ||
-                        textVal === 'with' ||
-                        textVal === 'we-basic' ||
-                        textVal === 'we-premium' ||
-                        textVal.includes('текстом') ||
-                        textVal.includes('верстк') ||
-                        textVal.includes('Власний') ||
-                        textVal.includes('Ми пишемо');
-        // Urgency surcharge is applied centrally in ProductClient via surcharge_pct,
-        // don't apply it here (would double the +30%)
-        return getMagazinePrice(pages, hasText);
+        // IMPORTANT: dynamicPrice for the magazine must return the BASE
+        // price without the typesetting surcharge. ProductClient adds
+        // the +195 ₴ typesetting on top AFTER applying the urgency
+        // multiplier, so if we include it here it gets multiplied too
+        // and the customer overpays:
+        //   wrong: dynamicPrice=720, then ×1.3 = 936
+        //   right: dynamicPrice=525, ×1.3=683, then +195 = 878
+        // The typesetting surcharge is read as a separate flat extra
+        // from product.options['Верстка тексту'] in ProductClient
+        // Source 3 (the 'Верстка тексту' key is no longer in the
+        // hardcodedNames exclusion list because we want it priced
+        // there now).
+        return getMagazinePrice(pages, false);
       }
     }
 
