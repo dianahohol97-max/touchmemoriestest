@@ -245,7 +245,7 @@ function DeliveryStep({ delivery, city, address, onChange }: { delivery: string,
       <div className="space-y-3 mb-6">
         {[
           { val: 'nova_poshta', label: 'Нова Пошта', desc: 'Доставка по всій Україні' },
-          { val: 'pickup', label: 'Самовивіз', desc: 'Тернопіль, вул. Київська 2' },
+          { val: 'pickup', label: 'Самовивіз', desc: 'Тернопіль, вул. Омеляна Польового 4а' },
         ].map(opt => (
           <label key={opt.val} onClick={() => onChange('delivery', opt.val)} className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${delivery === opt.val ? 'border-[#1e2d7d] bg-[#dbeafe]' : 'border-gray-200 bg-white hover:border-[#1e2d7d]/40'}`}>
             <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${delivery === opt.val ? 'border-[#1e2d7d]' : 'border-gray-300'}`}>
@@ -409,7 +409,7 @@ function ConfirmationStep({ data }: { data: OrderFormData }) {
         <div className="bg-[#f0f2f8] rounded-xl p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Доставка</p>
           <p className="font-medium text-gray-800">
-            {data.delivery === 'pickup' ? 'Самовивіз — Тернопіль, вул. Київська 2' : `Нова Пошта — ${data.city}${data.address ? ', ' + data.address : ''}`}
+            {data.delivery === 'pickup' ? 'Самовивіз — Тернопіль, вул. Омеляна Польового 4а' : `Нова Пошта — ${data.city}${data.address ? ', ' + data.address : ''}`}
           </p>
         </div>
         <div className="bg-[#f0f2f8] rounded-xl p-4">

@@ -198,7 +198,7 @@ export function Footer({ categories = [] }: FooterProps) {
                         title: t('footer.contacts'),
                         links: [
                             { label: 'touch.memories3@gmail.com', href: 'mailto:touch.memories3@gmail.com' },
-                            { label: t('footer.address'), href: 'https://maps.google.com/?q=Тернопіль,+вул.+Київська+2' },
+                            { label: t('footer.address'), href: 'https://maps.google.com/?q=Тернопіль,+вул.+Омеляна+Польового+4а' },
                             { label: 'Telegram: @touchmemories', href: 'https://t.me/touchmemories' },
                             { label: 'Instagram: @touch.memories', href: 'https://instagram.com/touch.memories' },
                             { label: 'TikTok: @touch.memories', href: 'https://tiktok.com/@touch.memories' }

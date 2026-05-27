@@ -36,7 +36,7 @@ export default function ShippingReturnsPage() {
                                 <ul className="text-gray-600 leading-relaxed space-y-3">
                                     <li className="flex items-start gap-2">
                                         <span className="text-indigo-600 font-bold">•</span>
-                                        <span><strong>Тернопіль — самовивіз</strong><br />Вул. Київська 2, Тернопіль. Уточнюйте наявність перед приїздом.</span>
+                                        <span><strong>Тернопіль — самовивіз</strong><br />Вул. Омеляна Польового 4а, Тернопіль. Уточнюйте наявність перед приїздом.</span>
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <span className="text-indigo-600 font-bold">•</span>

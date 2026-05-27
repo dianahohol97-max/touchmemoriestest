@@ -433,7 +433,7 @@ export default function OrderFlow({ project, onClose }: OrderFlowProps) {
                     />
                     <div className="flex-1">
                       <div className="font-semibold text-gray-900">Самовивіз з Тернополя</div>
-                      <div className="text-sm text-gray-600">вул. Київська 2, Тернопіль</div>
+                      <div className="text-sm text-gray-600">вул. Омеляна Польового 4а, Тернопіль</div>
                       <div className="text-sm font-semibold text-green-600 mt-1">Безкоштовно</div>
                     </div>
                   </label>
@@ -539,7 +539,7 @@ export default function OrderFlow({ project, onClose }: OrderFlowProps) {
                   <div className="text-sm text-gray-600">Доставка</div>
                   <div className="font-semibold text-gray-900">
                     {orderData.deliveryMethod === 'pickup'
-                      ? 'Самовивіз (Тернопіль, вул. Київська 2)'
+                      ? 'Самовивіз (Тернопіль, вул. Омеляна Польового 4а)'
                       : `Нова Пошта (${orderData.city}, відділення ${orderData.branch})`}
                   </div>
                 </div>
