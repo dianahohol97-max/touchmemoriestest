@@ -18,7 +18,7 @@
 // 'journal' + file_category 'magazine-text-brief' so the manager
 // view shows everything in one place.
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { toast, Toaster } from 'react-hot-toast';
@@ -80,7 +80,7 @@ interface PhotoFile {
   storagePath?: string;
 }
 
-export default function MagazineTextBriefPage() {
+function MagazineTextBriefContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const productSlug = searchParams.get('product') || 'personalized-glossy-magazine';
@@ -485,5 +485,21 @@ export default function MagazineTextBriefPage() {
         Після відправки менеджер уточнить деталі та підтвердить вартість.
       </p>
     </div>
+  );
+}
+
+// useSearchParams() forces a client-side render boundary; Next.js
+// requires the component that uses it to live inside <Suspense>.
+// The fallback is intentionally minimal — the page itself is short
+// enough that a brief flash of "Завантаження…" is fine.
+export default function MagazineTextBriefPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ maxWidth: 820, margin: '0 auto', padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
+        Завантаження…
+      </div>
+    }>
+      <MagazineTextBriefContent />
+    </Suspense>
   );
 }
