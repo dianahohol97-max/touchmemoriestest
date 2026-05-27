@@ -14,7 +14,7 @@ import { CoverTemplate } from '@/lib/editor/cover-templates';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
 import { useCartStore } from '@/store/cart-store';
-import { extendBleed, setJpegDpi300, embedSRGBProfile } from '@/lib/jpeg-print-utils';
+import { extendBleed, setJpegDpi300, embedSRGBProfile, renderInsetFiles } from '@/lib/jpeg-print-utils';
 import { CoverEditor } from './CoverEditor';
 import PixarPortraitGenerator, { AI_PORTRAIT_PRICE } from './PixarPortraitGenerator';
 import { BookPreviewModal } from './BookPreviewModal';
@@ -2853,6 +2853,66 @@ export default function BookLayoutEditor() {
           }
         }
       }
+    }
+
+    // Cover-decoration inset files (akryl, metal, gravirovka, etc.) for
+    // soft-cover products. These come from the cover state's decoType
+    // and the editor's photo list rather than the spread snapshots, so
+    // they're generated programmatically rather than via html2canvas.
+    // For printed-cover products or "Без оздоблення" the helper returns
+    // an empty array and nothing extra is uploaded.
+    try {
+      const sizeKey = getSizeKeyForProduct(config);
+      const insetFiles = await renderInsetFiles({
+        decoType: coverState.decoType,
+        decoVariant: coverState.decoVariant,
+        decoText: coverState.decoText,
+        decoColor: coverState.decoColor,
+        textFontFamily: coverState.textFontFamily,
+        textFontSize: coverState.textFontSize,
+        textX: coverState.textX,
+        textY: coverState.textY,
+        photoId: coverState.photoId,
+        photos: photos.map(p => ({ id: p.id, preview: p.preview })),
+        sizeKey,
+      });
+      for (const item of insetFiles) {
+        try {
+          let blob: Blob | null = await new Promise((resolve) => {
+            item.canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
+          });
+          if (!blob) continue;
+          // Same metadata patches as the main JPGs — 300 DPI tag +
+          // embedded sRGB profile.
+          blob = await setJpegDpi300(blob);
+          blob = await embedSRGBProfile(blob);
+          const path = `${userKey}/${orderId}/${item.fileName}`;
+          const { error: uploadError } = await sb.storage
+            .from('photobook-uploads')
+            .upload(path, blob, {
+              cacheControl: '31536000', upsert: true, contentType: 'image/jpeg',
+            });
+          if (uploadError) {
+            console.warn(`cover inset ${item.fileName} upload failed:`, uploadError);
+            continue;
+          }
+          exportedFiles.push({
+            path,
+            fileName: item.fileName,
+            bucket: 'photobook-uploads',
+            fileCategory: 'cover-inset',
+            productType: uploadProductType,
+            fileType: 'export',
+            size: blob.size,
+            mimeType: 'image/jpeg',
+            pageNumber: 0, // covers/insets aren't page-numbered
+          });
+        } catch (e) {
+          console.warn(`cover inset ${item.fileName} compose failed:`, e);
+        }
+      }
+    } catch (e) {
+      console.warn('cover inset render failed:', e);
     }
 
     if (exportedFiles.length > 0) {
