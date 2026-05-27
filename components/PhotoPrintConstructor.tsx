@@ -7,6 +7,7 @@ import { Upload, ShoppingCart } from 'lucide-react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
+import { setJpegDpi300, embedSRGBProfile } from '@/lib/jpeg-print-utils';
 
 // ─── Size definitions ─────────────────────────────────────────────────────────
 
@@ -797,8 +798,14 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       // Now render and upload each photo at print resolution
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
-        const blob = isPolaroid ? await renderPolaroid(photo) : await renderStandard(photo);
+        let blob = isPolaroid ? await renderPolaroid(photo) : await renderStandard(photo);
         if (!blob) continue;
+        // Patch JPEG metadata for the print shop:
+        //   • DPI tag 300×300 (was 96×96 from the browser default)
+        //   • Embed standard sRGB ICC v2 profile
+        // Both are byte-level edits — pixel data is untouched.
+        blob = await setJpegDpi300(blob);
+        blob = await embedSRGBProfile(blob);
         const baseRaw = (photo.file?.name || `photo_${i + 1}.jpg`)
           .replace(/[^a-zA-Z0-9._-]/g, '_')
           .replace(/\.(jpe?g|png|webp|heic|heif|tiff?)$/i, '');

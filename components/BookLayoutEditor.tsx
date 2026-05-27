@@ -14,7 +14,7 @@ import { CoverTemplate } from '@/lib/editor/cover-templates';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
 import { useCartStore } from '@/store/cart-store';
-import { extendBleed, setJpegDpi300 } from '@/lib/jpeg-print-utils';
+import { extendBleed, setJpegDpi300, embedSRGBProfile } from '@/lib/jpeg-print-utils';
 import { CoverEditor } from './CoverEditor';
 import PixarPortraitGenerator, { AI_PORTRAIT_PRICE } from './PixarPortraitGenerator';
 import { BookPreviewModal } from './BookPreviewModal';
@@ -2805,6 +2805,12 @@ export default function BookLayoutEditor() {
             // automated prepress system that reads them gets the right
             // physical size. Pixel data is untouched.
             blob = await setJpegDpi300(blob);
+            // Embed the standard sRGB ICC v2 profile so any prepress
+            // system that reads the colour profile sees a real one
+            // instead of falling back to "assume sRGB". Cover and
+            // inner pages both get this — keeps the whole book
+            // colour-managed end-to-end.
+            blob = await embedSRGBProfile(blob);
             let fileName: string;
             let fileCategory: string;
             if (snap.side === 'cover') {

@@ -168,3 +168,173 @@ export function extendBleed(
 
   return out;
 }
+// Base64-encoded sRGB IEC61966-2.1 ICC v2 profile, 3268 bytes
+// Source: standard sRGB profile from texlive-colorprofiles package
+// (originally HP/Microsoft 1998 reference profile, public domain)
+// Decoded length: 3268 bytes
+
+export const SRGB_ICC_BASE64 =
+  'AAAMxGFyZ2wCIAAAbW50clJHQiBYWVogB+AACQAJAAcAEQAbYWNzcE1TRlQAAAAASUVDIHNSR0IA' +
+  'AAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1hcmdsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' +
+  'AAAAAAAAAAAAAAAAAAAAAAASZGVzYwAAAVwAAACZY3BydAAAAfgAAABnZG1uZAAAAmAAAABwZG1k' +
+  'ZAAAAtAAAACIdGVjaAAAA1gAAAAMdnVlZAAAA2QAAABndmlldwAAA8wAAAAkbHVtaQAAA/AAAAAU' +
+  'bWVhcwAABAQAAAAkd3RwdAAABCgAAAAUYmtwdAAABDwAAAAUclhZWgAABFAAAAAUZ1hZWgAABGQA' +
+  'AAAUYlhZWgAABHgAAAAUclRSQwAABIwAAAgMZ1RSQwAABIwAAAgMYlRSQwAABIwAAAgMYXJ0cwAA' +
+  'DJgAAAAsZGVzYwAAAAAAAAA/c1JHQiBJRUM2MTk2Ni0yLjEgKEVxdWl2YWxlbnQgdG8gd3d3LnNy' +
+  'Z2IuY29tIDE5OTggSFAgcHJvZmlsZSkAAAAAAAAAAAAAAD9zUkdCIElFQzYxOTY2LTIuMSAoRXF1' +
+  'aXZhbGVudCB0byB3d3cuc3JnYi5jb20gMTk5OCBIUCBwcm9maWxlKQAAAAAAAAAAdGV4dAAAAABD' +
+  'cmVhdGVkIGJ5IEdyYWVtZSBXLiBHaWxsLiBSZWxlYXNlZCBpbnRvIHRoZSBwdWJsaWMgZG9tYWlu' +
+  'LiBObyBXYXJyYW50eSwgVXNlIGF0IHlvdXIgb3duIHJpc2suAABkZXNjAAAAAAAAABZJRUMgaHR0' +
+  'cDovL3d3dy5pZWMuY2gAAAAAAAAAAAAAABZJRUMgaHR0cDovL3d3dy5pZWMuY2gAAAAAAAAAAAAA' +
+  'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZGVzYwAAAAAAAAAuSUVDIDYxOTY2' +
+  'LTIuMSBEZWZhdWx0IFJHQiBjb2xvdXIgc3BhY2UgLSBzUkdCAAAAAAAAAAAAAAAuSUVDIDYxOTY2' +
+  'LTIuMSBEZWZhdWx0IFJHQiBjb2xvdXIgc3BhY2UgLSBzUkdCAAAAAAAAAAAAAAAAAAAAAAAAAAAA' +
+  'AHNpZyAAAAAAQ1JUIGRlc2MAAAAAAAAADUlFQzYxOTY2LTIuMQAAAAAAAAAAAAAADUlFQzYxOTY2' +
+  'LTIuMQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' +
+  'AAAAdmlldwAAAAAAE6SAABRfMAAQzgoAA+2zAAQTCgADXGgAAAABWFlaIAAAAAAATApAAFAAAABX' +
+  'HtBtZWFzAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAACjwAAAAJYWVogAAAAAAAA81EAAQAAAAEW' +
+  'zFhZWiAAAAAAAAAAAAAAAAAAAAAAWFlaIAAAAAAAAG+gAAA49QAAA5BYWVogAAAAAAAAYpcAALeH' +
+  'AAAY2VhZWiAAAAAAAAAknwAAD4QAALbEY3VydgAAAAAAAAQAAAAABQAKAA8AFAAZAB4AIwAoAC0A' +
+  'MgA3ADsAQABFAEoATwBUAFkAXgBjAGgAbQByAHcAfACBAIYAiwCQAJUAmgCfAKQAqQCuALIAtwC8' +
+  'AMEAxgDLANAA1QDbAOAA5QDrAPAA9gD7AQEBBwENARMBGQEfASUBKwEyATgBPgFFAUwBUgFZAWAB' +
+  'ZwFuAXUBfAGDAYsBkgGaAaEBqQGxAbkBwQHJAdEB2QHhAekB8gH6AgMCDAIUAh0CJgIvAjgCQQJL' +
+  'AlQCXQJnAnECegKEAo4CmAKiAqwCtgLBAssC1QLgAusC9QMAAwsDFgMhAy0DOANDA08DWgNmA3ID' +
+  'fgOKA5YDogOuA7oDxwPTA+AD7AP5BAYEEwQgBC0EOwRIBFUEYwRxBH4EjASaBKgEtgTEBNME4QTw' +
+  'BP4FDQUcBSsFOgVJBVgFZwV3BYYFlgWmBbUFxQXVBeUF9gYGBhYGJwY3BkgGWQZqBnsGjAadBq8G' +
+  'wAbRBuMG9QcHBxkHKwc9B08HYQd0B4YHmQesB78H0gflB/gICwgfCDIIRghaCG4IggiWCKoIvgjS' +
+  'COcI+wkQCSUJOglPCWQJeQmPCaQJugnPCeUJ+woRCicKPQpUCmoKgQqYCq4KxQrcCvMLCwsiCzkL' +
+  'UQtpC4ALmAuwC8gL4Qv5DBIMKgxDDFwMdQyODKcMwAzZDPMNDQ0mDUANWg10DY4NqQ3DDd4N+A4T' +
+  'Di4OSQ5kDn8Omw62DtIO7g8JDyUPQQ9eD3oPlg+zD88P7BAJECYQQxBhEH4QmxC5ENcQ9RETETER' +
+  'TxFtEYwRqhHJEegSBxImEkUSZBKEEqMSwxLjEwMTIxNDE2MTgxOkE8UT5RQGFCcUSRRqFIsUrRTO' +
+  'FPAVEhU0FVYVeBWbFb0V4BYDFiYWSRZsFo8WshbWFvoXHRdBF2UXiReuF9IX9xgbGEAYZRiKGK8Y' +
+  '1Rj6GSAZRRlrGZEZtxndGgQaKhpRGncanhrFGuwbFBs7G2MbihuyG9ocAhwqHFIcexyjHMwc9R0e' +
+  'HUcdcB2ZHcMd7B4WHkAeah6UHr4e6R8THz4faR+UH78f6iAVIEEgbCCYIMQg8CEcIUghdSGhIc4h' +
+  '+yInIlUigiKvIt0jCiM4I2YjlCPCI/AkHyRNJHwkqyTaJQklOCVoJZclxyX3JicmVyaHJrcm6CcY' +
+  'J0kneierJ9woDSg/KHEooijUKQYpOClrKZ0p0CoCKjUqaCqbKs8rAis2K2krnSvRLAUsOSxuLKIs' +
+  '1y0MLUEtdi2rLeEuFi5MLoIuty7uLyQvWi+RL8cv/jA1MGwwpDDbMRIxSjGCMbox8jIqMmMymzLU' +
+  'Mw0zRjN/M7gz8TQrNGU0njTYNRM1TTWHNcI1/TY3NnI2rjbpNyQ3YDecN9c4FDhQOIw4yDkFOUI5' +
+  'fzm8Ofk6Njp0OrI67zstO2s7qjvoPCc8ZTykPOM9Ij1hPaE94D4gPmA+oD7gPyE/YT+iP+JAI0Bk' +
+  'QKZA50EpQWpBrEHuQjBCckK1QvdDOkN9Q8BEA0RHRIpEzkUSRVVFmkXeRiJGZ0arRvBHNUd7R8BI' +
+  'BUhLSJFI10kdSWNJqUnwSjdKfUrESwxLU0uaS+JMKkxyTLpNAk1KTZNN3E4lTm5Ot08AT0lPk0/d' +
+  'UCdQcVC7UQZRUFGbUeZSMVJ8UsdTE1NfU6pT9lRCVI9U21UoVXVVwlYPVlxWqVb3V0RXklfgWC9Y' +
+  'fVjLWRpZaVm4WgdaVlqmWvVbRVuVW+VcNVyGXNZdJ114XcleGl5sXr1fD19hX7NgBWBXYKpg/GFP' +
+  'YaJh9WJJYpxi8GNDY5dj62RAZJRk6WU9ZZJl52Y9ZpJm6Gc9Z5Nn6Wg/aJZo7GlDaZpp8WpIap9q' +
+  '92tPa6dr/2xXbK9tCG1gbbluEm5rbsRvHm94b9FwK3CGcOBxOnGVcfByS3KmcwFzXXO4dBR0cHTM' +
+  'dSh1hXXhdj52m3b4d1Z3s3gReG54zHkqeYl553pGeqV7BHtje8J8IXyBfOF9QX2hfgF+Yn7CfyN/' +
+  'hH/lgEeAqIEKgWuBzYIwgpKC9INXg7qEHYSAhOOFR4Wrhg6GcobXhzuHn4gEiGmIzokziZmJ/opk' +
+  'isqLMIuWi/yMY4zKjTGNmI3/jmaOzo82j56QBpBukNaRP5GokhGSepLjk02TtpQglIqU9JVflcmW' +
+  'NJaflwqXdZfgmEyYuJkkmZCZ/JpomtWbQpuvnByciZz3nWSd0p5Anq6fHZ+Ln/qgaaDYoUehtqIm' +
+  'opajBqN2o+akVqTHpTilqaYapoum/adup+CoUqjEqTepqaocqo+rAqt1q+msXKzQrUStuK4trqGv' +
+  'Fq+LsACwdbDqsWCx1rJLssKzOLOutCW0nLUTtYq2AbZ5tvC3aLfguFm40blKucK6O7q1uy67p7wh' +
+  'vJu9Fb2Pvgq+hL7/v3q/9cBwwOzBZ8Hjwl/C28NYw9TEUcTOxUvFyMZGxsPHQce/yD3IvMk6ybnK' +
+  'OMq3yzbLtsw1zLXNNc21zjbOts83z7jQOdC60TzRvtI/0sHTRNPG1EnUy9VO1dHWVdbY11zX4Nhk' +
+  '2OjZbNnx2nba+9uA3AXcit0Q3ZbeHN6i3ynfr+A24L3hROHM4lPi2+Nj4+vkc+T85YTmDeaW5x/n' +
+  'qegy6LzpRunQ6lvq5etw6/vshu0R7ZzuKO6070DvzPBY8OXxcvH/8ozzGfOn9DT0wvVQ9d72bfb7' +
+  '94r4Gfio+Tj5x/pX+uf7d/wH/Jj9Kf26/kv+3P9t//9zZjMyAAAAAAAA5SUAAEQz///Wr///P/QA' +
+  'AbaoAAAJZQAACfX//+54AAEHlA==';
+
+/**
+ * Decodes the embedded base64 sRGB ICC profile into raw bytes once,
+ * cached on first call. Doing the decode at module load time would
+ * cost ~3 KB of memory permanently; the lazy cache keeps the cost
+ * only during the checkout flow when files are actually being
+ * exported.
+ */
+let _iccBytesCache: Uint8Array | null = null;
+function getSRGBProfileBytes(): Uint8Array {
+  if (_iccBytesCache) return _iccBytesCache;
+  // atob() turns the base64 string back into a binary string; we
+  // then unpack each character code into a Uint8Array byte.
+  const bin = atob(SRGB_ICC_BASE64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  _iccBytesCache = bytes;
+  return bytes;
+}
+
+/**
+ * Embeds the standard sRGB IEC61966-2.1 ICC profile into a JPEG
+ * blob as an APP2 marker, so prepress systems that read the
+ * embedded colour profile see a real one instead of falling back
+ * to "assume sRGB". The pixel data is unchanged.
+ *
+ * JPEG with embedded ICC looks like this:
+ *     FF D8                         SOI
+ *     FF E0 <len> 'JFIF\0' ...      APP0 (JFIF)  — existing
+ *     FF E2 <len> 'ICC_PROFILE\0' 01 01 <bytes>  APP2 (ICC)  — new
+ *     FF DB ... rest of the JPEG ...
+ *
+ * For small profiles (under 65517 bytes, ours is ~3.3 KB) we can
+ * use a single APP2 chunk. The 01 01 after the identifier means
+ * "sequence 1 of 1". The length field is big-endian and counts
+ * itself + the identifier + sequence bytes + the profile.
+ *
+ * If the source JPEG already has an APP2 ICC marker we skip the
+ * insert — the second profile would not be picked up by most
+ * readers and just wastes bytes.
+ */
+export async function embedSRGBProfile(blob: Blob): Promise<Blob> {
+  try {
+    const src = new Uint8Array(await blob.arrayBuffer());
+    // Validate SOI
+    if (src[0] !== 0xff || src[1] !== 0xd8) return blob;
+    // Find where to insert. We insert immediately after the APP0
+    // (JFIF) marker, which is the conventional position.
+    let insertAt = 2;
+    if (src[2] === 0xff && src[3] === 0xe0) {
+      const app0Len = (src[4] << 8) | src[5];
+      insertAt = 4 + app0Len;
+    }
+    // Check whether an APP2 ICC marker already exists; if it does,
+    // bail and return the original blob unchanged.
+    let p = insertAt;
+    while (p < src.length - 1) {
+      if (src[p] !== 0xff) break;
+      const marker = src[p + 1];
+      // SOS — start of scan, no more app markers ahead.
+      if (marker === 0xda) break;
+      // Length field follows immediately for app markers.
+      const segLen = (src[p + 2] << 8) | src[p + 3];
+      if (marker === 0xe2) {
+        // APP2 — check the identifier
+        const sig = String.fromCharCode(
+          src[p + 4], src[p + 5], src[p + 6], src[p + 7],
+          src[p + 8], src[p + 9], src[p + 10], src[p + 11],
+          src[p + 12], src[p + 13], src[p + 14], src[p + 15]
+        );
+        if (sig === 'ICC_PROFILE\0') return blob; // already embedded
+      }
+      p += 2 + segLen;
+    }
+
+    const profile = getSRGBProfileBytes();
+    // Build APP2 marker body:
+    //   12 bytes 'ICC_PROFILE\0'
+    //   1 byte sequence number (01)
+    //   1 byte total chunks (01)
+    //   N bytes profile data
+    const idBytes = new Uint8Array([
+      0x49, 0x43, 0x43, 0x5f, 0x50, 0x52, 0x4f, 0x46,
+      0x49, 0x4c, 0x45, 0x00, // ICC_PROFILE\0
+      0x01, 0x01,             // sequence 1 of 1
+    ]);
+    const segPayloadLen = 2 + idBytes.length + profile.length; // length field counts itself
+    const seg = new Uint8Array(2 + 2 + idBytes.length + profile.length);
+    seg[0] = 0xff;
+    seg[1] = 0xe2;             // APP2
+    seg[2] = (segPayloadLen >> 8) & 0xff;
+    seg[3] = segPayloadLen & 0xff;
+    seg.set(idBytes, 4);
+    seg.set(profile, 4 + idBytes.length);
+
+    // Stitch: SOI + APP0 + new APP2 + rest of JPEG
+    const out = new Uint8Array(src.length + seg.length);
+    out.set(src.subarray(0, insertAt), 0);
+    out.set(seg, insertAt);
+    out.set(src.subarray(insertAt), insertAt + seg.length);
+    return new Blob([out], { type: 'image/jpeg' });
+  } catch (e) {
+    console.warn('embedSRGBProfile failed, returning original blob:', e);
+    return blob;
+  }
+}
