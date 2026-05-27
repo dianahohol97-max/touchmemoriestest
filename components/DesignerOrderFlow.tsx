@@ -125,18 +125,27 @@ export default function DesignerOrderFlow() {
     };
 
     // Upload all photos to Supabase Storage
-    const uploadPhotosToStorage = async (): Promise<string[]> => {
-        const paths: string[] = [];
-        const orderId = `designer-${Date.now()}`;
+    const uploadPhotosToStorage = async (): Promise<Array<{path: string; name: string; size: number; type: string}>> => {
+        const items: Array<{path: string; name: string; size: number; type: string}> = [];
+        const sessionId = `designer-${Date.now()}`;
 
         for (const photo of photos) {
             if (photo.uploaded && photo.storagePath) {
-                paths.push(photo.storagePath);
+                items.push({
+                    path: photo.storagePath,
+                    name: photo.file.name,
+                    size: photo.file.size,
+                    type: photo.file.type || 'image/jpeg',
+                });
                 continue;
             }
 
             const ext = photo.file.name.split('.').pop() || 'jpg';
-            const path = `order-files/${orderId}/${photo.id}.${ext}`;
+            // Path is RELATIVE to the bucket. The previous version
+            // prepended 'order-files/' which led to the file being stored
+            // at order-files/order-files/{sessionId}/...
+            const safeName = photo.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = `${sessionId}/${photo.id}_${safeName}`;
 
             const { error } = await supabase.storage
                 .from('order-files')
@@ -146,14 +155,19 @@ export default function DesignerOrderFlow() {
                 console.error('Upload error:', error);
                 toast.error(`Помилка завантаження ${photo.file.name}`);
             } else {
-                paths.push(path);
+                items.push({
+                    path,
+                    name: photo.file.name,
+                    size: photo.file.size,
+                    type: photo.file.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+                });
                 setPhotos(prev => prev.map(p =>
                     p.id === photo.id ? { ...p, uploaded: true, storagePath: path } : p
                 ));
             }
         }
 
-        return paths;
+        return items;
     };
 
     //  Submit Order 
@@ -163,7 +177,24 @@ export default function DesignerOrderFlow() {
 
         try {
             // Upload photos
-            const filePaths = await uploadPhotosToStorage();
+            const fileItems = await uploadPhotosToStorage();
+
+            // Derive product_type for the admin badge from the product slug.
+            // Same mapping the rest of the codebase uses so the
+            // /admin/orders/[id]/files page shows the right Ukrainian
+            // label ("Фотокнига" / "Travel Book" / "Журнал" / "Книга
+            // побажань" etc.) on each photo the customer uploaded for
+            // the designer to lay out.
+            const slugLower = productSlug.toLowerCase();
+            let productType: string = 'designer-brief';
+            if (slugLower.includes('travel')) productType = 'travelbook';
+            else if (slugLower.includes('magazine') || slugLower.includes('zhurnal') || slugLower.includes('fotozhurnal')) productType = 'journal';
+            else if (slugLower.includes('wish') || slugLower.includes('pobazhan') || slugLower.includes('guest')) productType = 'wishbook';
+            else if (slugLower.includes('photobook') || slugLower.includes('graduation')) productType = 'photobook';
+            else if (slugLower.includes('journal')) productType = 'journal';
+            else if (slugLower.includes('planner')) productType = 'planner';
+            else if (slugLower.includes('poster')) productType = 'poster';
+            else if (slugLower.includes('photoprint') || slugLower.includes('polaroid')) productType = 'photoprint';
 
             // Build product name
             const productName = productSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -203,13 +234,24 @@ export default function DesignerOrderFlow() {
 
             if (orderError) throw orderError;
 
-            // Link files to order
-            if (order && filePaths.length > 0) {
+            // Link files to order with the full metadata the admin view
+            // needs: bucket_name so the signed URL helper knows where to
+            // look, file_category for the inline tag, product_type for
+            // the coloured badge, plus the original name and size so the
+            // manager sees something recognisable in the file list.
+            if (order && fileItems.length > 0) {
                 await supabase.from('order_files').insert(
-                    filePaths.map(path => ({
+                    fileItems.map((it, idx) => ({
                         order_id: order.id,
-                        file_path: path,
-                        file_type: 'photo',
+                        file_path: it.path,
+                        file_name: it.name,
+                        file_type: 'upload',
+                        file_category: 'designer-brief',
+                        product_type: productType,
+                        bucket_name: 'order-files',
+                        file_size: it.size,
+                        mime_type: it.type,
+                        page_number: idx + 1,
                     }))
                 );
             }
