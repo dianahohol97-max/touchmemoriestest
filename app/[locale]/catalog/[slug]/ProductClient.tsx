@@ -532,7 +532,6 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         //   525 base × 1.3 urgent + 195 typesetting = 878 ✅
         // not the previous order which gave
         //   (525 + 195) × 1.3 = 936 ❌
-        const _priceBeforeSurcharge = finalPrice;
         if (product.options && Array.isArray(product.options)) {
             product.options.forEach((opt: any) => {
                 if (!opt.options) return;
@@ -549,22 +548,6 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         // Flat extras (typesetting, retouching, QR, etc.) ride on top
         // of the rush-inflated baseline, not below it.
         finalPrice += extraModifiers;
-
-        // TEMP diagnostic — remove once Diana confirms pricing is correct.
-        // Logs exactly which inputs led to the displayed total so we can
-        // see where 883 ₴ comes from when the formula should give 878.
-        if (typeof window !== 'undefined' && (product.slug || '').includes('magazine')) {
-            console.log('[TM-price]', {
-                slug: product.slug,
-                dynamicPrice,
-                product_base: product.price,
-                priceBeforeSurcharge: _priceBeforeSurcharge,
-                extraModifiers,
-                hardcodedExcluded: Array.from(hardcodedNames),
-                customProductOptions,
-                finalPrice,
-            });
-        }
     }
 
     const handleAddToCart = () => {

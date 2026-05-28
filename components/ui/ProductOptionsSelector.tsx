@@ -178,8 +178,9 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Верстка тексту',
-      values: ['Без тексту (тільки фото)', 'З текстом (+195 ₴)'],
-      required: false
+      values: ['none', 'own', 'we-basic', 'we-premium'],
+      required: false,
+      note: '«Власний текст» — ви пишете самі в редакторі. «Ми пишемо» — після замовлення відкриється анкета, наш редактор напише текст за вас (Базовий — короткі підписи, Преміум — повноцінні історії).'
     },
     {
       name: 'Терміновість',
@@ -213,8 +214,9 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Верстка тексту',
-      values: ['Без тексту (тільки фото)', 'З текстом (+195 ₴)'],
-      required: true
+      values: ['none', 'own', 'we-basic', 'we-premium'],
+      required: true,
+      note: '«Власний текст» — ви пишете самі в редакторі. «Ми пишемо» — після замовлення відкриється анкета, наш редактор напише текст за вас (Базовий — короткі підписи, Преміум — повноцінні історії).'
     },
     {
       name: 'Ламінування сторінок',
@@ -393,6 +395,22 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
   const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
   const optValueLabel = (val: string | number) => {
     const s = String(val);
+    // Canonical text-layout values → human labels (Ukrainian). These
+    // four values mirror product.options['Верстка тексту'] in the DB so
+    // both magazines (soft + hard cover) show the same four choices:
+    //   • none       — no text, photos only
+    //   • own        — customer supplies their own text (+195)
+    //   • we-basic   — we write it, basic package (+195)
+    //   • we-premium — we write it, premium package (+395)
+    // The selector stores the canonical value; ProductClient maps it to
+    // ?text_layout= and routes we-basic/we-premium to the brief flow.
+    const TEXT_LAYOUT_LABELS: Record<string, string> = {
+      'none': 'Без тексту (тільки фото)',
+      'own': 'Власний текст (+195 ₴)',
+      'we-basic': 'Ми пишемо — Базовий пакет (+195 ₴)',
+      'we-premium': 'Ми пишемо — Преміум пакет (+395 ₴)',
+    };
+    if (TEXT_LAYOUT_LABELS[s]) return TEXT_LAYOUT_LABELS[s];
     const kFull = t('option_value_labels.' + s);
     if (kFull !== 'option_value_labels.' + s) return kFull;
     const m = s.match(/^(.+?)\s*(\(.+\))\s*$/);
@@ -534,8 +552,19 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       if (pages && typeof pages === 'number') {
         let total = PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || 0;
         if (!total) return null;
-        // Add typesetting price
-        if (String(opts['Верстка тексту'] || '').includes('текстом') || String(opts['Верстка тексту'] || '').includes('верстк')) total += TYPESETTING_PRICE;
+        // Typesetting price by canonical value. 'own' and 'we-basic'
+        // are +195, 'we-premium' is +395, 'none' is free. Legacy label
+        // checks kept as a fallback for any old saved state.
+        const tv = String(opts['Верстка тексту'] || '');
+        if (tv === 'we-premium') {
+          total += 395;
+        } else if (tv === 'own' || tv === 'we-basic' ||
+                   tv.includes('текстом') || tv.includes('верстк') ||
+                   tv.includes('Власний') || tv.includes('Базовий')) {
+          total += TYPESETTING_PRICE;
+        } else if (tv.includes('Преміум')) {
+          total += 395;
+        }
         // Lamination: 7 UAH per page (Diana's price list, May 2026)
         if (opts['Ламінування сторінок'] === 'З ламінуванням (+7 ₴/стор)' || opts['Ламінування сторінок'] === 'З ламінуванням (+5 ₴/стор)') total += pages * LAMINATION_PRICE_PER_PAGE;
         return total;
