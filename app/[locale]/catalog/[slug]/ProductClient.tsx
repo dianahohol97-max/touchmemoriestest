@@ -1161,9 +1161,15 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                 // cover inscription, then submits an order with
                                                 // text_brief jsonb attached.
                                                 const textLayout = String(customProductOptions['Верстка тексту'] || '');
-                                                if (textLayout === 'we-basic' || textLayout === 'we-premium') {
-                                                    const pkg = textLayout === 'we-premium' ? 'premium' : 'basic';
-                                                    const briefUrl = `/order/magazine-text-brief?product=${slug}&package=${pkg}`;
+                                                // 'we' (and legacy we-basic/we-premium) means "we write the
+                                                // text" → go to the brief questionnaire instead of the editor.
+                                                // The package (basic/premium) is now chosen ON the brief page,
+                                                // so for the new 'we' value we don't preselect one. Legacy
+                                                // values still pass their package through for back-compat.
+                                                if (textLayout === 'we' || textLayout === 'we-basic' || textLayout === 'we-premium') {
+                                                    const briefUrl = textLayout === 'we'
+                                                        ? `/order/magazine-text-brief?product=${slug}`
+                                                        : `/order/magazine-text-brief?product=${slug}&package=${textLayout === 'we-premium' ? 'premium' : 'basic'}`;
                                                     // Carry over the other options so the brief page can
                                                     // show the final price in the summary.
                                                     const url = new URL(briefUrl, 'http://x');

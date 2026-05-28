@@ -71,6 +71,43 @@ const PACKAGE_LABEL: Record<Package, string> = {
   premium: 'Преміум пакет — 6 розділів + опція кастомної статті',
 };
 
+// What each "Ми пишемо" package includes, shown on the brief page so the
+// customer can make an informed choice between basic and premium. Each
+// package is built from named editorial sections (розділи) — the premium
+// tier adds depth (longer, research-backed copy) plus an optional fully
+// custom article.
+const PACKAGE_DETAILS: Record<Package, {
+  tagline: string;
+  sections: { title: string; body: string }[];
+  footer: string;
+}> = {
+  basic: {
+    tagline: 'Короткі теплі тексти за вашими відповідями. Ідеально як доповнення до фотографій.',
+    sections: [
+      { title: 'Вступне слово', body: 'Тепле звернення до людини, для якої журнал — задає настрій усьому виданню.' },
+      { title: 'Про особистість', body: 'Короткий портрет: характер, улюблені речі, звички, що робить людину особливою.' },
+      { title: 'Знак зодіаку', body: 'Опис рис за знаком зодіаку, підібраний під конкретну людину.' },
+      { title: 'Про стосунки', body: 'Розділ про дружбу, кохання або сімʼю — на ваш вибір.' },
+      { title: 'Улюблені речі', body: 'Список і опис речей, без яких людину неможливо уявити (9 або 12 пунктів).' },
+      { title: 'Побажання', body: 'Завершальне слово-побажання від вас або від команди.' },
+    ],
+    footer: 'Обсяг тексту: короткі підписи та абзаци. Терміни: текст готується до верстки за 2–3 робочі дні.',
+  },
+  premium: {
+    tagline: 'Глибокі, детальні тексти-історії з опрацюванням деталей. Для журналу, який читають як книгу.',
+    sections: [
+      { title: 'Розгорнутий вступ', body: 'Персональне есе-звернення, написане на основі повної історії людини.' },
+      { title: 'Біографія та доля', body: 'Опис за датою, часом і місцем народження — характер, життєвий шлях, сильні сторони.' },
+      { title: 'Робота і покликання', body: 'Розділ про професію, досягнення та те, що людина любить у своїй справі.' },
+      { title: 'Хобі та подорожі', body: 'Захоплення, улюблені місця, найяскравіші мандрівки та мрії.' },
+      { title: 'Характер і стиль', body: 'Глибокий портрет особистості: темперамент, стиль, бренди, естетика.' },
+      { title: 'Цікаві факти', body: '3–5 історій, мрій, звичок чи досягнень, оформлених як окремі мініатюри.' },
+      { title: '+ Кастомна стаття (опційно)', body: 'Одна повністю індивідуальна стаття на будь-яку тему за вашим запитом.' },
+    ],
+    footer: 'Обсяг тексту: повноцінні статті та історії. Терміни: текст готується за 4–6 робочих днів.',
+  },
+};
+
 interface PhotoFile {
   id: string;
   file: File;
@@ -84,7 +121,12 @@ function MagazineTextBriefContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const productSlug = searchParams.get('product') || 'personalized-glossy-magazine';
-  const pkg: Package = (searchParams.get('package') === 'premium' ? 'premium' : 'basic');
+  // Package is now chosen ON this page (the product card only commits the
+  // customer to "Ми пишемо"). If a package arrived in the URL (legacy
+  // we-basic / we-premium deep links), use it as the initial selection;
+  // otherwise default to 'basic' and let the customer switch.
+  const urlPackage: Package = searchParams.get('package') === 'premium' ? 'premium' : 'basic';
+  const [pkg, setPkg] = useState<Package>(urlPackage);
 
   // Other product options carried over from the catalog page
   // (Кількість сторінок, Терміновість etc.) so we can show an
@@ -303,8 +345,77 @@ function MagazineTextBriefContent() {
         Замовлення журналу з нашим текстом
       </h1>
       <p style={{ color: '#475569', marginBottom: 24 }}>
-        {PACKAGE_LABEL[pkg]} · {PACKAGE_PRICE[pkg]} ₴
+        Оберіть пакет — далі заповніть анкету, і наш редактор напише текст для вашого журналу.
       </p>
+
+      {/* Package chooser: explains the difference between the two
+          "Ми пишемо" packages, section by section, and lets the
+          customer pick. The selected package drives which brief fields
+          are shown below and the price in the summary. */}
+      <section style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, color: '#1e2d7d' }}>
+          Оберіть пакет тексту
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          {(['basic', 'premium'] as Package[]).map((p) => {
+            const active = pkg === p;
+            const details = PACKAGE_DETAILS[p];
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPkg(p)}
+                style={{
+                  textAlign: 'left',
+                  border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                  background: active ? '#f0f3ff' : '#fff',
+                  borderRadius: 12,
+                  padding: 20,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{ fontWeight: 800, fontSize: 17, color: '#1e2d7d' }}>
+                    {p === 'basic' ? 'Базовий' : 'Преміум'}
+                  </span>
+                  <span style={{ fontWeight: 700, fontSize: 16, color: active ? '#1e2d7d' : '#475569', whiteSpace: 'nowrap' }}>
+                    {PACKAGE_PRICE[p]} ₴
+                  </span>
+                </div>
+                <p style={{ fontSize: 13, color: '#475569', margin: 0, lineHeight: 1.5 }}>
+                  {details.tagline}
+                </p>
+                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10, marginTop: 2 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4, margin: '0 0 8px' }}>
+                    Розділи
+                  </p>
+                  <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {details.sections.map((sec, i) => (
+                      <li key={i} style={{ fontSize: 13, color: '#0f172a', lineHeight: 1.4 }}>
+                        <span style={{ fontWeight: 700 }}>{sec.title}.</span>{' '}
+                        <span style={{ color: '#64748b' }}>{sec.body}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <p style={{ fontSize: 12, color: '#94a3b8', margin: '6px 0 0', lineHeight: 1.5 }}>
+                  {details.footer}
+                </p>
+                <div style={{
+                  marginTop: 6, fontSize: 13, fontWeight: 700,
+                  color: active ? '#1e2d7d' : '#94a3b8',
+                }}>
+                  {active ? '✓ Обрано' : 'Обрати цей пакет'}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Section 1: Briefing */}
       <section style={{ background: '#f8fafc', borderRadius: 12, padding: 24, marginBottom: 24 }}>
@@ -312,7 +423,9 @@ function MagazineTextBriefContent() {
           1. Розкажіть про людину
         </h2>
         <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>
-          Заповніть, будь ласка, максимально детально — це допоможе створити справді персональний журнал.
+          {pkg === 'premium'
+            ? 'Преміум-пакет: що детальніше ви опишете людину, то багатшими будуть статті.'
+            : 'Базовий пакет: заповніть основне — цього достатньо для теплих коротких текстів.'}
         </p>
 
         {visibleFields.map(field => (

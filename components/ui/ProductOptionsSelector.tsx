@@ -178,9 +178,9 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Верстка тексту',
-      values: ['none', 'own', 'we-basic', 'we-premium'],
+      values: ['none', 'own', 'we'],
       required: false,
-      note: '«Власний текст» — ви пишете самі в редакторі. «Ми пишемо» — після замовлення відкриється анкета, наш редактор напише текст за вас (Базовий — короткі підписи, Преміум — повноцінні історії).'
+      note: '«Власний текст» — ви пишете самі в редакторі. «Ми пишемо» — після замовлення відкриється анкета, де ви оберете пакет і розкажете про події; наш редактор напише текст за вас.'
     },
     {
       name: 'Терміновість',
@@ -214,9 +214,9 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Верстка тексту',
-      values: ['none', 'own', 'we-basic', 'we-premium'],
+      values: ['none', 'own', 'we'],
       required: true,
-      note: '«Власний текст» — ви пишете самі в редакторі. «Ми пишемо» — після замовлення відкриється анкета, наш редактор напише текст за вас (Базовий — короткі підписи, Преміум — повноцінні історії).'
+      note: '«Власний текст» — ви пишете самі в редакторі. «Ми пишемо» — після замовлення відкриється анкета, де ви оберете пакет і розкажете про події; наш редактор напише текст за вас.'
     },
     {
       name: 'Ламінування сторінок',
@@ -395,18 +395,20 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
   const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
   const optValueLabel = (val: string | number) => {
     const s = String(val);
-    // Canonical text-layout values → human labels (Ukrainian). These
-    // four values mirror product.options['Верстка тексту'] in the DB so
-    // both magazines (soft + hard cover) show the same four choices:
-    //   • none       — no text, photos only
-    //   • own        — customer supplies their own text (+195)
-    //   • we-basic   — we write it, basic package (+195)
-    //   • we-premium — we write it, premium package (+395)
+    // Canonical text-layout values → human labels (Ukrainian). Three
+    // values mirror product.options['Верстка тексту'] in the DB so both
+    // magazines (soft + hard cover) show the same three choices:
+    //   • none — no text, photos only
+    //   • own  — customer supplies their own text (+195)
+    //   • we   — we write it (from +195); the basic/premium package
+    //            choice is made later on the brief questionnaire
     // The selector stores the canonical value; ProductClient maps it to
-    // ?text_layout= and routes we-basic/we-premium to the brief flow.
+    // ?text_layout= and routes 'we' to the brief flow.
     const TEXT_LAYOUT_LABELS: Record<string, string> = {
       'none': 'Без тексту (тільки фото)',
       'own': 'Власний текст (+195 ₴)',
+      'we': 'Ми пишемо (від 195 ₴)',
+      // Legacy values kept so old saved state / orders still render:
       'we-basic': 'Ми пишемо — Базовий пакет (+195 ₴)',
       'we-premium': 'Ми пишемо — Преміум пакет (+395 ₴)',
     };
@@ -552,15 +554,21 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       if (pages && typeof pages === 'number') {
         let total = PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || 0;
         if (!total) return null;
-        // Typesetting price by canonical value. 'own' and 'we-basic'
-        // are +195, 'we-premium' is +395, 'none' is free. Legacy label
-        // checks kept as a fallback for any old saved state.
+        // Typesetting price by canonical value. On the product page the
+        // customer only commits to a category:
+        //   own → +195 (writes it themselves)
+        //   we  → +195 baseline ("від 195 ₴"); the actual basic/premium
+        //         package is chosen on the brief page, where the premium
+        //         upcharge (to 395) is added if selected.
+        //   none → free
+        // Legacy we-basic / we-premium values still price correctly for
+        // any pre-existing saved state or orders.
         const tv = String(opts['Верстка тексту'] || '');
         if (tv === 'we-premium') {
           total += 395;
-        } else if (tv === 'own' || tv === 'we-basic' ||
+        } else if (tv === 'own' || tv === 'we' || tv === 'we-basic' ||
                    tv.includes('текстом') || tv.includes('верстк') ||
-                   tv.includes('Власний') || tv.includes('Базовий')) {
+                   tv.includes('Власний') || tv.includes('Базовий') || tv.includes('пишемо')) {
           total += TYPESETTING_PRICE;
         } else if (tv.includes('Преміум')) {
           total += 395;
