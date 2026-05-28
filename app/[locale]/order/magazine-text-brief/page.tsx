@@ -23,6 +23,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { toast, Toaster } from 'react-hot-toast';
 import { Upload, X, Check } from 'lucide-react';
+import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
 
 type Package = 'basic' | 'premium';
 
@@ -152,6 +153,10 @@ function MagazineTextBriefContent() {
   const [coverStyle, setCoverStyle] = useState('');
   const [coverDate, setCoverDate] = useState('');
   const [coverPhotoNote, setCoverPhotoNote] = useState('');
+  // Optional dedicated cover photo the customer can upload right here,
+  // separate from the journal photo pool. If set, the editor uses this
+  // exact image for the cover instead of guessing from the pool.
+  const [coverPhoto, setCoverPhoto] = useState<PhotoFile | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -162,6 +167,7 @@ function MagazineTextBriefContent() {
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const visibleFields = FIELDS.filter(f => f.packages.includes(pkg));
 
@@ -192,9 +198,34 @@ function MagazineTextBriefContent() {
     });
   };
 
+  const handleCoverPhoto = (files: FileList | null) => {
+    if (!files || !files[0]) return;
+    const file = files[0];
+    if (!file.type.startsWith('image/')) return;
+    if (coverPhoto) URL.revokeObjectURL(coverPhoto.preview);
+    setCoverPhoto({
+      id: `cover-${Date.now()}`,
+      file,
+      preview: URL.createObjectURL(file),
+      uploading: false,
+      uploaded: false,
+    });
+  };
+
+  const removeCoverPhoto = () => {
+    if (coverPhoto) URL.revokeObjectURL(coverPhoto.preview);
+    setCoverPhoto(null);
+  };
+
   const canSubmit = (): boolean => {
     if (photos.length === 0) return false;
-    if (!firstName.trim() || !lastName.trim() || !phone.trim()) return false;
+    if (!firstName.trim() || !lastName.trim()) return false;
+    // Only the chosen contact channel is required. All contact fields
+    // stay visible so the customer can add extras, but they must fill in
+    // at least the one they picked.
+    if (contactMethod === 'telegram' && !telegram.trim()) return false;
+    if (contactMethod === 'email' && !email.trim()) return false;
+    if (contactMethod === 'phone' && !phone.trim()) return false;
     for (const f of visibleFields) {
       if (f.required && !answers[f.id]?.trim()) return false;
     }
@@ -236,6 +267,28 @@ function MagazineTextBriefContent() {
         toast.error('Не вдалось завантажити жодного фото — спробуйте ще раз');
         setSubmitting(false);
         return;
+      }
+
+      // Upload the dedicated cover photo (if any) so the editor can use
+      // the exact image the customer picked for the cover.
+      let coverPhotoPath: string | null = null;
+      if (coverPhoto) {
+        const safeName = coverPhoto.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${sessionId}/cover_${safeName}`;
+        const { error } = await supabase.storage
+          .from('order-files')
+          .upload(path, coverPhoto.file, { upsert: true });
+        if (error) {
+          console.error('cover upload error:', error);
+        } else {
+          coverPhotoPath = path;
+          uploadedItems.push({
+            path,
+            name: `[ОБКЛАДИНКА] ${coverPhoto.file.name}`,
+            size: coverPhoto.file.size,
+            type: coverPhoto.file.type || 'image/jpeg',
+          });
+        }
       }
 
       // 2) Create order row. Total price is left at 0 — the manager
@@ -284,6 +337,7 @@ function MagazineTextBriefContent() {
               era: coverEra,
               style: coverStyle,
               photo_note: coverPhotoNote,
+              photo_path: coverPhotoPath,
               inscription: coverInscription,
             },
             cover_inscription: coverInscription,
@@ -500,10 +554,13 @@ function MagazineTextBriefContent() {
         {(() => {
           const pagesNum = parseInt(String(carriedOptions['Кількість сторінок'] || '').replace(/[^\d]/g, ''), 10) || 0;
           if (!pagesNum) return null;
-          // One photo per page is the baseline; the upper bound is +30%
-          // to leave room for variants and collages.
+          // One photo per page is the baseline.
+          //   • Basic   — upper bound +30% (room for variants/collages).
+          //   • Premium — upper bound = recommended + 10, because the
+          //     longer premium articles use more supporting images, so
+          //     the editor needs a bigger pool to pick from.
           const recMin = pagesNum;
-          const recMax = Math.ceil(pagesNum * 1.3);
+          const recMax = pkg === 'premium' ? pagesNum + 10 : Math.ceil(pagesNum * 1.3);
           const count = photos.length;
           const ok = count >= recMin && count <= recMax;
           const tooFew = count > 0 && count < recMin;
@@ -517,12 +574,14 @@ function MagazineTextBriefContent() {
                 Рекомендована кількість фото для {pagesNum} сторінок: {recMin}–{recMax}
               </p>
               <p style={{ margin: '6px 0 0', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
-                Орієнтовно одне фото на сторінку. Максимум {recMax} (на 30% більше за рекомендовану кількість) — щоб ми мали з чого обрати найкращі кадри й варіанти.
+                {pkg === 'premium'
+                  ? `Орієнтовно одне фото на сторінку. Для Преміум-пакету можна додати до +10 фото понад рекомендовану кількість — статті довші, тож редактору потрібно більше кадрів для добірки.`
+                  : `Орієнтовно одне фото на сторінку. Максимум ${recMax} (на 30% більше за рекомендовану кількість) — щоб ми мали з чого обрати найкращі кадри й варіанти.`}
               </p>
               {count > 0 && (
                 <p style={{ margin: '8px 0 0', fontSize: 13, fontWeight: 600, color: titleColor }}>
                   {tooFew && `Завантажено ${count} — бажано додати ще щонайменше ${recMin - count}.`}
-                  {tooMany && `Завантажено ${count} — це більше за рекомендований максимум (${recMax}). Зайві фото можемо не використати.`}
+                  {tooMany && `Завантажено ${count} — це більше за максимум (${recMax}). Зайві фото можемо не використати.`}
                   {ok && `Завантажено ${count} — чудово, цього достатньо.`}
                 </p>
               )}
@@ -648,7 +707,55 @@ function MagazineTextBriefContent() {
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
-            Яке фото на обкладинку?
+            Фото для обкладинки (опційно)
+          </label>
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(e) => handleCoverPhoto(e.target.files)}
+          />
+          {coverPhoto ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ position: 'relative', width: 96, height: 128, borderRadius: 8, overflow: 'hidden', background: '#e2e8f0', flexShrink: 0 }}>
+                <img src={coverPhoto.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <button
+                  onClick={removeCoverPhoto}
+                  style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <button
+                onClick={() => coverInputRef.current?.click()}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #1e2d7d', background: '#fff', color: '#1e2d7d', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+              >
+                Замінити фото
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => coverInputRef.current?.click()}
+              style={{
+                width: '100%', padding: 20, border: '2px dashed #cbd5e1', borderRadius: 10,
+                background: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 6, color: '#64748b',
+              }}
+            >
+              <Upload size={24} />
+              <span style={{ fontWeight: 600, fontSize: 14 }}>Завантажити фото обкладинки</span>
+              <span style={{ fontSize: 12 }}>вертикальне фото, обличчя крупно</span>
+            </button>
+          )}
+          <p style={{ margin: '6px 0 0', fontSize: 12, color: '#94a3b8' }}>
+            Можна завантажити окреме фото саме для обкладинки. Якщо не завантажите — редактор підбере найкраще із завантажених журнальних фото.
+          </p>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
+            Або опишіть, яке фото на обкладинку
           </label>
           <input
             type="text"
@@ -698,17 +805,17 @@ function MagazineTextBriefContent() {
           />
         </div>
         <input
-          type="tel" placeholder="Номер телефону *"
+          type="tel" placeholder={contactMethod === 'phone' ? 'Номер телефону *' : 'Номер телефону'}
           value={phone} onChange={(e) => setPhone(e.target.value)}
           style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', marginBottom: 12 }}
         />
         <input
-          type="text" placeholder="Нік в Telegram (бажано)"
+          type="text" placeholder={contactMethod === 'telegram' ? 'Нік в Telegram *' : 'Нік в Telegram (бажано)'}
           value={telegram} onChange={(e) => setTelegram(e.target.value)}
           style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', marginBottom: 12 }}
         />
         <input
-          type="email" placeholder="Email"
+          type="email" placeholder={contactMethod === 'email' ? 'Email *' : 'Email'}
           value={email} onChange={(e) => setEmail(e.target.value)}
           style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', marginBottom: 16 }}
         />
@@ -718,7 +825,6 @@ function MagazineTextBriefContent() {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {([
               { id: 'telegram', label: 'Telegram' },
-              { id: 'phone', label: 'Телефон' },
               { id: 'email', label: 'Email' },
             ] as const).map(opt => (
               <button
@@ -735,6 +841,35 @@ function MagazineTextBriefContent() {
           </div>
         </div>
       </section>
+
+      {/* Estimated total — shown as "від N ₴" because the final price
+          depends on layout complexity. Computed the same way as the
+          product page: base magazine price for the page count, × urgency
+          if chosen, + the text package price. */}
+      {(() => {
+        const pagesNum = parseInt(String(carriedOptions['Кількість сторінок'] || '').replace(/[^\d]/g, ''), 10) || 0;
+        if (!pagesNum) return null;
+        const base = getMagazinePrice(pagesNum, false) || 0;
+        if (!base) return null;
+        const urgentRaw = String(carriedOptions['Терміновість'] || carriedOptions['urgent'] || '').toLowerCase();
+        const isUrgent = urgentRaw !== '' && urgentRaw !== '0' && urgentRaw !== 'standard' && !urgentRaw.includes('стандартна');
+        let total = base;
+        if (isUrgent) total = Math.round(total * (1 + URGENT_MULTIPLIER));
+        total += PACKAGE_PRICE[pkg];
+        return (
+          <div style={{ background: '#f8fafc', borderRadius: 12, padding: 20, marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 14, color: '#475569', fontWeight: 600 }}>Орієнтовна вартість</p>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8', lineHeight: 1.4 }}>
+                Фінальна ціна залежить від складності макету. Менеджер підтвердить її після перегляду анкети.
+              </p>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#1e2d7d', whiteSpace: 'nowrap' }}>
+              від {total} ₴
+            </div>
+          </div>
+        );
+      })()}
 
       <button
         onClick={submit}
