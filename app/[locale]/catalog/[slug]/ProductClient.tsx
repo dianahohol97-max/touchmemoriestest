@@ -979,7 +979,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                             'Варіант тиснення', 'Варіант гравірування', 'Корінець',
                                             'Рамка', 'Вид', 'Покриття', 'Біла рамочка 3мм', 'Матеріал',
                                             'Матеріал обкладинки', 'Колір сторінок',
-                                            'Верстка тексту', 'Терміновість', 'Ламінація сторінок', 'Ламінування сторінок', ...(isTravelbook ? ['Ламінація обкладинки', 'Ламінація', 'Індивідуальна обкладинка'] : []),
+                                            'Верстка тексту', 'Терміновість', 'Ламінація сторінок', 'Ламінування сторінок',
+                                            // The hard-cover journal (fotozhurnal-tverd) carries a DB option
+                                            // "Ламінація обкладинки" (Глянцева/Матова) that is the SAME thing as
+                                            // the hardcoded "Тип обкладинки" rendered by ProductOptionsSelector
+                                            // — so it was showing up twice. Exclude it for the magazine/journal
+                                            // family as well, not only travelbook.
+                                            ...(isTravelbook || isPhotobookOrMagazine ? ['Ламінація обкладинки', 'Ламінація', 'Індивідуальна обкладинка'] : []),
                                             'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка']);
                                         return product.options
                                             .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0))
