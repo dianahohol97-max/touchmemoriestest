@@ -6,6 +6,7 @@ import { Suspense, useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, Mail, Phone, User } from 'lucide-react'
 import { compressImageFile } from '@/lib/compress-upload-image'
+import { createBrowserClient } from '@supabase/auth-helpers-nextjs'
 
 interface UploadedFile {
   id: string
@@ -484,7 +485,7 @@ function ConfirmationStep({ data }: { data: OrderFormData }) {
   )
 }
 
-function SuccessScreen() {
+function SuccessScreen({ orderId }: { orderId?: string | null }) {
   const router = useRouter()
   return (
     <div className="text-center py-12">
@@ -492,7 +493,9 @@ function SuccessScreen() {
         <Check className="w-10 h-10 text-[#1e2d7d]" />
       </div>
       <h2 className="text-2xl font-bold text-[#1e2d7d] mb-3">Замовлення відправлено!</h2>
-      <p className="text-gray-500 max-w-md mx-auto mb-8">Дякуємо! Наш дизайнер зв'яжеться з вами протягом 1–2 годин для підтвердження деталей.</p>
+      <p className="text-gray-500 max-w-md mx-auto mb-2">Дякуємо! Наш дизайнер зв'яжеться з вами протягом 1–2 годин для підтвердження деталей.</p>
+      {orderId && <p className="text-gray-400 text-sm mb-8">Номер замовлення: {orderId.slice(0, 8)}</p>}
+      {!orderId && <div className="mb-8" />}
       <button onClick={() => router.push('/catalog')} className="bg-[#1e2d7d] hover:bg-[#263a99] text-white font-semibold px-8 py-3 rounded-lg transition-colors">
         Повернутись до каталогу
       </button>
@@ -626,6 +629,12 @@ function OrderForm() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [savedConfig, setSavedConfig] = useState<any>(null)
+  const [orderId, setOrderId] = useState<string | null>(null)
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   const [formData, setFormData] = useState<OrderFormData>({
     files: [], comment: '', delivery: '', city: '', address: '',
@@ -659,48 +668,122 @@ function OrderForm() {
     setSubmitting(true)
     setError('')
     try {
-      const fd = new FormData()
-      formData.files.forEach(f => fd.append('photos', f.file))
-      // Dedicated cover photo (if the product supports one and the
-      // customer uploaded it) — sent separately so the API/manager can
-      // tell it apart from the journal photo pool.
+      // Upload photos straight to Supabase Storage from the browser —
+      // NOT through /api/order. Posting 10+ photos as multipart FormData
+      // to a serverless function blows past Vercel's ~4.5 MB body limit
+      // and returns 413 ("Сталася помилка"). Uploading client-side to
+      // Storage (same approach as the magazine-text brief) sidesteps the
+      // limit entirely and actually persists the order.
+      const sessionId = `designer-order-${Date.now()}`
+      const uploaded: Array<{ path: string; name: string; size: number; type: string; cover?: boolean }> = []
+
+      for (let i = 0; i < formData.files.length; i++) {
+        const f = formData.files[i]
+        const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`
+        const { error: upErr } = await supabase.storage
+          .from('order-files')
+          .upload(path, f.file, { upsert: true })
+        if (upErr) { console.error('photo upload error:', upErr); continue }
+        uploaded.push({ path, name: f.name, size: f.size, type: f.file.type || 'image/jpeg' })
+      }
+
+      if (uploaded.length === 0) {
+        throw new Error('no photos uploaded')
+      }
+
+      // Optional dedicated cover photo
+      let coverPath: string | null = null
       if (formData.coverPhoto?.file) {
-        fd.append('coverPhoto', formData.coverPhoto.file)
-      }
-      if (formData.coverInscription) {
-        fd.append('coverInscription', formData.coverInscription)
-      }
-      fd.append('comment', formData.comment)
-      fd.append('delivery', formData.delivery)
-      fd.append('city', formData.city)
-      fd.append('address', formData.address)
-      fd.append('name', formData.name)
-      fd.append('lastName', formData.lastName)
-      fd.append('phone', formData.phone)
-      fd.append('contactChannel', formData.contactChannel)
-      fd.append('contactHandle', formData.contactHandle)
-      fd.append('productSlug', searchParams.get('product') || '')
-
-      // Include saved configuration if available
-      if (savedConfig) {
-        fd.append('productConfig', JSON.stringify(savedConfig))
+        const cf = formData.coverPhoto
+        const safeName = cf.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const path = `${sessionId}/cover_${safeName}`
+        const { error: cErr } = await supabase.storage
+          .from('order-files')
+          .upload(path, cf.file, { upsert: true })
+        if (!cErr) {
+          coverPath = path
+          uploaded.push({ path, name: `[ОБКЛАДИНКА] ${cf.name}`, size: cf.size, type: cf.file.type || 'image/jpeg', cover: true })
+        } else {
+          console.error('cover upload error:', cErr)
+        }
       }
 
-      const res = await fetch('/api/order', { method: 'POST', body: fd })
-      if (!res.ok) throw new Error('Server error')
+      const productSlug = savedConfig?.slug || searchParams.get('product') || ''
+      const productName = savedConfig?.productName
+        || (productSlug ? productSlug.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : 'Замовлення з дизайнером')
 
-      // Clear saved configuration after successful submission
+      const deliveryText = formData.delivery === 'pickup'
+        ? 'Самовивіз — Тернопіль, вул. Омеляна Польового 4а'
+        : `Нова Пошта — ${formData.city}${formData.address ? ', ' + formData.address : ''}`
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          customer_first_name: formData.name,
+          customer_last_name: formData.lastName,
+          customer_phone: formData.phone,
+          customer_email: formData.contactChannel === 'email' ? formData.contactHandle : null,
+          customer_telegram: formData.contactChannel === 'telegram' ? formData.contactHandle : null,
+          with_designer: true,
+          items: [{
+            product_slug: productSlug,
+            product_name: productName,
+            quantity: 1,
+            options: savedConfig?.config || {},
+          }],
+          notes: [
+            'Замовлення з дизайнером',
+            formData.comment ? `Коментар: ${formData.comment}` : '',
+            `Доставка: ${deliveryText}`,
+            formData.coverInscription ? `Надпис на обкладинці: ${formData.coverInscription}` : '',
+          ].filter(Boolean).join('\n---\n'),
+          order_status: 'new',
+          payment_status: 'pending',
+          custom_attributes: {
+            contact_channel: formData.contactChannel,
+            contact_handle: formData.contactHandle,
+            delivery: formData.delivery,
+            city: formData.city,
+            address: formData.address,
+          },
+          total: 0,
+          text_brief: {
+            cover: { inscription: formData.coverInscription, photo_path: coverPath },
+            collected_at: new Date().toISOString(),
+          },
+        })
+        .select('id')
+        .single()
+
+      if (orderError) throw orderError
+
+      if (order && uploaded.length > 0) {
+        await supabase.from('order_files').insert(
+          uploaded.map((it) => ({
+            order_id: order.id,
+            file_path: it.path,
+            file_name: it.name,
+            file_type: 'upload',
+            file_category: it.cover ? 'designer-cover' : 'designer-order',
+            product_type: 'designer',
+            bucket_name: 'order-files',
+          }))
+        )
+      }
+
+      if (order) setOrderId(order.id)
       sessionStorage.removeItem('designerOrderConfig')
-
       setSubmitted(true)
-    } catch {
+    } catch (e) {
+      console.error('designer order submit error:', e)
       setError("Сталася помилка. Спробуйте ще раз або зв'яжіться з нами напряму.")
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (submitted) return <SuccessScreen />
+  if (submitted) return <SuccessScreen orderId={orderId} />
 
   return (
     <div className="min-h-screen bg-[#f0f2f8] py-12 px-4">
