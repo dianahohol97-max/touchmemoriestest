@@ -43,13 +43,29 @@ export function ProductCard({ product }: ProductCardProps) {
         >
             <Link href={`/catalog/${product.slug}`} className="no-underline text-inherit flex flex-col h-full">
                 <div className="relative w-full aspect-[2/3] overflow-hidden bg-gray-50 border-b border-gray-100">
-                    <Image
-                        src={product.images?.[0] || 'https://via.placeholder.com/400'}
-                        alt={getLocalized(product, locale, "name")}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover object-center transition-transform duration-700 ease-[0.23,1,0.32,1] group-hover:scale-110"
-                    />
+                    {product.images?.[0] ? (
+                        <Image
+                            src={product.images[0]}
+                            alt={getLocalized(product, locale, "name")}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="object-cover object-center transition-transform duration-700 ease-[0.23,1,0.32,1] group-hover:scale-110"
+                        />
+                    ) : (
+                        // No image in the DB for this product yet. The old code
+                        // fell back to https://via.placeholder.com/400, but that
+                        // external service is flaky (502 Bad Gateway) and Next.js
+                        // tries to proxy/optimise it through /_next/image, which
+                        // then also fails. Render a local on-brand gradient with
+                        // the product name instead — zero network requests, no
+                        // broken-image icon. When a real photo is added to
+                        // product.images it takes over automatically.
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1e2d7d] via-[#3a4db0] to-[#6b7cc9] p-6">
+                            <span className="text-white text-center font-semibold text-lg leading-snug">
+                                {getLocalized(product, locale, "name")}
+                            </span>
+                        </div>
+                    )}
                     <div className="absolute top-3 right-3 z-10">
                         {/* Always visible (no opacity-0 / group-hover gate).
                             The previous hover-only reveal meant mobile users

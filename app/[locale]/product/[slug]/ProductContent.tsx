@@ -52,7 +52,7 @@ export default function ProductContent({ product }: { product: any }) {
             <main className="container" style={{ padding: '60px 0' }}>
                 <div className={styles.productGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px' }}>
                     <div>
-                        <img src={product.images?.[0] || 'https://via.placeholder.com/600x600'} alt={product.name} style={{ width: '100%', borderRadius: "3px", boxShadow: 'var(--shadow)' }} />
+                        <img src={product.images?.[0] || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22600%22 height=%22600%22%3E%3Crect width=%22600%22 height=%22600%22 fill=%22%231e2d7d%22/%3E%3C/svg%3E'} alt={product.name} style={{ width: '100%', borderRadius: "3px", boxShadow: 'var(--shadow)' }} />
                     </div>
                     <div>
                         <div className="product-category">{product.categories?.name}</div>

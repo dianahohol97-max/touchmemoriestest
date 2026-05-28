@@ -159,7 +159,7 @@ export default function CartDrawer() {
                                             flexShrink: 0
                                         }}>
                                             <Image
-                                                src={item.image || 'https://via.placeholder.com/150'}
+                                                src={item.image || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22150%22%3E%3Crect width=%22150%22 height=%22150%22 fill=%22%231e2d7d%22/%3E%3C/svg%3E'}
                                                 alt={item.name}
                                                 fill
                                                 style={{ objectFit: 'cover' }}
