@@ -1681,8 +1681,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         actually opted into urgent production from the
                         product detail page. */}
                     {(() => {
-                        const u = searchParams.get('urgent');
-                        const active = !!u && u !== '0' && !u.toLowerCase().includes('стандартна');
+                        // Must use the SAME check as the price calculation
+                        // above, otherwise the badge and the price disagree.
+                        // The product page sends 'standard' (English) for the
+                        // standard term — the old check only excluded the
+                        // Ukrainian 'стандартна', so 'standard' slipped through
+                        // and the urgent badge showed even on standard orders.
+                        const u = (searchParams.get('urgent') || '').toLowerCase();
+                        const active = u !== '' && u !== '0' &&
+                                       u !== 'standard' &&
+                                       !u.includes('стандартна');
                         return active ? (
                             <div className="mb-4 flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-4 py-2">
                                 <span className="text-sm text-orange-800 font-medium">🚀 Термінове виготовлення (1–3 дні)</span>

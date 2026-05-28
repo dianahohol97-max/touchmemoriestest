@@ -54,7 +54,7 @@ function StepIndicator({ current }: { current: number }) {
   )
 }
 
-function PhotoUploadStep({ data, onChange }: { data: UploadedFile[], onChange: (files: UploadedFile[]) => void }) {
+function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], onChange: (files: UploadedFile[]) => void, pageCount?: number }) {
   const [dragging, setDragging] = useState(false)
   // Compression status: shows a spinner + "стискаємо N з M" while we shrink
   // oversized photos to keep the upload under Vercel's body-size limit.
@@ -65,7 +65,23 @@ function PhotoUploadStep({ data, onChange }: { data: UploadedFile[], onChange: (
 
   const processFiles = async (fileList: FileList | null) => {
     if (!fileList) return
-    const incoming = Array.from(fileList)
+    let incoming = Array.from(fileList)
+    // Enforce the +30% cap when we know the page count. The designer
+    // can't lay out more photos than the journal has room for, so we
+    // cap uploads at ceil(pageCount × 1.3) — same rule as the editor
+    // and the brief page.
+    if (pageCount && pageCount > 0) {
+      const maxPhotos = Math.ceil(pageCount * 1.3)
+      const remaining = Math.max(0, maxPhotos - data.length)
+      if (remaining <= 0) {
+        alert(`Уже завантажено максимум ${maxPhotos} фото для ${pageCount} сторінок. Видаліть зайві, щоб додати інші.`)
+        return
+      }
+      if (incoming.length > remaining) {
+        incoming = incoming.slice(0, remaining)
+        alert(`Можна додати ще тільки ${remaining} фото (максимум ${maxPhotos} для ${pageCount} сторінок). Решту пропущено — оберіть найкращі.`)
+      }
+    }
     setCompressing({ done: 0, total: incoming.length })
     const processed: UploadedFile[] = []
     for (let i = 0; i < incoming.length; i++) {
@@ -93,6 +109,39 @@ function PhotoUploadStep({ data, onChange }: { data: UploadedFile[], onChange: (
     <div>
       <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 1: Завантажте ваші фотографії</h2>
       <p className="text-gray-500 text-sm mb-6">JPG, PNG, HEIC, ZIP. Великі фото з телефону ми автоматично стискаємо до якості, потрібної для друку — обмеження по розміру файлу немає.</p>
+
+      {/* Photo-count recommendation, shown only when we know how many
+          pages the chosen product has (carried in savedConfig). Mirrors
+          the editor / brief rule: recommend pageCount … ceil(pageCount
+          × 1.3), with the +30% as the hard upper bound enforced in
+          processFiles above. */}
+      {pageCount && pageCount > 0 && (() => {
+        const recMin = pageCount
+        const recMax = Math.ceil(pageCount * 1.3)
+        const count = data.length
+        const ok = count >= recMin && count <= recMax
+        const tooFew = count > 0 && count < recMin
+        const tooMany = count > recMax
+        const bg = count === 0 ? 'bg-[#eff6ff] border-[#bfdbfe]' : ok ? 'bg-[#f0fdf4] border-[#bbf7d0]' : 'bg-[#fef2f2] border-[#fecaca]'
+        const titleColor = count === 0 ? 'text-[#1e2d7d]' : ok ? 'text-[#15803d]' : 'text-[#b91c1c]'
+        return (
+          <div className={`border rounded-lg p-4 mb-6 ${bg}`}>
+            <p className={`text-sm font-bold ${titleColor}`}>
+              Рекомендована кількість фото для {pageCount} сторінок: {recMin}–{recMax}
+            </p>
+            <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+              Орієнтовно одне фото на сторінку. Максимум {recMax} (на 30% більше за рекомендовану кількість) — щоб дизайнер мав з чого обрати найкращі кадри.
+            </p>
+            {count > 0 && (
+              <p className={`text-xs font-semibold mt-2 ${titleColor}`}>
+                {tooFew && `Завантажено ${count} — бажано додати ще щонайменше ${recMin - count}.`}
+                {tooMany && `Завантажено ${count} — це більше за максимум (${recMax}).`}
+                {ok && `Завантажено ${count} — чудово, цього достатньо.`}
+              </p>
+            )}
+          </div>
+        )
+      })()}
 
       <div
         onDragOver={e => { e.preventDefault(); setDragging(true) }}
@@ -565,7 +614,13 @@ function OrderForm() {
 
         <StepIndicator current={step} />
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          {step === 1 && <PhotoUploadStep data={formData.files} onChange={files => update('files', files)} />}
+          {step === 1 && <PhotoUploadStep data={formData.files} onChange={files => update('files', files)} pageCount={(() => {
+            // Pull the page count out of the saved product config (if any)
+            // so the photo step can recommend a count and cap uploads.
+            const raw = savedConfig?.config?.['Кількість сторінок'] ?? savedConfig?.config?.['pages'] ?? savedConfig?.pages;
+            const n = parseInt(String(raw ?? '').replace(/[^\d]/g, ''), 10);
+            return Number.isFinite(n) && n > 0 ? n : undefined;
+          })()} />}
           {step === 2 && <CommentStep value={formData.comment} onChange={v => update('comment', v)} />}
           {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} />}
           {step === 4 && <ContactsStep name={formData.name} phone={formData.phone} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
