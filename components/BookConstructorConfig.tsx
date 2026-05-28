@@ -344,21 +344,6 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             || searchParams.get('Тип оздоблення обкладинки') || searchParams.get('Тип+оздоблення+обкладинки');
 
         const pt = getProductType();
-        // TEMP diagnostic — remove once the product-page → constructor
-        // pre-fill is confirmed working for photobook-printed. Logs what
-        // the constructor received in the URL and what product type it
-        // resolved, so we can see whether the params arrive at all.
-        if (typeof window !== 'undefined') {
-            console.log('[TM-prefill]', {
-                productType: pt,
-                urlSize: size,
-                urlPages: pages,
-                urlLamination: lamination,
-                urlCover: cover,
-                photobookSizesLoaded: photobookSizes.length,
-                fullSearch: window.location.search,
-            });
-        }
         if (!pages && pt !== 'wishbook') return; // Need at least pages to pre-fill (except wishbook)
 
         // Size (photobooks have size, magazines don't)

@@ -325,7 +325,18 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     const mergedOpts = { ...defaultOptions, ...savedOptions };
                     const savedSize = mergedOpts['Розмір'];
                     const sizeOptForValidation = data.options?.find((o: any) => o.name === 'Розмір');
-                    const savedSizeItem = sizeOptForValidation?.options?.find((s: any) => s.value === savedSize);
+                    // Normalize the × / х / x separator before matching. The
+                    // SizeVisualizer stores the size using whatever spelling is
+                    // in PRODUCT_OPTIONS (Cyrillic 'х' — '20х30'), while the DB
+                    // option values use Latin 'x' ('20x30'). A strict === miss
+                    // here meant savedMinPages fell back to 6 and a 20×30 book
+                    // (min 10) shipped 6 pages to the constructor. Normalizing
+                    // both sides to Latin 'x' fixes the lookup.
+                    const normSize = (v: any) => String(v ?? '').toLowerCase().replace(/[х×]/g, 'x').replace(/\s*см.*$/, '').trim();
+                    const savedSizeNorm = normSize(savedSize);
+                    const savedSizeItem = sizeOptForValidation?.options?.find((s: any) =>
+                        normSize(s.value) === savedSizeNorm || normSize(s.label) === savedSizeNorm
+                    );
                     const savedMinPages = savedSizeItem?.min_pages || 6;
                     const savedPages = Number(mergedOpts['Кількість сторінок'] || 0);
                     if (savedPages > 0 && savedPages < savedMinPages) {
@@ -1219,9 +1230,37 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                     }
                                                     Object.entries(customProductOptions).forEach(([key, val]) => {
                                                         if (val !== undefined && val !== '') {
-                                                            url.searchParams.set(keyMap[key] || key, String(val));
+                                                            // Normalize the size separator to Latin 'x' so the
+                                                            // constructor's photobook_sizes lookup matches
+                                                            // regardless of whether the value was stored with
+                                                            // Cyrillic 'х' (from SizeVisualizer) or '×'.
+                                                            let outVal = String(val);
+                                                            if (key === 'Розмір') {
+                                                                outVal = outVal.toLowerCase().replace(/[х×]/g, 'x').replace(/\s*см.*$/, '').trim();
+                                                            }
+                                                            url.searchParams.set(keyMap[key] || key, outVal);
                                                         }
                                                     });
+                                                    // Final guard: make sure the pages param respects the
+                                                    // selected size's min_pages, in case state somehow still
+                                                    // holds a stale value below the minimum (e.g. size came
+                                                    // from sessionStorage without a fresh change event). This
+                                                    // is the last line of defense before navigation so the
+                                                    // customer never lands in the constructor with an invalid
+                                                    // size/pages pair.
+                                                    {
+                                                        const sizeRaw = String(customProductOptions['Розмір'] || '');
+                                                        const sizeNorm = sizeRaw.toLowerCase().replace(/[х×]/g, 'x').replace(/\s*см.*$/, '').trim();
+                                                        const sizeOpt = (product.options as any[])?.find((o: any) => o?.name === 'Розмір');
+                                                        const sizeItem = sizeOpt?.options?.find((s: any) =>
+                                                            String(s.value || '').toLowerCase().replace(/[х×]/g, 'x').trim() === sizeNorm
+                                                        );
+                                                        const minP = Number(sizeItem?.min_pages || 0);
+                                                        const curP = Number(String(customProductOptions['Кількість сторінок'] || '').replace(/[^\d]/g, '')) || 0;
+                                                        if (minP > 0 && curP > 0 && curP < minP) {
+                                                            url.searchParams.set('pages', String(minP));
+                                                        }
+                                                    }
                                                     constructorUrl = url.pathname + '?' + url.searchParams.toString();
                                                 }
                                                 requireAuth(() => router.push(constructorUrl), 'Щоб відкрити редактор та зберегти ваш дизайн — увійдіть в акаунт');
