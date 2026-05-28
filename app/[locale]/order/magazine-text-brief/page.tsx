@@ -220,10 +220,10 @@ function MagazineTextBriefContent() {
   const canSubmit = (): boolean => {
     if (photos.length === 0) return false;
     if (!firstName.trim() || !lastName.trim()) return false;
-    // Only the chosen contact channel is required. All contact fields
-    // stay visible so the customer can add extras, but they must fill in
-    // at least the one they picked.
-    if (contactMethod === 'telegram' && !telegram.trim()) return false;
+    // Telegram nick is always required — it's the primary channel we use
+    // to reach the customer about the brief. The chosen channel below
+    // (if email/phone) is required on top of it.
+    if (!telegram.trim()) return false;
     if (contactMethod === 'email' && !email.trim()) return false;
     if (contactMethod === 'phone' && !phone.trim()) return false;
     for (const f of visibleFields) {
@@ -810,7 +810,7 @@ function MagazineTextBriefContent() {
           style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', marginBottom: 12 }}
         />
         <input
-          type="text" placeholder={contactMethod === 'telegram' ? 'Нік в Telegram *' : 'Нік в Telegram (бажано)'}
+          type="text" placeholder="Нік в Telegram *"
           value={telegram} onChange={(e) => setTelegram(e.target.value)}
           style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', marginBottom: 12 }}
         />
