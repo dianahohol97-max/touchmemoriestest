@@ -1149,6 +1149,58 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
+                                    {(() => {
+                                        // When the customer chose "Ми пишемо" (we write the
+                                        // text), the flow is a single path: go to the brief
+                                        // questionnaire. There's no editor and no separate
+                                        // designer option, so collapse the two-button row
+                                        // into one "Замовити" button that routes to the brief.
+                                        const isWeWriteText = String(customProductOptions['Верстка тексту'] || '') === 'we'
+                                            || String(customProductOptions['Верстка тексту'] || '') === 'we-basic'
+                                            || String(customProductOptions['Верстка тексту'] || '') === 'we-premium';
+                                        if (isWeWriteText) {
+                                            return (
+                                                <button
+                                                    onClick={() => {
+                                                        const slug = product.slug || resolvedParams.slug;
+                                                        const textLayout = String(customProductOptions['Верстка тексту'] || '');
+                                                        const briefUrl = textLayout === 'we'
+                                                            ? `/order/magazine-text-brief?product=${slug}`
+                                                            : `/order/magazine-text-brief?product=${slug}&package=${textLayout === 'we-premium' ? 'premium' : 'basic'}`;
+                                                        const url = new URL(briefUrl, 'http://x');
+                                                        // Carry the other selected options (pages, urgency)
+                                                        // so the brief page can show an accurate total.
+                                                        Object.entries(customProductOptions).forEach(([key, val]) => {
+                                                            if (val !== undefined && val !== '' && key !== 'Верстка тексту') {
+                                                                url.searchParams.set(key, String(val));
+                                                            }
+                                                        });
+                                                        const finalUrl = url.pathname + '?' + url.searchParams.toString();
+                                                        requireAuth(() => router.push(finalUrl), 'Щоб замовити журнал з нашим текстом — увійдіть в акаунт');
+                                                    }}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '18px',
+                                                        backgroundColor: '#263a99',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        fontSize: '16px',
+                                                        fontWeight: 700,
+                                                        textAlign: 'center',
+                                                        transition: 'background-color 0.2s',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        borderRadius: '6px',
+                                                    }}
+                                                    className="hover:bg-[#1a2966]"
+                                                >
+                                                    Замовити
+                                                </button>
+                                            );
+                                        }
+                                        return (
                                     <div className={styles.flexResponsive} style={{ display: 'flex', gap: '12px' }}>
                                         <button
                                             onClick={() => {
@@ -1322,8 +1374,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         </button>
                                         )}
                                     </div>
-                                    <p style={{ fontSize: '14px', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
-                                        {t('product_page.designer_order_hint')}                                    </p>
+                                        );
+                                    })()}
+                                    {!(String(customProductOptions['Верстка тексту'] || '').startsWith('we')) && (
+                                        <p style={{ fontSize: '14px', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
+                                            {t('product_page.designer_order_hint')}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         ) : product.is_partially_personalized ? (
