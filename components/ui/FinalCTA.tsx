@@ -58,16 +58,35 @@ export function FinalCTA() {
                         className="relative"
                     >
                         <div className="grid grid-cols-3 gap-3">
-                            {Array.from({ length: 9 }).map((_, i) => (
-                                <div key={i} className="aspect-square bg-gray-300 rounded-xl overflow-hidden">
-                                    <img
-                                        src={`/images/wishbook-${i + 1}.jpg`}
-                                        alt={`${t('final_cta.guestbook_alt')} ${i + 1}`}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                            {Array.from({ length: 9 }).map((_, i) => {
+                                // The guest-book showcase grid previously loaded
+                                // /images/wishbook-1.jpg … wishbook-9.jpg, but those
+                                // files were never added to /public/images, so every
+                                // tile 404'd (9 console errors on every homepage
+                                // load). Until real photos are uploaded, render
+                                // on-brand gradient tiles instead — no network
+                                // request, no 404. To restore photos later, drop
+                                // wishbook-1..9.jpg into /public/images and swap the
+                                // gradient div back to an <img src>.
+                                const gradients = [
+                                    'from-[#1e2d7d] to-[#3a4db0]',
+                                    'from-[#3a4db0] to-[#6b7cc9]',
+                                    'from-[#6b7cc9] to-[#aab4e0]',
+                                    'from-[#aab4e0] to-[#d6dcf2]',
+                                    'from-[#d6dcf2] to-[#aab4e0]',
+                                    'from-[#aab4e0] to-[#6b7cc9]',
+                                    'from-[#6b7cc9] to-[#3a4db0]',
+                                    'from-[#3a4db0] to-[#1e2d7d]',
+                                    'from-[#1e2d7d] to-[#6b7cc9]',
+                                ];
+                                return (
+                                    <div
+                                        key={i}
+                                        className={`aspect-square rounded-xl overflow-hidden bg-gradient-to-br ${gradients[i % gradients.length]}`}
+                                        aria-hidden="true"
                                     />
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </motion.div>
                 </div>
