@@ -144,6 +144,14 @@ function MagazineTextBriefContent() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [coverInscription, setCoverInscription] = useState('');
+  // Extra cover-design details so the editor knows exactly how to style
+  // the cover: the person's name, the era/epoque to evoke, the visual
+  // style, the date to feature, and which uploaded photo to use.
+  const [coverName, setCoverName] = useState('');
+  const [coverEra, setCoverEra] = useState('');
+  const [coverStyle, setCoverStyle] = useState('');
+  const [coverDate, setCoverDate] = useState('');
+  const [coverPhotoNote, setCoverPhotoNote] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -253,6 +261,11 @@ function MagazineTextBriefContent() {
           }],
           notes: [
             `Текст пише команда — пакет: ${PACKAGE_LABEL[pkg]}`,
+            coverName ? `Імʼя на обкладинці: ${coverName}` : '',
+            coverDate ? `Дата на обкладинці: ${coverDate}` : '',
+            coverEra ? `Епоха/настрій: ${coverEra}` : '',
+            coverStyle ? `Стиль обкладинки: ${coverStyle}` : '',
+            coverPhotoNote ? `Фото на обкладинку: ${coverPhotoNote}` : '',
             coverInscription ? `Надпис на обкладинці: ${coverInscription}` : '',
           ].filter(Boolean).join('\n---\n'),
           order_status: 'new',
@@ -265,6 +278,14 @@ function MagazineTextBriefContent() {
           text_brief: {
             package: pkg,
             answers,
+            cover: {
+              name: coverName,
+              date: coverDate,
+              era: coverEra,
+              style: coverStyle,
+              photo_note: coverPhotoNote,
+              inscription: coverInscription,
+            },
             cover_inscription: coverInscription,
             collected_at: new Date().toISOString(),
           },
@@ -471,6 +492,44 @@ function MagazineTextBriefContent() {
           Завантажте фото, які ми використаємо при верстці. Чим більше — тим краще можна підібрати композицію.
         </p>
 
+        {/* Recommended photo count based on the chosen page count, with
+            a +30% upper bound. The page count is carried over from the
+            product page in carriedOptions['Кількість сторінок']. We show
+            the recommended range and gently warn if the upload count is
+            outside it. */}
+        {(() => {
+          const pagesNum = parseInt(String(carriedOptions['Кількість сторінок'] || '').replace(/[^\d]/g, ''), 10) || 0;
+          if (!pagesNum) return null;
+          // One photo per page is the baseline; the upper bound is +30%
+          // to leave room for variants and collages.
+          const recMin = pagesNum;
+          const recMax = Math.ceil(pagesNum * 1.3);
+          const count = photos.length;
+          const ok = count >= recMin && count <= recMax;
+          const tooFew = count > 0 && count < recMin;
+          const tooMany = count > recMax;
+          const bg = count === 0 ? '#eff6ff' : ok ? '#f0fdf4' : '#fef2f2';
+          const border = count === 0 ? '#bfdbfe' : ok ? '#bbf7d0' : '#fecaca';
+          const titleColor = count === 0 ? '#1e2d7d' : ok ? '#15803d' : '#b91c1c';
+          return (
+            <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: titleColor }}>
+                Рекомендована кількість фото для {pagesNum} сторінок: {recMin}–{recMax}
+              </p>
+              <p style={{ margin: '6px 0 0', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+                Орієнтовно одне фото на сторінку. Максимум {recMax} (на 30% більше за рекомендовану кількість) — щоб ми мали з чого обрати найкращі кадри й варіанти.
+              </p>
+              {count > 0 && (
+                <p style={{ margin: '8px 0 0', fontSize: 13, fontWeight: 600, color: titleColor }}>
+                  {tooFew && `Завантажено ${count} — бажано додати ще щонайменше ${recMin - count}.`}
+                  {tooMany && `Завантажено ${count} — це більше за рекомендований максимум (${recMax}). Зайві фото можемо не використати.`}
+                  {ok && `Завантажено ${count} — чудово, цього достатньо.`}
+                </p>
+              )}
+            </div>
+          );
+        })()}
+
         <input
           ref={fileInputRef}
           type="file"
@@ -509,23 +568,114 @@ function MagazineTextBriefContent() {
         )}
       </section>
 
-      {/* Section 3: Cover + contact */}
+      {/* Section 3: Cover */}
       <section style={{ background: '#f8fafc', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, color: '#1e2d7d' }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: '#1e2d7d' }}>
           3. Обкладинка
         </h2>
+        <p style={{ color: '#64748b', fontSize: 14, marginBottom: 20, lineHeight: 1.5 }}>
+          Обкладинка задає настрій усього журналу. Розкажіть, якою ви її бачите — ці деталі допоможуть нашому редактору підібрати шрифт, кольори та композицію.
+        </p>
 
-        <div style={{ marginBottom: 20 }}>
+        {/* Recommendation box: what makes a good cover photo */}
+        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 16, marginBottom: 20 }}>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#1e2d7d' }}>
+            Поради щодо фото на обкладинку
+          </p>
+          <ul style={{ margin: '8px 0 0', paddingLeft: 18, color: '#475569', fontSize: 13, lineHeight: 1.6 }}>
+            <li>Найкраще — вертикальне фото або таке, що добре кадрується вертикально.</li>
+            <li>Обличчя крупно, чіткий фокус, гарне світло.</li>
+            <li>Бажано фон без зайвих деталей — на ньому добре читається надпис.</li>
+            <li>Висока роздільність (фото з телефону в оригіналі підходить).</li>
+          </ul>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
+              Імʼя людини на обкладинці
+            </label>
+            <input
+              type="text"
+              value={coverName}
+              onChange={(e) => setCoverName(e.target.value)}
+              placeholder='наприклад "Марія"'
+              style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
+              Дата на обкладинці (опційно)
+            </label>
+            <input
+              type="text"
+              value={coverDate}
+              onChange={(e) => setCoverDate(e.target.value)}
+              placeholder='напр. "1990" або "25 років"'
+              style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }}
+            />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
-            Який надпис хочете на обкладинці?
+            Епоха / настрій (era)
+          </label>
+          <input
+            type="text"
+            value={coverEra}
+            onChange={(e) => setCoverEra(e.target.value)}
+            placeholder='напр. "вінтаж 90-х", "ретро", "сучасний мінімалізм"'
+            style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }}
+          />
+          <p style={{ margin: '6px 0 0', fontSize: 12, color: '#94a3b8' }}>
+            Яку атмосферу часу має передавати журнал — це впливає на шрифти й кольори.
+          </p>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
+            Стиль обкладинки (style)
+          </label>
+          <input
+            type="text"
+            value={coverStyle}
+            onChange={(e) => setCoverStyle(e.target.value)}
+            placeholder='напр. "журнальний glossy", "ніжний пастельний", "стильний чорно-білий"'
+            style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
+            Яке фото на обкладинку?
+          </label>
+          <input
+            type="text"
+            value={coverPhotoNote}
+            onChange={(e) => setCoverPhotoNote(e.target.value)}
+            placeholder='опишіть або вкажіть номер фото зі списку вище'
+            style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }}
+          />
+          <p style={{ margin: '6px 0 0', fontSize: 12, color: '#94a3b8' }}>
+            Якщо вже знаєте, яке з завантажених фото хочете на обкладинку — напишіть тут. Якщо ні — наш редактор підбере найкраще.
+          </p>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
+            Надпис на обкладинці
           </label>
           <input
             type="text"
             value={coverInscription}
             onChange={(e) => setCoverInscription(e.target.value)}
-            placeholder='наприклад "Книга про Марію" або імʼя'
+            placeholder='наприклад "Книга про Марію" або девіз'
             style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }}
           />
+          <p style={{ margin: '6px 0 0', fontSize: 12, color: '#94a3b8' }}>
+            Заголовок, який буде на обкладинці. Можна залишити порожнім — тоді використаємо імʼя.
+          </p>
         </div>
       </section>
 
