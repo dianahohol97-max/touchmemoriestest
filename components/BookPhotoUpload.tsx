@@ -73,9 +73,9 @@ export default function BookPhotoUpload() {
     const handleFileSelect = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
 
-        // Compute the cap inline because the helper at render-time
-        // (maxAllowedPhotos below) is defined after this function.
-        // Reads the same photoRecommendation.mixed/collage strings.
+        // There is no per-product photo cap in the constructor — only the
+        // technical 500 hard limit below. The customer arranges the book
+        // themselves, so they may upload as many photos as they like.
         const newPhotos: PhotoFile[] = [];
 
         for (let i = 0; i < files.length; i++) {
@@ -448,9 +448,7 @@ export default function BookPhotoUpload() {
     // In the constructor there is NO maximum photo cap — the customer may
     // upload as many photos as they like (only the technical 500 hard
     // limit in the upload handler applies). The recommendation range is
-    // shown purely as guidance. Kept as a named constant (Infinity) so the
-    // status-line logic below stays simple.
-    const maxAllowedPhotos = Infinity;
+    // shown purely as guidance.
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
@@ -522,11 +520,10 @@ export default function BookPhotoUpload() {
                 const pageCountReq = parseInt(config?.selectedPageCount?.match(/\d+/)?.[0] || '0', 10);
                 const meetsMinimum = pageCountReq > 0 ? photos.length >= pageCountReq : photos.length > 0;
                 const remaining = pageCountReq > 0 ? Math.max(0, pageCountReq - photos.length) : 0;
-                const capIsFinite = Number.isFinite(maxAllowedPhotos);
-                const atCap = capIsFinite && photos.length >= maxAllowedPhotos;
-                const slotsLeft = capIsFinite ? Math.max(0, (maxAllowedPhotos as number) - photos.length) : Infinity;
-                // Three states: empty (orange), short of the page-count
-                // minimum (red), at-or-above the minimum (green).
+                // Two meaningful states in the constructor: short of the
+                // page-count minimum (red), or at/above it (green). There is
+                // NO upper cap here — the customer lays the book out
+                // themselves and may upload as many photos as they like.
                 const bg = photos.length === 0
                     ? 'bg-orange-50 border-orange-200'
                     : !meetsMinimum
@@ -536,11 +533,7 @@ export default function BookPhotoUpload() {
                     ? 'Завантажте свої фото'
                     : !meetsMinimum
                         ? `Завантажено ${photos.length} з ${pageCountReq} — потрібно ще ${remaining} ${remaining === 1 ? 'фото' : 'фото'}`
-                        : atCap
-                            ? `Завантажено ${photos.length} фото (максимум досягнуто)`
-                            : capIsFinite
-                                ? `Завантажено ${photos.length} фото · можна ще ${slotsLeft} (максимум ${maxAllowedPhotos})`
-                                : `Завантажено ${photos.length} фото${pageCountReq ? ` (мінімум ${pageCountReq})` : ''}`;
+                        : `Завантажено ${photos.length} фото${pageCountReq ? ` (мінімум ${pageCountReq})` : ''}`;
                 return (
                     <div className={`mb-6 p-4 rounded-lg border ${bg}`}>
                         <div className="flex items-center justify-between flex-wrap gap-2">
