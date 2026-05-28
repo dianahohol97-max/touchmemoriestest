@@ -530,39 +530,48 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (productType === 'magazine' || productType === 'photo-journal-soft' || productType === 'photo-journal-hard') {
             const pageNum = parseInt(selectedPageCount?.match(/\d+/)?.[0] || '0');
             const copiesNum = parseInt(selectedCopies) || 1;
-            // text_layout can arrive in three shapes:
-            //   'with' / 'none'            — value from PRODUCT_OPTIONS DB enum
-            //   'З текстом (+195 ₴)'       — verbatim label from card click
-            //   '' / null                   — option not selected (treat as no text)
-            // Match anything that signals text. Mirror logic used elsewhere in
-            // ProductOptionsSelector (textVal.includes('текстом') ...).
+            // text_layout can arrive in several shapes:
+            //   'own' / 'with'              — customer writes / legacy "with text"
+            //   'we' / 'we-basic'/'we-premium' — we write it (these normally go
+            //                                  to the brief, but guard anyway)
+            //   'none'                      — no text
+            //   'З текстом (+195 ₴)' / label — verbatim label from an old card
+            //   '' / null                   — option not selected (no text)
+            // Any value that means "there is text" must add the typesetting
+            // surcharge. Previously only 'with' / 'текстом' / 'верстк' matched,
+            // so the new canonical 'own' value slipped through as no-text and
+            // the +195 ₴ never reached the constructor's price (showed 683
+            // instead of 878 for an 8-page urgent magazine with own text).
             const textLayoutRaw = searchParams.get('text_layout') || '';
-            const hasText = textLayoutRaw === 'with' ||
-                            textLayoutRaw.toLowerCase().includes('текстом') ||
-                            textLayoutRaw.toLowerCase().includes('верстк');
+            const tl = textLayoutRaw.toLowerCase();
+            const hasText = tl === 'own' || tl === 'with' ||
+                            tl === 'we' || tl === 'we-basic' || tl === 'we-premium' ||
+                            tl.includes('текстом') || tl.includes('верстк') ||
+                            tl.includes('власн') || tl.includes('пишемо');
 
             // Pick the right helper. Hard journal uses its own scale
             // (12–80 ст starting at 675 ₴), not the soft/magazine scale.
+            // IMPORTANT: compute the BASE price WITHOUT typesetting here.
+            // The +195 ₴ typesetting is a flat labour fee that must be
+            // added AFTER the urgency multiplier, not before — otherwise
+            // the rush surcharge inflates it too:
+            //   wrong: (525 + 195) × 1.3 = 936
+            //   right:  525 × 1.3 + 195 = 878
+            // This mirrors how the product detail page prices it.
             let basePrice: number;
             if (pageNum > 0) {
                 if (productType === 'photo-journal-hard') {
                     basePrice = getPhotojournalHardPrice(pageNum);
                 } else {
-                    // magazine + soft journal share the same scale
-                    basePrice = getMagazinePrice(pageNum, hasText);
+                    // magazine + soft journal share the same scale.
+                    // Pass false — typesetting is added below as a flat extra.
+                    basePrice = getMagazinePrice(pageNum, false);
                 }
             } else {
                 basePrice = product.price || 525;
             }
 
             let magazineTotal = basePrice * copiesNum;
-
-            // For hard journal the text-typesetting surcharge is added
-            // separately (getPhotojournalHardPrice doesn't fold it in).
-            // For magazine/soft it's already in getMagazinePrice(pages, hasText).
-            if (productType === 'photo-journal-hard' && hasText) {
-                magazineTotal += TYPESETTING_PRICE;
-            }
 
             // Page lamination — flat per-page surcharge (7 ₴/стор). Applies
             // to hard journal and Travel Book per Diana's price list.
@@ -584,6 +593,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                              !urgentRaw.includes('стандартна');
             if (isUrgent) {
                 magazineTotal = Math.round(magazineTotal * (1 + URGENT_MULTIPLIER));
+            }
+
+            // Typesetting (+195 ₴) added AFTER urgency so the rush doesn't
+            // compound it. Applies to all journal types when text is chosen.
+            if (hasText) {
+                magazineTotal += TYPESETTING_PRICE;
             }
             return magazineTotal;
         }
@@ -1647,12 +1662,20 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         sync with the actual surcharge applied (magazine
                         path adds TYPESETTING_PRICE; photobook path is
                         handled separately and uses its own constant). */}
-                    {searchParams.get('text_layout') === 'with' && (
-                        <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg px-4 py-2">
-                            <span className="text-sm text-blue-800 font-medium"> З версткою тексту</span>
-                            <span className="text-sm font-bold text-blue-800">+{TYPESETTING_PRICE} ₴</span>
-                        </div>
-                    )}
+                    {(() => {
+                        const tl = (searchParams.get('text_layout') || '').toLowerCase();
+                        const showText = tl === 'own' || tl === 'with' ||
+                                         tl === 'we' || tl === 'we-basic' || tl === 'we-premium' ||
+                                         tl.includes('текстом') || tl.includes('верстк') ||
+                                         tl.includes('власн') || tl.includes('пишемо');
+                        if (!showText) return null;
+                        return (
+                            <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg px-4 py-2">
+                                <span className="text-sm text-blue-800 font-medium"> З версткою тексту</span>
+                                <span className="text-sm font-bold text-blue-800">+{TYPESETTING_PRICE} ₴</span>
+                            </div>
+                        );
+                    })()}
                     {/* Urgent surcharge note — same check as the price
                         calculation above. Shown only when the customer
                         actually opted into urgent production from the
