@@ -68,11 +68,25 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
 
   const processFiles = async (fileList: FileList | null) => {
     if (!fileList) return
-    const incoming = Array.from(fileList)
-    // No hard upper limit on uploads in the designer flow — the customer
-    // can add as many photos as they like. The recommendation box below
-    // shows the suggested range as soft guidance only; the minimum is the
-    // only requirement (enforced in canProceed via the page count).
+    let incoming = Array.from(fileList)
+    // Designer flow DOES cap uploads at +30% of the recommended count
+    // (recommended = one per page; max = ceil(pages × 1.3)). Unlike the
+    // self-service constructor — where the customer arranges photos
+    // themselves and may upload freely — here a designer lays out the
+    // book by hand, so an oversized pile of photos isn't useful and the
+    // batch must stay sane. The minimum (one per page) is still required.
+    if (pageCount && pageCount > 0) {
+      const maxPhotos = Math.ceil(pageCount * 1.3)
+      const remaining = Math.max(0, maxPhotos - data.length)
+      if (remaining <= 0) {
+        alert(`Уже завантажено максимум ${maxPhotos} фото для ${pageCount} сторінок (на 30% більше за рекомендовану кількість). Видаліть зайві, щоб додати інші.`)
+        return
+      }
+      if (incoming.length > remaining) {
+        incoming = incoming.slice(0, remaining)
+        alert(`Можна додати ще тільки ${remaining} фото (максимум ${maxPhotos} для ${pageCount} сторінок). Решту пропущено — оберіть найкращі кадри.`)
+      }
+    }
     setCompressing({ done: 0, total: incoming.length })
     const processed: UploadedFile[] = []
     for (let i = 0; i < incoming.length; i++) {
@@ -102,19 +116,18 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
       <p className="text-gray-500 text-sm mb-6">JPG, PNG, HEIC, ZIP. Великі фото з телефону ми автоматично стискаємо до якості, потрібної для друку — обмеження по розміру файлу немає.</p>
 
       {/* Photo-count recommendation, shown only when we know how many
-          pages the chosen product has (carried in savedConfig). The
-          minimum is a real requirement; the maximum is soft guidance —
-          uploading more than the suggested range is allowed (no cap),
-          we just note it so the customer knows the designer will curate. */}
+          pages the chosen product has (carried in savedConfig). In the
+          designer flow BOTH bounds matter: the minimum (one per page) is
+          required, and the maximum (+30%) is a hard cap enforced in
+          processFiles — the designer lays the book out by hand. */}
       {pageCount && pageCount > 0 && (() => {
         const recMin = pageCount
         const recMax = Math.ceil(pageCount * 1.3)
         const count = data.length
         const enough = count >= recMin
         const tooFew = count > 0 && count < recMin
-        const overMax = count > recMax
-        // Below minimum → red (it's a requirement). At/above minimum →
-        // green, including "over the suggested max" (allowed, just curated).
+        const atMax = count >= recMax
+        // Below minimum → red (requirement). At/above minimum → green.
         const bg = count === 0 ? 'bg-[#eff6ff] border-[#bfdbfe]' : tooFew ? 'bg-[#fef2f2] border-[#fecaca]' : 'bg-[#f0fdf4] border-[#bbf7d0]'
         const titleColor = count === 0 ? 'text-[#1e2d7d]' : tooFew ? 'text-[#b91c1c]' : 'text-[#15803d]'
         return (
@@ -123,13 +136,13 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
               Рекомендована кількість фото для {pageCount} сторінок: {recMin}–{recMax}
             </p>
             <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-              Орієнтовно одне фото на сторінку. Мінімум — {recMin} (по одному на сторінку). Можна завантажити більше — дизайнер обере найкращі кадри.
+              Одне фото на сторінку. Мінімум — {recMin}, максимум — {recMax} (на 30% більше за рекомендовану кількість), щоб дизайнер мав з чого обрати найкращі кадри.
             </p>
             {count > 0 && (
               <p className={`text-xs font-semibold mt-2 ${titleColor}`}>
                 {tooFew && `Завантажено ${count} — для ${pageCount} сторінок бажано щонайменше ${recMin} (додайте ще ${recMin - count}).`}
-                {enough && !overMax && `Завантажено ${count} — чудово, цього достатньо.`}
-                {overMax && `Завантажено ${count} — більше за рекомендовану кількість. Це не проблема: дизайнер обере найкращі кадри.`}
+                {enough && !atMax && `Завантажено ${count} — чудово, цього достатньо.`}
+                {atMax && `Завантажено ${count} — досягнуто максимум (${recMax}).`}
               </p>
             )}
           </div>

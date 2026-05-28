@@ -76,21 +76,6 @@ export default function BookPhotoUpload() {
         // Compute the cap inline because the helper at render-time
         // (maxAllowedPhotos below) is defined after this function.
         // Reads the same photoRecommendation.mixed/collage strings.
-        const recForCap = config?.photoRecommendation;
-        const calcCap = (): number => {
-            if (!recForCap) return Infinity;
-            const top = (s: string) => {
-                const nums = String(s || '').match(/\d+/g);
-                return nums && nums.length ? Math.max(...nums.map(Number)) : 0;
-            };
-            if (typeof recForCap === 'string') {
-                return Math.ceil(top(recForCap) * 1.3) || Infinity;
-            }
-            const t = Math.max(top(recForCap.mixed || ''), top(recForCap.collage || ''));
-            return t > 0 ? Math.ceil(t * 1.3) : Infinity;
-        };
-        const cap = calcCap();
-
         const newPhotos: PhotoFile[] = [];
 
         for (let i = 0; i < files.length; i++) {
@@ -102,16 +87,13 @@ export default function BookPhotoUpload() {
                 toast.error(t('photo_upload.max_photos'));
                 break;
             }
-            // Per-product recommended cap (130% of upper recommended count).
-            // Stops customers from dumping an entire camera roll when the
-            // designer only needs ~13 photos for an 8-page magazine.
-            if (photos.length + newPhotos.length >= cap) {
-                toast.error(
-                    `Перевищено рекомендований максимум — ${cap} фото для цієї конфігурації. Видаліть зайві щоб додати інші.`,
-                    { duration: 6000 }
-                );
-                break;
-            }
+            // NOTE: the per-product "recommended max" cap (130% of the
+            // recommended count) was removed — in the constructor the
+            // customer may upload as many photos as they like. The
+            // recommendation is shown as guidance only; the minimum
+            // (one photo per page) is still enforced before they can
+            // continue. The 500 hard limit above is just a technical
+            // safety bound.
 
             const preview = URL.createObjectURL(file);
 
@@ -463,32 +445,12 @@ export default function BookPhotoUpload() {
     const photoRec = config.photoRecommendation;
     const recommendedRange: { mixed: string; collage: string } | string | null = photoRec || null;
 
-    // Maximum allowed photos: 130% of the upper recommended count.
-    // Reads the recommendation strings ("9-13 фото" / "80 фото"),
-    // takes the highest number across both variants (mixed + collage),
-    // multiplies by 1.3 and rounds up.
-    //
-    // Why a hard upper bound at all? Customers occasionally drop their
-    // whole camera roll thinking the designer will pick the best. That
-    // pushes storage cost up, slows the upload step to a crawl, and
-    // doesn't actually help the designer. 130% of the upper recommended
-    // count leaves room for variants and alternates while keeping the
-    // batch sane.
-    const maxAllowedPhotos = (() => {
-        if (!recommendedRange) return Infinity;
-        const extractTopNumber = (s: string): number => {
-            const nums = s.match(/\d+/g);
-            if (!nums || nums.length === 0) return 0;
-            return Math.max(...nums.map(Number));
-        };
-        if (typeof recommendedRange === 'string') {
-            return Math.ceil(extractTopNumber(recommendedRange) * 1.3) || Infinity;
-        }
-        const mixedTop = extractTopNumber(recommendedRange.mixed || '');
-        const collageTop = extractTopNumber(recommendedRange.collage || '');
-        const top = Math.max(mixedTop, collageTop);
-        return top > 0 ? Math.ceil(top * 1.3) : Infinity;
-    })();
+    // In the constructor there is NO maximum photo cap — the customer may
+    // upload as many photos as they like (only the technical 500 hard
+    // limit in the upload handler applies). The recommendation range is
+    // shown purely as guidance. Kept as a named constant (Infinity) so the
+    // status-line logic below stays simple.
+    const maxAllowedPhotos = Infinity;
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
