@@ -232,6 +232,23 @@ function MagazineTextBriefContent() {
     return true;
   };
 
+  // Human-readable list of what's still missing, so the customer can see
+  // why the button is disabled instead of guessing. Shown under the button.
+  const missingItems = (): string[] => {
+    const out: string[] = [];
+    if (photos.length === 0) out.push('додайте хоча б одне фото');
+    if (!firstName.trim()) out.push('вкажіть імʼя');
+    if (!lastName.trim()) out.push('вкажіть прізвище');
+    if (!telegram.trim()) out.push('вкажіть нік у Telegram');
+    if (contactMethod === 'email' && !email.trim()) out.push('вкажіть email');
+    if (contactMethod === 'phone' && !phone.trim()) out.push('вкажіть номер телефону');
+    const missingFields = visibleFields.filter(f => f.required && !answers[f.id]?.trim());
+    if (missingFields.length > 0) {
+      out.push(`заповніть обовʼязкові поля анкети (${missingFields.length}): ${missingFields.map(f => f.label.split(/[:(]/)[0].trim()).join(', ')}`);
+    }
+    return out;
+  };
+
   const submit = async () => {
     if (!canSubmit()) {
       toast.error('Заповніть обовʼязкові поля та додайте хоча б одне фото');
@@ -882,6 +899,14 @@ function MagazineTextBriefContent() {
       >
         {submitting ? 'Відправляємо…' : 'Відправити замовлення'}
       </button>
+      {!canSubmit() && !submitting && missingItems().length > 0 && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', marginTop: 12 }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#b91c1c' }}>Щоб відправити, залишилось:</p>
+          <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 13, color: '#b91c1c' }}>
+            {missingItems().map((m, i) => (<li key={i} style={{ marginBottom: 2 }}>{m}</li>))}
+          </ul>
+        </div>
+      )}
       <p style={{ textAlign: 'center', color: '#64748b', fontSize: 13, marginTop: 12 }}>
         Після відправки менеджер уточнить деталі та підтвердить вартість.
       </p>
