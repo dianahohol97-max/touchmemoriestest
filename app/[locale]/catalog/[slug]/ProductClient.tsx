@@ -1352,7 +1352,22 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         ) : (
                                         <button
                                             onClick={() => requireAuth(
-                                                () => router.push('/order'),
+                                                () => {
+                                                    // Carry the chosen product + options into the
+                                                    // designer flow so /order can show the right
+                                                    // photo recommendation, cover block, etc.
+                                                    // Without this the designer page had no product
+                                                    // context (the bug Diana hit: 94 photos, no
+                                                    // limits, no cover block).
+                                                    try {
+                                                        sessionStorage.setItem('designerOrderConfig', JSON.stringify({
+                                                            slug: product.slug || resolvedParams.slug,
+                                                            productName: product.name || '',
+                                                            config: customProductOptions,
+                                                        }));
+                                                    } catch {}
+                                                    router.push('/order');
+                                                },
                                                 'Щоб замовити з дизайнером — увійдіть в акаунт'
                                             )}
                                             style={{

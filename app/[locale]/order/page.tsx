@@ -22,9 +22,12 @@ interface OrderFormData {
   city: string
   address: string
   name: string
+  lastName: string
   phone: string
   contactChannel: 'telegram' | 'email' | ''
   contactHandle: string
+  coverInscription: string
+  coverPhoto: UploadedFile | null
 }
 
 const STEPS = ['Фото', 'Коментар', 'Доставка', 'Контакти', 'Підтвердження']
@@ -65,23 +68,11 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
 
   const processFiles = async (fileList: FileList | null) => {
     if (!fileList) return
-    let incoming = Array.from(fileList)
-    // Enforce the +30% cap when we know the page count. The designer
-    // can't lay out more photos than the journal has room for, so we
-    // cap uploads at ceil(pageCount × 1.3) — same rule as the editor
-    // and the brief page.
-    if (pageCount && pageCount > 0) {
-      const maxPhotos = Math.ceil(pageCount * 1.3)
-      const remaining = Math.max(0, maxPhotos - data.length)
-      if (remaining <= 0) {
-        alert(`Уже завантажено максимум ${maxPhotos} фото для ${pageCount} сторінок. Видаліть зайві, щоб додати інші.`)
-        return
-      }
-      if (incoming.length > remaining) {
-        incoming = incoming.slice(0, remaining)
-        alert(`Можна додати ще тільки ${remaining} фото (максимум ${maxPhotos} для ${pageCount} сторінок). Решту пропущено — оберіть найкращі.`)
-      }
-    }
+    const incoming = Array.from(fileList)
+    // No hard upper limit on uploads in the designer flow — the customer
+    // can add as many photos as they like. The recommendation box below
+    // shows the suggested range as soft guidance only; the minimum is the
+    // only requirement (enforced in canProceed via the page count).
     setCompressing({ done: 0, total: incoming.length })
     const processed: UploadedFile[] = []
     for (let i = 0; i < incoming.length; i++) {
@@ -111,32 +102,34 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
       <p className="text-gray-500 text-sm mb-6">JPG, PNG, HEIC, ZIP. Великі фото з телефону ми автоматично стискаємо до якості, потрібної для друку — обмеження по розміру файлу немає.</p>
 
       {/* Photo-count recommendation, shown only when we know how many
-          pages the chosen product has (carried in savedConfig). Mirrors
-          the editor / brief rule: recommend pageCount … ceil(pageCount
-          × 1.3), with the +30% as the hard upper bound enforced in
-          processFiles above. */}
+          pages the chosen product has (carried in savedConfig). The
+          minimum is a real requirement; the maximum is soft guidance —
+          uploading more than the suggested range is allowed (no cap),
+          we just note it so the customer knows the designer will curate. */}
       {pageCount && pageCount > 0 && (() => {
         const recMin = pageCount
         const recMax = Math.ceil(pageCount * 1.3)
         const count = data.length
-        const ok = count >= recMin && count <= recMax
+        const enough = count >= recMin
         const tooFew = count > 0 && count < recMin
-        const tooMany = count > recMax
-        const bg = count === 0 ? 'bg-[#eff6ff] border-[#bfdbfe]' : ok ? 'bg-[#f0fdf4] border-[#bbf7d0]' : 'bg-[#fef2f2] border-[#fecaca]'
-        const titleColor = count === 0 ? 'text-[#1e2d7d]' : ok ? 'text-[#15803d]' : 'text-[#b91c1c]'
+        const overMax = count > recMax
+        // Below minimum → red (it's a requirement). At/above minimum →
+        // green, including "over the suggested max" (allowed, just curated).
+        const bg = count === 0 ? 'bg-[#eff6ff] border-[#bfdbfe]' : tooFew ? 'bg-[#fef2f2] border-[#fecaca]' : 'bg-[#f0fdf4] border-[#bbf7d0]'
+        const titleColor = count === 0 ? 'text-[#1e2d7d]' : tooFew ? 'text-[#b91c1c]' : 'text-[#15803d]'
         return (
           <div className={`border rounded-lg p-4 mb-6 ${bg}`}>
             <p className={`text-sm font-bold ${titleColor}`}>
               Рекомендована кількість фото для {pageCount} сторінок: {recMin}–{recMax}
             </p>
             <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-              Орієнтовно одне фото на сторінку. Максимум {recMax} (на 30% більше за рекомендовану кількість) — щоб дизайнер мав з чого обрати найкращі кадри.
+              Орієнтовно одне фото на сторінку. Мінімум — {recMin} (по одному на сторінку). Можна завантажити більше — дизайнер обере найкращі кадри.
             </p>
             {count > 0 && (
               <p className={`text-xs font-semibold mt-2 ${titleColor}`}>
-                {tooFew && `Завантажено ${count} — бажано додати ще щонайменше ${recMin - count}.`}
-                {tooMany && `Завантажено ${count} — це більше за максимум (${recMax}).`}
-                {ok && `Завантажено ${count} — чудово, цього достатньо.`}
+                {tooFew && `Завантажено ${count} — для ${pageCount} сторінок бажано щонайменше ${recMin} (додайте ще ${recMin - count}).`}
+                {enough && !overMax && `Завантажено ${count} — чудово, цього достатньо.`}
+                {overMax && `Завантажено ${count} — більше за рекомендовану кількість. Це не проблема: дизайнер обере найкращі кадри.`}
               </p>
             )}
           </div>
@@ -372,7 +365,7 @@ function DeliveryStep({ delivery, city, address, onChange }: { delivery: string,
   )
 }
 
-function ContactsStep({ name, phone, channel, handle, onChange }: { name: string, phone: string, channel: string, handle: string, onChange: (f: string, v: string) => void }) {
+function ContactsStep({ name, lastName, phone, channel, handle, onChange }: { name: string, lastName: string, phone: string, channel: string, handle: string, onChange: (f: string, v: string) => void }) {
   const channels = [
     { val: 'telegram', label: 'Telegram', desc: "Рекомендовано — найшвидший зв'язок", icon: MessageCircle, badge: true },
     { val: 'email', label: 'Email', desc: 'touch.memories3@gmail.com', icon: Mail, badge: false },
@@ -382,13 +375,20 @@ function ContactsStep({ name, phone, channel, handle, onChange }: { name: string
       <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 4: Контакти та канал зв'язку</h2>
       <p className="text-gray-500 text-sm mb-6">Дизайнер зв'яжеться з вами для підтвердження деталей.</p>
       <div className="space-y-4 mb-8">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Ваше ім'я *</label>
-          <div className="relative">
-            <User className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-            <input value={name} onChange={e => onChange('name', e.target.value)} placeholder="Як до вас звертатись?" className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ім'я *</label>
+            <div className="relative">
+              <User className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+              <input value={name} onChange={e => onChange('name', e.target.value)} placeholder="Ім'я" className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Прізвище *</label>
+            <input value={lastName} onChange={e => onChange('lastName', e.target.value)} placeholder="Прізвище" className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
           </div>
         </div>
+        <p className="text-xs text-gray-400 -mt-2">Прізвище потрібне для оформлення накладної Нової Пошти.</p>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Номер телефону *</label>
           <div className="relative">
@@ -463,7 +463,7 @@ function ConfirmationStep({ data }: { data: OrderFormData }) {
         </div>
         <div className="bg-[#f0f2f8] rounded-xl p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Контакти</p>
-          <p className="font-medium text-gray-800">{data.name} · {data.phone}</p>
+          <p className="font-medium text-gray-800">{data.name} {data.lastName} · {data.phone}</p>
           <p className="text-sm text-gray-500">{ch}: {data.contactHandle}</p>
         </div>
       </div>
@@ -487,6 +487,124 @@ function SuccessScreen() {
   )
 }
 
+// Decides whether the designer flow should show the cover block for a
+// given product, and whether that product takes a cover inscription
+// (name/слоган). Rules per Diana:
+//   • Journal (м'який + твердий) ............ cover photo + inscription
+//   • Travel Book ........................... cover photo (no inscription)
+//   • Photobook with PRINTED cover .......... cover photo (no inscription)
+//   • Premium photobook (велюр/тканина/      . cover photo ONLY when an
+//     шкірзам) .............................   insert is chosen:
+//                                              Оздоблення = Акрил / Фотовставка
+//   • Everything else (and direct /order
+//     visits with no product) ............... no cover block
+function getCoverCapability(savedConfig: any): { show: boolean; allowInscription: boolean } {
+  const slug = String(savedConfig?.slug || '').toLowerCase();
+  if (!slug) return { show: false, allowInscription: false };
+
+  const isJournal = slug.includes('magazine') || slug.includes('zhurnal') || slug.includes('journal');
+  const isTravel = slug.includes('travel');
+  const isPrintedPhotobook = slug.includes('photobook-printed') || slug.includes('printed') || slug.includes('graduation');
+  const isPremiumPhotobook = slug.includes('velour') || slug.includes('velyur') ||
+                             slug.includes('fabric') || slug.includes('tkanina') ||
+                             slug.includes('leatherette') || slug.includes('shkir');
+
+  if (isJournal) return { show: true, allowInscription: true };
+  if (isTravel) return { show: true, allowInscription: false };
+  if (isPrintedPhotobook) return { show: true, allowInscription: false };
+
+  if (isPremiumPhotobook) {
+    // Only show when the customer picked an insert that can hold a photo.
+    // The option is "Оздоблення" with values acryl / photovstavka (the DB
+    // stores the canonical value; the carried config may hold the label).
+    const cfg = savedConfig?.config || {};
+    const finishRaw = String(
+      cfg['Оздоблення'] ?? cfg['Тип оздоблення'] ?? cfg['finish'] ?? ''
+    ).toLowerCase();
+    const hasInsert =
+      finishRaw.includes('acryl') || finishRaw.includes('акрил') ||
+      finishRaw.includes('photovstavka') || finishRaw.includes('фотовставк');
+    return { show: hasInsert, allowInscription: false };
+  }
+
+  return { show: false, allowInscription: false };
+}
+
+function CoverBlock({ allowInscription, inscription, coverPhoto, onChange }: {
+  allowInscription: boolean,
+  inscription: string,
+  coverPhoto: UploadedFile | null,
+  onChange: (field: string, value: any) => void,
+}) {
+  const coverRef = useRef<HTMLInputElement>(null)
+
+  const pickCover = (fileList: FileList | null) => {
+    if (!fileList || !fileList[0]) return
+    const file = fileList[0]
+    if (!file.type.startsWith('image/')) return
+    if (coverPhoto?.preview) URL.revokeObjectURL(coverPhoto.preview)
+    onChange('coverPhoto', {
+      id: `cover-${Date.now()}`,
+      name: file.name,
+      size: file.size,
+      file,
+      preview: URL.createObjectURL(file),
+    })
+  }
+
+  const removeCover = () => {
+    if (coverPhoto?.preview) URL.revokeObjectURL(coverPhoto.preview)
+    onChange('coverPhoto', null)
+  }
+
+  return (
+    <div className="mt-8 pt-6 border-t border-gray-200">
+      <h3 className="text-base font-bold text-[#1e2d7d] mb-1">Обкладинка</h3>
+      <p className="text-gray-500 text-sm mb-4">
+        Завантажте окреме фото для обкладинки{allowInscription ? ' та вкажіть надпис, якщо потрібно' : ''}. Якщо не завантажите — дизайнер підбере найкраще фото із завантажених.
+      </p>
+
+      <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={e => pickCover(e.target.files)} />
+
+      {coverPhoto ? (
+        <div className="flex items-center gap-3 mb-4">
+          <div className="relative w-24 h-32 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+            {coverPhoto.preview && <img src={coverPhoto.preview} alt="" className="w-full h-full object-cover" />}
+            <button onClick={removeCover} className="absolute top-1 right-1 bg-black/70 text-white rounded-full w-6 h-6 flex items-center justify-center">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <button onClick={() => coverRef.current?.click()} className="px-4 py-2 rounded-lg border border-[#1e2d7d] text-[#1e2d7d] font-semibold text-sm hover:bg-[#f0f3ff]">
+            Замінити фото
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => coverRef.current?.click()}
+          className="w-full border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center gap-2 text-gray-500 hover:border-[#1e2d7d] hover:bg-[#f8f9fc] transition-colors mb-4"
+        >
+          <Upload className="w-6 h-6" />
+          <span className="font-semibold text-sm">Завантажити фото обкладинки</span>
+          <span className="text-xs text-gray-400">вертикальне фото, обличчя крупно</span>
+        </button>
+      )}
+
+      {allowInscription && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Надпис на обкладинці (опційно)</label>
+          <input
+            value={inscription}
+            onChange={e => onChange('coverInscription', e.target.value)}
+            placeholder='напр. "Книга про Марію" або девіз'
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]"
+          />
+          <p className="text-xs text-gray-400 mt-1.5">Можна залишити порожнім — тоді використаємо ім'я.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function OrderForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -498,7 +616,8 @@ function OrderForm() {
 
   const [formData, setFormData] = useState<OrderFormData>({
     files: [], comment: '', delivery: '', city: '', address: '',
-    name: '', phone: '', contactChannel: '', contactHandle: '',
+    name: '', lastName: '', phone: '', contactChannel: '', contactHandle: '',
+    coverInscription: '', coverPhoto: null,
   })
 
   useEffect(() => {
@@ -519,7 +638,7 @@ function OrderForm() {
   const canProceed = () => {
     if (step === 1) return formData.files.length > 0
     if (step === 3) return !!formData.delivery
-    if (step === 4) return !!formData.name && !!formData.phone && !!formData.contactChannel && !!formData.contactHandle
+    if (step === 4) return !!formData.name && !!formData.lastName && !!formData.phone && !!formData.contactChannel && !!formData.contactHandle
     return true
   }
 
@@ -529,11 +648,21 @@ function OrderForm() {
     try {
       const fd = new FormData()
       formData.files.forEach(f => fd.append('photos', f.file))
+      // Dedicated cover photo (if the product supports one and the
+      // customer uploaded it) — sent separately so the API/manager can
+      // tell it apart from the journal photo pool.
+      if (formData.coverPhoto?.file) {
+        fd.append('coverPhoto', formData.coverPhoto.file)
+      }
+      if (formData.coverInscription) {
+        fd.append('coverInscription', formData.coverInscription)
+      }
       fd.append('comment', formData.comment)
       fd.append('delivery', formData.delivery)
       fd.append('city', formData.city)
       fd.append('address', formData.address)
       fd.append('name', formData.name)
+      fd.append('lastName', formData.lastName)
       fd.append('phone', formData.phone)
       fd.append('contactChannel', formData.contactChannel)
       fd.append('contactHandle', formData.contactHandle)
@@ -621,9 +750,21 @@ function OrderForm() {
             const n = parseInt(String(raw ?? '').replace(/[^\d]/g, ''), 10);
             return Number.isFinite(n) && n > 0 ? n : undefined;
           })()} />}
+          {step === 1 && (() => {
+            const cap = getCoverCapability(savedConfig);
+            if (!cap.show) return null;
+            return (
+              <CoverBlock
+                allowInscription={cap.allowInscription}
+                inscription={formData.coverInscription}
+                coverPhoto={formData.coverPhoto}
+                onChange={update}
+              />
+            );
+          })()}
           {step === 2 && <CommentStep value={formData.comment} onChange={v => update('comment', v)} />}
           {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} />}
-          {step === 4 && <ContactsStep name={formData.name} phone={formData.phone} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
+          {step === 4 && <ContactsStep name={formData.name} lastName={formData.lastName} phone={formData.phone} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
           {step === 5 && <ConfirmationStep data={formData} />}
           {error && <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>}
           <div className="flex justify-between mt-8 gap-4">
