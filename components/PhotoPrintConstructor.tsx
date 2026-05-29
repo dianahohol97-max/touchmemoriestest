@@ -33,7 +33,7 @@ const POLAROID_SIZES: Record<string, {
 // Правило бізнесу: кількість має бути кратна `multiple`, але не менше 20 шт.
 // Тому фактичний мінімум — найменше кратне `multiple`, що >= 20. Обчислюємо
 // з `multiple`, щоб мінімум і кратність ніколи не розсинхронізувались.
-const NONSTANDARD_MIN_BASE = 12;
+const NONSTANDARD_MIN_BASE = 20;
 const NONSTANDARD_CONFIG: Record<string, { multiple: number }> = {
   '5x7.5':  { multiple: 12 },
   '5×7.5':  { multiple: 12 },
