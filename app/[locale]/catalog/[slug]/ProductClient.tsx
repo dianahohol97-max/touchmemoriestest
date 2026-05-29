@@ -484,6 +484,34 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     // Source 3: ALWAYS add modifiers from product.options that aren't covered by sources 1-2
     // This catches DB-only options like "Верстка тексту" that hardcoded PRODUCT_OPTIONS doesn't know about
     if (product.options && Array.isArray(product.options)) {
+        // Photoprint / polaroid / photomagnet are "size IS the price" products:
+        // each size in product.options carries the FULL per-unit price (7.5 or
+        // 8 ₴), not a surcharge over product.price. If we let Source 3 below
+        // treat it as a modifier we'd add 8 on top of the 7.5 base → 15.5 ₴,
+        // which is exactly what was shown on the nonstandard page. Detect
+        // these products by slug and overwrite finalPrice with the matching
+        // size's price instead of adding to it.
+        const slugLower = (product.slug || '').toLowerCase();
+        const isPhotoprintLike =
+            slugLower.includes('photoprint') ||
+            slugLower.includes('polaroid') ||
+            slugLower.includes('photomagnet');
+        if (isPhotoprintLike) {
+            const sizeOpt = product.options.find((o: any) => o.name === 'Розмір' || o.name === 'Формат');
+            if (sizeOpt) {
+                const sel = customProductOptions[sizeOpt.name];
+                if (sel !== undefined) {
+                    const items = sizeOpt.options || sizeOpt.values || [];
+                    const match = items.find((i: any) =>
+                        i === sel || String(i.value) === String(sel) ||
+                        i.label === sel || i.name === sel
+                    );
+                    if (match && typeof match === 'object' && match.price != null) {
+                        finalPrice = Number(match.price) || finalPrice;
+                    }
+                }
+            }
+        }
         // Names already handled by ProductOptionsSelector (hardcoded PRODUCT_OPTIONS).
         // 'Розмір' is only excluded when dynamicPrice is set (ProductOptionsSelector already priced it)
         // or for photobooks (priced via Source 1). For pure DB products (posters, maps etc.)
@@ -505,7 +533,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             // page calculate it. See lib/products.ts getMagazinePrice.
             //
             // Exclude 'Розмір' only when already handled by ProductOptionsSelector or photobook lookup
-            ...(dynamicPrice !== null || isPhotobook ? ['Розмір'] : []),
+            ...(dynamicPrice !== null || isPhotobook || isPhotoprintLike ? ['Розмір', 'Формат'] : []),
         ]);
 
         let extraModifiers = 0;
