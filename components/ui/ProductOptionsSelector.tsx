@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { SizeVisualizer } from './SizeVisualizer';
 import { useT } from '@/lib/i18n/context';
-import { getMagazinePrice, TYPESETTING_PRICE, MAGAZINE_PRICES_WITHOUT_TYPESETTING, getPhotojournalHardPrice, getTravelBookPrice, PHOTO_JOURNAL_HARD, TRAVEL_BOOK, LAMINATION_PRICE_PER_PAGE } from '@/lib/products';
+import { getMagazinePrice, TYPESETTING_PRICE, MAGAZINE_PRICES_WITHOUT_TYPESETTING, getPhotojournalHardPrice, getTravelBookPrice, PHOTO_JOURNAL_HARD, TRAVEL_BOOK, LAMINATION_PRICE_PER_PAGE, URGENT_MULTIPLIER } from '@/lib/products';
 
 type ProductOption = {
   name: string;
@@ -587,6 +587,17 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         if (!total) return null;
         // Lamination: 7 UAH per page (Diana's price list, May 2026)
         if (opts['Ламінація сторінок'] === 'З ламінацією сторінок' || opts['Ламінація сторінок'] === 'З ламінацією (+7 ₴/стор)') total += (pages as number) * LAMINATION_PRICE_PER_PAGE;
+        // Forzac print: flat +200 ₴ when chosen.
+        const forzac = String(opts['Друк на форзаці'] || '').toLowerCase();
+        if (forzac && forzac !== 'none' && !forzac.includes('без')) {
+          total += 200;
+        }
+        // Urgency: +30%. Same options as the hard journal (standard /
+        // urgent up to 5 working days). Applied to base + extras.
+        const urgentRaw = String(opts['Терміновість'] || '').toLowerCase();
+        const isUrgent = urgentRaw !== '' && urgentRaw !== 'standard' &&
+                         !urgentRaw.includes('стандартна') && !urgentRaw.includes('5–8');
+        if (isUrgent) total = Math.round(total * (1 + URGENT_MULTIPLIER));
         return total;
       }
     }
@@ -1149,6 +1160,14 @@ export function getCalculatedPrice(slug: string, selectedOptions: Record<string,
       let total = TRAVELBOOK_PAGE_PRICES[pages] || 0;
       if (!total) return null;
       if (selectedOptions['Ламінація сторінок'] === 'З ламінацією сторінок' || selectedOptions['Ламінація сторінок'] === 'З ламінацією (+7 ₴/стор)') total += (pages as number) * LAMINATION_PRICE_PER_PAGE;
+      const forzac = String(selectedOptions['Друк на форзаці'] || '').toLowerCase();
+      if (forzac && forzac !== 'none' && !forzac.includes('без')) {
+        total += 200;
+      }
+      const urgentRaw = String(selectedOptions['Терміновість'] || '').toLowerCase();
+      const isUrgent = urgentRaw !== '' && urgentRaw !== 'standard' &&
+                       !urgentRaw.includes('стандартна') && !urgentRaw.includes('5–8');
+      if (isUrgent) total = Math.round(total * (1 + URGENT_MULTIPLIER));
       return total;
     }
   }

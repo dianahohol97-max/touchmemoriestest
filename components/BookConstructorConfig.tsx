@@ -715,6 +715,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             total += 200; // Друк на форзаці для журналу з твердою обкладинкою
         }
 
+        // Travel Book urgency: +30% on the full total (pages + lamination +
+        // forzac), mirroring the magazine/hard-journal branch above.
+        if (productType === 'travelbook') {
+            const urgentRaw = (searchParams.get('urgent') || '').toLowerCase();
+            const isUrgent = urgentRaw !== '' && urgentRaw !== '0' &&
+                             urgentRaw !== 'standard' &&
+                             !urgentRaw.includes('стандартна');
+            if (isUrgent) total = Math.round(total * (1 + URGENT_MULTIPLIER));
+        }
+
         return total;
     };
 
@@ -1693,7 +1703,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                        !u.includes('стандартна');
                         return active ? (
                             <div className="mb-4 flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-4 py-2">
-                                <span className="text-sm text-orange-800 font-medium">🚀 Термінове виготовлення (1–3 дні)</span>
+                                <span className="text-sm text-orange-800 font-medium">🚀 Термінове виготовлення</span>
                                 <span className="text-sm font-bold text-orange-800">+{Math.round(URGENT_MULTIPLIER * 100)}%</span>
                             </div>
                         ) : null;
