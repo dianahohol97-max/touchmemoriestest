@@ -948,21 +948,29 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       {/* Decoration Type Selector (non-printed photobooks; hidden when a
           printed/hard cover material is selected) */}
       {showDecoration && (() => {
-        // Шкірзамінник не підтримує "Друк кольором" і "Гравірування" —
-        // ці оздоблення непридатні до шкірзаму. Інші матеріали (велюр,
-        // тканина) можуть мати всі шість опцій.
-        // Detect leatherette either from the wishbook "Матеріал обкладинки"
-        // option OR from the product slug (the dedicated photobook-
-        // leatherette product has no "Матеріал" option — its material is
-        // baked into the slug itself, so the wishbook-style check alone
-        // missed it and flex/graviruvannya were still being shown).
+        // Decoration options vary by cover material:
+        //   • Velour          — all six options
+        //   • Leatherette     — drops "Друк кольором" and "Гравірування"
+        //   • Fabric          — drops "Гравірування" (the print method works
+        //                       on fabric, but engraving doesn't)
+        // Material is detected either from the wishbook "Матеріал обкладинки"
+        // select OR from the product slug — the standalone photobook-fabric
+        // / photobook-leatherette products don't have a "Матеріал" option,
+        // their material is baked into the slug.
         const isLeatherette =
           selectedCoverMaterial.includes('шкір') ||
           selectedCoverMaterial.includes('leather') ||
           isLeatherProduct;
-        const availableOzdoblennya = isLeatherette
-          ? VELOUR_OZDOBLENNYA.filter(o => o.value !== 'flex' && o.value !== 'graviruvannya')
-          : VELOUR_OZDOBLENNYA;
+        const isFabric =
+          selectedCoverMaterial.includes('ткан') ||
+          selectedCoverMaterial.includes('fabric') ||
+          isFabricProduct;
+        let availableOzdoblennya = VELOUR_OZDOBLENNYA;
+        if (isLeatherette) {
+          availableOzdoblennya = availableOzdoblennya.filter(o => o.value !== 'flex' && o.value !== 'graviruvannya');
+        } else if (isFabric) {
+          availableOzdoblennya = availableOzdoblennya.filter(o => o.value !== 'graviruvannya');
+        }
         return (
         <div>
           <label style={{
