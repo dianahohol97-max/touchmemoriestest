@@ -70,22 +70,22 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
   const processFiles = async (fileList: FileList | null) => {
     if (!fileList) return
     let incoming = Array.from(fileList)
-    // Designer flow DOES cap uploads at +30% of the recommended count
-    // (recommended = one per page; max = ceil(pages × 1.3)). Unlike the
-    // self-service constructor — where the customer arranges photos
-    // themselves and may upload freely — here a designer lays out the
-    // book by hand, so an oversized pile of photos isn't useful and the
-    // batch must stay sane. The minimum (one per page) is still required.
+    // Designer flow caps uploads at +35% of the recommended maximum.
+    // Recommendation: 1× to 1.5× pageCount (e.g. 6 pages → 6-9 photos).
+    // Hard cap on top: ceil(recMax × 1.35) so the customer can give the
+    // designer ~10 extra to pick from but not a 100-photo dump.
+    // For 6 pages: recMax=9, cap=ceil(9*1.35)=13.
     if (pageCount && pageCount > 0) {
-      const maxPhotos = Math.ceil(pageCount * 1.3)
+      const recMax = Math.ceil(pageCount * 1.5)
+      const maxPhotos = Math.ceil(recMax * 1.35)
       const remaining = Math.max(0, maxPhotos - data.length)
       if (remaining <= 0) {
-        alert(`Уже завантажено максимум ${maxPhotos} фото для ${pageCount} сторінок (на 30% більше за рекомендовану кількість). Видаліть зайві, щоб додати інші.`)
+        alert(`Ви вже завантажили ${maxPhotos} фото — це достатньо, щоб дизайнер мав з чого обрати. Якщо хочете додати інші — спершу видаліть зайві.`)
         return
       }
       if (incoming.length > remaining) {
         incoming = incoming.slice(0, remaining)
-        alert(`Можна додати ще тільки ${remaining} фото (максимум ${maxPhotos} для ${pageCount} сторінок). Решту пропущено — оберіть найкращі кадри.`)
+        alert(`Додано перші ${remaining} фото з вибраних — решту пропущено. Дизайнеру достатньо ${maxPhotos} фото на ${pageCount} сторінок, оберіть найкращі кадри.`)
       }
     }
     setCompressing({ done: 0, total: incoming.length })
@@ -117,17 +117,18 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
       <p className="text-gray-500 text-sm mb-6">JPG, PNG, HEIC, ZIP. Великі фото з телефону ми автоматично стискаємо до якості, потрібної для друку — обмеження по розміру файлу немає.</p>
 
       {/* Photo-count recommendation, shown only when we know how many
-          pages the chosen product has (carried in savedConfig). In the
-          designer flow BOTH bounds matter: the minimum (one per page) is
-          required, and the maximum (+30%) is a hard cap enforced in
-          processFiles — the designer lays the book out by hand. */}
+          pages the chosen product has (carried in savedConfig). For the
+          designer flow: recMin = pageCount, recMax = ceil(pageCount × 1.5),
+          and the cap (enforced in processFiles) is ceil(recMax × 1.35).
+          Once recMax is reached we just leave the message at "цього
+          достатньо" — no jarring "досягнуто максимум" since the customer
+          can still upload up to the silent cap if they want. */}
       {pageCount && pageCount > 0 && (() => {
         const recMin = pageCount
-        const recMax = Math.ceil(pageCount * 1.3)
+        const recMax = Math.ceil(pageCount * 1.5)
         const count = data.length
         const enough = count >= recMin
         const tooFew = count > 0 && count < recMin
-        const atMax = count >= recMax
         // Below minimum → red (requirement). At/above minimum → green.
         const bg = count === 0 ? 'bg-[#eff6ff] border-[#bfdbfe]' : tooFew ? 'bg-[#fef2f2] border-[#fecaca]' : 'bg-[#f0fdf4] border-[#bbf7d0]'
         const titleColor = count === 0 ? 'text-[#1e2d7d]' : tooFew ? 'text-[#b91c1c]' : 'text-[#15803d]'
@@ -137,13 +138,12 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
               Рекомендована кількість фото для {pageCount} сторінок: {recMin}–{recMax}
             </p>
             <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-              Одне фото на сторінку. Мінімум — {recMin}, максимум — {recMax} (на 30% більше за рекомендовану кількість), щоб дизайнер мав з чого обрати найкращі кадри.
+              Одне фото на сторінку. Завантажуйте з невеликим запасом, щоб дизайнер мав з чого обрати найкращі кадри.
             </p>
             {count > 0 && (
               <p className={`text-xs font-semibold mt-2 ${titleColor}`}>
                 {tooFew && `Завантажено ${count} — для ${pageCount} сторінок бажано щонайменше ${recMin} (додайте ще ${recMin - count}).`}
-                {enough && !atMax && `Завантажено ${count} — чудово, цього достатньо.`}
-                {atMax && `Завантажено ${count} — досягнуто максимум (${recMax}).`}
+                {enough && `Завантажено ${count} — цього достатньо.`}
               </p>
             )}
           </div>
@@ -835,7 +835,6 @@ function OrderForm() {
                 // isn't recognised — covers labels that already arrive
                 // pre-formatted (e.g. "20×20 см", "16 сторінок").
                 const valueLabels: Record<string, string> = {
-                  'none': 'Без оздоблення',
                   'standard': 'Стандартний',
                   'round': 'Круглий',
                   'acryl': 'Акрил',
@@ -846,14 +845,33 @@ function OrderForm() {
                   'acryl_100x100': 'Акрил 100×100 мм',
                   'acryl_d145': 'Акрил Ø145 мм',
                   'foto_100x100': 'Фотовставка 100×100 мм',
-                  'with': 'З калькою',
-                  'own': 'Власний текст',
-                  'we': 'Текст пише команда',
-                  'we-basic': 'Текст пише команда (базовий)',
-                  'we-premium': 'Текст пише команда (преміум)',
                   'glossy': 'Глянцева',
                   'matte': 'Матова',
                   'urgent': 'Термінова',
+                };
+
+                // Per-field overrides for ambiguous codes ('none' / 'with' /
+                // 'own' / 'we' mean different things on different fields).
+                // Resolved before the global valueLabels above.
+                const fieldValueLabels: Record<string, Record<string, string>> = {
+                  'Калька перед першою сторінкою': { 'none': 'Без кальки', 'with': 'З калькою' },
+                  'tracingPaper':                  { 'none': 'Без кальки', 'with': 'З калькою' },
+                  'Тип оздоблення':                { 'none': 'Без оздоблення' },
+                  'Оздоблення':                    { 'none': 'Без оздоблення' },
+                  'Верстка тексту':                { 'none': 'Без тексту (тільки фото)', 'own': 'Власний текст', 'we': 'Текст пише команда' },
+                  'Ламінація сторінок':            { 'none': 'Без ламінації', 'with': 'З ламінацією' },
+                  'Ламінація обкладинки':          { 'none': 'Без ламінації' },
+                  'Ламінація':                     { 'none': 'Без ламінації' },
+                  'Тип ламінації':                 { 'none': 'Без ламінації' },
+                  'Друк на форзаці':               { 'none': 'Без друку', 'with': 'З друком' },
+                  'Терміновість':                  { 'none': 'Стандартна', 'standard': 'Стандартна', 'urgent': 'Термінова (до 5 робочих днів)' },
+                };
+
+                const labelFor = (key: string, value: string): string => {
+                  const perField = fieldValueLabels[key];
+                  if (perField && perField[value]) return perField[value];
+                  if (valueLabels[value]) return valueLabels[value];
+                  return value;
                 };
 
                 // "Без оздоблення" / 'none' on the decoration field means the
@@ -876,7 +894,7 @@ function OrderForm() {
 
                 return entries.map(([key, value]) => {
                   const v = String(value ?? '');
-                  const displayValue = valueLabels[v] || v;
+                  const displayValue = labelFor(key, v);
                   return (
                     <div key={key} className="bg-[#f0f2f8] rounded-lg p-3">
                       <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
