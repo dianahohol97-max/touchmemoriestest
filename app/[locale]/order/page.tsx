@@ -815,24 +815,78 @@ function OrderForm() {
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {savedConfig.config && Object.entries(savedConfig.config).map(([key, value]) => {
-                // Find the human-readable label based on key
-                const labels: Record<string, string> = {
+              {savedConfig.config && (() => {
+                const cfg = savedConfig.config as Record<string, any>;
+
+                // Friendly labels for the option keys themselves.
+                const keyLabels: Record<string, string> = {
                   size: 'Розмір',
                   pages: 'Кількість сторінок',
                   coverType: 'Тип обкладинки',
                   tracingPaper: 'Калька',
-                  lamination: 'Ламінація'
-                }
-                return (
-                  <div key={key} className="bg-[#f0f2f8] rounded-lg p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
-                      {labels[key] || key}
-                    </p>
-                    <p className="text-sm font-medium text-gray-800">{value as string}</p>
-                  </div>
-                )
-              })}
+                  lamination: 'Ламінація',
+                };
+
+                // Value-level mapping for the raw codes that come from the
+                // product.options JSON (acryl_100x100, foto_100x100, etc.)
+                // and from the selector itself (none, standard, own, with…).
+                // Without this, the summary card shows ugly slugs instead of
+                // human-readable labels. Falls back to the value as-is if it
+                // isn't recognised — covers labels that already arrive
+                // pre-formatted (e.g. "20×20 см", "16 сторінок").
+                const valueLabels: Record<string, string> = {
+                  'none': 'Без оздоблення',
+                  'standard': 'Стандартний',
+                  'round': 'Круглий',
+                  'acryl': 'Акрил',
+                  'photovstavka': 'Фотовставка',
+                  'metal': 'Металева вставка',
+                  'flex': 'Флекс',
+                  'graviruvannya': 'Гравірування',
+                  'acryl_100x100': 'Акрил 100×100 мм',
+                  'acryl_d145': 'Акрил Ø145 мм',
+                  'foto_100x100': 'Фотовставка 100×100 мм',
+                  'with': 'З калькою',
+                  'own': 'Власний текст',
+                  'we': 'Текст пише команда',
+                  'we-basic': 'Текст пише команда (базовий)',
+                  'we-premium': 'Текст пише команда (преміум)',
+                  'glossy': 'Глянцева',
+                  'matte': 'Матова',
+                  'urgent': 'Термінова',
+                };
+
+                // "Без оздоблення" / 'none' on the decoration field means the
+                // acryl/foto/metal sub-options are irrelevant — hide them
+                // so the summary doesn't show stray "acryl_100x100" that the
+                // customer never actually picked. Same logic as
+                // ProductOptionsSelector's conditional render.
+                const ozRaw = String(cfg['Тип оздоблення'] || cfg['Оздоблення'] || '').toLowerCase();
+                const noDecoration = !ozRaw || ozRaw === 'none' || ozRaw.includes('без оздоблення');
+                const subOptionKeys = ['Варіант акрилу', 'Варіант фотовставки', 'Варіант металевої вставки', 'Варіант тиснення', 'Варіант гравірування'];
+
+                // Drop key/value pairs that shouldn't be surfaced:
+                //   - "Тип оздоблення=Без оздоблення" → hide all sub-options
+                //   - any raw 'none' (e.g. 'Калька=none' before label map)
+                //     stays but renders as "Без кальки" via valueLabels.
+                const entries = Object.entries(cfg).filter(([key]) => {
+                  if (noDecoration && subOptionKeys.includes(key)) return false;
+                  return true;
+                });
+
+                return entries.map(([key, value]) => {
+                  const v = String(value ?? '');
+                  const displayValue = valueLabels[v] || v;
+                  return (
+                    <div key={key} className="bg-[#f0f2f8] rounded-lg p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
+                        {keyLabels[key] || key}
+                      </p>
+                      <p className="text-sm font-medium text-gray-800">{displayValue}</p>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         )}
