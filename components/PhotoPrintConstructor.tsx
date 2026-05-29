@@ -449,7 +449,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     return { ...p, orientation: o };
   }));
 
-  const setBorderSelected  = (b: boolean) => setPhotos(prev => prev.map(p => effectiveIds.has(p.id) ? {...p,border:b} : p));
+  // setBorderSelected was the per-photo override; removed together with
+  // the per-photo "Рамочка" block — the global setting now controls all.
   const setQtySelected     = (d: number)  => setPhotos(prev => prev.map(p => effectiveIds.has(p.id) ? {...p,qty:Math.max(1,(p.qty||1)+d)} : p));
   const setQtyExact        = (qty: number)=> setPhotos(prev => prev.map(p => effectiveIds.has(p.id) ? {...p,qty:Math.max(1,qty)} : p));
 
@@ -1022,18 +1023,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                     </div>
                   </div>
 
-                  {/* Border */}
-                  {!isPolaroid && !isNonstandard && (
-                    <div style={{ marginBottom:12 }}>
-                      <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Рамочка</div>
-                      <div style={{ display:'flex', gap:6 }}>
-                        {[{v:false,l:'Без рамки'},{v:true,l:'З рамкою 3мм'}].map(({v,l})=>(
-                          <button key={String(v)} onClick={()=>setBorderSelected(v)}
-                            style={BTN(effectivePhotos.every(p=>p.border===v))}>{l}</button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Per-photo "Рамочка" block removed — the global
+                      "Біла рамочка 3мм" in Налаштування now controls
+                      every photo at once, so a per-photo override would
+                      just duplicate the same choice in two places. */}
 
                   {/* Quantity */}
                   <div style={{ marginBottom:12 }}>
@@ -1161,7 +1154,16 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>{t('photo_print.white_border')}</label>
                 <div style={{ display:'flex', gap:6 }}>
                   {[{v:'none',l:t('photo_print.no_border_opt')},{v:'with',l:t('photo_print.with_border_opt')}].map(({v,l})=>(
-                    <button key={v} onClick={()=>setSelectedBorder(v)} style={BTN(selectedBorder===v)}>{l}</button>
+                    <button key={v} onClick={()=>{
+                      // The global "Біла рамочка 3мм" controls every uploaded
+                      // photo — change the default AND bulk-update each
+                      // already-uploaded photo so the choice is actually
+                      // global (it used to only affect newly added files,
+                      // which made the per-photo control redundant from the
+                      // customer's POV — they expected one source of truth).
+                      setSelectedBorder(v);
+                      setPhotos(prev => prev.map(p => ({...p, border: v === 'with'})));
+                    }} style={BTN(selectedBorder===v)}>{l}</button>
                   ))}
                 </div>
               </div>
