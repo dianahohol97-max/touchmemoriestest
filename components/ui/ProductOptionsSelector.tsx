@@ -951,9 +951,15 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         // Шкірзамінник не підтримує "Друк кольором" і "Гравірування" —
         // ці оздоблення непридатні до шкірзаму. Інші матеріали (велюр,
         // тканина) можуть мати всі шість опцій.
+        // Detect leatherette either from the wishbook "Матеріал обкладинки"
+        // option OR from the product slug (the dedicated photobook-
+        // leatherette product has no "Матеріал" option — its material is
+        // baked into the slug itself, so the wishbook-style check alone
+        // missed it and flex/graviruvannya were still being shown).
         const isLeatherette =
           selectedCoverMaterial.includes('шкір') ||
-          selectedCoverMaterial.includes('leather');
+          selectedCoverMaterial.includes('leather') ||
+          isLeatherProduct;
         const availableOzdoblennya = isLeatherette
           ? VELOUR_OZDOBLENNYA.filter(o => o.value !== 'flex' && o.value !== 'graviruvannya')
           : VELOUR_OZDOBLENNYA;
