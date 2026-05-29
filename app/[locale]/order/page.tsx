@@ -137,9 +137,6 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
             <p className={`text-sm font-bold ${titleColor}`}>
               Рекомендована кількість фото для {pageCount} сторінок: {recMin}–{recMax}
             </p>
-            <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-              Одне фото на сторінку. Завантажуйте з невеликим запасом, щоб дизайнер мав з чого обрати найкращі кадри.
-            </p>
             {count > 0 && (
               <p className={`text-xs font-semibold mt-2 ${titleColor}`}>
                 {tooFew && `Завантажено ${count} — для ${pageCount} сторінок бажано щонайменше ${recMin} (додайте ще ${recMin - count}).`}
