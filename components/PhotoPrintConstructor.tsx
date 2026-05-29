@@ -418,7 +418,17 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         const sizeOpt = opts.find(o => o.name === 'Розмір') || opts.find(o => o.name === 'Формат');
         const allSizes = sizeOpt?.values || sizeOpt?.options?.map(o=>({name:o.label})) || [];
         const filteredSizes = isNonstandard ? allSizes.filter(s => !!getNonstandardConfig(s.name)) : allSizes;
-        if (filteredSizes.length > 0) setSelectedSize(filteredSizes[0].name || '');
+        if (filteredSizes.length > 0) {
+          // Respect a size handed in from the catalog page (?size=) or a size
+          // restored from a previous session, matching it back to a real option
+          // by its normalised key. Only fall back to the first size when there
+          // is no match — previously this effect always clobbered the choice.
+          const desired = initialSize || _saved?.size;
+          const matched = desired
+            ? filteredSizes.find(s => getSizeKey(s.name) === getSizeKey(desired) || normKey(s.name) === normKey(desired))
+            : null;
+          setSelectedSize((matched || filteredSizes[0]).name || '');
+        }
         const fOpt = opts.find(o => o.name === 'Покриття');
         const finishes = fOpt?.values || fOpt?.options?.map(o=>({name:o.label})) || [];
         if (finishes.length > 0) setSelectedFinish(finishes[0].name || '');

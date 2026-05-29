@@ -86,7 +86,7 @@ const getConstructorUrl = (slug: string): string => {
   return `/order/book?product=${slug}`;
 };
 
-const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, product: any): string => {
+const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, product: any, customOpts: Record<string, string | number> = {}): string => {
   // Posters → pass selected size to constructor
   if (slug.includes('poster')) {
     const base = getConstructorUrl(slug);
@@ -120,6 +120,14 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
   if (slug.includes('photoprint') || slug.includes('polaroid') || slug.includes('полароїд') || slug.includes('поляроїд') || slug.includes('magnet')) {
     const params = new URLSearchParams();
     params.set('product', slug);
+
+    // The visual size picker on this page writes its choice (the option `value`,
+    // e.g. "6x9") into customProductOptions, NOT into the legacy selectedOptions
+    // index map. The order page reads ?size= and matches it back to a real size
+    // option, so forward the chosen value here — otherwise the size is lost and
+    // the constructor falls back to its first size.
+    const sizeVal = customOpts['Розмір'];
+    if (sizeVal !== undefined && sizeVal !== '') params.set('size', String(sizeVal));
 
     if (product.options && Array.isArray(product.options)) {
       product.options.forEach((opt: any) => {
@@ -1142,7 +1150,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <button
                                     onClick={() => requireAuth(
-                                        () => router.push(getOrderUrl(product.slug, selectedOptions, product)),
+                                        () => router.push(getOrderUrl(product.slug, selectedOptions, product, customProductOptions)),
                                         'Щоб створити замовлення та зберегти дизайн — увійдіть в акаунт'
                                     )}
                                     className="rounded-md hover:bg-[#1a2966]"
