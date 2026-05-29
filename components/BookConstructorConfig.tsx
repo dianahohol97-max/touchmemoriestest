@@ -483,6 +483,20 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 return matchesCover && matchesSize && matchesPages;
             });
 
+            // Diagnostic: log when match is missing or when fallback fires.
+            // Helps trace the "shows 600 ₴ for 25×25/16/Друкована" bug —
+            // most likely cause is selectedSize / selectedCoverType being
+            // empty or different from what the UI displays at save time.
+            if (!priceEntry && typeof window !== 'undefined') {
+                const distinctSizes = Array.from(new Set(photobookPrices.map((p: any) => p.size?.name)));
+                const distinctCovers = Array.from(new Set(photobookPrices.map((p: any) => p.cover_type?.name)));
+                console.log('[TM-photobook-price] no exact match', {
+                  selectedSize, selectedCoverType, pageNum,
+                  pricesLoaded: photobookPrices.length,
+                  distinctSizes, distinctCovers,
+                });
+            }
+
             if (priceEntry) {
                 let total = priceEntry.base_price || 0;
 
