@@ -83,22 +83,27 @@ const POLAROID_PRICES: Record<string, number> = {
 };
 
 // Velour color options
+// Velour colors — canonical list mirroring the cover_colors DB rows
+// (cover_type = 'Велюр'). Source of truth is the DB; this hardcode exists
+// because the velour color picker also needs to render on the product
+// card before the DB call resolves. Names, codes and hex values must
+// match the DB exactly so admin filters / order summaries don't break.
 const VELOUR_COLORS = [
-  { code: 'B-01', name: 'Кремовий',        hex: '#F2EDE3' },
-  { code: 'B-02', name: 'Бежевий',         hex: '#C4A882' },
-  { code: 'B-03', name: 'Попелясто-бежевий', hex: '#A8978A' },
-  { code: 'B-04', name: 'Рожевий',         hex: '#E8BDB5' },
-  { code: 'B-05', name: 'Бордо',           hex: '#8B1A3A' },
-  { code: 'B-06', name: 'Сірий',           hex: '#9A9EA8' },
-  { code: 'B-07', name: 'Ліловий',         hex: '#C5B5C8' },
-  { code: 'B-08', name: 'Темно-синій',     hex: '#1A2545' },
-  { code: 'B-09', name: 'Антрацит',        hex: '#4A4E58' },
-  { code: 'B-10', name: 'Бірюзовий',       hex: '#28A8B8' },
-  { code: 'B-11', name: 'Пурпуровий',      hex: '#9B3585' },
-  { code: 'B-12', name: 'Сталево-синій',   hex: '#7A9BB5' },
-  { code: 'B-13', name: 'Смарагдовий',     hex: '#1A4530' },
-  { code: 'B-14', name: 'Гірчичний',       hex: '#E8C050' },
-  { code: 'B-15', name: 'Чорний',          hex: '#1A1A1A' },
+  { code: 'В-01', name: 'Молочний',        hex: '#F0EAD6' },
+  { code: 'В-02', name: 'Бежевий',         hex: '#D9C8B0' },
+  { code: 'В-03', name: 'Таупе',           hex: '#A89880' },
+  { code: 'В-04', name: 'Рожевий',         hex: '#E8B4B8' },
+  { code: 'В-05', name: 'Бордо',           hex: '#7A2838' },
+  { code: 'В-06', name: 'Сірий перловий',  hex: '#9A9898' },
+  { code: 'В-07', name: 'Лаванда',         hex: '#B8A8C8' },
+  { code: 'В-08', name: 'Синій',           hex: '#1A2040' },
+  { code: 'В-09', name: 'Графітовий',      hex: '#3A3038' },
+  { code: 'В-10', name: 'Бірюзовий',       hex: '#1A9090' },
+  { code: 'В-11', name: 'Марсала',         hex: '#6E2840' },
+  { code: 'В-12', name: 'Блакитно-сірий',  hex: '#607080' },
+  { code: 'В-13', name: 'Темно-зелений',   hex: '#1E3028' },
+  { code: 'В-14', name: 'Жовтий',          hex: '#D4A020' },
+  { code: 'В-15', name: 'Чорний',          hex: '#1A1A1A' },
 ];
 
 // Leatherette colors for wishbook

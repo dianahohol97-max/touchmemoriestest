@@ -123,22 +123,25 @@ interface BookConstructorConfigProps {
 }
 
 
+// Velour colors — synced with the cover_colors DB table (В-01…В-15).
+// Names + hex values must match exactly so the constructor's preview
+// swatches line up with the card selector and admin views.
 const VELOUR_COLORS: Record<string, string> = {
-  'Молочний':'#F0EAD6',      // B-01
-  'Бежевий':'#D9C8B0',       // B-02
-  'Таупе':'#A89880',          // B-03 — сіро-бежевий
-  'Рожевий':'#E8B4B8',       // B-04
-  'Бордо':'#7A2838',          // B-05
-  'Сірий перловий':'#9A9898', // B-06 — срібно-сірий
-  'Лаванда':'#B8A8C8',       // B-07
-  'Синій':'#1A2040',          // B-08
-  'Графітовий':'#3A3038',    // B-09
-  'Бірюзовий':'#1A9090',     // B-10
-  'Марсала':'#6E2840',        // B-11
-  'Блакитно-сірий':'#607080', // B-12
-  'Темно-зелений':'#1E3028', // B-13
-  'Жовтий':'#D4A020',         // B-14
-  'Чорний':'#1A1A1A',         // B-15
+  'Молочний':'#F0EAD6',       // В-01
+  'Бежевий':'#D9C8B0',        // В-02
+  'Таупе':'#A89880',          // В-03
+  'Рожевий':'#E8B4B8',        // В-04
+  'Бордо':'#7A2838',          // В-05
+  'Сірий перловий':'#9A9898', // В-06
+  'Лаванда':'#B8A8C8',        // В-07
+  'Синій':'#1A2040',          // В-08
+  'Графітовий':'#3A3038',     // В-09
+  'Бірюзовий':'#1A9090',      // В-10
+  'Марсала':'#6E2840',        // В-11
+  'Блакитно-сірий':'#607080', // В-12
+  'Темно-зелений':'#1E3028',  // В-13
+  'Жовтий':'#D4A020',         // В-14
+  'Чорний':'#1A1A1A',         // В-15
 };
 const LEATHERETTE_BOOK_COLORS: Record<string, string> = {
   'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E',
@@ -414,7 +417,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         }
         if (decorationVariant) setSelectedDecorationVariant(decorationVariant);
 
-        // Cover color from URL (catalog passes "Колір велюру=Попелясто-бежевий")
+        // Cover color from URL (catalog passes "Колір велюру=Таупе" etc.)
         const coverColorFromUrl = coverColorParam || colorFromCatalog;
         if (coverColorFromUrl) {
             setSelectedCoverColor(coverColorFromUrl);
