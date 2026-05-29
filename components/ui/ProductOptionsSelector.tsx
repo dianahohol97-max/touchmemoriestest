@@ -249,6 +249,17 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       required: true,
       note: '+7 ₴ × кількість сторінок'
     },
+    {
+      name: 'Друк на форзаці',
+      values: ['Без друку', 'З друком (+200 ₴)'],
+      required: false,
+    },
+    {
+      name: 'Терміновість',
+      values: ['Стандартна (5–8 днів)', 'Термінова до 5 робочих днів (+30%)'],
+      required: false,
+      note: 'Пришвидшене виробництво — +30% до вартості'
+    },
   ],
   wishbook: [
     {
