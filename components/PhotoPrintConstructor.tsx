@@ -1296,6 +1296,30 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             <ShoppingCart size={18}/> {t('photo_print.add_to_cart')}
           </button>
 
+          {/* Explain exactly WHY "Додати до кошика" is greyed out — used
+              to be invisible reasoning, customers couldn't tell whether
+              they needed more photos, the wrong multiple, or something
+              else. Mirrors the bri ef's red checklist pattern. */}
+          {!qtyOk && (() => {
+            let msg: string | null = null;
+            if (photos.length === 0) {
+              msg = 'Завантажте хоча б одне фото, щоб продовжити.';
+            } else if (totalQty < minQty) {
+              const need = minQty - totalQty;
+              msg = `Мінімальне замовлення — ${minQty} шт. Зараз ${totalQty}. Додайте ще ${need} ${need === 1 ? 'фото' : 'фото'} (можна збільшити кількість одного фото або додати нові).`;
+            } else if (multiple > 1 && totalQty % multiple !== 0) {
+              const up = Math.ceil(totalQty / multiple) * multiple;
+              const dn = Math.floor(totalQty / multiple) * multiple;
+              msg = `Кількість має бути кратною ${multiple} (на одному листі друкується ${multiple} фото). Зараз ${totalQty}. Найближчі допустимі — ${dn} або ${up}.`;
+            }
+            if (!msg) return null;
+            return (
+              <div style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:10, padding:'12px 16px', marginTop:12 }}>
+                <p style={{ margin:0, fontSize:13, color:'#b91c1c', fontWeight:600 }}>{msg}</p>
+              </div>
+            );
+          })()}
+
           <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={e=>handleFileSelect(e.target.files)} style={{ display:'none' }}/>
         </div>
       </div>
