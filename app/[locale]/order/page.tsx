@@ -524,7 +524,12 @@ function getCoverCapability(savedConfig: any): { show: boolean; allowInscription
 
   if (isJournal) return { show: true, allowInscription: true };
   if (isTravel) return { show: true, allowInscription: false };
-  if (isPrintedPhotobook) return { show: true, allowInscription: false };
+  // Printed photobook: cover is printed, so the designer needs BOTH a
+  // reference photo AND a description of what should appear / be written
+  // on it (name, slogan, "best photo from the wedding day" — any of
+  // those). Previously this was photo-only and customers had no way to
+  // convey the cover idea.
+  if (isPrintedPhotobook) return { show: true, allowInscription: true };
 
   if (isPremiumPhotobook) {
     // Only show when the customer picked an insert that can hold a photo.
@@ -574,7 +579,7 @@ function CoverBlock({ allowInscription, inscription, coverPhoto, onChange }: {
     <div className="mt-8 pt-6 border-t border-gray-200">
       <h3 className="text-base font-bold text-[#1e2d7d] mb-1">Обкладинка</h3>
       <p className="text-gray-500 text-sm mb-4">
-        Завантажте окреме фото для обкладинки{allowInscription ? ' та вкажіть надпис, якщо потрібно' : ''}. Якщо не завантажите — дизайнер підбере найкраще фото із завантажених.
+        Завантажте окреме фото для обкладинки{allowInscription ? ' і коротко опишіть, що має бути на ній зображено або написано' : ''}. Якщо не завантажите — дизайнер підбере найкраще фото із завантажених.
       </p>
 
       <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={e => pickCover(e.target.files)} />
@@ -604,14 +609,15 @@ function CoverBlock({ allowInscription, inscription, coverPhoto, onChange }: {
 
       {allowInscription && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Надпис на обкладинці (опційно)</label>
-          <input
+          <label className="block text-sm font-medium text-gray-700 mb-1">Що має бути на обкладинці (опційно)</label>
+          <textarea
             value={inscription}
             onChange={e => onChange('coverInscription', e.target.value)}
-            placeholder='напр. "Книга про Марію" або девіз'
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]"
+            rows={3}
+            placeholder='Опишіть, що хочете бачити на обкладинці: ім&apos;я, девіз, або яке фото — напр. "Книга про Марію", "наше весілля, фото з арки" або "найкраще спільне фото з відпустки"'
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] resize-none font-sans"
           />
-          <p className="text-xs text-gray-400 mt-1.5">Можна залишити порожнім — тоді використаємо ім'я.</p>
+          <p className="text-xs text-gray-400 mt-1.5">Можна залишити порожнім — тоді дизайнер обере на власний розсуд.</p>
         </div>
       )}
     </div>
