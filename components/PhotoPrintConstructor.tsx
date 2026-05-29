@@ -227,7 +227,7 @@ function PhotoPreview({
           onWheel={e=>{e.preventDefault(); const d=e.deltaY>0?-0.05:0.05; onCropChange(photo.id,photo.cropX,photo.cropY,Math.max(0.5,Math.min(3,(photo.zoom||1)+d)));}}>
           <div style={{ position:'absolute', left:bS, top:bT, width:aW, height:aH,
             overflow:'hidden', cursor:'grab', background:'#f0f0f0' }} onPointerDown={handleMouseDown}>
-            <img src={photo.preview} draggable={false} style={{
+            <img src={photo.preview} draggable={false} decoding="async" style={{
               width:`${(photo.zoom||1)*100}%`, height:`${(photo.zoom||1)*100}%`,
               objectFit:'cover', objectPosition:`${photo.cropX}% ${photo.cropY}%`,
               position:'absolute', top:'50%', left:'50%',
@@ -308,7 +308,7 @@ function PhotoPreview({
         boxShadow:'0 4px 20px rgba(0,0,0,0.15)', userSelect:'none', overflow:'hidden', touchAction:'none' }} onWheel={handleWheel}>
         <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:canvasH,
           overflow:'hidden', cursor:'grab', touchAction:'none' }} onPointerDown={handleMouseDown}>
-          <img src={photo.preview} draggable={false} style={{
+          <img src={photo.preview} draggable={false} decoding="async" style={{
             position:'absolute', width:'100%', height:'100%', objectFit:'contain',
             objectPosition:`${photo.cropX||50}% ${photo.cropY||50}%`, top:0, left:0,
             transform:`scale(${effScale}) rotate(${photo.rotation||0}deg)`,
@@ -486,37 +486,82 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     setPhotos(prev=>prev.map(p=>p.id===id?{...p,polaroidText:text}:p));
 
   // ── File select ────────────────────────────────────────────────────────────
+  // Generate a tiny JPEG thumbnail (max 400px on the long side) from the
+  // uploaded file. The thumbnail's objectURL is what the editor binds to
+  // <img src="..."> in the grid and the active-photo viewer. Without
+  // this, every preview <img> decodes the full 5-15 MB source file —
+  // with 26 professional photos that ate hundreds of MB of GPU memory
+  // and stalled the UI for seconds whenever React re-rendered the grid.
+  //
+  // The original file stays attached to the PhotoFile (photo.file) and is
+  // re-decoded only when the order is finalised in renderStandard /
+  // renderPolaroid, where full resolution actually matters. Returns the
+  // thumbnail URL plus the natural dimensions of the source.
+  const makeThumbnail = async (file: File): Promise<{ url: string; w: number; h: number } | null> => {
+    try {
+      const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const ow = bmp.width, oh = bmp.height;
+      const max = 400;
+      const scale = Math.min(1, max / Math.max(ow, oh));
+      const tw = Math.max(1, Math.round(ow * scale));
+      const th = Math.max(1, Math.round(oh * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = tw; canvas.height = th;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { bmp.close?.(); return null; }
+      ctx.drawImage(bmp, 0, 0, tw, th);
+      bmp.close?.();
+      const blob: Blob | null = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.78));
+      if (!blob) return null;
+      return { url: URL.createObjectURL(blob), w: ow, h: oh };
+    } catch {
+      return null;
+    }
+  };
+
   const handleFileSelect = async (files: FileList | null) => {
     if (!files||files.length===0) return;
-    const newPhotos: PhotoFile[] = [];
-    for (let i=0;i<files.length;i++) {
-      const file=files[i];
-      if (!file.type.startsWith('image/')) continue;
-      if (photos.length+newPhotos.length>=500) { toast.error(t('photo_print.max_photos')); break; }
-      const preview=URL.createObjectURL(file);
-      try {
-        // Phones store portrait photos as a physically-landscape file plus an
-        // EXIF "rotate 90°" flag. A plain <img> reports the raw (landscape)
-        // width/height, so img.width >= img.height wrongly defaulted vertical
-        // phone photos to 'landscape'. createImageBitmap with
-        // imageOrientation:'from-image' bakes in the EXIF rotation, giving the
-        // visually-correct dimensions; we fall back to <img> if unsupported.
-        let natW = 0, natH = 0;
-        try {
-          const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
-          natW = bmp.width; natH = bmp.height;
-          bmp.close?.();
-        } catch {
-          const img=await new Promise<HTMLImageElement>((res,rej)=>{const im=new window.Image();im.onload=()=>res(im);im.onerror=rej;im.src=preview;});
-          natW = img.width; natH = img.height;
-        }
-        newPhotos.push({id:Math.random().toString(36).slice(7),file,preview,width:natW,height:natH,
-          cropX:50,cropY:50,zoom:1,rotation:0,orientation:natW>=natH?'landscape':'portrait',
-          border:selectedBorder==='with',qty:1,showCaption:false});
-      } catch { URL.revokeObjectURL(preview); }
+    const list = Array.from(files).filter(f => f.type.startsWith('image/'));
+    const room = Math.max(0, 500 - photos.length);
+    if (room === 0) { toast.error(t('photo_print.max_photos')); return; }
+    const queue = list.slice(0, room);
+    if (queue.length < list.length) toast.error(t('photo_print.max_photos'));
+
+    // Parallel processing in small batches. Doing 26 files serially blocks
+    // the main thread for ~5s; batching by 4 keeps each chunk fast enough
+    // that paint can interleave, and the user sees photos appear in waves
+    // instead of one frozen wait. setPhotos is called after every batch
+    // so React renders the growing grid incrementally.
+    const BATCH = 4;
+    let added = 0;
+    for (let start = 0; start < queue.length; start += BATCH) {
+      const slice = queue.slice(start, start + BATCH);
+      const built = await Promise.all(slice.map(async (file) => {
+        const thumb = await makeThumbnail(file);
+        if (!thumb) return null;
+        return {
+          id: Math.random().toString(36).slice(7),
+          file,
+          preview: thumb.url,
+          width: thumb.w,
+          height: thumb.h,
+          cropX: 50, cropY: 50, zoom: 1, rotation: 0,
+          orientation: thumb.w >= thumb.h ? 'landscape' : 'portrait',
+          border: selectedBorder === 'with',
+          qty: 1,
+          showCaption: false,
+        } as PhotoFile;
+      }));
+      const ok = built.filter(Boolean) as PhotoFile[];
+      if (ok.length) {
+        setPhotos(prev => [...prev, ...ok]);
+        added += ok.length;
+      }
     }
-    setPhotos(prev=>[...prev,...newPhotos]);
-    if (newPhotos.length) { toast.success(t('photo_print.uploaded').replace('{n}',String(newPhotos.length))); setActivePhotoIdx(photos.length); }
+    if (added) {
+      toast.success(t('photo_print.uploaded').replace('{n}', String(added)));
+      setActivePhotoIdx(photos.length);
+    }
   };
 
   // ── Options ────────────────────────────────────────────────────────────────
@@ -725,8 +770,18 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               resolve(null);
             }
           };
-          img.onerror = () => resolve(null);
-          img.src = photo.preview;
+          img.onerror = () => { try { URL.revokeObjectURL(srcUrl); } catch {}; resolve(null); };
+          // Load the FULL-resolution source for printing — photo.preview now
+          // points at the 400px display thumbnail (added for editor perf),
+          // which would print as a blurry mess at 300 DPI. The original
+          // file is still kept on photo.file. Create a one-shot objectURL
+          // from it, draw, then revoke once decoded.
+          const srcUrl = URL.createObjectURL(photo.file);
+          const origOnload = img.onload;
+          img.onload = function() {
+            try { (origOnload as any).call(img); } finally { try { URL.revokeObjectURL(srcUrl); } catch {} }
+          };
+          img.src = srcUrl;
         });
       };
 
@@ -753,7 +808,11 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         photoBox.style.cssText = `position:absolute;left:${bS}px;top:${bT}px;width:${aW}px;height:${aH}px;overflow:hidden;background:#f0f0f0;`;
         const im = document.createElement('img');
         im.crossOrigin = 'anonymous';
-        im.src = photo.preview;
+        // Load the FULL-resolution source — photo.preview is now the 400px
+        // editor thumbnail and would print blurry. Revoke after the
+        // snapshot to free the blob.
+        const polSrc = URL.createObjectURL(photo.file);
+        im.src = polSrc;
         im.style.cssText = `width:${(photo.zoom || 1) * 100}%;height:${(photo.zoom || 1) * 100}%;object-fit:cover;object-position:${photo.cropX}% ${photo.cropY}%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(${photo.rotation || 0}deg);`;
         photoBox.appendChild(im);
         root.appendChild(photoBox);
@@ -793,6 +852,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           return null;
         } finally {
           try { document.body.removeChild(root); } catch {}
+          try { URL.revokeObjectURL(polSrc); } catch {}
         }
       };
 
@@ -944,7 +1004,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 <div key={ph.id} onClick={()=>setActivePhotoIdx(idx)}
                   style={{ position:'relative', width:52, height:52, borderRadius:6, overflow:'hidden',
                     border:idx===activePhotoIdx?'2px solid #1e2d7d':'2px solid transparent', cursor:'pointer', flexShrink:0 }}>
-                  <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover',
+                  <img src={ph.preview} loading="lazy" decoding="async" style={{ width:'100%', height:'100%', objectFit:'cover',
                     transform:`rotate(${ph.rotation||0}deg)`, transition:'transform 0.2s' }}/>
                   <div onMouseDown={e=>{e.stopPropagation();toggleSelect(ph.id);}}
                     style={{ position:'absolute', top:2, left:2, width:16, height:16, borderRadius:3,
