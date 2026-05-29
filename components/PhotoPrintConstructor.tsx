@@ -104,13 +104,20 @@ interface PhotoPrintConstructorProps {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function normKey(s: string) {
+  // The point of this helper is to turn a human-readable size label like
+  //   "5×7.5 см — 7.5 грн (мін. 24 шт, кратно 12)"
+  // into the bare size key "5×7.5" that NONSTANDARD_CONFIG / POLAROID_MULTIPLE
+  // are indexed by. After dropping the parenthesised note and anything
+  // after a dash, every non-digit/dot/x/× character is junk for matching
+  // purposes — Cyrillic "см" included. We were using \b previously, but
+  // \b in JavaScript only treats ASCII letters as word characters, so
+  // \b after Cyrillic "м" never matched and "см" survived in the key,
+  // breaking the lookup entirely.
   return s
-    .replace(/\s*\(.*?\)/g, '')          // drop parenthesised notes "(мін. 24 шт, кратно 12)"
-    .split(/[—–-]/)[0]                   // drop everything after an em-/en-/hyphen-dash (price + min hints)
-    .replace(/\s*(см|cm|мм|mm)\b/gi, '') // drop size units anywhere in the string, not just trailing
-    .trim()
-    .replace(/[xх]/g, '×')
-    .replace(/\s+/g, '');
+    .replace(/\s*\(.*?\)/g, '')   // drop parenthesised notes
+    .split(/[—–-]/)[0]            // drop everything after an em-/en-/hyphen-dash
+    .replace(/[xх]/gi, '×')       // unify Latin/Cyrillic x → ×
+    .replace(/[^\d.×]/g, '');     // keep only digits, dots, and ×
 }
 
 function getNonstandardConfig(sizeLabel: string) {
