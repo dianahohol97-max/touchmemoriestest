@@ -471,7 +471,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 finalPrice = Number(entry.base_price) || 0;
                 // Калька / tracing paper surcharge
                 if (String(kalkaVal).includes('калькою') || String(kalkaVal).includes('Так') || kalkaVal === 'with') {
-                    finalPrice += Number(entry.kalka_surcharge) || 150;
+                    finalPrice += Number(entry.kalka_surcharge) || 300;
                 }
             }
         }

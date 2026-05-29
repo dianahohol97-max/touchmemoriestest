@@ -28,7 +28,7 @@ interface PhotobookOptionsProps {
 }
 
 const PAGE_OPTIONS = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50];
-const CALCA_PRICE = 280;
+const CALCA_PRICE = 300;
 
 // Pricing per page based on cover type
 const PAGE_PRICING: Record<string, number> = {
