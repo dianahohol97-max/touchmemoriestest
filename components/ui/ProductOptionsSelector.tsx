@@ -98,6 +98,7 @@ const VELOUR_COLORS = [
   { code: 'B-12', name: 'Сталево-синій',   hex: '#7A9BB5' },
   { code: 'B-13', name: 'Смарагдовий',     hex: '#1A4530' },
   { code: 'B-14', name: 'Гірчичний',       hex: '#E8C050' },
+  { code: 'B-15', name: 'Чорний',          hex: '#1A1A1A' },
 ];
 
 // Leatherette colors for wishbook

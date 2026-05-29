@@ -138,6 +138,7 @@ const VELOUR_COLORS: Record<string, string> = {
   'Блакитно-сірий':'#607080', // B-12
   'Темно-зелений':'#1E3028', // B-13
   'Жовтий':'#D4A020',         // B-14
+  'Чорний':'#1A1A1A',         // B-15
 };
 const LEATHERETTE_BOOK_COLORS: Record<string, string> = {
   'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E',
