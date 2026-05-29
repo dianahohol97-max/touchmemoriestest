@@ -105,8 +105,9 @@ interface PhotoPrintConstructorProps {
 
 function normKey(s: string) {
   return s
-    .replace(/\s*\(.*?\)/g, '')          // drop parenthesised notes
-    .replace(/\s*(см|cm|мм|mm)\s*$/i, '') // drop trailing size unit
+    .replace(/\s*\(.*?\)/g, '')          // drop parenthesised notes "(мін. 24 шт, кратно 12)"
+    .split(/[—–-]/)[0]                   // drop everything after an em-/en-/hyphen-dash (price + min hints)
+    .replace(/\s*(см|cm|мм|mm)\b/gi, '') // drop size units anywhere in the string, not just trailing
     .trim()
     .replace(/[xх]/g, '×')
     .replace(/\s+/g, '');
@@ -931,7 +932,25 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   <>
     <div style={{ maxWidth:1200, margin:'0 auto', padding:'24px 16px', fontFamily:'var(--font-primary, sans-serif)' }}>
       <h1 style={{ fontSize:28, fontWeight:800, color:'#1e2d7d', marginBottom:8 }}>{getLocalized(product,locale,'name')}</h1>
-      <p style={{ color:'#64748b', marginBottom:24 }}>{getLocalized(product,locale,'short_description')}</p>
+      {(() => {
+        // For nonstandard, once a size is picked, replace the generic "Будь-який
+        // нестандартний розмір ..." subtitle with one that names the actual
+        // size + its per-unit price + the size's required multiple. Helps the
+        // customer keep track of what they chose when scrolling.
+        const baseSub = getLocalized(product,locale,'short_description') as string;
+        if (isNonstandard && selectedSize) {
+          const cfg = getNonstandardConfig(selectedSize);
+          const sizeOpt = sizeOptions.find(o => o.name === selectedSize);
+          const unitPrice = (sizeOpt as any)?.price ?? product.price ?? 0;
+          const cleanSize = normKey(selectedSize).replace('×', '×');
+          const parts: string[] = [`Розмір ${cleanSize} см`];
+          if (unitPrice) parts.push(`${unitPrice} ₴/шт`);
+          if (cfg) parts.push(`кратно ${cfg.multiple}`);
+          parts.push('Fujicolor Crystal Archive', 'з білою рамкою 3мм');
+          return <p style={{ color:'#64748b', marginBottom:24 }}>{parts.join(' · ')}</p>;
+        }
+        return <p style={{ color:'#64748b', marginBottom:24 }}>{baseSub}</p>;
+      })()}
 
       <div style={{ display:'flex', gap:32, flexWrap:'wrap', alignItems:'flex-start' }}>
 
