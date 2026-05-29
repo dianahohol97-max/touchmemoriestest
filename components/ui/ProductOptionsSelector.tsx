@@ -107,21 +107,37 @@ const VELOUR_COLORS = [
 ];
 
 // Leatherette colors for wishbook
+// Leatherette colours — canonical 25-colour set from cover_colors DB
+// (cover_type = 'Шкірзамінник', codes Ш-01…Ш-25 + Ш-28; no Ш-02/26/27).
+// Names + hex match the DB exactly so admin filters / order summaries
+// don't drift; also synced with LEATHERETTE_BOOK_COLORS in
+// BookConstructorConfig.tsx and LEATHERETTE_COLORS in CoverEditor.tsx.
 const LEATHERETTE_COLORS_WB = [
-  { code: 'L-01', name: 'Білий',              hex: '#F5F5F0' },
-  { code: 'L-02', name: 'Бежевий',            hex: '#D9C8B0' },
-  { code: 'L-03', name: 'Пісочний',           hex: '#D4A76A' },
-  { code: 'L-04', name: 'Рудий',              hex: '#C8844E' },
-  { code: 'L-05', name: 'Бордо темний',       hex: '#7A2838' },
-  { code: 'L-06', name: 'Золотистий',         hex: '#C4A83A' },
-  { code: 'L-07', name: 'Теракотовий',        hex: '#C25A3C' },
-  { code: 'L-08', name: 'Рожевий ніжний',     hex: '#E8B4B8' },
-  { code: 'L-09', name: 'Червоний насичений', hex: '#A01030' },
-  { code: 'L-10', name: 'Коричневий',         hex: '#8E5038' },
-  { code: 'L-11', name: 'Вишневий',           hex: '#7A2020' },
-  { code: 'L-12', name: 'Графітовий темний',  hex: '#3A3038' },
-  { code: 'L-13', name: 'Темно-синій',        hex: '#1A2040' },
-  { code: 'L-14', name: 'Чорний',             hex: '#1A1A1A' },
+  { code: 'Ш-01', name: 'Білий',               hex: '#F5F5F0' },
+  { code: 'Ш-03', name: 'Бежевий',             hex: '#D9C8B0' },
+  { code: 'Ш-04', name: 'Пісочний',            hex: '#D4A76A' },
+  { code: 'Ш-05', name: 'Рудий',               hex: '#C8844E' },
+  { code: 'Ш-06', name: 'Бордо темний',        hex: '#7A2838' },
+  { code: 'Ш-07', name: 'Золотистий',          hex: '#C4A83A' },
+  { code: 'Ш-08', name: 'Теракотовий',         hex: '#C25A3C' },
+  { code: 'Ш-09', name: 'Жовтий',              hex: '#F0B820' },
+  { code: 'Ш-10', name: 'Рожевий ніжний',      hex: '#E8B4B8' },
+  { code: 'Ш-11', name: 'Фуксія',              hex: '#D84080' },
+  { code: 'Ш-12', name: 'Червоний насичений',  hex: '#A01030' },
+  { code: 'Ш-13', name: 'Коричневий',          hex: '#8E5038' },
+  { code: 'Ш-14', name: 'Вишневий',            hex: '#7A2020' },
+  { code: 'Ш-15', name: 'Марсала',             hex: '#6E2840' },
+  { code: 'Ш-16', name: 'Графітовий темний',   hex: '#3A3038' },
+  { code: 'Ш-17', name: 'Фіолетовий яскравий', hex: '#8030A0' },
+  { code: 'Ш-18', name: 'Фіолетовий темний',   hex: '#502060' },
+  { code: 'Ш-19', name: 'Бірюзовий',           hex: '#4E9090' },
+  { code: 'Ш-20', name: 'Оливковий',           hex: '#A0A030' },
+  { code: 'Ш-21', name: 'Темно-зелений',       hex: '#1E3028' },
+  { code: 'Ш-22', name: 'Бірюзовий яскравий',  hex: '#00B0B0' },
+  { code: 'Ш-23', name: 'Блакитний яскравий',  hex: '#0088D0' },
+  { code: 'Ш-24', name: 'Темно-синій',         hex: '#1A2040' },
+  { code: 'Ш-25', name: 'Чорний',              hex: '#1A1A1A' },
+  { code: 'Ш-28', name: 'Персиковий',          hex: '#E8A8A0' },
 ];
 
 // Fabric colors for wishbook

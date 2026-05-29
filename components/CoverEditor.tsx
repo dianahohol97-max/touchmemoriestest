@@ -7,6 +7,10 @@ import { ImageIcon, Move } from 'lucide-react';
 export type CoverMaterial = 'velour' | 'leatherette' | 'fabric' | 'printed';
 export type DecoType = 'none' | 'acryl' | 'photovstavka' | 'metal' | 'flex' | 'graviruvannya';
 
+// Leatherette colours — synced with the cover_colors DB table
+// (Ш-01…Ш-25 + Ш-28). Same set as ProductOptionsSelector
+// LEATHERETTE_COLORS_WB and BookConstructorConfig LEATHERETTE_BOOK_COLORS;
+// all three must stay in sync when the DB list changes.
 export const LEATHERETTE_COLORS: Record<string, string> = {
   'Білий':'#F5F5F0','Бежевий':'#D9C8B0','Пісочний':'#D4A76A','Рудий':'#C8844E',
   'Бордо темний':'#7A2838','Золотистий':'#C4A83A','Теракотовий':'#C25A3C','Жовтий':'#F0B820',
