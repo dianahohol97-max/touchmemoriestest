@@ -121,12 +121,12 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
     const params = new URLSearchParams();
     params.set('product', slug);
 
-    // The visual size picker on this page writes its choice (the option `value`,
-    // e.g. "6x9") into customProductOptions, NOT into the legacy selectedOptions
-    // index map. The order page reads ?size= and matches it back to a real size
-    // option, so forward the chosen value here — otherwise the size is lost and
-    // the constructor falls back to its first size.
-    const sizeVal = customOpts['Розмір'];
+    // The visual size picker writes its choice (the option `value`) into
+    // customProductOptions — under 'Розмір' for photoprint, 'Формат' for
+    // polaroid. The order page reads ?size= and matches it back to a real
+    // option, so forward whichever one is set — otherwise the size is lost
+    // and the constructor falls back to its first size.
+    const sizeVal = customOpts['Розмір'] ?? customOpts['Формат'];
     if (sizeVal !== undefined && sizeVal !== '') params.set('size', String(sizeVal));
 
     if (product.options && Array.isArray(product.options)) {
@@ -870,7 +870,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e2d7d' }}>
                                                             {optLabel(opt.name)} {opt.required !== false ? <span style={{color:'#e53e3e'}}>*</span> : null}
                                                         </label>
-                                                        {opt.name === 'Розмір' && (() => {
+                                                        {(opt.name === 'Розмір' || opt.name === 'Формат') && (() => {
                                                             const sizeValues = items.map((it: any) => it.value || it.name || String(it));
                                                             const prices: Record<string, number> = {};
                                                             items.forEach((it: any) => {
@@ -882,21 +882,26 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                     sizes={sizeValues}
                                                                     selected={customProductOptions[opt.name] || null}
                                                                     onSelect={(size) => {
-                                                                    // When size changes, reset pages if below min_pages
-                                                                    const sizeItem = opt.options?.find((s: any) => s.value === size);
-                                                                    const minPages = sizeItem?.min_pages || 6;
-                                                                    setCustomProductOptions(prev => {
-                                                                        const currentPages = Number(prev['Кількість сторінок'] || 0);
-                                                                        const newPages = currentPages < minPages ? String(minPages) : prev['Кількість сторінок'];
-                                                                        return { ...prev, [opt.name]: size, 'Кількість сторінок': newPages };
-                                                                    });
+                                                                    // Page-reset only applies to photobook 'Розмір' (min_pages).
+                                                                    // Polaroid 'Формат' has no page count — just store the value.
+                                                                    if (opt.name === 'Розмір') {
+                                                                        const sizeItem = opt.options?.find((s: any) => s.value === size);
+                                                                        const minPages = sizeItem?.min_pages || 6;
+                                                                        setCustomProductOptions(prev => {
+                                                                            const currentPages = Number(prev['Кількість сторінок'] || 0);
+                                                                            const newPages = currentPages < minPages ? String(minPages) : prev['Кількість сторінок'];
+                                                                            return { ...prev, [opt.name]: size, 'Кількість сторінок': newPages };
+                                                                        });
+                                                                    } else {
+                                                                        setCustomProductOptions(prev => ({ ...prev, [opt.name]: size }));
+                                                                    }
                                                                 }}
                                                                     prices={prices}
                                                                     wrap={sizeValues.length > 5}
                                                                 />
                                                             );
                                                         })()}
-                                                        {opt.name !== 'Розмір' && <select
+                                                        {opt.name !== 'Розмір' && opt.name !== 'Формат' && <select
                                                             value={customProductOptions[opt.name] || ''}
                                                             onChange={(e) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: e.target.value }))}
                                                             style={{
