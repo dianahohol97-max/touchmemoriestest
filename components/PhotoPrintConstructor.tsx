@@ -1158,8 +1158,12 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                     </div>
                   )}
 
-                  {/* Per-photo size override */}
-                  {sizeOptions.length>1 && (
+                  {/* Per-photo size override — standard photoprint only.
+                      Nonstandard and polaroid orders are keyed to ONE size
+                      (per-size minimum + sheet multiple), so a per-photo size
+                      would make that math incoherent and just duplicates the
+                      order-level "Розмір" selector below. */}
+                  {sizeOptions.length>1 && !isNonstandard && !isPolaroid && (
                     <div style={{ marginBottom:12 }}>
                       <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Розмір для цих фото</div>
                       <select value={effectivePhotos.length===1?(effectivePhotos[0].sizeOverride||''):''}
