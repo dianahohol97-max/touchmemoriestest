@@ -723,6 +723,15 @@ function OrderForm() {
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
+          // orders.order_number and orders.delivery_method are NOT NULL with no
+          // default and no trigger — the regular checkout sets them server-side
+          // (api/orders/submit). The designer flow inserts client-side, so it
+          // must supply both itself or the insert fails with a null violation
+          // (the "Сталася помилка" the customer saw on step 5). Match the
+          // server's TM-<ts>-<rand> order_number format.
+          order_number: `TM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+          delivery_method: formData.delivery || 'pickup',
+          customer_name: [formData.name, formData.lastName].filter(Boolean).join(' '),
           customer_first_name: formData.name,
           customer_last_name: formData.lastName,
           customer_phone: formData.phone,
