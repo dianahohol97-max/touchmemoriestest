@@ -1570,6 +1570,61 @@ export default function BookLayoutEditor() {
     return () => { cancelled = true; };
   }, [designerOrderId]);
 
+  //  Designer mode: load the customer's UPLOADED photos into the working pool.
+  //  Without this the constructor opens empty — the designer has nothing to
+  //  place and cannot build the layout (this is what made designer orders
+  //  unworkable). Photos come from order_files (file_type='upload') via a
+  //  signed-URL endpoint. We use the order_files row id as the stable
+  //  PhotoData id so a saved layout keeps referencing the same photos.
+  const designerPhotosLoadedRef = React.useRef(false);
+  useEffect(() => {
+    if (!designerOrderId || designerPhotosLoadedRef.current) return;
+    designerPhotosLoadedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/designer/order-photos?order_id=${designerOrderId}`);
+        if (!res.ok) return;
+        const { photos: incoming } = await res.json();
+        if (cancelled || !Array.isArray(incoming) || incoming.length === 0) return;
+
+        const loaded = await Promise.all(
+          incoming
+            .filter((p: any) => p && p.url)
+            .map((p: any) => new Promise<PhotoData | null>((resolve) => {
+              const img = new window.Image();
+              img.onload = () => resolve({
+                id: String(p.id),
+                preview: p.url,
+                width: img.naturalWidth || 1000,
+                height: img.naturalHeight || 1000,
+                name: p.name || 'фото',
+              });
+              img.onerror = () => resolve(null);
+              img.src = p.url;
+            }))
+        );
+
+        const valid = loaded.filter(Boolean) as PhotoData[];
+        if (cancelled || valid.length === 0) return;
+
+        // Merge without clobbering anything already present, de-duped by id.
+        setPhotos(prev => {
+          const have = new Set(prev.map(pp => pp.id));
+          const add = valid.filter(pp => !have.has(pp.id));
+          return add.length ? [...prev, ...add] : prev;
+        });
+        valid.forEach(p => {
+          try { if (typeof detectFocalPoint === 'function') detectFocalPoint(p.preview, p.id); } catch {}
+        });
+        toast.success(`Завантажено ${valid.length} фото клієнта`);
+      } catch (e) {
+        console.error('Failed to load customer photos for designer order', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [designerOrderId]);
+
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
   const usedIds = React.useMemo(() => new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean))), [pages]);
   const _slug = (config?.productSlug || '').toLowerCase();

@@ -64,10 +64,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+
+  // Load the customer's uploaded photos (designer orders) so the Files card
+  // can show + download them. These live in order_files; the card previously
+  // only had a manual Drive-link field, so uploads were invisible to staff.
+  useEffect(() => {
+    if (!order?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/designer/order-photos?order_id=${order.id}`);
+        if (!res.ok) return;
+        const { photos } = await res.json();
+        if (!cancelled && Array.isArray(photos)) setUploadedFiles(photos);
+      } catch { /* non-blocking */ }
+    })();
+    return () => { cancelled = true; };
+  }, [order?.id]);
     const [saving, setSaving] = useState(false);
     const [notes, setNotes] = useState('');
     const [clientComment, setClientComment] = useState('');
     const [filesUrl, setFilesUrl] = useState('');
+    const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
     const [previousOrdersCount, setPreviousOrdersCount] = useState(0);
 
@@ -1147,6 +1165,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
                             />
                         </div>
+                        {uploadedFiles.length > 0 && (
+                            <div style={{ marginBottom: '12px' }}>
+                                <label style={smallLabelStyle}>Завантажені клієнтом ({uploadedFiles.length})</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: '8px', marginTop: '8px' }}>
+                                    {uploadedFiles.map((f: any) => (
+                                        <a key={f.id} href={f.url || '#'} target="_blank" rel="noopener noreferrer" download={f.name}
+                                            title={`${f.name}${f.isCover ? ' (обкладинка)' : ''}`}
+                                            style={{ position: 'relative', display: 'block', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: f.isCover ? '2px solid #7c3aed' : '1px solid #e2e8f0', background: '#f8fafc' }}>
+                                            {f.url
+                                                ? <img src={f.url} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: '#cbd5e1' }}><FileText size={20} /></div>}
+                                            {f.isCover && (
+                                                <span style={{ position: 'absolute', top: 3, left: 3, background: '#7c3aed', color: '#fff', fontSize: 8, fontWeight: 700, padding: '2px 5px', borderRadius: 4, lineHeight: 1 }}>ОБКЛ.</span>
+                                            )}
+                                        </a>
+                                    ))}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>Клік — відкрити/завантажити оригінал. Ці фото також автоматично підтягуються в конструктор.</div>
+                            </div>
+                        )}
                         {filesUrl && (
                             <a
                                 href={filesUrl}
