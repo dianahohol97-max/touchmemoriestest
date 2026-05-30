@@ -581,7 +581,11 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           width: thumb.w,
           height: thumb.h,
           cropX: 50, cropY: 50, zoom: 1, rotation: 0,
-          orientation: thumb.w >= thumb.h ? 'landscape' : 'portrait',
+          // Default to portrait for every photo type (standard / nonstandard /
+          // polaroid). Previously the orientation was auto-derived from the
+          // source aspect ratio, so wide photos defaulted to landscape; the
+          // customer can still flip it per photo with the orientation toggle.
+          orientation: 'portrait',
           border: selectedBorder === 'with',
           qty: 1,
           showCaption: false,
