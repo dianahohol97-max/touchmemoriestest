@@ -151,6 +151,23 @@ function PhotoPreview({
   const MAX_W = typeof window !== 'undefined' && window.innerWidth < 500
     ? Math.min(window.innerWidth - 48, 320) : 320;
 
+  // The photo grid and initial bind use the 400px perf thumbnail
+  // (photo.preview, added in the editor perf pass) so 250+ uploads don't keep
+  // hundreds of MB of decoded originals alive. But the LARGE active-photo
+  // viewer renders that 320px-wide canvas with zoom up to 3×, where a 400px
+  // thumbnail looks blurry. Only one photo is active at a time, so binding the
+  // viewer to a single full-resolution objectURL is cheap. Revoked when the
+  // active photo changes. Falls back to the thumbnail until ready, or when no
+  // File is present (e.g. a session restored from storage).
+  const [fullSrc, setFullSrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!photo.file) { setFullSrc(null); return; }
+    const url = URL.createObjectURL(photo.file);
+    setFullSrc(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photo.file]);
+  const displaySrc = fullSrc || photo.preview;
+
   const handleMouseDown = (e: React.PointerEvent) => {
     e.preventDefault();
     haptic.light();
@@ -235,7 +252,7 @@ function PhotoPreview({
           onWheel={e=>{e.preventDefault(); const d=e.deltaY>0?-0.05:0.05; onCropChange(photo.id,photo.cropX,photo.cropY,Math.max(0.5,Math.min(3,(photo.zoom||1)+d)));}}>
           <div style={{ position:'absolute', left:bS, top:bT, width:aW, height:aH,
             overflow:'hidden', cursor:'grab', background:'#f0f0f0' }} onPointerDown={handleMouseDown}>
-            <img src={photo.preview} draggable={false} decoding="async" style={{
+            <img src={displaySrc} draggable={false} decoding="async" style={{
               width:`${(photo.zoom||1)*100}%`, height:`${(photo.zoom||1)*100}%`,
               objectFit:'cover', objectPosition:`${photo.cropX}% ${photo.cropY}%`,
               position:'absolute', top:'50%', left:'50%',
@@ -316,7 +333,7 @@ function PhotoPreview({
         boxShadow:'0 4px 20px rgba(0,0,0,0.15)', userSelect:'none', overflow:'hidden', touchAction:'none' }} onWheel={handleWheel}>
         <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:canvasH,
           overflow:'hidden', cursor:'grab', touchAction:'none' }} onPointerDown={handleMouseDown}>
-          <img src={photo.preview} draggable={false} decoding="async" style={{
+          <img src={displaySrc} draggable={false} decoding="async" style={{
             position:'absolute', width:'100%', height:'100%', objectFit:'contain',
             objectPosition:`${photo.cropX||50}% ${photo.cropY||50}%`, top:0, left:0,
             transform:`scale(${effScale}) rotate(${photo.rotation||0}deg)`,
