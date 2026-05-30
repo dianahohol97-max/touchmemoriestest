@@ -898,6 +898,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 }}
                                                                     prices={prices}
                                                                     wrap={sizeValues.length > 5}
+                                                                    forcePortrait={!!(product.slug && (product.slug.includes('photoprint') || product.slug.includes('polaroid') || product.slug.includes('полароїд') || product.slug.includes('поляроїд')))}
                                                                 />
                                                             );
                                                         })()}

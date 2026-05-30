@@ -15,6 +15,7 @@ interface SizeVisualizerProps {
   prices?: Record<string, number>;
   productCategory?: 'paper' | 'book' | 'magnet' | 'print' | 'puzzle' | 'poster' | 'generic';
   wrap?: boolean; // allow wrapping to multiple rows
+  forcePortrait?: boolean; // always draw the box upright (short side = width)
 }
 
 // Parse size string into width × height cm
@@ -49,7 +50,7 @@ function parseSize(s: string | number): { w: number; h: number; label: string } 
   return null;
 }
 
-export function SizeVisualizer({ sizes, selected, onSelect, prices, productCategory = 'generic', wrap = false }: SizeVisualizerProps) {
+export function SizeVisualizer({ sizes, selected, onSelect, prices, productCategory = 'generic', wrap = false, forcePortrait = false }: SizeVisualizerProps) {
   // Parse all sizes and find max dimensions for consistent scaling
   const parsed = sizes
     .map(s => ({ raw: String(s), data: parseSize(s) }))
@@ -84,8 +85,14 @@ export function SizeVisualizer({ sizes, selected, onSelect, prices, productCateg
       }}>
         {parsed.map(({ raw, data }) => {
           const d = data!;
-          const w = d.w * scale;
-          const h = d.h * scale;
+          // In forcePortrait mode draw every box upright: shorter side is the
+          // width, longer side the height (and the dimension labels follow).
+          // Polaroid mini is named "8.6×5.4" by convention but is physically a
+          // portrait print, so without this it rendered lying down.
+          const dw = forcePortrait ? Math.min(d.w, d.h) : d.w;
+          const dh = forcePortrait ? Math.max(d.w, d.h) : d.h;
+          const w = dw * scale;
+          const h = dh * scale;
           const isActive = String(selected) === raw;
           const price = prices?.[raw];
 
@@ -139,7 +146,7 @@ export function SizeVisualizer({ sizes, selected, onSelect, prices, productCateg
                     whiteSpace: 'nowrap',
                     fontWeight: 600,
                   }}>
-                    {d.w} см
+                    {dw} см
                   </div>
                   {/* Height label on right */}
                   <div style={{
@@ -153,7 +160,7 @@ export function SizeVisualizer({ sizes, selected, onSelect, prices, productCateg
                     whiteSpace: 'nowrap',
                     fontWeight: 600,
                   }}>
-                    {d.h} см
+                    {dh} см
                   </div>
                 </div>
               </div>
