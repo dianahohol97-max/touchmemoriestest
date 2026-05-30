@@ -274,7 +274,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Друк на форзаці',
-      values: ['Без друку', 'З друком (+200 ₴)'],
+      values: ['Без друку', 'З друком (+100 ₴)'],
       required: false,
     },
     {
@@ -621,10 +621,10 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
         if (!total) return null;
         // Lamination: 7 UAH per page (Diana's price list, May 2026)
         if (opts['Ламінація сторінок'] === 'З ламінацією сторінок' || opts['Ламінація сторінок'] === 'З ламінацією (+7 ₴/стор)') total += (pages as number) * LAMINATION_PRICE_PER_PAGE;
-        // Forzac print: flat +200 ₴ when chosen.
+        // Forzac print: flat +100 ₴ when chosen.
         const forzac = String(opts['Друк на форзаці'] || '').toLowerCase();
         if (forzac && forzac !== 'none' && !forzac.includes('без')) {
-          total += 200;
+          total += 100;
         }
         // Urgency: +30%. Same options as the hard journal (standard /
         // urgent up to 5 working days). Applied to base + extras.
@@ -1210,7 +1210,7 @@ export function getCalculatedPrice(slug: string, selectedOptions: Record<string,
       if (selectedOptions['Ламінація сторінок'] === 'З ламінацією сторінок' || selectedOptions['Ламінація сторінок'] === 'З ламінацією (+7 ₴/стор)') total += (pages as number) * LAMINATION_PRICE_PER_PAGE;
       const forzac = String(selectedOptions['Друк на форзаці'] || '').toLowerCase();
       if (forzac && forzac !== 'none' && !forzac.includes('без')) {
-        total += 200;
+        total += 100;
       }
       const urgentRaw = String(selectedOptions['Терміновість'] || '').toLowerCase();
       const isUrgent = urgentRaw !== '' && urgentRaw !== 'standard' &&
