@@ -755,7 +755,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         }
 
         if (productType === 'magazine' && selectedCoverType.includes('Тверда') && enableEndpaper) {
-            total += 200; // Друк на форзаці для журналу з твердою обкладинкою
+            total += 100; // Друк на форзаці для журналу з твердою обкладинкою
         }
 
         // Travel Book urgency: +30% on the full total (pages + lamination +

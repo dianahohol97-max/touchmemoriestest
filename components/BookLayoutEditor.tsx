@@ -1246,7 +1246,7 @@ export default function BookLayoutEditor() {
   // Калька state: text, uploaded illustration
   const [kalkaState, setKalkaState] = useState<{ text: string; textColor: string; fontSize: number; fontFamily: string; bold: boolean; italic: boolean; textAlign: 'left' | 'center' | 'right'; textX: number; textY: number; imageUrl: string | null; imgCropX: number; imgCropY: number; imgZoom: number; imgScale: number; imgX: number; imgY: number; }>({ text: '', textColor: '#333333', fontSize: 24, fontFamily: 'Playfair Display', bold: false, italic: false, textAlign: 'center', textX: 50, textY: 50, imageUrl: null, imgCropX: 50, imgCropY: 50, imgZoom: 1, imgScale: 80, imgX: 50, imgY: 50 });
   const kalkaImageInputRef = useRef<HTMLInputElement>(null);
-  // Форзац state: each endpaper can have optional content (costs +200₴)
+  // Форзац state: each endpaper can have optional content (costs +100₴)
   const [endpaperState, setEndpaperState] = useState<{ first: { enabled: boolean; text: string; textColor: string; imageUrl: string | null }; last: { enabled: boolean; text: string; textColor: string; imageUrl: string | null } }>({
     first: { enabled: false, text: '', textColor: '#333333', imageUrl: null },
     last:  { enabled: false, text: '', textColor: '#333333', imageUrl: null },
@@ -1686,7 +1686,7 @@ export default function BookLayoutEditor() {
   const endpaperFirstIdx = hasEndpaper ? 1 : -1;
   const endpaperLastIdx = hasEndpaper ? pages.length - 1 : -1;
   const isEndpaperPage = (pageIdx: number) => hasEndpaper && (pageIdx === endpaperFirstIdx || pageIdx === endpaperLastIdx);
-  const endpaperSurcharge = _slug.includes('travelbook') ? 100 : 200;
+  const endpaperSurcharge = 100; // Друк на форзаці — 100 ₴ (travelbook + журнал з твердою обкладинкою)
   // Track which endpaper pages are unlocked (user confirmed surcharge)
   const [endpaperUnlocked, setEndpaperUnlocked] = useState<{ first: boolean; last: boolean }>({ first: false, last: false });
   const isEndpaperUnlocked = (pageIdx: number) => {
@@ -3261,7 +3261,7 @@ export default function BookLayoutEditor() {
     }
   }
   // Add endpaper surcharge for unlocked forzats pages
-  // Flat surcharge: 200₴ total regardless of how many endpapers are printed
+  // Flat surcharge: 100₴ total regardless of how many endpapers are printed
   const endpaperExtra = (endpaperUnlocked.first || endpaperUnlocked.last) ? endpaperSurcharge : 0;
   // Cover inscription as a second decoration: flat +180 ₴ when at least one
   // extraText is added on a non-printed cover (велюр / тканина / шкірзамінник
@@ -3413,7 +3413,7 @@ export default function BookLayoutEditor() {
         {hasEndpaper && (
           <div style={{ position:'absolute', top:0, left:72, right:0, zIndex:50, background:'linear-gradient(90deg,#fef3c7,#fde68a)', padding:'6px 16px', display:'flex', alignItems:'center', justifyContent:'center', gap:8, borderBottom:'1px solid #fcd34d', fontSize:12, color:'#92400e', fontWeight:600 }}>
             <span></span>
-            <span>Друк на форзаці — <b>+200 ₴</b> (фіксована ціна за обидва). Налаштуйте у вкладці <b>«ФЗ Форзац»</b></span>
+            <span>Друк на форзаці — <b>+100 ₴</b> (фіксована ціна за обидва). Налаштуйте у вкладці <b>«ФЗ Форзац»</b></span>
           </div>
         )}
 
@@ -5065,7 +5065,7 @@ export default function BookLayoutEditor() {
           {hasEndpaper && (
             <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:10, padding:'8px 14px', fontSize:12, color:'#92400e', marginBottom:10, maxWidth: cW, textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
               <span style={{ fontSize:16 }}></span>
-              <span>Форзац — перша та остання сторінка. Друк на форзаці <b>+200 ₴</b> (фіксована за обидва). Натисніть <b>«ФЗ»</b> для налаштування.</span>
+              <span>Форзац — перша та остання сторінка. Друк на форзаці <b>+100 ₴</b> (фіксована за обидва). Натисніть <b>«ФЗ»</b> для налаштування.</span>
             </div>
           )}
 
