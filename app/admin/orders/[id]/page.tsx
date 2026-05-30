@@ -81,11 +81,55 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     })();
     return () => { cancelled = true; };
   }, [order?.id]);
+
+  // Download every uploaded photo at once as a single ZIP (built client-side
+  // from the signed URLs). Cover is prefixed so it sorts first / is obvious.
+  const downloadAllAsZip = async () => {
+    if (!uploadedFiles.length || downloadingZip) return;
+    setDownloadingZip(true);
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      const used = new Set<string>();
+      let added = 0;
+      await Promise.all(uploadedFiles.map(async (f: any) => {
+        if (!f.url) return;
+        try {
+          const resp = await fetch(f.url);
+          if (!resp.ok) return;
+          const blob = await resp.blob();
+          // Keep names unique and put the cover first alphabetically.
+          let name = (f.isCover ? '000_ОБКЛАДИНКА_' : '') + (f.name || `photo_${added + 1}`);
+          while (used.has(name)) name = `dup_${Math.random().toString(36).slice(2, 6)}_${name}`;
+          used.add(name);
+          zip.file(name, blob);
+          added++;
+        } catch { /* skip a single failed file */ }
+      }));
+      if (added === 0) { toast.error('Не вдалося завантажити файли'); return; }
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${order?.order_number || 'order'}_фото.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast.success(`Завантажено ${added} фото у ZIP`);
+    } catch (e) {
+      console.error('zip download failed', e);
+      toast.error('Помилка створення ZIP');
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
     const [saving, setSaving] = useState(false);
     const [notes, setNotes] = useState('');
     const [clientComment, setClientComment] = useState('');
     const [filesUrl, setFilesUrl] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+    const [downloadingZip, setDownloadingZip] = useState(false);
     const [history, setHistory] = useState<any[]>([]);
     const [previousOrdersCount, setPreviousOrdersCount] = useState(0);
 
@@ -1165,26 +1209,51 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
                             />
                         </div>
-                        {uploadedFiles.length > 0 && (
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={smallLabelStyle}>Завантажені клієнтом ({uploadedFiles.length})</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: '8px', marginTop: '8px' }}>
-                                    {uploadedFiles.map((f: any) => (
-                                        <a key={f.id} href={f.url || '#'} target="_blank" rel="noopener noreferrer" download={f.name}
-                                            title={`${f.name}${f.isCover ? ' (обкладинка)' : ''}`}
-                                            style={{ position: 'relative', display: 'block', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: f.isCover ? '2px solid #7c3aed' : '1px solid #e2e8f0', background: '#f8fafc' }}>
-                                            {f.url
-                                                ? <img src={f.url} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: '#cbd5e1' }}><FileText size={20} /></div>}
-                                            {f.isCover && (
-                                                <span style={{ position: 'absolute', top: 3, left: 3, background: '#7c3aed', color: '#fff', fontSize: 8, fontWeight: 700, padding: '2px 5px', borderRadius: 4, lineHeight: 1 }}>ОБКЛ.</span>
-                                            )}
-                                        </a>
-                                    ))}
+                        {uploadedFiles.length > 0 && (() => {
+                            const covers = uploadedFiles.filter((f: any) => f.isCover);
+                            const photos = uploadedFiles.filter((f: any) => !f.isCover);
+                            const thumb = (f: any, big = false) => (
+                                <a key={f.id} href={f.url || '#'} target="_blank" rel="noopener noreferrer" download={f.name}
+                                    title={f.name}
+                                    style={{ position: 'relative', display: 'block', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: big ? '2px solid #7c3aed' : '1px solid #e2e8f0', background: '#f8fafc' }}>
+                                    {f.url
+                                        ? <img src={f.url} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: '#cbd5e1' }}><FileText size={20} /></div>}
+                                </a>
+                            );
+                            return (
+                                <div style={{ marginBottom: '12px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                                        <label style={{ ...smallLabelStyle, margin: 0 }}>Завантажені клієнтом ({uploadedFiles.length})</label>
+                                        <button onClick={downloadAllAsZip} disabled={downloadingZip}
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: downloadingZip ? '#c4b5fd' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                            {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                            {downloadingZip ? 'Збираю ZIP…' : 'Завантажити всі (ZIP)'}
+                                        </button>
+                                    </div>
+
+                                    {covers.length > 0 && (
+                                        <div style={{ marginBottom: 12 }}>
+                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Обкладинка</div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
+                                                {covers.map((f: any) => thumb(f, true))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {photos.length > 0 && (
+                                        <div>
+                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Фото клієнта ({photos.length})</div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: '8px' }}>
+                                                {photos.map((f: any) => thumb(f))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>Клік по фото — відкрити/завантажити оригінал. Ці фото також автоматично підтягуються в конструктор.</div>
                                 </div>
-                                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>Клік — відкрити/завантажити оригінал. Ці фото також автоматично підтягуються в конструктор.</div>
-                            </div>
-                        )}
+                            );
+                        })()}
                         {filesUrl && (
                             <a
                                 href={filesUrl}
