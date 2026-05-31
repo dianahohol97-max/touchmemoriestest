@@ -114,6 +114,72 @@ export default function CheckoutPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    // ---- Nova Poshta address autocomplete (city + warehouse) ----
+    const [citySearch, setCitySearch] = useState(formData.city || '');
+    const [cities, setCities] = useState<any[]>([]);
+    const [cityRef, setCityRef] = useState('');
+    const [showCityList, setShowCityList] = useState(false);
+    const [isSearchingCities, setIsSearchingCities] = useState(false);
+    const [warehouses, setWarehouses] = useState<any[]>([]);
+    const [showWhList, setShowWhList] = useState(false);
+    const cityBoxRef = useRef<HTMLDivElement>(null);
+    const whBoxRef = useRef<HTMLDivElement>(null);
+
+    // Debounced city search
+    useEffect(() => {
+        if (citySearch.length < 2 || citySearch === formData.city) { setCities([]); return; }
+        const delay = setTimeout(async () => {
+            setIsSearchingCities(true);
+            try {
+                const res = await fetch('/api/novaposhta', {
+                    method: 'POST',
+                    body: JSON.stringify({ modelName: 'Address', calledMethod: 'getCities', methodProperties: { FindByString: citySearch, Limit: '20' } }),
+                });
+                const data = await res.json();
+                if (data.success) setCities(data.data || []);
+            } catch (e) { console.error('NP city search error:', e); }
+            setIsSearchingCities(false);
+        }, 400);
+        return () => clearTimeout(delay);
+    }, [citySearch, formData.city]);
+
+    // Warehouses for the chosen city
+    useEffect(() => {
+        if (!cityRef) { setWarehouses([]); return; }
+        (async () => {
+            try {
+                const res = await fetch('/api/novaposhta', {
+                    method: 'POST',
+                    body: JSON.stringify({ modelName: 'Address', calledMethod: 'getWarehouses', methodProperties: { CityRef: cityRef } }),
+                });
+                const data = await res.json();
+                if (data.success) setWarehouses(data.data || []);
+            } catch (e) { console.error('NP warehouse fetch error:', e); }
+        })();
+    }, [cityRef]);
+
+    // Close dropdowns on outside click
+    useEffect(() => {
+        const onDocClick = (e: MouseEvent) => {
+            if (cityBoxRef.current && !cityBoxRef.current.contains(e.target as Node)) setShowCityList(false);
+            if (whBoxRef.current && !whBoxRef.current.contains(e.target as Node)) setShowWhList(false);
+        };
+        document.addEventListener('mousedown', onDocClick);
+        return () => document.removeEventListener('mousedown', onDocClick);
+    }, []);
+
+    const pickCity = (c: any) => {
+        const name = c.Description || '';
+        setCitySearch(name);
+        setCityRef(c.Ref || '');
+        setFormData(prev => ({ ...prev, city: name, branch: '' }));
+        setShowCityList(false);
+    };
+
+    const filteredWarehouses = formData.branch.trim()
+        ? warehouses.filter(w => (w.Description || '').toLowerCase().includes(formData.branch.toLowerCase())).slice(0, 30)
+        : warehouses.slice(0, 30);
+
     const nextStep = () => {
         if (currentStep === 'info') {
             if (!formData.name || !formData.phone || !formData.email) {
@@ -340,21 +406,60 @@ export default function CheckoutPage() {
                                 >
                                     <h2 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '24px' }}>{t('checkout.delivery_np')}</h2>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                        <InputField
-                                            label="Місто"
-                                            name="city"
-                                            value={formData.city}
-                                            onChange={handleInputChange}
-                                            placeholder="Введіть ваше місто"
-                                            icon={<Truck size={18} />}
-                                        />
-                                        <InputField
-                                            label="Відділення / Поштомат"
-                                            name="branch"
-                                            value={formData.branch}
-                                            onChange={handleInputChange}
-                                            placeholder="Номер відділення або адреса почтомату"
-                                        />
+                                        {/* City — Nova Poshta autocomplete */}
+                                        <div ref={cityBoxRef} style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+                                            <label style={{ fontSize: '14px', fontWeight: 700, color: '#475569' }}>Місто</label>
+                                            <div style={{ position: 'relative' }}>
+                                                <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Truck size={18} /></div>
+                                                <input
+                                                    value={citySearch}
+                                                    onChange={e => {
+                                                        setCitySearch(e.target.value);
+                                                        setShowCityList(true);
+                                                        if (cityRef) { setCityRef(''); setFormData(prev => ({ ...prev, city: '', branch: '' })); }
+                                                    }}
+                                                    onFocus={() => { if (cities.length) setShowCityList(true); }}
+                                                    placeholder="Почніть вводити: Київ, Львів…"
+                                                    autoComplete="off"
+                                                    style={{ width: '100%', padding: '14px 16px', paddingLeft: '44px', borderRadius: '3px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none' }}
+                                                />
+                                            </div>
+                                            {showCityList && (cities.length > 0 || isSearchingCities) && (
+                                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', border: '1px solid #d1d5db', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.08)', maxHeight: 260, overflowY: 'auto', zIndex: 30 }}>
+                                                    {isSearchingCities && cities.length === 0 && <div style={{ padding: '10px 14px', fontSize: 13, color: '#94a3b8' }}>Шукаємо…</div>}
+                                                    {cities.map(c => (
+                                                        <button key={c.Ref} type="button" onClick={() => pickCity(c)}
+                                                            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', fontSize: 14, color: '#1e293b' }}>
+                                                            {c.Description}{c.AreaDescription ? <span style={{ color: '#94a3b8', fontSize: 12, marginLeft: 6 }}>· {c.AreaDescription} обл.</span> : null}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* Warehouse / Поштомат — Nova Poshta autocomplete */}
+                                        <div ref={whBoxRef} style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+                                            <label style={{ fontSize: '14px', fontWeight: 700, color: '#475569' }}>Відділення / Поштомат</label>
+                                            <input
+                                                value={formData.branch}
+                                                onChange={e => { setFormData(prev => ({ ...prev, branch: e.target.value })); setShowWhList(true); }}
+                                                onFocus={() => { if (cityRef && warehouses.length) setShowWhList(true); }}
+                                                placeholder={cityRef ? 'Почніть вводити номер або адресу відділення' : 'Спочатку оберіть місто'}
+                                                disabled={!cityRef}
+                                                autoComplete="off"
+                                                style={{ width: '100%', padding: '14px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none', background: cityRef ? '#fff' : '#f8fafc', color: cityRef ? '#1e293b' : '#94a3b8' }}
+                                            />
+                                            {showWhList && cityRef && filteredWarehouses.length > 0 && (
+                                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', border: '1px solid #d1d5db', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.08)', maxHeight: 260, overflowY: 'auto', zIndex: 30 }}>
+                                                    {filteredWarehouses.map(w => (
+                                                        <button key={w.Ref} type="button"
+                                                            onClick={() => { setFormData(prev => ({ ...prev, branch: w.Description })); setShowWhList(false); }}
+                                                            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', fontSize: 13, color: '#1e293b' }}>
+                                                            {w.Description}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between' }}>
                                         <BackButton onClick={prevStep} />
