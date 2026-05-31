@@ -588,25 +588,12 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
       if (pages && typeof pages === 'number') {
         let total = PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || 0;
         if (!total) return null;
-        // Typesetting price by canonical value. On the product page the
-        // customer only commits to a category:
-        //   own → +195 (writes it themselves)
-        //   we  → +195 baseline ("від 195 ₴"); the actual basic/premium
-        //         package is chosen on the brief page, where the premium
-        //         upcharge (to 395) is added if selected.
-        //   none → free
-        // Legacy we-basic / we-premium values still price correctly for
-        // any pre-existing saved state or orders.
-        const tv = String(opts['Верстка тексту'] || '');
-        if (tv === 'we-premium') {
-          total += 395;
-        } else if (tv === 'own' || tv === 'we' || tv === 'we-basic' ||
-                   tv.includes('текстом') || tv.includes('верстк') ||
-                   tv.includes('Власний') || tv.includes('Базовий') || tv.includes('пишемо')) {
-          total += TYPESETTING_PRICE;
-        } else if (tv.includes('Преміум')) {
-          total += 395;
-        }
+        // NB: typesetting (Верстка тексту, +195 / +395) is intentionally NOT
+        // added here. ProductClient Source 3 adds it as a flat extra AFTER the
+        // urgency multiplier (same as the soft magazine above). Adding it here
+        // too double-counted it AND let the +30% rush multiply it:
+        //   wrong: (975 + 195) × 1.3 + 195 = 1716
+        //   right:  975 × 1.3 + 195        = 1463
         // Lamination: 7 UAH per page (Diana's price list, May 2026)
         if (opts['Ламінування сторінок'] === 'З ламінуванням (+7 ₴/стор)' || opts['Ламінування сторінок'] === 'З ламінуванням (+5 ₴/стор)') total += pages * LAMINATION_PRICE_PER_PAGE;
         return total;
