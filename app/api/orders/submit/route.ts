@@ -35,6 +35,7 @@ interface OrderPayload {
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
+  customer_telegram?: string;
   items: OrderItem[];
   subtotal: number;
   delivery_cost: number;
@@ -153,6 +154,7 @@ export async function POST(request: NextRequest) {
       customer_name: body.customer_name.trim(),
       customer_phone: body.customer_phone.trim(),
       customer_email: body.customer_email?.trim() || null,
+      customer_telegram: body.customer_telegram?.toString().trim().slice(0, 200) || null,
       items: body.items as any,
       subtotal,
       delivery_cost,

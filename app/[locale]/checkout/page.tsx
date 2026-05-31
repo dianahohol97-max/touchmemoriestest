@@ -77,6 +77,7 @@ export default function CheckoutPage() {
         name: '',
         phone: '',
         email: '',
+        telegram: '',
         city: '',
         branch: '',
         paymentChoice: 'full_online' as 'full_online' | 'split_50_50',
@@ -152,6 +153,7 @@ export default function CheckoutPage() {
                     customer_name: formData.name,
                     customer_phone: formData.phone,
                     customer_email: formData.email,
+                    customer_telegram: formData.telegram || undefined,
                     items: items.map((it: any) => ({
                         product_type: it.category_slug || 'product',
                         product_name: it.name,
@@ -311,6 +313,15 @@ export default function CheckoutPage() {
                                                 value={formData.email}
                                                 onChange={handleInputChange}
                                                 placeholder="example@mail.com"
+                                            />
+                                        </div>
+                                        <div style={{ marginTop: '20px' }}>
+                                            <InputField
+                                                label="Telegram (необов'язково)"
+                                                name="telegram"
+                                                value={formData.telegram}
+                                                onChange={handleInputChange}
+                                                placeholder="@username або номер"
                                             />
                                         </div>
                                     </div>
