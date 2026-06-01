@@ -1,21 +1,20 @@
 'use client';
-import { useT } from '@/lib/i18n/context';
-import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from '@/lib/i18n/context';
+import { useEffect } from 'react';
 import styles from './cart.module.css';
 import { useCartStore } from '@/store/cart-store';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import Image from 'next/image';
-import { Trash2, Plus, Minus, MapPin, Truck, ChevronRight, Loader2, CreditCard } from 'lucide-react';
-import { toast } from 'sonner';
+import { Trash2, Plus, Minus, ChevronRight } from 'lucide-react';
 import { logCartEvent } from '@/lib/analytics';
-import { createOrderFileRecords, type OrderFileRecord } from '@/lib/export-utils';
+import { useRouter } from 'next/navigation';
 
 
 export default function CartPage() {
-    const t = useT();
-    const { items, removeItem, updateQuantity, getTotal, clearCart } = useCartStore();
-    const [loading, setLoading] = useState(false);
+    const { t, locale } = useTranslation();
+    const { items, removeItem, updateQuantity, getTotal } = useCartStore();
+    const router = useRouter();
 
     // Track checkout initiation
     useEffect(() => {
@@ -24,154 +23,9 @@ export default function CartPage() {
         }
     }, [items.length]);
 
-    // Form State
-
-    const [customer, setCustomer] = useState({ name: '', email: '', phone: '' });
-    const [deliveryMethod, setDeliveryMethod] = useState('np-warehouse'); // np-warehouse, np-courier, pickup, international
-    const [deliveryInfo, setDeliveryInfo] = useState({ city: '', cityRef: '', warehouse: '', warehouseRef: '', address: '', country: '', zip: '' });
-
-    // NP Search State
-    const [cities, setCities] = useState<any[]>([]);
-    const [citySearch, setCitySearch] = useState('');
-    const [warehouses, setWarehouses] = useState<any[]>([]);
-    const [isSearchingCities, setIsSearchingCities] = useState(false);
-    const [isSearchingWarehouses, setIsSearchingWarehouses] = useState(false);
-
-    // City Search Debounce
-    useEffect(() => {
-        if (citySearch.length < 2) { setCities([]); return; }
-
-        const delay = setTimeout(async () => {
-            setIsSearchingCities(true);
-            try {
-                const res = await fetch('/api/novaposhta', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        modelName: 'Address',
-                        calledMethod: 'getCities',
-                        methodProperties: { FindByString: citySearch, Limit: '20' }
-                    })
-                });
-                const data = await res.json();
-                if (data.success) setCities(data.data);
-            } catch (e) { console.error('City search error:', e); }
-            setIsSearchingCities(false);
-        }, 500);
-
-        return () => clearTimeout(delay);
-    }, [citySearch]);
-
-    // Warehouse Search when city selected
-    useEffect(() => {
-        if (!deliveryInfo.cityRef || deliveryMethod !== 'np-warehouse') { setWarehouses([]); return; }
-
-        const fetchWarehouses = async () => {
-            setIsSearchingWarehouses(true);
-            try {
-                const res = await fetch('/api/novaposhta', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        modelName: 'Address',
-                        calledMethod: 'getWarehouses',
-                        methodProperties: { CityRef: deliveryInfo.cityRef }
-                    })
-                });
-                const data = await res.json();
-                if (data.success) setWarehouses(data.data);
-            } catch (e) { console.error('Warehouse search error:', e); }
-            setIsSearchingWarehouses(false);
-        };
-
-        fetchWarehouses();
-    }, [deliveryInfo.cityRef, deliveryMethod]);
-
-    /**
-     * After the order is created server-side, read export data stored in sessionStorage
-     * by each constructor and create proper order_files records linked to the real order_id.
-     *
-     * Each constructor writes its data under sessionStorage.export_{cartItemId}. The
-     * value can be either:
-     *   - a single object {path, fileName, bucket, fileCategory, productType, ...}
-     *     for constructors that produce one file per cart item (star map, calendar,
-     *     guestbook, magnet, puzzle); OR
-     *   - an array of such objects for constructors that produce many files per cart
-     *     item (book layout editor uploads every original photo).
-     * Both shapes are normalised to a flat list of order_files rows here.
-     */
-    async function linkPendingExports(orderId: string, cartItemIds: string[]) {
-        const records: OrderFileRecord[] = [];
-
-        const toRecord = (data: any): OrderFileRecord | null => {
-            if (!data || !data.path || !data.fileName || !data.bucket) return null;
-            return {
-                order_id: orderId,
-                file_path: data.path,
-                file_name: data.fileName,
-                file_type: data.fileType || 'export',
-                file_category: data.fileCategory,
-                product_type: data.productType,
-                bucket_name: data.bucket,
-                file_size: data.size,
-                mime_type: data.mimeType || 'image/png',
-                page_number: data.pageNumber,
-            };
-        };
-
-        for (const itemId of cartItemIds) {
-            const raw = sessionStorage.getItem(`export_${itemId}`);
-            if (!raw) continue;
-            try {
-                const data = JSON.parse(raw);
-                const items = Array.isArray(data) ? data : [data];
-                for (const item of items) {
-                    const r = toRecord(item);
-                    if (r) records.push(r);
-                }
-                sessionStorage.removeItem(`export_${itemId}`);
-            } catch { /* skip malformed entries */ }
-        }
-
-        if (records.length > 0) {
-            try {
-                await createOrderFileRecords(records);
-            } catch (err) {
-                console.error('Failed to link exports to order:', err);
-            }
-        }
-    }
-
-    const handleCheckout = async () => {
-        if (!customer.name || !customer.email || !customer.phone) { toast.error('Заповніть контактні дані'); return; }
-        if (items.length === 0) { toast.error(t('cart.empty')); return; }
-
-        setLoading(true);
-        try {
-            const cartItemIds = items.map(i => i.id);
-            const res = await fetch('/api/checkout/create-invoice', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    customer,
-                    items,
-                    delivery: { method: deliveryMethod, info: deliveryInfo },
-                    total: getTotal()
-                })
-            });
-            const data = await res.json();
-
-            if (data.success && data.pageUrl) {
-                // Link any exports to the real order_id before redirecting
-                if (data.orderId) {
-                    await linkPendingExports(data.orderId, cartItemIds);
-                }
-                window.location.href = data.pageUrl;
-            } else {
-                toast.error(data.error || 'Помилка при створенні замовлення');
-            }
-        } catch (e) {
-            toast.error('Щось пішло не так. Спробуйте пізніше');
-        }
-        setLoading(false);
+    const goToCheckout = () => {
+        if (items.length === 0) return;
+        router.push(`/${locale}/checkout`);
     };
 
     const total = getTotal();
@@ -239,85 +93,6 @@ export default function CartPage() {
                                 </div>
                             </div>
 
-                            {/* Delivery Section */}
-                            <div style={cardStyle}>
-                                <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '24px' }}>Доставка та отримувач</h2>
-
-                                {/* Contact Info */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-                                    <input placeholder="Ім'я та Прізвище" style={inputStyle} value={customer.name} onChange={e => setCustomer({ ...customer, name: e.target.value })} />
-                                    <input placeholder="Email" style={inputStyle} value={customer.email} onChange={e => setCustomer({ ...customer, email: e.target.value })} />
-                                    <input placeholder="Телефон" style={inputStyle} value={customer.phone} onChange={e => setCustomer({ ...customer, phone: e.target.value })} />
-                                </div>
-
-                                {/* Delivery Methods */}
-                                <h3 style={sectionLabelStyle}>Спосіб доставки</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-                                    {[
-                                        { id: 'np-warehouse', label: 'НП Відділення', icon: <Truck size={18} /> },
-                                        { id: 'np-courier', label: 'НП Курʼєр', icon: <MapPin size={18} /> },
-                                        { id: 'pickup', label: 'Самовивіз', icon: <ChevronRight size={18} /> },
-                                        { id: 'international', label: 'Міжнародна', icon: <ChevronRight size={18} /> }
-                                    ].map(m => (
-                                        <button
-                                            key={m.id}
-                                            onClick={() => setDeliveryMethod(m.id)}
-                                            style={{
-                                                ...methodBtnStyle,
-                                                borderColor: deliveryMethod === m.id ? 'var(--primary)' : '#e2e8f0',
-                                                backgroundColor: deliveryMethod === m.id ? 'rgba(var(--primary-rgb), 0.05)' : 'white',
-                                                color: deliveryMethod === m.id ? 'var(--primary)' : '#444'
-                                            }}
-                                        >
-                                            {m.icon} <span>{m.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Delivery Form Details */}
-                                {deliveryMethod === 'np-warehouse' && (
-                                    <div style={{ display: 'grid', gap: '16px' }}>
-                                        <div style={{ position: 'relative' }}>
-                                            <input
-                                                placeholder="Введіть місто..."
-                                                style={inputStyle}
-                                                value={citySearch}
-                                                onChange={e => { setCitySearch(e.target.value); setDeliveryInfo({ ...deliveryInfo, city: '', cityRef: '' }); }}
-                                            />
-                                            {isSearchingCities && <Loader2 size={18} style={{ position: 'absolute', right: '16px', top: '16px' }} className={styles.spin} />}
-                                            {cities.length > 0 && !deliveryInfo.cityRef && (
-                                                <div style={dropdownStyle}>
-                                                    {cities.map(c => (
-                                                        <div key={c.Ref} style={dropdownItemStyle} onClick={() => { setDeliveryInfo({ ...deliveryInfo, city: c.Description, cityRef: c.Ref }); setCitySearch(c.Description); setCities([]); }}>
-                                                            {c.Description}, {c.AreaDescription} обл.
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {deliveryInfo.cityRef && (
-                                            <div style={{ position: 'relative' }}>
-                                                <select
-                                                    style={inputStyle}
-                                                    value={deliveryInfo.warehouseRef}
-                                                    onChange={e => setDeliveryInfo({ ...deliveryInfo, warehouse: e.target.options[e.target.selectedIndex].text, warehouseRef: e.target.value })}
-                                                >
-                                                    <option value="">Оберіть відділення...</option>
-                                                    {warehouses.map(w => <option key={w.Ref} value={w.Ref}>{w.Description}</option>)}
-                                                </select>
-                                                {isSearchingWarehouses && <Loader2 size={18} style={{ position: 'absolute', right: '32px', top: '16px' }} className={styles.spin} />}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {deliveryMethod === 'np-courier' && (
-                                    <div style={{ display: 'grid', gap: '16px' }}>
-                                        <input placeholder="Введіть повну адресу..." style={inputStyle} value={deliveryInfo.address} onChange={e => setDeliveryInfo({ ...deliveryInfo, address: e.target.value })} />
-                                    </div>
-                                )}
-
-                            </div>
                         </div>
 
                         {/* Right Column: Order Summary */}
@@ -340,12 +115,11 @@ export default function CartPage() {
                                 </div>
 
                                 <button
-                                    onClick={handleCheckout}
-                                    disabled={loading}
+                                    onClick={goToCheckout}
                                     style={{ ...actionBtnStyle, backgroundColor: 'white', color: 'var(--primary)', width: '100%' }}
                                     className="hover-lift"
                                 >
-                                    {loading ? <Loader2 size={24} className={styles.spin} /> : <><CreditCard size={20} /> {t('cart.pay')}</>}
+                                    <ChevronRight size={20} /> {t('cart.checkout') || 'Оформити замовлення'}
                                 </button>
                             </div>
                         </aside>
@@ -360,22 +134,6 @@ export default function CartPage() {
 }
 
 const cardStyle = { backgroundColor: 'white', padding: '40px', borderRadius: "3px", boxShadow: '0 4px 30px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' };
-const inputStyle = { width: '100%', padding: '16px', borderRadius: "3px", border: '1.5px solid #eef2f6', outline: 'none', fontSize: '15px' };
-const sectionLabelStyle = { fontSize: '13px', fontWeight: 800, textTransform: 'uppercase' as any, letterSpacing: '0.05em', color: '#888', marginBottom: '16px' };
-const methodBtnStyle = {
-    display: 'flex',
-    flexDirection: 'column' as any,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    padding: '16px',
-    borderRadius: "3px",
-    border: '2.5px solid',
-    fontSize: '13px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    transition: 'all 0.2s'
-};
 const actionBtnStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -392,5 +150,3 @@ const actionBtnStyle = {
     textDecoration: 'none'
 };
 const qtyBtnStyle = { width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' };
-const dropdownStyle = { position: 'absolute' as any, top: 'calc(100% + 4px)', left: 0, right: 0, backgroundColor: 'white', borderRadius: "3px", boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: '1px solid #f0f0f0', zIndex: 100, maxHeight: '240px', overflowY: 'auto' as any };
-const dropdownItemStyle = { padding: '12px 20px', fontSize: '14px', cursor: 'pointer', borderBottom: '1px solid #f8fafc' };

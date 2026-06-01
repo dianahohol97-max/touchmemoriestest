@@ -19,6 +19,7 @@ import {
     ShieldCheck
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { createOrderFileRecords, type OrderFileRecord } from '@/lib/export-utils';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n/context';
@@ -234,8 +235,66 @@ export default function CheckoutPage() {
 
     // Auto-determine region: non-Ukrainian locale → international
     const getDefaultRegion = (): 'ua' | 'international' => isInternational ? 'international' : 'ua';
+
+    /**
+     * After the order is created server-side, read export descriptors that each
+     * constructor stashed in sessionStorage under `export_{cartItemId}` and turn
+     * them into order_files rows linked to the real order_id. Without this step
+     * the 300dpi production files (photobook PDFs, posters, star maps, etc.) the
+     * customer built are never attached to the order. Mirrors the logic that used
+     * to live in the cart page before checkout became the single payment flow.
+     *
+     * Each value is either a single descriptor {path, fileName, bucket, ...} or an
+     * array of them (the book editor uploads every original photo). Both shapes
+     * are normalised to a flat list here.
+     */
+    const linkPendingExports = async (orderId: string, cartItemIds: string[]) => {
+        const records: OrderFileRecord[] = [];
+
+        const toRecord = (data: any): OrderFileRecord | null => {
+            if (!data || !data.path || !data.fileName || !data.bucket) return null;
+            return {
+                order_id: orderId,
+                file_path: data.path,
+                file_name: data.fileName,
+                file_type: data.fileType || 'export',
+                file_category: data.fileCategory,
+                product_type: data.productType,
+                bucket_name: data.bucket,
+                file_size: data.size,
+                mime_type: data.mimeType || 'image/png',
+                page_number: data.pageNumber,
+            };
+        };
+
+        for (const itemId of cartItemIds) {
+            const raw = sessionStorage.getItem(`export_${itemId}`);
+            if (!raw) continue;
+            try {
+                const data = JSON.parse(raw);
+                const entries = Array.isArray(data) ? data : [data];
+                for (const entry of entries) {
+                    const r = toRecord(entry);
+                    if (r) records.push(r);
+                }
+                sessionStorage.removeItem(`export_${itemId}`);
+            } catch { /* skip malformed entries */ }
+        }
+
+        if (records.length > 0) {
+            try {
+                await createOrderFileRecords(records);
+            } catch (err) {
+                console.error('Failed to link exports to order:', err);
+            }
+        }
+    };
+
     const handleSubmitOrder = async (paymentRegion: 'ua' | 'international' = getDefaultRegion()) => {
         setIsSubmitting(true);
+        // Capture cart item ids now — clearCart() later wipes the store, but the
+        // sessionStorage export_{id} keys must still be resolvable by id.
+        const cartItemIds = items.map((it: any) => it.id);
         try {
             const needsDesigner = items.some((item: any) => item.with_designer || item.options?.with_designer);
             const paymentType: 'full' | 'split' = formData.paymentChoice === 'split_50_50' ? 'split' : 'full';
@@ -277,6 +336,10 @@ export default function CheckoutPage() {
             // submitData.payment_type is authoritative (may have been downgraded server-side)
             const actualPaymentType = submitData.payment_type as 'full' | 'split';
             const prepaidAmount = Number(submitData.prepaid_amount || 0);
+
+            // Attach the constructor exports (photobook/poster/star-map/etc. files)
+            // to the order before we clear the cart in either branch below.
+            await linkPendingExports(orderId, cartItemIds);
 
             // 2. ALWAYS create Monobank invoice — invoice is 100% if 'full', 50% if 'split'.
             toast.loading(actualPaymentType === 'split'
