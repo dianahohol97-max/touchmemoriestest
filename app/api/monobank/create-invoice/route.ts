@@ -59,7 +59,7 @@ export async function POST(req: Request) {
             : Number(order.total);
         const amountInKopecks = Math.round(chargeAmount * 100);
 
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
 
         const monoResponse = await fetch(MONOBANK_API_URL, {
             method: 'POST',

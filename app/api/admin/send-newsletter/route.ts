@@ -6,7 +6,7 @@ import { requireAdmin } from '@/lib/auth/guards';
 export const dynamic = 'force-dynamic';
 
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
 
 function buildHtml(body_html: string, unsubEmail: string) {
     const unsubUrl = `${SITE_URL}/unsubscribe?email=${encodeURIComponent(unsubEmail)}`;

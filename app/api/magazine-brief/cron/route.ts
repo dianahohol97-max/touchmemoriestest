@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!briefs || briefs.length === 0) return NextResponse.json({ processed: 0 });
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
   const results: string[] = [];
 
   for (const brief of briefs) {

@@ -32,8 +32,15 @@ export async function sendEmail({
 }: SendEmailParams) {
     const resend = getResendClient();
 
-    // 1. Base URL for tracking
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // 1. Base URL for tracking + unsubscribe links. Prefer the canonical
+    // NEXT_PUBLIC_SITE_URL (the var the rest of the app uses); fall back to the
+    // legacy NEXT_PUBLIC_APP_URL if it's the only one set, then the real domain.
+    // Never localhost here — these URLs go out in real customer emails.
+    const baseUrl = (
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        'https://touchmemories.com.ua'
+    ).replace(/\/$/, '');
 
     // 2. Inject transparent Tracking Pixel if pixelId is provided
     let finalHtml = html;

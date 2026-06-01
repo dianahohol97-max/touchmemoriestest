@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
             try {
                 const html = campaign.body_html
                     .replace(/\{\{email\}\}/g, subscriber.email)
-                    .replace(/\{\{unsubscribe_url\}\}/g, `https://touchmemories1.vercel.app/unsubscribe?email=${encodeURIComponent(subscriber.email)}`);
+                    .replace(/\{\{unsubscribe_url\}\}/g, `https://touchmemories.com.ua/unsubscribe?email=${encodeURIComponent(subscriber.email)}`);
 
                 await sendBrevoEmail(subscriber.email, campaign.subject, html, campaign.from_name, campaign.from_email);
                 await supabase.from('email_campaign_logs')

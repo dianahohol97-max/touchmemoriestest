@@ -36,7 +36,7 @@ export async function POST(req: Request) {
         if (!product) throw new Error('Товар не знайдено');
 
         // 3. Send Email via Resend
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.ua';
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
         const productUrl = `${siteUrl}/catalog/all/${product.slug}`;
 
         const senderDisplay = sender_name || 'Ваш близький або друг';

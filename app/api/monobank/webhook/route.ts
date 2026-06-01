@@ -254,7 +254,7 @@ export async function POST(req: Request) {
             // checks for an existing brief before insert), so retries are
             // safe if we ever do wire one up.
             if (existingOrder.with_designer && existingOrder.payment_status !== 'paid') {
-                const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
+                const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
                 fetch(`${baseUrl}/api/designer-service/on-payment`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

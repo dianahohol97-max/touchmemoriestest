@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { briefId, customerEmail, customerName, subjectName } = await request.json();
     if (!customerEmail || !briefId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
     const reviewUrl = `${siteUrl}/uk/account/magazine-text/${briefId}`;
 
     const htmlContent = `
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 <head><meta charset="utf-8"></head>
 <body style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #222;">
   <div style="text-align: center; margin-bottom: 40px;">
-    <img src="https://touchmemories1.vercel.app/logo.png" alt="Touch.Memories" style="height: 40px;" onerror="this.style.display='none'">
+    <img src="https://touchmemories.com.ua/logo.png" alt="Touch.Memories" style="height: 40px;" onerror="this.style.display='none'">
   </div>
   
   <h2 style="font-size: 28px; font-weight: 400; letter-spacing: 0.05em; color: #1a1a1a; margin-bottom: 8px;">

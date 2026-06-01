@@ -26,7 +26,10 @@ export const OG_LOCALE_MAP: Record<Locale, string> = {
 export function getBaseUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL;
   if (fromEnv) return fromEnv.replace(/\/$/, '');
-  return 'https://touchmemories1.vercel.app';
+  // Canonical production domain. Set NEXT_PUBLIC_SITE_URL in Vercel to override;
+  // the fallback must be the real domain (not the vercel.app host) so robots,
+  // sitemap, canonical and hreflang stay correct even if the env var is missing.
+  return 'https://touchmemories.com.ua';
 }
 
 export function getCanonicalUrl(locale: Locale, path: string = ''): string {

@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     }).eq('id', briefId);
 
     // Notify email — internal call, pass cron secret so send-email accepts it.
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
     fetch(`${siteUrl}/api/magazine-brief/send-email`, {
       method: 'POST',
       headers: {

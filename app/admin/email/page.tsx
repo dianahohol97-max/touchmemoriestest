@@ -45,7 +45,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
     </p>
     <table cellpadding="0" cellspacing="0" style="margin:0 auto 32px">
       <tr><td style="background:#1e2d7d;border-radius:8px;padding:14px 32px">
-        <a href="https://touchmemories1.vercel.app" style="color:#fff;text-decoration:none;font-size:15px;font-weight:600">Переглянути каталог →</a>
+        <a href="https://touchmemories.com.ua" style="color:#fff;text-decoration:none;font-size:15px;font-weight:600">Переглянути каталог →</a>
       </td></tr>
     </table>
     <p style="margin:0;font-size:15px;color:#4a5568">З теплом,<br><strong>Touch.Memories</strong></p>
