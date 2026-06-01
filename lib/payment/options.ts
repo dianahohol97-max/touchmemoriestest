@@ -21,6 +21,7 @@ export type PaymentMode = 'full_only' | 'full_or_split' | 'full_only_if_alone';
 export interface CartItemPayment {
   payment_mode?: PaymentMode | null;
   slug?: string;
+  name?: string;
 }
 
 export interface PaymentOptions {
@@ -46,7 +47,7 @@ export function getAvailablePaymentOptions(items: CartItemPayment[]): PaymentOpt
     return {
       allowFull: true,
       allowSplit: false,
-      splitBlockedReason: `Для товару "${fullOnlyItem.slug || 'у кошику'}" доступна лише повна онлайн-оплата`,
+      splitBlockedReason: `Для товару «${fullOnlyItem.name || fullOnlyItem.slug || 'у кошику'}» доступна лише повна онлайн-оплата`,
     };
   }
 

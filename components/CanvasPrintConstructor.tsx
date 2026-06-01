@@ -91,6 +91,7 @@ export default function CanvasPrintConstructor() {
             image: photo.preview,
             options: { 'Розмір': selectedSize.label },
             slug: 'druk-na-polotni',
+            payment_mode: product?.payment_mode,
             personalization_note: `Файл: ${photo.file.name} (${photo.width}×${photo.height}px)`,
         });
 

@@ -87,6 +87,7 @@ export default function CheckoutPage() {
     const paymentOptions = getAvailablePaymentOptions(
         items.map((it: any) => ({
             slug: it.slug,
+            name: it.name,
             payment_mode: it.payment_mode,
         }))
     );
