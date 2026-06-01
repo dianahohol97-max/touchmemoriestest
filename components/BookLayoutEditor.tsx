@@ -2585,6 +2585,7 @@ export default function BookLayoutEditor() {
 
     const cartPayload = {
       id: orderId,
+      slug: _slug,
       name: config.productName || 'Фотокнига',
       price: dynamicPrice,
       qty: isGraduation ? GRADUATION_MIN_QTY : 1,

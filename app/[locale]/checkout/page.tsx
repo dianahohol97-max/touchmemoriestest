@@ -84,11 +84,41 @@ export default function CheckoutPage() {
     });
 
     // Determine available payment options based on current cart contents
+    // Authoritative payment_mode per product, looked up from the DB by
+    // slug/product_id. Cart items built by the constructors (journals, books,
+    // …) don't carry payment_mode, so trusting the cart item alone made every
+    // such item count as full_only and hid the 50% split option. The DB is the
+    // source of truth (and the server re-validates on submit anyway).
+    const [dbModes, setDbModes] = useState<Record<string, string>>({});
+    useEffect(() => {
+        const slugs = Array.from(new Set(items.map((i: any) => i.slug).filter(Boolean)));
+        const ids = Array.from(new Set(items.map((i: any) => i.product_id).filter(Boolean)));
+        if (slugs.length === 0 && ids.length === 0) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const sb = supabase;
+                const ors: string[] = [];
+                if (slugs.length) ors.push(`slug.in.(${slugs.join(',')})`);
+                if (ids.length) ors.push(`id.in.(${ids.join(',')})`);
+                const { data } = await sb.from('products').select('id, slug, payment_mode').or(ors.join(','));
+                if (cancelled || !data) return;
+                const map: Record<string, string> = {};
+                for (const p of data as any[]) {
+                    if (p.slug && p.payment_mode) map[p.slug] = p.payment_mode;
+                    if (p.id && p.payment_mode) map[p.id] = p.payment_mode;
+                }
+                setDbModes(map);
+            } catch { /* fall back to cart-item payment_mode */ }
+        })();
+        return () => { cancelled = true; };
+    }, [items]);
+
     const paymentOptions = getAvailablePaymentOptions(
         items.map((it: any) => ({
             slug: it.slug,
             name: it.name,
-            payment_mode: it.payment_mode,
+            payment_mode: dbModes[it.slug] || dbModes[it.product_id] || it.payment_mode,
         }))
     );
 
