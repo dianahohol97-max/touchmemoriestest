@@ -23,6 +23,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [files, setFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
   useEffect(() => { fetchProject(); }, [id]);
 
@@ -32,13 +33,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (p?.order_id) {
       const { data: f } = await supabase.from('order_files').select('*').eq('order_id', p.order_id).order('page_number');
       setFiles(f || []);
+      if (f && f.length) {
+        const byBucket: Record<string, any[]> = {};
+        for (const file of f) (byBucket[file.bucket_name || 'photobook-uploads'] ||= []).push(file);
+        const map: Record<string, string> = {};
+        await Promise.all(Object.entries(byBucket).map(async ([bucket, list]) => {
+          try {
+            const { data: signed } = await supabase.storage.from(bucket)
+              .createSignedUrls(list.map((x: any) => x.file_path), 60 * 60);
+            (signed || []).forEach((s: any, i: number) => { if (s?.signedUrl) map[list[i].id] = s.signedUrl; });
+          } catch (e) { console.error('sign error', bucket, e); }
+        }));
+        setSignedUrls(map);
+      }
     }
     setLoading(false);
   };
 
   const getFileUrl = (f: any) => {
-    const { data } = supabase.storage.from(f.bucket_name || 'photobook-uploads').getPublicUrl(f.file_path);
-    return data.publicUrl;
+    return signedUrls[f.id] || '';
   };
 
   if (loading) return <div style={{ padding: 40, color: '#94a3b8' }}>Завантаження...</div>;

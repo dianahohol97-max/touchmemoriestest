@@ -44,6 +44,7 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
     const [loading, setLoading] = useState(true);
     const [downloadingAll, setDownloadingAll] = useState(false);
     const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+    const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
     useEffect(() => {
         fetchOrderAndFiles();
@@ -70,6 +71,23 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
 
         if (filesData) setFiles(filesData);
         if (error) console.error('Error fetching files:', error);
+
+        // Storage buckets holding customer content are private — generate
+        // short-lived signed URLs per bucket for previews (getPublicUrl no
+        // longer works once the bucket is private).
+        if (filesData && filesData.length) {
+            const byBucket: Record<string, OrderFile[]> = {};
+            for (const f of filesData) (byBucket[f.bucket_name || 'order-files'] ||= []).push(f);
+            const map: Record<string, string> = {};
+            await Promise.all(Object.entries(byBucket).map(async ([bucket, list]) => {
+                try {
+                    const { data: signed } = await supabase.storage.from(bucket)
+                        .createSignedUrls(list.map(f => f.file_path), 60 * 60);
+                    (signed || []).forEach((s, i) => { if (s?.signedUrl) map[list[i].id] = s.signedUrl; });
+                } catch (e) { console.error('sign error', bucket, e); }
+            }));
+            setSignedUrls(map);
+        }
 
         setLoading(false);
     };
@@ -172,11 +190,7 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
     };
 
     const getFileUrl = (file: OrderFile) => {
-        const { data } = supabase.storage
-            .from(file.bucket_name)
-            .getPublicUrl(file.file_path);
-
-        return data.publicUrl;
+        return signedUrls[file.id] || '';
     };
 
     const formatFileSize = (bytes?: number) => {
