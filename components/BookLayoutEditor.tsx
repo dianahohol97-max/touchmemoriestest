@@ -2853,11 +2853,11 @@ export default function BookLayoutEditor() {
     const wantsPdf = slugLower === 'personalized-glossy-magazine';
 
     if (snapshots.length > 0) {
-      const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
-      const sb = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      // Use the app's standard browser client (same as everywhere else in this
+      // editor, e.g. saveDesignToProjects). The previous ad-hoc client from the
+      // deprecated @supabase/auth-helpers-nextjs package was the odd one out.
+      const { createClient } = await import('@/lib/supabase/client');
+      const sb = createClient();
       const { data: { user } } = await sb.auth.getUser();
       const userKey = user?.id || 'anon';
 
@@ -3099,6 +3099,12 @@ export default function BookLayoutEditor() {
       } catch (e) {
         console.warn('Could not persist export list for cart linking:', e);
       }
+    } else if (snapshots.length > 0) {
+      // Snapshots rendered but nothing uploaded — without this the customer's
+      // photos would silently be missing from the order (the old behaviour).
+      // Tell them loudly so they retry or contact us instead of paying for an
+      // order with no print files.
+      toast.error('Не вдалося завантажити фото для друку. Перевірте підключення та спробуйте оформити ще раз, або напишіть нам.', { duration: 9000 });
     }
     setUploadState(prev => prev ? { ...prev, active: false } : null);
 
