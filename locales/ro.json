@@ -583,7 +583,8 @@
     "lamination_matte_desc": "Aspect moale, fără reflexii",
     "lamination_click_hint": "Alege o laminare pentru a vedea comparația în stânga",
     "available_colors": "Culori disponibile",
-    "cover_decoration": "Decorare copertă"
+    "cover_decoration": "Decorare copertă",
+    "certificate_select_options": "Mai întâi alegeți caracteristicile produsului: {options}"
   },
   "gift_certificate": {
     "page_title": "Certificat Cadou",
@@ -635,7 +636,10 @@
     "step_2_title": "Alege formatul",
     "step_2_description": "Electronic (PDF pe email) sau tipărit pe hârtie premium cu livrare Nova Poshta contra cost.",
     "step_3_title": "Primește certificatul",
-    "step_3_description": "Destinatarul folosește codul certificatului pentru a comanda orice produs din catalog"
+    "step_3_description": "Destinatarul folosește codul certificatului pentru a comanda orice produs din catalog",
+    "product_cert_title": "Certificat pentru un produs",
+    "product_cert_subtitle": "Un produs anume, cu opțiunile alese",
+    "product_label": "Produs"
   },
   "custom_book": {
     "photo_print_label": "Tipărire Foto",
@@ -1700,9 +1704,21 @@
     "rejectAll": "Doar necesare",
     "settings": "Setări",
     "save": "Salvează alegerea",
-    "necessary": { "title": "Necesare", "description": "Tehnic obligatorii pentru funcționarea site-ului (autentificare, coș, securitate). Nu pot fi dezactivate." },
-    "functional": { "title": "Funcționale", "description": "Rețin preferințele dvs. — limba, moneda, regiunea de livrare." },
-    "analytics": { "title": "Analitică", "description": "Ne ajută să înțelegem cum folosiți site-ul (Google Analytics)." },
-    "marketing": { "title": "Marketing", "description": "Permit afișarea de reclame relevante pe rețele sociale (Meta Pixel)." }
+    "necessary": {
+      "title": "Necesare",
+      "description": "Tehnic obligatorii pentru funcționarea site-ului (autentificare, coș, securitate). Nu pot fi dezactivate."
+    },
+    "functional": {
+      "title": "Funcționale",
+      "description": "Rețin preferințele dvs. — limba, moneda, regiunea de livrare."
+    },
+    "analytics": {
+      "title": "Analitică",
+      "description": "Ne ajută să înțelegem cum folosiți site-ul (Google Analytics)."
+    },
+    "marketing": {
+      "title": "Marketing",
+      "description": "Permit afișarea de reclame relevante pe rețele sociale (Meta Pixel)."
+    }
   }
 }

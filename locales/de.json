@@ -583,7 +583,8 @@
     "lamination_matte_desc": "Weicher Look, keine Reflexe",
     "lamination_click_hint": "Wählen Sie eine Laminierung, um den Vergleich links zu sehen",
     "available_colors": "Verfügbare Farben",
-    "cover_decoration": "Einbandverzierung"
+    "cover_decoration": "Einbandverzierung",
+    "certificate_select_options": "Bitte zuerst die Produktoptionen wählen: {options}"
   },
   "gift_certificate": {
     "page_title": "Geschenkgutschein",
@@ -635,7 +636,10 @@
     "step_2_title": "Format wählen",
     "step_2_description": "Elektronisch (PDF per E-Mail) oder gedruckt auf Premium-Papier mit kostenpflichtigem Versand per Nova Poshta.",
     "step_3_title": "Gutschein erhalten",
-    "step_3_description": "Der Empfänger verwendet den Gutscheincode, um jedes Produkt aus dem Katalog zu bestellen"
+    "step_3_description": "Der Empfänger verwendet den Gutscheincode, um jedes Produkt aus dem Katalog zu bestellen",
+    "product_cert_title": "Gutschein für ein Produkt",
+    "product_cert_subtitle": "Ein bestimmtes Produkt mit den gewählten Optionen",
+    "product_label": "Produkt"
   },
   "custom_book": {
     "photo_print_label": "Fotodrucke",
@@ -1700,9 +1704,21 @@
     "rejectAll": "Nur notwendige",
     "settings": "Einstellungen",
     "save": "Auswahl speichern",
-    "necessary": { "title": "Notwendige", "description": "Technisch erforderlich für die Funktion der Website (Anmeldung, Warenkorb, Sicherheit). Können nicht deaktiviert werden." },
-    "functional": { "title": "Funktionale", "description": "Speichern Ihre Präferenzen — Sprache, Währung, Lieferregion." },
-    "analytics": { "title": "Analytische", "description": "Helfen uns zu verstehen, wie Sie die Website nutzen (Google Analytics)." },
-    "marketing": { "title": "Marketing", "description": "Ermöglichen relevante Werbung in sozialen Netzwerken (Meta Pixel)." }
+    "necessary": {
+      "title": "Notwendige",
+      "description": "Technisch erforderlich für die Funktion der Website (Anmeldung, Warenkorb, Sicherheit). Können nicht deaktiviert werden."
+    },
+    "functional": {
+      "title": "Funktionale",
+      "description": "Speichern Ihre Präferenzen — Sprache, Währung, Lieferregion."
+    },
+    "analytics": {
+      "title": "Analytische",
+      "description": "Helfen uns zu verstehen, wie Sie die Website nutzen (Google Analytics)."
+    },
+    "marketing": {
+      "title": "Marketing",
+      "description": "Ermöglichen relevante Werbung in sozialen Netzwerken (Meta Pixel)."
+    }
   }
 }

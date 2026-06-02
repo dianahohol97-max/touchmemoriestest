@@ -181,7 +181,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
     const [mainImage, setMainImage] = useState<string>('');
     const [mainVideo, setMainVideo] = useState<string>('');
-    const [quantity, setQuantity] = useState(1);
+    // Graduation photo books are ordered as class sets — start at 5 copies
+    // (and the stepper won't go below 5); everything else starts at 1.
+    const [quantity, setQuantity] = useState(() => (product?.slug?.includes('graduation') ? 5 : 1));
     const [activeTab, setActiveTab] = useState('description');
 
     // Photobook-specific state
@@ -444,6 +446,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     };
 
     const isPhotobook = product.slug?.includes('photobook') || product.slug?.includes('graduation');
+    const minQuantity = product.slug?.includes('graduation') ? 5 : 1;
     const isPhotobookProduct = isPhotobook || product.slug?.includes('fotokniga') || 
         product.slug?.includes('velyur') || product.slug?.includes('velour') || 
         product.slug?.includes('leatherette') || product.slug?.includes('tkanina') || 
@@ -702,7 +705,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         }
 
         if (missing.length > 0) {
-            toast.error(`Спершу оберіть характеристики товару: ${missing.join(', ')}`);
+            toast.error(t('product_page.certificate_select_options').replace('{options}', missing.join(', ')));
             return;
         }
 
@@ -1190,7 +1193,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: '#263A99' }}>{t('product_page.quantity_label')}</label>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <button
-                                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                                onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))}
                                                 className="rounded-md hover:bg-[#f0f3ff] transition"
                                                 style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--primary)', background: 'white', cursor: 'pointer', fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}
                                             >−</button>

@@ -603,7 +603,8 @@
     "lamination_matte_desc": "Soft look, no glare",
     "lamination_click_hint": "Select a lamination to see the comparison on the left",
     "available_colors": "Available Colors",
-    "cover_decoration": "Cover Decoration"
+    "cover_decoration": "Cover Decoration",
+    "certificate_select_options": "First choose the product options: {options}"
   },
   "gift_certificate": {
     "page_title": "Gift Certificate",
@@ -655,7 +656,10 @@
     "step_2_title": "Choose the format",
     "step_2_description": "Electronic (PDF by email) or printed on premium paper with paid Nova Poshta delivery.",
     "step_3_title": "Receive the certificate",
-    "step_3_description": "The recipient uses the certificate code to order any product from the catalog"
+    "step_3_description": "The recipient uses the certificate code to order any product from the catalog",
+    "product_cert_title": "Gift certificate for a product",
+    "product_cert_subtitle": "A specific product with the chosen options",
+    "product_label": "Product"
   },
   "custom_book": {
     "photo_print_label": "Photo Prints",
@@ -1720,9 +1724,21 @@
     "rejectAll": "Necessary only",
     "settings": "Settings",
     "save": "Save choices",
-    "necessary": { "title": "Necessary", "description": "Technically required for the site to function (auth, cart, security). Cannot be disabled." },
-    "functional": { "title": "Functional", "description": "Remember your preferences — language, currency, delivery region." },
-    "analytics": { "title": "Analytics", "description": "Help us understand how you use the site (Google Analytics)." },
-    "marketing": { "title": "Marketing", "description": "Allow showing relevant ads on social media (Meta Pixel)." }
+    "necessary": {
+      "title": "Necessary",
+      "description": "Technically required for the site to function (auth, cart, security). Cannot be disabled."
+    },
+    "functional": {
+      "title": "Functional",
+      "description": "Remember your preferences — language, currency, delivery region."
+    },
+    "analytics": {
+      "title": "Analytics",
+      "description": "Help us understand how you use the site (Google Analytics)."
+    },
+    "marketing": {
+      "title": "Marketing",
+      "description": "Allow showing relevant ads on social media (Meta Pixel)."
+    }
   }
 }

@@ -217,8 +217,8 @@ export default function GiftCertificatePage() {
                       <span className="text-2xl"></span>
                     </div>
                     <div>
-                      <h3 className="font-bold text-stone-900">{isProduct ? 'Сертифікат на товар' : t('gift_certificate.type_money_title')}</h3>
-                      <p className="text-sm text-stone-500">{isProduct ? 'Конкретний товар з обраними характеристиками' : t('gift_certificate.type_money_subtitle')}</p>
+                      <h3 className="font-bold text-stone-900">{isProduct ? t('gift_certificate.product_cert_title') : t('gift_certificate.type_money_title')}</h3>
+                      <p className="text-sm text-stone-500">{isProduct ? t('gift_certificate.product_cert_subtitle') : t('gift_certificate.type_money_subtitle')}</p>
                     </div>
                   </div>
                 </div>
@@ -226,7 +226,7 @@ export default function GiftCertificatePage() {
                 <div className="space-y-3">
                   {isProduct ? (
                     <div className="space-y-1">
-                      <span className="text-sm font-medium text-stone-700 block">Товар</span>
+                      <span className="text-sm font-medium text-stone-700 block">{t('gift_certificate.product_label')}</span>
                       <p className="font-bold text-stone-900">{productCert!.productName}</p>
                       {productCert!.optionsSummary && (
                         <p className="text-sm text-stone-500">{productCert!.optionsSummary}</p>
@@ -248,7 +248,7 @@ export default function GiftCertificatePage() {
                   )}
                   <div className="flex items-center gap-2 text-sm text-stone-600">
                     <Calendar className="w-4 h-4" />
-                    <span>{isProduct ? 'Дійсний 3 місяці' : t('gift_certificate.validity_1_year')}</span>
+                    <span>{isProduct ? t('gift_certificate.validity_3_months') : t('gift_certificate.validity_1_year')}</span>
                   </div>
                 </div>
               </div>

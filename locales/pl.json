@@ -583,7 +583,8 @@
     "lamination_matte_desc": "Miękki wygląd, bez odblasków",
     "lamination_click_hint": "Wybierz laminację, aby zobaczyć porównanie po lewej",
     "available_colors": "Dostępne kolory",
-    "cover_decoration": "Zdobienie okładki"
+    "cover_decoration": "Zdobienie okładki",
+    "certificate_select_options": "Najpierw wybierz cechy produktu: {options}"
   },
   "gift_certificate": {
     "page_title": "Certyfikat Podarunkowy",
@@ -635,7 +636,10 @@
     "step_2_title": "Wybierz format",
     "step_2_description": "Elektroniczny (PDF na email) lub drukowany na papierze premium z płatną dostawą Nova Poshta.",
     "step_3_title": "Odbierz certyfikat",
-    "step_3_description": "Odbiorca używa kodu certyfikatu do zamówienia dowolnego produktu z katalogu"
+    "step_3_description": "Odbiorca używa kodu certyfikatu do zamówienia dowolnego produktu z katalogu",
+    "product_cert_title": "Certyfikat na produkt",
+    "product_cert_subtitle": "Konkretny produkt z wybranymi opcjami",
+    "product_label": "Produkt"
   },
   "custom_book": {
     "photo_print_label": "Wydruki Foto",
@@ -1700,9 +1704,21 @@
     "rejectAll": "Tylko niezbędne",
     "settings": "Ustawienia",
     "save": "Zapisz wybór",
-    "necessary": { "title": "Niezbędne", "description": "Technicznie wymagane do działania strony (logowanie, koszyk, bezpieczeństwo). Nie można wyłączyć." },
-    "functional": { "title": "Funkcjonalne", "description": "Zapamiętują Twoje preferencje — język, walutę, region dostawy." },
-    "analytics": { "title": "Analityczne", "description": "Pomagają nam zrozumieć, jak korzystasz ze strony (Google Analytics)." },
-    "marketing": { "title": "Marketingowe", "description": "Umożliwiają wyświetlanie odpowiednich reklam w mediach społecznościowych (Meta Pixel)." }
+    "necessary": {
+      "title": "Niezbędne",
+      "description": "Technicznie wymagane do działania strony (logowanie, koszyk, bezpieczeństwo). Nie można wyłączyć."
+    },
+    "functional": {
+      "title": "Funkcjonalne",
+      "description": "Zapamiętują Twoje preferencje — język, walutę, region dostawy."
+    },
+    "analytics": {
+      "title": "Analityczne",
+      "description": "Pomagają nam zrozumieć, jak korzystasz ze strony (Google Analytics)."
+    },
+    "marketing": {
+      "title": "Marketingowe",
+      "description": "Umożliwiają wyświetlanie odpowiednich reklam w mediach społecznościowych (Meta Pixel)."
+    }
   }
 }
