@@ -64,9 +64,10 @@ const getConstructorUrl = (slug: string): string => {
   };
   if (posterMap[slug]) return posterMap[slug];
   if (s.includes('poster')) return '/order/poster';
-  // Wedding newspaper — goes to designer order flow
+  // Wedding newspaper — dedicated questionnaire (design choice + per-design
+  // fields + photo upload), answers ride on the order for the designer.
   if (s.includes('newspaper') || s.includes('газет'))
-    return '/brief';
+    return '/order/wedding-newspaper';
   // Canvas print
   if (s.includes('polotni') || s.includes('canvas') || s.includes('полотн'))
     return '/order/canvas';
