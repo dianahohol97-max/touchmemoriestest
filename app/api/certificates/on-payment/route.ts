@@ -69,6 +69,9 @@ export async function POST(req: Request) {
             const recipientName: string | undefined = meta.recipientName || undefined;
             const recipientEmail: string | undefined = meta.recipientEmail || undefined;
             const message: string | undefined = meta.message || undefined;
+            // Product certificates (bought from a product page) are tied to a
+            // specific product and valid 3 months; money certificates 1 year.
+            const certificateType: 'money' | 'product' = meta.certificateType === 'product' ? 'product' : 'money';
 
             // Reuse the code the buyer saw at checkout so the issued certificate
             // matches the cart/preview; fall back to a fresh code if missing.
@@ -93,12 +96,14 @@ export async function POST(req: Request) {
                 continue; // already issued for this order — idempotent skip
             }
 
-            const validUntil = calculateValidityDate('money');
+            const validUntil = calculateValidityDate(certificateType);
 
             const { error: insErr } = await admin.from('certificates').insert({
                 code,
-                certificate_type: 'money',
+                certificate_type: certificateType,
                 amount,
+                product_id: certificateType === 'product' ? (meta.productId || null) : null,
+                product_name: certificateType === 'product' ? (meta.productName || null) : null,
                 format,
                 recipient_name: recipientName,
                 recipient_email: recipientEmail,

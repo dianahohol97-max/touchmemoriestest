@@ -663,6 +663,63 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         toast.success(t('product_page.added_to_cart'));
     };
 
+    // "Buy certificate" for THIS product: the customer must pick the product's
+    // characteristics first (same as ordering it). If any option group is left
+    // unchosen we block and tell them which; otherwise we stash the product +
+    // chosen options + price and send them to the certificate page in product
+    // mode (a product certificate is valid 3 months).
+    const handleBuyCertificate = () => {
+        const itemOptions: Record<string, string> = {};
+        const missing: string[] = [];
+
+        if (isPhotobook) {
+            if (photobookOptions && photobookOptions.size && photobookOptions.pages) {
+                itemOptions['Розмір'] = photobookOptions.size;
+                itemOptions['Кількість сторінок'] = `${photobookOptions.pages} сторінок`;
+                if (photobookOptions.calca) itemOptions['Калька'] = 'Так';
+            } else {
+                missing.push('розмір та кількість сторінок');
+            }
+        } else if (product.options && Array.isArray(product.options)) {
+            product.options.forEach((opt: any) => {
+                if (opt.options && Array.isArray(opt.options) && opt.options.length > 0) {
+                    const selectedVal = customProductOptions[opt.name];
+                    if (selectedVal === undefined || selectedVal === '' || selectedVal === 'none') {
+                        missing.push(opt.name);
+                    } else {
+                        const match = opt.options.find((i: any) =>
+                            String(i.value) === String(selectedVal) || i.label === selectedVal);
+                        itemOptions[opt.name] = match?.label || String(selectedVal);
+                    }
+                    return;
+                }
+                if (opt.values && Array.isArray(opt.values) && opt.values.length > 0) {
+                    const idx = selectedOptions[opt.name];
+                    if (idx === undefined || !opt.values[idx]) missing.push(opt.name);
+                    else itemOptions[opt.name] = opt.values[idx].name;
+                }
+            });
+        }
+
+        if (missing.length > 0) {
+            toast.error(`Спершу оберіть характеристики товару: ${missing.join(', ')}`);
+            return;
+        }
+
+        const optionsSummary = Object.entries(itemOptions).map(([k, v]) => `${k}: ${v}`).join(', ');
+        try {
+            sessionStorage.setItem('productCert', JSON.stringify({
+                productId: product.id,
+                slug: product.slug,
+                productName: product.name,
+                price: finalPrice,
+                options: itemOptions,
+                optionsSummary,
+            }));
+        } catch { /* sessionStorage unavailable — page falls back to money mode */ }
+        router.push('/catalog/gift-certificate?mode=product');
+    };
+
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
             <Navigation />
@@ -1634,17 +1691,17 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                             >
                                  {t('product_page.hint_as_gift')}
                             </button>
-                            <Link
-                                href="/catalog/gift-certificate"
+                            <button
+                                onClick={handleBuyCertificate}
                                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                                     padding: '12px 16px', borderRadius: 10, border: '1.5px solid #e2e8f0',
                                     background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#374151',
-                                    textDecoration: 'none', transition: 'all 0.15s' }}
+                                    transition: 'all 0.15s' }}
                                 onMouseOver={(e: any) => (e.currentTarget.style.background = '#fefce8', e.currentTarget.style.borderColor = '#facc15')}
                                 onMouseOut={(e: any) => (e.currentTarget.style.background = '#fff', e.currentTarget.style.borderColor = '#e2e8f0')}
                             >
                                  {t('product_page.buy_certificate')}
-                            </Link>
+                            </button>
                         </div>
 
                         {/* Gift Hint Modal */}

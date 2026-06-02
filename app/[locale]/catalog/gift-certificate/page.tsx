@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -39,15 +39,39 @@ export default function GiftCertificatePage() {
     message: '',
   });
 
-  // Calculate total price
-  const totalPrice = useMemo(() => config.amount, [config.amount]);
+  // Product-certificate mode: when the customer arrives from a product page's
+  // "Buy certificate" button (?mode=product), the chosen product + options are
+  // stashed in sessionStorage. Such a certificate is for that specific product
+  // at its configured price and is valid 3 months (money certs: 1 year).
+  const [productCert, setProductCert] = useState<null | {
+    productId: string; slug?: string; productName: string; price: number;
+    options?: Record<string, string>; optionsSummary?: string;
+  }>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get('mode') === 'product') {
+        const raw = sessionStorage.getItem('productCert');
+        if (raw) setProductCert(JSON.parse(raw));
+      }
+    } catch { /* fall back to money mode */ }
+  }, []);
+  const isProduct = !!productCert;
+  const validityMonths = isProduct ? 3 : 12;
 
-  // Calculate validity date (always 12 months for money certificates)
+  // Calculate total price
+  const totalPrice = useMemo(
+    () => (productCert ? productCert.price : config.amount),
+    [productCert, config.amount]
+  );
+
+  // Calculate validity date (money: 12 months, product: 3 months)
   const validUntil = useMemo(() => {
     const date = new Date();
-    date.setMonth(date.getMonth() + 12);
+    date.setMonth(date.getMonth() + validityMonths);
     return date.toLocaleDateString('uk-UA', { year: 'numeric', month: 'long', day: 'numeric' });
-  }, []);
+  }, [validityMonths]);
 
 
   // Handle add to cart
@@ -57,40 +81,76 @@ export default function GiftCertificatePage() {
       return;
     }
 
-    if (config.amount < 100) {
+    if (!isProduct && config.amount < 100) {
       toast.error(t('gift_certificate.error_min_amount'));
       return;
     }
 
+    const formatLabel = config.format === 'electronic'
+      ? t('gift_certificate.cart_format_electronic')
+      : t('gift_certificate.cart_format_printed');
+
     // Create cart item (canonical cart-store shape: qty, not quantity).
     // payment_mode 'full_only' — a gift certificate is prepaid, never COD/split.
-    const cartItem = {
-      id: `gift-certificate-${Date.now()}`,
-      product_id: 'gift-certificate',
-      category_slug: 'gift-certificate',
-      name: t('gift_certificate.cart_item_name'),
-      price: totalPrice,
-      qty: 1,
-      payment_mode: 'full_only' as const,
-      image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80',
-      options: {
-        'Номер': certificateCode,
-        'Тип сертифікату': t('gift_certificate.cart_type_money').replace('{amount}', String(config.amount)),
-        'Формат': config.format === 'electronic' ? t('gift_certificate.cart_format_electronic') : t('gift_certificate.cart_format_printed'),
-        'Отримувач': config.recipientName || config.recipientEmail,
-        'Термін дії': validUntil,
-      },
-      metadata: {
-        certificateCode,
-        certificateType: 'money',
-        amount: config.amount,
-        format: config.format,
-        recipientName: config.recipientName,
-        recipientEmail: config.recipientEmail,
-        message: config.message,
-        validityMonths: 12,
-      },
-    };
+    const cartItem = isProduct
+      ? {
+          id: `gift-certificate-${Date.now()}`,
+          product_id: 'gift-certificate',
+          category_slug: 'gift-certificate',
+          name: `${t('gift_certificate.cart_item_name')} — ${productCert!.productName}`,
+          price: totalPrice,
+          qty: 1,
+          payment_mode: 'full_only' as const,
+          image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80',
+          options: {
+            'Номер': certificateCode,
+            'Сертифікат на товар': productCert!.productName,
+            ...(productCert!.optionsSummary ? { 'Характеристики': productCert!.optionsSummary } : {}),
+            'Формат': formatLabel,
+            'Отримувач': config.recipientName || config.recipientEmail,
+            'Термін дії': validUntil,
+          },
+          metadata: {
+            certificateCode,
+            certificateType: 'product',
+            productId: productCert!.productId,
+            productName: productCert!.productName,
+            productOptions: productCert!.options || {},
+            amount: totalPrice,
+            format: config.format,
+            recipientName: config.recipientName,
+            recipientEmail: config.recipientEmail,
+            message: config.message,
+            validityMonths: 3,
+          },
+        }
+      : {
+          id: `gift-certificate-${Date.now()}`,
+          product_id: 'gift-certificate',
+          category_slug: 'gift-certificate',
+          name: t('gift_certificate.cart_item_name'),
+          price: totalPrice,
+          qty: 1,
+          payment_mode: 'full_only' as const,
+          image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80',
+          options: {
+            'Номер': certificateCode,
+            'Тип сертифікату': t('gift_certificate.cart_type_money').replace('{amount}', String(config.amount)),
+            'Формат': formatLabel,
+            'Отримувач': config.recipientName || config.recipientEmail,
+            'Термін дії': validUntil,
+          },
+          metadata: {
+            certificateCode,
+            certificateType: 'money',
+            amount: config.amount,
+            format: config.format,
+            recipientName: config.recipientName,
+            recipientEmail: config.recipientEmail,
+            message: config.message,
+            validityMonths: 12,
+          },
+        };
 
     addItem(cartItem);
     toast.success(t('gift_certificate.added_to_cart_toast'));
@@ -157,27 +217,38 @@ export default function GiftCertificatePage() {
                       <span className="text-2xl"></span>
                     </div>
                     <div>
-                      <h3 className="font-bold text-stone-900">{t('gift_certificate.type_money_title')}</h3>
-                      <p className="text-sm text-stone-500">{t('gift_certificate.type_money_subtitle')}</p>
+                      <h3 className="font-bold text-stone-900">{isProduct ? 'Сертифікат на товар' : t('gift_certificate.type_money_title')}</h3>
+                      <p className="text-sm text-stone-500">{isProduct ? 'Конкретний товар з обраними характеристиками' : t('gift_certificate.type_money_subtitle')}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="block">
-                    <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.amount_label')}</span>
-                    <input
-                      type="number"
-                      min="100"
-                      step="50"
-                      value={config.amount}
-                      onChange={(e) => setConfig({ ...config, amount: parseInt(e.target.value) || 100 })}
-                      className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
-                    />
-                  </label>
+                  {isProduct ? (
+                    <div className="space-y-1">
+                      <span className="text-sm font-medium text-stone-700 block">Товар</span>
+                      <p className="font-bold text-stone-900">{productCert!.productName}</p>
+                      {productCert!.optionsSummary && (
+                        <p className="text-sm text-stone-500">{productCert!.optionsSummary}</p>
+                      )}
+                      <p className="text-lg font-extrabold text-[#1e3a8a]">{totalPrice} ₴</p>
+                    </div>
+                  ) : (
+                    <label className="block">
+                      <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.amount_label')}</span>
+                      <input
+                        type="number"
+                        min="100"
+                        step="50"
+                        value={config.amount}
+                        onChange={(e) => setConfig({ ...config, amount: parseInt(e.target.value) || 100 })}
+                        className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
+                      />
+                    </label>
+                  )}
                   <div className="flex items-center gap-2 text-sm text-stone-600">
                     <Calendar className="w-4 h-4" />
-                    <span>{t('gift_certificate.validity_1_year')}</span>
+                    <span>{isProduct ? 'Дійсний 3 місяці' : t('gift_certificate.validity_1_year')}</span>
                   </div>
                 </div>
               </div>
@@ -377,11 +448,11 @@ export default function GiftCertificatePage() {
                         borderBottom: '1.5px solid rgba(255,255,255,0.6)',
                         minWidth: 110, textAlign: 'center',
                         paddingBottom: 2, letterSpacing: '0.05em',
-                        fontSize: config.amount > 0 ? 'clamp(15px,3vw,18px)' : 'inherit',
+                        fontSize: 'clamp(15px,3vw,18px)',
                       }}>
-                        {config.amount > 0 ? config.amount : '·····················'}
+                        {isProduct ? productCert!.productName : (config.amount > 0 ? config.amount : '·····················')}
                       </span>
-                      <span>{t('gift_certificate.card_uah')}</span>
+                      {!isProduct && <span>{t('gift_certificate.card_uah')}</span>}
                     </div>
 
                     {/* дійсний до ........... */}
