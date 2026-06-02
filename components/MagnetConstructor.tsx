@@ -50,6 +50,7 @@ const router = useRouter();
   const [showCartModal, setShowCartModal] = useState(false);
   const [activeMagnetId, setActiveMagnetId] = useState<string | null>(null);
   const [defaultSizeId, setDefaultSizeId] = useState<string>('9x9');
+  const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeMagnet = magnets.find(m => m.id === activeMagnetId) || null;
@@ -233,12 +234,15 @@ const router = useRouter();
             )}
           </div>
 
-          {/* Upload button */}
+          {/* Upload button — supports both click-to-select and drag-and-drop */}
           <button onClick={() => fileInputRef.current?.click()}
-            style={{ width: '100%', padding: '24px 16px', border: '2px dashed #cbd5e1', borderRadius: 10, background: '#f8fafc', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 12, transition: 'all 0.15s' }}>
-            <Upload size={24} color="#64748b" />
+            onDragOver={e => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={e => { e.preventDefault(); setDragging(false); }}
+            onDrop={e => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files); }}
+            style={{ width: '100%', padding: '24px 16px', border: `2px dashed ${dragging ? '#1e2d7d' : '#cbd5e1'}`, borderRadius: 10, background: dragging ? '#dbeafe' : '#f8fafc', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 12, transition: 'all 0.15s' }}>
+            <Upload size={24} color={dragging ? '#1e2d7d' : '#64748b'} />
             <div style={{ fontSize: 13, fontWeight: 700, color: '#1e2d7d' }}>Завантажити фото</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>Можна кілька файлів одразу</div>
+            <div style={{ fontSize: 11, color: '#94a3b8' }}>Перетягніть сюди або натисніть · можна кілька файлів одразу</div>
           </button>
           <input ref={fileInputRef} type="file" multiple accept="image/*"
             onChange={e => e.target.files && handleFiles(e.target.files)}
