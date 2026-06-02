@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +60,10 @@ export async function POST(req: Request) {
             : Number(order.total);
         const amountInKopecks = Math.round(chargeAmount * 100);
 
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
+        // Runtime host (NOT the SEO/brand domain): the webhook + redirect must
+        // hit a host that is actually serving this deployment, or payments
+        // silently never confirm. See lib/runtimeUrl.
+        const baseUrl = getRuntimeBaseUrl();
 
         const monoResponse = await fetch(MONOBANK_API_URL, {
             method: 'POST',
