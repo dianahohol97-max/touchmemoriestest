@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 
-// Cache the nav data at the edge for 10 minutes
-export const revalidate = 600;
+// Cache the nav data at the edge for 1 minute so menu edits (e.g. adding a
+// navigation_links row) appear within ~a minute instead of up to 10.
+export const revalidate = 60;
 
 export async function GET() {
   try {
@@ -46,7 +47,7 @@ export async function GET() {
       { links, categories: categories || [] },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
         },
       }
     );
