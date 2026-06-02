@@ -345,10 +345,10 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       name: 'Розмір',
       values: ['5x7.5', '6x9', '7.5x10', '9x9', '10x10', 'Polaroid 7.6x10.1', 'Polaroid 8.6x5.4'],
       prices: {
-        '5x7.5': 215, '6x9': 215, '7.5x10': 215,
-        '9x9': 215, '10x10': 215,
-        'Polaroid 7.6x10.1': 215,
-        'Polaroid 8.6x5.4': 215
+        '5x7.5': 235, '6x9': 235, '7.5x10': 235,
+        '9x9': 235, '10x10': 235,
+        'Polaroid 7.6x10.1': 235,
+        'Polaroid 8.6x5.4': 235
       },
       required: true
     },
