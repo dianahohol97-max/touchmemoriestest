@@ -44,12 +44,12 @@ export async function POST(req: Request) {
         const { data: emailData, error: emailError } = await resend.emails.send({
             from: 'TouchMemories <hints@mail.touchmemories.ua>', // Needs domain verification in Resend
             to: [recipient_email],
-            subject: `${senderDisplay} натякає вам на чудовий подарунок `,
+            subject: `${senderDisplay} мріє про цей подарунок 🎁`,
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 24px;">
                     <div style="text-align: center; margin-bottom: 32px;">
-                        <h2 style="color: #263A99; margin-bottom: 8px;">Хтось про вас думає...</h2>
-                        <p style="color: #64748b;">${sender_name ? `${sender_name} хоче, щоб ви знали про цей товар` : 'Привіт! Ми отримали натяк, що цей подарунок може вас зацікавити.'}</p>
+                        <h2 style="color: #263A99; margin-bottom: 8px;">Делікатний натяк 🎁</h2>
+                        <p style="color: #64748b;">${sender_name ? `${sender_name} мріє про цей подарунок` : 'Хтось мріє про цей подарунок'}</p>
                     </div>
 
                     <div style="background: #f8fafc; border-radius: 20px; padding: 24px; display: flex; align-items: center; gap: 20px; margin-bottom: 32px;">
