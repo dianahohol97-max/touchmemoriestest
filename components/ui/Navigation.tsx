@@ -20,7 +20,11 @@ const NAV_TTL = 5 * 60 * 1000; // 5 min
 async function fetchNavData() {
   if (_navCache && Date.now() - _navCacheAt < NAV_TTL) return _navCache;
   try {
-    const res = await fetch('/api/navigation', { cache: 'force-cache' });
+    // Don't use force-cache: it makes the browser serve a stale stored
+    // response forever (even across reloads), so menu edits never appear.
+    // The CDN already caches this route (s-maxage=60); no-store just means the
+    // browser always revalidates against that fresh-enough edge copy.
+    const res = await fetch('/api/navigation', { cache: 'no-store' });
     if (!res.ok) throw new Error('nav fetch failed');
     _navCache = await res.json();
     _navCacheAt = Date.now();
