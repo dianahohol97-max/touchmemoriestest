@@ -52,6 +52,10 @@ import { CSS } from '@dnd-kit/utilities';
 import CustomAttributeManager from './CustomAttributeManager';
 import { CustomAttribute, AttributePriceModifiers } from '@/lib/types/product';
 
+// Max images in a product's gallery. Was 10; raised so products that need more
+// angle/detail shots aren't capped. Change this single constant to adjust.
+const MAX_IMAGES = 30;
+
 // Sortable Image Item
 function SortableImage({ url, onRemove, index, isFirst }: { url: string, onRemove: (url: string) => void, index: number, isFirst: boolean }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: url });
@@ -220,8 +224,8 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
     const [videoUploading, setVideoUploading] = useState(false);
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
-        if (images.length + acceptedFiles.length > 10) {
-            toast.error('Максимальна кількість зображень — 10');
+        if (images.length + acceptedFiles.length > MAX_IMAGES) {
+            toast.error(`Максимальна кількість зображень — ${MAX_IMAGES}`);
             return;
         }
 
@@ -282,7 +286,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                     .single();
 
                 const dbImages = product?.images || [];
-                const finalImages = [...dbImages, ...newImagesBatch].slice(0, 10);
+                const finalImages = [...dbImages, ...newImagesBatch].slice(0, MAX_IMAGES);
 
                 const { error: updateError } = await supabase
                     .from('products')
@@ -304,7 +308,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
-        maxFiles: 10 - images.length
+        maxFiles: MAX_IMAGES - images.length
     });
 
     const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -536,8 +540,8 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <label style={labelStyle}>Фотогалерея ({images.length} / 10)</label>
-                                <span style={{ fontSize: '11px', fontWeight: 800, color: images.length >= 10 ? '#ef4444' : '#94a3b8' }}>
+                                <label style={labelStyle}>Фотогалерея ({images.length} / {MAX_IMAGES})</label>
+                                <span style={{ fontSize: '11px', fontWeight: 800, color: images.length >= MAX_IMAGES ? '#ef4444' : '#94a3b8' }}>
                                     {images.length === 0 ? 'Мінімально 1 фото' : ''}
                                 </span>
                             </div>
@@ -545,36 +549,36 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                             {/* Photo count progress bar */}
                             <div style={{ marginBottom: 12 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                    <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Фото: {images.length} / 10</span>
-                                    {images.length >= 10 && <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700 }}> Ліміт досягнуто</span>}
-                                    {images.length > 0 && images.length < 10 && <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>Можна ще {10 - images.length}</span>}
+                                    <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Фото: {images.length} / {MAX_IMAGES}</span>
+                                    {images.length >= MAX_IMAGES && <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700 }}> Ліміт досягнуто</span>}
+                                    {images.length > 0 && images.length < MAX_IMAGES && <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>Можна ще {MAX_IMAGES - images.length}</span>}
                                 </div>
                                 <div style={{ height: 4, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', width: `${(images.length/10)*100}%`, background: images.length >= 10 ? '#ef4444' : images.length >= 7 ? '#f59e0b' : '#10b981', borderRadius: 4, transition: 'width 0.3s' }}/>
+                                    <div style={{ height: '100%', width: `${(images.length/MAX_IMAGES)*100}%`, background: images.length >= MAX_IMAGES ? '#ef4444' : images.length >= MAX_IMAGES * 0.7 ? '#f59e0b' : '#10b981', borderRadius: 4, transition: 'width 0.3s' }}/>
                                 </div>
                             </div>
                             <div {...getRootProps()} style={{
-                                cursor: images.length >= 10 ? 'not-allowed' : 'pointer',
+                                cursor: images.length >= MAX_IMAGES ? 'not-allowed' : 'pointer',
                                 borderRadius: 10,
-                                borderColor: isDragActive ? '#263A99' : images.length >= 10 ? '#fecaca' : '#e2e8f0',
-                                backgroundColor: isDragActive ? '#f0f9ff' : images.length >= 10 ? '#fef2f2' : '#f8fafc',
+                                borderColor: isDragActive ? '#263A99' : images.length >= MAX_IMAGES ? '#fecaca' : '#e2e8f0',
+                                backgroundColor: isDragActive ? '#f0f9ff' : images.length >= MAX_IMAGES ? '#fef2f2' : '#f8fafc',
                                 border: '2px dashed',
                                 padding: '20px',
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
                                 transition: 'all 0.2s',
-                                pointerEvents: images.length >= 10 ? 'none' : 'auto',
+                                pointerEvents: images.length >= MAX_IMAGES ? 'none' : 'auto',
                             }}>
-                                <input {...getInputProps()} disabled={images.length >= 10} />
+                                <input {...getInputProps()} disabled={images.length >= MAX_IMAGES} />
                                 {uploading
                                     ? <><Loader2 className={styles.animateSpin} size={22} color="#263A99"/><p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#263A99' }}>Завантаження...</p></>
-                                    : images.length >= 10
-                                    ? <><ImageIcon size={22} color="#fca5a5"/><p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#ef4444' }}>Ліміт 10 фото досягнуто</p></>
+                                    : images.length >= MAX_IMAGES
+                                    ? <><ImageIcon size={22} color="#fca5a5"/><p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#ef4444' }}>Ліміт {MAX_IMAGES} фото досягнуто</p></>
                                     : <>
                                         <Upload size={22} color={isDragActive ? '#263A99' : '#94a3b8'}/>
                                         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: isDragActive ? '#263A99' : '#374151' }}>
                                             {isDragActive ? ' Відпустіть для завантаження' : 'Перетягніть фото або натисніть'}
                                         </p>
-                                        <p style={{ margin: 0, fontSize: 11, color: '#94a3b8' }}>JPG, PNG, WebP · макс. 10MB · до {10 - images.length} фото</p>
+                                        <p style={{ margin: 0, fontSize: 11, color: '#94a3b8' }}>JPG, PNG, WebP · макс. 10MB · до {MAX_IMAGES - images.length} фото</p>
                                     </>
                                 }
                             </div>
