@@ -74,6 +74,18 @@ const POLAROID_COLORS = [
 
 const POLAROID_TEXT_PRICE = 5;
 
+// ─── Photo magnets ──────────────────────────────────────────────────────────
+// Magnets reuse this whole constructor (sizes, crop, polaroid render, captions).
+// Differences vs photo prints: one SET costs MAGNET_SET_PRICE regardless of
+// size (the set quantity is the size's `multiple`), and the two Polaroid sizes
+// render as polaroids with the optional caption (+POLAROID_TEXT_PRICE each).
+const MAGNET_SET_PRICE = 235;
+const isPolaroidSizeLabel = (s: string) => /polaroid|поларо/i.test(s || '');
+// Set quantity for a magnet size: rectangular sizes come from NONSTANDARD_CONFIG,
+// the two polaroid sizes from POLAROID_MULTIPLE.
+const getMagnetMultiple = (size: string): number =>
+  getNonstandardConfig(size)?.multiple ?? getPolaroidMultiple(size);
+
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
 interface PhotoFile {
@@ -409,6 +421,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
   const isPolaroid    = productSlug === 'polaroid-print';
   const isNonstandard = productSlug === 'photoprint-nonstandard';
+  const isMagnet      = productSlug === 'photomagnets';
+  // For magnets, "polaroid behaviour" (render + caption) follows the SELECTED
+  // size, not the product. For photo prints it follows the product as before.
+  const polaroidActive = isPolaroid || (isMagnet && isPolaroidSizeLabel(selectedSize));
 
   useEffect(() => {
     if (selectedSize || selectedFinish) {
@@ -417,7 +433,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   }, [selectedSize, selectedFinish, selectedBorder]);
 
   useEffect(() => {
-    if (!isPolaroid) return;
+    if (!isPolaroid && !isMagnet) return;
     const families = POLAROID_FONTS.map(f => f.label.replace(/ /g,'+')).join('&family=');
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -628,6 +644,15 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
   const calculatePrice = () => {
     if (!product||photos.length===0) return 0;
+    // Magnets: price by whole sets (one set = MAGNET_SET_PRICE regardless of
+    // size), plus +POLAROID_TEXT_PRICE per polaroid magnet that has a caption.
+    if (isMagnet) {
+      const m = getMagnetMultiple(selectedSize);
+      const sets = m>0 ? Math.ceil(totalQty/m) : 0;
+      let total = sets * MAGNET_SET_PRICE;
+      if (polaroidActive) total += photos.filter(p=>p.showCaption&&p.polaroidText?.trim()).length * POLAROID_TEXT_PRICE;
+      return total;
+    }
     const sizeOpts = getSizeOptions();
     const base = product.price||0;
     const getU = (lbl: string) => {
@@ -643,19 +668,19 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     };
     let total=0;
     for (const p of photos) total += getU(p.sizeOverride||selectedSize)*(p.qty||1);
-    if (isPolaroid) total += photos.filter(p=>p.showCaption&&p.polaroidText?.trim()).length * POLAROID_TEXT_PRICE;
+    if (polaroidActive) total += photos.filter(p=>p.showCaption&&p.polaroidText?.trim()).length * POLAROID_TEXT_PRICE;
     return total;
   };
 
   // ── Qty validation ─────────────────────────────────────────────────────────
   const nsConfig  = isNonstandard && selectedSize ? getNonstandardConfig(selectedSize) : null;
-  const multiple  = isNonstandard ? (nsConfig?.multiple ?? 1) : (isPolaroid ? getPolaroidMultiple(selectedSize) : 1);
-  // Minimum = smallest multiple of `multiple` that is >= 20, so it is always
-  // valid by both the >=20 rule and the multiple-of rule at once. This fixes
-  // the polaroid contradiction where the hint said "мінімум 20, кратно 8"
-  // (20 is not a multiple of 8 — real minimum is 24). Standard photoprint
-  // (multiple === 1) keeps the flat minimum of 20.
-  const minQty    = isNonstandard && nsConfig
+  const multiple  = isMagnet ? getMagnetMultiple(selectedSize)
+    : isNonstandard ? (nsConfig?.multiple ?? 1)
+    : (isPolaroid ? getPolaroidMultiple(selectedSize) : 1);
+  // Magnets: minimum is exactly one full set. Photo prints keep the >=20 rule
+  // (smallest multiple of `multiple` that is >= 20, so both rules hold at once).
+  const minQty    = isMagnet ? multiple
+    : isNonstandard && nsConfig
     ? nonstandardMinQty(nsConfig.multiple)
     : (isPolaroid && multiple > 1 ? nonstandardMinQty(multiple) : 20);
   const qtyOk     = photos.length>0 && totalQty>=minQty && (multiple<=1 || totalQty%multiple===0);
@@ -667,14 +692,19 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     if (multiple>1&&totalQty%multiple!==0) { toast.error(`Кількість має бути кратною ${multiple}. Зараз: ${totalQty}.`); return; }
 
     const cartItemId = `${product.id}_${Date.now()}`;
+    const magnetSets = isMagnet && multiple>0 ? Math.ceil(totalQty/multiple) : 0;
     const cartPayload = {
       id: cartItemId, product_id:product.id, name:product.name,
       price:calculatePrice(), image:product.images?.[0]||'', slug:product.slug,
       options:{ 'Кількість фото':totalQty.toString(),
         ...(selectedSize&&{'Розмір':selectedSize}), ...(selectedFinish&&{'Покриття':selectedFinish}),
-        ...(isNonstandard?{'Біла рамочка':'Так'}:(!isPolaroid?{'Біла рамочка':selectedBorder==='with'?'Так':'Ні'}:{})) },
+        ...(isMagnet
+          ? {'Наборів':magnetSets.toString()}
+          : (isNonstandard?{'Біла рамочка':'Так'}:(!isPolaroid?{'Біла рамочка':selectedBorder==='with'?'Так':'Ні'}:{}))) },
       qty:1,
-      personalization_note: isPolaroid
+      personalization_note: isMagnet
+        ? `${magnetSets} набір(ів) · ${totalQty} магнітів${polaroidActive ? `. Написи: ${photos.filter(p=>p.showCaption&&p.polaroidText?.trim()).map((p)=>`магніт ${photos.indexOf(p)+1}: "${p.polaroidText}"`).join(', ')||'немає'}` : ''}`
+        : polaroidActive
         ? `${totalQty} фото. Написи: ${photos.filter(p=>p.showCaption&&p.polaroidText?.trim()).map((p,i)=>`фото ${photos.indexOf(p)+1}: "${p.polaroidText}"`).join(', ')||'немає'}`
         : `${totalQty} фото для друку`,
     };
@@ -898,7 +928,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       // Now render and upload each photo at print resolution
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
-        let blob = isPolaroid ? await renderPolaroid(photo) : await renderStandard(photo);
+        let blob = polaroidActive ? await renderPolaroid(photo) : await renderStandard(photo);
         if (!blob) continue;
         // Patch JPEG metadata for the print shop:
         //   • DPI tag 300×300 (was 96×96 from the browser default)
@@ -919,8 +949,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         if (uploadError) { console.warn('photo-print render upload failed:', uploadError); continue; }
         exportedFiles.push({
           path, fileName, bucket: 'order-files',
-          fileCategory: isPolaroid ? 'polaroid-print' : 'photo-print',
-          productType: 'photoprint',
+          fileCategory: isMagnet ? 'photomagnets' : (polaroidActive ? 'polaroid-print' : 'photo-print'),
+          productType: isMagnet ? 'photomagnets' : 'photoprint',
           fileType: 'export', size: blob.size, mimeType: 'image/jpeg',
           pageNumber: i + 1,
         });
@@ -935,7 +965,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     try {
       const { data:{user} } = await supabase.auth.getUser();
       if (user) await supabase.from('projects').insert({
-        user_id:user.id, product_type:'photo-print', format:selectedSize||'', status:'draft',
+        user_id:user.id, product_type:isMagnet?'photomagnets':'photo-print', format:selectedSize||'', status:'draft',
         pages_data:photos.map(p=>({id:p.id,cropX:p.cropX,cropY:p.cropY,zoom:p.zoom,
           rotation:p.rotation,orientation:p.orientation,qty:p.qty,sizeOverride:p.sizeOverride,
           polaroidText:p.polaroidText,showCaption:p.showCaption})),
@@ -1023,9 +1053,9 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
           {activePhoto ? (
             <div>
-              <PhotoPreview photo={activePhoto} sizeKey={sizeKey||'10x15'} showBorder={isNonstandard || (!isPolaroid && activePhoto.border)}
-                isPolaroid={isPolaroid} isNonstandard={isNonstandard}
-                onCropChange={updateCrop} onTextChange={isPolaroid?updateText:undefined}
+              <PhotoPreview photo={activePhoto} sizeKey={sizeKey||'10x15'} showBorder={!isMagnet && (isNonstandard || (!isPolaroid && activePhoto.border))}
+                isPolaroid={polaroidActive} isNonstandard={isNonstandard}
+                onCropChange={updateCrop} onTextChange={polaroidActive?updateText:undefined}
                 polaroidFont={polaroidFont} polaroidColor={polaroidColor}/>
               {photos.length>1 && (
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:12 }}>
@@ -1161,7 +1191,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                   </div>
 
                   {/* Polaroid caption toggle */}
-                  {isPolaroid && (
+                  {polaroidActive && (
                     <div style={{ marginBottom:12 }}>
                       <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Підпис</div>
                       <button onClick={toggleCaptionSelected}
@@ -1184,7 +1214,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                       (per-size minimum + sheet multiple), so a per-photo size
                       would make that math incoherent and just duplicates the
                       order-level "Розмір" selector below. */}
-                  {sizeOptions.length>1 && !isNonstandard && !isPolaroid && (
+                  {sizeOptions.length>1 && !isNonstandard && !isPolaroid && !isMagnet && (
                     <div style={{ marginBottom:12 }}>
                       <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Розмір для цих фото</div>
                       <select value={effectivePhotos.length===1?(effectivePhotos[0].sizeOverride||''):''}
@@ -1213,7 +1243,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 "N фото → N шт. мінімум N шт." summary line was removed at
                 Diana's request; the same info already appears per-size and
                 via the add-to-cart validation). */}
-            {(isNonstandard||isPolaroid) && selectedSize && multiple>1 && (
+            {(isNonstandard||isPolaroid||isMagnet) && selectedSize && multiple>1 && (
               <div style={{ padding:'10px 14px', borderRadius:8, marginBottom:16,
                 background: photos.length>0&&!qtyOk ? '#fff7ed':'#eff6ff',
                 border:`1px solid ${photos.length>0&&!qtyOk?'#fed7aa':'#bfdbfe'}` }}>
@@ -1297,7 +1327,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             )}
 
             {/* Polaroid caption style */}
-            {isPolaroid && photos.some(p=>p.showCaption) && (
+            {polaroidActive && photos.some(p=>p.showCaption) && (
               <div style={{ marginBottom:16, padding:'12px 14px', borderRadius:10, background:'#f8fafc', border:'1px solid #e2e8f0' }}>
                 <div style={{ fontWeight:700, fontSize:13, color:'#374151', marginBottom:10 }}>Стиль підпису</div>
                 <div style={{ fontSize:11, color:'#94a3b8', fontWeight:600, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>Шрифт</div>
@@ -1332,13 +1362,15 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               {selectedSize && photos.length>0 && (
                 <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
                   <span style={{ fontSize:13, color:'#64748b' }}>
-                    {totalQty} шт. × {(()=>{const s=sizeOptions.find(o=>o.name===selectedSize);return s?.price??product.price??0;})()} ₴
+                    {isMagnet
+                      ? `${multiple>0?Math.ceil(totalQty/multiple):0} набір(ів) × ${MAGNET_SET_PRICE} ₴`
+                      : `${totalQty} шт. × ${(()=>{const s=sizeOptions.find(o=>o.name===selectedSize);return s?.price??product.price??0;})()} ₴`}
                   </span>
                 </div>
               )}
-              {isPolaroid && captionPhotos.length>0 && (
+              {polaroidActive && captionPhotos.length>0 && (
                 <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                  <span style={{ fontSize:12, color:'#64748b' }}>Підпис ({captionPhotos.length} фото) × {POLAROID_TEXT_PRICE} ₴</span>
+                  <span style={{ fontSize:12, color:'#64748b' }}>Підпис ({captionPhotos.length} {isMagnet?'магн.':'фото'}) × {POLAROID_TEXT_PRICE} ₴</span>
                   <span style={{ fontSize:12, fontWeight:600, color:'#64748b' }}>{captionPhotos.length*POLAROID_TEXT_PRICE} ₴</span>
                 </div>
               )}
@@ -1367,11 +1399,15 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               msg = 'Завантажте хоча б одне фото, щоб продовжити.';
             } else if (totalQty < minQty) {
               const need = minQty - totalQty;
-              msg = `Мінімальне замовлення — ${minQty} шт. Зараз ${totalQty}. Додайте ще ${need} ${need === 1 ? 'фото' : 'фото'} (можна збільшити кількість одного фото або додати нові).`;
+              msg = isMagnet
+                ? `Мінімум — один набір (${minQty} шт.). Зараз ${totalQty}. Додайте ще ${need} фото.`
+                : `Мінімальне замовлення — ${minQty} шт. Зараз ${totalQty}. Додайте ще ${need} ${need === 1 ? 'фото' : 'фото'} (можна збільшити кількість одного фото або додати нові).`;
             } else if (multiple > 1 && totalQty % multiple !== 0) {
               const up = Math.ceil(totalQty / multiple) * multiple;
               const dn = Math.floor(totalQty / multiple) * multiple;
-              msg = `Кількість має бути кратною ${multiple} (на одному листі друкується ${multiple} фото). Зараз ${totalQty}. Найближчі допустимі — ${dn} або ${up}.`;
+              msg = isMagnet
+                ? `Кількість фото має бути кратною ${multiple} (розмір набору). Зараз ${totalQty}. Найближчі допустимі — ${dn} або ${up}.`
+                : `Кількість має бути кратною ${multiple} (на одному листі друкується ${multiple} фото). Зараз ${totalQty}. Найближчі допустимі — ${dn} або ${up}.`;
             }
             if (!msg) return null;
             return (
