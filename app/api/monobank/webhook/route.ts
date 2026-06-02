@@ -104,7 +104,7 @@ export async function POST(req: Request) {
         //     keypair situation.
         const { data: existingOrder } = await supabase
             .from('orders')
-            .select('id, total, payment_status, monobank_invoice_status, monobank_invoice_id, with_designer')
+            .select('id, total, payment_status, monobank_invoice_status, monobank_invoice_id, with_designer, payment_type, items')
             .eq('id', reference)
             .single();
 
@@ -261,6 +261,27 @@ export async function POST(req: Request) {
                     body: JSON.stringify({ orderId: reference }),
                 }).catch(err => {
                     console.error('designer-service/on-payment trigger failed:', err);
+                });
+            }
+
+            // Gift certificates: auto-issue + email the recipient on the first
+            // transition to paid. Same fire-and-forget pattern as the designer
+            // handoff — a Brevo hiccup must never make Monobank retry the
+            // payment webhook. The downstream route re-checks payment status
+            // and is idempotent (keyed on the certificate code), so retries and
+            // a parallel manual "mark as paid" are safe.
+            const orderItems: any[] = Array.isArray(existingOrder.items) ? existingOrder.items : [];
+            const hasCertificate = orderItems.some(
+                (it) => it?.metadata?.certificateType || it?.options?.['Номер']
+            );
+            if (hasCertificate && existingOrder.payment_status !== 'paid') {
+                const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
+                fetch(`${baseUrl}/api/certificates/on-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId: reference }),
+                }).catch(err => {
+                    console.error('certificates/on-payment trigger failed:', err);
                 });
             }
         }

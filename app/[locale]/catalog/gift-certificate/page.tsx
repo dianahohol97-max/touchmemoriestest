@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Gift, Mail, Package, Check, Calendar, Info } from 'lucide-react';
-import { useCartStore } from '@/lib/store/cart';
+import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
 
@@ -62,13 +62,16 @@ export default function GiftCertificatePage() {
       return;
     }
 
-    // Create cart item
+    // Create cart item (canonical cart-store shape: qty, not quantity).
+    // payment_mode 'full_only' — a gift certificate is prepaid, never COD/split.
     const cartItem = {
       id: `gift-certificate-${Date.now()}`,
-      productId: 'gift-certificate',
+      product_id: 'gift-certificate',
+      category_slug: 'gift-certificate',
       name: t('gift_certificate.cart_item_name'),
       price: totalPrice,
-      quantity: 1,
+      qty: 1,
+      payment_mode: 'full_only' as const,
       image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80',
       options: {
         'Номер': certificateCode,

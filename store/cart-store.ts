@@ -14,6 +14,10 @@ export interface CartItem {
     slug?: string;
     personalization_note?: string;
     min_qty?: number; // minimum orderable quantity for this item (default 1)
+    /** Structured per-item data that must survive to the order (e.g. a gift
+     * certificate's recipient name/email/message/face amount). Stored as-is in
+     * orders.items and read by the payment webhook to auto-issue the cert. */
+    metadata?: Record<string, any>;
     /** Product-level payment mode pulled from products.payment_mode.
      * Affects which payment options are offered at checkout (full only,
      * or full / split 50%). If missing, checkout falls back to 'full_only'. */

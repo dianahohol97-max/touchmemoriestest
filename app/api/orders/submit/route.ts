@@ -29,6 +29,7 @@ interface OrderItem {
   total_price: number;
   options?: Record<string, unknown>;
   slug?: string; // needed for payment_mode lookup
+  metadata?: Record<string, unknown>; // structured per-item data (e.g. gift cert)
 }
 
 interface OrderPayload {
