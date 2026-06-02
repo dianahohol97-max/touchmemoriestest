@@ -121,22 +121,6 @@ async function refreshSessionAndGetUser(request: NextRequest): Promise<{
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // ─── Canonical host 301 ─────────────────────────────────────────────
-    // Permanently redirect the bare Vercel production alias to the custom
-    // domain so search engines consolidate ranking signals on one host.
-    // Matched on the EXACT alias only — preview deployments use unique
-    // hashed *.vercel.app subdomains and must keep working, so we never
-    // blanket-redirect *.vercel.app. Placed first so it also covers
-    // /api, /robots.txt and /sitemap.xml. Path + query are preserved.
-    const host = request.headers.get('host');
-    if (host === 'touchmemories1.vercel.app') {
-        const url = request.nextUrl.clone();
-        url.protocol = 'https';
-        url.host = 'touchmemories.com.ua';
-        url.port = '';
-        return NextResponse.redirect(url, 301);
-    }
-
     // ─── /admin/* gating ────────────────────────────────────────────────
     // Before this guard, anyone could load /admin URLs and see the admin UI
     // shell. Data was protected by RLS + API guards, but the UI was open.
