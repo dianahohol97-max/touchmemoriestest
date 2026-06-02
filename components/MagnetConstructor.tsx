@@ -34,8 +34,12 @@ interface Magnet {
   caption?: string; // for polaroid
 }
 
-const BASE_PRICE = 215; // minimum order
-const MIN_QUANTITY = 6;
+// Pricing model: one SET costs SET_PRICE regardless of size. Each size's
+// `multiple` is how many magnets make up one set (smaller magnets => more per
+// set). Customers order in whole sets, so the photo count for a size must be a
+// multiple of that size's set quantity. Total = (number of sets) × SET_PRICE.
+// (The per-size `price` field above is legacy and no longer used for pricing.)
+const SET_PRICE = 235;
 
 export default function MagnetConstructor() {
   
@@ -100,14 +104,21 @@ const router = useRouter();
     setActiveMagnetId(null);
   };
 
-  const totalPrice = Math.max(BASE_PRICE, magnets.reduce((sum, m) => {
-    const size = MAGNET_SIZES.find(s => s.id === m.sizeId);
-    return sum + (size?.price || 0);
-  }, 0));
-
-  // Per-size multiple validation
+  // Count magnets per size first, then price by whole sets.
   const sizeCountMap: Record<string, number> = {};
   magnets.forEach(m => { sizeCountMap[m.sizeId] = (sizeCountMap[m.sizeId] || 0) + 1; });
+
+  // Number of sets per size = count / set quantity. ceil keeps the running price
+  // sensible while a size group is still an incomplete set; the multiple check
+  // below blocks checkout until every group is an exact number of sets.
+  const totalSets = Object.entries(sizeCountMap).reduce((sets, [sizeId, count]) => {
+    const size = MAGNET_SIZES.find(s => s.id === sizeId);
+    if (!size) return sets;
+    return sets + Math.ceil(count / size.multiple);
+  }, 0);
+  const totalPrice = totalSets * SET_PRICE;
+
+  // Per-size multiple validation
   const multipleErrors: { sizeId: string; label: string; count: number; multiple: number; toRemove: number; toAdd: number }[] = [];
   Object.entries(sizeCountMap).forEach(([sizeId, count]) => {
     const sizeObj = MAGNET_SIZES.find(s => s.id === sizeId);
@@ -125,14 +136,17 @@ const router = useRouter();
     }
   });
   const hasMultipleErrors = multipleErrors.length > 0;
+  // Valid order = at least one magnet and every size group is a whole set.
+  const canOrder = magnets.length > 0 && !hasMultipleErrors;
+  const setWord = totalSets === 1 ? 'набір' : (totalSets >= 2 && totalSets <= 4) ? 'набори' : 'наборів';
 
   const handleAddToCart = async () => {
-    if (magnets.length < MIN_QUANTITY) {
-      toast.error(`Мінімум ${MIN_QUANTITY} магнітів в замовленні`);
+    if (magnets.length === 0) {
+      toast.error('Додайте хоча б один набір магнітів');
       return;
     }
     if (hasMultipleErrors) {
-      toast.error('Виправте кількість магнітів (має бути кратна вказаному числу)');
+      toast.error('Кількість фото має бути кратною розміру набору');
       return;
     }
     const cartItemId = `magnet-${Date.now()}`;
@@ -143,7 +157,7 @@ const router = useRouter();
       price: totalPrice,
       qty: 1,
       image: magnets[0]?.photoUrl || '',
-      options: { 'Кількість': `${magnets.length} шт`, 'Розміри': [...new Set(sizes)].join(', ') },
+      options: { 'Кількість': `${magnets.length} шт`, 'Розміри': [...new Set(sizes)].join(', '), 'Наборів': `${totalSets}` },
       personalization_note: `${magnets.length} магнітів`,
     });
 
@@ -197,12 +211,12 @@ const router = useRouter();
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d', margin: 0 }}>Конструктор магнітів</h1>
           <p style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>
-            Завантажте фото, оберіть розмір і оформіть замовлення (мін. {MIN_QUANTITY} шт)
+            Завантажте фото, оберіть розмір і оформіть замовлення (кількість фото — кратна розміру набору)
           </p>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d' }}>{totalPrice} ₴</div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>{magnets.length} магнітів</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>{totalSets} {setWord} · {magnets.length} шт</div>
         </div>
       </div>
 
@@ -391,7 +405,7 @@ const router = useRouter();
                 <button key={s.id} onClick={() => setDefaultSizeId(s.id)}
                   style={{ padding: '8px 6px', border: defaultSizeId === s.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: defaultSizeId === s.id ? '#f0f3ff' : '#fff', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: defaultSizeId === s.id ? '#1e2d7d' : '#475569', textAlign: 'left' }}>
                   <div>{s.label} см</div>
-                  <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 1 }}>{s.price} ₴ · кратно {s.multiple} шт</div>
+                  <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 1 }}>набір {s.multiple} шт · {SET_PRICE} ₴</div>
                 </button>
               ))}
             </div>
@@ -408,7 +422,7 @@ const router = useRouter();
                 <select value={activeMagnet.sizeId} onChange={e => updateMagnet(activeMagnet.id, { sizeId: e.target.value })}
                   style={{ width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, background: '#fff' }}>
                   {MAGNET_SIZES.map(s => (
-                    <option key={s.id} value={s.id}>{s.label} см — {s.price} ₴ (кратно {s.multiple} шт)</option>
+                    <option key={s.id} value={s.id}>{s.label} см — набір {s.multiple} шт ({SET_PRICE} ₴)</option>
                   ))}
                 </select>
               </div>
@@ -464,21 +478,25 @@ const router = useRouter();
               <span style={{ color: '#64748b' }}>Кількість:</span>
               <span style={{ fontWeight: 700, color: '#1e2d7d' }}>{magnets.length} шт</span>
             </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+              <span style={{ color: '#64748b' }}>Наборів:</span>
+              <span style={{ fontWeight: 700, color: '#1e2d7d' }}>{totalSets}</span>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 12 }}>
               <span style={{ color: '#64748b' }}>Сума:</span>
               <span style={{ fontWeight: 900, color: '#1e2d7d', fontSize: 18 }}>{totalPrice} ₴</span>
             </div>
-            {magnets.length < MIN_QUANTITY && magnets.length > 0 && (
+            {magnets.length === 0 && (
               <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: 8, fontSize: 11, color: '#92400e', marginBottom: 10 }}>
-                Додайте ще {MIN_QUANTITY - magnets.length} магнітів (мін. замовлення {MIN_QUANTITY} шт)
+                Завантажте фото та оберіть розмір. Кожен набір — {SET_PRICE} ₴, кількість фото кратна розміру набору.
               </div>
             )}
-            {hasMultipleErrors && magnets.length >= MIN_QUANTITY && (
+            {hasMultipleErrors && (
               <div style={{ background: '#fff7ed', border: '1.5px solid #fdba74', borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
                 {multipleErrors.map(err => (
                   <div key={err.sizeId} style={{ marginBottom: multipleErrors.length > 1 ? 8 : 0 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e' }}>
-                       {err.label} см — {err.count} шт, має бути кратно {err.multiple}
+                       {err.label} см — {err.count} шт, має бути кратно {err.multiple} (розмір набору)
                     </div>
                     <div style={{ fontSize: 10, color: '#78350f', marginTop: 2 }}>
                       Видаліть <b>{err.toRemove}</b> або додайте <b>{err.toAdd}</b> магніт{err.toAdd > 1 ? 'и' : ''}
@@ -490,8 +508,8 @@ const router = useRouter();
             {/* QR Code Generator */}
             <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="Додати QR-код до замовлення" /></div>
 
-            <button onClick={handleAddToCart} disabled={magnets.length < MIN_QUANTITY || hasMultipleErrors}
-              style={{ width: '100%', padding: '12px', border: 'none', borderRadius: 8, background: magnets.length >= MIN_QUANTITY && !hasMultipleErrors ? '#1e2d7d' : '#e2e8f0', color: magnets.length >= MIN_QUANTITY && !hasMultipleErrors ? '#fff' : '#94a3b8', fontWeight: 800, fontSize: 14, cursor: magnets.length >= MIN_QUANTITY && !hasMultipleErrors ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <button onClick={handleAddToCart} disabled={!canOrder}
+              style={{ width: '100%', padding: '12px', border: 'none', borderRadius: 8, background: canOrder ? '#1e2d7d' : '#e2e8f0', color: canOrder ? '#fff' : '#94a3b8', fontWeight: 800, fontSize: 14, cursor: canOrder ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <ShoppingCart size={16} /> До кошика
             </button>
           </div>
