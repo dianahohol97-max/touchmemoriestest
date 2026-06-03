@@ -116,7 +116,9 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
           transition={{ duration: 0.7, ease: easing, delay: 0.1 }}
           style={{ color: '#ffffff', fontSize: 'clamp(3rem, 8vw, 6rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em', marginBottom: '3rem', maxWidth: '56rem' }}
         >
-          {t('home.hero_title')}
+          {heroContent?.title_line1
+            ? (<>{heroContent.title_line1}{heroContent.title_line2 ? (<><br />{heroContent.title_line2}</>) : null}</>)
+            : t('home.hero_title')}
         </motion.h1>
 
         {/* Exact 6 pills from reference */}
