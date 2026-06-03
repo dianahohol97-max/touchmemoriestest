@@ -9,7 +9,7 @@ import { Categories } from '@/components/ui/Categories';
 import { HowItWorks } from '@/components/ui/HowItWorks';
 import { BlogSection } from '@/components/ui/BlogSection';
 import { SocialProof } from '@/components/ui/SocialProof';
-import { TextReviews } from '@/components/ui/TextReviews';
+// import { TextReviews } from '@/components/ui/TextReviews'; // hidden from homepage (2026-06), data kept in DB
 import { FinalCTA } from '@/components/ui/FinalCTA';
 import { Footer } from '@/components/ui/Footer';
 import { TravelSection } from '@/components/ui/TravelSection';
@@ -259,9 +259,13 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           <SocialProof />
         </SectionWrapper>
 
-        <SectionWrapper name="text_reviews" defaultOrder={38}>
+        {/* Text reviews section hidden from homepage per request (2026-06).
+            The reviews themselves are NOT deleted — they remain in the `reviews`
+            DB table and a backup lives at docs/homepage-reviews-backup.md.
+            Re-enable by uncommenting this block and the TextReviews import. */}
+        {/* <SectionWrapper name="text_reviews" defaultOrder={38}>
           <TextReviews />
-        </SectionWrapper>
+        </SectionWrapper> */}
 
 <SectionWrapper name="blog" defaultOrder={39}>
                   {/*  Blog / Inspiration Section  */}
