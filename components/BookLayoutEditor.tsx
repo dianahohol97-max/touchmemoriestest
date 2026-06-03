@@ -5655,8 +5655,12 @@ export default function BookLayoutEditor() {
                                   const slotTopPx = Number(slotStyle.top) || 0;
                                   const slotHPx = Number(slotStyle.height) || 100;
                                   const below = slotTopPx < 52;
+                                  // Clamp the flipped-down position to the canvas height so a
+                                  // full-height slot (e.g. the big left slot in sp-3-hero-left)
+                                  // doesn't push the toolbar off the bottom of the canvas, which
+                                  // made tall slots look un-editable (controls were off-screen).
                                   const posStyle = below
-                                    ? { top: slotHPx + 8 }
+                                    ? { top: Math.min(slotHPx + 8, Math.max(8, cH - 44)) }
                                     : { top: -44 };
                                   return (
                                   <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace:'nowrap'}}>
@@ -5723,7 +5727,7 @@ export default function BookLayoutEditor() {
                                   const below = slotTopPx < 52;
                                   // When flipped below, sit under the (also-flipped) edit toolbar
                                   const posStyle = below
-                                    ? { top: slotHPx + 52 }
+                                    ? { top: Math.min(slotHPx + 52, Math.max(8, cH - 44)) }
                                     : { top: -44 };
                                   return (
                                   <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:'translateX(-50%)',display:'flex',gap:2,background:'rgba(0,0,0,0.6)',borderRadius:12,padding:'2px 4px',zIndex:60,whiteSpace:'nowrap'}}>
@@ -6294,7 +6298,7 @@ export default function BookLayoutEditor() {
                                     const slotTopPx = Number((s as any).top) || 0;
                                     const slotHPx = Number((s as any).height) || 100;
                                     const below = slotTopPx < 52;
-                                    const posStyle = below ? { top: slotHPx + 8 } : { top: -44 };
+                                    const posStyle = below ? { top: Math.min(slotHPx + 8, Math.max(8, cH - 44)) } : { top: -44 };
                                     return (
                                     <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace:'nowrap'}}>
                                       {/* Row 1: zoom + rotate + delete */}

@@ -287,9 +287,14 @@ export default function AccountPage() {
         if (!order.items?.length) { toast.error('Немає товарів для повторення'); return; }
         setRepeatingId(order.id);
         addItems(order.items.map((item: any) => ({
-            id: item.product_id || String(Math.random()),
-            name: item.name, price: item.price,
-            qty: item.qty || 1, image: item.image || '',
+            id: `${item.product_id || item.slug || item.product_slug || 'item'}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            product_id: item.product_id,
+            name: item.product_name || item.name || 'Товар',
+            price: Number(item.unit_price ?? item.price ?? 0),
+            qty: item.quantity ?? item.qty ?? 1,
+            slug: item.slug || item.product_slug,
+            image: item.image || '',
+            options: item.options || undefined,
         })));
         toast.success('Товари додано до кошика →');
         router.push('/cart');
