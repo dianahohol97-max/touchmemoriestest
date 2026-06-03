@@ -10,8 +10,10 @@ import {
   type Locale,
 } from '@/lib/seo/locales';
 import { getLocalized } from '@/lib/i18n/localize';
+import { toDbCategorySlug, toPublicCategorySlug, DB_TO_UA_CATEGORY } from '@/lib/seo/categorySlugs';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
+import { permanentRedirect } from 'next/navigation';
 
 // Category data changes rarely — ISR keeps it fast and crawlable.
 export const revalidate = 300;
@@ -56,7 +58,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = (rawLocale || 'uk') as Locale;
-  const cat = await getCategory(slug);
+  const cat = await getCategory(toDbCategorySlug(slug));
   if (!cat) return { title: 'Категорія | Touch.Memories' };
 
   const name = getLocalized(cat, locale, 'name') || cat.name;
@@ -65,7 +67,7 @@ export async function generateMetadata({
     .trim();
   const description = rawDesc ? rawDesc.slice(0, 160) : `${name} — Touch.Memories, Тернопіль.`;
   const title = `${name} | Touch.Memories`;
-  const path = `/category/${slug}`;
+  const path = `/category/${toPublicCategorySlug(cat.slug)}`;
 
   return {
     title,
@@ -95,7 +97,12 @@ export default async function CategoryPage({
   const locale = (rawLocale || 'uk') as Locale;
   const t = L[locale] || L.uk;
 
-  const cat = await getCategory(slug);
+  // Old DB-slug URL (e.g. /category/photobooks) → 301 to the UA slug.
+  if (DB_TO_UA_CATEGORY[slug] && DB_TO_UA_CATEGORY[slug] !== slug) {
+    permanentRedirect(`/${locale}/category/${DB_TO_UA_CATEGORY[slug]}`);
+  }
+
+  const cat = await getCategory(toDbCategorySlug(slug));
   if (!cat || cat.is_active === false) notFound();
 
   const products = await getProducts(cat.id);
@@ -104,7 +111,7 @@ export default async function CategoryPage({
   const description = (getLocalized(cat, locale, 'description') || cat.description || '').trim();
 
   const site = getBaseUrl();
-  const catUrl = getCanonicalUrl(locale, `/category/${slug}`);
+  const catUrl = getCanonicalUrl(locale, `/category/${toPublicCategorySlug(cat.slug)}`);
 
   const jsonLd = {
     '@context': 'https://schema.org',

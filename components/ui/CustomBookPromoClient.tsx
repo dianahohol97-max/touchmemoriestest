@@ -24,11 +24,11 @@ export function CustomBookPromoClient({
     const t = useT();
     const locale = useLocale();
     const productCategories = [
-      { Icon: BookOpen,  label: t('nav.photobooks'), href: `/${locale}/category/photobooks` },
+      { Icon: BookOpen,  label: t('nav.photobooks'), href: `/${locale}/category/fotoknygy` },
       { Icon: Newspaper, label: t('nav.magazines'),   href: `/${locale}/category/hlyantsevi-zhurnaly` },
-      { Icon: Compass,   label: 'TravelBook', href: `/${locale}/category/travelbooks` },
-      { Icon: Images,    label: t('custom_book.photo_print_label'),  href: `/${locale}/category/prints` },
-      { Icon: Gift,      label: t('custom_book.gifts_label'), href: `/${locale}/category/gifts` },
+      { Icon: Compass,   label: 'TravelBook', href: `/${locale}/category/trevel-buky` },
+      { Icon: Images,    label: t('custom_book.photo_print_label'),  href: `/${locale}/category/druk-foto` },
+      { Icon: Gift,      label: t('custom_book.gifts_label'), href: `/${locale}/category/foto-podarunky` },
     ];
     
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });

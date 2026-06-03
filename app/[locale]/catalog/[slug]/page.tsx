@@ -87,6 +87,28 @@ export default async function ProductPage({ params }: Props) {
   const base = getBaseUrl();
   const productUrl = getCanonicalUrl(locale, `/catalog/${slug}`);
 
+  // Genuine per-product rating only: reviews explicitly linked to THIS product.
+  // Stays absent (no spammy structured data) until real product reviews exist.
+  let aggregateRating: Record<string, any> | null = null;
+  if (product) {
+    const { data: revs } = await supabase
+      .from('reviews')
+      .select('rating')
+      .eq('product_id', (product as any).id)
+      .eq('is_active', true)
+      .gt('rating', 0);
+    if (revs && revs.length > 0) {
+      const sum = revs.reduce((a, r: any) => a + Number(r.rating || 0), 0);
+      aggregateRating = {
+        '@type': 'AggregateRating',
+        ratingValue: (sum / revs.length).toFixed(1),
+        reviewCount: revs.length,
+        bestRating: 5,
+        worstRating: 1,
+      };
+    }
+  }
+
   let jsonLdProduct: Record<string, any> | null = null;
   let jsonLdBreadcrumb: Record<string, any> | null = null;
 
@@ -107,6 +129,7 @@ export default async function ProductPage({ params }: Props) {
       image: Array.isArray(image) ? image : [image],
       brand: { '@type': 'Brand', name: 'Touch.Memories' },
       url: productUrl,
+      ...(aggregateRating ? { aggregateRating } : {}),
       ...(price > 0
         ? {
             offers: {

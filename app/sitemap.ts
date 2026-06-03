@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { LOCALES, getCanonicalUrl, HREFLANG_MAP } from '@/lib/seo/locales';
+import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
@@ -65,7 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .eq('is_active', true);
 
   for (const c of categories || []) {
-    const path = `/category/${c.slug}`;
+    const path = `/category/${toPublicCategorySlug(c.slug)}`;
     const alternates: Record<string, string> = {};
     for (const altLoc of LOCALES) {
       alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, path);
@@ -98,6 +99,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: post.updated_at ? new Date(post.updated_at) : new Date(),
         changeFrequency: 'monthly',
         priority: 0.5,
+        alternates: { languages: alternates },
+      });
+    }
+  }
+
+  const { data: landings } = await admin
+    .from('landing_pages')
+    .select('category_slug, occasion, updated_at')
+    .eq('is_active', true);
+
+  for (const lp of landings || []) {
+    const path = `/category/${toPublicCategorySlug(lp.category_slug)}/${lp.occasion}`;
+    const alternates: Record<string, string> = {};
+    for (const altLoc of LOCALES) {
+      alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, path);
+    }
+    for (const locale of LOCALES) {
+      entries.push({
+        url: getCanonicalUrl(locale, path),
+        lastModified: lp.updated_at ? new Date(lp.updated_at) : new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.6,
         alternates: { languages: alternates },
       });
     }
