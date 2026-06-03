@@ -231,6 +231,24 @@ export default function ProductsAdminPage() {
         }
     }
 
+    async function makeMainImage(i: number) {
+        if (!sel || i === 0) return;
+        const arr = [...sel.images];
+        const [img] = arr.splice(i, 1);
+        arr.unshift(img);
+        upd('images', arr);
+        if (sel.id) {
+            const { error } = await supabase.from('products').update({ images: arr }).eq('id', sel.id);
+            if (error) {
+                toast.error(`Не збережено: ${error.message}`);
+            } else {
+                setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: arr } : p));
+                toast.success('Головне фото оновлено ✓');
+                fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
+            }
+        }
+    }
+
     async function deleteImage(i: number) {
         if (!sel) return;
         const newImages = sel.images.filter((_, j) => j !== i);
@@ -609,7 +627,14 @@ export default function ProductsAdminPage() {
                                                     style={{ position:'absolute', top:3, right:3, background:'rgba(0,0,0,0.65)', color:'#fff', border:'none', borderRadius:'50%', width:20, height:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
                                                     <X size={11}/>
                                                 </button>
-                                                {i===0 && <div style={{ position:'absolute', bottom:3, left:3, background:'#1e2d7d', color:'#fff', fontSize:8, fontWeight:700, padding:'2px 5px', borderRadius:3 }}>ГОЛОВНЕ</div>}
+                                                {i===0 ? (
+                                                    <div style={{ position:'absolute', bottom:3, left:3, background:'#1e2d7d', color:'#fff', fontSize:8, fontWeight:700, padding:'2px 5px', borderRadius:3 }}>ГОЛОВНЕ</div>
+                                                ) : (
+                                                    <button onClick={()=>makeMainImage(i)} title="Зробити головним фото"
+                                                        style={{ position:'absolute', bottom:3, left:3, background:'rgba(255,255,255,0.92)', color:'#1e2d7d', border:'1px solid #c7d2fe', fontSize:8, fontWeight:700, padding:'2px 5px', borderRadius:3, cursor:'pointer' }}>
+                                                        ★ Зробити головним
+                                                    </button>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
