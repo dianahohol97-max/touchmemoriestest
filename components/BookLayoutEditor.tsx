@@ -1422,9 +1422,14 @@ export default function BookLayoutEditor() {
         } catch {}
       }
     }
-    // Restore editor draft if user navigated back
-    const draft = sessionStorage.getItem('bookEditorDraft');
+    // Restore editor draft if user navigated back — keyed per product so a
+    // draft from a different product (e.g. a magazine) can never leak into a
+    // new one (e.g. a photobook cover bleeding over).
     const currentConfig = sessionStorage.getItem('bookConstructorConfig');
+    let restoreSlug = '';
+    try { restoreSlug = (JSON.parse(currentConfig || '{}').productSlug || '').toLowerCase().trim(); } catch {}
+    const draftKey = restoreSlug ? `bookEditorDraft_${restoreSlug}` : 'bookEditorDraft';
+    const draft = sessionStorage.getItem(draftKey);
     if (draft) {
       try {
         const d = JSON.parse(draft);
@@ -1451,7 +1456,7 @@ export default function BookLayoutEditor() {
           const magazineMinTooLow = isDraftMagazine && draftContent < 8;
           if (Math.abs(draftContent - expectedTotal) > 2 || magazineMinTooLow) {
             // Draft is from a different order — discard it
-            sessionStorage.removeItem('bookEditorDraft');
+            sessionStorage.removeItem(draftKey);
           } else {
             // Get valid photo IDs from restored photos to clear dangling refs
             const validIds = new Set((JSON.parse(sessionStorage.getItem('bookConstructorPhotos') || '[]') as PhotoData[])
@@ -1516,8 +1521,10 @@ export default function BookLayoutEditor() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       try {
-        const draft = { pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount };
-        sessionStorage.setItem('bookEditorDraft', JSON.stringify(draft));
+        const slug = (config?.productSlug || '').toLowerCase().trim();
+        const draftKey = slug ? `bookEditorDraft_${slug}` : 'bookEditorDraft';
+        const draft = { productSlug: slug, pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount };
+        sessionStorage.setItem(draftKey, JSON.stringify(draft));
         setSaveStatus('saved');
         // Reset to idle after 3 seconds
         setTimeout(() => setSaveStatus('idle'), 3000);
@@ -1553,7 +1560,8 @@ export default function BookLayoutEditor() {
   useEffect(() => {
     if (!config) return;
     // Skip re-initialization if we restored a draft (pages already set)
-    const draft = sessionStorage.getItem('bookEditorDraft');
+    const initSlug = (config.productSlug || '').toLowerCase().trim();
+    const draft = sessionStorage.getItem(initSlug ? `bookEditorDraft_${initSlug}` : 'bookEditorDraft');
     if (draft) {
       try { const d = JSON.parse(draft); if (d.pages?.length) return; } catch {}
     }
@@ -2727,6 +2735,8 @@ export default function BookLayoutEditor() {
 
     addItem(cartPayload as any);
 
+    const clearSlug = (config?.productSlug || '').toLowerCase().trim();
+    if (clearSlug) sessionStorage.removeItem(`bookEditorDraft_${clearSlug}`);
     sessionStorage.removeItem('bookEditorDraft');
     sessionStorage.removeItem('bookConstructorConfig');
 
