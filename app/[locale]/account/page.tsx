@@ -514,6 +514,24 @@ export default function AccountPage() {
                         {tab === 'designs' && (
                             <div>
                                 <SectionHeader icon={<FileText size={20}/>} title="Мої дизайни" sub={`${designs.length} збережених проєктів`} />
+                                {(() => {
+                                    const orderable = designs.filter(d => d.cart_payload);
+                                    if (orderable.length === 0 || selectedDesignIds.length > 0) return null;
+                                    const draftsCount = designs.length - orderable.length;
+                                    return (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+                                            <button onClick={() => setSelectedDesignIds(orderable.map(d => d.id))}
+                                                style={{ padding: '8px 14px', background: 'white', color: '#263a99', border: '1px solid #c7d2fe', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                                                Вибрати всі для замовлення ({orderable.length})
+                                            </button>
+                                            {draftsCount > 0 && (
+                                                <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                                                    {draftsCount} незавершених — відкрий у редакторі, щоб замовити
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                                 {designs.length > 0 && selectedDesignIds.length > 0 && (
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px', marginBottom: 16, background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12 }}>
                                         <span style={{ fontSize: 14, fontWeight: 700, color: '#1e2d7d' }}>
