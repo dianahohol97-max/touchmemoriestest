@@ -13,6 +13,7 @@ import { I18nProvider } from '@/lib/i18n/context';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { OAuthCallbackHandler } from '@/components/providers/OAuthCallbackHandler';
 import { SITE_INFO } from '@/lib/seoContent';
+import { getBaseUrl } from '@/lib/seo/locales';
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -49,9 +50,65 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Global structured data (site-wide identity). Rendered server-side so it's
+  // in the initial HTML for crawlers. Product/Breadcrumb JSON-LD lives on the
+  // product pages; this is the Organization / LocalBusiness / WebSite graph.
+  const site = getBaseUrl();
+  const SOCIALS = [
+    'https://instagram.com/touch.memories',
+    'https://t.me/touchmemories',
+    'https://tiktok.com/@touch.memories',
+  ];
+  const globalJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${site}/#organization`,
+        name: SITE_INFO.name,
+        url: site,
+        email: 'touch.memories3@gmail.com',
+        description: SITE_INFO.description,
+        sameAs: SOCIALS,
+      },
+      {
+        '@type': 'LocalBusiness',
+        '@id': `${site}/#localbusiness`,
+        name: SITE_INFO.name,
+        url: site,
+        email: 'touch.memories3@gmail.com',
+        description: SITE_INFO.description,
+        priceRange: '₴₴',
+        currenciesAccepted: 'UAH',
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: 'вул. Омеляна Польового, 4а',
+          addressLocality: 'Тернопіль',
+          addressRegion: 'Тернопільська область',
+          addressCountry: 'UA',
+        },
+        geo: { '@type': 'GeoCoordinates', latitude: 49.5535, longitude: 25.5948 },
+        parentOrganization: { '@id': `${site}/#organization` },
+        sameAs: SOCIALS,
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${site}/#website`,
+        url: site,
+        name: SITE_INFO.name,
+        inLanguage: 'uk',
+        publisher: { '@id': `${site}/#organization` },
+      },
+    ],
+  };
+
   return (
     <html lang="uk" suppressHydrationWarning className={`${montserrat.variable} ${openSans.variable}`}>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(globalJsonLd) }}
+        />
       </head>
       <body className="font-body bg-background text-textPrimary antialiased">
         <ConsentProvider>
