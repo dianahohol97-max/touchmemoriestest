@@ -84,19 +84,33 @@ export default function ContentManagementPage() {
                 .single();
             if (heroData) setHeroContent(heroData);
 
-            // Fetch hero buttons
+            // Fetch hero buttons (live Hero reads text/url/sort_order; map to editor field names)
             const { data: buttonsData } = await supabase
                 .from('hero_buttons')
                 .select('*')
-                .order('display_order');
-            if (buttonsData) setHeroButtons(buttonsData);
+                .order('sort_order');
+            if (buttonsData) setHeroButtons(buttonsData.map((b: any) => ({
+                id: b.id,
+                button_text: b.text ?? b.button_text ?? '',
+                button_url: b.url ?? b.button_url ?? '',
+                display_order: b.sort_order ?? b.display_order ?? 0,
+                row_number: b.row_number ?? 1,
+                is_active: b.is_active,
+            })));
 
-            // Fetch feature cards
+            // Fetch feature cards (the live "Чому обрати нас" / HowItWorks section reads feature_cards)
             const { data: cardsData } = await supabase
-                .from('why_choose_us_cards')
+                .from('feature_cards')
                 .select('*')
-                .order('display_order');
-            if (cardsData) setFeatureCards(cardsData);
+                .order('sort_order');
+            if (cardsData) setFeatureCards(cardsData.map((c: any) => ({
+                id: c.id,
+                title: c.title || '',
+                description: c.subtitle || '',
+                icon_name: c.icon || null,
+                display_order: c.sort_order || 0,
+                is_active: c.is_active,
+            })));
 
             // Fetch section content
             const { data: sectionsData } = await supabase
@@ -146,8 +160,11 @@ export default function ContentManagementPage() {
                 const { error } = await supabase
                     .from('hero_buttons')
                     .update({
+                        text: button.button_text,
                         button_text: button.button_text,
+                        url: button.button_url,
                         button_url: button.button_url,
+                        sort_order: button.display_order,
                         display_order: button.display_order,
                         row_number: button.row_number,
                         is_active: button.is_active
@@ -170,11 +187,11 @@ export default function ContentManagementPage() {
         try {
             for (const card of featureCards) {
                 const { error } = await supabase
-                    .from('why_choose_us_cards')
+                    .from('feature_cards')
                     .update({
                         title: card.title,
-                        description: card.description,
-                        display_order: card.display_order,
+                        subtitle: card.description,
+                        sort_order: card.display_order,
                         is_active: card.is_active
                     })
                     .eq('id', card.id);
@@ -196,8 +213,12 @@ export default function ContentManagementPage() {
             const { data, error } = await supabase
                 .from('hero_buttons')
                 .insert({
+                    text: 'Нова кнопка',
                     button_text: 'Нова кнопка',
+                    url: '/catalog',
                     button_url: '/catalog',
+                    variant: 'pill',
+                    sort_order: maxOrder + 1,
                     display_order: maxOrder + 1,
                     row_number: 1,
                     is_active: true
@@ -207,7 +228,14 @@ export default function ContentManagementPage() {
 
             if (error) throw error;
             if (data) {
-                setHeroButtons([...heroButtons, data]);
+                setHeroButtons([...heroButtons, {
+                    id: data.id,
+                    button_text: data.text ?? data.button_text ?? '',
+                    button_url: data.url ?? data.button_url ?? '',
+                    display_order: data.sort_order ?? data.display_order ?? 0,
+                    row_number: data.row_number ?? 1,
+                    is_active: data.is_active,
+                }]);
                 toast.success('Кнопку додано');
             }
         } catch (error) {
@@ -235,7 +263,7 @@ export default function ContentManagementPage() {
     async function deleteFeatureCard(id: string) {
         try {
             const { error } = await supabase
-                .from('why_choose_us_cards')
+                .from('feature_cards')
                 .delete()
                 .eq('id', id);
 
@@ -252,11 +280,12 @@ export default function ContentManagementPage() {
         try {
             const maxOrder = Math.max(...featureCards.map(c => c.display_order), 0);
             const { data, error } = await supabase
-                .from('why_choose_us_cards')
+                .from('feature_cards')
                 .insert({
                     title: 'Нова перевага',
-                    description: 'Опис переваги',
-                    display_order: maxOrder + 1,
+                    subtitle: 'Опис переваги',
+                    icon: '✨',
+                    sort_order: maxOrder + 1,
                     is_active: true
                 })
                 .select()
@@ -264,7 +293,14 @@ export default function ContentManagementPage() {
 
             if (error) throw error;
             if (data) {
-                setFeatureCards([...featureCards, data]);
+                setFeatureCards([...featureCards, {
+                    id: data.id,
+                    title: data.title || '',
+                    description: data.subtitle || '',
+                    icon_name: data.icon || null,
+                    display_order: data.sort_order || 0,
+                    is_active: data.is_active,
+                }]);
                 toast.success('Картку додано');
             }
         } catch (error) {
