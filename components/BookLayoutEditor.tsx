@@ -1066,6 +1066,21 @@ function LayoutSVG({ layout, active }: { layout: LayoutType; active: boolean }) 
   );
 }
 
+// Compute the canvas zoom (%) that fits the WHOLE spread inside the viewport,
+// accounting for the viewport's padding and limited by whichever of
+// width/height is the constraint. Returns null if it can't measure yet.
+function computeFitZoom(el: HTMLElement | null, baseW: number, baseH: number): number | null {
+  if (!el || !(baseW > 0) || !(baseH > 0)) return null;
+  const cs = getComputedStyle(el);
+  const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+  const availW = el.clientWidth - padX;
+  const availH = el.clientHeight - padY;
+  if (availW <= 0 || availH <= 0) return null;
+  const fit = Math.floor(Math.min(availW / baseW, availH / baseH) * 100);
+  return Math.max(20, Math.min(150, fit));
+}
+
 export default function BookLayoutEditor() {
   const router = useRouter();
   const t = useT();
@@ -1236,6 +1251,21 @@ export default function BookLayoutEditor() {
   const [qrGenerating, setQrGenerating] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
   const qrUploadInputRef = useRef<HTMLInputElement>(null);
+  // Canvas viewport + spread dims, used to fit the whole spread on screen.
+  const canvasViewportRef = useRef<HTMLDivElement>(null);
+  const dimsRef = useRef<{ baseW: number; baseH: number }>({ baseW: 0, baseH: 0 });
+  const autoFitDoneRef = useRef(false);
+  // On first load (once the canvas is rendered), zoom so the whole spread is
+  // visible instead of being clipped at the default heuristic zoom.
+  useEffect(() => {
+    if (autoFitDoneRef.current) return;
+    if (!config || pages.length === 0) return;
+    const id = requestAnimationFrame(() => {
+      const z = computeFitZoom(canvasViewportRef.current, dimsRef.current.baseW, dimsRef.current.baseH);
+      if (z != null) { setZoom(z); autoFitDoneRef.current = true; }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [config, pages.length]);
   const [dbStickers, setDbStickers] = useState<{id:string;name:string;category:string;image_url:string}[]>([]);
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
@@ -1723,6 +1753,12 @@ export default function BookLayoutEditor() {
   const cW = baseW * zoom / 100; // full spread width
   const cH = baseH * zoom / 100;
   const pageW = cW / 2; // single page width
+  // Keep the latest spread dims for the auto-fit effect; expose a Fit handler.
+  dimsRef.current = { baseW, baseH };
+  const fitToView = () => {
+    const z = computeFitZoom(canvasViewportRef.current, baseW, baseH);
+    if (z != null) setZoom(z);
+  };
 
   // Init cover state from config
   useEffect(() => {
@@ -3372,6 +3408,7 @@ export default function BookLayoutEditor() {
             <span style={{ fontSize:12, fontWeight:700, color:'#475569', minWidth:36, textAlign:'center' }}>{zoom}%</span>
             <button onPointerDown={()=>setZoom(z=>Math.min(150,z+10))} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomIn size={14}/></button>
             {isMobile && <button onPointerDown={()=>{ const w=window.innerWidth-32; setZoom(Math.max(20,Math.min(70,Math.round((w/680)*100)))); }} title="По ширині" style={{ padding:'6px 8px', border:'1px solid #c7d2fe', borderRadius:6, background:'#f0f3ff', cursor:'pointer', fontSize:11, fontWeight:800, color:'#1e2d7d', touchAction:'manipulation' }}>↔</button>}
+            {!isMobile && <button onPointerDown={fitToView} title="Вмістити весь розворот" style={{ padding:'6px 10px', border:'1px solid #c7d2fe', borderRadius:6, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:800, color:'#1e2d7d' }}>Вмістити</button>}
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <div style={{ textAlign:'right', paddingRight:4 }}>
@@ -5026,6 +5063,7 @@ export default function BookLayoutEditor() {
             (e.currentTarget as any)._swipeStartX = null;
             (e.currentTarget as any)._swipeMoved = false;
           }}
+          ref={canvasViewportRef}
           style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'auto', padding: isMobile ? `8px 8px ${mobilePanel ? '370px' : '115px'} 8px` : '24px 32px 160px 32px', background: '#f4f6fb', position:'relative', WebkitOverflowScrolling:'touch' as any }}>
           <div style={{ position: isMobile ? 'static' : 'sticky', top: 0, zIndex: 30, background: '#f4f6fb', padding: isMobile ? 0 : '8px 0', fontSize: 13, fontWeight: 700, color: '#1e2d7d', marginBottom: isMobile ? 6 : 12, display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12, flexShrink: 0, alignSelf: 'center' }}>
             {isWishbook ? (
