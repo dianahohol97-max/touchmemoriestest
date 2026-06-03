@@ -82,7 +82,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           .limit(2),
         supabase
           .from('blog_posts')
-          .select('*, translations, category:blog_categories(name, slug, translations)')
+          .select('*, translations, category:blog_categories(name, slug)')
           .eq('is_published', true)
           .eq('is_featured', true)
           .order('published_at', { ascending: false })
@@ -296,7 +296,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   <Link href={`/blog/${featuredBlogPosts[0].slug}`}>
                     <div className="relative overflow-hidden bg-stone-100 rounded-xl" style={{ aspectRatio: '16/10' }}>
                       <img
-                        src={featuredBlogPosts[0].featured_image || 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80'}
+                        src={featuredBlogPosts[0].cover_image || 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80'}
                         alt={getLocalized(featuredBlogPosts[0], locale, 'title')}
                         loading="lazy"
                         decoding="async"
@@ -312,8 +312,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                         <h3 className="text-white text-xl lg:text-2xl font-heading font-bold leading-snug">
                           {getLocalized(featuredBlogPosts[0], locale, 'title')}
                         </h3>
-                        {featuredBlogPosts[0].read_time && (
-                          <p className="text-white/70 text-sm mt-2">{featuredBlogPosts[0].read_time} {t('blog.min_read')}</p>
+                        {featuredBlogPosts[0].reading_time && (
+                          <p className="text-white/70 text-sm mt-2">{featuredBlogPosts[0].reading_time} {t('blog.min_read')}</p>
                         )}
                       </div>
                     </div>
@@ -329,7 +329,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                     <Link href={`/blog/${post.slug}`}>
                       <div className="relative overflow-hidden bg-stone-100 rounded-xl" style={{ aspectRatio: '16/9' }}>
                         <img
-                          src={post.featured_image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80'}
+                          src={post.cover_image || 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80'}
                           alt={getLocalized(post, locale, 'title')}
                           loading="lazy"
                           decoding="async"

@@ -76,7 +76,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
 
     // Build Posts Query
     let query = supabase.from('blog_posts')
-        .select('*, translations, blog_categories(name, slug, translations)', { count: 'exact' })
+        .select('*, translations, blog_categories(name, slug)', { count: 'exact' })
         .eq('is_published', true)
         .order('published_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -92,7 +92,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
 
     // Fetch Featured Post (Hero)
     const { data: featuredPost } = await supabase.from('blog_posts')
-        .select('*, translations, blog_categories(name, slug, translations)')
+        .select('*, translations, blog_categories(name, slug)')
         .eq('is_published', true)
         .eq('is_featured', true)
         .order('published_at', { ascending: false })
