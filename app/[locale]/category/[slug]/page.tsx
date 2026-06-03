@@ -43,6 +43,19 @@ async function getProducts(categoryId: string) {
   return (data as any[]) || [];
 }
 
+async function getSubcategories(categorySlug: string) {
+  const supabase = getAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('landing_pages')
+    .select('occasion, h1')
+    .eq('category_slug', categorySlug)
+    .eq('kind', 'subcategory')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+  return (data as any[]) || [];
+}
+
 const L: Record<string, { home: string; catalog: string; from: string; empty: string; in_cat: string }> = {
   uk: { home: 'Головна', catalog: 'Каталог', from: 'від', empty: 'Товари в цій категорії з’являться незабаром.', in_cat: 'товарів у категорії' },
   en: { home: 'Home', catalog: 'Catalog', from: 'from', empty: 'Products in this category are coming soon.', in_cat: 'products in category' },
@@ -106,6 +119,7 @@ export default async function CategoryPage({
   if (!cat || cat.is_active === false) notFound();
 
   const products = await getProducts(cat.id);
+  const subcategories = await getSubcategories(cat.slug);
 
   const name = getLocalized(cat, locale, 'name') || cat.name;
   const description = (getLocalized(cat, locale, 'description') || cat.description || '').trim();
@@ -178,6 +192,20 @@ export default async function CategoryPage({
             </p>
           )}
         </header>
+
+        {subcategories.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 32 }}>
+            {subcategories.map((s) => (
+              <Link
+                key={s.occasion}
+                href={`/${locale}/category/${toPublicCategorySlug(cat.slug)}/${s.occasion}`}
+                style={{ padding: '8px 16px', borderRadius: 999, border: '1px solid #c7d2fe', background: '#f0f3ff', color: '#1e2d7d', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
+              >
+                {s.h1}
+              </Link>
+            ))}
+          </div>
+        )}
 
         {products.length === 0 ? (
           <p style={{ color: '#64748b', fontSize: 16 }}>{t.empty}</p>
