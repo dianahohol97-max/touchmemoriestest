@@ -1258,27 +1258,33 @@ export default function BookLayoutEditor() {
     });
     return () => cancelAnimationFrame(id);
   }, [config, pages.length]);
-  // On mobile, keep the spread fitted to the viewport width when the screen
-  // rotates or resizes (the soft keyboard, address bar, or orientation change),
-  // so the spread never ends up clipped off the right edge.
+  // On mobile, fit the spread to the viewport WIDTH (so it's never clipped off
+  // the side) on first paint and whenever the spread changes, a panel opens, or
+  // the screen rotates/resizes. Width-fit (not min(w,h)) guarantees the full
+  // spread is visible horizontally; the page can scroll vertically if needed.
   useEffect(() => {
     if (!isMobile || !config || pages.length === 0) return;
     let raf = 0;
-    const refit = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const z = computeFitZoom(canvasViewportRef.current, dimsRef.current.baseW, dimsRef.current.baseH);
-        if (z != null) setZoom(z);
-      });
+    const fitWidth = () => {
+      const el = canvasViewportRef.current;
+      const bw = dimsRef.current.baseW;
+      if (!el || !(bw > 0)) return;
+      const cs = getComputedStyle(el);
+      const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+      const availW = el.clientWidth - padX;
+      if (availW <= 0) return;
+      setZoom(Math.max(20, Math.min(150, Math.floor((availW / bw) * 100))));
     };
-    window.addEventListener('orientationchange', refit);
-    window.addEventListener('resize', refit);
+    const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fitWidth); };
+    schedule();
+    window.addEventListener('orientationchange', schedule);
+    window.addEventListener('resize', schedule);
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener('orientationchange', refit);
-      window.removeEventListener('resize', refit);
+      window.removeEventListener('orientationchange', schedule);
+      window.removeEventListener('resize', schedule);
     };
-  }, [isMobile, config, pages.length]);
+  }, [isMobile, config, pages.length, currentIdx, mobilePanel]);
   const [dbStickers, setDbStickers] = useState<{id:string;name:string;category:string;image_url:string}[]>([]);
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
@@ -7463,13 +7469,13 @@ export default function BookLayoutEditor() {
           {/* Tool buttons row */}
           <div style={{ display:'flex', alignItems:'stretch' }}>
             {([
-              ...(!isWishbook ? [['photos', '', 'Фото']] : []),
-              ...(!isWishbook ? [['layouts', '⊞', 'Макет']] : []),
-              ['text', 'Aa', 'Текст'],
-              ['bg', '', 'Фон'],
-              ['stickers', '', 'Стікер'],
-              ...(currentIdx===0 || isWishbook ? [['cover', '', 'Обкл.']] : [['frames', '', 'Рамки']]) as any,
-            ] as [string,string,string][]).map(([id, icon, label]) => {
+              ...(!isWishbook ? [['photos', <ImageIcon size={19}/>, 'Фото']] : []),
+              ...(!isWishbook ? [['layouts', <LayoutGrid size={19}/>, 'Макет']] : []),
+              ['text', <Type size={19}/>, 'Текст'],
+              ['bg', <Palette size={19}/>, 'Фон'],
+              ['stickers', <Sticker size={19}/>, 'Стікер'],
+              ...(currentIdx===0 || isWishbook ? [['cover', <BookOpen size={19}/>, 'Обкл.']] : [['frames', <Frame size={19}/>, 'Рамки']]) as any,
+            ] as [string,React.ReactNode,string][]).map(([id, icon, label]) => {
               const active = leftTab===id && mobilePanel;
               return (
                 <button key={id}
@@ -7483,19 +7489,19 @@ export default function BookLayoutEditor() {
                   style={{ flex:1, padding:'7px 2px 5px', border:'none',
                     background: active ? '#1e2d7d' : 'transparent',
                     color: active ? '#fff' : '#374151',
-                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2,
+                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
                     cursor:'pointer', minWidth:0, touchAction:'manipulation',
                     borderTop: active ? '2px solid #3b52d4' : '2px solid transparent',
                     transition:'background 0.15s' }}>
-                  <span style={{ fontSize:19, lineHeight:1 }}>{icon}</span>
+                  <span style={{ display:'flex', alignItems:'center', justifyContent:'center', height:20 }}>{icon}</span>
                   <span style={{ fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>{label}</span>
                 </button>
               );
             })}
             {/* Quick Auto button */}
-            <button onPointerDown={()=>{ autoFill(); toast.success(' Авто!', {duration:1200}); }}
-              style={{ flex:1, padding:'7px 2px 5px', border:'none', background:'transparent', color:'#374151', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, cursor:'pointer', minWidth:0, touchAction:'manipulation', borderTop:'2px solid transparent' }}>
-              <span style={{ fontSize:19, lineHeight:1 }}></span>
+            <button onPointerDown={()=>{ autoFill(); toast.success('Авто!', {duration:1200}); }}
+              style={{ flex:1, padding:'7px 2px 5px', border:'none', background:'transparent', color:'#374151', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, cursor:'pointer', minWidth:0, touchAction:'manipulation', borderTop:'2px solid transparent' }}>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', height:20 }}><Wand2 size={19}/></span>
               <span style={{ fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>Авто</span>
             </button>
           </div>

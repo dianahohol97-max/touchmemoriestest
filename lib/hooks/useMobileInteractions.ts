@@ -23,6 +23,11 @@ export function startPointerDrag(
   // Flag the drag globally so the editor canvas doesn't also swipe/scroll the
   // spread while an object (text, slot, handle) is being dragged on touch.
   try { (window as any).__tmObjectDragging = true; } catch {}
+  // Block native touch scrolling for the duration of the drag so the page
+  // doesn't pan under the finger while moving/resizing an object. This is the
+  // reliable cross-browser guard (touch-action on the handle alone is flaky on iOS).
+  const blockTouch = (te: TouchEvent) => { try { te.preventDefault(); } catch {} };
+  window.addEventListener('touchmove', blockTouch, { passive: false });
   const move = (pe: PointerEvent) => {
     pe.preventDefault(); // prevent iOS scroll during drag
     onMove(pe.clientX - startX, pe.clientY - startY);
@@ -31,6 +36,7 @@ export function startPointerDrag(
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', end);
     window.removeEventListener('pointercancel', end);
+    window.removeEventListener('touchmove', blockTouch);
     try { (window as any).__tmObjectDragging = false; } catch {}
     onEnd?.();
   };
