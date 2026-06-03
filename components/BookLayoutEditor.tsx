@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop, Check } from 'lucide-react';
 import { QRCodeGenerator } from './ui/QRCodeGenerator';
 import { autoBuild } from '@/lib/editor/auto-build';
 import { AutoBuildModal } from './editor/AutoBuildModal';
@@ -1089,6 +1089,7 @@ export default function BookLayoutEditor() {
   const [mobilePanel, setMobilePanel] = useState(false); // bottom sheet open
   const [mobileLayoutGroup, setMobileLayoutGroup] = useState<string | null>(null); // selected layout group on mobile
   const [mobilePanelHeight, setMobilePanelHeight] = useState<'half'|'full'>('half'); // bottom sheet size
+  const [mobileMultiSelect, setMobileMultiSelect] = useState(false); // mobile: select several photos to place at once
   useEffect(() => {
     const check = () => {
       setIsMobile(window.innerWidth < 640);
@@ -6900,18 +6901,54 @@ export default function BookLayoutEditor() {
 
         {/* MOBILE: mini photo strip directly under canvas */}
         {isMobile && photos.length > 0 && (
-          <div style={{ position:'absolute', bottom: 72, left:0, right:0, background:'rgba(255,255,255,0.95)', backdropFilter:'blur(8px)', borderTop:'1px solid #f1f5f9', zIndex:40, padding:'6px 8px', display:'flex', gap:6, overflowX:'auto', overflowY:'hidden', WebkitOverflowScrolling:'touch' as any, scrollbarWidth:'none' }}>
+          <div style={{ position:'absolute', bottom: 72, left:0, right:0, background:'rgba(255,255,255,0.95)', backdropFilter:'blur(8px)', borderTop:'1px solid #f1f5f9', zIndex:40, padding:'6px 8px', display:'flex', flexDirection:'column', gap:6 }}>
+            {/* Control row: multi-select toggle + place action */}
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <button
+                onPointerDown={() => { setMobileMultiSelect(m => { const nv = !m; if (!nv) setSelectedPhotoIds(new Set()); return nv; }); setTapSelectedPhotoId(null); }}
+                style={{ flexShrink:0, padding:'7px 12px', borderRadius:999, border: mobileMultiSelect ? '1.5px solid #7c3aed' : '1px solid #e2e8f0', background: mobileMultiSelect ? '#7c3aed' : '#fff', color: mobileMultiSelect ? '#fff' : '#475569', fontSize:12, fontWeight:700, cursor:'pointer', touchAction:'manipulation', display:'flex', alignItems:'center', gap:5 }}>
+                <Check size={13}/>{mobileMultiSelect ? 'Готово обирати' : 'Обрати кілька'}
+              </button>
+              {selectedPhotoIds.size >= 1 && (
+                <button
+                  onPointerDown={() => {
+                    const ids = [...selectedPhotoIds];
+                    const pageIdx = currentIdx === 0 ? (pages.length > 1 ? 1 : 0)
+                      : isSpreadMode ? (currentIdx - 1) * 2 + 1
+                      : (currentIdx - 1) * 2 + 1 + activeSide;
+                    autoCollage(ids, pageIdx);
+                    setMobileMultiSelect(false);
+                  }}
+                  style={{ flex:1, minWidth:0, padding:'7px 10px', borderRadius:999, border:'none', background:'#16a34a', color:'#fff', fontSize:12, fontWeight:800, cursor:'pointer', touchAction:'manipulation', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', boxShadow:'0 2px 8px rgba(22,163,74,0.3)' }}>
+                  Розставити {selectedPhotoIds.size} на розворот →
+                </button>
+              )}
+              {mobileMultiSelect && selectedPhotoIds.size === 0 && (
+                <span style={{ fontSize:11, color:'#7c3aed', fontWeight:600 }}>Торкніться фото, щоб обрати</span>
+              )}
+            </div>
+            {/* Photo row */}
+            <div style={{ display:'flex', gap:6, overflowX:'auto', overflowY:'hidden', WebkitOverflowScrolling:'touch' as any, scrollbarWidth:'none' }}>
             {photos.filter(p => {
               const used = pages.some(pg => pg.slots.some(s => s.photoId === p.id)) || Object.values(freeSlots).some((arr: any[]) => arr.some((fs: any) => fs.photoId === p.id));
               return !used;
             }).slice(0, 20).map(ph => {
               const isTapped = tapSelectedPhotoId === ph.id;
+              const isSel = selectedPhotoIds.has(ph.id);
+              const selOrder = isSel ? [...selectedPhotoIds].indexOf(ph.id) + 1 : 0;
               return (
                 <div key={ph.id}
-                  onPointerDown={() => { setTapSelectedPhotoId(isTapped ? null : ph.id); setMobilePanel(false); }}
-                  style={{ flexShrink:0, width:56, height:56, borderRadius:8, overflow:'hidden', border: isTapped ? '2.5px solid #3b82f6' : '2px solid transparent', cursor:'pointer', position:'relative', touchAction:'manipulation' }}>
+                  onPointerDown={() => {
+                    if (mobileMultiSelect) {
+                      setSelectedPhotoIds(prev => { const n = new Set(prev); if (n.has(ph.id)) n.delete(ph.id); else n.add(ph.id); return n; });
+                    } else {
+                      setTapSelectedPhotoId(isTapped ? null : ph.id); setMobilePanel(false);
+                    }
+                  }}
+                  style={{ flexShrink:0, width:56, height:56, borderRadius:8, overflow:'hidden', border: isSel ? '2.5px solid #7c3aed' : isTapped ? '2.5px solid #3b82f6' : '2px solid transparent', cursor:'pointer', position:'relative', touchAction:'manipulation' }}>
                   <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
-                  {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}></div>}
+                  {isSel && <div style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ width:22, height:22, borderRadius:999, background:'#7c3aed', color:'#fff', fontSize:12, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{selOrder}</span></div>}
+                  {!isSel && isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}></div>}
                   {ph.hasFace && <span style={{ position:'absolute', bottom:1, right:1, fontSize:9 }}></span>}
                 </div>
               );
@@ -6924,6 +6961,7 @@ export default function BookLayoutEditor() {
                 <span></span> Всі фото розміщено
               </div>
             )}
+            </div>
           </div>
         )}
 
