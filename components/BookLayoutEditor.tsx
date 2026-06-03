@@ -5624,7 +5624,7 @@ export default function BookLayoutEditor() {
                                   pushHistory();
                                   setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId: pid, ...getFocalCrop(pid) }) }));
                                 }}
-                                onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                 onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                 <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key}
                                   onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
@@ -6265,7 +6265,7 @@ export default function BookLayoutEditor() {
                                   ) : null;
                                 })()}
                                 <div style={{ width: '100%', height: '100%', overflow: photoEditSlot === key ? 'visible' : 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
-                                  onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                  onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
