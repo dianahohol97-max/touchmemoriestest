@@ -52,8 +52,8 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
   const { content } = useTheme();
   const t = useT();
 
-  // Category pills — localized; complement main nav (don't duplicate header items)
-  const pills = [
+  // Category pills — localized defaults; used only when admin hasn't set buttons in the DB
+  const localizedPills = [
     { id: '1', text: t('hero.pill_photobook'), url: '/catalog?category=photobooks' },
     { id: '2', text: t('hero.pill_magazine'), url: '/catalog?category=hlyantsevi-zhurnaly' },
     { id: '3', text: t('hero.pill_travelbook'), url: '/catalog?category=travelbooks' },
@@ -61,6 +61,15 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
     { id: '5', text: t('hero.pill_graduation'), url: '/catalog?category=graduation-books' },
     { id: '6', text: t('hero.pill_albums'), url: '/catalog?category=photoalbomy-failykovi' },
   ];
+  // Admin-managed category buttons (hero_buttons table) take priority when present
+  const dbPills = (heroButtons || [])
+    .filter((b: any) => b.is_active !== false && (b.button_text || b.text))
+    .map((b: any) => ({
+      id: String(b.id),
+      text: b.button_text || b.text,
+      url: b.button_url || b.url || '/catalog',
+    }));
+  const pills = dbPills.length > 0 ? dbPills : localizedPills;
 
   const overlineText =
     heroContent?.overline_text ||
