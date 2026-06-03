@@ -3,7 +3,6 @@ import { HeroClient } from './HeroClient';
 
 export async function HeroServer() {
     let heroButtons: any[] = [];
-    let heroContent: any = null;
 
     try {
         const supabase = getAdminClient();
@@ -11,20 +10,6 @@ export async function HeroServer() {
             console.error('[HeroServer] Supabase client is null');
             return <HeroClient heroButtons={[]} />;
         }
-
-        // Fetch hero text content (overline, title lines, subtitle, background image)
-        const { data: heroContentData, error: heroContentError } = await supabase
-            .from('hero_content')
-            .select('*')
-            .eq('is_active', true)
-            .order('id', { ascending: true })
-            .limit(1)
-            .maybeSingle();
-
-        if (heroContentError) {
-            console.error('[HeroServer] Error fetching hero_content:', JSON.stringify(heroContentError));
-        }
-        heroContent = heroContentData || null;
 
         // Fetch hero buttons
         // Database columns: id, text, url, variant, sort_order, is_active
@@ -55,7 +40,6 @@ export async function HeroServer() {
 
     return (
         <HeroClient
-            heroContent={heroContent}
             heroButtons={heroButtons}
         />
     );
