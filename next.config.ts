@@ -7,6 +7,8 @@ const nextConfig = {
   // Required for @imgly/background-removal — Turbopack config (Next.js 16+)
   turbopack: {},
   images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 2678400, // 31 days — product/blog images rarely change
     remotePatterns: [
       {
         protocol: 'https',
