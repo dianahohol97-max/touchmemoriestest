@@ -3,7 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
 
 export async function GET() {
     const supabase = getAdminClient();
@@ -27,8 +27,8 @@ export async function GET() {
                 description: product.description || product.name,
                 availability: availability,
                 condition: 'new',
-                price: `${product.price} UAH`,
-                link: `${SITE_URL}/product/${product.slug}`,
+                price: `${Number(product.price || 0).toFixed(2)} UAH`,
+                link: `${SITE_URL}/uk/catalog/${product.slug}`,
                 image_link: product.images?.[0] || `${SITE_URL}/placeholder.png`,
                 brand: 'TouchMemories',
                 item_group_id: product.category_id || 'general'
