@@ -145,15 +145,20 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
   // Calculate price
   const basePrice = dbProduct?.price || 0;
   let totalPrice = basePrice;
+  let surchargePct = 0;
   if (dbProduct?.options && Array.isArray(dbProduct.options)) {
     dbProduct.options.forEach((opt: any) => {
       const selected = config[opt.name];
       if (selected === undefined) return;
       const items = opt.options || opt.values || [];
       const match = items.find((i: any) => (i.value ?? i.name ?? i) === selected);
-      if (match?.price) totalPrice += Number(match.price);
+      if (!match) return;
+      if (match.price) totalPrice += Number(match.price);
+      // Percentage surcharges (e.g. "Терміновість" +30%) apply to the subtotal
+      if (match.surcharge_pct) surchargePct += Number(match.surcharge_pct);
     });
   }
+  if (surchargePct > 0) totalPrice = Math.round(totalPrice * (1 + surchargePct / 100));
 
   const handleContinue = () => {
     const keyMap: Record<string, string> = {
@@ -176,7 +181,14 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
       totalPrice, timestamp: Date.now(),
     }));
 
-    router.push(`/order/designer?${params.toString()}`);
+    // "Ми пишемо" (we write the text) → go to the brief questionnaire,
+    // mirroring the product card flow, instead of the photo-upload editor.
+    const textLayout = String(config['Верстка тексту'] || '');
+    if (textLayout.startsWith('we')) {
+      router.push(`/order/magazine-text-brief?${params.toString()}`);
+    } else {
+      router.push(`/order/designer?${params.toString()}`);
+    }
     onClose();
   };
 
@@ -273,7 +285,7 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
                       const label = item.label || item.name || item;
                       const value = item.value || item.name || item;
                       const price = Number(item.price || 0);
-                      return <option key={idx} value={value}>{label}{price > 0 ? ` (+${price} ₴)` : ''}</option>;
+                      return <option key={idx} value={value}>{label}{price > 0 && !String(label).includes('₴') ? ` (+${price} ₴)` : ''}</option>;
                     })}
                   </select>
                 </div>
