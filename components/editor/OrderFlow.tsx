@@ -53,6 +53,12 @@ export default function OrderFlow({ project, onClose }: OrderFlowProps) {
     qrCode: false,
   })
 
+  // Endpaper (forzats) surcharge mirrors the main constructor: soft-cover
+  // magazine = 200 ₴; hard cover + travel book = 100 ₴ (flat, both endpapers).
+  const isHardCoverProduct = /тверд|hard/i.test(project.coverType || '')
+  const isMagazineProduct = project.productType === 'magazine'
+  const endpaperSurcharge = (isMagazineProduct && !isHardCoverProduct) ? 200 : 100
+
   // Calculate pricing
   const getBasePrice = () => {
     // Base price calculation based on product type, format, pages
@@ -71,7 +77,7 @@ export default function OrderFlow({ project, onClose }: OrderFlowProps) {
   const getExtrasPrice = () => {
     let total = 0
     if (extras.lamination) total += 150
-    if (extras.endpapers !== 'white') total += 100
+    if (extras.endpapers !== 'white') total += endpaperSurcharge
     if (extras.qrCode) total += 50
     return total
   }
@@ -326,8 +332,8 @@ export default function OrderFlow({ project, onClose }: OrderFlowProps) {
                 <div className="space-y-2">
                   {[
                     { value: 'white', label: 'Білі (стандарт)', price: 0 },
-                    { value: 'black', label: 'Чорні', price: 100 },
-                    { value: 'custom', label: 'З дизайном', price: 100 },
+                    { value: 'black', label: 'Чорні', price: endpaperSurcharge },
+                    { value: 'custom', label: 'З дизайном', price: endpaperSurcharge },
                   ].map((option) => (
                     <label
                       key={option.value}

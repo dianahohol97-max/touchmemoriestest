@@ -3892,7 +3892,7 @@ export default function BookLayoutEditor() {
                                 <span style={{ fontSize:7, color:'#94a3b8' }}>колір</span>
                               </div>
                               <div style={{ display:'flex', flexDirection:'column', flex:1, gap:1 }}>
-                                <input type="range" min={10} max={72} value={tb.fontSize} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontSize:+e.target.value}:t)}))}
+                                <input type="range" min={10} max={200} value={tb.fontSize} onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontSize:+e.target.value}:t)}))}
                                   style={{ width:'100%' }}/>
                                 <span style={{ fontSize:7, color:'#94a3b8', textAlign:'center' }}>розмір {tb.fontSize}px</span>
                               </div>
@@ -5164,7 +5164,8 @@ export default function BookLayoutEditor() {
                             background: backPhoto ? 'transparent' : '#f1f5f9' }}>
                           {backPhoto ? (
                             <>
-                              <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}
+                              <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor: photoEditSlot==='backcover' ? 'grab' : 'pointer' }}
+                                onClick={e => { e.stopPropagation(); setPhotoEditSlot(photoEditSlot === 'backcover' ? null : 'backcover'); }}
                                 onPointerDown={e => {
                                   e.stopPropagation(); e.preventDefault();
                                   const cx = bCropX, cy = bCropY;
@@ -5176,7 +5177,7 @@ export default function BookLayoutEditor() {
                                     }));
                                   });
                                 }}
-                                onWheel={e => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(1, Math.min(4, (p.backCoverZoom ?? 1) + delta)) })); }}>
+                                onWheel={e => { if (photoEditSlot !== 'backcover') return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(1, Math.min(4, (p.backCoverZoom ?? 1) + delta)) })); }}>
                                 <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:`${bCropX}% ${bCropY}%`, userSelect:'none', pointerEvents:'none' }} draggable={false}/>
                               </div>
                               {/* Zoom controls */}
@@ -7744,7 +7745,7 @@ export default function BookLayoutEditor() {
                                 style={{ width:32, height:32, border:'none', borderRadius:4, cursor:'pointer' }}/>
                               <div style={{ display:'flex', flexDirection:'column', flex:1, gap:2 }}>
                                 <span style={{ fontSize:9, color:'#64748b', fontWeight:700 }}>Розмір: {tb.fontSize}px</span>
-                                <input type="range" min={10} max={72} value={tb.fontSize}
+                                <input type="range" min={10} max={200} value={tb.fontSize}
                                   onChange={e=>setCoverState(p=>({...p,printedTextBlocks:pt.map(t=>t.id===tb.id?{...t,fontSize:+e.target.value}:t)}))}
                                   style={{ width:'100%' }}/>
                               </div>
