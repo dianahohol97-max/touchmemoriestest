@@ -40,9 +40,9 @@ export const metadata: Metadata = {
     type: "website",
     siteName: SITE_INFO.name,
   },
-  icons: {
-    icon: '/favicon.ico',
-  },
+  // Icons come from the App Router file convention (app/favicon.ico,
+  // app/icon.png, app/apple-icon.png) — Next auto-links them, so no `icons`
+  // field is needed here.
   verification: {
     // Google Search Console / Merchant Center site verification.
     // Several tokens can coexist; add more to this array if another
