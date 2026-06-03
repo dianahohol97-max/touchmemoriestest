@@ -42,6 +42,14 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Root → default locale. permanent:true emits a 308 (was a 307 from a
+      // Vercel dashboard rule). If a dashboard-level redirect still exists it
+      // runs at the edge BEFORE this config — remove it so this one wins.
+      {
+        source: '/',
+        destination: '/uk',
+        permanent: true,
+      },
       {
         source: '/constructor',
         destination: '/constructor/photobook',
