@@ -9,6 +9,7 @@ import { Categories } from '@/components/ui/Categories';
 import { HowItWorks } from '@/components/ui/HowItWorks';
 import { BlogSection } from '@/components/ui/BlogSection';
 import { SocialProof } from '@/components/ui/SocialProof';
+import { TextReviews } from '@/components/ui/TextReviews';
 import { FinalCTA } from '@/components/ui/FinalCTA';
 import { Footer } from '@/components/ui/Footer';
 import { TravelSection } from '@/components/ui/TravelSection';
@@ -256,6 +257,10 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
         <SectionWrapper name="social_proof" defaultOrder={37}>
           <SocialProof />
+        </SectionWrapper>
+
+        <SectionWrapper name="text_reviews" defaultOrder={38}>
+          <TextReviews />
         </SectionWrapper>
 
 <SectionWrapper name="blog" defaultOrder={39}>
