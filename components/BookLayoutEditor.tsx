@@ -6705,17 +6705,34 @@ export default function BookLayoutEditor() {
             {/* Cover spread */}
             {(() => {
               const active = currentIdx === 0;
-              const pg = pages[0];
-              const ph = pg ? getPhoto(pg.slots[0]?.photoId ?? null) : null;
-              const TW = 130, TH = Math.round(TW * prop.h / prop.w);
+              const frontPhoto = getPhoto(coverState.photoId ?? pages[0]?.slots?.[0]?.photoId ?? null);
+              const backPhoto = isPrinted ? getPhoto(coverState.backCoverPhotoId ?? null) : null;
+              const ps = coverState.printedPhotoSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' as const };
+              const ov = coverState.printedOverlay ?? { type: 'none', color: '#000000', opacity: 40, gradient: '' };
+              const pt = isPrinted ? (coverState.printedTextBlocks ?? []) : [];
+              const psRadius = ps.shape === 'circle' ? '50%' : ps.shape === 'rounded' ? '10%' : '0';
+              const fontScale = 64 / Math.max(1, baseW / 2); // approx front-half px width / 100% page width
               return (
                 <button key="cover" onClick={() => setCurrentIdx(0)}
                   style={{ width: '100%', padding: '4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}>
-                  <div style={{ width: '100%', aspectRatio: `${prop.w*2}/${prop.h}`, background: isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : '#d4b896', borderRadius: 3, marginBottom: 3, position:'relative', overflow:'hidden' }}>
-                    <div style={{ position:'absolute', right:0, top:0, width:'50%', height:'100%', background: isPrinted ? (coverState.printedBgColor || '#fff') : '#c4a882' }}>
-                      {ph && <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                  <div style={{ width: '100%', aspectRatio: `${prop.w*2}/${prop.h}`, display: 'flex', borderRadius: 3, marginBottom: 3, overflow: 'hidden' }}>
+                    {/* Back cover (left) */}
+                    <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : '#c4a882', borderRight: '1px solid rgba(0,0,0,0.12)' }}>
+                      {backPhoto && <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${coverState.backCoverCropX ?? 50}% ${coverState.backCoverCropY ?? 50}%` }} draggable={false}/>}
                     </div>
-                    <div style={{ position:'absolute', left:0, top:0, width:'50%', height:'100%', background:'rgba(0,0,0,0.08)' }}/>
+                    {/* Front cover (right) */}
+                    <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.printedBgColor || '#ffffff') : '#d4b896' }}>
+                      {frontPhoto && (
+                        <div style={{ position: 'absolute', left: `${ps.x}%`, top: `${ps.y}%`, width: `${ps.w}%`, height: `${ps.h}%`, overflow: 'hidden', borderRadius: psRadius }}>
+                          <img src={frontPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
+                        </div>
+                      )}
+                      {ov.type === 'color' && <div style={{ position: 'absolute', inset: 0, background: ov.color, opacity: (ov.opacity || 0) / 100 }}/>}
+                      {ov.type === 'gradient' && ov.gradient && <div style={{ position: 'absolute', inset: 0, background: ov.gradient }}/>}
+                      {pt.map((tb: any) => (
+                        <span key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', fontSize: Math.max(2, (tb.fontSize || 24) * fontScale), fontFamily: tb.fontFamily, color: tb.color, fontWeight: tb.bold ? 700 : 400, fontStyle: tb.italic ? 'italic' : 'normal', whiteSpace: 'nowrap', lineHeight: 1, pointerEvents: 'none', maxWidth: '96%', overflow: 'hidden' }}>{tb.text}</span>
+                      ))}
+                    </div>
                   </div>
                   <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#1e2d7d' : '#64748b' }}>Обкладинка</span>
                 </button>
