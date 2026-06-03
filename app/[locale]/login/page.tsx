@@ -16,10 +16,16 @@ export default function LoginPage() {
   )
 
   const handleGoogleLogin = async () => {
+    // Return to the current localized page on the CANONICAL domain. Avoids two
+    // bugs: (1) window.location.origin can be an ephemeral Vercel preview URL
+    // that 404s after the next deploy; (2) "/auth/callback" has no locale, but
+    // the callback route only exists under [locale]. The global
+    // OAuthCallbackHandler picks up the ?code= here and routes to /account.
+    const canonicalOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${canonicalOrigin}${window.location.pathname}`
       }
     })
     if (error) {

@@ -101,10 +101,13 @@ export default function Register() {
         }
 
         const supabase = createBrowserClient(supabaseUrl, supabaseKey)
+        // Canonical domain + current localized page (see login page note); the
+        // global OAuthCallbackHandler exchanges the ?code= and routes to /account.
+        const canonicalOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`
+                redirectTo: `${canonicalOrigin}${window.location.pathname}`
             }
         });
         if (error) {
