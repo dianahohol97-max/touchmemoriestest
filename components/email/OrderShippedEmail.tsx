@@ -24,7 +24,7 @@ interface OrderShippedEmailProps {
     deliveryAddress?: string;
 }
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.shop';
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
 
 export const OrderShippedEmail = ({
     orderNumber = 'PB-2026-ХХХХ',

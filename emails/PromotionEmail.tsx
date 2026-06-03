@@ -39,19 +39,19 @@ export default function PromotionEmail({
     promoCode = 'MOM2024',
     promoValue = '-15%',
     promoDetails = 'на всі преміум фотокниги до 15 травня',
-    appUrl = 'https://touchmemories.ua',
+    appUrl = 'https://touchmemories.com.ua',
     products = [
         {
             name: 'Сімейна Фотокнига',
             price: 'Від 850 грн',
             imageUrl: 'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?q=80&w=600&auto=format&fit=crop',
-            url: 'https://touchmemories.ua/products/family'
+            url: 'https://touchmemories.com.ua/products/family'
         },
         {
             name: 'Insta-бук',
             price: 'Від 400 грн',
             imageUrl: 'https://images.unsplash.com/photo-1510565809774-4b5cb3dbb7ab?q=80&w=600&auto=format&fit=crop',
-            url: 'https://touchmemories.ua/products/insta'
+            url: 'https://touchmemories.com.ua/products/insta'
         }
     ]
 }: PromotionEmailProps) {

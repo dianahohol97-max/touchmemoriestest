@@ -21,7 +21,7 @@ interface WelcomeEmailProps {
 export default function WelcomeEmail({
     firstName = '',
     promoCode = 'WELCOME10',
-    appUrl = 'https://touchmemories.ua'
+    appUrl = 'https://touchmemories.com.ua'
 }: WelcomeEmailProps) {
     const greeting = firstName ? `Привіт, ${firstName}! ` : 'Привіт! ';
 

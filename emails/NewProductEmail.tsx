@@ -34,20 +34,20 @@ export default function NewProductEmail({
     productDescription = 'Збережіть найкращі моменти в ідеальній якості. Нова преміум обкладинка та щільні сторінки зроблять ваші спогади незабутніми.',
     productPrice = '1200 грн',
     productImageUrl = 'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?q=80&w=1200&auto=format&fit=crop',
-    productUrl = 'https://touchmemories.ua/products/premium',
-    appUrl = 'https://touchmemories.ua',
+    productUrl = 'https://touchmemories.com.ua/products/premium',
+    appUrl = 'https://touchmemories.com.ua',
     recommendedProducts = [
         {
             name: 'Міні-бук',
             price: '450 грн',
             imageUrl: 'https://images.unsplash.com/photo-1510565809774-4b5cb3dbb7ab?q=80&w=600&auto=format&fit=crop',
-            url: 'https://touchmemories.ua/products/mini'
+            url: 'https://touchmemories.com.ua/products/mini'
         },
         {
             name: 'Подарунковий сертифікат',
             price: '1000 грн',
             imageUrl: 'https://images.unsplash.com/photo-1628102491629-77858ab5721f?q=80&w=600&auto=format&fit=crop',
-            url: 'https://touchmemories.ua/gift'
+            url: 'https://touchmemories.com.ua/gift'
         }
     ]
 }: NewProductEmailProps) {
