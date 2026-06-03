@@ -15,8 +15,7 @@ const PRODUCT_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-
  *      number in products.options[].options[].stock (set in the admin Опції
  *      tab). The order item stores the chosen variant's *label* under
  *      options[optName], so we match by label (falling back to value).
- *   2. Product-level stock_quantity — for physical products with
- *      track_inventory on.
+ *   2. Product-level stock — for physical products with track_inventory on.
  *
  * Defensive by design: every product is wrapped in try/catch and the whole
  * call is awaited inside a try/catch in the webhook, so a stock error can
@@ -42,13 +41,13 @@ async function deductInventory(admin: ReturnType<typeof getAdminClient>, items: 
             let prod: any = null;
             if (pid && PRODUCT_UUID_RE.test(String(pid))) {
                 const { data } = await admin.from('products')
-                    .select('id, options, stock_quantity, track_inventory, product_type')
+                    .select('id, options, stock, track_inventory, product_type')
                     .eq('id', pid).maybeSingle();
                 prod = data;
             }
             if (!prod && slug) {
                 const { data } = await admin.from('products')
-                    .select('id, options, stock_quantity, track_inventory, product_type')
+                    .select('id, options, stock, track_inventory, product_type')
                     .eq('slug', slug).maybeSingle();
                 prod = data;
             }
@@ -74,8 +73,8 @@ async function deductInventory(admin: ReturnType<typeof getAdminClient>, items: 
 
             const patch: Record<string, any> = {};
             if (optionsChanged) patch.options = newOptions;
-            if (prod.track_inventory && prod.product_type === 'physical' && prod.stock_quantity != null) {
-                patch.stock_quantity = Math.max(0, Number(prod.stock_quantity) - qty);
+            if (prod.track_inventory && prod.product_type === 'physical' && prod.stock != null) {
+                patch.stock = Math.max(0, Number(prod.stock) - qty);
             }
             if (Object.keys(patch).length > 0) {
                 await admin.from('products').update(patch).eq('id', prod.id);

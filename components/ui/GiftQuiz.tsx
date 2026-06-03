@@ -147,14 +147,14 @@ const getRecommendations = async (answers: Record<string, string | string[]>): P
             // Fetch product details
             const { data: products, error: productsError } = await supabase
                 .from('products')
-                .select('id, name, slug, description, image_url')
+                .select('id, name, slug, description, images, og_image')
                 .in('id', data.product_ids);
 
             if (products && !productsError) {
-                return products.map((product: Product) => ({
+                return products.map((product: any) => ({
                     title: product.name,
                     desc: product.description || 'Преміум якість та унікальний дизайн',
-                    image: product.image_url || '/images/promo/photobook_video.png',
+                    image: product.og_image || (product.images && product.images[0]) || '/images/promo/photobook_video.png',
                     link: `/catalog/${product.slug}`
                 }));
             }

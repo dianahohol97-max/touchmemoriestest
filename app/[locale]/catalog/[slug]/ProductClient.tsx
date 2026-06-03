@@ -148,7 +148,7 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
   return getConstructorUrl(slug);
 };
 
-export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default function ProductPage({ params, initialProduct }: { params: Promise<{ slug: string }>; initialProduct?: any }) {
   const t = useT();
     const locale = useLocale();
     const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
@@ -174,13 +174,17 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    const [product, setProduct] = useState<any>(null);
+    const [product, setProduct] = useState<any>(initialProduct ?? null);
     const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(!initialProduct);
     const [isNotFound, setIsNotFound] = useState(false);
 
-    const [mainImage, setMainImage] = useState<string>('');
-    const [mainVideo, setMainVideo] = useState<string>('');
+    const [mainImage, setMainImage] = useState<string>(
+        (initialProduct?.images && initialProduct.images[0]) || ''
+    );
+    const [mainVideo, setMainVideo] = useState<string>(
+        (initialProduct && !(initialProduct.images && initialProduct.images.length) && initialProduct.video_url) || ''
+    );
     // Graduation photo books are ordered as class sets — start at 5 copies
     // (and the stepper won't go below 5); everything else starts at 1.
     const [quantity, setQuantity] = useState(() => (product?.slug?.includes('graduation') ? 5 : 1));
@@ -263,13 +267,17 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
     useEffect(() => {
         const fetchProduct = async () => {
-            setIsLoading(true);
-            const { data, error } = await supabase
-                .from('products')
-                .select('*, categories(name, slug, translations)')
-                .eq('slug', resolvedParams.slug)
-                .eq('is_active', true)
-                .single();
+            let data: any = initialProduct || null;
+            let error: any = null;
+            if (!data) {
+                setIsLoading(true);
+                ({ data, error } = await supabase
+                    .from('products')
+                    .select('*, categories(name, slug, translations)')
+                    .eq('slug', resolvedParams.slug)
+                    .eq('is_active', true)
+                    .single());
+            }
 
             if (error || !data) {
                 setIsNotFound(true);
