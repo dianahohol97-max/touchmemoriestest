@@ -1091,16 +1091,7 @@ export default function BookLayoutEditor() {
   const [mobilePanelHeight, setMobilePanelHeight] = useState<'half'|'full'>('half'); // bottom sheet size
   useEffect(() => {
     const check = () => {
-      const w = window.innerWidth;
-      setIsMobile(w < 640);
-      if (w < 640) {
-        // Available width = screen width - padding
-        const available = w - 32;
-        // At 100% zoom, spread canvas width ≈ 700 * 2 * prop.w/prop.h ≈ 1040px for square book
-        const canvasW100 = 1040;
-        const fit = Math.round((available / canvasW100) * 100);
-        setZoom(Math.max(24, Math.min(55, fit)));
-      }
+      setIsMobile(window.innerWidth < 640);
     };
     check();
     window.addEventListener('resize', check);
@@ -1266,6 +1257,27 @@ export default function BookLayoutEditor() {
     });
     return () => cancelAnimationFrame(id);
   }, [config, pages.length]);
+  // On mobile, keep the spread fitted to the viewport width when the screen
+  // rotates or resizes (the soft keyboard, address bar, or orientation change),
+  // so the spread never ends up clipped off the right edge.
+  useEffect(() => {
+    if (!isMobile || !config || pages.length === 0) return;
+    let raf = 0;
+    const refit = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const z = computeFitZoom(canvasViewportRef.current, dimsRef.current.baseW, dimsRef.current.baseH);
+        if (z != null) setZoom(z);
+      });
+    };
+    window.addEventListener('orientationchange', refit);
+    window.addEventListener('resize', refit);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('orientationchange', refit);
+      window.removeEventListener('resize', refit);
+    };
+  }, [isMobile, config, pages.length]);
   const [dbStickers, setDbStickers] = useState<{id:string;name:string;category:string;image_url:string}[]>([]);
   const [selectedTextPageIdx, setSelectedTextPageIdx] = useState<number>(1);
   const [showDecoList, setShowDecoList] = useState(false);
@@ -1296,10 +1308,10 @@ export default function BookLayoutEditor() {
 
   const [showMobileGuide, setShowMobileGuide] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.innerWidth < 768 && !localStorage.getItem('mobile_editor_guide_seen');
+    return window.innerWidth < 768 && !localStorage.getItem('mobile_editor_guide_seen_v2');
   });
   const dismissMobileGuide = () => {
-    localStorage.setItem('mobile_editor_guide_seen', '1');
+    localStorage.setItem('mobile_editor_guide_seen_v2', '1');
     setShowMobileGuide(false);
   };
   const [tooltipStep, setTooltipStep] = useState(0);
@@ -7349,6 +7361,7 @@ export default function BookLayoutEditor() {
             {/* Steps */}
             {[
               { icon:'', title:'Додати фото в слот', desc:'Відкрий "Зображення" → тапни фото → тапни слот на сторінці' },
+              { icon:'⇄', title:'Гортати розвороти', desc:'Гортай вліво/вправо по розвороту або тисни стрілки ‹ › вгорі, щоб перейти між сторінками' },
               { icon:'', title:'Збільшити/зменшити фото', desc:'Зведи або розведи два пальці на фото (pinch-zoom)' },
               { icon:'', title:'Змінити кадрування', desc:'Двічі тапни на фото → переміщай пальцем → "Готово"' },
               { icon:'', title:'Перемістити слот', desc:'Один палець на рамці фотослота → тягни в потрібне місце' },
