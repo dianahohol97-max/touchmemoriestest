@@ -5227,7 +5227,7 @@ export default function BookLayoutEditor() {
                             </>
                           ) : (
                             <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'#94a3b8' }}>
-                              <ImageIcon size={22}/><span style={{ fontSize:9, fontWeight:600 }}>{t('constructor.drag_photo')}</span>
+                              <ImageIcon size={isMobile?26:22}/><span style={{ fontSize: isMobile?11:9, fontWeight:600 }}>{isMobile ? (tapSelectedPhotoId ? 'Торкніться, щоб вставити' : 'Торкніться, щоб додати фото') : t('constructor.drag_photo')}</span>
                             </div>
                           )}
                         </div>
@@ -6430,14 +6430,14 @@ export default function BookLayoutEditor() {
                                 {/* Slot number badge */}
                                 <div style={{position:'absolute',top:4,left:4,width:16,height:16,borderRadius:'50%',background:'rgba(199,210,254,0.8)',color:'#4338ca',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>{i+1}</div>
                                 {/* Icon + text — smaller for compact slots */}
-                                <div style={{width:28,height:28,borderRadius:'50%',background:isOver?'rgba(59,130,246,0.15)':'rgba(99,102,241,0.08)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s'}}>
-                                  <ImageIcon size={14} color={isOver?'#3b82f6':'#818cf8'}/>
+                                <div style={{width: isMobile?34:28,height: isMobile?34:28,borderRadius:'50%',background:isOver?'rgba(59,130,246,0.15)':'rgba(99,102,241,0.08)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s'}}>
+                                  <ImageIcon size={isMobile?17:14} color={isOver?'#3b82f6':'#818cf8'}/>
                                 </div>
-                                <span style={{fontSize:9,fontWeight:600,color:isOver?'#3b82f6':'#818cf8',textAlign:'center',lineHeight:1.2}}>
-                                  {isOver ? 'Відпустіть' : dragPhotoId ? 'Сюди' : ''}
+                                <span style={{fontSize:isMobile?10:9,fontWeight:600,color:isOver?'#3b82f6':'#818cf8',textAlign:'center',lineHeight:1.2}}>
+                                  {isOver ? 'Відпустіть' : dragPhotoId ? 'Сюди' : (isMobile && !tapSelectedPhotoId ? 'Торкніться, щоб додати' : '')}
                                 </span>
                                 {tapSelectedPhotoId && !dragPhotoId && (
-                                  <span style={{fontSize:9,fontWeight:600,color:'#3b82f6',background:'rgba(59,130,246,0.08)',padding:'2px 8px',borderRadius:10}}>Клікніть щоб вставити</span>
+                                  <span style={{fontSize:isMobile?10:9,fontWeight:600,color:'#3b82f6',background:'rgba(59,130,246,0.08)',padding:'2px 8px',borderRadius:10}}>{isMobile ? 'Торкніться, щоб вставити' : 'Клікніть щоб вставити'}</span>
                                 )}
                               </div>
                             )}
