@@ -557,6 +557,8 @@
     "buy_certificate": "Придбати сертифікат",
     "quantity_label": "Кількість",
     "production_time_label": "Термін виготовлення",
+    "shipping_time_label": "Термін відправки",
+    "shipping_default": "до 3 робочих днів",
     "production_10_14": "10–14 робочих днів",
     "production_upto_10": "до 10 робочих днів",
     "production_5_8": "5–8 робочих днів",

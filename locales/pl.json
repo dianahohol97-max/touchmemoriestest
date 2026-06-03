@@ -537,6 +537,8 @@
     "buy_certificate": "Kup certyfikat",
     "quantity_label": "Ilość",
     "production_time_label": "Czas produkcji",
+    "shipping_time_label": "Czas wysyłki",
+    "shipping_default": "do 3 dni roboczych",
     "production_10_14": "10–14 dni roboczych",
     "production_upto_10": "do 10 dni roboczych",
     "production_5_8": "5–8 dni roboczych",

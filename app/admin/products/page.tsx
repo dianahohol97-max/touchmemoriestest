@@ -29,6 +29,7 @@ interface Product {
     meta_title: string | null; meta_description: string | null;
     is_popular: boolean; product_type: string | null;
     production_time?: string | null;
+    fulfillment_type?: string | null;
 }
 type Tab = 'main' | 'prices' | 'media' | 'options' | 'stock' | 'seo';
 
@@ -76,7 +77,7 @@ export default function ProductsAdminPage() {
         setLoading(true);
         const [{ data: prods }, { data: cats }] = await Promise.all([
             supabase.from('products').select(
-                'id,name,slug,category_id,price,sale_price,price_from,cost_price,designer_service_price,short_description,description,images,video_url,og_image,options,is_active,is_personalized,has_designer_option,stock_quantity,track_inventory,tags,meta_title,meta_description,is_popular,product_type,production_time'
+                'id,name,slug,category_id,price,sale_price,price_from,cost_price,designer_service_price,short_description,description,images,video_url,og_image,options,is_active,is_personalized,has_designer_option,stock_quantity,track_inventory,tags,meta_title,meta_description,is_popular,product_type,production_time,fulfillment_type'
             ).order('name'),
             supabase.from('categories').select('id,name,slug').order('name'),
         ]);
@@ -104,7 +105,7 @@ export default function ProductsAdminPage() {
             name: sel.name, category_id: sel.category_id,
             price: sel.price, sale_price: sel.sale_price, price_from: sel.price_from,
             cost_price: sel.cost_price, designer_service_price: sel.designer_service_price,
-            short_description: sel.short_description, description: sel.description, production_time: sel.production_time,
+            short_description: sel.short_description, description: sel.description, production_time: sel.production_time, fulfillment_type: sel.fulfillment_type,
             images: sel.images, video_url: sel.video_url, og_image: sel.og_image,
             options: sel.options, is_active: sel.is_active,
             is_personalized: sel.is_personalized, has_designer_option: sel.has_designer_option,
@@ -303,7 +304,7 @@ export default function ProductsAdminPage() {
             id: '', name: 'Новий товар', slug: '',
             category_id: null, price: 0, sale_price: null, price_from: false,
             cost_price: null, designer_service_price: null,
-            short_description: null, description: null, production_time: null,
+            short_description: null, description: null, production_time: null, fulfillment_type: null,
             images: [], video_url: null, og_image: null,
             options: [], is_active: true, is_personalized: true,
             has_designer_option: false, stock_quantity: null,
@@ -322,7 +323,7 @@ export default function ProductsAdminPage() {
             name: sel.name, slug: sel.slug, category_id: sel.category_id,
             price: sel.price, sale_price: sel.sale_price, price_from: sel.price_from,
             cost_price: sel.cost_price, designer_service_price: sel.designer_service_price,
-            short_description: sel.short_description, description: sel.description, production_time: sel.production_time,
+            short_description: sel.short_description, description: sel.description, production_time: sel.production_time, fulfillment_type: sel.fulfillment_type,
             images: sel.images, video_url: sel.video_url, og_image: sel.og_image,
             options: sel.options, is_active: sel.is_active,
             is_personalized: sel.is_personalized, has_designer_option: sel.has_designer_option,
@@ -542,9 +543,18 @@ export default function ProductsAdminPage() {
                                     <F label="Короткий опис">
                                         <input value={S.short_description||''} onChange={e=>upd('short_description',e.target.value||null)} style={IS}/>
                                     </F>
-                                    <F label="Термін виготовлення/відправки (рядок на сторінці; порожньо = авто за категорією)">
-                                        <input value={S.production_time||''} onChange={e=>upd('production_time',e.target.value||null)} placeholder="напр. Термін відправки: до 3 робочих днів" style={IS}/>
-                                    </F>
+                                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                                        <F label="Тип виконання">
+                                            <select value={S.fulfillment_type||''} onChange={e=>upd('fulfillment_type', e.target.value||null)} style={IS}>
+                                                <option value="">Авто (за категорією)</option>
+                                                <option value="in_stock">Наявність — термін відправки</option>
+                                                <option value="made_to_order">Під виготовлення — термін виготовлення</option>
+                                            </select>
+                                        </F>
+                                        <F label="Термін (значення)">
+                                            <input value={S.production_time||''} onChange={e=>upd('production_time',e.target.value||null)} placeholder="напр. до 3 робочих днів" style={IS}/>
+                                        </F>
+                                    </div>
                                     <F label="Повний опис">
                                         <textarea value={S.description||''} onChange={e=>upd('description',e.target.value||null)} style={{...TS,minHeight:100}}/>
                                     </F>

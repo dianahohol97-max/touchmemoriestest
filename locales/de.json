@@ -537,6 +537,8 @@
     "buy_certificate": "Zertifikat kaufen",
     "quantity_label": "Anzahl",
     "production_time_label": "Produktionszeit",
+    "shipping_time_label": "Versandzeit",
+    "shipping_default": "bis zu 3 Werktage",
     "production_10_14": "10–14 Werktage",
     "production_upto_10": "bis zu 10 Werktage",
     "production_5_8": "5–8 Werktage",

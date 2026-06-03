@@ -1822,9 +1822,14 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                 <div style={{ background: '#dcfce7', padding: '6px', borderRadius: "3px" }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
-                                {product.production_time
-                                    ? product.production_time
-                                    : `${t('product_page.production_time_label')}: ${getProductionTime(product.categories?.slug || product.category_id, product.slug || '')}`}
+                                {(() => {
+                                    const inStock = product.fulfillment_type === 'in_stock';
+                                    const label = inStock ? t('product_page.shipping_time_label') : t('product_page.production_time_label');
+                                    const value = (product.production_time && String(product.production_time).trim())
+                                        ? product.production_time
+                                        : (inStock ? t('product_page.shipping_default') : getProductionTime(product.categories?.slug || product.category_id, product.slug || ''));
+                                    return `${label}: ${value}`;
+                                })()}
                                 {isJournalProduct(product.slug, product.categories?.slug || '') && (
                                     <span style={{ marginLeft: 8, fontSize: 12, color: '#f59e0b', fontWeight: 700, background: '#fffbeb', padding: '2px 8px', borderRadius: 4, border: '1px solid #fde68a' }}>
                                         {t('product_page.urgent_order')}

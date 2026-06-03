@@ -537,6 +537,8 @@
     "buy_certificate": "Cumpără certificat",
     "quantity_label": "Cantitate",
     "production_time_label": "Timp de producție",
+    "shipping_time_label": "Timp de livrare",
+    "shipping_default": "până la 3 zile lucrătoare",
     "production_10_14": "10–14 zile lucrătoare",
     "production_upto_10": "până la 10 zile lucrătoare",
     "production_5_8": "5–8 zile lucrătoare",
