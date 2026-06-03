@@ -69,6 +69,64 @@ export default function ContentManagementPage() {
     const [featureCards, setFeatureCards] = useState<FeatureCard[]>([]);
     const [sectionContent, setSectionContent] = useState<SectionContent[]>([]);
     const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
+    // Upload a file to a public Supabase Storage bucket and return its public URL
+    async function uploadToStorage(file: File, bucket: string, folder: string): Promise<string | null> {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${folder}/${fileName}`;
+        try {
+            const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
+            if (uploadError) throw uploadError;
+            const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(filePath);
+            return publicUrl;
+        } catch (err: any) {
+            console.error('Upload error:', err);
+            toast.error(`Помилка завантаження: ${err.message || err}`);
+            return null;
+        }
+    }
+
+    async function handleHeroBgUpload(file: File) {
+        if (!heroContent) return;
+        setUploading(true);
+        const toastId = toast.loading('Завантаження фото...');
+        const url = await uploadToStorage(file, 'touch-memories-assets', 'content/hero');
+        toast.dismiss(toastId);
+        if (url) {
+            setHeroContent({ ...heroContent, background_image_url: url });
+            toast.success('Фото завантажено — не забудь зберегти');
+        }
+        setUploading(false);
+    }
+
+    async function handleSectionImageUpload(sectionId: string, file: File) {
+        setUploading(true);
+        const toastId = toast.loading('Завантаження фото...');
+        const url = await uploadToStorage(file, 'touch-memories-assets', 'content/sections');
+        toast.dismiss(toastId);
+        if (url) {
+            updateSectionField(sectionId, 'image_url', url);
+            toast.success('Фото завантажено — збережіть секцію');
+        }
+        setUploading(false);
+    }
+
+    async function handleSectionVideoUpload(sectionId: string, key: 'photobooks' | 'magazines', file: File) {
+        setUploading(true);
+        const toastId = toast.loading('Завантаження відео...');
+        const url = await uploadToStorage(file, 'videos', 'content-videos');
+        toast.dismiss(toastId);
+        if (url) {
+            const section = sectionContent.find(s => s.id === sectionId);
+            const md: any = { ...(section?.metadata || {}) };
+            md[key] = { ...(md[key] || {}), video_url: url };
+            updateSectionField(sectionId, 'metadata', md);
+            toast.success('Відео завантажено — збережіть секцію');
+        }
+        setUploading(false);
+    }
 
     useEffect(() => {
         fetchAllContent();
@@ -470,6 +528,19 @@ export default function ContentManagementPage() {
                                 onChange={(e) => setHeroContent({ ...heroContent, background_image_url: e.target.value })}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
                             />
+                            <div className="mt-2">
+                                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer text-sm font-medium text-gray-700 transition-colors">
+                                    <ImageIcon size={16} />
+                                    {uploading ? 'Завантаження...' : 'Завантажити / замінити фото'}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        disabled={uploading}
+                                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleHeroBgUpload(f); e.target.value = ''; }}
+                                    />
+                                </label>
+                            </div>
                             {heroContent.background_image_url && (
                                 <img
                                     src={heroContent.background_image_url}
@@ -891,6 +962,19 @@ export default function ContentManagementPage() {
                                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
                                                     placeholder="https://example.com/image.jpg"
                                                 />
+                                                <div className="mt-2">
+                                                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer text-sm font-medium text-gray-700 transition-colors">
+                                                        <ImageIcon size={16} />
+                                                        {uploading ? 'Завантаження...' : 'Завантажити / замінити фото'}
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            disabled={uploading}
+                                                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionImageUpload(section.id, f); e.target.value = ''; }}
+                                                        />
+                                                    </label>
+                                                </div>
                                                 {section.image_url && (
                                                     <img
                                                         src={section.image_url}
@@ -899,6 +983,28 @@ export default function ContentManagementPage() {
                                                     />
                                                 )}
                                             </div>
+
+                                            {section.section_name === 'constructor_selection' && (
+                                                <div className="space-y-3 p-4 bg-blue-50/40 rounded-lg border border-blue-100">
+                                                    <label className="block text-sm font-semibold text-gray-800">Відео секції конструктора</label>
+                                                    {(['photobooks', 'magazines'] as const).map((key) => {
+                                                        const vurl = (section.metadata as any)?.[key]?.video_url || '';
+                                                        return (
+                                                            <div key={key} className="flex items-center gap-3 flex-wrap">
+                                                                <span className="text-sm text-gray-600 w-28">{key === 'photobooks' ? 'Фотокниги' : 'Журнали'}:</span>
+                                                                <label className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg cursor-pointer text-sm font-medium text-gray-700 transition-colors">
+                                                                    <ImageIcon size={16} />
+                                                                    {uploading ? 'Завантаження...' : (vurl ? 'Замінити відео' : 'Завантажити відео')}
+                                                                    <input type="file" accept="video/mp4,video/quicktime,video/webm" className="hidden" disabled={uploading}
+                                                                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionVideoUpload(section.id, key, f); e.target.value = ''; }} />
+                                                                </label>
+                                                                {vurl && <video src={vurl} muted className="h-16 rounded border border-gray-200" />}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    <p className="text-xs text-gray-500">MP4/WebM. Після завантаження натисніть «Зберегти секцію».</p>
+                                                </div>
+                                            )}
 
                                             {/* Metadata (JSON Editor) */}
                                             <div>

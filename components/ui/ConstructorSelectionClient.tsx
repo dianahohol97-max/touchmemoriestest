@@ -15,6 +15,7 @@ interface SectionContent {
             constructor_url: string;
             constructor_button_text: string;
             designer_button_text: string;
+            video_url?: string;
         };
         magazines?: {
             heading: string;
@@ -22,6 +23,7 @@ interface SectionContent {
             constructor_url: string;
             constructor_button_text: string;
             designer_button_text: string;
+            video_url?: string;
         };
     };
 }
@@ -53,6 +55,9 @@ export function ConstructorSelectionClient({
     const magazinesConstructorButtonText = sectionContent?.metadata?.magazines?.constructor_button_text || t('constructor_sel.open_constructor');
     const magazinesDesignerButtonText = sectionContent?.metadata?.magazines?.designer_button_text || t('constructor_sel.order_designer');
 
+    const photobooksVideo = sectionContent?.metadata?.photobooks?.video_url || '';
+    const magazinesVideo = sectionContent?.metadata?.magazines?.video_url || '';
+
 
     return (
         <section ref={ref} className="py-20 bg-white">
@@ -70,13 +75,16 @@ export function ConstructorSelectionClient({
                         {/* LEFT: Video */}
                         <div>
                             <div className="aspect-[4/5] bg-gradient-to-br from-stone-100 to-[#f0f3ff] rounded-xl overflow-hidden shadow-lg border border-stone-200 flex items-center justify-center relative">
-                                <div className="text-center">
-                                    <Play size={48} className="mx-auto mb-2 text-stone-400" />
-                                    <span className="text-stone-500 text-sm font-medium">{t('constructor_sel.video_placeholder')}</span>
-                                </div>
-                                {/* <video autoPlay muted loop playsInline className="w-full h-full object-cover">
-                                    <source src="/videos/photobook-preview.mp4" type="video/mp4" />
-                                </video> */}
+                                {photobooksVideo ? (
+                                    <video autoPlay muted loop playsInline className="w-full h-full object-cover">
+                                        <source src={photobooksVideo} type="video/mp4" />
+                                    </video>
+                                ) : (
+                                    <div className="text-center">
+                                        <Play size={48} className="mx-auto mb-2 text-stone-400" />
+                                        <span className="text-stone-500 text-sm font-medium">{t('constructor_sel.video_placeholder')}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -379,13 +387,16 @@ export function ConstructorSelectionClient({
                         {/* RIGHT: Video */}
                         <div className="order-1 lg:order-2">
                             <div className="aspect-[4/5] bg-[#f0f2f8] rounded-xl overflow-hidden shadow-lg border border-gray-200 flex items-center justify-center relative">
-                                <div className="text-center">
-                                    <Play size={48} className="mx-auto mb-2 text-[#1e2d7d]" />
-                                    <span className="text-[#1e2d7d] text-sm font-medium">{t('constructor_sel.video_placeholder')}</span>
-                                </div>
-                                {/* <video autoPlay muted loop playsInline className="w-full h-full object-cover">
-                                    <source src="/videos/magazine-preview.mp4" type="video/mp4" />
-                                </video> */}
+                                {magazinesVideo ? (
+                                    <video autoPlay muted loop playsInline className="w-full h-full object-cover">
+                                        <source src={magazinesVideo} type="video/mp4" />
+                                    </video>
+                                ) : (
+                                    <div className="text-center">
+                                        <Play size={48} className="mx-auto mb-2 text-[#1e2d7d]" />
+                                        <span className="text-[#1e2d7d] text-sm font-medium">{t('constructor_sel.video_placeholder')}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
