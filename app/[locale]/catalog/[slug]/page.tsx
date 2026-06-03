@@ -87,25 +87,37 @@ export default async function ProductPage({ params }: Props) {
   const base = getBaseUrl();
   const productUrl = getCanonicalUrl(locale, `/catalog/${slug}`);
 
-  // Genuine per-product rating only: reviews explicitly linked to THIS product.
-  // Stays absent (no spammy structured data) until real product reviews exist.
+  // Genuine per-product reviews only (linked via reviews.product_id).
+  // Drives both the on-page reviews section and the AggregateRating/Review
+  // schema, so structured data always matches visible content.
   let aggregateRating: Record<string, any> | null = null;
+  let productReviews: any[] = [];
+  let reviewLd: any[] = [];
   if (product) {
     const { data: revs } = await supabase
       .from('reviews')
-      .select('rating')
+      .select('id, image_url, author, caption, rating, created_at')
       .eq('product_id', (product as any).id)
       .eq('is_active', true)
-      .gt('rating', 0);
-    if (revs && revs.length > 0) {
-      const sum = revs.reduce((a, r: any) => a + Number(r.rating || 0), 0);
+      .order('sort_order', { ascending: true });
+    productReviews = revs || [];
+    const rated = productReviews.filter((r: any) => Number(r.rating) > 0);
+    if (rated.length > 0) {
+      const sum = rated.reduce((a: number, r: any) => a + Number(r.rating || 0), 0);
       aggregateRating = {
         '@type': 'AggregateRating',
-        ratingValue: (sum / revs.length).toFixed(1),
-        reviewCount: revs.length,
+        ratingValue: (sum / rated.length).toFixed(1),
+        reviewCount: rated.length,
         bestRating: 5,
         worstRating: 1,
       };
+      reviewLd = rated.slice(0, 20).map((r: any) => ({
+        '@type': 'Review',
+        reviewRating: { '@type': 'Rating', ratingValue: Number(r.rating), bestRating: 5, worstRating: 1 },
+        author: { '@type': 'Person', name: r.author || 'Клієнт' },
+        ...(r.caption ? { reviewBody: r.caption } : {}),
+        ...(r.created_at ? { datePublished: new Date(r.created_at).toISOString().slice(0, 10) } : {}),
+      }));
     }
   }
 
@@ -130,6 +142,7 @@ export default async function ProductPage({ params }: Props) {
       brand: { '@type': 'Brand', name: 'Touch.Memories' },
       url: productUrl,
       ...(aggregateRating ? { aggregateRating } : {}),
+      ...(reviewLd.length ? { review: reviewLd } : {}),
       ...(price > 0
         ? {
             offers: {
@@ -174,7 +187,7 @@ export default async function ProductPage({ params }: Props) {
       {jsonLdBreadcrumb && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }} />
       )}
-      <ProductClient params={Promise.resolve({ slug, locale })} initialProduct={product || undefined} />
+      <ProductClient params={Promise.resolve({ slug, locale })} initialProduct={product || undefined} initialReviews={productReviews} />
     </>
   );
 }

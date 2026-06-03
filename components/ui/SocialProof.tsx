@@ -19,6 +19,7 @@ interface Review {
     image_url: string;
     author: string | null;
     category: string | null;
+    rating?: number | null;
 }
 
 const fallbackReviews = [
@@ -73,7 +74,7 @@ export function SocialProof() {
             try {
                 const { data, error } = await supabase
                     .from('reviews')
-                    .select('id, image_url, author, category')
+                    .select('id, image_url, author, category, rating')
                     .eq('is_active', true)
                     .order('sort_order', { ascending: true });
 
@@ -156,6 +157,11 @@ export function SocialProof() {
 
                                 {/* Username */}
                                 <div className="absolute bottom-8 left-0 right-0 text-center px-4 transform transition-transform duration-300 group-hover:translate-y-[-8px]">
+                                    {review.rating ? (
+                                        <div className="text-[#FFD37E] text-[13px] mb-1 tracking-widest" aria-label={`${review.rating} of 5`}>
+                                            {'★'.repeat(Math.round(review.rating))}{'☆'.repeat(Math.max(0, 5 - Math.round(review.rating)))}
+                                        </div>
+                                    ) : null}
                                     <span className="text-[15px] text-[#E5D5C5] font-sans font-bold tracking-wide">
                                         {review.author || '@customer'}
                                     </span>

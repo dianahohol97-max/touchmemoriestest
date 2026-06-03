@@ -23,6 +23,8 @@ interface Review {
     caption: string | null;
     author: string | null;
     category: string | null;
+    rating: number | null;
+    product_id: string | null;
     is_active: boolean;
     sort_order: number;
     created_at: string;
@@ -42,8 +44,11 @@ export default function ReviewsAdminPage() {
         caption: '',
         author: '',
         category: '',
+        rating: 0,
+        product_id: '',
         is_active: true
     });
+    const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
 
@@ -88,6 +93,8 @@ export default function ReviewsAdminPage() {
 
     useEffect(() => {
         fetchReviews();
+        supabase.from('products').select('id, name').eq('is_active', true).order('name')
+            .then(({ data }) => setProducts(data || []));
     }, []);
 
     async function fetchReviews() {
@@ -114,6 +121,8 @@ export default function ReviewsAdminPage() {
             caption: '',
             author: '',
             category: '',
+            rating: 0,
+            product_id: '',
             is_active: true
         });
         setUploadedFile(null);
@@ -127,6 +136,8 @@ export default function ReviewsAdminPage() {
             caption: review.caption || '',
             author: review.author || '',
             category: review.category || '',
+            rating: review.rating || 0,
+            product_id: review.product_id || '',
             is_active: review.is_active
         });
         setUploadedFile(null);
@@ -195,6 +206,8 @@ export default function ReviewsAdminPage() {
             caption: formData.caption || null,
             author: formData.author || null,
             category: formData.category || null,
+            rating: formData.rating ? Number(formData.rating) : null,
+            product_id: formData.product_id || null,
             is_active: formData.is_active
         };
 
@@ -576,6 +589,40 @@ export default function ReviewsAdminPage() {
                                     placeholder="Travel Book, Весільна книга, тощо"
                                     className="w-full px-4 py-3 border-2 border-stone-200 rounded-lg focus:border-amber-500 focus:outline-none"
                                 />
+                            </div>
+
+                            {/* Rating + Product (enables star snippets in Google) */}
+                            <div className="mb-4 grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-stone-700 mb-2">
+                                        Рейтинг
+                                    </label>
+                                    <select
+                                        value={formData.rating}
+                                        onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
+                                        className="w-full px-4 py-3 border-2 border-stone-200 rounded-lg focus:border-amber-500 focus:outline-none"
+                                    >
+                                        <option value={0}>Без рейтингу</option>
+                                        <option value={5}>★★★★★ (5)</option>
+                                        <option value={4}>★★★★ (4)</option>
+                                        <option value={3}>★★★ (3)</option>
+                                        <option value={2}>★★ (2)</option>
+                                        <option value={1}>★ (1)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-stone-700 mb-2">
+                                        Товар (для зірок у товарі)
+                                    </label>
+                                    <select
+                                        value={formData.product_id}
+                                        onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
+                                        className="w-full px-4 py-3 border-2 border-stone-200 rounded-lg focus:border-amber-500 focus:outline-none"
+                                    >
+                                        <option value="">— загальний відгук —</option>
+                                        {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
                             </div>
 
                             {/* Caption */}

@@ -148,7 +148,7 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
   return getConstructorUrl(slug);
 };
 
-export default function ProductPage({ params, initialProduct }: { params: Promise<{ slug: string }>; initialProduct?: any }) {
+export default function ProductPage({ params, initialProduct, initialReviews }: { params: Promise<{ slug: string }>; initialProduct?: any; initialReviews?: any[] }) {
   const t = useT();
     const locale = useLocale();
     const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
@@ -1864,6 +1864,34 @@ export default function ProductPage({ params, initialProduct }: { params: Promis
                             {relatedProducts.map((p) => (
                             // @ts-ignore
                                 <ProductCard key={p.id} product={p} />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Product reviews — visible content backing the AggregateRating schema */}
+                {Array.isArray(initialReviews) && initialReviews.length > 0 && (
+                    <div style={{ paddingTop: '60px' }}>
+                        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '32px', textAlign: 'center' }}>
+                            Відгуки
+                        </h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
+                            {initialReviews.map((r: any) => (
+                                <div key={r.id} style={{ border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', background: '#fff' }}>
+                                    {r.image_url && (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={r.image_url} alt={r.author || 'Відгук'} loading="lazy" style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }} />
+                                    )}
+                                    <div style={{ padding: '12px 14px' }}>
+                                        {r.rating ? (
+                                            <div style={{ color: '#f0a500', fontSize: 14, letterSpacing: 2, marginBottom: 4 }}>
+                                                {'★'.repeat(Math.round(r.rating))}{'☆'.repeat(Math.max(0, 5 - Math.round(r.rating)))}
+                                            </div>
+                                        ) : null}
+                                        {r.caption && <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: '0 0 6px' }}>{r.caption}</p>}
+                                        {r.author && <div style={{ fontSize: 12, fontWeight: 600, color: '#1e2d7d' }}>{r.author}</div>}
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </div>
