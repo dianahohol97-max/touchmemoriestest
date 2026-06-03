@@ -11,6 +11,23 @@ import {
     Eye, EyeOff, Search, ToggleLeft, ToggleRight, FileText,
 } from 'lucide-react';
 
+const UA_TRANSLIT: Record<string, string> = {
+    а:'a',б:'b',в:'v',г:'h',ґ:'g',д:'d',е:'e',є:'ie',ж:'zh',з:'z',и:'y',і:'i',ї:'i',й:'i',
+    к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',
+    ш:'sh',щ:'shch',ь:'',ю:'iu',я:'ia',ъ:'',ы:'y',э:'e',ё:'e',"'":'',
+};
+function slugify(input: string): string {
+    return (input || '')
+        .toLowerCase()
+        .split('')
+        .map(ch => (ch in UA_TRANSLIT ? UA_TRANSLIT[ch] : ch))
+        .join('')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
 interface Category { id: string; name: string; slug: string; }
 interface ProductOption {
     name: string; type: 'select' | 'multiselect' | 'text';
@@ -520,7 +537,7 @@ export default function ProductsAdminPage() {
                                     <F label="Назва товару" req>
                                         <input value={S.name} onChange={e=>{
                                             upd('name',e.target.value);
-                                            if(isNew) upd('slug', e.target.value.toLowerCase().replace(/[^a-zа-яіїєґ0-9\s-]/gi,'').replace(/\s+/g,'-').replace(/-+/g,'-'));
+                                            if(isNew) upd('slug', slugify(e.target.value));
                                         }} style={IS}/>
                                     </F>
                                     {isNew && <F label="Slug (URL)" req>
