@@ -14,8 +14,9 @@ import { ChevronDown, Loader2 } from 'lucide-react';
 // Categories that have subcategory filtering
 // key: category slug, value: subcategory definitions
 const SUBCATEGORIES: Record<string, { label: string; match: string }[]> = {
-    'photoalbomy-faylikovi': [
+    'photoalbomy-failykovi': [
         { label: 'на 200 фото', match: '200' },
+        { label: 'на 300 фото', match: '300' },
         { label: 'на 500 фото', match: '500' },
         { label: 'на 800 фото', match: '800' },
     ],
