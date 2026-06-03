@@ -19,7 +19,7 @@ const PRODUCT_PUBLIC_FIELDS =
   'is_personalized, has_designer_option, designer_service_price, max_free_revisions, is_popular, ' +
   'popular_order, options, specs, price_from, sale_price, og_image, video_url, variants, ' +
   'custom_attributes, attribute_price_modifiers, tags, characteristics, sku, status, updated_at, ' +
-  'is_partially_personalized, product_type, translations, features, payment_mode';
+  'is_partially_personalized, product_type, translations, features, payment_mode, production_time';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, locale: rawLocale } = await params;

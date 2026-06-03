@@ -1822,7 +1822,9 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                 <div style={{ background: '#dcfce7', padding: '6px', borderRadius: "3px" }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
-                                {t('product_page.production_time_label')}: {getProductionTime(product.categories?.slug || product.category_id, product.slug || '')}
+                                {product.production_time
+                                    ? product.production_time
+                                    : `${t('product_page.production_time_label')}: ${getProductionTime(product.categories?.slug || product.category_id, product.slug || '')}`}
                                 {isJournalProduct(product.slug, product.categories?.slug || '') && (
                                     <span style={{ marginLeft: 8, fontSize: 12, color: '#f59e0b', fontWeight: 700, background: '#fffbeb', padding: '2px 8px', borderRadius: 4, border: '1px solid #fde68a' }}>
                                         {t('product_page.urgent_order')}
