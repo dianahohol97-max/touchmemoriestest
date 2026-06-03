@@ -4,6 +4,7 @@ import { useT } from '@/lib/i18n/context';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
+import { BookOpen, Newspaper, Compass, Images, Gift } from 'lucide-react';
 
 interface SectionContent {
   heading: string | null;
@@ -18,31 +19,15 @@ interface CustomBookPromoClientProps {
   sectionContent?: SectionContent;
 }
 
-// Material Symbols icon component — exact icons from reference
-function MatIcon({ name, size = 40 }: { name: string; size?: number }) {
-  return (
-    <span
-      className="material-symbols-outlined"
-      style={{
-        fontSize: size + 'px',
-        fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48",
-        lineHeight: 1,
-      }}
-    >
-      {name}
-    </span>
-  );
-}
-
 export function CustomBookPromoClient({
   sectionContent }: CustomBookPromoClientProps) {
     const t = useT();
     const productCategories = [
-      { icon: 'menu_book',                  label: t('nav.photobooks'), href: '/catalog?category=photobooks' },
-      { icon: 'auto_stories',               label: t('nav.magazines'),   href: '/catalog?category=hlyantsevi-zhurnaly' },
-      { icon: 'explore',                    label: 'TravelBook', href: '/catalog/travelbook-20x30' },
-      { icon: 'photo_library',              label: t('custom_book.photo_print_label'),  href: '/catalog/photo-prints' },
-      { icon: 'featured_seasonal_and_gifts',label: t('custom_book.gifts_label'), href: '/catalog?category=gifts' },
+      { Icon: BookOpen,  label: t('nav.photobooks'), href: '/catalog?category=photobooks' },
+      { Icon: Newspaper, label: t('nav.magazines'),   href: '/catalog?category=hlyantsevi-zhurnaly' },
+      { Icon: Compass,   label: 'TravelBook', href: '/catalog/travelbook-20x30' },
+      { Icon: Images,    label: t('custom_book.photo_print_label'),  href: '/catalog/photo-prints' },
+      { Icon: Gift,      label: t('custom_book.gifts_label'), href: '/catalog?category=gifts' },
     ];
     
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
@@ -92,7 +77,7 @@ export function CustomBookPromoClient({
                     className="flex items-center justify-center"
                     style={{ color: '#1e2d7d', transition: 'transform 0.2s, color 0.2s' }}
                   >
-                    <MatIcon name={cat.icon} size={44} />
+                    <cat.Icon size={44} strokeWidth={1.5} />
                   </div>
                   <span className="font-semibold text-[#1e2d7d]"
                     style={{ fontSize: '0.95rem' }}>

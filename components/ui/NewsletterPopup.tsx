@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Mail } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export function NewsletterPopup() {
@@ -132,10 +132,7 @@ export function NewsletterPopup() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   margin: '0 auto 20px',
                 }}>
-                  <span className="material-symbols-outlined" style={{
-                    fontSize: '28px', color: '#ffffff',
-                    fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 28",
-                  }}>mail</span>
+                  <Mail size={28} color="#ffffff" strokeWidth={1.75} />
                 </div>
 
                 <h3 style={{
