@@ -5,6 +5,88 @@ import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
 
 export const dynamic = 'force-dynamic';
 
+const PRODUCT_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Decrement stock for the items in a paid order.
+ *
+ * Two layers:
+ *   1. Per-variant stock — each product option variant can carry a `stock`
+ *      number in products.options[].options[].stock (set in the admin Опції
+ *      tab). The order item stores the chosen variant's *label* under
+ *      options[optName], so we match by label (falling back to value).
+ *   2. Product-level stock_quantity — for physical products with
+ *      track_inventory on.
+ *
+ * Defensive by design: every product is wrapped in try/catch and the whole
+ * call is awaited inside a try/catch in the webhook, so a stock error can
+ * NEVER break payment confirmation. Quantities floor at 0 (never negative).
+ *
+ * Called once, at the moment an order transitions to paid (the caller guards
+ * on the atomic-update result + previous payment_status), so there is no
+ * double-deduction on webhook retries.
+ *
+ * Note: read-modify-write on the options JSONB is not atomic across two
+ * payments confirming the SAME product variant in the same instant. Given the
+ * low volume that's acceptable; the floor-at-0 prevents negative stock.
+ */
+async function deductInventory(admin: ReturnType<typeof getAdminClient>, items: any): Promise<void> {
+    if (!Array.isArray(items)) return;
+    for (const item of items) {
+        try {
+            const qty = Number(item?.quantity ?? item?.qty ?? 1) || 1;
+            const pid = item?.product_id;
+            const slug = item?.slug || item?.product_slug;
+            if (!pid && !slug) continue;
+
+            let prod: any = null;
+            if (pid && PRODUCT_UUID_RE.test(String(pid))) {
+                const { data } = await admin.from('products')
+                    .select('id, options, stock_quantity, track_inventory, product_type')
+                    .eq('id', pid).maybeSingle();
+                prod = data;
+            }
+            if (!prod && slug) {
+                const { data } = await admin.from('products')
+                    .select('id, options, stock_quantity, track_inventory, product_type')
+                    .eq('slug', slug).maybeSingle();
+                prod = data;
+            }
+            if (!prod) continue;
+
+            const itemOpts = (item?.options && typeof item.options === 'object') ? item.options : {};
+            let optionsChanged = false;
+            const newOptions = Array.isArray(prod.options) ? prod.options.map((opt: any) => {
+                const selected = itemOpts[opt?.name];
+                if (selected == null || !Array.isArray(opt?.options)) return opt;
+                let matched = false;
+                const variants = opt.options.map((v: any) => {
+                    if (!matched && v && v.stock != null &&
+                        (v.label === selected || String(v.value) === String(selected))) {
+                        matched = true;
+                        optionsChanged = true;
+                        return { ...v, stock: Math.max(0, Number(v.stock) - qty) };
+                    }
+                    return v;
+                });
+                return matched ? { ...opt, options: variants } : opt;
+            }) : prod.options;
+
+            const patch: Record<string, any> = {};
+            if (optionsChanged) patch.options = newOptions;
+            if (prod.track_inventory && prod.product_type === 'physical' && prod.stock_quantity != null) {
+                patch.stock_quantity = Math.max(0, Number(prod.stock_quantity) - qty);
+            }
+            if (Object.keys(patch).length > 0) {
+                await admin.from('products').update(patch).eq('id', prod.id);
+            }
+        } catch (e) {
+            console.error('deductInventory: item failed (payment still confirmed)', e);
+        }
+    }
+}
+
+
 /**
  * Monobank Webhook Handler
  * Handles payment status updates from Monobank
@@ -220,6 +302,16 @@ export async function POST(req: Request) {
         // 2. Update order status to 'confirmed'
         // 3. Trigger fulfillment process
         if (status === 'success') {
+            // Decrement stock once, at the paid transition. The atomic UPDATE
+            // above guarantees we only reach here once per (invoice, status);
+            // the payment_status guard avoids re-deducting if a prior 'success'
+            // was already applied. Awaited inside try/catch so a stock error
+            // can never break payment confirmation.
+            if (existingOrder.payment_status !== 'paid') {
+                try { await deductInventory(supabase, existingOrder.items); }
+                catch (e) { console.error('deductInventory failed (payment still confirmed):', e); }
+            }
+
             // Optional: Auto-confirm order
             const { data: order } = await supabase
                 .from('orders')

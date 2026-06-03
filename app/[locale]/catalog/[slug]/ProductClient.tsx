@@ -1111,7 +1111,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                                                                 fontWeight: customProductOptions[opt.name] ? 700 : 400,
                                                             }}
                                                         >
-                                                            {items.map((item: any, idx: number) => {
+                                                            {items.filter((item: any) => item?.stock == null || Number(item.stock) > 0).map((item: any, idx: number) => {
                                                                 const label = item.label || item.name || item;
                                                                 const value = item.value || item.name || item;
                                                                 const price = Number(item.price || 0);
