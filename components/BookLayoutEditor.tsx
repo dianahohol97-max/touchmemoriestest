@@ -5075,8 +5075,13 @@ export default function BookLayoutEditor() {
             const dx = ex - sx;
             const dy = ey - (sy||0);
             const hasDragged = (e.currentTarget as any)._swipeMoved;
+            // If the spread is zoomed/wider than the viewport, a horizontal drag
+            // is the user panning to see the rest of it — not a page swipe. Only
+            // switch spreads when the spread fully fits (nothing to pan to).
+            const vp = e.currentTarget as HTMLElement;
+            const canScrollX = (vp.scrollWidth - vp.clientWidth) > 4;
             // Only trigger swipe if horizontal swipe > 60px and not much vertical movement
-            if (isMobile && hasDragged && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            if (isMobile && !canScrollX && hasDragged && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
               if (dx < 0) {
                 // swipe left → next spread
                 setCurrentIdx(i => Math.min(Math.ceil((pages.length - 1) / 2), i + 1));
