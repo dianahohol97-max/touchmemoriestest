@@ -1686,7 +1686,9 @@ export default function BookLayoutEditor() {
   const endpaperFirstIdx = hasEndpaper ? 1 : -1;
   const endpaperLastIdx = hasEndpaper ? pages.length - 1 : -1;
   const isEndpaperPage = (pageIdx: number) => hasEndpaper && (pageIdx === endpaperFirstIdx || pageIdx === endpaperLastIdx);
-  const endpaperSurcharge = 100; // Друк на форзаці — 100 ₴ (travelbook + журнал з твердою обкладинкою)
+  // Друк на форзаці: 200 ₴ для журналу з м'якою обкладинкою, 100 ₴ для
+  // твердої обкладинки та Travel Book (фіксована ціна за обидва форзаци).
+  const endpaperSurcharge = (isMagazine && !isHardCoverJournal) ? 200 : 100;
   // Track which endpaper pages are unlocked (user confirmed surcharge)
   const [endpaperUnlocked, setEndpaperUnlocked] = useState<{ first: boolean; last: boolean }>({ first: false, last: false });
   const isEndpaperUnlocked = (pageIdx: number) => {
@@ -3421,7 +3423,7 @@ export default function BookLayoutEditor() {
         {hasEndpaper && (
           <div style={{ position:'absolute', top:0, left:72, right:0, zIndex:50, background:'linear-gradient(90deg,#fef3c7,#fde68a)', padding:'6px 16px', display:'flex', alignItems:'center', justifyContent:'center', gap:8, borderBottom:'1px solid #fcd34d', fontSize:12, color:'#92400e', fontWeight:600 }}>
             <span></span>
-            <span>Друк на форзаці — <b>+100 ₴</b> (фіксована ціна за обидва). Налаштуйте у вкладці <b>«ФЗ Форзац»</b></span>
+            <span>Друк на форзаці — <b>+{endpaperSurcharge} ₴</b> (фіксована ціна за обидва). Налаштуйте у вкладці <b>«ФЗ Форзац»</b></span>
           </div>
         )}
 
@@ -5073,7 +5075,7 @@ export default function BookLayoutEditor() {
           {hasEndpaper && (
             <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:10, padding:'8px 14px', fontSize:12, color:'#92400e', marginBottom:10, maxWidth: cW, textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
               <span style={{ fontSize:16 }}></span>
-              <span>Форзац — перша та остання сторінка. Друк на форзаці <b>+100 ₴</b> (фіксована за обидва). Натисніть <b>«ФЗ»</b> для налаштування.</span>
+              <span>Форзац — перша та остання сторінка. Друк на форзаці <b>+{endpaperSurcharge} ₴</b> (фіксована за обидва). Натисніть <b>«ФЗ»</b> для налаштування.</span>
             </div>
           )}
 
