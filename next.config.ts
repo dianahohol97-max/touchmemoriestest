@@ -84,6 +84,13 @@ const nextConfig = {
       { source: '/:locale(uk|en|pl|ro|de)/catalog/calendar-wall-a3',  destination: '/:locale/catalog/wall-calendar-2026', permanent: true },
       { source: '/catalog/calendar-table',    destination: '/catalog/desk-calendar-2026', permanent: true },
       { source: '/catalog/calendar-wall-a3',  destination: '/catalog/wall-calendar-2026', permanent: true },
+      // Stale constructor paths from the old site structure (/order/calendar/<type>)
+      { source: '/:locale(uk|en|pl|ro|de)/order/calendar/wall', destination: '/:locale/order/wall-calendar', permanent: true },
+      { source: '/:locale(uk|en|pl|ro|de)/order/calendar/desk', destination: '/:locale/order/desk-calendar', permanent: true },
+      { source: '/order/calendar/wall', destination: '/order/wall-calendar', permanent: true },
+      { source: '/order/calendar/desk', destination: '/order/desk-calendar', permanent: true },
+      // Legacy sitemap filename → canonical sitemap
+      { source: '/sitemap_pages.xml', destination: '/sitemap.xml', permanent: true },
     ];
   },
   async headers() {
