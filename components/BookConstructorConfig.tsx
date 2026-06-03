@@ -1302,7 +1302,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 {t('book_config.cover_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {coverTypes.sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
+                                {coverTypes.filter((c: any) => c.name !== 'Випускна').sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
                                     <button
                                         key={cover.id}
                                         type="button"
