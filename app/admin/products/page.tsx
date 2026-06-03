@@ -15,7 +15,7 @@ interface Category { id: string; name: string; slug: string; }
 interface ProductOption {
     name: string; type: 'select' | 'multiselect' | 'text';
     required?: boolean;
-    options: { label: string; value: string; price: number; allows_text?: boolean }[];
+    options: { label: string; value: string; price: number; allows_text?: boolean; stock?: number | null }[];
 }
 interface Product {
     id: string; name: string; slug: string; category_id: string | null;
@@ -678,14 +678,15 @@ export default function ProductsAdminPage() {
                                                     </button>
                                                 </div>
                                                 <div style={{ padding:12 }}>
-                                                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 80px 56px 28px', gap:6, marginBottom:6 }}>
-                                                        {['Назва','Value','Ціна ₴','Текст',''].map((h,i)=><div key={i} style={{ fontSize:10, fontWeight:700, color:i===2?'#1e2d7d':'#9ca3af', textTransform:'uppercase', textAlign: i===3?'center':'left' }} title={h==='Текст' ? 'Якщо увімкнено — клієнт побачить поле для введення тексту (напр. напис на обкладинці) при виборі цього варіанту' : undefined}>{h}</div>)}
+                                                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 80px 70px 56px 28px', gap:6, marginBottom:6 }}>
+                                                        {['Назва','Value','Ціна ₴','Склад','Текст',''].map((h,i)=><div key={i} style={{ fontSize:10, fontWeight:700, color:(i===2||i===3)?'#1e2d7d':'#9ca3af', textTransform:'uppercase', textAlign: i===4?'center':'left' }} title={h==='Текст' ? 'Якщо увімкнено — клієнт побачить поле для введення тексту (напр. напис на обкладинці) при виборі цього варіанту' : (h==='Склад' ? 'Залишок для цього варіанту. Порожньо = без обмеження (виготовлення під замовлення).' : undefined)}>{h}</div>)}
                                                     </div>
                                                     {opt.options.map((it,ii)=>(
-                                                        <div key={ii} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 80px 56px 28px', gap:6, marginBottom:6, alignItems:'center' }}>
+                                                        <div key={ii} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 80px 70px 56px 28px', gap:6, marginBottom:6, alignItems:'center' }}>
                                                             <input value={it.label} onChange={e=>updItem(oi,ii,'label',e.target.value)} style={{...IS,fontSize:13,padding:'7px 10px'}}/>
                                                             <input value={it.value} onChange={e=>updItem(oi,ii,'value',e.target.value)} style={{...IS,fontSize:13,padding:'7px 10px',fontFamily:'monospace'}}/>
                                                             <input type="number" value={it.price||0} onChange={e=>updItem(oi,ii,'price',parseFloat(e.target.value)||0)} style={{...IS,fontSize:13,padding:'7px 10px'}}/>
+                                                            <input type="number" min={0} value={it.stock ?? ''} onChange={e=>updItem(oi,ii,'stock', e.target.value===''?null:(parseInt(e.target.value,10)||0))} placeholder="∞" title="Залишок для цього варіанту. Порожньо = без обмеження." style={{...IS,fontSize:13,padding:'7px 10px'}}/>
                                                             <label title="Показувати клієнту поле для введення тексту (напр. напис на обкладинці) при виборі цього варіанту"
                                                                 style={{ display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
                                                                 <input type="checkbox" checked={!!it.allows_text}
