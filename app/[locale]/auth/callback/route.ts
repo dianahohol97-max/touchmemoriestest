@@ -34,5 +34,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL('/account', request.url))
+  // Redirect to the localized account page. A bare "/account" 404s because the
+  // route only exists under [locale]; derive the locale from the callback path.
+  const LOCALES = ['uk', 'en', 'ro', 'pl', 'de']
+  const seg = requestUrl.pathname.split('/')[1] || ''
+  const locale = LOCALES.includes(seg) ? seg : 'uk'
+  return NextResponse.redirect(new URL(`/${locale}/account`, request.url))
 }

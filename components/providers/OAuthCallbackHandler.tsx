@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
+
+const LOCALES = ['uk', 'en', 'ro', 'pl', 'de'];
 
 /**
  * OAuthCallbackHandler — catches ?code= on any page and exchanges it for a session.
@@ -11,6 +13,7 @@ import { createBrowserClient } from '@supabase/ssr';
 export function OAuthCallbackHandler() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const pathname = usePathname();
 
     useEffect(() => {
         const code = searchParams.get('code');
@@ -25,11 +28,14 @@ export function OAuthCallbackHandler() {
             if (error) {
                 console.error('OAuth code exchange error:', error.message);
             } else {
-                // Remove ?code= from URL and redirect to /account
-                router.replace('/account');
+                // Redirect to the localized account page. A bare "/account"
+                // 404s because the route only exists under [locale].
+                const seg = pathname?.split('/')[1] ?? '';
+                const locale = LOCALES.includes(seg) ? seg : 'uk';
+                router.replace(`/${locale}/account`);
             }
         });
-    }, [searchParams, router]);
+    }, [searchParams, router, pathname]);
 
     return null;
 }
