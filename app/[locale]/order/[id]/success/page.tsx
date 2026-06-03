@@ -39,17 +39,18 @@ export default function OrderSuccessPage() {
         return () => { clearInterval(interval); };
     }, [params.id]);
 
+    // Must run before any early return (Rules of Hooks). Fires purchase once paid.
+    useEffect(() => {
+        if (!loading && order && order.payment_status === 'paid' && !trackedRef.current) {
+            trackPurchase(order.order_number || order.id, order.items || [], order.total);
+            trackedRef.current = true;
+        }
+    }, [loading, order]);
+
     if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
     if (!order) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Замовлення не знайдено</div>;
 
     const isPaid = order.payment_status === 'paid';
-
-    useEffect(() => {
-        if (!loading && order && isPaid && !trackedRef.current) {
-            trackPurchase(order.order_number || order.id, order.items || [], order.total);
-            trackedRef.current = true;
-        }
-    }, [loading, order, isPaid]);
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#fcfcfc' }}>

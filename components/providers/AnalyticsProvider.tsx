@@ -123,6 +123,15 @@ export const trackBeginCheckout = (cartItems: any[], totalValue: number) => {
 export const trackPurchase = (orderId: string, cartItems: any[], totalValue: number) => {
   if (typeof window === 'undefined') return;
 
+  // Fire once per order per session: the order can be reached from both
+  // /dyakuiemo (Monobank redirect) and /order/[id]/success, and pages can
+  // be refreshed — without this, GA4/Pixel revenue would be double-counted.
+  try {
+    const key = `tm_purchase_${orderId}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+  } catch { /* sessionStorage unavailable — fall through */ }
+
   const items = cartItems.map((item) => ({
     item_id: item.id || item.product_id,
     item_name: item.name || item.title,
