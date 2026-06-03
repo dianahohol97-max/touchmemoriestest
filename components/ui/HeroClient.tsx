@@ -52,8 +52,8 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
   const { content } = useTheme();
   const t = useT();
 
-  // Category pills — localized; complement main nav (don't duplicate header items)
-  const pills = [
+  // Category pills — localized defaults; used only when admin hasn't set buttons in the DB
+  const localizedPills = [
     { id: '1', text: t('hero.pill_photobook'), url: '/catalog?category=photobooks' },
     { id: '2', text: t('hero.pill_magazine'), url: '/catalog?category=hlyantsevi-zhurnaly' },
     { id: '3', text: t('hero.pill_travelbook'), url: '/catalog?category=travelbooks' },
@@ -61,6 +61,15 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
     { id: '5', text: t('hero.pill_graduation'), url: '/catalog?category=graduation-books' },
     { id: '6', text: t('hero.pill_albums'), url: '/catalog?category=photoalbomy-failykovi' },
   ];
+  // Admin-managed buttons (from hero_buttons table) take priority when present
+  const dbPills = (heroButtons || [])
+    .filter((b: any) => b.is_active !== false && (b.button_text || b.text))
+    .map((b: any) => ({
+      id: String(b.id),
+      text: b.button_text || b.text,
+      url: b.button_url || b.url || '/catalog',
+    }));
+  const pills = dbPills.length > 0 ? dbPills : localizedPills;
 
   const overlineText =
     heroContent?.overline_text ||
@@ -116,7 +125,9 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
           transition={{ duration: 0.7, ease: easing, delay: 0.1 }}
           style={{ color: '#ffffff', fontSize: 'clamp(3rem, 8vw, 6rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em', marginBottom: '3rem', maxWidth: '56rem' }}
         >
-          {t('home.hero_title')}
+          {heroContent?.title_line1
+            ? (<>{heroContent.title_line1}{heroContent.title_line2 ? (<><br />{heroContent.title_line2}</>) : null}</>)
+            : t('home.hero_title')}
         </motion.h1>
 
         {/* Exact 6 pills from reference */}

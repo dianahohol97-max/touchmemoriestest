@@ -9,7 +9,7 @@ import {
     Tags, Mail, Palette, DollarSign, Bot,
     Package, Folder, Star, CreditCard, Activity,
     TrendingDown, Printer, Shield, Image, Gift, BarChart2, Zap,
-    Menu, X
+    Menu, X, LayoutTemplate
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -51,6 +51,7 @@ const menuItems = [
     { name: 'Клієнти (CRM)', href: '/admin/clients', icon: <User size={20} />, section: 'customers' },
     { name: 'AI Чат (Inbox)', href: '/admin/social-inbox', icon: <MessageSquare size={20} />, section: 'ai' },
     { name: 'AI Налаштування', href: '/admin/settings/chatbot', icon: <Bot size={20} />, section: 'ai' },
+    { name: 'Управління контентом', href: '/admin/content', icon: <LayoutTemplate size={20} />, section: 'content' },
     { name: 'Блог', href: '/admin/blog', icon: <FileText size={20} />, section: 'content' },
     { name: 'Категорії блогу', href: '/admin/blog/categories', icon: <FolderTree size={20} />, section: 'content' },
     { name: 'Відгуки (Stories)', href: '/admin/reviews', icon: <Image size={20} />, section: 'content' },
