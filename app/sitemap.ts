@@ -61,16 +61,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const { data: categories } = await admin
     .from('categories')
-    .select('slug, updated_at')
+    .select('slug, created_at')
     .eq('is_active', true);
 
   for (const c of categories || []) {
-    entries.push({
-      url: getCanonicalUrl('uk', `/catalog?category=${c.slug}`),
-      lastModified: c.updated_at ? new Date(c.updated_at) : new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    });
+    const path = `/category/${c.slug}`;
+    const alternates: Record<string, string> = {};
+    for (const altLoc of LOCALES) {
+      alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, path);
+    }
+    for (const locale of LOCALES) {
+      entries.push({
+        url: getCanonicalUrl(locale, path),
+        lastModified: c.created_at ? new Date(c.created_at) : new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.7,
+        alternates: { languages: alternates },
+      });
+    }
   }
 
   const { data: posts } = await admin

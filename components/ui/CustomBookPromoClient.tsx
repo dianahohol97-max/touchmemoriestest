@@ -1,5 +1,5 @@
 'use client';
-import { useT } from '@/lib/i18n/context';
+import { useT, useLocale } from '@/lib/i18n/context';
 
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
@@ -22,12 +22,13 @@ interface CustomBookPromoClientProps {
 export function CustomBookPromoClient({
   sectionContent }: CustomBookPromoClientProps) {
     const t = useT();
+    const locale = useLocale();
     const productCategories = [
-      { Icon: BookOpen,  label: t('nav.photobooks'), href: '/catalog?category=photobooks' },
-      { Icon: Newspaper, label: t('nav.magazines'),   href: '/catalog?category=hlyantsevi-zhurnaly' },
-      { Icon: Compass,   label: 'TravelBook', href: '/catalog/travelbook-20x30' },
-      { Icon: Images,    label: t('custom_book.photo_print_label'),  href: '/catalog/photo-prints' },
-      { Icon: Gift,      label: t('custom_book.gifts_label'), href: '/catalog?category=gifts' },
+      { Icon: BookOpen,  label: t('nav.photobooks'), href: `/${locale}/category/photobooks` },
+      { Icon: Newspaper, label: t('nav.magazines'),   href: `/${locale}/category/hlyantsevi-zhurnaly` },
+      { Icon: Compass,   label: 'TravelBook', href: `/${locale}/category/travelbooks` },
+      { Icon: Images,    label: t('custom_book.photo_print_label'),  href: `/${locale}/category/prints` },
+      { Icon: Gift,      label: t('custom_book.gifts_label'), href: `/${locale}/category/gifts` },
     ];
     
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });

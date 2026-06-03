@@ -179,9 +179,9 @@ export function Footer({ categories = [] }: FooterProps) {
                         id: 'products',
                         title: t('footer.products'),
                         links: [
-                            { label: t('footer.photobooks'), href: '/catalog?category=photobooks' },
-                            { label: t('footer.magazines'), href: '/catalog?category=hlyantsevi-zhurnaly' },
-                            { label: t('footer.photo_print'), href: '/catalog?category=prints' }
+                            { label: t('footer.photobooks'), href: `/${locale}/category/photobooks` },
+                            { label: t('footer.magazines'), href: `/${locale}/category/hlyantsevi-zhurnaly` },
+                            { label: t('footer.photo_print'), href: `/${locale}/category/prints` }
                         ]
                     },
                     {
