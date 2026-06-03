@@ -20,6 +20,9 @@ export function startPointerDrag(
   const startY = e.clientY;
   // Capture pointer so drag continues even if finger leaves element
   try { (e.target as Element).setPointerCapture(e.pointerId); } catch {}
+  // Flag the drag globally so the editor canvas doesn't also swipe/scroll the
+  // spread while an object (text, slot, handle) is being dragged on touch.
+  try { (window as any).__tmObjectDragging = true; } catch {}
   const move = (pe: PointerEvent) => {
     pe.preventDefault(); // prevent iOS scroll during drag
     onMove(pe.clientX - startX, pe.clientY - startY);
@@ -28,6 +31,7 @@ export function startPointerDrag(
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', end);
     window.removeEventListener('pointercancel', end);
+    try { (window as any).__tmObjectDragging = false; } catch {}
     onEnd?.();
   };
   // passive:false required so preventDefault() works on iOS Safari

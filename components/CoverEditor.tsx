@@ -175,7 +175,7 @@ function FitText({
         color: tb.color || '#fff', fontSize: fitSize + 'px', fontFamily: tb.fontFamily + ',serif',
         fontWeight: tb.bold ? 700 : 400, outline: 'none', cursor: 'move', display: 'block',
         whiteSpace: 'nowrap', textAlign: 'center', lineHeight: 1.1,
-        textShadow: '0 1px 3px rgba(0,0,0,0.5)', minWidth: '40px',
+        textShadow: '0 1px 3px rgba(0,0,0,0.5)', minWidth: '40px', touchAction: 'none',
       }}
     >
       {tb.text}

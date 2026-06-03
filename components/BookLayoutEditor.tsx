@@ -5044,6 +5044,7 @@ export default function BookLayoutEditor() {
             }
           }}
           onTouchMove={e => {
+            if ((window as any).__tmObjectDragging) { (e.currentTarget as any)._swipeStartX = null; return; }
             if (e.touches.length === 2) {
               const dx = e.touches[0].clientX - e.touches[1].clientX;
               const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -5065,6 +5066,7 @@ export default function BookLayoutEditor() {
             }
           }}
           onTouchEnd={e => {
+            if ((window as any).__tmObjectDragging) { (e.currentTarget as any)._swipeStartX = null; (e.currentTarget as any)._swipeMoved = false; return; }
             const sx = (e.currentTarget as any)._swipeStartX;
             const sy = (e.currentTarget as any)._swipeStartY;
             if (sx === null || sx === undefined) return;
