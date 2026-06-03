@@ -213,87 +213,28 @@ export default function DesignerOrderFlow() {
             // Upload photos
             const fileItems = await uploadPhotosToStorage();
 
-            // Derive product_type for the admin badge from the product slug.
-            // Same mapping the rest of the codebase uses so the
-            // /admin/orders/[id]/files page shows the right Ukrainian
-            // label ("Фотокнига" / "Travel Book" / "Журнал" / "Книга
-            // побажань" etc.) on each photo the customer uploaded for
-            // the designer to lay out.
-            const slugLower = productSlug.toLowerCase();
-            let productType: string = 'designer-brief';
-            if (slugLower.includes('travel')) productType = 'travelbook';
-            else if (slugLower.includes('magazine') || slugLower.includes('zhurnal') || slugLower.includes('fotozhurnal')) productType = 'journal';
-            else if (slugLower.includes('wish') || slugLower.includes('pobazhan') || slugLower.includes('guest')) productType = 'wishbook';
-            else if (slugLower.includes('photobook') || slugLower.includes('graduation')) productType = 'photobook';
-            else if (slugLower.includes('journal')) productType = 'journal';
-            else if (slugLower.includes('planner')) productType = 'planner';
-            else if (slugLower.includes('poster')) productType = 'poster';
-            else if (slugLower.includes('photoprint') || slugLower.includes('polaroid')) productType = 'photoprint';
-
-            // Build product name
-            const productName = productSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-            // Create order
-            const { data: order, error: orderError } = await supabase
-                .from('orders')
-                .insert({
-                    customer_first_name: firstName,
-                    customer_last_name: lastName,
-                    customer_phone: phone,
-                    customer_email: email || null,
-                    customer_telegram: telegram || null,
-                    with_designer: true,
-                    items: [{
-                        product_slug: productSlug,
-                        product_name: productName,
-                        size, pages, cover, tracing, color, decoration, decoration_variant: decorationVariant,
-                        quantity: 1,
-                    }],
-                    notes: [
-                        tripDestination && productSlug.toLowerCase().includes('travel')
-                            ? `Країна/місце подорожі: ${tripDestination}` : '',
-                        orderComment,
-                        coverComment,
-                    ].filter(Boolean).join('\n---\n'),
-                    delivery_method: deliveryMethod,
-                    delivery_address: deliveryMethod === 'nova_poshta' ? { city, branch } : { pickup: 'Тернопіль' },
-                    // The orders table has payment_type, total — not the
-                    // payment_method / total_price column names this flow
-                    // used to send. There is no contact_method column at
-                    // all, so we stash the preference inside the existing
-                    // custom_attributes jsonb where the admin view picks
-                    // it up alongside other free-form metadata.
-                    payment_type: paymentMethod,
-                    order_status: 'new',
-                    payment_status: 'pending',
-                    custom_attributes: { contact_method: contactMethod },
-                    total: 0, // Will be calculated by admin after design
-                })
-                .select('id')
-                .single();
-
-            if (orderError) throw orderError;
-
-            // Link files to order with the full metadata the admin view
-            // needs: bucket_name so the signed URL helper knows where to
-            // look, file_category for the inline tag, product_type for
-            // the coloured badge, plus the original name and size so the
-            // manager sees something recognisable in the file list.
-            if (order && fileItems.length > 0) {
-                await supabase.from('order_files').insert(
-                    fileItems.map((it, idx) => ({
-                        order_id: order.id,
-                        file_path: it.path,
-                        file_name: it.name,
-                        file_type: 'upload',
-                        file_category: 'designer-brief',
-                        product_type: productType,
-                        bucket_name: 'order-files',
-                        file_size: it.size,
-                        mime_type: it.type,
-                        page_number: idx + 1,
-                    }))
-                );
+            // Persist the brief server-side (service-role insert + validation).
+            // Photos were already uploaded to the order-files bucket above; we
+            // only send their metadata. total stays 0 — the manager prices it
+            // after the designer lays the book out. This replaces the old
+            // client-side inserts into `orders` / `order_files`.
+            const res = await fetch('/api/orders/designer-brief', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    firstName, lastName, phone,
+                    email: email || null, telegram: telegram || null,
+                    productSlug, size, pages, cover, tracing, color,
+                    decoration, decorationVariant,
+                    tripDestination, orderComment, coverComment,
+                    deliveryMethod, city, branch,
+                    paymentMethod, contactMethod,
+                    files: fileItems,
+                }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data?.error || 'Не вдалося створити замовлення');
             }
 
             setOrderComplete(true);

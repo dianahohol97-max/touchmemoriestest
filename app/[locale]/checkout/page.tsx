@@ -312,6 +312,7 @@ export default function CheckoutPage() {
                     customer_telegram: formData.telegram || undefined,
                     items: items.map((it: any) => ({
                         product_type: it.category_slug || 'product',
+                        product_id: it.product_id,
                         product_name: it.name,
                         quantity: it.qty,
                         unit_price: it.price,

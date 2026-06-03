@@ -874,6 +874,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Store configuration in sessionStorage
         const config = {
             productSlug,
+            productId: product?.id,
             productName: product?.name,
             selectedSize,
             selectedCoverType,
