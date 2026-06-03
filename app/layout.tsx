@@ -43,6 +43,12 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.ico',
   },
+  verification: {
+    // Google Search Console / Merchant Center site verification.
+    // Several tokens can coexist; add more to this array if another
+    // Google property needs verifying without removing this one.
+    google: '8nxC7U2tum2CMHvmNrfCVTH0q3xDG06YIjAXGGxquiA',
+  },
 };
 
 export default function RootLayout({
