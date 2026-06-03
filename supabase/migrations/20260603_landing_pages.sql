@@ -25,3 +25,8 @@ alter table public.landing_pages enable row level security;
 drop policy if exists landing_pages_public_read on public.landing_pages;
 create policy landing_pages_public_read on public.landing_pages
   for select using (is_active = true);
+
+-- Admin write access (mirrors faqs.admin_write_faqs).
+drop policy if exists landing_pages_admin_write on public.landing_pages;
+create policy landing_pages_admin_write on public.landing_pages
+  for all using (is_admin_user()) with check (is_admin_user());

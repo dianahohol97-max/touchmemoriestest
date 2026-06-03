@@ -54,6 +54,7 @@ const menuItems = [
     { name: 'Блог', href: '/admin/blog', icon: <FileText size={20} />, section: 'content' },
     { name: 'Категорії блогу', href: '/admin/blog/categories', icon: <FolderTree size={20} />, section: 'content' },
     { name: 'Відгуки (Stories)', href: '/admin/reviews', icon: <Image size={20} />, section: 'content' },
+    { name: 'SEO-лендінги', href: '/admin/landing-pages', icon: <FileText size={20} />, section: 'content' },
     { name: 'Шаблони', href: '/admin/templates', icon: <MessageSquare size={20} />, section: 'content' },
     { name: 'Дизайн Сайту', href: '/admin/theme-editor', icon: <Palette size={20} />, section: 'content' },
     { name: 'Платежі', href: '/admin/payments', icon: <CreditCard size={20} />, section: 'finance' },
