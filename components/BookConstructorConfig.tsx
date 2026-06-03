@@ -18,6 +18,26 @@ interface ProductOption {
     }>;
 }
 
+// Option names the configurator has dedicated state + pricing for. Others
+// (e.g. "Верстка тексту", "Терміновість") are chosen on the product page and
+// arrive as URL params, so we don't render dead selects for them here.
+const HANDLED_OPTION_NAMES = ['Тип обкладинки', 'Кількість сторінок', 'Кількість примірників', 'Ламінація сторінок'];
+
+// Some products store choices under `values: [{name, priceModifier}]` and others
+// under `options: [{label, value, price}]`. Normalize to the former shape so the
+// configurator renders either correctly (this is why the glossy magazine showed
+// no options — its page-count choices live under `options`, not `values`).
+function getOptionValues(option: any): Array<{ name: string; priceModifier?: number }> {
+    if (Array.isArray(option?.values) && option.values.length > 0) return option.values;
+    if (Array.isArray(option?.options) && option.options.length > 0) {
+        return option.options.map((o: any) => ({
+            name: o.name ?? o.label ?? o.value ?? '',
+            priceModifier: o.priceModifier ?? o.price ?? 0,
+        }));
+    }
+    return [];
+}
+
 interface BookProduct {
     id: string;
     name: string;
@@ -246,13 +266,14 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
                     // Set defaults for each option
                     options.forEach((option) => {
-                        if (option.values && option.values.length > 0) {
+                        const vals = getOptionValues(option);
+                        if (vals.length > 0) {
                             if (option.name === 'Тип обкладинки') {
-                                setSelectedCoverType(option.values[0].name);
+                                setSelectedCoverType(vals[0].name);
                             } else if (option.name === 'Кількість сторінок') {
-                                setSelectedPageCount(option.values[0].name);
+                                setSelectedPageCount(vals[0].name);
                             } else if (option.name === 'Кількість примірників') {
-                                setSelectedCopies(option.values[0].name);
+                                setSelectedCopies(vals[0].name);
                             }
                         }
                     });
@@ -1536,7 +1557,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
 
                     {/*  Non-photobook: Dynamic options from product.options  */}
-                    {productType !== 'photobook' && product.options && (product.options as ProductOption[]).filter((option) => option.values && option.values.length > 0).map((option) => (
+                    {productType !== 'photobook' && product.options && (product.options as ProductOption[]).filter((option) => HANDLED_OPTION_NAMES.includes(option.name) && getOptionValues(option).length > 0).map((option) => (
                         <div key={option.name}>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 {option.name} <span className="text-red-500">*</span>
@@ -1563,7 +1584,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 }}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] bg-white"
                             >
-                                {(option.values || []).map((value) => (
+                                {getOptionValues(option).map((value) => (
                                     <option key={value.name} value={value.name}>
                                         {value.name}
                                         {value.priceModifier !== undefined && value.priceModifier !== 0 &&
