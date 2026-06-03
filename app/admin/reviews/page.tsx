@@ -25,6 +25,7 @@ interface Review {
     category: string | null;
     rating: number | null;
     product_id: string | null;
+    status?: string;
     is_active: boolean;
     sort_order: number;
     created_at: string;
