@@ -263,6 +263,16 @@ export default function ReviewsAdminPage() {
         }
     };
 
+    const moderate = async (id: string, decision: 'approved' | 'rejected') => {
+        const patch = decision === 'approved'
+            ? { status: 'approved', is_active: true }
+            : { status: 'rejected', is_active: false };
+        const { error } = await supabase.from('reviews').update(patch).eq('id', id);
+        if (error) { toast.error('Помилка'); return; }
+        toast.success(decision === 'approved' ? 'Опубліковано' : 'Відхилено');
+        fetchReviews();
+    };
+
     const toggleActive = async (id: string, currentStatus: boolean) => {
         const { error } = await supabase
             .from('reviews')
@@ -400,6 +410,32 @@ export default function ReviewsAdminPage() {
                 </div>
             </div>
 
+            {/* Moderation queue — customer submissions awaiting approval */}
+            {reviews.some(r => r.status === 'pending') && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6">
+                    <h2 className="text-lg font-bold text-amber-900 mb-4">
+                        На модерації ({reviews.filter(r => r.status === 'pending').length})
+                    </h2>
+                    <div className="space-y-3">
+                        {reviews.filter(r => r.status === 'pending').map(r => (
+                            <div key={r.id} className="flex items-start gap-3 bg-white border border-stone-200 rounded-lg p-4">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="font-semibold text-stone-900">{r.author || 'Анонім'}</span>
+                                        {r.rating ? <span className="text-amber-500 text-sm">{'★'.repeat(r.rating)}</span> : null}
+                                    </div>
+                                    {r.caption && <p className="text-stone-600 text-sm whitespace-pre-wrap">{r.caption}</p>}
+                                </div>
+                                <div className="flex gap-2 shrink-0">
+                                    <button onClick={() => moderate(r.id, 'approved')} className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700">Схвалити</button>
+                                    <button onClick={() => moderate(r.id, 'rejected')} className="px-3 py-1.5 rounded-lg border border-stone-300 text-stone-600 text-sm font-semibold hover:bg-stone-50">Відхилити</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Reviews Grid (9:16 aspect ratio) */}
             <div className="bg-white rounded-xl border border-stone-200 p-6">
                 {reviews.length === 0 ? (
@@ -416,7 +452,7 @@ export default function ReviewsAdminPage() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                        {reviews.map((review, index) => (
+                        {reviews.filter(r => r.status !== 'pending').map((review, index) => (
                             <div key={review.id} className="relative group">
                                 {/* 9:16 Image Container */}
                                 <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-stone-100 border-2 border-stone-200">

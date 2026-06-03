@@ -76,6 +76,7 @@ export function SocialProof() {
                     .from('reviews')
                     .select('id, image_url, author, category, rating')
                     .eq('is_active', true)
+                    .not('image_url', 'is', null)
                     .order('sort_order', { ascending: true });
 
                 if (data && data.length > 0) {

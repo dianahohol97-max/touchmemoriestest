@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
+import ReviewForm from '@/components/ReviewForm';
 import { notFound, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { ProductCard } from '@/components/ui/ProductCard';
@@ -1869,13 +1870,14 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                     </div>
                 )}
 
-                {/* Product reviews — visible content backing the AggregateRating schema */}
-                {Array.isArray(initialReviews) && initialReviews.length > 0 && (
-                    <div style={{ paddingTop: '60px' }}>
-                        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '32px', textAlign: 'center' }}>
-                            Відгуки
-                        </h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
+                {/* Product reviews + submission form. Listed reviews back the
+                    AggregateRating schema; the form feeds the moderation queue. */}
+                <div style={{ paddingTop: '60px' }}>
+                    <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '32px', textAlign: 'center' }}>
+                        Відгуки
+                    </h2>
+                    {Array.isArray(initialReviews) && initialReviews.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: 40 }}>
                             {initialReviews.map((r: any) => (
                                 <div key={r.id} style={{ border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', background: '#fff' }}>
                                     {r.image_url && (
@@ -1894,8 +1896,9 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                 </div>
                             ))}
                         </div>
-                    </div>
-                )}
+                    )}
+                    <ReviewForm productId={product?.id} />
+                </div>
 
             </main>
 
