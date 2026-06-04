@@ -1751,6 +1751,18 @@ export default function BookLayoutEditor() {
   const isMagazine = _slug.includes('magazine') || _slug.includes('journal') || _slug.includes('zhurnal');
   const magazineTextEnabled = !isWishbook; // show templates for all products
 
+  // Whether the customer added their own text on a "no text" magazine variant.
+  // We allow it (with a warning) but it turns the order into a typeset job, so
+  // the +195 ₴ typesetting fee is now applied AUTOMATICALLY (previously the
+  // manager had to add it by hand, which risked lost revenue). Driven by the
+  // content-page text blocks the Text tab / text templates create.
+  const userAddedTextOnNoTextVariant = isMagazine && !hasTextLayout &&
+    pages.some(p => (p.textBlocks?.length || 0) > 0);
+  // Effective typesetting flag — either the paid "with text" variant, or a
+  // no-text variant the customer added text to. Drives both the price (+195 ₴)
+  // and the manager-visible order line.
+  const typesettingApplies = hasTextLayout || userAddedTextOnNoTextVariant;
+
   // Warning shown inside the "Текст" tab when the customer picked the
   // no-text magazine variant. The tab used to be hard-disabled; now we let
   // them add text anyway but make it explicit that text is a paid typesetting
@@ -1760,7 +1772,7 @@ export default function BookLayoutEditor() {
   const noTextLayoutNotice = (isMagazine && !hasTextLayout) ? (
     <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'#fff7ed', border:'1px solid #fdba74', borderRadius:10, fontSize:12, lineHeight:1.45, color:'#9a3412' }}>
       <span style={{ fontSize:15, lineHeight:1 }}>⚠️</span>
-      <span>Ви обрали варіант <b>без верстки тексту</b>. Додати текст можна, але це окрема послуга верстки (<b>+195 ₴</b>) — менеджер додасть її до замовлення при підтвердженні.</span>
+      <span>Ви обрали варіант <b>без верстки тексту</b>. Додати текст можна — щойно ви це зробите, до замовлення <b>автоматично</b> додається послуга верстки (<b>+195 ₴</b>).</span>
     </div>
   ) : null;
 
@@ -2829,6 +2841,14 @@ export default function BookLayoutEditor() {
         }
         // Min-order info for graduation books.
         if (isGraduation) opts['Мінімальне замовлення'] = `${GRADUATION_MIN_QTY} шт`;
+        // Typesetting (верстка тексту) — either the paid "with text" variant or
+        // a no-text variant the customer added text to. +195 ₴ is already folded
+        // into `price`; this line just makes it explicit for the manager.
+        if (typesettingApplies) {
+          opts['Верстка тексту'] = userAddedTextOnNoTextVariant && !hasTextLayout
+            ? '+195 ₴ (текст додано в конструкторі)'
+            : '+195 ₴';
+        }
         return opts;
       })(),
       personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}${isGraduation ? ` · мінімум ${GRADUATION_MIN_QTY} шт` : ''}${inscriptionExtra > 0 ? ` · напис: ${coverState.inscriptionMethod === 'flex' ? 'друк кольором' : 'гравірування'} (+180 ₴)` : ''}`,
@@ -3393,7 +3413,7 @@ export default function BookLayoutEditor() {
     // Previously this multiplied (base + typesetting) by 1.3 which
     // gave the wrong total — 525×1.3 + 195 = 878, not (525+195)×1.3 = 936.
     let typesettingExtra = 0;
-    if (hasTextLayout) {
+    if (typesettingApplies) {
       typesettingExtra = 195; // TYPESETTING_PRICE for magazine
     }
     const urgentRaw = searchParams?.get('urgent') || '';
@@ -3827,7 +3847,7 @@ export default function BookLayoutEditor() {
                   const productTag = isMagazine ? 'magazine' : isWishbook ? 'wishbook' : 'magazine';
                   const textTemplates = PAGE_TEMPLATES.filter(t => !t.tags || t.tags.includes(productTag) || t.tags.includes('journal'));
                   const groups = [...new Set(textTemplates.map(t => t.group))];
-                  const tooltipMsg = !hasTextLayout ? 'Текст — окрема послуга верстки (+195 ₴). Менеджер додасть її до замовлення.' : undefined;
+                  const tooltipMsg = !hasTextLayout ? 'Текст — окрема послуга верстки (+195 ₴), додається до замовлення автоматично, щойно ви додаєте текст.' : undefined;
                   return groups.map(group => (
                     <div key={'txt-'+group}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', padding: '8px 4px 4px', textTransform: 'uppercase' }}> {group}</div>
@@ -7354,7 +7374,7 @@ export default function BookLayoutEditor() {
             • <b>Фігури, рамки, наліпки, QR</b> — декоративні елементи.
           </>,
           extra: <>Щоб <b>змінити розмір або форму фотослота</b>: клікніть на фото → у панельці зверху натисніть синю кнопку <b>«Слот»</b> → тягніть за сині кружечки по кутах.</>,
-          tip: !hasTextLayout ? <>Ви обрали варіант без верстки тексту. Додати текст усе одно можна — це окрема послуга верстки (+195 ₴), яку менеджер додасть до замовлення. Або оберіть варіант із текстом на сторінці товару.</> : null,
+          tip: !hasTextLayout ? <>Ви обрали варіант без верстки тексту. Додати текст усе одно можна — це окрема послуга верстки (+195 ₴), яка додається до замовлення автоматично, щойно ви додаєте текст. Або оберіть варіант із текстом на сторінці товару.</> : null,
         } : {
           title: 'Крок 3. Додайте акценти',
           body: <>
