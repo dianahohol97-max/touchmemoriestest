@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
+import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +84,22 @@ export async function POST(
 
         if (updateError) throw updateError;
 
-        // 4. TODO: Send shipping notification email to customer
+        // 4. Send shipping notification email — fire-and-forget so a Brevo
+        // hiccup never fails the TTN creation. Only on the first TTN (guard on
+        // the pre-update value) to avoid re-sending if the action is re-run.
+        if (!order.ttn && order.customer_email) {
+            const baseUrl = getRuntimeBaseUrl();
+            fetch(`${baseUrl}/api/email/transactional`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-cron-secret': process.env.CRON_SECRET || '',
+                },
+                body: JSON.stringify({ action: 'shipped', orderId }),
+            }).catch(err => {
+                console.error('shipped email trigger failed:', err);
+            });
+        }
         console.log(`Order ${order.order_number} marked as shipped with TTN: ${ttn}`);
 
         return NextResponse.json({

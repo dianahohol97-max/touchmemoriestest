@@ -22,6 +22,10 @@ interface OrderShippedEmailProps {
     ttn?: string;
     deliveryMethod?: string;
     deliveryAddress?: string;
+    // -7% offer for tagging @touch.memories in stories (KeyCRM-style). On by default.
+    igOffer?: boolean;
+    // Optional admin override of the intro paragraph (blank line = new paragraph).
+    body?: string;
 }
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
@@ -31,8 +35,14 @@ export const OrderShippedEmail = ({
     customerName = 'Петро',
     ttn = '20450000000000',
     deliveryMethod = 'Нова Пошта (Відділення)',
-    deliveryAddress = 'Київ, Відділення №1'
+    deliveryAddress = 'Київ, Відділення №1',
+    igOffer = true,
+    body,
 }: OrderShippedEmailProps) => {
+    const introParts = (body && body.trim()
+        ? body
+        : `Привіт, ${customerName}. Чудові новини! Ваше замовлення ${orderNumber} вже передано в службу доставки і прямує до вас.`)
+        .split(/\n{2,}/).map(pp => pp.trim()).filter(Boolean);
     // Determine the tracking URL (Currently using Nova Poshta logic)
     const trackingUrl = `https://tracking.novaposhta.ua/#/uk?en=${ttn}`;
 
@@ -47,9 +57,9 @@ export const OrderShippedEmail = ({
                     </Section>
                     <Section style={content}>
                         <Heading style={heading}>Замовлення відправлено!</Heading>
-                        <Text style={text}>
-                            Привіт, {customerName}. Чудові новини! Ваше замовлення <strong>{orderNumber}</strong> вже передано в службу доставки і прямує до вас.
-                        </Text>
+                        {introParts.map((pp, i) => (
+                            <Text key={i} style={text}>{pp}</Text>
+                        ))}
 
                         <Section style={trackingBox}>
                             <Text style={trackingTitle}>ДЕТАЛІ ДОСТАВКИ</Text>
@@ -67,6 +77,16 @@ export const OrderShippedEmail = ({
                             Зазвичай доставка займає 1-3 дні. Коли посилка прибуде до вашого відділення або поштомату, ви отримаєте сповіщення від служби доставки.
                         </Text>
 
+                        {igOffer && (
+                            <Section style={offerBox}>
+                                <Text style={offerTitle}>ПОДАРУНОК ЗА ВІДГУК 💙</Text>
+                                <Text style={offerBig}>−7% на наступне замовлення</Text>
+                                <Text style={offerText}>
+                                    Коли отримаєте посилку — позначте нас <strong>@touch.memories</strong> у вашій історії в Instagram. У відповідь надішлемо персональний промокод −7% на наступне замовлення.
+                                </Text>
+                            </Section>
+                        )}
+
                         <Hr style={hr} />
 
                         <Text style={footerText}>
@@ -78,7 +98,7 @@ export const OrderShippedEmail = ({
                         <Text style={footerLinks}>
                             <Link href={baseUrl} style={link}>Магазин</Link> •{' '}
                             <Link href={`${baseUrl}/terms`} style={link}>Умови Dоговору</Link> •{' '}
-                            <Link href={"https://instagram.com/touchmemories.shop"} style={link}>Instagram</Link>
+                            <Link href={"https://instagram.com/touch.memories"} style={link}>Instagram</Link>
                         </Text>
                         <Text style={footerCopyright}>
                             © {new Date().getFullYear()} TouchMemories. Всі права захищено.
@@ -93,6 +113,34 @@ export const OrderShippedEmail = ({
 export default OrderShippedEmail;
 
 // Styles
+const offerBox = {
+    backgroundColor: '#fffbeb',
+    border: '1px solid #fde68a',
+    borderRadius: '3px',
+    padding: '24px',
+    margin: '0 0 24px',
+    textAlign: 'center' as const,
+};
+const offerTitle = {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#d97706',
+    letterSpacing: '1px',
+    margin: '0 0 8px',
+};
+const offerBig = {
+    fontSize: '22px',
+    fontWeight: '800',
+    color: '#263A99',
+    margin: '0 0 12px',
+};
+const offerText = {
+    fontSize: '14px',
+    lineHeight: '22px',
+    color: '#4b5563',
+    margin: '0',
+};
+
 const main = {
     backgroundColor: '#f6f9fc',
     fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
