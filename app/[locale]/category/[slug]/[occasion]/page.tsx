@@ -11,6 +11,7 @@ import {
 } from '@/lib/seo/locales';
 import { getLocalized } from '@/lib/i18n/localize';
 import { toDbCategorySlug, toPublicCategorySlug } from '@/lib/seo/categorySlugs';
+import { geoCityLabel, clusterLabel } from '@/lib/seo/landingLabels';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 
@@ -135,6 +136,22 @@ export default async function LandingPage({
     : { data: null };
   const catName = cat ? (getLocalized(cat as any, locale, 'name') || (cat as any).name) : '';
 
+  // Sibling landing pages for internal linking (discovery + link equity).
+  let geoSiblings: Array<{ category_slug: string; occasion: string; kind: string; h1: string | null }> = [];
+  let otherSiblings: typeof geoSiblings = [];
+  if (supabase) {
+    const { data: sib } = await supabase
+      .from('landing_pages')
+      .select('category_slug, occasion, kind, h1')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+    const siblings = ((sib as any[]) || []).filter(
+      (r) => !(r.category_slug === lp.category_slug && r.occasion === occasion)
+    );
+    geoSiblings = siblings.filter((r) => r.kind === 'geo').slice(0, 15);
+    otherSiblings = siblings.filter((r) => r.kind !== 'geo').slice(0, 12);
+  }
+
   const site = getBaseUrl();
   const pageUrl = getCanonicalUrl(locale, `/category/${publicSlug}/${occasion}`);
   const catUrl = getCanonicalUrl(locale, `/category/${publicSlug}`);
@@ -238,6 +255,35 @@ export default async function LandingPage({
               );
             })}
           </div>
+        )}
+
+        {(geoSiblings.length > 0 || otherSiblings.length > 0) && (
+          <section aria-label="Інші сторінки" style={{ marginTop: 56, paddingTop: 32, borderTop: '1px solid #eee' }}>
+            {geoSiblings.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontSize: 14, fontWeight: 800, color: '#263A99', textTransform: 'uppercase', letterSpacing: 0.6, margin: '0 0 12px' }}>Фотокниги в інших містах</h2>
+                <ul style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', listStyle: 'none', padding: 0, margin: 0 }}>
+                  {geoSiblings.map((r) => (
+                    <li key={`${r.category_slug}-${r.occasion}`}>
+                      <Link href={`/${locale}/category/${toPublicCategorySlug(r.category_slug)}/${r.occasion}`} style={{ fontSize: 14, color: '#475569', textDecoration: 'none' }}>{geoCityLabel(r.occasion, r.h1)}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {otherSiblings.length > 0 && (
+              <div>
+                <h2 style={{ fontSize: 14, fontWeight: 800, color: '#263A99', textTransform: 'uppercase', letterSpacing: 0.6, margin: '0 0 12px' }}>Схожі сторінки</h2>
+                <ul style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', listStyle: 'none', padding: 0, margin: 0 }}>
+                  {otherSiblings.map((r) => (
+                    <li key={`${r.category_slug}-${r.occasion}`}>
+                      <Link href={`/${locale}/category/${toPublicCategorySlug(r.category_slug)}/${r.occasion}`} style={{ fontSize: 14, color: '#475569', textDecoration: 'none' }}>{clusterLabel(r.h1, r.occasion)}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
         )}
       </main>
 

@@ -1,27 +1,7 @@
 import Link from 'next/link';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
-
-// Ukrainian display names for geo landing occasions (keeps the city list short
-// and readable instead of the full h1). Falls back to the h1 if unmapped.
-const CITY_NAMES: Record<string, string> = {
-    kyiv: 'Київ',
-    lviv: 'Львів',
-    kharkiv: 'Харків',
-    odesa: 'Одеса',
-    dnipro: 'Дніпро',
-    ternopil: 'Тернопіль',
-    zaporizhzhia: 'Запоріжжя',
-    vinnytsia: 'Вінниця',
-    'ivano-frankivsk': 'Івано-Франківськ',
-    rivne: 'Рівне',
-    lutsk: 'Луцьк',
-    khmelnytskyi: 'Хмельницький',
-    chernivtsi: 'Чернівці',
-    poltava: 'Полтава',
-    zhytomyr: 'Житомир',
-    uzhhorod: 'Ужгород',
-};
+import { geoCityLabel, clusterLabel } from '@/lib/seo/landingLabels';
 
 interface Row {
     category_slug: string;
@@ -50,8 +30,8 @@ export default async function LandingLinks({ locale }: { locale: string }) {
     const others = rows.filter(r => r.kind !== 'geo');
 
     const href = (r: Row) => `/${locale}/category/${toPublicCategorySlug(r.category_slug)}/${r.occasion}`;
-    const cityLabel = (r: Row) => CITY_NAMES[r.occasion] || r.h1 || r.occasion;
-    const otherLabel = (r: Row) => (r.h1 || '').replace(/\s+на замовлення$/i, '').trim() || r.occasion;
+    const cityLabel = (r: Row) => geoCityLabel(r.occasion, r.h1);
+    const otherLabel = (r: Row) => clusterLabel(r.h1, r.occasion);
 
     const sectionStyle: React.CSSProperties = {
         background: '#fafafa',
