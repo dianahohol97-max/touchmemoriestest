@@ -4,34 +4,74 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Play } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import DesignerConfigModal from '../DesignerConfigModal';
+
+interface ConstructorMediaMeta {
+    heading: string;
+    description: string;
+    constructor_url: string;
+    constructor_button_text: string;
+    designer_button_text: string;
+    video_url?: string;
+    image_url?: string;
+    media_type?: 'video' | 'image';
+    image_position?: string;
+    video_start?: number | null;
+    video_end?: number | null;
+}
 
 interface SectionContent {
     metadata?: {
-        photobooks?: {
-            heading: string;
-            description: string;
-            constructor_url: string;
-            constructor_button_text: string;
-            designer_button_text: string;
-            video_url?: string;
-            image_url?: string;
-        };
-        magazines?: {
-            heading: string;
-            description: string;
-            constructor_url: string;
-            constructor_button_text: string;
-            designer_button_text: string;
-            video_url?: string;
-            image_url?: string;
-        };
+        photobooks?: ConstructorMediaMeta;
+        magazines?: ConstructorMediaMeta;
     };
 }
 
 interface ConstructorSelectionClientProps {
     sectionContent?: SectionContent;
+}
+
+// Video that respects an optional [start, end] trim window and loops within it.
+function TrimmedVideo({ src, poster, start, end }: { src: string; poster?: string; start?: number | null; end?: number | null }) {
+    const ref = useRef<HTMLVideoElement>(null);
+    const s = Number(start) > 0 ? Number(start) : 0;
+    const e = Number(end) > 0 ? Number(end) : 0;
+    const managed = s > 0 || e > 0;
+    return (
+        <video
+            ref={ref}
+            autoPlay muted playsInline
+            loop={!managed}
+            poster={poster || undefined}
+            className="w-full h-full object-cover"
+            onLoadedMetadata={() => { const v = ref.current; if (v && s > 0) { try { v.currentTime = s; } catch {} } }}
+            onTimeUpdate={() => {
+                const v = ref.current; if (!v) return;
+                const stop = e > 0 ? e : (v.duration || 0);
+                if (stop > 0 && v.currentTime >= stop - 0.05) { try { v.currentTime = s; v.play(); } catch {} }
+            }}
+            onEnded={() => { const v = ref.current; if (v) { try { v.currentTime = s; v.play(); } catch {} } }}
+        >
+            <source src={src} type="video/mp4" />
+        </video>
+    );
+}
+
+// Decides between image and video for a constructor card and applies the
+// admin's focal point / trim choices.
+function ConstructorMedia({ meta, heading, placeholder }: { meta?: ConstructorMediaMeta; heading: string; placeholder: React.ReactNode }) {
+    const video = meta?.video_url || '';
+    const image = meta?.image_url || '';
+    const wantImage = meta?.media_type === 'image';
+    const useImage = !!image && (wantImage || !video);
+    if (useImage) {
+        return <img src={image} alt={heading} className="w-full h-full object-cover" style={{ objectPosition: meta?.image_position || '50% 50%' }} />;
+    }
+    if (video) {
+        return <TrimmedVideo src={video} poster={image || undefined} start={meta?.video_start} end={meta?.video_end} />;
+    }
+    return <>{placeholder}</>;
 }
 
 export function ConstructorSelectionClient({
@@ -57,11 +97,6 @@ export function ConstructorSelectionClient({
     const magazinesConstructorButtonText = sectionContent?.metadata?.magazines?.constructor_button_text || t('constructor_sel.open_constructor');
     const magazinesDesignerButtonText = sectionContent?.metadata?.magazines?.designer_button_text || t('constructor_sel.order_designer');
 
-    const photobooksVideo = sectionContent?.metadata?.photobooks?.video_url || '';
-    const magazinesVideo = sectionContent?.metadata?.magazines?.video_url || '';
-    const photobooksImage = sectionContent?.metadata?.photobooks?.image_url || '';
-    const magazinesImage = sectionContent?.metadata?.magazines?.image_url || '';
-
 
     return (
         <section ref={ref} className="py-20 bg-white">
@@ -79,18 +114,16 @@ export function ConstructorSelectionClient({
                         {/* LEFT: Video */}
                         <div>
                             <div className="aspect-[4/5] bg-gradient-to-br from-stone-100 to-[#f0f3ff] rounded-xl overflow-hidden shadow-lg border border-stone-200 flex items-center justify-center relative">
-                                {photobooksVideo ? (
-                                    <video autoPlay muted loop playsInline poster={photobooksImage || undefined} className="w-full h-full object-cover">
-                                        <source src={photobooksVideo} type="video/mp4" />
-                                    </video>
-                                ) : photobooksImage ? (
-                                    <img src={photobooksImage} alt={photobooksHeading} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="text-center">
-                                        <Play size={48} className="mx-auto mb-2 text-stone-400" />
-                                        <span className="text-stone-500 text-sm font-medium">{t('constructor_sel.video_placeholder')}</span>
-                                    </div>
-                                )}
+                                <ConstructorMedia
+                                    meta={sectionContent?.metadata?.photobooks}
+                                    heading={photobooksHeading}
+                                    placeholder={
+                                        <div className="text-center">
+                                            <Play size={48} className="mx-auto mb-2 text-stone-400" />
+                                            <span className="text-stone-500 text-sm font-medium">{t('constructor_sel.video_placeholder')}</span>
+                                        </div>
+                                    }
+                                />
                             </div>
                         </div>
 
@@ -393,18 +426,16 @@ export function ConstructorSelectionClient({
                         {/* RIGHT: Video */}
                         <div className="order-1 lg:order-2">
                             <div className="aspect-[4/5] bg-[#f0f2f8] rounded-xl overflow-hidden shadow-lg border border-gray-200 flex items-center justify-center relative">
-                                {magazinesVideo ? (
-                                    <video autoPlay muted loop playsInline poster={magazinesImage || undefined} className="w-full h-full object-cover">
-                                        <source src={magazinesVideo} type="video/mp4" />
-                                    </video>
-                                ) : magazinesImage ? (
-                                    <img src={magazinesImage} alt={magazinesHeading} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="text-center">
-                                        <Play size={48} className="mx-auto mb-2 text-[#1e2d7d]" />
-                                        <span className="text-[#1e2d7d] text-sm font-medium">{t('constructor_sel.video_placeholder')}</span>
-                                    </div>
-                                )}
+                                <ConstructorMedia
+                                    meta={sectionContent?.metadata?.magazines}
+                                    heading={magazinesHeading}
+                                    placeholder={
+                                        <div className="text-center">
+                                            <Play size={48} className="mx-auto mb-2 text-[#1e2d7d]" />
+                                            <span className="text-[#1e2d7d] text-sm font-medium">{t('constructor_sel.video_placeholder')}</span>
+                                        </div>
+                                    }
+                                />
                             </div>
                         </div>
 

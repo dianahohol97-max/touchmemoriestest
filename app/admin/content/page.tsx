@@ -152,7 +152,7 @@ export default function ContentManagementPage() {
         if (url) {
             const section = sectionContent.find(s => s.id === sectionId);
             const md: any = { ...(section?.metadata || {}) };
-            md[key] = { ...(md[key] || {}), video_url: url };
+            md[key] = { ...(md[key] || {}), video_url: url, media_type: 'video' };
             updateSectionField(sectionId, 'metadata', md);
             toast.success('Відео завантажено — збережіть секцію');
         }
@@ -169,11 +169,20 @@ export default function ContentManagementPage() {
         if (url) {
             const section = sectionContent.find(s => s.id === sectionId);
             const md: any = { ...(section?.metadata || {}) };
-            md[key] = { ...(md[key] || {}), image_url: url };
+            md[key] = { ...(md[key] || {}), image_url: url, media_type: 'image' };
             updateSectionField(sectionId, 'metadata', md);
             toast.success('Фото редактора завантажено — збережіть секцію');
         }
         setUploading(false);
+    }
+
+    // Merge arbitrary fields into metadata[key] for the constructor section
+    // (display choice, image focal point, video trim).
+    function updateConstructorMeta(sectionId: string, key: 'photobooks' | 'magazines', patch: Record<string, any>) {
+        const section = sectionContent.find(s => s.id === sectionId);
+        const md: any = { ...(section?.metadata || {}) };
+        md[key] = { ...(md[key] || {}), ...patch };
+        updateSectionField(sectionId, 'metadata', md);
     }
 
     useEffect(() => {
@@ -1096,6 +1105,10 @@ export default function ContentManagementPage() {
                                                     {(['photobooks', 'magazines'] as const).map((key) => {
                                                         const vurl = (section.metadata as any)?.[key]?.video_url || '';
                                                         const imgurl = (section.metadata as any)?.[key]?.image_url || '';
+                                                        const mtype = (section.metadata as any)?.[key]?.media_type || (vurl ? 'video' : 'image');
+                                                        const ipos = (section.metadata as any)?.[key]?.image_position || '50% 50%';
+                                                        const vstart = (section.metadata as any)?.[key]?.video_start ?? '';
+                                                        const vend = (section.metadata as any)?.[key]?.video_end ?? '';
                                                         return (
                                                             <div key={key} className="flex items-start gap-3 flex-wrap py-2 border-b border-blue-100 last:border-0">
                                                                 <span className="text-sm text-gray-600 w-28 pt-2">{key === 'photobooks' ? 'Фотокниги' : 'Журнали'}:</span>
@@ -1112,17 +1125,56 @@ export default function ContentManagementPage() {
                                                                     <div className="flex items-center gap-3 flex-wrap">
                                                                         <label className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg cursor-pointer text-sm font-medium text-gray-700 transition-colors">
                                                                             <ImageIcon size={16} />
-                                                                            {uploading ? 'Завантаження...' : (imgurl ? 'Замінити фото редактора' : 'Завантажити фото редактора')}
+                                                                            {uploading ? 'Завантаження...' : (imgurl ? 'Замінити фото' : 'Завантажити фото')}
                                                                             <input type="file" accept="image/*" className="hidden" disabled={uploading}
                                                                                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionEditorImageUpload(section.id, key, f); e.target.value = ''; }} />
                                                                         </label>
                                                                         {imgurl && <img src={imgurl} alt="" className="h-16 rounded border border-gray-200 object-cover" />}
                                                                     </div>
+
+                                                                    {(vurl || imgurl) && (
+                                                                        <div className="flex flex-col gap-2 pt-1">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-xs text-gray-600">Показувати на сайті:</span>
+                                                                                <button type="button" disabled={!vurl}
+                                                                                    onClick={() => updateConstructorMeta(section.id, key, { media_type: 'video' })}
+                                                                                    className={`px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${mtype === 'video' ? 'bg-[#263a99] text-white border-[#263a99]' : 'bg-white text-gray-700 border-gray-300'} ${!vurl ? 'opacity-40 cursor-not-allowed' : ''}`}>Відео</button>
+                                                                                <button type="button" disabled={!imgurl}
+                                                                                    onClick={() => updateConstructorMeta(section.id, key, { media_type: 'image' })}
+                                                                                    className={`px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${mtype === 'image' ? 'bg-[#263a99] text-white border-[#263a99]' : 'bg-white text-gray-700 border-gray-300'} ${!imgurl ? 'opacity-40 cursor-not-allowed' : ''}`}>Фото</button>
+                                                                            </div>
+
+                                                                            {mtype === 'video' && vurl && (
+                                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                                    <span className="text-xs text-gray-600">Обрізати (сек):</span>
+                                                                                    <input type="number" min="0" step="0.1" placeholder="початок" value={vstart}
+                                                                                        onChange={(e) => updateConstructorMeta(section.id, key, { video_start: e.target.value === '' ? null : Number(e.target.value) })}
+                                                                                        className="w-24 px-2 py-1 border border-gray-300 rounded text-xs" />
+                                                                                    <span className="text-xs text-gray-400">→</span>
+                                                                                    <input type="number" min="0" step="0.1" placeholder="кінець" value={vend}
+                                                                                        onChange={(e) => updateConstructorMeta(section.id, key, { video_end: e.target.value === '' ? null : Number(e.target.value) })}
+                                                                                        className="w-24 px-2 py-1 border border-gray-300 rounded text-xs" />
+                                                                                </div>
+                                                                            )}
+
+                                                                            {mtype === 'image' && imgurl && (
+                                                                                <div className="flex flex-col gap-1">
+                                                                                    <span className="text-xs text-gray-600">Клікніть на фото, щоб обрати видиму область:</span>
+                                                                                    <div className="relative w-40 cursor-crosshair rounded border border-gray-200 overflow-hidden" style={{ aspectRatio: '4 / 5' }}
+                                                                                        onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const x = Math.min(100, Math.max(0, Math.round((e.clientX - r.left) / r.width * 100))); const y = Math.min(100, Math.max(0, Math.round((e.clientY - r.top) / r.height * 100))); updateConstructorMeta(section.id, key, { image_position: `${x}% ${y}%` }); }}>
+                                                                                        <img src={imgurl} alt="" className="w-full h-full object-cover" style={{ objectPosition: ipos }} />
+                                                                                        <div className="absolute w-3 h-3 rounded-full bg-white border-2 border-[#263a99] pointer-events-none" style={{ left: ipos.split(' ')[0], top: ipos.split(' ')[1], transform: 'translate(-50%, -50%)' }} />
+                                                                                    </div>
+                                                                                    <span className="text-[11px] text-gray-400">Область: {ipos}</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         );
                                                     })}
-                                                    <p className="text-xs text-gray-500">MP4 / MOV / AVI, до 200 МБ. Великі відео завантажуються напряму в сховище. Фото редактора показується як превʼю до відео і як запасний кадр. Після завантаження натисніть «Зберегти секцію».</p>
+                                                    <p className="text-xs text-gray-500">MP4 / MOV / AVI, до 200 МБ. Обери, що показувати — фото чи відео. Для фото можна вибрати видиму область, для відео — обрізати початок/кінець. Після змін натисніть «Зберегти секцію».</p>
                                                 </div>
                                             )}
 
