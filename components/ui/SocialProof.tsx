@@ -118,7 +118,7 @@ export function SocialProof() {
                         {t('social_proof.your_reviews')}
                     </h2>
 
-                    <p className="text-[18px] opacity-70 mb-16 font-body leading-relaxed max-w-2xl mx-auto">
+                    <p className="text-[18px] opacity-70 mb-8 md:mb-16 font-body leading-relaxed max-w-2xl mx-auto">
                         {t('social_proof.reviews_subtitle')}
                     </p>
                 </motion.div>

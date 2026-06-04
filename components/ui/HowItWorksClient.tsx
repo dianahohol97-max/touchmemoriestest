@@ -39,14 +39,14 @@ export function HowItWorksClient({ featureCards }: HowItWorksClientProps) {
   const features = rawFeatures.slice(0, 3);
 
   return (
-    <section ref={ref} className="py-24 bg-[#f1f3fb]">
+    <section ref={ref} className="py-12 md:py-24 bg-[#f1f3fb]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          className="font-heading font-black text-center mb-16"
+          className="font-heading font-black text-center mb-8 md:mb-16"
           style={{ color: '#1e2d7d', fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', letterSpacing: '-0.02em' }}
         >
           {t('home.why_choose_us')}

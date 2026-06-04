@@ -51,10 +51,10 @@ export function PopularProductsClient({ products, sectionContent }: PopularProdu
   if (products.length === 0) return null;
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-10 md:py-16 bg-white">
       <div className="container mx-auto px-4">
 
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between mb-6 md:mb-10">
           <h2 className="font-heading font-bold text-3xl md:text-4xl text-[#1a1a2e]">
             {heading}
           </h2>
@@ -150,7 +150,7 @@ export function PopularProductsClient({ products, sectionContent }: PopularProdu
           </div>
         </div>
 
-        <div className="text-center mt-10">
+        <div className="text-center mt-6 md:mt-10">
           <Link href={ctaUrl} className="inline-flex items-center gap-2 text-[#1e2d7d] font-semibold hover:underline text-sm">
             {ctaText}
           </Link>
