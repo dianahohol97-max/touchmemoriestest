@@ -88,6 +88,8 @@ export default function ProductsAdminPage() {
     const [catFilter, setCatFilter] = useState('');
     const [modal,     setModal]     = useState(false);
     const [tagInput,  setTagInput]  = useState('');
+    const [dragImgIdx, setDragImgIdx] = useState<number | null>(null);
+    const [overImgIdx, setOverImgIdx] = useState<number | null>(null);
 
     useEffect(() => { fetchAll(); }, []);
 
@@ -278,6 +280,25 @@ export default function ProductsAdminPage() {
             } else {
                 setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: arr } : p));
                 toast.success('Головне фото оновлено ✓');
+                fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
+            }
+        }
+    }
+
+    async function reorderImages(from: number, to: number) {
+        if (!sel || from === to || from < 0 || to < 0) return;
+        const arr = [...sel.images];
+        if (from >= arr.length || to >= arr.length) return;
+        const [img] = arr.splice(from, 1);
+        arr.splice(to, 0, img);
+        upd('images', arr);
+        if (sel.id) {
+            const { error } = await supabase.from('products').update({ images: arr }).eq('id', sel.id);
+            if (error) {
+                toast.error(`Порядок не збережено: ${error.message}`);
+            } else {
+                setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: arr } : p));
+                toast.success('Порядок фото оновлено ✓');
                 fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
             }
         }
@@ -665,10 +686,20 @@ export default function ProductsAdminPage() {
                                         <div style={{ fontSize:13 }}>Немає фото</div>
                                     </div>
                                 ) : (
+                                    <>
+                                    <div style={{ fontSize:11, color:'#6b7280', marginBottom:8 }}>Перетягніть фото, щоб змінити порядок (так вони показуються на картці товару). Перше — головне.</div>
                                     <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px,1fr))', gap:10 }}>
                                         {S.images.map((img,i)=>(
-                                            <div key={i} style={{ position:'relative', borderRadius:8, overflow:'hidden', border:'1px solid #e5e7eb', aspectRatio:'1' }}>
-                                                <img src={img} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{(e.currentTarget as HTMLImageElement).style.background='#f3f4f6';}}/>
+                                            <div key={i}
+                                                draggable
+                                                onDragStart={e=>{ setDragImgIdx(i); e.dataTransfer.effectAllowed='move'; }}
+                                                onDragOver={e=>{ if(dragImgIdx!==null){ e.preventDefault(); e.dataTransfer.dropEffect='move'; if(overImgIdx!==i) setOverImgIdx(i); } }}
+                                                onDragLeave={()=>{ if(overImgIdx===i) setOverImgIdx(null); }}
+                                                onDrop={e=>{ e.preventDefault(); if(dragImgIdx!==null) reorderImages(dragImgIdx, i); setDragImgIdx(null); setOverImgIdx(null); }}
+                                                onDragEnd={()=>{ setDragImgIdx(null); setOverImgIdx(null); }}
+                                                title="Перетягніть, щоб змінити порядок"
+                                                style={{ position:'relative', borderRadius:8, overflow:'hidden', border: overImgIdx===i && dragImgIdx!==i ? '2px solid #1e2d7d' : '1px solid #e5e7eb', aspectRatio:'1', cursor:'grab', opacity: dragImgIdx===i ? 0.4 : 1 }}>
+                                                <img src={img} alt="" draggable={false} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }} onError={e=>{(e.currentTarget as HTMLImageElement).style.background='#f3f4f6';}}/>
                                                 <button onClick={()=>deleteImage(i)}
                                                     style={{ position:'absolute', top:3, right:3, background:'rgba(0,0,0,0.65)', color:'#fff', border:'none', borderRadius:'50%', width:20, height:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
                                                     <X size={11}/>
@@ -684,6 +715,7 @@ export default function ProductsAdminPage() {
                                             </div>
                                         ))}
                                     </div>
+                                    </>
                                 )}
                             </div>
                             <div style={{ background:'#fff', borderRadius:12, padding:20, border:'1px solid #e5e7eb' }}>
