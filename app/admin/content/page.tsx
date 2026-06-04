@@ -158,6 +158,23 @@ export default function ContentManagementPage() {
         setUploading(false);
     }
 
+    // Photo of the editor itself (constructor screenshot). Shown as the video
+    // poster and as the fallback image when there is no video.
+    async function handleSectionEditorImageUpload(sectionId: string, key: 'photobooks' | 'magazines', file: File) {
+        setUploading(true);
+        const toastId = toast.loading('Завантаження фото редактора...');
+        const url = await uploadToStorage(file, 'touch-memories-assets', 'content/editors');
+        toast.dismiss(toastId);
+        if (url) {
+            const section = sectionContent.find(s => s.id === sectionId);
+            const md: any = { ...(section?.metadata || {}) };
+            md[key] = { ...(md[key] || {}), image_url: url };
+            updateSectionField(sectionId, 'metadata', md);
+            toast.success('Фото редактора завантажено — збережіть секцію');
+        }
+        setUploading(false);
+    }
+
     useEffect(() => {
         fetchAllContent();
     }, []);
@@ -1072,20 +1089,34 @@ export default function ContentManagementPage() {
                                                     <label className="block text-sm font-semibold text-gray-800">Відео секції конструктора</label>
                                                     {(['photobooks', 'magazines'] as const).map((key) => {
                                                         const vurl = (section.metadata as any)?.[key]?.video_url || '';
+                                                        const imgurl = (section.metadata as any)?.[key]?.image_url || '';
                                                         return (
-                                                            <div key={key} className="flex items-center gap-3 flex-wrap">
-                                                                <span className="text-sm text-gray-600 w-28">{key === 'photobooks' ? 'Фотокниги' : 'Журнали'}:</span>
-                                                                <label className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg cursor-pointer text-sm font-medium text-gray-700 transition-colors">
-                                                                    <ImageIcon size={16} />
-                                                                    {uploading ? 'Завантаження...' : (vurl ? 'Замінити відео' : 'Завантажити відео')}
-                                                                    <input type="file" accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi" className="hidden" disabled={uploading}
-                                                                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionVideoUpload(section.id, key, f); e.target.value = ''; }} />
-                                                                </label>
-                                                                {vurl && <video src={vurl} muted className="h-16 rounded border border-gray-200" />}
+                                                            <div key={key} className="flex items-start gap-3 flex-wrap py-2 border-b border-blue-100 last:border-0">
+                                                                <span className="text-sm text-gray-600 w-28 pt-2">{key === 'photobooks' ? 'Фотокниги' : 'Журнали'}:</span>
+                                                                <div className="flex flex-col gap-2">
+                                                                    <div className="flex items-center gap-3 flex-wrap">
+                                                                        <label className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg cursor-pointer text-sm font-medium text-gray-700 transition-colors">
+                                                                            <ImageIcon size={16} />
+                                                                            {uploading ? 'Завантаження...' : (vurl ? 'Замінити відео' : 'Завантажити відео')}
+                                                                            <input type="file" accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi" className="hidden" disabled={uploading}
+                                                                                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionVideoUpload(section.id, key, f); e.target.value = ''; }} />
+                                                                        </label>
+                                                                        {vurl && <video src={vurl} muted className="h-16 rounded border border-gray-200" />}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3 flex-wrap">
+                                                                        <label className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg cursor-pointer text-sm font-medium text-gray-700 transition-colors">
+                                                                            <ImageIcon size={16} />
+                                                                            {uploading ? 'Завантаження...' : (imgurl ? 'Замінити фото редактора' : 'Завантажити фото редактора')}
+                                                                            <input type="file" accept="image/*" className="hidden" disabled={uploading}
+                                                                                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionEditorImageUpload(section.id, key, f); e.target.value = ''; }} />
+                                                                        </label>
+                                                                        {imgurl && <img src={imgurl} alt="" className="h-16 rounded border border-gray-200 object-cover" />}
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         );
                                                     })}
-                                                    <p className="text-xs text-gray-500">MP4 / MOV / AVI, до 200 МБ. Великі відео завантажуються напряму в сховище. Після завантаження натисніть «Зберегти секцію».</p>
+                                                    <p className="text-xs text-gray-500">MP4 / MOV / AVI, до 200 МБ. Великі відео завантажуються напряму в сховище. Фото редактора показується як превʼю до відео і як запасний кадр. Після завантаження натисніть «Зберегти секцію».</p>
                                                 </div>
                                             )}
 

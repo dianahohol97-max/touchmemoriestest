@@ -16,6 +16,7 @@ interface SectionContent {
             constructor_button_text: string;
             designer_button_text: string;
             video_url?: string;
+            image_url?: string;
         };
         magazines?: {
             heading: string;
@@ -24,6 +25,7 @@ interface SectionContent {
             constructor_button_text: string;
             designer_button_text: string;
             video_url?: string;
+            image_url?: string;
         };
     };
 }
@@ -57,6 +59,8 @@ export function ConstructorSelectionClient({
 
     const photobooksVideo = sectionContent?.metadata?.photobooks?.video_url || '';
     const magazinesVideo = sectionContent?.metadata?.magazines?.video_url || '';
+    const photobooksImage = sectionContent?.metadata?.photobooks?.image_url || '';
+    const magazinesImage = sectionContent?.metadata?.magazines?.image_url || '';
 
 
     return (
@@ -76,9 +80,11 @@ export function ConstructorSelectionClient({
                         <div>
                             <div className="aspect-[4/5] bg-gradient-to-br from-stone-100 to-[#f0f3ff] rounded-xl overflow-hidden shadow-lg border border-stone-200 flex items-center justify-center relative">
                                 {photobooksVideo ? (
-                                    <video autoPlay muted loop playsInline className="w-full h-full object-cover">
+                                    <video autoPlay muted loop playsInline poster={photobooksImage || undefined} className="w-full h-full object-cover">
                                         <source src={photobooksVideo} type="video/mp4" />
                                     </video>
+                                ) : photobooksImage ? (
+                                    <img src={photobooksImage} alt={photobooksHeading} className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="text-center">
                                         <Play size={48} className="mx-auto mb-2 text-stone-400" />
@@ -388,9 +394,11 @@ export function ConstructorSelectionClient({
                         <div className="order-1 lg:order-2">
                             <div className="aspect-[4/5] bg-[#f0f2f8] rounded-xl overflow-hidden shadow-lg border border-gray-200 flex items-center justify-center relative">
                                 {magazinesVideo ? (
-                                    <video autoPlay muted loop playsInline className="w-full h-full object-cover">
+                                    <video autoPlay muted loop playsInline poster={magazinesImage || undefined} className="w-full h-full object-cover">
                                         <source src={magazinesVideo} type="video/mp4" />
                                     </video>
+                                ) : magazinesImage ? (
+                                    <img src={magazinesImage} alt={magazinesHeading} className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="text-center">
                                         <Play size={48} className="mx-auto mb-2 text-[#1e2d7d]" />
