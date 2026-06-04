@@ -2,7 +2,7 @@
 import { useT } from '@/lib/i18n/context';
 import { useLocale } from '@/lib/i18n/context';
 import { getLocalized } from '@/lib/i18n/localize';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import styles from './catalog.module.css';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -81,6 +81,15 @@ function CatalogContent({ initialProducts = [], initialCategories = [] }: { init
 
     const [selectedCategory, setSelectedCategory] = useState(queryCategory);
     const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(querySubcategory);
+    const chipsRef = useRef<HTMLDivElement>(null);
+
+    // On mobile the category chips are a single horizontally-scrolling row, so
+    // make sure the active category is scrolled into view (it may be mid-list).
+    useEffect(() => {
+        if (typeof window === 'undefined' || window.innerWidth > 768) return;
+        const el = chipsRef.current?.querySelector('[data-active="true"]') as HTMLElement | null;
+        el?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }, [selectedCategory, categories.length]);
     const [sortBy, setSortBy] = useState('popular');
     const [hasPendingOrder, setHasPendingOrder] = useState(false);
 
@@ -252,12 +261,13 @@ function CatalogContent({ initialProducts = [], initialCategories = [] }: { init
                     <div className={styles.controlsBarWrapper} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
 
                         {/* Category Chips Bar */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        <div ref={chipsRef} className={styles.categoryChipsBar} style={{ display: 'flex', gap: '8px' }}>
                             {categories.map((cat) => {
                                 const isActive = selectedCategory === cat.slug;
                                 return (
                                     <button
                                         key={cat.id}
+                                        data-active={isActive ? 'true' : undefined}
                                         onClick={() => {
                                             router.push(`/catalog?category=${cat.slug}`);
                                             setSelectedCategory(cat.slug);
@@ -271,6 +281,7 @@ function CatalogContent({ initialProducts = [], initialCategories = [] }: { init
                                             fontWeight: isActive ? 700 : 500,
                                             cursor: 'pointer',
                                             whiteSpace: 'nowrap',
+                                            flexShrink: 0,
                                             transition: 'all 0.15s ease',
                                             borderRadius: '999px',
                                             boxShadow: isActive ? '0 2px 8px rgba(38,58,153,0.2)' : 'none',
