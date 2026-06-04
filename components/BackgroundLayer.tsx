@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 export interface PageBackground {
   type: 'color' | 'image';
@@ -63,12 +64,48 @@ export function BackgroundControls({ bg, onChange }: BgControlsProps) {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
     const reader = new FileReader();
     reader.onload = ev => {
-      onChange({ ...bg, type:'image', imageUrl: ev.target!.result as string });
+      const dataUrl = ev.target?.result as string;
+      // Decode the file before storing it. The old code dropped the raw data
+      // URL straight into <img>, so an iPhone HEIC (which the browser can't
+      // render) showed up as a broken-image thumbnail and "did nothing".
+      // Loading it into an Image first lets us (a) catch undecodable files and
+      // tell the user, and (b) downscale large photos — a page background
+      // never needs more than ~2000px, and the data URL is serialised into the
+      // autosave draft + saved project, so keeping it small matters.
+      const img = new window.Image();
+      img.onload = () => {
+        const MAX = 2000;
+        const { width: ow, height: oh } = img;
+        let outUrl = dataUrl;
+        if (ow > MAX || oh > MAX) {
+          const ratio = ow >= oh ? MAX / ow : MAX / oh;
+          const w = Math.round(ow * ratio);
+          const h = Math.round(oh * ratio);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, w, h);
+            outUrl = canvas.toDataURL('image/jpeg', 0.9);
+          }
+        }
+        onChange({ ...bg, type: 'image', imageUrl: outUrl });
+      };
+      img.onerror = () => {
+        toast.error('Не вдалося відкрити це фото для фону. Формат HEIC (фото з iPhone) тут не підтримується — збережіть фото як JPG або PNG і спробуйте ще раз.');
+      };
+      img.src = dataUrl;
+    };
+    reader.onerror = () => {
+      toast.error('Не вдалося прочитати файл. Спробуйте інше фото (JPG або PNG).');
     };
     reader.readAsDataURL(file);
-    e.target.value = '';
   };
 
   return (
