@@ -1,7 +1,7 @@
 const BREVO_API_URL = 'https://api.brevo.com/v3';
 
 export function getBrevoApiKey() {
-    return process.env.BREVO_API_KEY || '';
+    return process.env.BREVO_API_KEY || process.env.BREVO_API_TOKEN || '';
 }
 
 interface SendEmailParams {
