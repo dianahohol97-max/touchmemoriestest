@@ -61,7 +61,7 @@ export interface IntlShippingConfig {
 }
 export const DEFAULT_INTL_SHIPPING: IntlShippingConfig = {
   freeThresholdEur: 50,
-  flatFeeEur: 10,
+  flatFeeEur: 15,
 };
 
 /**

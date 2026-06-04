@@ -53,9 +53,10 @@ export async function GET(req: NextRequest) {
             .from('orders')
             .select('id, ttn, order_status, tracking_status, customer_phone, customer_name')
             .not('ttn', 'is', null)
-            // International (Nova Global) numbers aren't known to api.novaposhta.ua —
-            // never feed them to the domestic tracking API.
-            .neq('tracking_carrier', 'nova_global')
+            // Domestic orders never set tracking_carrier (it stays NULL); any
+            // non-null carrier is an international shipment whose number isn't
+            // known to api.novaposhta.ua's domestic tracking — skip those.
+            .is('tracking_carrier', null)
             .not('order_status', 'in', '("delivered","cancelled")');
 
         if (error) {

@@ -315,8 +315,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             .from('orders')
             .update({
                 ttn: value,
-                tracking_carrier: 'nova_global',
-                tracking_url: `https://novaposhtaglobal.ua/tracking/${encodeURIComponent(value)}`,
+                tracking_carrier: 'nova_poshta_intl',
+                tracking_url: `https://novaposhta.ua/tracking/?cargo_number=${encodeURIComponent(value)}`,
                 order_status: order.order_status === 'new' || order.order_status === 'processing' ? 'shipped' : order.order_status,
             })
             .eq('id', id);
@@ -894,8 +894,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             )}
                                         </div>
                                         <a
-                                            href={order.tracking_carrier === 'nova_global'
-                                                ? (order.tracking_url || `https://novaposhtaglobal.ua/tracking/${order.ttn}`)
+                                            href={order.tracking_carrier && order.tracking_carrier !== 'nova_poshta'
+                                                ? (order.tracking_url || `https://novaposhta.ua/tracking/?cargo_number=${order.ttn}`)
                                                 : `https://novaposhta.ua/tracking/?cargo_number=${order.tracking_number || order.ttn}`}
                                             target="_blank"
                                             style={{
@@ -907,8 +907,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 gap: '4px'
                                             }}
                                         >
-                                            {order.tracking_carrier === 'nova_global'
-                                                ? <>Відстежити на Nova Global <ExternalLink size={12} /></>
+                                            {order.tracking_carrier && order.tracking_carrier !== 'nova_poshta'
+                                                ? <>Відстежити (міжнародна) <ExternalLink size={12} /></>
                                                 : <>Відстежити на novaposhta.ua <ExternalLink size={12} /></>}
                                         </a>
                                         {trackingInfo && (
@@ -938,10 +938,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             {isIntl && (
                                 <div style={{ marginTop: 16, padding: 14, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
                                     <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        🌍 Міжнародне відправлення (Nova Global)
+                                        🌍 Міжнародне відправлення (Нова Пошта)
                                     </div>
                                     <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12, lineHeight: 1.5 }}>
-                                        Накладну створюєш вручну в кабінеті Nova Global. Дані нижче вже транслітеровані — скопіюй у заявку, потім встав отриманий трек-номер.
+                                        Накладну створюєш у кабінеті/відділенні Нової Пошти (міжнародна доставка). Дані нижче вже транслітеровані — скопіюй у заявку, потім встав отриманий трек-номер.
                                     </div>
                                     {(() => {
                                         const rows: [string, string][] = [
