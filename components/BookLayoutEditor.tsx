@@ -1750,6 +1750,19 @@ export default function BookLayoutEditor() {
   const isMagazine = _slug.includes('magazine') || _slug.includes('journal') || _slug.includes('zhurnal');
   const magazineTextEnabled = !isWishbook; // show templates for all products
 
+  // Warning shown inside the "Текст" tab when the customer picked the
+  // no-text magazine variant. The tab used to be hard-disabled; now we let
+  // them add text anyway but make it explicit that text is a paid typesetting
+  // add-on (+195 ₴ "верстка тексту", NOT retouching) which the manager adds
+  // to the order on confirmation. Rendered at the top of both the desktop and
+  // mobile text panels so it appears the moment they open the tab.
+  const noTextLayoutNotice = (isMagazine && !hasTextLayout) ? (
+    <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'#fff7ed', border:'1px solid #fdba74', borderRadius:10, fontSize:12, lineHeight:1.45, color:'#9a3412' }}>
+      <span style={{ fontSize:15, lineHeight:1 }}>⚠️</span>
+      <span>Ви обрали варіант <b>без верстки тексту</b>. Додати текст можна, але це окрема послуга верстки (<b>+195 ₴</b>) — менеджер додасть її до замовлення при підтвердженні.</span>
+    </div>
+  ) : null;
+
   // Wishbook: force cover-only mode
   useEffect(() => {
     if (isWishbook) { setCurrentIdx(0); setLeftTab('cover'); }
@@ -3572,7 +3585,7 @@ export default function BookLayoutEditor() {
             const allTabs: [string, React.ReactNode, string, boolean?][] = [
               ...(!isWishbook ? [['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'] as [string, React.ReactNode, string]] : []),
               ['photos', <ImageIcon key="ph" size={20}/>, 'Фото'],
-              ['text', <Type key="t" size={20}/>, 'Текст', isMagazine && !hasTextLayout],
+              ['text', <Type key="t" size={20}/>, 'Текст'],
               ['bg', <Palette key="bg" size={20}/>, 'Фон'],
               ['shapes', <Square key="sh" size={20}/>, 'Фігури'],
               ['stickers', <Sticker key="stk" size={20}/>, 'Стікери'],
@@ -3795,7 +3808,7 @@ export default function BookLayoutEditor() {
                   const productTag = isMagazine ? 'magazine' : isWishbook ? 'wishbook' : 'magazine';
                   const textTemplates = PAGE_TEMPLATES.filter(t => !t.tags || t.tags.includes(productTag) || t.tags.includes('journal'));
                   const groups = [...new Set(textTemplates.map(t => t.group))];
-                  const tooltipMsg = !hasTextLayout ? 'Потрібна верстка тексту +195₴' : undefined;
+                  const tooltipMsg = !hasTextLayout ? 'Текст — окрема послуга верстки (+195 ₴). Менеджер додасть її до замовлення.' : undefined;
                   return groups.map(group => (
                     <div key={'txt-'+group}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', padding: '8px 4px 4px', textTransform: 'uppercase' }}> {group}</div>
@@ -3805,8 +3818,7 @@ export default function BookLayoutEditor() {
                             key={tmpl.id}
                             title={tooltipMsg}
                             style={{
-                              opacity: hasTextLayout ? 1 : 0.45,
-                              pointerEvents: hasTextLayout ? 'auto' : 'none',
+                              opacity: 1,
                             }}
                           >
                             <button title={hasTextLayout ? tmpl.label : tooltipMsg}
@@ -4980,6 +4992,7 @@ export default function BookLayoutEditor() {
 
             {leftTab === 'text' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {noTextLayoutNotice}
                 {/* On cover page: add text directly (click-to-place doesn't work on CoverEditor) */}
                 {currentIdx === 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -7322,7 +7335,7 @@ export default function BookLayoutEditor() {
             • <b>Фігури, рамки, наліпки, QR</b> — декоративні елементи.
           </>,
           extra: <>Щоб <b>змінити розмір або форму фотослота</b>: клікніть на фото → у панельці зверху натисніть синю кнопку <b>«Слот»</b> → тягніть за сині кружечки по кутах.</>,
-          tip: !hasTextLayout ? <>Якщо ви не замовили верстку тексту, текстові шаблони показуються заблокованими. Її можна додати на сторінці товару (+195 ₴).</> : null,
+          tip: !hasTextLayout ? <>Ви обрали варіант без верстки тексту. Додати текст усе одно можна — це окрема послуга верстки (+195 ₴), яку менеджер додасть до замовлення. Або оберіть варіант із текстом на сторінці товару.</> : null,
         } : {
           title: 'Крок 3. Додайте акценти',
           body: <>
@@ -7968,6 +7981,7 @@ export default function BookLayoutEditor() {
               const textBlocks = currentIdx === 0 ? [] : (curPage?.textBlocks || []);
               return (
                 <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  {noTextLayoutNotice}
                   {/* Add text button — cover vs inner pages */}
                   {currentIdx === 0 ? (
                     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
