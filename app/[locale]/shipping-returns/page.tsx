@@ -40,7 +40,7 @@ export default function ShippingReturnsPage() {
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <span className="text-indigo-600 font-bold">•</span>
-                                        <span><strong>Доставка по Україні</strong><br />Нова Пошта або Укрпошта. Термін доставки залежить від перевізника.</span>
+                                        <span><strong>Доставка по Україні</strong><br />Нова Пошта — на відділення, у поштомат або адресна доставка. Термін залежить від міста.</span>
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <span className="text-indigo-600 font-bold">•</span>

@@ -10,7 +10,6 @@ const DEFAULTS = { free_threshold_eur: 0, flat_fee_eur: 25 };
 
 export default function InternationalDeliveryPage() {
     const supabase = createClient();
-    const [freeThreshold, setFreeThreshold] = useState<string>(String(DEFAULTS.free_threshold_eur));
     const [flatFee, setFlatFee] = useState<string>(String(DEFAULTS.flat_fee_eur));
     const [eurRate, setEurRate] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
@@ -24,7 +23,6 @@ export default function InternationalDeliveryPage() {
                 .eq('key', 'intl_shipping')
                 .maybeSingle();
             const v = (data?.value as any) || {};
-            if (typeof v.free_threshold_eur === 'number') setFreeThreshold(String(v.free_threshold_eur));
             if (typeof v.flat_fee_eur === 'number') setFlatFee(String(v.flat_fee_eur));
             try {
                 const r = await fetch('/api/exchange-rate').then(res => res.json());
@@ -35,16 +33,15 @@ export default function InternationalDeliveryPage() {
     }, []);
 
     const save = async () => {
-        const ft = Number(freeThreshold);
         const ff = Number(flatFee);
-        if (Number.isNaN(ft) || ft < 0 || Number.isNaN(ff) || ff < 0) {
-            toast.error('Введіть коректні невід’ємні числа');
+        if (Number.isNaN(ff) || ff < 0) {
+            toast.error('Введіть коректне невід’ємне число');
             return;
         }
         setSaving(true);
         const { error } = await supabase
             .from('settings')
-            .upsert({ key: 'intl_shipping', value: { free_threshold_eur: ft, flat_fee_eur: ff } }, { onConflict: 'key' });
+            .upsert({ key: 'intl_shipping', value: { free_threshold_eur: 0, flat_fee_eur: ff } }, { onConflict: 'key' });
         setSaving(false);
         if (error) {
             toast.error('Помилка збереження');
@@ -53,7 +50,6 @@ export default function InternationalDeliveryPage() {
         toast.success('Збережено. Зміни застосуються протягом кількох хвилин.');
     };
 
-    const ft = Number(freeThreshold) || 0;
     const ff = Number(flatFee) || 0;
     // Preview in UAH using the current buffered rate.
     const feeUah = eurRate ? Math.round(ff * eurRate) : null;
@@ -82,19 +78,6 @@ export default function InternationalDeliveryPage() {
                 <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 24 }}>
                     <div style={{ marginBottom: 18 }}>
                         <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
-                            Безкоштовна доставка від (€)
-                        </label>
-                        <input
-                            type="number" min="0" step="1" value={freeThreshold}
-                            onChange={e => setFreeThreshold(e.target.value)} style={inputStyle}
-                        />
-                        <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 5 }}>
-                            0 — безкоштовна доставка вимкнена (фіксована плата завжди).
-                        </div>
-                    </div>
-
-                    <div style={{ marginBottom: 18 }}>
-                        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
                             Фіксована плата за доставку (€)
                         </label>
                         <input
@@ -102,16 +85,14 @@ export default function InternationalDeliveryPage() {
                             onChange={e => setFlatFee(e.target.value)} style={inputStyle}
                         />
                         <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 5 }}>
-                            Стягується, коли сума замовлення нижча за поріг безкоштовної доставки.
+                            Стягується на кожне міжнародне замовлення. Безкоштовної доставки немає.
                         </div>
                     </div>
 
                     <div style={{ background: '#f8fafc', borderRadius: 10, padding: '14px 16px', fontSize: 14, color: '#475569', lineHeight: 1.6, marginBottom: 20 }}>
                         <strong style={{ color: '#263A99' }}>Як це виглядатиме для клієнта:</strong>
                         <div style={{ marginTop: 6 }}>
-                            {ft > 0
-                                ? `Замовлення від €${ft} — доставка безкоштовна. Менше — плата €${ff}${feeUah ? ` (≈ ${feeUah.toLocaleString('uk-UA')} ₴)` : ''}.`
-                                : `Плата за доставку завжди €${ff}${feeUah ? ` (≈ ${feeUah.toLocaleString('uk-UA')} ₴)` : ''}.`}
+                            {`Плата за доставку — €${ff}${feeUah ? ` (≈ ${feeUah.toLocaleString('uk-UA')} ₴)` : ''} на кожне міжнародне замовлення.`}
                         </div>
                         {eurRate && (
                             <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>

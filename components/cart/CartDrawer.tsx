@@ -257,16 +257,6 @@ export default function CartDrawer() {
                                 >
                                     {t('cart.checkout')} <ArrowRight size={20} />
                                 </Link>
-
-                                <p style={{
-                                    textAlign: 'center',
-                                    fontSize: '12px',
-                                    color: '#aaa',
-                                    marginTop: '16px',
-                                    marginBlockEnd: 0
-                                }}>
-                                    {t('cart.free_shipping')}
-                                </p>
                             </div>
                         )}
                     </motion.div>

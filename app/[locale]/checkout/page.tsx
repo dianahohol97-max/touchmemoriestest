@@ -76,9 +76,6 @@ export default function CheckoutPage() {
         ? computeIntlShippingUah(markedSubtotal, intlCfg.rate, { freeThresholdEur: intlCfg.freeThresholdEur, flatFeeEur: intlCfg.flatFeeEur })
         : 0;
     const markedTotal = Math.max(0, markedSubtotal - promoDiscount + intlShippingUah);
-    const freeShipRemainingEur = (isIntl && intlCfg.rate > 0)
-        ? Math.max(0, intlCfg.freeThresholdEur - markedSubtotal / intlCfg.rate)
-        : 0;
     // Charge currency is always UAH (Monobank); this only formats what's shown.
     const money = (uah: number) => formatPrice(uah, displayCurrency);
 
@@ -703,9 +700,7 @@ export default function CheckoutPage() {
                                                 />
                                             </div>
                                             <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.5 }}>
-                                                Міжнародна доставка — повна передоплата онлайн. {intlCfg.freeThresholdEur > 0
-                                                    ? `Безкоштовно від €${intlCfg.freeThresholdEur}, інакше €${intlCfg.flatFeeEur}.`
-                                                    : `Вартість доставки — €${intlCfg.flatFeeEur}.`} Орієнтовний строк — 1–2 тижні.
+                                                Міжнародна доставка — повна передоплата онлайн. Вартість доставки — €{intlCfg.flatFeeEur}. Орієнтовний строк — 1–2 тижні.
                                             </div>
                                         </>)}
                                     </div>
@@ -879,15 +874,10 @@ export default function CheckoutPage() {
                                     <span>{t('checkout.delivery_cost')}:</span>
                                     {isIntl
                                         ? <span style={{ fontWeight: 700, color: intlShippingUah === 0 ? '#16a34a' : '#666' }}>
-                                            {intlShippingUah === 0 ? 'Безкоштовно' : money(intlShippingUah)}
+                                            {money(intlShippingUah)}
                                           </span>
                                         : <span>за тарифами перевізника</span>}
                                 </div>
-                                {isIntl && intlShippingUah > 0 && freeShipRemainingEur > 0 && (
-                                    <div style={{ marginBottom: '16px', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, fontSize: '12px', color: '#166534', lineHeight: 1.4 }}>
-                                        Додай ще на €{Math.ceil(freeShipRemainingEur)} — і доставка стане безкоштовною (від €{intlCfg.freeThresholdEur}).
-                                    </div>
-                                )}
                                 {promoDiscount > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
                                         <span>🏷️ Знижка ({promoCode}):</span>
