@@ -8,6 +8,7 @@ import {
     Building2,
     Trash2,
     RefreshCcw,
+    Pencil,
     Save,
     X,
     CheckCircle2,
@@ -199,7 +200,7 @@ export default function BankAccountsPage() {
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
-                                    <button onClick={() => handleEdit(account)} style={iconActionBtn} title="Редагувати"><RefreshCcw size={16} /></button>
+                                    <button onClick={() => handleEdit(account)} style={iconActionBtn} title="Редагувати"><Pencil size={16} /></button>
                                     <button onClick={() => deleteAccount(account.id)} style={{ ...iconActionBtn, color: '#ef4444' }} title="Видалити"><Trash2 size={16} /></button>
                                 </div>
                             </div>

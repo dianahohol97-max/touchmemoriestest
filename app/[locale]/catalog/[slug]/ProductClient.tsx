@@ -1221,8 +1221,32 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                             )}
                         </div>
 
-                        {/* Special CTA for photoprint, poster, and photomagnet products */}
-                        {(product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('полароїд') || product.slug?.includes('поляроїд') || product.slug?.includes('poster') || product.slug?.includes('magnet') || product.slug?.includes('polotni') || product.slug?.includes('canvas') || product.slug?.includes('puzzle') || product.slug?.includes('pazl')) ? (
+                        {/* In-stock ready-made products: simple add-to-cart / order, no editor */}
+                        {product.fulfillment_type === 'in_stock' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+                                {!areAllRequiredOptionsFilled(product.slug || '', customProductOptions) && (
+                                    <div style={{ padding: '16px', backgroundColor: '#dbeafe', border: '1px solid rgba(30, 45, 125, 0.2)', borderRadius: '8px', fontSize: '14px', color: '#1e2d7d', textAlign: 'center' }}>
+                                        {t('product_page.select_required_options')}
+                                    </div>
+                                )}
+                                <button
+                                    onClick={handleAddToCart}
+                                    disabled={!areAllRequiredOptionsFilled(product.slug || '', customProductOptions)}
+                                    className="rounded-md hover:bg-[#1a2966]"
+                                    style={{ width: '100%', padding: '18px', backgroundColor: '#263a99', color: 'white', border: 'none', opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5, cursor: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'pointer' : 'not-allowed', fontSize: '16px', fontWeight: 700, transition: 'background-color 0.2s' }}
+                                >
+                                    {t('product.add_to_cart')}
+                                </button>
+                                <button
+                                    onClick={() => { if (!areAllRequiredOptionsFilled(product.slug || '', customProductOptions)) return; handleAddToCart(); router.push('/cart'); }}
+                                    disabled={!areAllRequiredOptionsFilled(product.slug || '', customProductOptions)}
+                                    className="hover:bg-[#f0f3ff]"
+                                    style={{ width: '100%', padding: '18px', backgroundColor: 'white', color: 'var(--primary)', border: '2px solid var(--primary)', borderRadius: '6px', opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5, cursor: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'pointer' : 'not-allowed', fontSize: '16px', fontWeight: 700, transition: 'background-color 0.2s' }}
+                                >
+                                    {t('product.order_now')}
+                                </button>
+                            </div>
+                        ) : (product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('полароїд') || product.slug?.includes('поляроїд') || product.slug?.includes('poster') || product.slug?.includes('magnet') || product.slug?.includes('polotni') || product.slug?.includes('canvas') || product.slug?.includes('puzzle') || product.slug?.includes('pazl')) ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <button
                                     onClick={() => requireAuth(
