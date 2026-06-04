@@ -372,5 +372,14 @@ if (layout === 'sp-1-top-strip') return [S(0, 0, 0, W, H*0.4)];
   if (layout === 'p-text-photo-left')  return [S(0, 0, H*0.05, W*0.45, H*0.9)];
   if (layout === 'p-text-photo-right') return [S(0, W*0.55, H*0.05, W*0.45, H*0.9)];
 
+  // Вертикальні слоти на сторінку (1/2/3)
+  if (layout === 'p-vert-1')     { const mx=W*0.28, vt=H*0.06; return [S(0, mx, vt, W-2*mx, H-2*vt)]; }
+  if (layout === 'p-vert-2')     { const mx=W*0.06, vt=H*0.08, cw=(W-2*mx-g)/2, hh=H-2*vt; return [S(0, mx, vt, cw, hh), S(1, mx+cw+g, vt, cw, hh)]; }
+  if (layout === 'p-vert-3')     { const mx=W*0.04, vt=H*0.08, cw=(W-2*mx-2*g)/3, hh=H-2*vt; return [S(0, mx, vt, cw, hh), S(1, mx+cw+g, vt, cw, hh), S(2, mx+2*(cw+g), vt, cw, hh)]; }
+  // Дзеркальні пари на розворот — поза лінією згину (відступ біля корінця)
+  if (layout === 'sp-mirror-1')  { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, ha, hh), S(1, rx, vt, ha, hh)]; }
+  if (layout === 'sp-mirror-2')  { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, cw=(ha-g)/2, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, cw, hh), S(1, outer+cw+g, vt, cw, hh), S(2, rx, vt, cw, hh), S(3, rx+cw+g, vt, cw, hh)]; }
+  if (layout === 'sp-mirror-3')  { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, cw=(ha-2*g)/3, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, cw, hh), S(1, outer+cw+g, vt, cw, hh), S(2, outer+2*(cw+g), vt, cw, hh), S(3, rx, vt, cw, hh), S(4, rx+cw+g, vt, cw, hh), S(5, rx+2*(cw+g), vt, cw, hh)]; }
+
   return [S(0, 0, 0, W, H)];
 }

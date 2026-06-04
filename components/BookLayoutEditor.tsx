@@ -168,7 +168,9 @@ type LayoutType =
   'sp-2-stacked-left' | 'sp-2-stacked-right' | 'sp-2-panorama-pair' | 'sp-2-asymm-top' | 'sp-2-inset-small' |
   'sp-3-editorial' | 'sp-3-scattered' | 'sp-3-asymm-wide' | 'sp-3-two-col' | 'sp-3-one-two' |
   'sp-4-editorial' | 'sp-4-pyramid' | 'sp-4-scattered' | 'sp-4-2-2' | 'sp-4-asymm-wide' |
-  'sp-5-editorial' | 'sp-6-editorial' | 'sp-8-editorial' | 'sp-11-grid' | 'sp-14-grid';
+  'sp-5-editorial' | 'sp-6-editorial' | 'sp-8-editorial' | 'sp-11-grid' | 'sp-14-grid' |
+  // Вертикальні слоти на сторінку + дзеркальні пари на розворот (поза лінією згину)
+  'p-vert-1' | 'p-vert-2' | 'p-vert-3' | 'sp-mirror-1' | 'sp-mirror-2' | 'sp-mirror-3';
 
 interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; zOrder?: number; }
@@ -512,6 +514,15 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'sp-8-editorial',      label: '8 редакційний',       slots: 8, group: 'Розворот 5+ фото' },
   { id: 'sp-11-grid',          label: '11 сітка',            slots: 11, group: 'Розворот 5+ фото' },
   { id: 'sp-14-grid',          label: '14 сітка (7×2)',      slots: 14, group: 'Розворот 5+ фото' },
+
+  //  Вертикальні слоти на сторінку (1/2/3) 
+  { id: 'p-vert-1',            label: '1 вертикальне',       slots: 1, group: '1 фото' },
+  { id: 'p-vert-2',            label: '2 вертикальні',       slots: 2, group: '2 фото' },
+  { id: 'p-vert-3',            label: '3 вертикальні',       slots: 3, group: '3 фото' },
+  //  Дзеркальні пари на розворот — поза лінією згину (відступ біля корінця) 
+  { id: 'sp-mirror-1',         label: '1+1 дзеркально',      slots: 2, group: 'Розворот 2 фото' },
+  { id: 'sp-mirror-2',         label: '2+2 дзеркально',      slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-mirror-3',         label: '3+3 дзеркально',      slots: 6, group: 'Розворот 5+ фото' },
 ];
 
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
@@ -1048,6 +1059,15 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'sp-8-editorial')     { const sw=(W-3*g)/4; const sh=(H-g)/2; return Array.from({length:8},(_,i)=>S(i,(i%4)*(sw+g),Math.floor(i/4)*(sh+g),sw,sh)); }
   if (layout === 'sp-11-grid')         { const cw=(W-4*g)/5; const ch=(H-1*g)/2; const cw2=(W-3*g)/4; return [...Array.from({length:5},(_,i)=>S(i,i*(cw+g),0,cw,ch)), ...Array.from({length:6},(_,i)=>S(i+5,i<4?i*(cw2+g):0,i<4?ch+g:ch+g+(ch-g/6),i<4?cw2:W,(i<4?ch-g:ch/6)))].slice(0,11); }
   if (layout === 'sp-14-grid')         { const cw=(W-6*g)/7; const ch=(H-g)/2; return Array.from({length:14},(_,i)=>S(i,(i%7)*(cw+g),Math.floor(i/7)*(ch+g),cw,ch)); }
+
+  //  Вертикальні слоти на сторінку (1/2/3) 
+  if (layout === 'p-vert-1')           { const mx=W*0.28, vt=H*0.06; return [S(0, mx, vt, W-2*mx, H-2*vt)]; }
+  if (layout === 'p-vert-2')           { const mx=W*0.06, vt=H*0.08, cw=(W-2*mx-g)/2, hh=H-2*vt; return [S(0, mx, vt, cw, hh), S(1, mx+cw+g, vt, cw, hh)]; }
+  if (layout === 'p-vert-3')           { const mx=W*0.04, vt=H*0.08, cw=(W-2*mx-2*g)/3, hh=H-2*vt; return [S(0, mx, vt, cw, hh), S(1, mx+cw+g, vt, cw, hh), S(2, mx+2*(cw+g), vt, cw, hh)]; }
+  //  Дзеркальні пари на розворот — поза лінією згину (відступ біля корінця) 
+  if (layout === 'sp-mirror-1')        { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, ha, hh), S(1, rx, vt, ha, hh)]; }
+  if (layout === 'sp-mirror-2')        { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, cw=(ha-g)/2, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, cw, hh), S(1, outer+cw+g, vt, cw, hh), S(2, rx, vt, cw, hh), S(3, rx+cw+g, vt, cw, hh)]; }
+  if (layout === 'sp-mirror-3')        { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, cw=(ha-2*g)/3, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, cw, hh), S(1, outer+cw+g, vt, cw, hh), S(2, outer+2*(cw+g), vt, cw, hh), S(3, rx, vt, cw, hh), S(4, rx+cw+g, vt, cw, hh), S(5, rx+2*(cw+g), vt, cw, hh)]; }
 
   return [S(0, 0, 0, W, H)];
 }

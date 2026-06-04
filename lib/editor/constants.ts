@@ -27,6 +27,10 @@ export const LAYOUTS: LayoutDef[] = [
   { id: 'p-3-right2',     label: '1 + 2 право',       slots: 3, group: '3 фото' },
   { id: 'p-3-hero-top',   label: 'Велике + 2 знизу',  slots: 3, group: '3 фото' },
   { id: 'p-3-hero-left',  label: 'Велике + 2 право',  slots: 3, group: '3 фото' },
+  // Вертикальні слоти на сторінку (1/2/3)
+  { id: 'p-vert-1',       label: '1 вертикальне',     slots: 1, group: '1 фото' },
+  { id: 'p-vert-2',       label: '2 вертикальні',     slots: 2, group: '2 фото' },
+  { id: 'p-vert-3',       label: '3 вертикальні',     slots: 3, group: '3 фото' },
   // 4 фото
   { id: 'p-4-grid',       label: '4 рівно',           slots: 4, group: '4 фото' },
   { id: 'p-4-hero-top',   label: 'Велике + 3 знизу',  slots: 4, group: '4 фото' },
