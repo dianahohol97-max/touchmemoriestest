@@ -9,7 +9,7 @@ import {
     Tags, Mail, Palette, DollarSign, Bot,
     Package, Folder, Star, CreditCard, Activity,
     TrendingDown, Printer, Shield, Image, Gift, BarChart2, Zap,
-    Menu, X, LayoutTemplate, UserPlus
+    Menu, X, LayoutTemplate, UserPlus, Eye
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -69,7 +69,8 @@ const menuItems = [
     { name: 'Підписники', href: '/admin/subscribers', icon: <Mail size={20} />, section: 'marketing' },
     { name: 'Автоматизації', href: '/admin/automations', icon: <Zap size={20} />, section: 'marketing' },
     { name: 'Імпорт клієнтів', href: '/admin/marketing/crm-import', icon: <UserPlus size={20} />, section: 'marketing' },
-    { name: 'Шаблони листів (авто)', href: '/admin/email-previews', icon: <Mail size={20} />, section: 'marketing' },
+    { name: 'Листи: редагувати', href: '/admin/email-automations', icon: <Mail size={20} />, section: 'marketing' },
+    { name: 'Листи: перегляд', href: '/admin/email-previews', icon: <Eye size={20} />, section: 'marketing' },
     { name: 'Теги', href: '/admin/settings/tags', icon: <Tags size={20} />, section: 'settings' },
 ];
 

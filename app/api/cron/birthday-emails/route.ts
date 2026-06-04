@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email/resend';
 import BirthdayEmail from '@/emails/BirthdayEmail';
+import { getAutomationConfig } from '@/lib/email/automation-config';
 import { render } from '@react-email/components';
 
 import { getAdminClient } from '@/lib/supabase/admin';
@@ -55,6 +56,13 @@ export async function GET(request: Request) {
             return NextResponse.json({ message: 'No birthdays today (no active subscribers match)', processed: 0 });
         }
 
+        const cfg = await getAutomationConfig('birthday');
+        if (cfg && !cfg.enabled) {
+            return NextResponse.json({ message: 'Birthday emails disabled in admin', processed: 0 });
+        }
+        const subject = cfg?.subject || 'З Днем Народження! Ваш подарунок всередині ';
+        const bodyOverride = cfg?.body || undefined;
+
         let sentCount = 0;
         let skipCount = 0;
         let errorCount = 0;
@@ -64,7 +72,7 @@ export async function GET(request: Request) {
             .from('email_campaigns')
             .insert({
                 type: 'birthday',
-                subject: 'З Днем Народження! Ваш подарунок всередині ',
+                subject,
                 segment: 'birthday_auto',
                 status: 'sending'
             })
@@ -133,7 +141,8 @@ export async function GET(request: Request) {
                     promoCode: promoCodeString,
                     validUntil: '7 днів',
                     discountValue: '-20%',
-                    appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+                    appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+                    body: bodyOverride,
                 })
             );
 
@@ -157,7 +166,7 @@ export async function GET(request: Request) {
             // Dispatch Email
             const emailResult = await sendEmail({
                 to: sub.email,
-                subject: 'З Днем Народження! Ваш подарунок всередині ',
+                subject,
                 html: htmlMessage,
                 campaignId: campaign.id,
                 subscriberId: sub.id,

@@ -10,8 +10,12 @@ import {
     Tailwind,
 } from '@react-email/components';
 import * as React from 'react';
+import { BodyParagraphs } from './BodyParagraphs';
+
 
 interface WinBackEmailProps {
+    body?: string;
+
     firstName?: string;
     promoCode?: string;
     discount?: string;
@@ -20,6 +24,8 @@ interface WinBackEmailProps {
 
 export default function WinBackEmail({
     firstName = '',
+    body,
+
     promoCode = 'WINBACK10',
     discount = '-10%',
     appUrl = 'https://touchmemories.com.ua',
@@ -45,11 +51,15 @@ export default function WinBackEmail({
                                 {greeting}
                             </Text>
 
+                            {body ? (
+                                <BodyParagraphs text={body} className="text-[16px] leading-[26px] text-[#475569] mb-[24px]" />
+                            ) : (
                             <Text className="text-[16px] leading-[26px] text-[#475569] mb-[24px]">
                                 Давно вас не бачили — і встигли скучити. Можливо, назбиралися нові
                                 фото, які варто зберегти у красивій фотокнизі чи журналі? Ми зробимо
                                 все за вас, щоб спогади залишилися назавжди.
                             </Text>
+                            )}
 
                             <Text className="text-[16px] leading-[26px] text-[#475569] mb-[32px]">
                                 Щоб повернутися було приємніше, даруємо вам знижку <strong>{discount}</strong> на

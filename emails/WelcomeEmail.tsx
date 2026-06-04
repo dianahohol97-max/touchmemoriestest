@@ -11,17 +11,21 @@ import {
     Tailwind
 } from '@react-email/components';
 import * as React from 'react';
+import { BodyParagraphs } from './BodyParagraphs';
+
 
 interface WelcomeEmailProps {
     firstName?: string;
     promoCode: string;
     appUrl: string;
+    body?: string;
 }
 
 export default function WelcomeEmail({
     firstName = '',
     promoCode = 'WELCOME10',
-    appUrl = 'https://touchmemories.com.ua'
+    appUrl = 'https://touchmemories.com.ua',
+    body,
 }: WelcomeEmailProps) {
     const greeting = firstName ? `Привіт, ${firstName}! ` : 'Привіт! ';
 
@@ -46,10 +50,14 @@ export default function WelcomeEmail({
                                 {greeting}
                             </Text>
 
+                            {body ? (
+                                <BodyParagraphs text={body} className="text-[16px] leading-[26px] text-[#475569] mb-[24px]" />
+                            ) : (
                             <Text className="text-[16px] leading-[26px] text-[#475569] mb-[24px]">
                                 Дякуємо, що приєдналися до нашої спільноти! Ми обожнюємо зберігати важливі моменти у вигляді естетичних фотокниг.
                                 Тепер ви першими дізнаватиметеся про наші новинки, натхнення та закриті розпродажі.
                             </Text>
+                            )}
 
                             <Text className="text-[16px] leading-[26px] text-[#475569] mb-[32px]">
                                 Як і обіцяли, даруємо вам знижку <strong>-10%</strong> на ваше перше замовлення:

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email/resend';
 import WelcomeEmail from '@/emails/WelcomeEmail';
+import { getAutomationConfig } from '@/lib/email/automation-config';
 import { render } from '@react-email/components';
 
 import { getAdminClient } from '@/lib/supabase/admin';
@@ -67,12 +68,14 @@ export async function POST(request: Request) {
         }
 
         // 2. Dispatch Welcome Email if it's a new or reactivated subscription
-        if (isNewSubscription) {
+        const welcomeCfg = await getAutomationConfig('welcome');
+        if (isNewSubscription && !(welcomeCfg && !welcomeCfg.enabled)) {
             const htmlMessage = await render(
                 WelcomeEmail({
                     firstName: name,
-                    promoCode: 'WELCOME7',
-                    appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+                    promoCode: welcomeCfg?.promo_code || 'WELCOME7',
+                    appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+                    body: welcomeCfg?.body || undefined,
                 })
             );
 
@@ -89,7 +92,7 @@ export async function POST(request: Request) {
 
             await sendEmail({
                 to: email,
-                subject: 'Раді вітати вас в TouchMemories! Ваш подарунок всередині ',
+                subject: welcomeCfg?.subject || 'Раді вітати вас в TouchMemories! Ваш подарунок всередині ',
                 html: htmlMessage,
                 unsubscribeToken: subData?.unsubscribe_token
             });

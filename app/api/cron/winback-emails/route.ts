@@ -3,6 +3,7 @@ import { render } from '@react-email/components';
 import WinBackEmail from '@/emails/WinBackEmail';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { getAutomationConfig } from '@/lib/email/automation-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,14 @@ export async function GET(request: Request) {
             return NextResponse.json({ message: 'No win-back candidates', sent: 0 });
         }
 
+        const cfg = await getAutomationConfig('winback');
+        if (cfg && !cfg.enabled) {
+            return NextResponse.json({ message: 'Win-back disabled in admin', sent: 0 });
+        }
+        const promoCode = cfg?.promo_code || 'WINBACK10';
+        const subject = cfg?.subject || 'Ми скучили — ваша знижка -10% на наступну фотокнигу';
+        const bodyOverride = cfg?.body || undefined;
+
         let sent = 0;
         let errors = 0;
 
@@ -54,19 +63,19 @@ export async function GET(request: Request) {
             const firstName = nameParts.length ? nameParts[nameParts.length - 1] : '';
             try {
                 const html = await render(
-                    WinBackEmail({ firstName, promoCode: 'WINBACK10', discount: '-10%', appUrl })
+                    WinBackEmail({ firstName, promoCode, discount: '-10%', appUrl, body: bodyOverride })
                 );
                 await sendBrevoEmail({
                     to: c.email,
                     toName: c.customer_name || c.email,
-                    subject: 'Ми скучили — ваша знижка -10% на наступну фотокнигу',
+                    subject,
                     html,
                     fromEmail: 'touch.memories3@gmail.com',
                 });
                 await supabase.from('email_automation_log').insert({
                     email: c.email,
                     automation_type: 'winback',
-                    meta: { promo_code: 'WINBACK10' },
+                    meta: { promo_code: promoCode },
                 });
                 sent++;
             } catch (e: any) {

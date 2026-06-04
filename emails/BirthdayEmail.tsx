@@ -12,6 +12,8 @@ import {
     Tailwind
 } from '@react-email/components';
 import * as React from 'react';
+import { BodyParagraphs } from './BodyParagraphs';
+
 
 interface BirthdayEmailProps {
     firstName: string;
@@ -19,6 +21,7 @@ interface BirthdayEmailProps {
     validUntil: string;
     discountValue: string;
     appUrl: string;
+    body?: string;
 }
 
 export default function BirthdayEmail({
@@ -26,7 +29,8 @@ export default function BirthdayEmail({
     promoCode = 'HAPPY-BDAY-20',
     validUntil = '7 днів',
     discountValue = '-20%',
-    appUrl = 'https://touchmemories.com.ua'
+    appUrl = 'https://touchmemories.com.ua',
+    body,
 }: BirthdayEmailProps) {
     return (
         <Html>
@@ -45,12 +49,21 @@ export default function BirthdayEmail({
 
                         {/* Content */}
                         <Section className="p-[40px]">
+                            {body ? (
+                                <>
+                                    <Text className="text-[18px] leading-[26px] mb-[8px]">
+                                        Іменнику/Іменниці <strong>{firstName}</strong>,
+                                    </Text>
+                                    <BodyParagraphs text={body} className="text-[18px] leading-[26px] mb-[24px]" />
+                                </>
+                            ) : (
                             <Text className="text-[18px] leading-[26px] mb-[24px]">
                                 Іменнику/Іменниці <strong>{firstName}</strong>,
                                 <br /><br />
                                 Від щирого серця вітаємо вас! Бажаємо безліч яскравих моментів, збережених у пам'яті.
                                 Щоб зробити цей день ще особливішим, ми підготували для вас подарунок!
                             </Text>
+                            )}
 
                             {/* Promo Block */}
                             <Section className="bg-[#fdf2f8] border border-[#fbcfe8] rounded-[3px] text-center py-[32px] my-[32px]">

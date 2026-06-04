@@ -3,6 +3,7 @@ import { render } from '@react-email/components';
 import AbandonedCartEmail from '@/emails/AbandonedCartEmail';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { getAutomationConfig } from '@/lib/email/automation-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,13 @@ export async function GET(request: Request) {
             return NextResponse.json({ message: 'No abandoned carts', sent: 0 });
         }
 
+        const cfg = await getAutomationConfig('abandoned_cart');
+        if (cfg && !cfg.enabled) {
+            return NextResponse.json({ message: 'Abandoned-cart disabled in admin', sent: 0 });
+        }
+        const subject = cfg?.subject || 'Ваш кошик чекає на вас 💙';
+        const bodyOverride = cfg?.body || undefined;
+
         let sent = 0;
         let errors = 0;
 
@@ -52,12 +60,13 @@ export async function GET(request: Request) {
                         total: Number(c.total) || 0,
                         currency: c.currency || 'UAH',
                         appUrl,
+                        body: bodyOverride,
                     })
                 );
                 await sendBrevoEmail({
                     to: c.email,
                     toName: c.email,
-                    subject: 'Ваш кошик чекає на вас 💙',
+                    subject,
                     html,
                     fromEmail: 'touch.memories3@gmail.com',
                 });

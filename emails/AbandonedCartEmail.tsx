@@ -13,6 +13,8 @@ import {
     Tailwind,
 } from '@react-email/components';
 import * as React from 'react';
+import { BodyParagraphs } from './BodyParagraphs';
+
 
 interface CartItem {
     name: string;
@@ -22,6 +24,8 @@ interface CartItem {
 }
 
 interface AbandonedCartEmailProps {
+    body?: string;
+
     firstName?: string;
     items?: CartItem[];
     total?: number;
@@ -31,6 +35,8 @@ interface AbandonedCartEmailProps {
 
 export default function AbandonedCartEmail({
     firstName = '',
+    body,
+
     items = [],
     total = 0,
     currency = 'UAH',
@@ -58,11 +64,15 @@ export default function AbandonedCartEmail({
                                 {greeting}
                             </Text>
 
+                            {body ? (
+                                <BodyParagraphs text={body} className="text-[16px] leading-[26px] text-[#475569] mb-[24px]" />
+                            ) : (
                             <Text className="text-[16px] leading-[26px] text-[#475569] mb-[24px]">
                                 Ви залишили у кошику кілька гарних речей — ми зберегли їх для вас.
                                 Завершіть замовлення, поки вони на місці, і ми зробимо все, щоб ваші
                                 спогади виглядали бездоганно.
                             </Text>
+                            )}
 
                             <Section className="border border-[#fde68a] rounded-[3px] mb-[28px]">
                                 {items.slice(0, 8).map((it, idx) => (

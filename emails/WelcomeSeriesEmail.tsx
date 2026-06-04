@@ -10,6 +10,8 @@ import {
     Tailwind,
 } from '@react-email/components';
 import * as React from 'react';
+import { BodyParagraphs } from './BodyParagraphs';
+
 
 interface WelcomeSeriesEmailProps {
     firstName?: string;
@@ -17,6 +19,7 @@ interface WelcomeSeriesEmailProps {
     promoCode?: string;
     discount?: string;
     appUrl?: string;
+    body?: string;
 }
 
 export default function WelcomeSeriesEmail({
@@ -25,6 +28,7 @@ export default function WelcomeSeriesEmail({
     promoCode = 'WELCOME7',
     discount = '-7%',
     appUrl = 'https://touchmemories.com.ua',
+    body,
 }: WelcomeSeriesEmailProps) {
     const greeting = firstName ? `Привіт, ${firstName}!` : 'Привіт!';
     const isReminder = variant === 'reminder';
@@ -54,11 +58,15 @@ export default function WelcomeSeriesEmail({
 
                             {isReminder ? (
                                 <>
+                                    {body ? (
+                                        <BodyParagraphs text={body} className="text-[16px] leading-[26px] text-[#475569] mb-[24px]" />
+                                    ) : (
                                     <Text className="text-[16px] leading-[26px] text-[#475569] mb-[24px]">
                                         Нагадуємо: ваш промокод на перше замовлення ще активний. Це чудова
                                         нагода зберегти найдорожчі моменти у красивій фотокнизі чи журналі —
                                         а ми подбаємо про все інше.
                                     </Text>
+                                    )}
                                     <Section className="bg-[#fffbeb] border border-[#fde68a] rounded-[3px] text-center py-[24px] mb-[32px]">
                                         <Text className="text-[#d97706] font-bold text-[14px] m-0 uppercase tracking-wide mb-[8px]">
                                             Ваш промокод {discount}
@@ -70,6 +78,10 @@ export default function WelcomeSeriesEmail({
                                 </>
                             ) : (
                                 <>
+                                    {body ? (
+                                        <BodyParagraphs text={body} className="text-[16px] leading-[26px] text-[#475569] mb-[24px]" />
+                                    ) : (
+                                    <>
                                     <Text className="text-[16px] leading-[26px] text-[#475569] mb-[24px]">
                                         Дякуємо, що з нами! Поки ви обираєте, ось кілька ідей, що можна
                                         створити зі своїх фото:
@@ -88,6 +100,8 @@ export default function WelcomeSeriesEmail({
                                             • <strong>Постери та фотомагніти</strong> — теплі дрібниці для дому.
                                         </Text>
                                     </Section>
+                                    </>
+                                    )}
                                 </>
                             )}
 

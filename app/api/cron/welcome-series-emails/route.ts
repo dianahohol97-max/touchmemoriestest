@@ -3,6 +3,7 @@ import { render } from '@react-email/components';
 import WelcomeSeriesEmail from '@/emails/WelcomeSeriesEmail';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { getAutomationConfig } from '@/lib/email/automation-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +39,14 @@ export async function GET(request: Request) {
 
     try {
         for (const step of STEPS) {
+            const cfg = await getAutomationConfig(step.type);
+            if (cfg && !cfg.enabled) {
+                result[step.type] = { sent: 0, errors: 0, candidates: 0 };
+                continue;
+            }
+            const subject = cfg?.subject || step.subject;
+            const promoCode = cfg?.promo_code || 'WELCOME7';
+            const bodyOverride = cfg?.body || undefined;
             const { data: candidates, error } = await supabase.rpc('get_welcome_series_candidates', {
                 p_automation_type: step.type,
                 p_day_offset: step.dayOffset,
@@ -52,12 +61,12 @@ export async function GET(request: Request) {
                 const firstName = parts.length ? parts[parts.length - 1] : '';
                 try {
                     const html = await render(
-                        WelcomeSeriesEmail({ firstName, variant: step.variant, promoCode: 'WELCOME7', discount: '-7%', appUrl })
+                        WelcomeSeriesEmail({ firstName, variant: step.variant, promoCode, discount: '-7%', appUrl, body: bodyOverride })
                     );
                     await sendBrevoEmail({
                         to: c.email,
                         toName: c.name || c.email,
-                        subject: step.subject,
+                        subject,
                         html,
                         fromEmail: 'touch.memories3@gmail.com',
                     });
