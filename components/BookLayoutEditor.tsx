@@ -3143,90 +3143,103 @@ export default function BookLayoutEditor() {
         // there's a second one it gets dropped (it's a duplicate
         // blank page that the print shop doesn't need).
         let backForzacEmitted = false;
+        // Phase 1 — assign filenames sequentially. Naming carries order-
+        // dependent state (pageCounter, forzac dedupe via backForzacEmitted),
+        // so it stays a plain loop. It's cheap: no canvas work, no I/O.
+        type UploadJob = { snapIndex: number; fileName: string; fileCategory: string };
+        const jobs: UploadJob[] = [];
         for (let i = 0; i < snapshots.length; i++) {
-          setUploadState(prev => prev ? { ...prev, done: i } : prev);
+          const snap = snapshots[i];
+          let fileName: string;
+          let fileCategory: string;
+          if (snap.side === 'cover') {
+            fileName = 'cover.jpg';
+            fileCategory = 'book-cover';
+          } else if (snap.pageIdx === kalkaForzatsPageIdx) {
+            // Blank forzac before the kalka — f1.jpg in the printer's spec.
+            fileName = 'f1.jpg';
+            fileCategory = 'book-endpaper';
+          } else if (snap.pageIdx === kalkaContentPageIdx) {
+            // The kalka itself, with the customer's text / illustration.
+            fileName = 'kalka.jpg';
+            fileCategory = 'book-kalka';
+          } else if (hasKalka && kalkaEndStartPageIdx > 0 && snap.pageIdx >= kalkaEndStartPageIdx) {
+            // Only the first back-of-book blank forzac becomes f2.jpg; any
+            // second one is a duplicate the print shop doesn't need.
+            if (backForzacEmitted) continue;
+            backForzacEmitted = true;
+            fileName = 'f2.jpg';
+            fileCategory = 'book-endpaper';
+          } else if (snap.pageIdx === frontEndpaperIdx) {
+            fileName = 'f1.jpg';
+            fileCategory = 'book-endpaper';
+          } else if (snap.pageIdx === backEndpaperIdx) {
+            fileName = 'f2.jpg';
+            fileCategory = 'book-endpaper';
+          } else {
+            pageCounter++;
+            fileName = `${String(pageCounter).padStart(2, '0')}.jpg`;
+            fileCategory = 'book-page';
+          }
+          jobs.push({ snapIndex: i, fileName, fileCategory });
+        }
+
+        // Re-base the modal onto the real file count (the dropped duplicate
+        // forzac means jobs.length can be < snapshots.length).
+        setUploadState(prev => prev ? { ...prev, done: 0, total: Math.max(1, jobs.length), failed } : prev);
+
+        // Phase 2 — compose (toBlob → 300 DPI → sRGB) and upload each page in
+        // PARALLEL batches. The network upload dominates checkout time; running
+        // a few at once cuts the wait by ~3×, and composing inside the task lets
+        // one page's CPU work overlap another's upload. `done` (successes) and
+        // `failed` advance as each task settles; the modal reads both.
+        const UPLOAD_BATCH = 3;
+        let uploadedSoFar = 0;
+        const processJob = async (job: UploadJob): Promise<void> => {
+          let ok = false;
           try {
-            const snap = snapshots[i];
-            // Inner pages and endpapers get a 5 mm mirrored bleed
-            // added on all four sides so the trimmer has room to drift
-            // by 1-2 mm without showing white at the edge. The cover
-            // already has its 18-20 mm fold-in baked in at the editor
-            // level, so we don't add bleed to it here.
+            const snap = snapshots[job.snapIndex];
+            // Inner pages + endpapers get a 5 mm mirrored bleed for trim drift;
+            // the cover already has its 18-20 mm fold-in baked in at the editor.
             const canvasToExport = snap.side === 'cover'
               ? snap.canvas
               : extendBleed(snap.canvas, 5, 300);
             let blob: Blob | null = await new Promise((resolve) => {
               canvasToExport.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
             });
-            if (!blob) continue;
-            // Rewrite the JFIF DPI bytes from 96×96 to 300×300 so any
-            // automated prepress system that reads them gets the right
-            // physical size. Pixel data is untouched.
+            if (!blob) return;
+            // 300 DPI JFIF tag + embedded sRGB ICC profile; pixel data untouched.
             blob = await setJpegDpi300(blob);
-            // Embed the standard sRGB ICC v2 profile so any prepress
-            // system that reads the colour profile sees a real one
-            // instead of falling back to "assume sRGB". Cover and
-            // inner pages both get this — keeps the whole book
-            // colour-managed end-to-end.
             blob = await embedSRGBProfile(blob);
-            let fileName: string;
-            let fileCategory: string;
-            if (snap.side === 'cover') {
-              fileName = 'cover.jpg';
-              fileCategory = 'book-cover';
-            } else if (snap.pageIdx === kalkaForzatsPageIdx) {
-              // Blank forzac before the kalka — corresponds to
-              // f1.jpg in the printer's nomenclature.
-              fileName = 'f1.jpg';
-              fileCategory = 'book-endpaper';
-            } else if (snap.pageIdx === kalkaContentPageIdx) {
-              // The kalka itself, with the customer's text /
-              // illustration on it. Colour, not monochrome — the
-              // tracing-paper print can carry full-colour artwork.
-              fileName = 'kalka.jpg';
-              fileCategory = 'book-kalka';
-            } else if (hasKalka && kalkaEndStartPageIdx > 0 && snap.pageIdx >= kalkaEndStartPageIdx) {
-              // Back-of-book blank forzac from the kalka option.
-              // Only the first one becomes f2.jpg; any second blank
-              // page gets dropped to avoid duplicates the print
-              // shop doesn't need.
-              if (backForzacEmitted) continue;
-              backForzacEmitted = true;
-              fileName = 'f2.jpg';
-              fileCategory = 'book-endpaper';
-            } else if (snap.pageIdx === frontEndpaperIdx) {
-              fileName = 'f1.jpg';
-              fileCategory = 'book-endpaper';
-            } else if (snap.pageIdx === backEndpaperIdx) {
-              fileName = 'f2.jpg';
-              fileCategory = 'book-endpaper';
-            } else {
-              pageCounter++;
-              fileName = `${String(pageCounter).padStart(2, '0')}.jpg`;
-              fileCategory = 'book-page';
-            }
-            const path = `${userKey}/${orderId}/${fileName}`;
+            const path = `${userKey}/${orderId}/${job.fileName}`;
             const { error: uploadError } = await uploadFileWithRetry(path, blob, 'image/jpeg');
             if (uploadError) {
-              console.warn(`book page ${i} upload failed:`, uploadError);
-              continue;
+              console.warn(`book page ${job.fileName} upload failed:`, uploadError);
+              return;
             }
             exportedFiles.push({
               path,
-              fileName,
+              fileName: job.fileName,
               bucket: 'photobook-uploads',
-              fileCategory,
+              fileCategory: job.fileCategory,
               productType: uploadProductType,
               fileType: 'export',
               size: blob.size,
               mimeType: 'image/jpeg',
-              pageNumber: i + 1,
+              pageNumber: job.snapIndex + 1,
             });
+            ok = true;
           } catch (e) {
-            console.warn(`book jpg compose for page ${i} failed:`, e);
+            console.warn(`book jpg compose/upload for ${job.fileName} failed:`, e);
+          } finally {
+            if (ok) uploadedSoFar++; else failed++;
+            setUploadState(prev => prev ? { ...prev, done: uploadedSoFar, failed } : prev);
           }
+        };
+        for (let b = 0; b < jobs.length; b += UPLOAD_BATCH) {
+          await Promise.all(jobs.slice(b, b + UPLOAD_BATCH).map(processJob));
         }
-        setUploadState(prev => prev ? { ...prev, done: snapshots.length } : prev);
+        setUploadState(prev => prev ? { ...prev, done: uploadedSoFar, failed } : prev);
       }
 
       // Cover-decoration inset files (akryl, metal, gravirovka, etc.)
@@ -8542,8 +8555,8 @@ export default function BookLayoutEditor() {
             </h2>
             <p style={{ color:'#64748b', fontSize:13, marginBottom:16 }}>
               {uploadState.active
-                ? `${uploadState.done} з ${uploadState.total} фото`
-                : `${uploadState.done} фото завантажено${uploadState.failed > 0 ? `, ${uploadState.failed} помилок` : ''}`}
+                ? `${uploadState.done} з ${uploadState.total} файлів${uploadState.failed > 0 ? ` · ${uploadState.failed} не вдалося` : ''}`
+                : `${uploadState.done} з ${uploadState.total} файлів завантажено${uploadState.failed > 0 ? ` · ${uploadState.failed} не вдалося` : ''}`}
             </p>
             <div style={{ width:'100%', height:8, background:'#e2e8f0', borderRadius:8, overflow:'hidden', marginBottom:12 }}>
               <div style={{
@@ -8553,8 +8566,10 @@ export default function BookLayoutEditor() {
               }}/>
             </div>
             {!uploadState.active && (
-              <p style={{ fontSize:11, color:'#94a3b8' }}>
-                Оригінальні файли збережено для друку у найвищій якості
+              <p style={{ fontSize:11, color: uploadState.failed > 0 ? '#b45309' : '#94a3b8' }}>
+                {uploadState.failed > 0
+                  ? 'Частина файлів не завантажилась — нічого страшного, менеджер зв\u2019яжеться й допоможе долити решту.'
+                  : 'Оригінальні файли збережено для друку у найвищій якості'}
               </p>
             )}
           </div>
