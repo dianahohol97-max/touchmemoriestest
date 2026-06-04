@@ -2979,6 +2979,38 @@ export default function BookLayoutEditor() {
       const { data: { user } } = await sb.auth.getUser();
       const userKey = user?.id || 'anon';
 
+      // Storage uploads can stall on a flaky connection. Without a timeout the
+      // whole checkout freezes at "N з N" forever — the modal only closes after
+      // this entire section finishes (setUploadState active:false at the very
+      // end). Cap each upload at 45s and retry up to 3× with backoff; on final
+      // failure we resolve with an error (never reject, never hang) so the loop
+      // counts it and moves on instead of locking the customer on the spinner.
+      const uploadFileWithRetry = async (uploadPath: string, body: Blob, contentType: string): Promise<{ error: any }> => {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          let timer: ReturnType<typeof setTimeout> | null = null;
+          const uploadPromise = sb.storage
+            .from('photobook-uploads')
+            .upload(uploadPath, body, { cacheControl: '31536000', upsert: true, contentType })
+            .then((r: any) => r, (e: any) => ({ error: e }));
+          const timeoutPromise = new Promise<{ error: any }>((resolve) => {
+            timer = setTimeout(() => resolve({ error: new Error('upload-timeout') }), 45000);
+          });
+          const result: any = await Promise.race([uploadPromise, timeoutPromise]);
+          if (timer) clearTimeout(timer);
+          if (!result?.error) return { error: null };
+          if (attempt === 2) return { error: result.error };
+          await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+        }
+        return { error: new Error('upload-failed') };
+      };
+
+      // Second phase of the progress bar: now that all views are captured we
+      // re-base the modal onto the number of files being uploaded, so it keeps
+      // visibly advancing during the (slow) upload instead of sitting at the
+      // capture total — which customers read as a freeze.
+      const totalToUpload = wantsPdf ? 1 : snapshots.length;
+      setUploadState(prev => prev ? { ...prev, done: 0, total: Math.max(1, totalToUpload), failed: 0 } : prev);
+
       if (wantsPdf && jsPDFCtor) {
         // Soft-cover magazine → single multi-page PDF.
         try {
@@ -3000,11 +3032,8 @@ export default function BookLayoutEditor() {
           }
           const blob: Blob = pdf.output('blob');
           const path = `${userKey}/${orderId}/book_layout.pdf`;
-          const { error: uploadError } = await sb.storage
-            .from('photobook-uploads')
-            .upload(path, blob, {
-              cacheControl: '31536000', upsert: true, contentType: 'application/pdf',
-            });
+          const { error: uploadError } = await uploadFileWithRetry(path, blob, 'application/pdf');
+          setUploadState(prev => prev ? { ...prev, done: 1 } : prev);
           if (uploadError) {
             console.warn('book pdf upload failed:', uploadError);
           } else {
@@ -3063,6 +3092,7 @@ export default function BookLayoutEditor() {
         // blank page that the print shop doesn't need).
         let backForzacEmitted = false;
         for (let i = 0; i < snapshots.length; i++) {
+          setUploadState(prev => prev ? { ...prev, done: i } : prev);
           try {
             const snap = snapshots[i];
             // Inner pages and endpapers get a 5 mm mirrored bleed
@@ -3124,11 +3154,7 @@ export default function BookLayoutEditor() {
               fileCategory = 'book-page';
             }
             const path = `${userKey}/${orderId}/${fileName}`;
-            const { error: uploadError } = await sb.storage
-              .from('photobook-uploads')
-              .upload(path, blob, {
-                cacheControl: '31536000', upsert: true, contentType: 'image/jpeg',
-              });
+            const { error: uploadError } = await uploadFileWithRetry(path, blob, 'image/jpeg');
             if (uploadError) {
               console.warn(`book page ${i} upload failed:`, uploadError);
               continue;
@@ -3148,6 +3174,7 @@ export default function BookLayoutEditor() {
             console.warn(`book jpg compose for page ${i} failed:`, e);
           }
         }
+        setUploadState(prev => prev ? { ...prev, done: snapshots.length } : prev);
       }
 
       // Cover-decoration inset files (akryl, metal, gravirovka, etc.)
@@ -3182,11 +3209,7 @@ export default function BookLayoutEditor() {
             insetBlob = await setJpegDpi300(insetBlob);
             insetBlob = await embedSRGBProfile(insetBlob);
             const insetPath = `${userKey}/${orderId}/${item.fileName}`;
-            const { error: insetUploadError } = await sb.storage
-              .from('photobook-uploads')
-              .upload(insetPath, insetBlob, {
-                cacheControl: '31536000', upsert: true, contentType: 'image/jpeg',
-              });
+            const { error: insetUploadError } = await uploadFileWithRetry(insetPath, insetBlob, 'image/jpeg');
             if (insetUploadError) {
               console.warn(`cover inset ${item.fileName} upload failed:`, insetUploadError);
               continue;
