@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
 import { transliterateUk } from '@/lib/shipping/transliterate';
+import { exportCommercialInvoicePDF, type SellerLegal } from '@/lib/export/invoice';
 import {
     ArrowLeft,
     User,
@@ -153,6 +154,22 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [ttnValue, setTtnValue] = useState('');
     const [intlTrackingValue, setIntlTrackingValue] = useState('');
     const [savingIntl, setSavingIntl] = useState(false);
+    const [sellerLegal, setSellerLegal] = useState<SellerLegal>({});
+    const [eurRateFallback, setEurRateFallback] = useState(0);
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const { data } = await supabase.from('settings').select('value').eq('key', 'seller_legal').maybeSingle();
+                if (!cancelled && data?.value) setSellerLegal(data.value as SellerLegal);
+            } catch { /* non-fatal */ }
+            try {
+                const r = await fetch('/api/exchange-rate').then(x => x.json());
+                if (!cancelled && r?.rate) setEurRateFallback(r.rate);
+            } catch { /* non-fatal */ }
+        })();
+        return () => { cancelled = true; };
+    }, []);
 
     // Nova Poshta TTN
     const [showTTNModal, setShowTTNModal] = useState(false);
@@ -969,6 +986,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 >
                                                     <Copy size={13} /> Скопіювати все
                                                 </button>
+                                                <button
+                                                    onClick={() => { exportCommercialInvoicePDF(order, sellerLegal, eurRateFallback); }}
+                                                    style={{ marginTop: 8, marginLeft: 8, padding: '6px 10px', border: 'none', borderRadius: 7, background: '#263A99', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                                                >
+                                                    <Receipt size={13} /> Інвойс (PDF)
+                                                </button>
+                                                {!sellerLegal.tax_id && (
+                                                    <div style={{ marginTop: 6, fontSize: 11, color: '#b45309' }}>
+                                                        ⚠ Додай РНОКПП у Налаштування → seller_legal, щоб інвойс був повним.
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })()}
