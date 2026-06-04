@@ -30,6 +30,9 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
+  // Resolves all relative OG/Twitter image paths against the canonical domain.
+  // Without it Next emits absolute-URL warnings and social cards may break.
+  metadataBase: new URL(getBaseUrl()),
   title: SITE_INFO.metaTitle,
   description: SITE_INFO.metaDescription,
   keywords: SITE_INFO.keywords,
