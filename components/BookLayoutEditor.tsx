@@ -5084,6 +5084,53 @@ export default function BookLayoutEditor() {
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#374151' }}>
                           <Type size={15} /> Додати текст на задню обкладинку
                         </button>
+                        {/* Edit EXISTING cover text blocks here. The buttons above
+                            only set defaults for NEW text; the font/colour/size
+                            controls higher in this tab target inner-page text, not
+                            cover blocks — so without this list a cover caption could
+                            not be restyled. Edits each printed/back-cover block. */}
+                        {(() => {
+                          const ptl = coverState.printedTextBlocks ?? [];
+                          const btl = (((coverState as any).backCoverTexts) ?? []) as Array<{ id:string; text:string; fontSize:number; fontFamily:string; color:string; bold:boolean }>;
+                          if (ptl.length === 0 && btl.length === 0) return null;
+                          const editFront = (id:string, patch:Record<string,unknown>) => setCoverState(p => ({ ...p, printedTextBlocks: (p.printedTextBlocks||[]).map(t => t.id===id ? { ...t, ...patch } : t) }));
+                          const delFront = (id:string) => setCoverState(p => ({ ...p, printedTextBlocks: (p.printedTextBlocks||[]).filter(t => t.id!==id) }));
+                          const editBack = (id:string, patch:Record<string,unknown>) => setCoverState(p => ({ ...(p as any), backCoverTexts: (((p as any).backCoverTexts)||[]).map((t:any) => t.id===id ? { ...t, ...patch } : t) } as any));
+                          const delBack = (id:string) => setCoverState(p => ({ ...(p as any), backCoverTexts: (((p as any).backCoverTexts)||[]).filter((t:any) => t.id!==id) } as any));
+                          const row = (tb:{ id:string; text:string; fontSize:number; fontFamily:string; color:string; bold:boolean }, where:string) => {
+                            const edit = where==='front' ? editFront : editBack;
+                            const del = where==='front' ? delFront : delBack;
+                            return (
+                              <div key={where+tb.id} style={{ marginTop:6, padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', display:'flex', flexDirection:'column', gap:4 }}>
+                                <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                                  <span style={{ fontSize:8, fontWeight:700, color:'#94a3b8', flexShrink:0, width:30 }}>{where==='front'?'Обкл.':'Задня'}</span>
+                                  <input value={tb.text} onChange={e=>edit(tb.id,{ text:e.target.value })}
+                                    style={{ flex:1, padding:'3px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:11 }}/>
+                                  <button onClick={()=>del(tb.id)}
+                                    style={{ width:20, height:20, borderRadius:'50%', background:'#ef4444', color:'#fff', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                                </div>
+                                <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                                  <input type="color" value={tb.color} onChange={e=>edit(tb.id,{ color:e.target.value })}
+                                    style={{ width:32, height:28, border:'1px solid #e2e8f0', borderRadius:4, cursor:'pointer', padding:1 }}/>
+                                  <div style={{ display:'flex', flexDirection:'column', flex:1, gap:1 }}>
+                                    <input type="range" min={10} max={200} value={tb.fontSize} onChange={e=>edit(tb.id,{ fontSize:+e.target.value })} style={{ width:'100%' }}/>
+                                    <span style={{ fontSize:7, color:'#94a3b8', textAlign:'center' }}>розмір {tb.fontSize}px</span>
+                                  </div>
+                                  <button onClick={()=>edit(tb.id,{ bold:!tb.bold })}
+                                    style={{ padding:'2px 6px', border: tb.bold?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:4, background: tb.bold?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:700 }}>B</button>
+                                </div>
+                                <FontPicker value={tb.fontFamily} onChange={f=>edit(tb.id,{ fontFamily:f })} />
+                              </div>
+                            );
+                          };
+                          return (
+                            <div style={{ display:'flex', flexDirection:'column' }}>
+                              <div style={{ fontSize:11, fontWeight:700, color:'#64748b', margin:'8px 0 2px' }}>Редагувати написи на обкладинці</div>
+                              {ptl.map(t => row(t,'front'))}
+                              {btl.map(t => row(t,'back'))}
+                            </div>
+                          );
+                        })()}
                       </>
                     ) : (
                       (() => {

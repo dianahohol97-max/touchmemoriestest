@@ -638,12 +638,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   tb={tb}
                   maxWidthPx={safeBoxW}
                   onCommit={(text) => onChange({ printedTextBlocks: texts.map(t => t.id===tb.id ? {...t, text} : t) })}
-                  onPointerDownText={(e) => {
-                    const target = e.currentTarget as HTMLElement;
-                    const isFocused = document.activeElement === target;
-                    if (isFocused) return; // editing mode — let cursor land
-                    startTextDrag(e, tb.id, tb.x, tb.y);
-                  }}
+                  onPointerDownText={(e) => { startTextDrag(e, tb.id, tb.x, tb.y); }}
                   onClickText={(e) => { e.stopPropagation(); (e.target as HTMLElement).focus(); }}
                 />
                 <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
@@ -679,12 +674,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   tb={tb}
                   maxWidthPx={safeBoxW}
                   onCommit={(text) => onChange({ printedTextBlocks: texts.map(t => t.id===tb.id ? {...t, text} : t) })}
-                  onPointerDownText={(e) => {
-                    const target = e.currentTarget as HTMLElement;
-                    const isFocused = document.activeElement === target;
-                    if (isFocused) return;
-                    startTextDrag(e, tb.id, tb.x, tb.y);
-                  }}
+                  onPointerDownText={(e) => { startTextDrag(e, tb.id, tb.x, tb.y); }}
                   onClickText={(e) => { e.stopPropagation(); (e.target as HTMLElement).focus(); }}
                 />
                 <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
