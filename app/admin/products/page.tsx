@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { compressImageFile } from '@/lib/compress-upload-image';
 import { toast } from 'sonner';
 import {
     Save, Plus, Trash2, Activity, Package,
@@ -202,9 +203,23 @@ export default function ProductsAdminPage() {
         const uploadedUrls: string[] = [];
         const failureReasons: string[] = [];
 
-        for (const file of filesArr) {
+        for (const rawFile of filesArr) {
+            // Large phone photos (10-20 MB) used to be rejected outright. The
+            // storage bucket has no size limit, so instead we compress big
+            // images client-side (same path as the order flow) and only fall
+            // back to a hard guard for pathological, non-compressible files.
+            let file = rawFile;
             if (file.size > 10 * 1024 * 1024) {
-                const msg = `${file.name}: ${(file.size / 1024 / 1024).toFixed(1)} МБ — перевищує ліміт 10 МБ`;
+                try {
+                    const { file: out, compressed, finalSize } = await compressImageFile(rawFile);
+                    file = out;
+                    if (compressed) {
+                        toast.loading(`Стискаю велике фото ${rawFile.name} (${(rawFile.size/1024/1024).toFixed(1)} → ${(finalSize/1024/1024).toFixed(1)} МБ)...`, { id: 'img-upload' });
+                    }
+                } catch { /* keep original; guard below handles it */ }
+            }
+            if (file.size > 25 * 1024 * 1024) {
+                const msg = `${rawFile.name}: ${(file.size / 1024 / 1024).toFixed(1)} МБ — занадто велике навіть після стиснення (макс. 25 МБ)`;
                 toast.error(msg, { id: 'img-upload' });
                 failureReasons.push(msg);
                 continue;
