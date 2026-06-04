@@ -9,7 +9,7 @@ import { useWishlistStore } from '@/store/wishlist-store';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import { useT, useTranslation } from '@/lib/i18n/context';
+import { useT, useTranslation, LOCALES, Locale } from '@/lib/i18n/context';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 // ─── Module-level cache so re-renders don't re-fetch ──────────────────────────
@@ -42,7 +42,7 @@ const MAIN_CAT_SLUGS = new Set([
 
 export function Navigation() {
   const t = useT();
-  const { locale } = useTranslation();
+  const { locale, setLocale } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -132,6 +132,7 @@ export function Navigation() {
   ];
 
   return (
+    <>
     <header className={cn(
       'fixed top-0 left-0 right-0 z-50 transition-all duration-300 h-20 flex items-center w-full',
       isScrolled ? 'bg-white/95 shadow-sm backdrop-blur-md' : 'bg-white border-b border-border'
@@ -285,6 +286,7 @@ export function Navigation() {
           </button>
         </div>
       </div>
+      </header>
 
       {/* Mobile overlay */}
       <AnimatePresence>
@@ -306,6 +308,22 @@ export function Navigation() {
                   {link.name}
                 </Link>
               ))}
+              {/* Language switcher (mobile) */}
+              <div className="pt-6 mt-2">
+                <div className="text-xs font-bold uppercase tracking-wider text-primary/50 mb-3">Мова / Language</div>
+                <div className="flex flex-wrap gap-2">
+                  {LOCALES.map(l => (
+                    <button key={l.code}
+                      onClick={() => { setLocale(l.code as Locale); setIsMobileMenuOpen(false); }}
+                      className={cn(
+                        'px-4 py-2 rounded-lg text-sm font-bold border transition-colors',
+                        l.code === locale ? 'bg-primary text-white border-primary' : 'bg-white text-primary border-primary/20'
+                      )}>
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </nav>
           </motion.div>
         )}
@@ -377,13 +395,14 @@ export function Navigation() {
           </>
         )}
       </AnimatePresence>
-    </header>
+    </>
   );
 }
 
 function UserAuthIcon() {
   const supabase = createClient();
   const [status, setStatus] = useState<{ isLoggedIn: boolean; avatar?: string } | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -401,10 +420,11 @@ function UserAuthIcon() {
 
   if (status?.isLoggedIn) {
     return (
-      <Link href="/account" className="flex items-center">
-        {status.avatar
-          ? <img src={status.avatar} alt="User" className="w-7 h-7 rounded-[3px] object-cover border-1.5 border-border" />
-          : <User size={20} />}
+      <Link href="/account" aria-label="Account" className="flex items-center text-inherit hover:opacity-70 transition-opacity">
+        {status.avatar && !avatarError
+          ? <img src={status.avatar} alt="" referrerPolicy="no-referrer" onError={() => setAvatarError(true)}
+              style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
+          : <User size={22} />}
       </Link>
     );
   }
