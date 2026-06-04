@@ -178,6 +178,20 @@ export default function ContentManagementPage() {
 
     // Merge arbitrary fields into metadata[key] for the constructor section
     // (display choice, image focal point, video trim).
+    // Real screenshot of the constructor that replaces the drawn SVG illustration
+    // in the section. Stored per section key under metadata[key].mockup_image_url.
+    async function handleSectionMockupUpload(sectionId: string, key: 'photobooks' | 'magazines', file: File) {
+        setUploading(true);
+        const toastId = toast.loading('Завантаження скріншота...');
+        const url = await uploadToStorage(file, 'touch-memories-assets', 'content/mockups');
+        toast.dismiss(toastId);
+        if (url) {
+            updateConstructorMeta(sectionId, key, { mockup_image_url: url, mockup_image_position: '50% 50%' });
+            toast.success('Скріншот завантажено — збережіть секцію');
+        }
+        setUploading(false);
+    }
+
     function updateConstructorMeta(sectionId: string, key: 'photobooks' | 'magazines', patch: Record<string, any>) {
         const section = sectionContent.find(s => s.id === sectionId);
         const md: any = { ...(section?.metadata || {}) };
@@ -1170,11 +1184,43 @@ export default function ContentManagementPage() {
                                                                             )}
                                                                         </div>
                                                                     )}
+
+                                                                    {(() => {
+                                                                        const murl = (section.metadata as any)?.[key]?.mockup_image_url || '';
+                                                                        const mpos = (section.metadata as any)?.[key]?.mockup_image_position || '50% 50%';
+                                                                        return (
+                                                                            <div className="flex flex-col gap-2 pt-2 mt-1 border-t border-blue-100">
+                                                                                <div className="flex items-center gap-3 flex-wrap">
+                                                                                    <label className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg cursor-pointer text-sm font-medium text-gray-700 transition-colors">
+                                                                                        <ImageIcon size={16} />
+                                                                                        {uploading ? 'Завантаження...' : (murl ? 'Замінити скріншот конструктора' : 'Скріншот конструктора (замість ілюстрації)')}
+                                                                                        <input type="file" accept="image/*" className="hidden" disabled={uploading}
+                                                                                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionMockupUpload(section.id, key, f); e.target.value = ''; }} />
+                                                                                    </label>
+                                                                                    {murl && (
+                                                                                        <button type="button" onClick={() => updateConstructorMeta(section.id, key, { mockup_image_url: null })}
+                                                                                            className="px-2.5 py-1 rounded text-xs font-semibold border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">Повернути ілюстрацію</button>
+                                                                                    )}
+                                                                                </div>
+                                                                                {murl && (
+                                                                                    <div className="flex flex-col gap-1">
+                                                                                        <span className="text-xs text-gray-600">Клікніть, щоб обрати видиму область:</span>
+                                                                                        <div className="relative w-56 cursor-crosshair rounded border border-gray-200 overflow-hidden" style={{ aspectRatio: '600 / 340' }}
+                                                                                            onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const x = Math.min(100, Math.max(0, Math.round((e.clientX - r.left) / r.width * 100))); const y = Math.min(100, Math.max(0, Math.round((e.clientY - r.top) / r.height * 100))); updateConstructorMeta(section.id, key, { mockup_image_position: `${x}% ${y}%` }); }}>
+                                                                                            <img src={murl} alt="" className="w-full h-full object-cover" style={{ objectPosition: mpos }} />
+                                                                                            <div className="absolute w-3 h-3 rounded-full bg-white border-2 border-[#263a99] pointer-events-none" style={{ left: mpos.split(' ')[0], top: mpos.split(' ')[1], transform: 'translate(-50%, -50%)' }} />
+                                                                                        </div>
+                                                                                        <span className="text-[11px] text-gray-400">Область: {mpos}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             </div>
                                                         );
                                                     })}
-                                                    <p className="text-xs text-gray-500">MP4 / MOV / AVI, до 200 МБ. Обери, що показувати — фото чи відео. Для фото можна вибрати видиму область, для відео — обрізати початок/кінець. Після змін натисніть «Зберегти секцію».</p>
+                                                    <p className="text-xs text-gray-500">MP4 / MOV / AVI, до 200 МБ. Обери, що показувати — фото чи відео. Для фото можна вибрати видиму область, для відео — обрізати початок/кінець. «Скріншот конструктора» замінює намальовану ілюстрацію редактора на твоє реальне фото (порожньо — показується намальований мокап). Після змін натисніть «Зберегти секцію».</p>
                                                 </div>
                                             )}
 

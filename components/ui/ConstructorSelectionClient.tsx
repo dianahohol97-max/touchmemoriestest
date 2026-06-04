@@ -19,6 +19,9 @@ interface ConstructorMediaMeta {
     image_position?: string;
     video_start?: number | null;
     video_end?: number | null;
+    // Real screenshot of the constructor that replaces the drawn SVG mockup when set.
+    mockup_image_url?: string;
+    mockup_image_position?: string;
 }
 
 interface SectionContent {
@@ -138,7 +141,12 @@ export function ConstructorSelectionClient({
                                 </p>
                             </div>
 
-                            {/* Constructor visualization — photobook editor */}
+                            {/* Constructor visualization — photobook editor: real uploaded screenshot when set, else the drawn mockup */}
+                            {sectionContent?.metadata?.photobooks?.mockup_image_url ? (
+                            <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md aspect-[600/340]" style={{background:'#f4f6fb'}}>
+                                <img src={sectionContent.metadata.photobooks.mockup_image_url} alt={photobooksHeading} className="w-full h-full object-cover" style={{ objectPosition: sectionContent.metadata.photobooks.mockup_image_position || '50% 50%' }} />
+                            </div>
+                            ) : (
                             <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md" style={{background:'#f4f6fb'}}>
                                 <svg viewBox="0 0 600 340" xmlns="http://www.w3.org/2000/svg" style={{display:'block',width:'100%'}}>
   {/* Фон */}
@@ -251,6 +259,7 @@ export function ConstructorSelectionClient({
   </defs>
 </svg>
                             </div>
+                            )}
 
                             {/* Buttons */}
                             <div className="flex gap-3 flex-wrap">
@@ -291,7 +300,12 @@ export function ConstructorSelectionClient({
                                 </p>
                             </div>
 
-                            {/* Constructor visualization — magazine editor */}
+                            {/* Constructor visualization — magazine editor: real uploaded screenshot when set, else the drawn mockup */}
+                            {sectionContent?.metadata?.magazines?.mockup_image_url ? (
+                            <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md aspect-[600/340]" style={{background:'#f4f6fb'}}>
+                                <img src={sectionContent.metadata.magazines.mockup_image_url} alt={magazinesHeading} className="w-full h-full object-cover" style={{ objectPosition: sectionContent.metadata.magazines.mockup_image_position || '50% 50%' }} />
+                            </div>
+                            ) : (
                             <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md" style={{background:'#f4f6fb'}}>
                                 <svg viewBox="0 0 600 340" xmlns="http://www.w3.org/2000/svg" style={{display:'block',width:'100%'}}>
   {/* Фон */}
@@ -405,6 +419,7 @@ export function ConstructorSelectionClient({
   </defs>
 </svg>
                             </div>
+                            )}
 
                             {/* Buttons */}
                             <div className="flex gap-3 flex-wrap">
