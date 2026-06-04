@@ -279,22 +279,22 @@ export function Navigation() {
         </nav>
 
         {/* Mobile */}
-        <div className={cn('mobile-only flex items-center gap-5 text-primary', styles.navFlexMobile)}>
+        <div className={cn('mobile-only flex items-center gap-4 text-primary', styles.navFlexMobile)}>
           <UserAuthIcon />
           <Link href="/wishlist" aria-label="Wishlist"
-            className="flex items-center gap-1 bg-transparent border-none cursor-pointer text-inherit p-0 no-underline">
-            <Heart size={22} fill={wishlistMounted && wishlistItems.length > 0 ? 'currentColor' : 'none'} />
+            className="flex items-center gap-1 shrink-0 bg-transparent border-none cursor-pointer text-inherit p-0 no-underline">
+            <Heart size={20} fill={wishlistMounted && wishlistItems.length > 0 ? 'currentColor' : 'none'} />
             {wishlistMounted && wishlistItems.length > 0 && (
               <span className="text-[14px] font-bold">({wishlistItems.length})</span>
             )}
           </Link>
-          <button onClick={openDrawer} className="flex items-center gap-1 bg-transparent border-none cursor-pointer text-inherit p-0">
-            <ShoppingCart size={22} />
+          <button onClick={openDrawer} className="flex items-center gap-1 shrink-0 bg-transparent border-none cursor-pointer text-inherit p-0">
+            <ShoppingCart size={20} />
             <span className="text-[14px] font-bold">({cartItems.length})</span>
           </button>
           <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu"
-            className="bg-transparent border-none cursor-pointer text-inherit">
-            <Menu size={24} />
+            className="bg-transparent border-none cursor-pointer text-inherit shrink-0">
+            <Menu size={22} />
           </button>
         </div>
       </div>
@@ -432,10 +432,10 @@ function UserAuthIcon() {
 
   if (status?.isLoggedIn) {
     return (
-      <Link href="/account" aria-label="Account" className="flex items-center text-inherit hover:opacity-70 transition-opacity">
+      <Link href="/account" aria-label="Account" className="flex items-center shrink-0 text-inherit hover:opacity-70 transition-opacity">
         {status.avatar && !avatarError
           ? <img src={status.avatar} alt="" referrerPolicy="no-referrer" onError={() => setAvatarError(true)}
-              style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
+              style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
           : <User size={22} />}
       </Link>
     );
