@@ -37,10 +37,9 @@ export async function GET() {
     NEXT_PUBLIC_SITE_URL: !!process.env.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_APP_URL: !!process.env.NEXT_PUBLIC_APP_URL,
 
-    // Email providers
+    // Email provider (Brevo)
     BREVO_API_KEY: !!process.env.BREVO_API_KEY,
-    RESEND_API_KEY: !!process.env.RESEND_API_KEY,
-    RESEND_FROM_EMAIL: !!process.env.RESEND_FROM_EMAIL,
+    BREVO_API_TOKEN: !!process.env.BREVO_API_TOKEN,
 
     // Shipping
     NOVA_POSHTA_API_KEY: !!process.env.NOVA_POSHTA_API_KEY,

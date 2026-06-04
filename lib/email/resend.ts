@@ -1,17 +1,12 @@
-import { Resend } from 'resend';
+// Email transport. Resend has been removed — everything now delivers through
+// Brevo (the provider Diana uses). The file/export names are kept so existing
+// call sites don't need to change; only the underlying transport switched.
 import { sendBrevoEmail, getBrevoApiKey } from './brevo';
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'hello@touchmemories.ua';
-const FROM_NAME = process.env.RESEND_FROM_NAME || 'TouchMemories';
+const FROM_NAME = process.env.RESEND_FROM_NAME || process.env.BREVO_FROM_NAME || 'TouchMemories';
+// Always send from the verified Brevo sender, regardless of any per-call
+// "from" address (unverified senders are rejected by Brevo).
 const BREVO_FROM_EMAIL = process.env.BREVO_FROM_EMAIL || 'touch.memories3@gmail.com';
-
-/**
- * Lazy initialization of Resend client to prevent build-time errors
- * when environment variables are not available.
- */
-export function getResendClient() {
-    return new Resend(process.env.RESEND_API_KEY || 're_mock_key');
-}
 
 interface SendEmailParams {
     to: string;
@@ -23,88 +18,96 @@ interface SendEmailParams {
     unsubscribeToken?: string;
 }
 
+/**
+ * Brevo-backed shim with a Resend-compatible `.emails.send()` surface so the
+ * call sites that used the old Resend client keep working unchanged. Accepts
+ * `html` or a React Email element via `react`; sends from the verified Brevo
+ * sender; returns `{ data, error }` like Resend did.
+ */
+export function getResendClient() {
+    return {
+        emails: {
+            send: async (opts: { from?: string; to: string | string[]; subject: string; html?: string; react?: any; text?: string; cc?: any; bcc?: any; reply_to?: any; replyTo?: any; attachments?: any }) => {
+                try {
+                    if (!getBrevoApiKey()) {
+                        return { data: null, error: { message: 'Email provider not configured (BREVO_API_KEY/BREVO_API_TOKEN)' } };
+                    }
+                    let html = opts.html;
+                    if (!html && opts.react) {
+                        const { render } = await import('@react-email/components');
+                        html = await render(opts.react);
+                    }
+                    // Keep the display name from the call's "from" if present.
+                    let fromName = FROM_NAME;
+                    if (opts.from) {
+                        const m = String(opts.from).match(/^(.*?)<(.+)>$/);
+                        if (m && m[1].trim()) fromName = m[1].trim().replace(/^"|"$/g, '');
+                    }
+                    const recipients = Array.isArray(opts.to) ? opts.to : [opts.to];
+                    let last: any = null;
+                    for (const r of recipients) {
+                        last = await sendBrevoEmail({ to: r, subject: opts.subject, html: html || '', fromEmail: BREVO_FROM_EMAIL, fromName });
+                    }
+                    return { data: last, error: null };
+                } catch (error: any) {
+                    console.error('Email send failed (Brevo):', error);
+                    return { data: null, error };
+                }
+            },
+        },
+    };
+}
+
 export async function sendEmail({
     to,
     subject,
     html,
-    campaignId,
-    subscriberId,
     pixelId,
-    unsubscribeToken
+    unsubscribeToken,
 }: SendEmailParams) {
-    const resend = getResendClient();
-
-    // 1. Base URL for tracking + unsubscribe links. Prefer the canonical
-    // NEXT_PUBLIC_SITE_URL (the var the rest of the app uses); fall back to the
-    // legacy NEXT_PUBLIC_APP_URL if it's the only one set, then the real domain.
-    // Never localhost here — these URLs go out in real customer emails.
+    // Base URL for tracking + unsubscribe links.
     const baseUrl = (
         process.env.NEXT_PUBLIC_SITE_URL ||
         process.env.NEXT_PUBLIC_APP_URL ||
         'https://touchmemories.com.ua'
     ).replace(/\/$/, '');
 
-    // 2. Inject transparent Tracking Pixel if pixelId is provided
     let finalHtml = html;
+
+    // Transparent tracking pixel.
     if (pixelId) {
         const trackingUrl = `${baseUrl}/api/email/track/${pixelId}`;
         const pixelImg = `<img src="${trackingUrl}" width="1" height="1" style="display:none;" alt="" />`;
-
-        // Inject before closing body tag if exists, otherwise append
-        if (finalHtml.includes('</body>')) {
-            finalHtml = finalHtml.replace('</body>', `${pixelImg}</body>`);
-        } else {
-            finalHtml += pixelImg;
-        }
+        finalHtml = finalHtml.includes('</body>')
+            ? finalHtml.replace('</body>', `${pixelImg}</body>`)
+            : finalHtml + pixelImg;
     }
 
-    // 3. Inject Unsubscribe Footer if unsubscribeToken is provided
+    // Unsubscribe footer.
     if (unsubscribeToken) {
         const unsubscribeUrl = `${baseUrl}/api/email/unsubscribe/${unsubscribeToken}`;
         const footer = `
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; color: #888; font-size: 12px; font-family: sans-serif;">
                 Ви отримали цей лист, оскільки підписалися на новини бренду ${FROM_NAME}.<br/>
-                Якщо ви більше не бажаєте отримувати наші листи, ви можете 
+                Якщо ви більше не бажаєте отримувати наші листи, ви можете
                 <a href="${unsubscribeUrl}" style="color: #666; text-decoration: underline;">відписатися тут</a>.
             </div>
         `;
-
-        if (finalHtml.includes('</body>')) {
-            finalHtml = finalHtml.replace('</body>', `${footer}</body>`);
-        } else {
-            finalHtml += footer;
-        }
+        finalHtml = finalHtml.includes('</body>')
+            ? finalHtml.replace('</body>', `${footer}</body>`)
+            : finalHtml + footer;
     }
 
-    // 4. Send. Prefer Resend when it's configured; otherwise deliver via Brevo
-    // (the provider Diana set up) so welcome / design-reminder / birthday emails
-    // actually go out. The tracking pixel + unsubscribe footer are already baked
-    // into finalHtml above, so they survive either transport.
-    if (!process.env.RESEND_API_KEY) {
-        if (!getBrevoApiKey()) {
-            console.error('No email provider configured (set RESEND_API_KEY or BREVO_API_KEY/BREVO_API_TOKEN)');
-            return { success: false, error: 'No email provider configured' };
-        }
-        try {
-            const data = await sendBrevoEmail({ to, subject, html: finalHtml, fromEmail: BREVO_FROM_EMAIL, fromName: FROM_NAME });
-            return { success: true, data };
-        } catch (error) {
-            console.error('Failed to send email via Brevo fallback:', error);
-            return { success: false, error };
-        }
+    if (!getBrevoApiKey()) {
+        console.error('Email provider not configured (set BREVO_API_KEY or BREVO_API_TOKEN)');
+        return { success: false, error: 'Email provider not configured' };
     }
 
     try {
-        const data = await resend.emails.send({
-            from: `${FROM_NAME} <${FROM_EMAIL}>`,
-            to,
-            subject,
-            html: finalHtml,
-        });
-
+        const data = await sendBrevoEmail({ to, subject, html: finalHtml, fromEmail: BREVO_FROM_EMAIL, fromName: FROM_NAME });
         return { success: true, data };
     } catch (error) {
-        console.error('Failed to send email:', error);
+        console.error('Failed to send email via Brevo:', error);
         return { success: false, error };
     }
 }
