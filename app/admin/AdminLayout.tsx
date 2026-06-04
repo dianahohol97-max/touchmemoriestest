@@ -69,6 +69,7 @@ const menuItems = [
     { name: 'Підписники', href: '/admin/subscribers', icon: <Mail size={20} />, section: 'marketing' },
     { name: 'Автоматизації', href: '/admin/automations', icon: <Zap size={20} />, section: 'marketing' },
     { name: 'Імпорт клієнтів', href: '/admin/marketing/crm-import', icon: <UserPlus size={20} />, section: 'marketing' },
+    { name: 'Шаблони листів (авто)', href: '/admin/email-previews', icon: <Mail size={20} />, section: 'marketing' },
     { name: 'Теги', href: '/admin/settings/tags', icon: <Tags size={20} />, section: 'settings' },
 ];
 
