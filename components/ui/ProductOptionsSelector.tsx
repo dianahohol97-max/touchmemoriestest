@@ -358,7 +358,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
 // calculateVelourPrice removed — VELOUR_PRICES table is gone; photobook
 // prices are looked up from the DB by ProductClient via photobookPricesData.
 
-function detectProductType(slug: string): string | null {
+export function detectProductType(slug: string): string | null {
   const s = slug.toLowerCase();
 
   // Фотомагніти

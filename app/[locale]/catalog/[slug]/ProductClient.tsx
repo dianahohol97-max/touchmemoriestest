@@ -20,7 +20,7 @@ import { useCartStore } from '@/store/cart-store';
 import { trackViewItem, trackAddToCart } from '@/components/providers/AnalyticsProvider';
 import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
-import { ProductOptionsSelector, areAllRequiredOptionsFilled } from '@/components/ui/ProductOptionsSelector';
+import { ProductOptionsSelector, areAllRequiredOptionsFilled, detectProductType } from '@/components/ui/ProductOptionsSelector';
 import WishlistButton from '@/components/WishlistButton';
 import GuestBookConfigModal from '@/components/GuestBookConfigModal';
 import { useAuthModal } from '@/lib/auth-modal-context';
@@ -1085,7 +1085,13 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                             slugL.includes('journal') ||
                                             slugL.includes('graduation');
                                         const isTravelbook = slugL.includes('travelbook') || slugL.includes('travel');
-                                        const hardcodedNames = new Set(['Розмір', ...(isPhotobookOrMagazine || isTravelbook ? ['Кількість сторінок'] : []), 'Тип обкладинки',
+                                        // ProductOptionsSelector renders 'Розмір' only for product types it
+                                        // recognizes (photobook / magazine / travelbook / wishbook / magnet / …).
+                                        // For unrecognized products (e.g. the wall calendar) it renders nothing,
+                                        // so a DB 'Розмір' option must fall through to the generic select below
+                                        // instead of being silently hidden.
+                                        const optSelectorHandlesSize = detectProductType(product.slug || '') !== null;
+                                        const hardcodedNames = new Set([...(optSelectorHandlesSize ? ['Розмір'] : []), ...(isPhotobookOrMagazine || isTravelbook ? ['Кількість сторінок'] : []), 'Тип обкладинки',
                                             'Калька перед першою сторінкою', 'Тип ламінації', 'Текст', 'Оздоблення',
                                             'Варіант акрилу', 'Варіант фотовставки', 'Варіант металевої вставки',
                                             'Варіант тиснення', 'Варіант гравірування', 'Корінець',
