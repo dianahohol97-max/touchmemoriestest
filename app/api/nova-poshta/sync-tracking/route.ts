@@ -51,8 +51,8 @@ export async function GET(req: NextRequest) {
         // Get all orders with tracking numbers that aren't delivered or cancelled
         const { data: orders, error } = await supabase
             .from('orders')
-            .select('id, tracking_number, order_status, delivery_status, customer_phone, customer_name')
-            .not('tracking_number', 'is', null)
+            .select('id, ttn, order_status, tracking_status, customer_phone, customer_name')
+            .not('ttn', 'is', null)
             // International (Nova Global) numbers aren't known to api.novaposhta.ua —
             // never feed them to the domestic tracking API.
             .neq('tracking_carrier', 'nova_global')
@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
                         calledMethod: 'getStatusDocuments',
                         methodProperties: {
                             Documents: [
-                                { DocumentNumber: order.tracking_number }
+                                { DocumentNumber: order.ttn }
                             ]
                         }
                     })
@@ -93,14 +93,14 @@ export async function GET(req: NextRequest) {
                 const npData = await npResponse.json();
 
                 if (!npData.success || !npData.data || npData.data.length === 0) {
-                    console.log(`[NP] No data for TTN ${order.tracking_number}`);
+                    console.log(`[NP] No data for TTN ${order.ttn}`);
                     continue;
                 }
 
                 const trackingInfo = npData.data[0];
                 const statusCode = trackingInfo.StatusCode;
                 const npStatus = NP_STATUS_MAP[statusCode] || 'Невідомо';
-                const previousDeliveryStatus = order.delivery_status;
+                const previousDeliveryStatus = order.tracking_status;
 
                 let newOrderStatus = order.order_status;
                 let shouldSendSMS = false;
@@ -109,21 +109,21 @@ export async function GET(req: NextRequest) {
                 // Map NP statuses to order statuses and trigger SMS
                 if (statusCode === '3') {
                     // "У дорозі"
-                    if (order.order_status === 'shipped' && order.delivery_status !== 'В дорозі') {
+                    if (order.order_status === 'shipped' && order.tracking_status !== 'В дорозі') {
                         newOrderStatus = 'shipped';
                         shouldSendSMS = false; // Already notified when shipped
                     }
                 } else if (statusCode === '4') {
                     // "Прибув у місто"
-                    if (order.delivery_status !== 'Прибув у місто') {
+                    if (order.tracking_status !== 'Прибув у місто') {
                         shouldSendSMS = true;
                         smsMessage = `${order.customer_name || 'Шановний клієнте'}, ваше замовлення прибуло у ваше місто! Очікуйте повідомлення про прибуття на відділення. TouchMemories`;
                     }
                 } else if (statusCode === '5' || statusCode === '6') {
                     // "Прибув на відділення"
-                    if (order.delivery_status !== 'Прибув на відділення') {
+                    if (order.tracking_status !== 'Прибув на відділення') {
                         shouldSendSMS = true;
-                        smsMessage = `${order.customer_name || 'Шановний клієнте'}, ваше замовлення чекає на відділенні Нової Пошти! ТТН: ${order.tracking_number}. TouchMemories`;
+                        smsMessage = `${order.customer_name || 'Шановний клієнте'}, ваше замовлення чекає на відділенні Нової Пошти! ТТН: ${order.ttn}. TouchMemories`;
                     }
                 } else if (statusCode === '7' || statusCode === '8' || statusCode === '9' || statusCode === '101' || statusCode === '106') {
                     // "Вручено"
@@ -140,7 +140,7 @@ export async function GET(req: NextRequest) {
                 await supabase
                     .from('orders')
                     .update({
-                        delivery_status: npStatus,
+                        tracking_status: npStatus,
                         order_status: newOrderStatus,
                         updated_at: new Date().toISOString()
                     })
@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
                 updatedCount++;
                 results.push({
                     orderId: order.id,
-                    ttn: order.tracking_number,
+                    ttn: order.ttn,
                     previousStatus: previousDeliveryStatus,
                     newStatus: npStatus,
                     orderStatus: newOrderStatus,
