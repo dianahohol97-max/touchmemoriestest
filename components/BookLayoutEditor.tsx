@@ -5273,6 +5273,10 @@ export default function BookLayoutEditor() {
                                 <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round(bZoom*100)}%</span>
                                 <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.min(4,(p.backCoverZoom??1)+0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
                                 <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                                <button title="По центру" onClick={()=>setCoverState((p: any)=>{ const s = p.backCoverSlot ?? { x:0,y:0,w:100,h:100,shape:'rect' }; return {...p, backCoverSlot:{...s, x:(100-s.w)/2, y:(100-s.h)/2}}; })} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',padding:'0 2px',display:'flex',alignItems:'center'}}>
+                                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="1.5" stroke="white" strokeWidth="1.2"/><path d="M6 3.3v5.4M3.3 6h5.4" stroke="white" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                                </button>
+                                <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
                                 <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:1,backCoverCropX:50,backCoverCropY:50}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
                               </div>
                               {/* Delete photo */}
