@@ -28,6 +28,12 @@ export default async function EmailPreviewsPage() {
     const promoOf = (k: string, fallback: string) => cfg.get(k)?.promo_code || fallback;
     const subjOf = (k: string) => cfg.get(k)?.subject || '';
     const enabledOf = (k: string) => cfg.get(k)?.enabled !== false;
+    const subTok = (t: string | null | undefined, orderNo: string) =>
+        (t || '').replace(/\{order\}/g, orderNo).replace(/\{name\}/g, 'Іра');
+    const bodyTok = (k: string, orderNo: string) => {
+        const b = cfg.get(k)?.body;
+        return b ? subTok(b, orderNo) : undefined;
+    };
 
     const previews: Array<{ title: string; when: string; provider: string; html: string; enabled?: boolean; subject?: string }> = [
         {
@@ -92,18 +98,24 @@ export default async function EmailPreviewsPage() {
             title: 'Оплату отримано — повна оплата',
             when: 'Monobank підтвердив повну оплату',
             provider: '—',
-            html: await render(OrderPaidEmail({ orderNumber: 'PB-2026-0042', customerName: 'Іра', variant: 'full', paidAmount: 1450, total: 1450 })),
+            enabled: enabledOf('order_paid_full'),
+            subject: subTok(subjOf('order_paid_full'), 'PB-2026-0042'),
+            html: await render(OrderPaidEmail({ orderNumber: 'PB-2026-0042', customerName: 'Іра', variant: 'full', paidAmount: 1450, total: 1450, body: bodyTok('order_paid_full', 'PB-2026-0042') })),
         },
         {
             title: 'Передоплату отримано — 50% (split)',
             when: 'Monobank підтвердив передоплату',
             provider: '—',
-            html: await render(OrderPaidEmail({ orderNumber: 'PB-2026-0043', customerName: 'Іра', variant: 'prepayment', paidAmount: 725, remainingAmount: 725, total: 1450 })),
+            enabled: enabledOf('order_paid_prepayment'),
+            subject: subTok(subjOf('order_paid_prepayment'), 'PB-2026-0043'),
+            html: await render(OrderPaidEmail({ orderNumber: 'PB-2026-0043', customerName: 'Іра', variant: 'prepayment', paidAmount: 725, remainingAmount: 725, total: 1450, body: bodyTok('order_paid_prepayment', 'PB-2026-0043') })),
         },
         {
             title: 'Замовлення прийнято',
             when: 'одразу після оформлення',
             provider: '—',
+            enabled: enabledOf('order_placed'),
+            subject: subTok(subjOf('order_placed'), 'PB-2026-0042'),
             html: await render(OrderPlacedEmail({
                 orderNumber: 'PB-2026-0042',
                 customerName: 'Іра',
@@ -113,18 +125,22 @@ export default async function EmailPreviewsPage() {
                 ],
                 totals: { subtotal: 1450, delivery: 0, total: 1450 },
                 deliveryAddress: 'Нова Пошта, Київ, Відділення №1',
+                body: bodyTok('order_placed', 'PB-2026-0042'),
             })),
         },
         {
             title: 'Відправлено (з ТТН та −7% за відмітку)',
             when: 'при створенні ТТН',
             provider: '−7% @touch.memories',
+            enabled: enabledOf('order_shipped'),
+            subject: subTok(subjOf('order_shipped'), 'PB-2026-0042'),
             html: await render(OrderShippedEmail({
                 orderNumber: 'PB-2026-0042',
                 customerName: 'Іра',
                 ttn: '20451200000000',
                 deliveryMethod: 'Нова Пошта (Відділення)',
                 deliveryAddress: 'Київ, Відділення №1',
+                body: bodyTok('order_shipped', 'PB-2026-0042'),
             })),
         },
     ];

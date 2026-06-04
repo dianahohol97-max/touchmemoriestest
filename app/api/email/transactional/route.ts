@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/email/resend';
 import OrderPlacedEmail from '@/components/email/OrderPlacedEmail';
 import OrderShippedEmail from '@/components/email/OrderShippedEmail';
 import OrderPaidEmail from '@/components/email/OrderPaidEmail';
+import { getAutomationConfig } from '@/lib/email/automation-config';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
@@ -71,8 +72,18 @@ export async function POST(req: Request) {
         let subject = '';
         let htmlContent = '';
 
+        // Token substitution for admin-edited subject/body.
+        const sub = (t: string | null | undefined) =>
+            (t || '')
+                .replace(/\{order\}/g, String(order.order_number ?? ''))
+                .replace(/\{name\}/g, String(order.customer_name ?? ''));
+
         if (action === 'placed') {
-            subject = `Дякуємо за замовлення №${order.order_number}!`;
+            const cfg = await getAutomationConfig('order_placed');
+            if (cfg && !cfg.enabled) {
+                return NextResponse.json({ success: true, skipped: true, message: 'order_placed disabled in admin' });
+            }
+            subject = cfg?.subject ? sub(cfg.subject) : `Дякуємо за замовлення №${order.order_number}!`;
             htmlContent = await render(OrderPlacedEmail({
                 orderNumber: order.order_number,
                 customerName: order.customer_name,
@@ -82,28 +93,40 @@ export async function POST(req: Request) {
                     delivery: Number(order.delivery_cost || 0),
                     total: Number(order.total)
                 },
-                deliveryAddress: `${order.delivery_method}, ${order.delivery_address?.city || ''} ${order.delivery_address?.warehouse || ''}`
+                deliveryAddress: `${order.delivery_method}, ${order.delivery_address?.city || ''} ${order.delivery_address?.warehouse || ''}`,
+                body: cfg?.body ? sub(cfg.body) : undefined,
             }));
         } else if (action === 'shipped') {
-            subject = `Ваше замовлення №${order.order_number} відправлено!`;
+            const cfg = await getAutomationConfig('order_shipped');
+            if (cfg && !cfg.enabled) {
+                return NextResponse.json({ success: true, skipped: true, message: 'order_shipped disabled in admin' });
+            }
+            subject = cfg?.subject ? sub(cfg.subject) : `Ваше замовлення №${order.order_number} відправлено!`;
             htmlContent = await render(OrderShippedEmail({
                 orderNumber: order.order_number,
                 customerName: order.customer_name,
                 ttn: order.ttn || 'Очікується',
                 deliveryMethod: order.delivery_method,
-                deliveryAddress: `${order.delivery_address?.city || ''}, ${order.delivery_address?.warehouse || ''}`
+                deliveryAddress: `${order.delivery_address?.city || ''}, ${order.delivery_address?.warehouse || ''}`,
+                body: cfg?.body ? sub(cfg.body) : undefined,
             }));
         } else if (action === 'paid') {
             const isPrepay = order.payment_type === 'split';
+            const cfg = await getAutomationConfig(isPrepay ? 'order_paid_prepayment' : 'order_paid_full');
+            if (cfg && !cfg.enabled) {
+                return NextResponse.json({ success: true, skipped: true, message: 'order_paid disabled in admin' });
+            }
             const total = Number(order.total) || 0;
             const prepaid = Number(order.prepaid_amount || 0);
             const paidAmount = isPrepay ? prepaid : total;
             const remainingAmount = isPrepay
                 ? Number(order.cod_amount ?? order.pickup_unpaid_balance ?? (total - prepaid)) || 0
                 : 0;
-            subject = isPrepay
-                ? `Передоплату за замовлення №${order.order_number} отримано`
-                : `Оплату за замовлення №${order.order_number} отримано`;
+            subject = cfg?.subject
+                ? sub(cfg.subject)
+                : (isPrepay
+                    ? `Передоплату за замовлення №${order.order_number} отримано`
+                    : `Оплату за замовлення №${order.order_number} отримано`);
             htmlContent = await render(OrderPaidEmail({
                 orderNumber: order.order_number,
                 customerName: order.customer_name,
@@ -111,6 +134,7 @@ export async function POST(req: Request) {
                 paidAmount,
                 remainingAmount,
                 total,
+                body: cfg?.body ? sub(cfg.body) : undefined,
             }));
         } else {
             return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

@@ -25,6 +25,8 @@ interface OrderPlacedEmailProps {
         total: number;
     };
     deliveryAddress?: string;
+    // Optional admin override of the intro paragraph (blank line = new paragraph).
+    body?: string;
 }
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
@@ -34,7 +36,8 @@ export const OrderPlacedEmail = ({
     customerName = 'Петро',
     items = [],
     totals = { subtotal: 0, delivery: 0, total: 0 },
-    deliveryAddress = 'Київ, Відділення НП №1'
+    deliveryAddress = 'Київ, Відділення НП №1',
+    body,
 }: OrderPlacedEmailProps) => (
     <Html>
         <Head />
@@ -47,9 +50,15 @@ export const OrderPlacedEmail = ({
                 </Section>
                 <Section style={content}>
                     <Heading style={heading}>Дякуємо за замовлення!</Heading>
-                    <Text style={text}>
-                        Привіт, {customerName}. Ми отримали ваше замовлення <strong>{orderNumber}</strong> і вже почали його обробляти.
-                    </Text>
+                    {body && body.trim()
+                        ? body.split(/\n{2,}/).map(pp => pp.trim()).filter(Boolean).map((pp, i) => (
+                            <Text key={i} style={text}>{pp}</Text>
+                        ))
+                        : (
+                            <Text style={text}>
+                                Привіт, {customerName}. Ми отримали ваше замовлення <strong>{orderNumber}</strong> і вже почали його обробляти.
+                            </Text>
+                        )}
 
                     <Hr style={hr} />
 
