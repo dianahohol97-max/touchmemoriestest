@@ -103,6 +103,13 @@ export default function BankAccountsPage() {
 
         const payload = {
             ...formData,
+            // "Всі (доступно всім адмінам)" sends an empty string, but
+            // assigned_staff_id is a uuid column — '' is not a valid uuid and
+            // makes the whole insert/update fail. Empty optional fields → null.
+            assigned_staff_id: formData.assigned_staff_id || null,
+            iban: formData.iban || null,
+            card_number: formData.card_number || null,
+            api_key: formData.api_key || null,
             updated_at: new Date().toISOString()
         };
 
@@ -116,7 +123,8 @@ export default function BankAccountsPage() {
         }
 
         if (error) {
-            toast.error('Помилка при збереженні');
+            console.error('[bank_accounts save]', error);
+            toast.error(`Помилка при збереженні: ${error.message}`);
         } else {
             toast.success(editingAccount ? 'Рахунок оновлено' : 'Рахунок додано');
             setIsModalOpen(false);
