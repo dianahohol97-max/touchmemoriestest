@@ -2385,9 +2385,28 @@ export default function BookLayoutEditor() {
     e.target.value = '';
   };
 
+  // Safety net for the stuck blue dashed slot highlight: native drag-and-drop
+  // doesn't reliably fire dragleave/dragend on the expected element (the source
+  // thumbnail often re-renders after a drop), so dropTarget could stay set.
+  // Clear it whenever ANY drag ends or a drop occurs anywhere in the window.
+  useEffect(() => {
+    const clear = () => { setDropTarget(null); setDragPhotoId(null); };
+    window.addEventListener('dragend', clear);
+    window.addEventListener('drop', clear);
+    return () => {
+      window.removeEventListener('dragend', clear);
+      window.removeEventListener('drop', clear);
+    };
+  }, []);
+
   const onDrop = (e: React.DragEvent, pi: number, si: number) => {
     pushHistory();
     e.preventDefault();
+    // Always clear the drag-over highlight on drop — the native dragend event
+    // is unreliable (it fires on the source, which may have re-rendered), which
+    // is what left the blue dashed border stuck on a slot.
+    setDropTarget(null);
+    setDragPhotoId(null);
     const photoId = e.dataTransfer?.getData('photoId') || e.dataTransfer?.getData('text/plain');
     if (!photoId) return;
     const sourceType = e.dataTransfer?.getData('sourceType');
