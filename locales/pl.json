@@ -485,7 +485,8 @@
     "price_disclaimer": "Ostateczna cena może się zmienić w zależności od złożoności layoutu",
     "choose_pages_warning": " Wybierz liczbę stron",
     "cancel": "Anuluj",
-    "continue_upload": "Kontynuuj do przesyłania zdjęć"
+    "continue_upload": "Kontynuuj do przesyłania zdjęć",
+    "select_to_continue": "Aby kontynuować, wybierz:"
   },
   "gift_ideas": {
     "heading": "Nie wiesz co wybrać na prezent?",

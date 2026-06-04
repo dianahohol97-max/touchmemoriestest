@@ -485,7 +485,8 @@
     "price_disclaimer": "Endpreis kann je nach Layout-Komplexität variieren",
     "choose_pages_warning": " Seitenanzahl wählen",
     "cancel": "Abbrechen",
-    "continue_upload": "Weiter zum Foto-Upload"
+    "continue_upload": "Weiter zum Foto-Upload",
+    "select_to_continue": "Um fortzufahren, wählen Sie:"
   },
   "gift_ideas": {
     "heading": "Wissen Sie nicht, was Sie schenken sollen?",

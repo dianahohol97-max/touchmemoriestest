@@ -485,7 +485,8 @@
     "price_disclaimer": "Prețul final se poate modifica în funcție de complexitatea layoutului",
     "choose_pages_warning": " Alegeți numărul de pagini",
     "cancel": "Anulare",
-    "continue_upload": "Continuă la încărcare foto"
+    "continue_upload": "Continuă la încărcare foto",
+    "select_to_continue": "Pentru a continua, alegeți:"
   },
   "gift_ideas": {
     "heading": "Nu știi ce să alegi cadou?",

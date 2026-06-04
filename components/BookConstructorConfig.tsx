@@ -1059,6 +1059,40 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         return true;
     };
 
+    // Human-readable list of the still-unselected required fields. Mirrors
+    // isFormValid() exactly. Used to explain WHY the continue button is greyed
+    // out — previously a user who e.g. went back, changed the size (which clears
+    // the page count) or re-picked the cover (which clears colour + lamination)
+    // saw a dead, unexplained disabled button with no hint of what to fix.
+    const missingRequirements = (): string[] => {
+        const pt = getProductType();
+        const out: string[] = [];
+        if (pt === 'photobook') {
+            if (!selectedSize) out.push(t('book_config.size_label'));
+            if (!selectedCoverType) out.push(t('book_config.cover_type'));
+            if (!selectedPageCount) out.push(t('book_config.page_count'));
+            if (selectedCoverType === 'Друкована' && !selectedLamination) out.push(t('book_config.lamination_type'));
+            if (selectedDecorationRequiresVariant() && !selectedDecorationVariant) out.push(t('book_config.decoration'));
+            if (selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) out.push(t('book_config.cover_color'));
+            return out;
+        }
+        if (pt === 'wishbook') {
+            if (!selectedSize) out.push(t('book_config.size_label'));
+            if (!selectedCoverType) out.push(t('book_config.cover_type'));
+            if (selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) out.push(t('book_config.cover_color'));
+            if (selectedCoverType === 'Друкована' && !selectedLamination) out.push(t('book_config.lamination_type'));
+            if (selectedDecorationRequiresVariant() && !selectedDecorationVariant) out.push(t('book_config.decoration'));
+            return out;
+        }
+        if (product?.variants && product.variants.length > 0 && !selectedSize) out.push(t('book_config.size_label'));
+        if (product?.options) {
+            const options = product.options as ProductOption[];
+            if (options.some(o => o.name === 'Тип обкладинки') && !selectedCoverType) out.push(t('book_config.cover_type'));
+            if (options.some(o => o.name === 'Кількість сторінок') && !selectedPageCount) out.push(t('book_config.page_count'));
+        }
+        return out;
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
@@ -1829,6 +1863,14 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     <ChevronRight className="w-5 h-5" />
                 </button>
             </div>
+
+            {/* Explain a greyed-out continue button — list the unselected
+                required fields so the customer isn't stuck guessing. */}
+            {!isFormValid() && missingRequirements().length > 0 && (
+                <p className="mt-3 text-sm text-amber-600 text-center">
+                    {t('book_config.select_to_continue')} {missingRequirements().join(', ')}
+                </p>
+            )}
 
             {/* Travel Book Cover Selector Modal */}
             {showCoverSelector && (

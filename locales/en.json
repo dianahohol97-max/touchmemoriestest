@@ -505,7 +505,8 @@
     "price_disclaimer": "Final price may change depending on layout complexity",
     "choose_pages_warning": " Choose page count",
     "cancel": "Cancel",
-    "continue_upload": "Continue to photo upload"
+    "continue_upload": "Continue to photo upload",
+    "select_to_continue": "To continue, select:"
   },
   "gift_ideas": {
     "heading": "Don't know what to choose as a gift?",
