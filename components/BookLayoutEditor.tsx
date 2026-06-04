@@ -2520,8 +2520,14 @@ export default function BookLayoutEditor() {
   };
   const clearSlot = (pi: number, si: number) => {
     pushHistory();
-    // In spread mode: after removing photo, re-layout with remaining photos
-    if (isSpreadMode && pi > 0) {
+    // After removing a photo, re-flow the page to fewer slots. This already
+    // applied to photobooks (spread mode); now also to journals (page mode), so
+    // deleting a photo drops its slot instead of leaving an empty box. Scoped to
+    // journals to avoid disturbing magazine/travelbook editorial layouts; endpaper
+    // pages keep their single fixed slot.
+    const isJournalDoc = _slug.includes('journal') || _slug.includes('fotozhurnal');
+    const canReflow = pi > 0 && (isSpreadMode || (isJournalDoc && !isEndpaperPage(pi)));
+    if (canReflow) {
       const page = pages[pi];
       if (page) {
         const remaining = page.slots.filter((sl, j) => j !== si && sl.photoId).map(sl => sl.photoId!);
@@ -2529,10 +2535,11 @@ export default function BookLayoutEditor() {
           // No photos left — reset to default empty layout
           setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, layout: defaultLayout(), slots: makeSlots(1) }));
         } else {
-          // Re-collage with remaining photos
+          // Re-collage with remaining photos (drops the emptied slot; custom sizes reset)
           autoCollage(remaining, pi);
         }
         setPhotoEditSlot(null);
+        setEditSlotKey(null);
         return;
       }
     }
@@ -6443,6 +6450,35 @@ export default function BookLayoutEditor() {
                         const photo = slot ? getPhoto(slot.photoId) : null;
                         const key = pageKey(i);
                         const isOver = dropTarget === key;
+                        // Custom slot geometry (free resize in journals): if the slot has
+                        // customX/Y/W/H, those override the layout defaults — same model the
+                        // photobook spread editor uses. Coordinates are page-space px (pageW×cH).
+                        const hasCustom = slot?.customX !== undefined;
+                        const slotStyle: React.CSSProperties = hasCustom
+                          ? { ...s, left: slot!.customX, top: slot!.customY, width: slot!.customW, height: slot!.customH }
+                          : s;
+                        const startPageSlotDrag = (e2: React.PointerEvent, type: 'move'|'se'|'sw'|'ne'|'nw') => {
+                          e2.stopPropagation(); e2.preventDefault();
+                          const origLeft = Number(slotStyle.left) || 0;
+                          const origTop = Number(slotStyle.top) || 0;
+                          const origW = Number(slotStyle.width) || 100;
+                          const origH = Number(slotStyle.height) || 100;
+                          pushHistory();
+                          startPointerDrag(e2, (dx: number, dy: number) => {
+                            let nx = origLeft, ny = origTop, nw = origW, nh = origH;
+                            if (type === 'move') { nx = origLeft + dx; ny = origTop + dy; }
+                            else if (type === 'se') { nw = Math.max(40, origW + dx); nh = Math.max(40, origH + dy); }
+                            else if (type === 'sw') { nx = origLeft + dx; nw = Math.max(40, origW - dx); nh = Math.max(40, origH + dy); }
+                            else if (type === 'ne') { ny = origTop + dy; nw = Math.max(40, origW + dx); nh = Math.max(40, origH - dy); }
+                            else if (type === 'nw') { nx = origLeft + dx; ny = origTop + dy; nw = Math.max(40, origW - dx); nh = Math.max(40, origH - dy); }
+                            // Clamp inside this single page (pageW × cH)
+                            nx = Math.max(0, Math.min(pageW - nw, nx));
+                            ny = Math.max(0, Math.min(cH - nh, ny));
+                            nw = Math.min(nw, pageW - nx);
+                            nh = Math.min(nh, cH - ny);
+                            setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: nx, customY: ny, customW: nw, customH: nh }) }));
+                          });
+                        };
                         return (
                           <div key={i}
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
@@ -6456,8 +6492,8 @@ export default function BookLayoutEditor() {
                                 setTapSelectedPhotoId(null);
                               }
                             }}
-                            style={{ ...s,
-                              overflow: photoEditSlot === key ? 'visible' : 'hidden',
+                            style={{ ...slotStyle,
+                              overflow: (photoEditSlot === key || editSlotKey === key) ? 'visible' : 'hidden',
                               background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
                               border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none') : '1.5px dashed #c7d2fe'),
                               transition: 'all 0.2s ease',
@@ -6466,7 +6502,7 @@ export default function BookLayoutEditor() {
                               padding: photo && pageGap > 0 ? pageGap : 0,
                               borderRadius: photo ? 0 : 4,
                               transform: `${isOver && photo ? 'scale(1.02)' : 'scale(1)'}`,
-                              zIndex: isOver && photo ? 5 : 1,
+                              zIndex: editSlotKey === key ? 50 : (photoEditSlot === key ? 40 : (isOver && photo ? 5 : 1)),
                             }}
                           >
                             {photo ? (
@@ -6548,6 +6584,15 @@ export default function BookLayoutEditor() {
                                           <Trash2 size={11}/>
                                           <span style={{fontSize:9,fontWeight:700}}>Видалити</span>
                                         </button>
+                                        <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
+                                        <button
+                                          onClick={e=>e.stopPropagation()}
+                                          onPointerDown={e=>{e.stopPropagation();setEditSlotKey(editSlotKey===key?null:key);setPhotoEditSlot(null);}}
+                                          title="Змінити розмір слота — тягни кути"
+                                          style={{background:'rgba(59,130,246,0.85)',border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
+                                          <Crop size={11}/>
+                                          <span style={{fontSize:9,fontWeight:700}}>Слот</span>
+                                        </button>
                                       </div>
                                     </div>
                                   );
@@ -6595,6 +6640,30 @@ export default function BookLayoutEditor() {
                                   <span style={{fontSize:isMobile?10:9,fontWeight:600,color:'#3b82f6',background:'rgba(59,130,246,0.08)',padding:'2px 8px',borderRadius:10}}>{isMobile ? 'Торкніться, щоб вставити' : 'Клікніть щоб вставити'}</span>
                                 )}
                               </div>
+                            )}
+                            {editSlotKey === key && (
+                              <>
+                                {/* Selection border */}
+                                <div style={{position:'absolute',inset:0,border:'2px solid #3b82f6',borderRadius:4,zIndex:55,pointerEvents:'none'}}/>
+                                {/* Move handle (top bar) */}
+                                <div onPointerDown={e=>{e.stopPropagation();startPageSlotDrag(e,'move');}}
+                                  style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'50%',maxWidth:90,height:16,cursor:'move',zIndex:57,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(59,130,246,0.9)',touchAction:'none'}}>
+                                  <div style={{width:20,height:3,borderRadius:2,background:'#fff'}}/>
+                                </div>
+                                {/* Corner resize handles */}
+                                {(['nw','ne','se','sw'] as const).map(dir => {
+                                  const pos = dir==='nw'?{left:-7,top:-7}:dir==='ne'?{right:-7,top:-7}:dir==='se'?{right:-7,bottom:-7}:{left:-7,bottom:-7};
+                                  return (
+                                    <div key={dir} onPointerDown={e=>startPageSlotDrag(e,dir)}
+                                      style={{position:'absolute',...pos,width:14,height:14,borderRadius:'50%',background:'#3b82f6',border:'2.5px solid #fff',cursor:`${dir}-resize`,zIndex:58,boxShadow:'0 1px 4px rgba(0,0,0,0.4)',touchAction:'none'}}/>
+                                  );
+                                })}
+                                {/* Size readout */}
+                                <div style={{position:'absolute',left:'50%',bottom:-20,transform:'translateX(-50%)',background:'rgba(0,0,0,0.7)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:10,zIndex:58,whiteSpace:'nowrap',pointerEvents:'none'}}>{Math.round(Number(slotStyle.width)||0)}×{Math.round(Number(slotStyle.height)||0)}px</div>
+                                {/* Done */}
+                                <button onClick={e=>{e.stopPropagation();setEditSlotKey(null);}} onPointerDown={e=>e.stopPropagation()}
+                                  style={{position:'absolute',left:'50%',top:-26,transform:'translateX(-50%)',background:'#16a34a',color:'#fff',border:'none',cursor:'pointer',fontSize:10,fontWeight:700,padding:'3px 12px',borderRadius:10,zIndex:58,boxShadow:'0 2px 6px rgba(0,0,0,0.3)',whiteSpace:'nowrap'}}>Готово</button>
+                              </>
                             )}
                           </div>
                         );
