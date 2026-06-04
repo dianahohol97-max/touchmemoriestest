@@ -6925,12 +6925,17 @@ export default function BookLayoutEditor() {
               ];
               return epPages.map(({ label, pageIdx, surcharge }) => {
                 const ep = pageIdx === endpaperFirstIdx ? endpaperState.first : endpaperState.last;
-                const active = false; // endpaper pages aren't navigable as own spread
+                // The forzac lives inside a content spread (it isn't its own spread),
+                // so clicking the thumb must move the canvas to that spread AND open
+                // the endpaper editing tab — otherwise the canvas stays put and it
+                // looks like the click "does nothing".
+                const epSpread = Math.max(1, Math.floor((pageIdx - 1) / 2) + 1);
+                const active = currentIdx === epSpread && leftTab === ('endpaper' as any);
                 return (
                   <button key={label}
-                    onClick={() => setLeftTab('endpaper' as any)}
+                    onClick={() => { setCurrentIdx(epSpread); setLeftTab('endpaper' as any); }}
                     title={`${label} — клікніть для редагування`}
-                    style={{ width:'100%', padding:'4px', border:'1px solid #d1fae5', borderRadius:6, background:'#f0fdf4', cursor:'pointer', textAlign:'center' }}>
+                    style={{ width:'100%', padding:'4px', border: active ? '2px solid #059669' : '1px solid #d1fae5', borderRadius:6, background: active ? '#dcfce7' : '#f0fdf4', cursor:'pointer', textAlign:'center' }}>
                     <div style={{ width:'100%', aspectRatio:`${prop.w}/${prop.h}`, background: ep.enabled ? '#e0f2fe' : '#f1f5f9', borderRadius:3, marginBottom:3, position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
                       {ep.imageUrl
                         ? <img src={ep.imageUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
