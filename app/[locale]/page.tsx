@@ -109,7 +109,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <Navigation />
       <main style={{ display: 'flex', flexDirection: 'column' }}>
         <SectionWrapper name="hero" defaultOrder={1}>
-          <Hero />
+          <Hero locale={locale} />
         </SectionWrapper>
 
         <div style={{ order: 15 }}>

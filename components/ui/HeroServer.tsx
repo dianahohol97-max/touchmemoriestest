@@ -1,7 +1,8 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { HeroClient } from './HeroClient';
+import { getLocalized } from '@/lib/i18n/localize';
 
-export async function HeroServer() {
+export async function HeroServer({ locale = 'uk' }: { locale?: string }) {
     let heroButtons: any[] = [];
     let heroContent: any = null;
 
@@ -39,10 +40,10 @@ export async function HeroServer() {
             console.error('[HeroServer] Error fetching hero_buttons:', JSON.stringify(heroButtonsError));
         }
 
-        // Map database columns to expected prop names
+        // Map database columns to expected prop names, localised per request
         heroButtons = (heroButtonsData || []).map((btn: any) => ({
             id: btn.id,
-            button_text: btn.text || btn.button_text,
+            button_text: getLocalized(btn, locale, 'text') || btn.button_text || btn.text,
             button_url: btn.url || btn.button_url,
             display_order: btn.sort_order || btn.display_order || 0,
             row_number: btn.row_number || 1,
@@ -53,9 +54,20 @@ export async function HeroServer() {
         console.error('[HeroServer] CAUGHT ERROR:', err);
     }
 
+    const localizedContent: any = heroContent ? {
+        ...heroContent,
+        overline_text: getLocalized(heroContent, locale, 'overline_text'),
+        title_line1: getLocalized(heroContent, locale, 'title_line1'),
+        title_line2: getLocalized(heroContent, locale, 'title_line2'),
+        title: getLocalized(heroContent, locale, 'title'),
+        subtitle: getLocalized(heroContent, locale, 'subtitle'),
+        cta_primary_text: getLocalized(heroContent, locale, 'cta_primary_text'),
+        cta_secondary_text: getLocalized(heroContent, locale, 'cta_secondary_text'),
+    } : undefined;
+
     return (
         <HeroClient
-            heroContent={heroContent}
+            heroContent={localizedContent}
             heroButtons={heroButtons}
         />
     );
