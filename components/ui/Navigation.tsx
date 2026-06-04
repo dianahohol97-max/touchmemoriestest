@@ -319,7 +319,7 @@ export function Navigation() {
                         'px-4 py-2 rounded-lg text-sm font-bold border transition-colors',
                         l.code === locale ? 'bg-primary text-white border-primary' : 'bg-white text-primary border-primary/20'
                       )}>
-                      {l.label}
+                      <span className="mr-1.5">{l.flag}</span>{l.label}
                     </button>
                   ))}
                 </div>
