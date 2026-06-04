@@ -14,6 +14,7 @@
 //
 import { getAdminClient } from '@/lib/supabase/admin';
 import { EXCHANGE_RATES } from '@/lib/i18n/currency';
+import { DEFAULT_INTL_SHIPPING, type IntlShippingConfig } from '@/lib/payment/pricing-region';
 
 export interface EurRateRecord {
   rate: number;
@@ -75,4 +76,32 @@ export async function getEurRate(): Promise<number> {
 /** Invalidate the in-process cache (called by the cron after an update). */
 export function clearEurRateCache(): void {
   cache = null;
+}
+
+let shipCache: { value: IntlShippingConfig; at: number } | null = null;
+
+/**
+ * Read the international shipping policy (free threshold + flat fee, in EUR)
+ * from settings('intl_shipping'). Falls back to DEFAULT_INTL_SHIPPING.
+ */
+export async function getIntlShippingConfig(): Promise<IntlShippingConfig> {
+  if (shipCache && Date.now() - shipCache.at < TTL_MS) return shipCache.value;
+  try {
+    const supabase = getAdminClient();
+    const { data } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'intl_shipping')
+      .maybeSingle();
+    const v = data?.value as any;
+    const value: IntlShippingConfig = {
+      freeThresholdEur: typeof v?.free_threshold_eur === 'number' ? v.free_threshold_eur : DEFAULT_INTL_SHIPPING.freeThresholdEur,
+      flatFeeEur: typeof v?.flat_fee_eur === 'number' ? v.flat_fee_eur : DEFAULT_INTL_SHIPPING.flatFeeEur,
+    };
+    shipCache = { value, at: Date.now() };
+    return value;
+  } catch (e) {
+    console.warn('getIntlShippingConfig: settings read failed, using defaults', e);
+    return DEFAULT_INTL_SHIPPING;
+  }
 }

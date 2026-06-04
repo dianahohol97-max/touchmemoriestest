@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { computePaymentAmounts, getAvailablePaymentOptions, type CartItemPayment } from '@/lib/payment/options';
-import { resolvePriceMultiplier, resolveDisplayCurrency, normalizeShipRegion, shipRegionToPaymentRegion } from '@/lib/payment/pricing-region';
-import { getEurRate } from '@/lib/i18n/exchangeRate';
+import { resolvePriceMultiplier, resolveDisplayCurrency, normalizeShipRegion, shipRegionToPaymentRegion, computeIntlShippingUah } from '@/lib/payment/pricing-region';
+import { getEurRate, getIntlShippingConfig } from '@/lib/i18n/exchangeRate';
 import type { Currency } from '@/lib/i18n/currency';
 
 export const dynamic = 'force-dynamic';
@@ -154,9 +154,9 @@ export async function POST(request: NextRequest) {
   // ──────────────────────────────────────────────────────────────
   // Pricing context (single source: lib/payment/pricing-region).
   //   - subtotal/total in the payload are BASE UAH (pre-markup).
-  //   - Server applies the +20% intl markup itself (locale × shipRegion)
-  //     so a tampered client can't skip it, and freezes the context on the
-  //     order so "shown == charged" is auditable.
+  //   - Server applies the intl markup itself (locale × shipRegion) so a
+  //     tampered client can't skip it, computes intl shipping, and freezes
+  //     the context on the order so "shown == charged" is auditable.
   // ──────────────────────────────────────────────────────────────
   const shipRegion = normalizeShipRegion(body.ship_region);
   const locale = typeof body.locale === 'string' ? body.locale : 'uk';
@@ -169,15 +169,27 @@ export async function POST(request: NextRequest) {
 
   const priceMultiplier = resolvePriceMultiplier(locale, shipRegion);
   const displayCurrency = resolveDisplayCurrency(locale, body.display_currency as Currency | undefined);
-  const exchangeRate = displayCurrency === 'UAH' ? null : await getEurRate();
   const paymentRegion = shipRegionToPaymentRegion(shipRegion);
 
-  // Discount the client already applied lives in (base subtotal − base total),
-  // since delivery_cost is 0 at this stage. Markup hits the canonical price
-  // (subtotal); the flat UAH discount is subtracted after.
+  // Need the EUR rate for INTL (free-shipping threshold is in EUR) and/or when
+  // the order is displayed in EUR. Fetch once.
+  const needsRate = shipRegion === 'INTL' || displayCurrency !== 'UAH';
+  const eurRate = needsRate ? await getEurRate() : null;
+  const exchangeRate = displayCurrency === 'UAH' ? null : eurRate;
+
+  // Discount the client already applied lives in (base subtotal − base total).
+  // Markup hits the canonical price (subtotal); the flat UAH discount is
+  // subtracted after; intl shipping is added on top.
   const baseDiscount = Math.max(0, Math.min(subtotal, subtotal - total));
   const markedSubtotal = Math.round(subtotal * priceMultiplier);
-  const markedTotal = Math.max(1, Math.round(markedSubtotal - baseDiscount + delivery_cost));
+
+  let intlShipping = 0;
+  if (shipRegion === 'INTL') {
+    const shipCfg = await getIntlShippingConfig();
+    intlShipping = computeIntlShippingUah(markedSubtotal, eurRate ?? 0, shipCfg);
+  }
+  const finalDeliveryCost = shipRegion === 'INTL' ? intlShipping : delivery_cost;
+  const markedTotal = Math.max(1, Math.round(markedSubtotal - baseDiscount + finalDeliveryCost));
 
   const amounts = computePaymentAmounts(markedTotal, payment_type, body.delivery_method);
   const order_number = `TM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -193,7 +205,7 @@ export async function POST(request: NextRequest) {
       customer_telegram: body.customer_telegram?.toString().trim().slice(0, 200) || null,
       items: body.items as any,
       subtotal: markedSubtotal,
-      delivery_cost,
+      delivery_cost: finalDeliveryCost,
       total: markedTotal,
       ship_region: shipRegion,
       payment_region: paymentRegion,
