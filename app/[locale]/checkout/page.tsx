@@ -5,6 +5,8 @@ import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { useCartStore } from '@/store/cart-store';
 import { getAvailablePaymentOptions, computePaymentAmounts } from '@/lib/payment/options';
+import { resolvePriceMultiplier, defaultShipRegion, type ShipRegion } from '@/lib/payment/pricing-region';
+import { formatPrice, type Currency } from '@/lib/i18n/currency';
 import { trackBeginCheckout } from '@/components/providers/AnalyticsProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -30,10 +32,10 @@ type Step = 'info' | 'shipping' | 'payment' | 'complete';
 export default function CheckoutPage() {
     const { items, getTotal, clearCart } = useCartStore();
     const router = useRouter();
-    const { t, isInternational, locale } = useTranslation();
+    const { t, locale } = useTranslation();
     const [currentStep, setCurrentStep] = useState<Step>('info');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showRegionModal, setShowRegionModal] = useState(false);
+    
     const rawTotal = getTotal();
     const [promoCode, setPromoCode] = useState('');
     const [promoInput, setPromoInput] = useState('');
@@ -41,6 +43,21 @@ export default function CheckoutPage() {
     const [promoLoading, setPromoLoading] = useState(false);
     const [promoError, setPromoError] = useState('');
     const total = rawTotal - promoDiscount;
+
+    // ── Display currency + intl markup ──────────────────────────────
+    // Default currency follows locale; the switcher lets anyone flip UAH/EUR.
+    // Markup uses the locale's DEFAULT destination (real destination is chosen
+    // in the region modal); server re-derives it authoritatively at submit.
+    const [displayCurrency, setDisplayCurrency] = useState<Currency>(locale === 'uk' ? 'UAH' : 'EUR');
+    // Authoritative delivery destination, chosen on the shipping step. Drives the
+    // address form, payment account, +20% markup, split availability and currency.
+    const [shipRegionChoice, setShipRegionChoice] = useState<ShipRegion>(defaultShipRegion(locale));
+    const isIntl = shipRegionChoice === 'INTL';
+    const priceMultiplier = resolvePriceMultiplier(locale, shipRegionChoice);
+    const markedSubtotal = Math.round(rawTotal * priceMultiplier);
+    const markedTotal = Math.max(0, markedSubtotal - promoDiscount);
+    // Charge currency is always UAH (Monobank); this only formats what's shown.
+    const money = (uah: number) => formatPrice(uah, displayCurrency);
 
     const supabase = createClient();
 
@@ -81,6 +98,9 @@ export default function CheckoutPage() {
         telegram: '',
         city: '',
         branch: '',
+        country: '',
+        postal: '',
+        addressLine: '',
         paymentChoice: 'full_online' as 'full_online' | 'split_50_50',
     });
 
@@ -240,7 +260,12 @@ export default function CheckoutPage() {
             }
             setCurrentStep('shipping');
         } else if (currentStep === 'shipping') {
-            if (!formData.city || !formData.branch) {
+            if (isIntl) {
+                if (!formData.country || !formData.city || !formData.addressLine) {
+                    toast.error('Заповніть країну, місто та адресу доставки');
+                    return;
+                }
+            } else if (!formData.city || !formData.branch) {
                 toast.error(t('checkout.fill_shipping'));
                 return;
             }
@@ -254,7 +279,7 @@ export default function CheckoutPage() {
     };
 
     // Auto-determine region: non-Ukrainian locale → international
-    const getDefaultRegion = (): 'ua' | 'international' => isInternational ? 'international' : 'ua';
+    const getDefaultRegion = (): 'ua' | 'international' => shipRegionChoice === 'INTL' ? 'international' : 'ua';
 
     /**
      * After the order is created server-side, read export descriptors that each
@@ -347,10 +372,17 @@ export default function CheckoutPage() {
                     subtotal: rawTotal,
                     delivery_cost: 0,
                     total,
-                    delivery_method: 'nova_poshta',
-                    delivery_address: { city: formData.city, branch: formData.branch },
+                    delivery_method: isIntl ? 'international' : 'nova_poshta',
+                    delivery_address: isIntl
+                        ? { country: formData.country, city: formData.city, postal: formData.postal, address: formData.addressLine }
+                        : { city: formData.city, branch: formData.branch },
                     with_designer: needsDesigner,
                     payment_type: paymentType,
+                    // Pricing context — server re-derives the +20% intl markup
+                    // from (locale × ship_region); subtotal/total above are BASE UAH.
+                    ship_region: shipRegionChoice,
+                    locale,
+                    display_currency: displayCurrency,
                 }),
             });
             const submitData = await submitRes.json();
@@ -523,8 +555,32 @@ export default function CheckoutPage() {
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -20 }}
                                 >
-                                    <h2 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '24px' }}>{t('checkout.delivery_np')}</h2>
+                                    <h2 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '24px' }}>{t('checkout.shipping')}</h2>
+                                    {/* Delivery destination — authoritative ship region */}
+                                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                                        {([['UA', '🇺🇦 Україна (Нова Пошта)'], ['INTL', '🌍 За кордон']] as [ShipRegion, string][]).map(([r, label]) => (
+                                            <button
+                                                key={r}
+                                                type="button"
+                                                onClick={() => setShipRegionChoice(r)}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '12px 14px',
+                                                    borderRadius: '3px',
+                                                    border: shipRegionChoice === r ? '2px solid var(--primary)' : '1px solid #e2e8f0',
+                                                    background: shipRegionChoice === r ? 'rgba(38,58,153,0.04)' : '#fff',
+                                                    fontWeight: 700,
+                                                    fontSize: '14px',
+                                                    cursor: 'pointer',
+                                                    color: shipRegionChoice === r ? 'var(--primary)' : '#475569',
+                                                }}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        {!isIntl && (<>
                                         {/* City — Nova Poshta autocomplete */}
                                         <div ref={cityBoxRef} style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
                                             <label style={{ fontSize: '14px', fontWeight: 700, color: '#475569' }}>Місто</label>
@@ -579,6 +635,54 @@ export default function CheckoutPage() {
                                                 </div>
                                             )}
                                         </div>
+                                        </>)}
+                                        {isIntl && (<>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <label style={{ fontSize: '14px', fontWeight: 700, color: '#475569' }}>Країна</label>
+                                                <input
+                                                    value={formData.country}
+                                                    onChange={e => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                                                    placeholder="Poland, Germany, Romania…"
+                                                    autoComplete="country-name"
+                                                    style={{ width: '100%', padding: '14px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none' }}
+                                                />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '12px' }}>
+                                                <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <label style={{ fontSize: '14px', fontWeight: 700, color: '#475569' }}>Місто</label>
+                                                    <input
+                                                        value={formData.city}
+                                                        onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                                                        placeholder="City"
+                                                        autoComplete="address-level2"
+                                                        style={{ width: '100%', padding: '14px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none' }}
+                                                    />
+                                                </div>
+                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <label style={{ fontSize: '14px', fontWeight: 700, color: '#475569' }}>Індекс</label>
+                                                    <input
+                                                        value={formData.postal}
+                                                        onChange={e => setFormData(prev => ({ ...prev, postal: e.target.value }))}
+                                                        placeholder="ZIP"
+                                                        autoComplete="postal-code"
+                                                        style={{ width: '100%', padding: '14px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <label style={{ fontSize: '14px', fontWeight: 700, color: '#475569' }}>Адреса (вулиця, будинок, квартира)</label>
+                                                <input
+                                                    value={formData.addressLine}
+                                                    onChange={e => setFormData(prev => ({ ...prev, addressLine: e.target.value }))}
+                                                    placeholder="Street, building, apartment"
+                                                    autoComplete="street-address"
+                                                    style={{ width: '100%', padding: '14px 16px', borderRadius: '3px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none' }}
+                                                />
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.5 }}>
+                                                Міжнародна доставка — повна передоплата онлайн. Спосіб і вартість відправлення менеджер узгодить після оформлення.
+                                            </div>
+                                        </>)}
                                     </div>
                                     <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between' }}>
                                         <BackButton onClick={prevStep} />
@@ -603,7 +707,7 @@ export default function CheckoutPage() {
                                             onClick={() => setFormData(p => ({ ...p, paymentChoice: 'full_online' }))}
                                             icon={<CreditCard size={24} />}
                                         />
-                                        {paymentOptions.allowSplit ? (
+                                        {(paymentOptions.allowSplit && !isIntl) ? (
                                             <PaymentOption
                                                 id="split_50_50"
                                                 label={`50% передоплата онлайн (${Math.round(total / 2)} ₴), решта при отриманні`}
@@ -620,14 +724,16 @@ export default function CheckoutPage() {
                                                 fontSize: '13px',
                                                 color: '#6b7280',
                                             }}>
-                                                {paymentOptions.splitBlockedReason || 'Опція 50% передоплати недоступна для цього кошика'}
+                                                {isIntl
+                                                    ? 'Міжнародні замовлення — лише повна передоплата онлайн'
+                                                    : (paymentOptions.splitBlockedReason || 'Опція 50% передоплати недоступна для цього кошика')}
                                             </div>
                                         )}
                                     </div>
                                     <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between' }}>
                                         <BackButton onClick={prevStep} />
                                         <button
-                                            onClick={() => setShowRegionModal(true)}
+                                            onClick={() => handleSubmitOrder(shipRegionChoice === 'INTL' ? 'international' : 'ua')}
                                             disabled={isSubmitting}
                                             style={{
                                                 padding: '16px 32px',
@@ -664,9 +770,31 @@ export default function CheckoutPage() {
                     {/* Right: Summary */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         <div style={{ backgroundColor: 'white', borderRadius: "3px", padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
-                                <ShoppingBag size={20} color="var(--primary)" />
-                                <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Ваше замовлення</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '24px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <ShoppingBag size={20} color="var(--primary)" />
+                                    <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Ваше замовлення</h3>
+                                </div>
+                                <div style={{ display: 'inline-flex', border: '1px solid #e5e7eb', borderRadius: '999px', overflow: 'hidden' }}>
+                                    {(['UAH', 'EUR'] as Currency[]).map(c => (
+                                        <button
+                                            key={c}
+                                            type="button"
+                                            onClick={() => setDisplayCurrency(c)}
+                                            style={{
+                                                padding: '5px 12px',
+                                                fontSize: '12px',
+                                                fontWeight: 700,
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                background: displayCurrency === c ? 'var(--primary)' : 'transparent',
+                                                color: displayCurrency === c ? '#fff' : '#6b7280',
+                                            }}
+                                        >
+                                            {c === 'UAH' ? '₴ UAH' : '€ EUR'}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', maxHeight: '400px', overflowY: 'auto' }}>
@@ -678,10 +806,10 @@ export default function CheckoutPage() {
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: '13px', fontWeight: 700, lineHeight: 1.2, marginBottom: '4px' }}>{item.name}</div>
                                             <div style={{ fontSize: '11px', color: '#888' }}>
-                                                {item.qty} шт. × {item.price} ₴
+                                                {item.qty} шт. × {money(item.price * priceMultiplier)}
                                             </div>
                                         </div>
-                                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{item.price * item.qty} ₴</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{money(item.price * item.qty * priceMultiplier)}</div>
                                     </div>
                                 ))}
                             </div>
@@ -720,7 +848,7 @@ export default function CheckoutPage() {
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#666' }}>
                                     <span>Вартість товарів:</span>
-                                    <span>{rawTotal} ₴</span>
+                                    <span>{money(markedSubtotal)}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '14px', color: '#666' }}>
                                     <span>{t('checkout.delivery_cost')}:</span>
@@ -729,13 +857,18 @@ export default function CheckoutPage() {
                                 {promoDiscount > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
                                         <span>🏷️ Знижка ({promoCode}):</span>
-                                        <span>-{promoDiscount} ₴</span>
+                                        <span>-{money(promoDiscount)}</span>
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 900, color: 'var(--primary)' }}>
                                     <span>Разом:</span>
-                                    <span>{total} ₴</span>
+                                    <span>{money(markedTotal)}</span>
                                 </div>
+                                {displayCurrency !== 'UAH' && (
+                                    <div style={{ marginTop: '10px', fontSize: '11px', color: '#9ca3af', lineHeight: 1.4 }}>
+                                        Оплата здійснюється у гривні (₴{markedTotal}). Сума в {displayCurrency} — орієнтовна, точну суму спише банк за курсом на день оплати.
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -750,67 +883,6 @@ export default function CheckoutPage() {
             </main>
 
             <Footer categories={[]} />
-
-            {/* Payment region modal — shown before online payment */}
-            {showRegionModal && (
-                <div style={{
-                    position: 'fixed', inset: 0, zIndex: 1000,
-                    background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
-                }}>
-                    <div style={{
-                        background: '#fff', borderRadius: 16, padding: '36px 32px',
-                        maxWidth: 440, width: '100%', boxShadow: '0 24px 48px rgba(0,0,0,0.18)'
-                    }}>
-                        <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>
-                            Оберіть спосіб розрахунку
-                        </h3>
-                        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24, lineHeight: 1.5 }}>
-                            Вкажіть, з якого рахунку відбуватиметься оплата — для коректного відображення реквізитів.
-                        </p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <button
-                                onClick={() => { setShowRegionModal(false); handleSubmitOrder('ua'); }}
-                                style={{
-                                    padding: '16px 20px', borderRadius: 10, border: '1.5px solid #c7d2fe',
-                                    background: '#f0f3ff', cursor: 'pointer', textAlign: 'left',
-                                    display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.15s'
-                                }}
-                                onMouseEnter={e => (e.currentTarget.style.borderColor = '#1e2d7d')}
-                                onMouseLeave={e => (e.currentTarget.style.borderColor = '#c7d2fe')}
-                            >
-                                <span style={{ fontSize: 28 }}></span>
-                                <div>
-                                    <div style={{ fontSize: 15, fontWeight: 700, color: '#1e2d7d' }}>Картка українського банку</div>
-                                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Monobank, PrivatBank, Oschadbank та інші</div>
-                                </div>
-                            </button>
-                            <button
-                                onClick={() => { setShowRegionModal(false); handleSubmitOrder('international'); }}
-                                style={{
-                                    padding: '16px 20px', borderRadius: 10, border: '1.5px solid #d1d5db',
-                                    background: '#f9fafb', cursor: 'pointer', textAlign: 'left',
-                                    display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.15s'
-                                }}
-                                onMouseEnter={e => (e.currentTarget.style.borderColor = '#374151')}
-                                onMouseLeave={e => (e.currentTarget.style.borderColor = '#d1d5db')}
-                            >
-                                <span style={{ fontSize: 28 }}></span>
-                                <div>
-                                    <div style={{ fontSize: 15, fontWeight: 700, color: '#374151' }}>Картка іноземного банку</div>
-                                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Visa/Mastercard, випущена за кордоном</div>
-                                </div>
-                            </button>
-                        </div>
-                        <button
-                            onClick={() => setShowRegionModal(false)}
-                            style={{ marginTop: 20, width: '100%', padding: '10px', background: 'none', border: 'none', color: '#94a3b8', fontSize: 13, cursor: 'pointer' }}
-                        >
-                            Скасувати
-                        </button>
-                    </div>
-                </div>
-            )}
 
         </div>
     );

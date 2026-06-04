@@ -1,6 +1,7 @@
 'use client';
 import { useT, useLocale } from '@/lib/i18n/context';
-import { detectCurrency, formatPrice } from '@/lib/i18n/currency';
+import { detectCurrency } from '@/lib/i18n/currency';
+import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import { getLocalized } from '@/lib/i18n/localize';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
@@ -30,7 +31,7 @@ export function ProductCard({ product }: ProductCardProps) {
     const currency = useMemo(() => detectCurrency(locale), [locale]);
     const categorySlug = typeof product.categories === 'object' ? product.categories?.slug || 'all' : 'all';
     const rawPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
-    const priceDisplay = rawPrice ? formatPrice(rawPrice, currency) : null;
+    const priceDisplay = rawPrice ? formatDisplayPrice(rawPrice, locale, currency) : null;
 
     return (
         <motion.div

@@ -16,7 +16,10 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   USD: '$',
 };
 
-// +20% markup for international prices
+// +20% international markup.
+// DEPRECATED as a currency concern: the markup is NOT a function of currency.
+// It is decided by (locale × shipRegion) in lib/payment/pricing-region.ts.
+// Kept only for backward-compat; do not use it to gate display currency.
 export const INTERNATIONAL_MARKUP = 1.20;
 
 /**
@@ -40,11 +43,14 @@ export function detectCurrency(locale: string): Currency {
 }
 
 /**
- * Convert UAH price to target currency with international markup.
+ * Pure currency conversion — NO markup. Converts a (possibly already
+ * marked-up) UAH amount into the target currency for display only.
+ * The +20% intl markup, when it applies, must be applied to the UAH amount
+ * BEFORE calling this (see lib/payment/pricing-region.formatDisplayPrice).
  */
 export function convertPrice(uahPrice: number, currency: Currency): number {
   if (currency === 'UAH') return Math.round(uahPrice);
-  return Math.ceil((uahPrice * INTERNATIONAL_MARKUP) / EXCHANGE_RATES[currency]);
+  return Math.ceil(uahPrice / EXCHANGE_RATES[currency]);
 }
 
 /**

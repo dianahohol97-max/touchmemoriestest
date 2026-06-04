@@ -6,7 +6,8 @@ import { Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { useT, useLocale } from '@/lib/i18n/context';
-import { detectCurrency, formatPrice } from '@/lib/i18n/currency';
+import { detectCurrency } from '@/lib/i18n/currency';
+import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 
 interface Product {
     id: string;
@@ -142,7 +143,7 @@ export function FeaturedProducts({ products = [] }: { products: Product[] }) {
                                             </h3>
                                             <div className="mt-auto w-full pt-4">
                                                 <div className="text-lg font-black text-[#1e2d7d]">
-                                                    {product.price_from ? `${t('ui.from')} ` : ''}{formatPrice(typeof product.price === 'string' ? parseFloat(product.price) : product.price, currency)}
+                                                    {product.price_from ? `${t('ui.from')} ` : ''}{formatDisplayPrice(typeof product.price === 'string' ? parseFloat(product.price) : product.price, locale, currency)}
                                                 </div>
                                             </div>
                                         </div>

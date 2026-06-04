@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { computePaymentAmounts, getAvailablePaymentOptions, type CartItemPayment } from '@/lib/payment/options';
+import { resolvePriceMultiplier, resolveDisplayCurrency, normalizeShipRegion, shipRegionToPaymentRegion } from '@/lib/payment/pricing-region';
+import { getEurRate } from '@/lib/i18n/exchangeRate';
+import type { Currency } from '@/lib/i18n/currency';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +50,12 @@ interface OrderPayload {
   with_designer?: boolean;
   designer_service_fee?: number;
   payment_type?: 'full' | 'split';
+  // Pricing context resolved at checkout (server re-derives the multiplier).
+  // subtotal/total in the payload are BASE UAH (pre-markup); the server applies
+  // the +20% intl markup itself so the client can't undercharge.
+  ship_region?: string;   // 'UA' | 'INTL'
+  locale?: string;        // interface language (uk vs non-uk)
+  display_currency?: string; // what the customer saw (UAH/EUR/...)
 }
 
 function isValidPhone(s: unknown): s is string {
@@ -142,9 +151,35 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const amounts = computePaymentAmounts(total, payment_type, body.delivery_method);
+  // ──────────────────────────────────────────────────────────────
+  // Pricing context (single source: lib/payment/pricing-region).
+  //   - subtotal/total in the payload are BASE UAH (pre-markup).
+  //   - Server applies the +20% intl markup itself (locale × shipRegion)
+  //     so a tampered client can't skip it, and freezes the context on the
+  //     order so "shown == charged" is auditable.
+  // ──────────────────────────────────────────────────────────────
+  const shipRegion = normalizeShipRegion(body.ship_region);
+  const locale = typeof body.locale === 'string' ? body.locale : 'uk';
 
-  // Generate order_number.
+  // International orders are full prepayment only — no 50/50 split (there is no
+  // internal Nova Poshta COD leg abroad to collect the remainder on).
+  if (shipRegion === 'INTL') {
+    payment_type = 'full';
+  }
+
+  const priceMultiplier = resolvePriceMultiplier(locale, shipRegion);
+  const displayCurrency = resolveDisplayCurrency(locale, body.display_currency as Currency | undefined);
+  const exchangeRate = displayCurrency === 'UAH' ? null : await getEurRate();
+  const paymentRegion = shipRegionToPaymentRegion(shipRegion);
+
+  // Discount the client already applied lives in (base subtotal − base total),
+  // since delivery_cost is 0 at this stage. Markup hits the canonical price
+  // (subtotal); the flat UAH discount is subtracted after.
+  const baseDiscount = Math.max(0, Math.min(subtotal, subtotal - total));
+  const markedSubtotal = Math.round(subtotal * priceMultiplier);
+  const markedTotal = Math.max(1, Math.round(markedSubtotal - baseDiscount + delivery_cost));
+
+  const amounts = computePaymentAmounts(markedTotal, payment_type, body.delivery_method);
   const order_number = `TM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
   const { data: inserted, error } = await admin
@@ -157,9 +192,14 @@ export async function POST(request: NextRequest) {
       customer_email: body.customer_email?.trim() || null,
       customer_telegram: body.customer_telegram?.toString().trim().slice(0, 200) || null,
       items: body.items as any,
-      subtotal,
+      subtotal: markedSubtotal,
       delivery_cost,
-      total,
+      total: markedTotal,
+      ship_region: shipRegion,
+      payment_region: paymentRegion,
+      price_multiplier: priceMultiplier,
+      display_currency: displayCurrency,
+      exchange_rate: exchangeRate,
       delivery_method: body.delivery_method,
       delivery_address: body.delivery_address || null,
       notes: body.notes?.toString().slice(0, 5000) || null,

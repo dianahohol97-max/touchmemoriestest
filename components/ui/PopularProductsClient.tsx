@@ -1,6 +1,7 @@
 'use client';
 import { useT, useLocale } from '@/lib/i18n/context';
-import { detectCurrency, formatPrice } from '@/lib/i18n/currency';
+import { detectCurrency } from '@/lib/i18n/currency';
+import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import { getLocalized } from '@/lib/i18n/localize';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
@@ -142,7 +143,7 @@ export function PopularProductsClient({ products, sectionContent }: PopularProdu
                   </h3>
                   <p style={{ fontWeight: 800, fontSize: '1rem', color: '#1e2d7d' }}>
                     {product.price_from ? `${t('ui.from')} ` : ''}
-                    {formatPrice(product.sale_price ?? product.price, currency)}
+                    {formatDisplayPrice(product.sale_price ?? product.price, locale, currency)}
                   </p>
                 </div>
               </Link>

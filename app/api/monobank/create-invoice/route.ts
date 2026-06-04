@@ -14,23 +14,39 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
         }
 
-        // Choose token based on payment region
-        // UA payments → MONOBANK_TOKEN (Ukrainian account)
-        // International → MONOBANK_TOKEN_INTL (international account)
         const isInternational = paymentRegion === 'international';
-        const token = isInternational
+
+        const supabase = getAdminClient();
+
+        // ──────────────────────────────────────────────────────────────
+        // Account routing: take the Monobank api_key from the active
+        // bank_accounts row whose region matches the shipping destination.
+        //   international → ФОП Гоголь Діана   ua → ФОП Коблик Тамара
+        // Env tokens (MONOBANK_TOKEN / MONOBANK_TOKEN_INTL) are kept ONLY as
+        // a fallback if the DB row is missing/inactive, so a misconfigured
+        // table can't take payments fully offline.
+        // ──────────────────────────────────────────────────────────────
+        const { data: bankAccount } = await supabase
+            .from('bank_accounts')
+            .select('api_key')
+            .eq('region', paymentRegion)
+            .eq('bank_name', 'Monobank')
+            .eq('is_active', true)
+            .maybeSingle();
+
+        const envToken = isInternational
             ? process.env.MONOBANK_TOKEN_INTL
             : process.env.MONOBANK_TOKEN;
+        const token = bankAccount?.api_key || envToken;
 
         if (!token) {
-            const missing = isInternational ? 'MONOBANK_TOKEN_INTL' : 'MONOBANK_TOKEN';
+            const which = isInternational ? 'international (ФОП Гоголь)' : 'ua (ФОП Коблик)';
             return NextResponse.json(
-                { error: `${missing} не налаштований у Vercel Environment Variables` },
+                { error: `Monobank-ключ для регіону ${which} не знайдено: ні в bank_accounts, ні у env` },
                 { status: 500 }
             );
         }
 
-        const supabase = getAdminClient();
         const { data: order, error: orderError } = await supabase
             .from('orders')
             .select('id, total, customer_name, customer_email, customer_phone, order_number, payment_type, prepaid_amount')

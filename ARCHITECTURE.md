@@ -1,6 +1,6 @@
 # TouchMemories — Architecture
 
-> **Last updated:** 2026-04-29 · **Maintained by:** Diana + Claude
+> **Last updated:** 2026-06-04 · **Maintained by:** Diana + Claude
 > **Production:** touchmemories1.vercel.app
 > **Repo:** github.com/dianahohol97-max/touchmemoriestest
 > **Read this first** before any feature work or debugging session. Update at the bottom of any major change.
@@ -46,6 +46,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 | Supabase migrations | `supabase/migrations/` | Run via Supabase CLI |
 | Schema reference | `lib/supabase/schema/*.sql` | Authoritative reference for table shapes |
 | Pricing engine | `lib/editor/pricing.ts` (pure) + `lib/editor/usePrices.ts` (client hook) + `app/api/pricing/photobook/route.ts` (server) | Photobook prices live in Supabase (`photobook_prices` table). API endpoint caches the matrix for 60s; the client hook fetches it and stores it in localStorage so the editor never shows a "0 ₴" flicker on repeat visits. `pricing.ts` itself is pure — all functions take a `PriceTable` argument. See "Pricing flow" below |
+| Region pricing / currency | `lib/payment/pricing-region.ts` (markup + currency rule, pure) + `lib/i18n/currency.ts` (rates, pure convert) + `lib/i18n/exchangeRate.ts` (server rate reader) | +20% intl markup = locale × shipRegion (NOT currency). EUR rate in `settings('eur_rate')`, refreshed biweekly by `/api/cron/update-exchange-rate`. See "Region pricing" below |
 | Salary calculator | `lib/salary/` + `app/admin/expenses/` | For team payroll |
 | Reporting | `lib/reporting/` + `app/admin/analytics/` | Dashboards, automated weekly reports |
 | Automation rules | `lib/automation/` + `app/admin/automations/` | Deadline calc, assignment, telegram + email notifications |
@@ -61,7 +62,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 - **Styling:** Tailwind + shadcn/ui (Radix primitives)
 - **Database:** Supabase (Postgres + Auth + Storage)
 - **Hosting:** Vercel (team `team_Qve9hriFT9sNYnjWZolAcFXl`, project `prj_Oz13dkGF3W1JvSVToT8WvZBseBba`)
-- **Payments:** Monobank (UA + international dual-account routing)
+- **Payments:** Monobank (UA + international dual-account routing via `bank_accounts.region`; charge always in UAH, EUR shown via buffered NBU rate)
 - **Email:** Brevo
 - **AI:** Anthropic SDK (chatbot, generation tasks)
 - **Drag/drop:** dnd-kit
@@ -169,7 +170,7 @@ The end-to-end path from cart to designer brief:
 
 1. **Cart → checkout.** The `/cart` page is now **navigation-only** — it lists items and totals and its button routes to `/[locale]/checkout`. It no longer collects contact/delivery or creates orders (the old `/cart` "Pay" button POSTed to a deleted `/api/checkout/create-invoice` and 404'd, blocking all online payment). `/checkout` is the single online entry point: it owns the contact → shipping → payment steps, calls `/api/orders/submit` (which resolves `payment_mode` and may downgrade split→full), then `/api/monobank/create-invoice`. It also runs `linkPendingExports` — reading each `sessionStorage.export_{cartItemId}` descriptor that constructors stash and inserting `order_files` rows — **before** `clearCart()`, so designed files (photobook PDFs, posters, star maps) always attach to the order. `lib/submitOrder.ts` inserts the `orders` row with `payment_status='pending'`, `order_status='new'`; line items go into `orders.items` JSONB.
 
-2. **Invoice creation.** Customer hits "Pay" → POST `/api/monobank/create-invoice` with `{orderId, paymentRegion: 'ua'|'international'}`. Server picks the matching token (`MONOBANK_TOKEN` / `MONOBANK_TOKEN_INTL`), calls Monobank, stores `monobank_invoice_id` + `monobank_payment_url` on the order, logs to `order_history`, returns the page URL. Customer is redirected to Monobank's hosted page.
+2. **Invoice creation.** Customer hits "Pay" → POST `/api/monobank/create-invoice` with `{orderId, paymentRegion: 'ua'|'international'}`. The token is now taken from the active `bank_accounts` row whose `region` matches the destination (UA → ФОП Коблик, international → ФОП Гоголь); env tokens (`MONOBANK_TOKEN` / `MONOBANK_TOKEN_INTL`) are only a fallback if the DB row is missing. The charged amount is `order.total` (already the marked-up UAH — see "Region pricing" below), or `prepaid_amount` for a 50/50 split. Stores `monobank_invoice_id` + `monobank_payment_url`, logs to `order_history`, returns the page URL. Always charges in UAH (`ccy: 980`); foreign cards are converted by the customer's own bank.
 
 3. **Customer pays on Monobank.** Monobank fires a webhook to `/api/monobank/webhook` (canonical path). Two legacy aliases — `/api/webhook/monobank` and `/api/webhooks/monobank` — re-export the canonical handler, so Monobank can hit any of the three URLs without breaking.
 
@@ -193,6 +194,21 @@ The end-to-end path from cart to designer brief:
 7. **Designer picks up the order** in `app/admin/designer/`, assigns themselves (`orders.designer_id` + `assigned_at`), opens the brief, builds the book in the editor.
 
 8. **Revision round-trip.** Designer hits "Send for review" → creates a `design_revisions` row with its own `client_token`, emails customer the review link. Customer approves or asks for changes (`client_decision` + `client_comments` + `general_feedback`). `revision_count` increments per round; the contract caps at 3.
+
+### Region pricing, currency & ship region
+
+Canonical price is **always UAH**. Two checkout decisions depend on (interface language) × (delivery destination), and both live in one pure module, `lib/payment/pricing-region.ts`, used by the server (authoritative) and the client (display) so "shown == charged":
+
+- **`resolvePriceMultiplier(locale, shipRegion)`** — the +20% intl markup applies ONLY at `locale !== 'uk' && shipRegion === 'INTL'`. The markup is a function of locale × shipRegion, **not** of currency. `convertPrice` in `lib/i18n/currency.ts` is now a pure conversion (markup was decoupled from it); storefront cards apply markup via `formatDisplayPrice(...)` using the locale's `defaultShipRegion`.
+- **`resolveDisplayCurrency(locale, userChoice)`** — default UAH for uk, EUR otherwise; checkout has a UAH/EUR switcher available to everyone. Display only — charge is always UAH.
+
+The checkout shipping step now carries an authoritative **UA / INTL selector** (`shipRegionChoice`) that drives the address form (Nova Poshta picker vs free international address), the payment account, the markup, split availability (INTL = full prepayment only, enforced server-side in `/api/orders/submit`), and the currency default. The old late "payment region" modal was removed.
+
+`/api/orders/submit` receives base UAH `subtotal`/`total` + `ship_region` + `locale` + `display_currency`, applies the multiplier itself (a tampered client can't skip it), and **freezes** `ship_region`, `price_multiplier`, `display_currency`, `exchange_rate` on the order.
+
+**EUR rate** lives in `settings('eur_rate')` (`{rate, base_rate, buffer_pct, source, updated_at}`), read server-side via `lib/i18n/exchangeRate.ts` (cached). It's refreshed twice a month (1st & 15th, `0 5 1,15 * *`) by `/api/cron/update-exchange-rate` from the NBU official rate with a margin buffer — predictable price-change dates rather than daily drift.
+
+
 
 ### Manual order create (parallel entry point)
 
@@ -224,7 +240,7 @@ The three webhook endpoints, the dual `mono_*` / `monobank_*` order columns, and
 
 - **`products`** — catalog items, has `translations` JSONB. Variants and options live INLINE in `products.variants` / `products.options` JSONB columns, not in separate tables.
 - **`categories`** — has `translations` JSONB
-- **`orders`** — order header. Line items live in `orders.items` JSONB (there is no `order_items` table). Customer info has two paths: linked via `customer_id` → `customers` table, or inline `customer_name` / `customer_email` / `customer_phone` for guest checkout. Designer service info: `with_designer`, `designer_service_fee`, `designer_id`, `brief_token`. Payment: `monobank_invoice_id`, `monobank_payment_url`, `monobank_invoice_status`, `monobank_approval_code`, `monobank_rrn`, `payment_region`, `paid_at`, `payment_status`. Two old aliases `mono_invoice_id` / `mono_payment_id` are present but no longer read by any runtime code.
+- **`orders`** — order header. Line items live in `orders.items` JSONB (there is no `order_items` table). Customer info has two paths: linked via `customer_id` → `customers` table, or inline `customer_name` / `customer_email` / `customer_phone` for guest checkout. Designer service info: `with_designer`, `designer_service_fee`, `designer_id`, `brief_token`. Payment: `monobank_invoice_id`, `monobank_payment_url`, `monobank_invoice_status`, `monobank_approval_code`, `monobank_rrn`, `payment_region`, `paid_at`, `payment_status`. Frozen pricing context (added 2026-06-04): `ship_region` ('UA'|'INTL'), `price_multiplier` (1.0 base, 1.20 intl), `display_currency`, `exchange_rate` (UAH-per-EUR snapshot; null for UAH orders). Two old aliases `mono_invoice_id` / `mono_payment_id` are present but no longer read by any runtime code.
 - **`order_history`** — audit trail of order lifecycle events (payment status changes, status transitions, TTN creation, manager/designer assignment). Written by Monobank webhook, automation routes, admin order page.
 - **`order_files`** — files attached to orders. `file_type='upload'` for customer-supplied (photos for editor, designer reference material); `file_type='export'` for our 300dpi production PDFs and intermediate config blobs from constructors.
 - **`cart_events`** — abandoned + active cart tracking (event log shape; there is no `carts` table)
@@ -316,7 +332,7 @@ These are the recurring "why is this still broken" issues. Update this list when
 5. **PNG frame quality** — current frames look basic vs Canva references. Need higher-quality botanical/gold/watercolour sets. ALSO: ~7% of opaque pixels in many of the floral frames are near-black (RGB <40, alpha 255) — leaf shadow detail that survived an incomplete background-removal pass. Currently softened at render time via `PNG_FRAME_FILTER` (brightness 1.18 / contrast 0.88 / saturate 0.9 applied in FramesLayer + BookPreviewModal). Proper fix is to rebuild the 34 PNGs with a matting-based BG removal pipeline (e.g. `@imgly/background-removal` which is already a dependency) instead of the colour-threshold tool that was used.
 6. **Cover templates breadth** — magazine and travel book templates are fewer than photobook. Expanding from Canva designs is ongoing.
 7. **Designer cabinet revision lifecycle gaps** — known but not yet documented in detail. Audit the flow when next touching `app/admin/designer/`.
-8. **Cart/checkout end-to-end audit** — the payment-blocking bug is fixed (the `/cart` pay button used to POST to the deleted `/api/checkout/create-invoice` and 404; cart is now navigation-only and `/checkout` is the sole online entry point, with export-linking ported over). A full customer-perspective walkthrough of `/checkout` (promo codes, split payment, international region routing, designer-service orders) is still a recurring TODO.
+8. **Cart/checkout end-to-end audit** — region pricing is now implemented (2026-06-04): account routing from `bank_accounts`, +20% intl markup frozen on the order, UA/INTL ship-region selector, UAH/EUR switcher, INTL = full prepayment. Still open: (a) **international shipping is manual** — `delivery_method='international'` records a free-text address but there is no Nova Poshta Global / carrier API integration or automatic intl TTN yet; (b) **fiscalization (Checkbox)** is not wired — `fiscal_accounts` is empty and `fiscal_rules` all disabled, so no receipts are issued per ФОП; (c) `np_accounts` is empty (no internal NP account configured for live TTN); (d) a live end-to-end Monobank test (real invoice → webhook → `paid`) has not been run. A full customer-perspective walkthrough (promo + markup interaction, designer-service orders) still recommended.
 9. **47 markdown files in repo root** — historical implementation summaries. These should be moved into a `docs/archive/` folder once everything they cover is reflected in this ARCHITECTURE.md.
 10. **Schema drift between repo and prod Supabase** — production schema has been extended directly via the Supabase dashboard with no corresponding migrations. Two migrations bring the worst offenders back in line:
     - `20260429_sync_projects_schema_with_prod.sql` — covers `projects` (name, uploaded_photos, notified_*_at, relaxed CHECK constraints, consolidated RLS policy). **Applied to prod 2026-04-29.**

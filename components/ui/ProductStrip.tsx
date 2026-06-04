@@ -1,6 +1,6 @@
 'use client';
 import { useT, useLocale } from '@/lib/i18n/context';
-import { detectCurrency, formatPrice } from '@/lib/i18n/currency';
+import { detectCurrency } from '@/lib/i18n/currency';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import styles from './ProductStrip.module.css';
