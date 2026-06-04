@@ -29,6 +29,7 @@ export default function FiscalizationPage() {
         password: '',
         license_key: '',
         cashier_name: '',
+        region: 'ua',
         is_active: true
     });
 
@@ -65,7 +66,7 @@ export default function FiscalizationPage() {
             toast.success('Аккаунт збережено');
             setIsModalOpen(false);
             setEditingAccount(null);
-            setFormData({ label: '', login: '', password: '', license_key: '', cashier_name: '', is_active: true });
+            setFormData({ label: '', login: '', password: '', license_key: '', cashier_name: '', region: 'ua', is_active: true });
             fetchData();
         }
         setLoading(false);
@@ -214,6 +215,14 @@ export default function FiscalizationPage() {
                             <div>
                                 <label style={formLabel}>Ім'я касира (для чеку)</label>
                                 <input style={formInput} value={formData.cashier_name} onChange={e => setFormData({ ...formData, cashier_name: e.target.value })} />
+                            </div>
+                            <div>
+                                <label style={formLabel}>ФОП / регіон (на чий рахунок приходять гроші)</label>
+                                <select style={formInput} value={formData.region} onChange={e => setFormData({ ...formData, region: e.target.value })}>
+                                    <option value="ua">Україна (ФОП Коблик)</option>
+                                    <option value="international">Міжнародні (ФОП Гоголь)</option>
+                                </select>
+                                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>Чек пробиває каса того ФОП, що відповідає регіону оплати замовлення.</div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <input type="checkbox" id="acc_active" checked={formData.is_active} onChange={e => setFormData({ ...formData, is_active: e.target.checked })} />

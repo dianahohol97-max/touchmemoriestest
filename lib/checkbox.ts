@@ -1,15 +1,25 @@
 /**
  * Checkbox ПРРО Integration Utility
  * Handles authentication, shift management, and fiscal receipt generation.
- * API docs: https://docs.checkbox.ua
+ * API docs: https://wiki.checkbox.ua/api
  */
 
 const CHECKBOX_API_URL = 'https://api.checkbox.ua/api/v1';
+const CLIENT_NAME = 'TouchMemories';
+const CLIENT_VERSION = '1.0';
 
 interface CheckboxConfig {
     login: string;
     password?: string;
     licenseKey: string;
+    cashierName?: string;
+}
+
+export interface CheckboxReceiptResult {
+    id: string;
+    status?: string;
+    fiscalUrl: string;
+    raw: any;
 }
 
 export class CheckboxService {
@@ -20,10 +30,22 @@ export class CheckboxService {
         this.config = config;
     }
 
+    /** Headers Checkbox recommends/requires on every authed call. */
+    private authHeaders(json = false): Record<string, string> {
+        const h: Record<string, string> = {
+            'Authorization': `Bearer ${this.token}`,
+            'X-License-Key': this.config.licenseKey,
+            'X-Client-Name': CLIENT_NAME,
+            'X-Client-Version': CLIENT_VERSION,
+        };
+        if (json) h['Content-Type'] = 'application/json';
+        return h;
+    }
+
     async signIn() {
         const response = await fetch(`${CHECKBOX_API_URL}/cashier/signin`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-Client-Name': CLIENT_NAME, 'X-Client-Version': CLIENT_VERSION },
             body: JSON.stringify({ login: this.config.login, password: this.config.password })
         });
         if (!response.ok) {
@@ -37,26 +59,20 @@ export class CheckboxService {
 
     async getActiveShift() {
         if (!this.token) await this.signIn();
-        const response = await fetch(`${CHECKBOX_API_URL}/shifts`, {
-            headers: {
-                'Authorization': `Bearer ${this.token}`,
-                'X-License-Key': this.config.licenseKey
-            }
-        });
+        const response = await fetch(`${CHECKBOX_API_URL}/shifts`, { headers: this.authHeaders() });
         const data = await response.json();
         return (data.results || []).find((s: any) => s.status === 'OPENED') || null;
     }
 
     async openShift() {
+        if (!this.token) await this.signIn();
         const activeShift = await this.getActiveShift();
         if (activeShift) return activeShift;
 
         const response = await fetch(`${CHECKBOX_API_URL}/shifts`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${this.token}`,
-                'X-License-Key': this.config.licenseKey
-            }
+            headers: this.authHeaders(true),
+            body: JSON.stringify({}),
         });
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
@@ -69,73 +85,70 @@ export class CheckboxService {
         if (!this.token) await this.signIn();
         const activeShift = await this.getActiveShift();
         if (!activeShift) return null;
-
         const response = await fetch(`${CHECKBOX_API_URL}/shifts/close`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${this.token}`,
-                'X-License-Key': this.config.licenseKey
-            }
+            headers: this.authHeaders(true),
+            body: JSON.stringify({}),
         });
         return await response.json();
     }
 
     /**
-     * Create a sell receipt.
-     * Expects order with fields: items[], total, customer_email, customer_name
-     * order.items must have: product_name, unit_price, quantity
+     * Create a fiscal receipt for a paid order.
+     *
+     * receiptType:
+     *  - 'sell'       → full online payment (/receipts/sell)
+     *  - 'prepayment' → 50% prepaid online (/prepayment-receipts)
+     *
+     * order.items must have product_name, unit_price (UAH), quantity.
+     * The charged amount is order.total (UAH) — that's what we fiscalise.
      */
-    async createReceipt(order: any, receiptType: 'sell' | 'prepayment' | 'return' = 'sell') {
+    async createReceipt(order: any, receiptType: 'sell' | 'prepayment' = 'sell'): Promise<CheckboxReceiptResult> {
         await this.openShift();
 
-        // Map order items to Checkbox goods format
         const goods = (order.items || []).map((item: any) => ({
             good: {
-                // code must be a string identifier
-                code: String(item.product_id || item.product_type || 'PRODUCT'),
-                name: item.product_name || item.name || 'Товар',
-                // price in kopecks (hundredths of UAH)
-                price: Math.round((item.unit_price || item.price || 0) * 100),
+                code: String(item.product_id || item.product_type || item.slug || 'PRODUCT'),
+                name: (item.product_name || item.name || 'Товар').slice(0, 250),
+                price: Math.round((item.unit_price || item.price || 0) * 100), // kopecks
             },
-            // quantity in thousandths (1 unit = 1000)
-            quantity: Math.round((item.quantity || 1) * 1000),
+            quantity: Math.round((item.quantity || 1) * 1000), // thousandths
         }));
 
+        // The fiscalised sum is the actual charged amount (already marked-up UAH).
+        const value = Math.round((order.total || 0) * 100);
+
         const payload: any = {
+            id: (globalThis.crypto?.randomUUID?.() || `${order.id}-${Date.now()}`),
             goods,
             payments: [{
                 type: 'CASHLESS',
-                value: Math.round((order.total || 0) * 100)
+                value,
+                label: 'Інтернет-еквайринг', // required non-cash payment signature
             }],
         };
+        if (this.config.cashierName) payload.cashier_name = this.config.cashierName;
+        if (order.customer_email) payload.delivery = { email: order.customer_email };
 
-        // Send email receipt to customer if email available
-        const email = order.customer_email;
-        if (email) {
-            payload.delivery = { emails: [email] };
-        }
-
-        const endpoint = receiptType === 'return'
-            ? `${CHECKBOX_API_URL}/receipts/return`
-            : receiptType === 'prepayment'
-            ? `${CHECKBOX_API_URL}/receipts/prepayment`
+        const endpoint = receiptType === 'prepayment'
+            ? `${CHECKBOX_API_URL}/prepayment-receipts`
             : `${CHECKBOX_API_URL}/receipts/sell`;
 
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.token}`,
-                'X-License-Key': this.config.licenseKey
-            },
-            body: JSON.stringify(payload)
+            headers: this.authHeaders(true),
+            body: JSON.stringify(payload),
         });
-
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             throw new Error(`Checkbox Receipt Failed: ${error.message || JSON.stringify(error)}`);
         }
-
-        return await response.json();
+        const data = await response.json();
+        return {
+            id: data.id,
+            status: data.status,
+            fiscalUrl: data.id ? `https://check.checkbox.ua/${data.id}` : '',
+            raw: data,
+        };
     }
 }

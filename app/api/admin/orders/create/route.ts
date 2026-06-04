@@ -157,6 +157,20 @@ export async function POST(request: Request) {
             });
         }
 
+        // 8. Fiscalisation. If the admin marked the order paid, fire a Checkbox
+        // receipt from the ФОП matching the payment region (resolved inside
+        // /api/fiscalize). Fire-and-forget + idempotent.
+        if (payment?.status === 'paid' || payment?.status === 'partial') {
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+            fetch(`${siteUrl}/api/fiscalize`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
+                body: JSON.stringify({ orderId: order.id }),
+            }).catch(err => {
+                console.error('[Manual Order] fiscalize trigger failed:', err);
+            });
+        }
+
         return NextResponse.json({ success: true, id: order.id, order_number: order.order_number });
 
     } catch (err: any) {

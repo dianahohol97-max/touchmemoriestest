@@ -351,6 +351,25 @@ export async function POST(req: Request) {
                 });
             }
 
+            // Fiscalisation (Checkbox). On the first transition to paid, fire a
+            // receipt from the cash register of the ФОП that received the money
+            // (resolved by payment_region inside /api/fiscalize). Fire-and-forget
+            // + idempotent (skips if fiscal_id already set), so Checkbox latency
+            // or errors never make Monobank retry the payment webhook.
+            if (existingOrder.payment_status !== 'paid') {
+                const baseUrl = getRuntimeBaseUrl();
+                fetch(`${baseUrl}/api/fiscalize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-cron-secret': process.env.CRON_SECRET || '',
+                    },
+                    body: JSON.stringify({ orderId: reference }),
+                }).catch(err => {
+                    console.error('fiscalize trigger failed:', err);
+                });
+            }
+
             // Designer service handoff. If the customer paid for an order
             // with with_designer=true, this is the moment to:
             //  - create the design_brief row (so the customer's brief link
