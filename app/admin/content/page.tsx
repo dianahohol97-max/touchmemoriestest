@@ -73,23 +73,48 @@ export default function ContentManagementPage() {
     const [featuredArticles, setFeaturedArticles] = useState<any[]>([]);
     const [articlesLoaded, setArticlesLoaded] = useState(false);
 
-    // Upload via the server-side admin route (service role). This sidesteps the
-    // client-side storage RLS/session issues that made homepage photo/video
-    // uploads silently fail, and returns a public URL.
+    // Upload media to Storage. Large files (esp. homepage videos up to 200 MB)
+    // cannot stream through the /api/admin/upload function — Vercel caps the
+    // request body at ~4.5 MB (413). So we get a signed upload URL from the
+    // server (no body) and upload the bytes DIRECTLY from the browser to
+    // Storage, which honours the full bucket limit. The old server route stays
+    // as a fallback for tiny files in case signed upload is unavailable.
     async function uploadToStorage(file: File, bucket: string, folder: string): Promise<string | null> {
+        // 1) Preferred path: signed upload URL → direct browser → Storage.
         try {
-            const fd = new FormData();
-            fd.append('file', file);
-            fd.append('bucket', bucket);
-            fd.append('folder', folder);
-            const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-            const json = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-            return json.url as string;
-        } catch (err: any) {
-            console.error('Upload error:', err);
-            toast.error(`Помилка завантаження: ${err.message || err}`);
-            return null;
+            const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+            const signRes = await fetch('/api/admin/signed-upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bucket, folder, ext }),
+            });
+            const signJson = await signRes.json().catch(() => ({}));
+            if (!signRes.ok) throw new Error(signJson.error || `HTTP ${signRes.status}`);
+            const { error: upErr } = await supabase.storage
+                .from(bucket)
+                .uploadToSignedUrl(signJson.path, signJson.token, file, { contentType: file.type || undefined });
+            if (upErr) throw upErr;
+            return signJson.publicUrl as string;
+        } catch (errSigned: any) {
+            // 2) Fallback: stream through the server route. Only works under
+            // ~4.5 MB, so surface the original error if this also fails.
+            try {
+                const fd = new FormData();
+                fd.append('file', file);
+                fd.append('bucket', bucket);
+                fd.append('folder', folder);
+                const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+                return json.url as string;
+            } catch (errRoute: any) {
+                console.error('Upload error:', errSigned, errRoute);
+                const big = file.size > 4.5 * 1024 * 1024;
+                toast.error(big
+                    ? `Помилка завантаження великого файлу: ${errSigned?.message || errSigned}`
+                    : `Помилка завантаження: ${errRoute?.message || errRoute}`);
+                return null;
+            }
         }
     }
 
@@ -1053,14 +1078,14 @@ export default function ContentManagementPage() {
                                                                 <label className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg cursor-pointer text-sm font-medium text-gray-700 transition-colors">
                                                                     <ImageIcon size={16} />
                                                                     {uploading ? 'Завантаження...' : (vurl ? 'Замінити відео' : 'Завантажити відео')}
-                                                                    <input type="file" accept="video/mp4,video/quicktime,video/webm" className="hidden" disabled={uploading}
+                                                                    <input type="file" accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi" className="hidden" disabled={uploading}
                                                                         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionVideoUpload(section.id, key, f); e.target.value = ''; }} />
                                                                 </label>
                                                                 {vurl && <video src={vurl} muted className="h-16 rounded border border-gray-200" />}
                                                             </div>
                                                         );
                                                     })}
-                                                    <p className="text-xs text-gray-500">MP4/WebM. Після завантаження натисніть «Зберегти секцію».</p>
+                                                    <p className="text-xs text-gray-500">MP4 / MOV / AVI, до 200 МБ. Великі відео завантажуються напряму в сховище. Після завантаження натисніть «Зберегти секцію».</p>
                                                 </div>
                                             )}
 
