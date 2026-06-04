@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 
 export interface PageBackground {
   type: 'color' | 'image';
@@ -61,10 +62,13 @@ interface BgControlsProps {
 export function BackgroundControls({ bg, onChange }: BgControlsProps) {
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0];
+    if (!picked) return;
     e.target.value = '';
+    // Convert HEIC/HEIF (iPhone) to JPEG up front so the decode step below
+    // succeeds instead of falling into the "unsupported" branch.
+    const file = await normalizeImageFile(picked);
     const reader = new FileReader();
     reader.onload = ev => {
       const dataUrl = ev.target?.result as string;

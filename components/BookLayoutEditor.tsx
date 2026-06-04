@@ -58,6 +58,7 @@ const CYRILLIC_DECORATIVE_FONTS = [
   { label:'Ubuntu', value:'Ubuntu', style:'sans' },
 ];
 import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from './BackgroundLayer';
+import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
@@ -2352,7 +2353,10 @@ export default function BookLayoutEditor() {
       }
     };
 
-    files.forEach((file: File, idx: number) => {
+    files.forEach((origFile: File, idx: number) => {
+      // Convert HEIC/HEIF (iPhone) to JPEG before the decode pipeline, so
+      // those photos load instead of being silently dropped by img.onerror.
+      normalizeImageFile(origFile).then((file: File) => {
       const reader = new FileReader();
       reader.onload = ev => {
         const originalDataUrl = ev.target!.result as string;
@@ -2425,6 +2429,7 @@ export default function BookLayoutEditor() {
         tryCommit();
       };
       reader.readAsDataURL(file);
+      }).catch(() => { results.push({ idx, photo: null }); tryCommit(); });
     });
     e.target.value = '';
   };
