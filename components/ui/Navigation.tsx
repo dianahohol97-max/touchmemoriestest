@@ -131,6 +131,18 @@ export function Navigation() {
     { name: t('nav.blog'),     href: '/blog' },
   ];
 
+  // Main product categories — shown as hero pills on the homepage and kept out
+  // of the desktop nav to avoid duplication, but on mobile the hamburger menu is
+  // the only navigation, so they must appear here too. (Graduation books are
+  // excluded — they're already in the DB-driven navLinks below.)
+  const mainProductLinks = [
+    { id: 'mp-photobooks',  name: t('hero.pill_photobook'),  href: '/catalog?category=photobooks' },
+    { id: 'mp-magazines',   name: t('hero.pill_magazine'),   href: '/catalog?category=hlyantsevi-zhurnaly' },
+    { id: 'mp-travelbooks', name: t('hero.pill_travelbook'), href: '/catalog?category=travelbooks' },
+    { id: 'mp-prints',      name: t('hero.pill_prints'),     href: '/catalog?category=prints' },
+    { id: 'mp-albums',      name: t('hero.pill_albums'),     href: '/catalog?category=photoalbomy-failykovi' },
+  ];
+
   return (
     <>
     <header className={cn(
@@ -302,7 +314,7 @@ export function Navigation() {
               </button>
             </div>
             <nav className="flex flex-col p-8 gap-1 overflow-y-auto">
-              {[...navLinks, { id:'other', name:t('nav.other'), href:'/catalog' }, ...aboutItems].map(link => (
+              {[...mainProductLinks, ...navLinks, { id:'other', name:t('nav.other'), href:'/catalog' }, ...aboutItems].map(link => (
                 <Link key={link.id || link.href} href={link.href} onClick={() => setIsMobileMenuOpen(false)}
                   className="py-4 text-base font-bold text-primary no-underline border-b border-primary/5 block">
                   {link.name}
