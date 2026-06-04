@@ -149,6 +149,23 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
   return getConstructorUrl(slug);
 };
 
+// Ukrainian plural for a date count: 1 дата, 2-4 дати, 5+ дат (11-14 → дат).
+function datesWord(n: number): string {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return 'дата';
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'дати';
+  return 'дат';
+}
+
+// Human label for a counter-type option value, e.g. counterValueLabel(opt, 7) → "7 дат (+70 грн)".
+function counterValueLabel(opt: any, n: number): string {
+  const count = Math.max(Number(opt?.min ?? 0), Math.floor(Number(n) || 0));
+  if (count <= 0) return 'Без обведення';
+  const price = count * Number(opt?.unit_price ?? 0);
+  const unit = opt?.unit_label === 'дат' ? datesWord(count) : (opt?.unit_label || 'шт');
+  return `${count} ${unit} (+${price} грн)`;
+}
+
 export default function ProductPage({ params, initialProduct, initialReviews }: { params: Promise<{ slug: string }>; initialProduct?: any; initialReviews?: any[] }) {
   const t = useT();
     const locale = useLocale();
@@ -307,6 +324,10 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                     const defaultMinPages = sizeOpt?.options?.[0]?.min_pages || 6;
 
                     data.options.forEach((opt: any) => {
+                        if (opt.type === 'counter') {
+                            defaultOptions[opt.name] = String(opt.min ?? 0);
+                            return;
+                        }
                         const items = opt.options || opt.values;
                         if (items && items.length > 0) {
                             const s = (data.slug || '').toLowerCase();
@@ -564,6 +585,10 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
 
             const selected = customProductOptions[opt.name];
             if (selected === undefined) return;
+            if (opt.type === 'counter') {
+                extraModifiers += Math.max(0, Math.floor(Number(selected) || 0)) * Number(opt.unit_price || 0);
+                return;
+            }
             const items = opt.options || opt.values || [];
             const match = items.find((i: any) =>
                 i === selected || String(i.value) === String(selected) ||
@@ -626,6 +651,11 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             // never made it into the cart line — the customer just saw
             // "8 сторінок" with no other context.
             product.options.forEach((opt: any) => {
+                if (opt.type === 'counter') {
+                    const n = Math.max(0, Math.floor(Number(customProductOptions[opt.name]) || 0));
+                    if (n > 0) itemOptions[opt.name] = counterValueLabel(opt, n);
+                    return;
+                }
                 // Modern shape: opt.options with {value,label}
                 if (opt.options && Array.isArray(opt.options)) {
                     const selectedVal = customProductOptions[opt.name];
@@ -694,6 +724,11 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             }
         } else if (product.options && Array.isArray(product.options)) {
             product.options.forEach((opt: any) => {
+                if (opt.type === 'counter') {
+                    const n = Math.max(0, Math.floor(Number(customProductOptions[opt.name]) || 0));
+                    if (n > 0) itemOptions[opt.name] = counterValueLabel(opt, n);
+                    return;
+                }
                 if (opt.options && Array.isArray(opt.options) && opt.options.length > 0) {
                     const selectedVal = customProductOptions[opt.name];
                     if (selectedVal === undefined || selectedVal === '' || selectedVal === 'none') {
@@ -1106,7 +1141,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                             ...(isTravelbook || isPhotobookOrMagazine ? ['Ламінація обкладинки', 'Ламінація', 'Індивідуальна обкладинка'] : []),
                                             'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка']);
                                         return product.options
-                                            .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0))
+                                            .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0 || opt.type === 'counter'))
                                             .map((opt: any) => {
                                                 const items = opt.options || opt.values || [];
                                                 return (
@@ -1114,6 +1149,26 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e2d7d' }}>
                                                             {optLabel(opt.name)}
                                                         </label>
+                                                        {opt.type === 'counter' ? (() => {
+                                                            const minN = Number(opt.min ?? 0);
+                                                            const n = Math.max(minN, Math.floor(Number(customProductOptions[opt.name]) || 0));
+                                                            const unit = Number(opt.unit_price || 0);
+                                                            const setN = (v: number) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: String(Math.max(minN, v)) }));
+                                                            return (
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                                                    <div style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #d1d5db', borderRadius: '8px', overflow: 'hidden' }}>
+                                                                        <button type="button" onClick={() => setN(n - 1)} disabled={n <= minN} aria-label="−"
+                                                                            style={{ width: '40px', height: '40px', fontSize: '20px', lineHeight: 1, background: 'white', border: 'none', cursor: n <= minN ? 'not-allowed' : 'pointer', color: n <= minN ? '#cbd5e1' : '#1e2d7d' }}>−</button>
+                                                                        <span style={{ minWidth: '44px', textAlign: 'center', fontSize: '15px', fontWeight: 700, color: '#1e2d7d' }}>{n}</span>
+                                                                        <button type="button" onClick={() => setN(n + 1)} aria-label="+"
+                                                                            style={{ width: '40px', height: '40px', fontSize: '20px', lineHeight: 1, background: 'white', border: 'none', cursor: 'pointer', color: '#1e2d7d' }}>+</button>
+                                                                    </div>
+                                                                    <span style={{ fontSize: '13px', color: '#64748b' }}>
+                                                                        {n > 0 ? counterValueLabel(opt, n) : `Без обведення · кожна дата +${unit} грн`}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })() : (
                                                         <select
                                                             value={customProductOptions[opt.name] || ''}
                                                             onChange={(e) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: e.target.value }))}
@@ -1139,6 +1194,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                                 );
                                                             })}
                                                         </select>
+                                                        )}
                                                     </div>
                                                 );
                                             });
