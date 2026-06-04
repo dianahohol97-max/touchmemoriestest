@@ -5,6 +5,7 @@ import AbandonedCartEmail from '@/emails/AbandonedCartEmail';
 import WinBackEmail from '@/emails/WinBackEmail';
 import BirthdayEmail from '@/emails/BirthdayEmail';
 import { getAdminClient } from '@/lib/supabase/admin';
+import OrderPaidEmail from '@/components/email/OrderPaidEmail';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,6 +85,18 @@ export default async function EmailPreviewsPage() {
             enabled: enabledOf('birthday'),
             subject: subjOf('birthday'),
             html: await render(BirthdayEmail({ firstName: 'Іра', promoCode: 'HAPPY-IRA-1234', validUntil: '7 днів', discountValue: '-20%', appUrl, body: bodyOf('birthday') })),
+        },
+        {
+            title: 'Оплату отримано — повна оплата',
+            when: 'Monobank підтвердив повну оплату',
+            provider: '—',
+            html: await render(OrderPaidEmail({ orderNumber: 'PB-2026-0042', customerName: 'Іра', variant: 'full', paidAmount: 1450, total: 1450 })),
+        },
+        {
+            title: 'Передоплату отримано — 50% (split)',
+            when: 'Monobank підтвердив передоплату',
+            provider: '—',
+            html: await render(OrderPaidEmail({ orderNumber: 'PB-2026-0043', customerName: 'Іра', variant: 'prepayment', paidAmount: 725, remainingAmount: 725, total: 1450 })),
         },
     ];
 

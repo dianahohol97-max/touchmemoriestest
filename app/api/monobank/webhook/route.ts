@@ -332,6 +332,25 @@ export async function POST(req: Request) {
                 });
             }
 
+            // Payment-received email (full payment or split prepayment).
+            // Fire-and-forget on the first transition to paid so a Brevo
+            // hiccup never makes Monobank retry the payment webhook. Goes
+            // through the transactional route, which renders OrderPaidEmail
+            // and picks the variant from the order's payment_type.
+            if (existingOrder.payment_status !== 'paid') {
+                const baseUrl = getRuntimeBaseUrl();
+                fetch(`${baseUrl}/api/email/transactional`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-cron-secret': process.env.CRON_SECRET || '',
+                    },
+                    body: JSON.stringify({ action: 'paid', orderId: reference }),
+                }).catch(err => {
+                    console.error('payment-received email trigger failed:', err);
+                });
+            }
+
             // Designer service handoff. If the customer paid for an order
             // with with_designer=true, this is the moment to:
             //  - create the design_brief row (so the customer's brief link

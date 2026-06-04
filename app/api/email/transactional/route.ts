@@ -3,6 +3,7 @@ import { render } from '@react-email/render';
 import { sendEmail } from '@/lib/email/resend';
 import OrderPlacedEmail from '@/components/email/OrderPlacedEmail';
 import OrderShippedEmail from '@/components/email/OrderShippedEmail';
+import OrderPaidEmail from '@/components/email/OrderPaidEmail';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
@@ -91,6 +92,25 @@ export async function POST(req: Request) {
                 ttn: order.ttn || 'Очікується',
                 deliveryMethod: order.delivery_method,
                 deliveryAddress: `${order.delivery_address?.city || ''}, ${order.delivery_address?.warehouse || ''}`
+            }));
+        } else if (action === 'paid') {
+            const isPrepay = order.payment_type === 'split';
+            const total = Number(order.total) || 0;
+            const prepaid = Number(order.prepaid_amount || 0);
+            const paidAmount = isPrepay ? prepaid : total;
+            const remainingAmount = isPrepay
+                ? Number(order.cod_amount ?? order.pickup_unpaid_balance ?? (total - prepaid)) || 0
+                : 0;
+            subject = isPrepay
+                ? `Передоплату за замовлення №${order.order_number} отримано`
+                : `Оплату за замовлення №${order.order_number} отримано`;
+            htmlContent = await render(OrderPaidEmail({
+                orderNumber: order.order_number,
+                customerName: order.customer_name,
+                variant: isPrepay ? 'prepayment' : 'full',
+                paidAmount,
+                remainingAmount,
+                total,
             }));
         } else {
             return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
