@@ -26,6 +26,7 @@ import { TravelBookCTA } from '@/components/TravelBookCTA';
 
 
 import { getAdminClient } from '@/lib/supabase/admin';
+import LandingLinks from '@/components/seo/LandingLinks';
 
 export const revalidate = 14400; // Cache for 4 hours — homepage content rarely changes
 
@@ -291,6 +292,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           <FinalCTA />
         </SectionWrapper>
       </main>
+      <LandingLinks locale={locale} />
       <Footer categories={allCategories || []} />
     </div>
   );
