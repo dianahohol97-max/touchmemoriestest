@@ -1,7 +1,9 @@
 import { Resend } from 'resend';
+import { sendBrevoEmail, getBrevoApiKey } from './brevo';
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'hello@touchmemories.ua';
 const FROM_NAME = process.env.RESEND_FROM_NAME || 'TouchMemories';
+const BREVO_FROM_EMAIL = process.env.BREVO_FROM_EMAIL || 'touch.memories3@gmail.com';
 
 /**
  * Lazy initialization of Resend client to prevent build-time errors
@@ -74,7 +76,24 @@ export async function sendEmail({
         }
     }
 
-    // 4. Send via Resend
+    // 4. Send. Prefer Resend when it's configured; otherwise deliver via Brevo
+    // (the provider Diana set up) so welcome / design-reminder / birthday emails
+    // actually go out. The tracking pixel + unsubscribe footer are already baked
+    // into finalHtml above, so they survive either transport.
+    if (!process.env.RESEND_API_KEY) {
+        if (!getBrevoApiKey()) {
+            console.error('No email provider configured (set RESEND_API_KEY or BREVO_API_KEY/BREVO_API_TOKEN)');
+            return { success: false, error: 'No email provider configured' };
+        }
+        try {
+            const data = await sendBrevoEmail({ to, subject, html: finalHtml, fromEmail: BREVO_FROM_EMAIL, fromName: FROM_NAME });
+            return { success: true, data };
+        } catch (error) {
+            console.error('Failed to send email via Brevo fallback:', error);
+            return { success: false, error };
+        }
+    }
+
     try {
         const data = await resend.emails.send({
             from: `${FROM_NAME} <${FROM_EMAIL}>`,
