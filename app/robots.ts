@@ -16,6 +16,12 @@ export default function robots(): MetadataRoute.Robots {
           '/dyakuiemo',
           '/order/',
           '/review/',
+          // Locale-prefixed variants (pages live under /uk, /en, /ro, /pl, /de)
+          '/*/account',
+          '/*/checkout',
+          '/*/order',
+          '/*/review',
+          '/*/dyakuiemo',
         ],
       },
     ],
