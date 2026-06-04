@@ -3,6 +3,14 @@
     gap: 12px;
 }
 
+/* Grid/flex items default to min-width:auto, which refuses to shrink below
+ * their content's min-content width — a long word or a wide options row then
+ * pushes the column past the viewport, widening the page and (with margin:0
+ * auto) clipping content off the left edge on mobile. Let the columns shrink. */
+.productLayout > * {
+    min-width: 0;
+}
+
 .customScrollbar::-webkit-scrollbar {
     height: 6px;
 }

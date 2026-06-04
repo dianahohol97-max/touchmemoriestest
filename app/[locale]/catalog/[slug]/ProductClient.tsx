@@ -733,10 +733,10 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
     };
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ minHeight: '100vh', backgroundColor: '#fff', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
             <Navigation />
 
-            <main className={styles.mainContainer} style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+            <main className={styles.mainContainer} style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1200px', margin: '0 auto', width: '100%', minWidth: 0 }}>
                 {/* Back Button */}
                 <button
                     onClick={() => router.back()}
@@ -883,7 +883,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                             ProductCard so the state is consistent between
                             list and detail views. */}
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: '16px' }}>
-                            <h1 className={styles.productTitleMain} style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: 0, lineHeight: 1.2, flex: 1 }}>
+                            <h1 className={styles.productTitleMain} style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: 0, lineHeight: 1.2, flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>
                                 {getLocalized(product, locale, "name")}
                             </h1>
                             <div style={{ flexShrink: 0, marginTop: 4 }}>
