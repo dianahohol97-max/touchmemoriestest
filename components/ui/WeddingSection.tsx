@@ -26,7 +26,8 @@ export function WeddingSection() {
                 {
                     name: t('wedding.newspaper'),
                     image: '/images/wedding/newspaper.png',
-                    href: '/catalog?category=newspapers'
+                    href: '/catalog?category=newspapers',
+                    orderHref: '/catalog/wedding-newspaper'
                 }
             ]
         },
@@ -99,7 +100,7 @@ export function WeddingSection() {
                                                 {product.name}
                                             </h3>
                                             <Link
-                                                href={product.href}
+                                                href={(product as any).orderHref ?? product.href}
                                                 className="inline-block bg-[#1e2d7d] text-white hover:bg-[#263a99] font-semibold px-5 py-2.5 rounded-full transition-colors text-sm"
                                             >
                                                 {t('wedding.order')}
