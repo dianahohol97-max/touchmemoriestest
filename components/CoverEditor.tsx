@@ -404,6 +404,15 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
 
   const photo = photos.find(p => p.id === config.photoId) ?? null;
 
+  // Whether to render the front-cover photo slot. hidePhotoSlot (hard-cover
+  // journals) was meant to hide the empty "drag a photo" placeholder over the
+  // chosen background colour — but it also hid an ACTUAL photo placed via a
+  // cover template or Магічна збірка, so the cover looked blank in the canvas
+  // while the thumbnail showed it. Render the slot whenever it's not hidden OR
+  // a photo is present: the placeholder stays hidden on empty hard-journal
+  // covers, but a real cover photo always shows.
+  const renderPrintedPhotoSlot = !isSoft && (!hidePhotoSlot || !!photo) && config.printedPhotoSlot !== null;
+
   // Flex/metal color resolving
   const flexColorVal = config.decoColor || 'gold';
   const flexHex = FLEX_COLORS.find(c=>c.value===flexColorVal)?.color || '#D4AF37';
@@ -461,7 +470,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
       )}
 
       {/* Printed cover — draggable photo slot + text blocks + overlay */}
-      {!isSoft && !hidePhotoSlot && config.printedPhotoSlot !== null && (() => {
+      {renderPrintedPhotoSlot && (() => {
         const slot = config.printedPhotoSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' as const };
         const texts = config.printedTextBlocks ?? [];
         const overlay = config.printedOverlay ?? { type: 'none' as const, color: '#000000', opacity: 40, gradient: 'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };
@@ -653,7 +662,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
           their text was added to state but never rendered. This block
           renders printedTextBlocks for the printed cover whenever the
           photo-slot block above did NOT (so text never double-renders). */}
-      {!isSoft && (hidePhotoSlot || config.printedPhotoSlot === null) && (() => {
+      {!isSoft && !renderPrintedPhotoSlot && (() => {
         const texts = config.printedTextBlocks ?? [];
         if (texts.length === 0) return null;
         return (
