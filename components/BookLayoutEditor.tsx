@@ -1204,6 +1204,17 @@ export default function BookLayoutEditor() {
     setCoverState(prev.coverState);
     setHistory(h => h.slice(0, -1));
   };
+  // Cover edits (photo move/resize, text, slot, delete) all flow through this.
+  // It records an undo snapshot, coalescing rapid changes (a drag fires many
+  // onChange ticks) into ONE entry via a 500ms gate — so a single Undo reverts
+  // one cover action instead of skipping all cover edits and jumping to start.
+  const lastCoverPushRef = useRef(0);
+  const onCoverChange = (cfg: any) => {
+    const now = Date.now();
+    if (now - lastCoverPushRef.current > 500) pushHistory();
+    lastCoverPushRef.current = now;
+    setCoverState(prev => handleCoverChange(cfg, prev));
+  };
   const [dragPhotoId, setDragPhotoId] = useState<string | null>(null);
   const [tapSelectedPhotoId, setTapSelectedPhotoId] = useState<string | null>(null); // mobile tap-to-place
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set()); // desktop multi-select
@@ -5315,7 +5326,7 @@ export default function BookLayoutEditor() {
                     config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
                     photos={photos}
                     hidePhotoSlot={isHardCoverJournal}
-                    onChange={(cfg: any) => setCoverState(prev => handleCoverChange(cfg, prev))}
+                    onChange={onCoverChange}
                   />
                   {/* Shapes, stickers, frames on top of cover — for printed/magazine/travelbook covers */}
                   {isPrinted && (
@@ -5393,7 +5404,7 @@ export default function BookLayoutEditor() {
                     config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
                     photos={photos}
                     hidePhotoSlot={isHardCoverJournal}
-                    onChange={(cfg: any) => setCoverState(prev => handleCoverChange(cfg, prev))}
+                    onChange={onCoverChange}
                   />
                   {isPrinted && (
                     <div style={{ position:'absolute', inset:0, zIndex:15, pointerEvents:'none' }}>
