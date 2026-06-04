@@ -35,25 +35,31 @@ const STEPS = ['Фото', 'Коментар', 'Доставка', 'Контак
 
 function StepIndicator({ current }: { current: number }) {
   return (
-    <div className="flex items-center justify-center mb-10">
-      {STEPS.map((label, i) => {
-        const idx = i + 1
-        const done = idx < current
-        const active = idx === current
-        return (
-          <div key={i} className="flex items-center">
-            <div className="flex flex-col items-center">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${done || active ? 'bg-[#1e2d7d] text-white' : 'bg-gray-200 text-gray-500'}`}>
-                {done ? <Check className="w-5 h-5" /> : idx}
+    <div className="mb-8 md:mb-10">
+      <div className="flex items-center justify-center">
+        {STEPS.map((label, i) => {
+          const idx = i + 1
+          const done = idx < current
+          const active = idx === current
+          return (
+            <div key={i} className="flex items-center">
+              <div className="flex flex-col items-center">
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${done || active ? 'bg-[#1e2d7d] text-white' : 'bg-gray-200 text-gray-500'}`}>
+                  {done ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : idx}
+                </div>
+                <span className={`hidden sm:block text-xs mt-1 font-medium ${active ? 'text-[#1e2d7d]' : 'text-gray-400'}`}>{label}</span>
               </div>
-              <span className={`text-xs mt-1 font-medium ${active ? 'text-[#1e2d7d]' : 'text-gray-400'}`}>{label}</span>
+              {i < STEPS.length - 1 && (
+                <div className={`w-6 sm:w-10 h-0.5 mx-1 sm:mb-4 ${idx < current ? 'bg-[#1e2d7d]' : 'bg-gray-200'}`} />
+              )}
             </div>
-            {i < STEPS.length - 1 && (
-              <div className={`w-10 h-0.5 mb-4 mx-1 ${idx < current ? 'bg-[#1e2d7d]' : 'bg-gray-200'}`} />
-            )}
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
+      {/* Mobile: show the current step name on its own line (labels are hidden above to fit) */}
+      <div className="sm:hidden text-center mt-3 text-sm font-semibold text-[#1e2d7d]">
+        Крок {current} з {STEPS.length}: {STEPS[current - 1]}
+      </div>
     </div>
   )
 }
