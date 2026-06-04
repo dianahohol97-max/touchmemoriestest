@@ -61,7 +61,7 @@ export default function ContentManagementPage() {
     const supabase = createClient();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState<'hero' | 'buttons' | 'features' | 'sections'>('hero');
+    const [activeTab, setActiveTab] = useState<'hero' | 'buttons' | 'features' | 'sections' | 'articles'>('hero');
 
     // Hero content
     const [heroContent, setHeroContent] = useState<HeroContent | null>(null);
@@ -70,17 +70,22 @@ export default function ContentManagementPage() {
     const [sectionContent, setSectionContent] = useState<SectionContent[]>([]);
     const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [featuredArticles, setFeaturedArticles] = useState<any[]>([]);
+    const [articlesLoaded, setArticlesLoaded] = useState(false);
 
-    // Upload a file to a public Supabase Storage bucket and return its public URL
+    // Upload via the server-side admin route (service role). This sidesteps the
+    // client-side storage RLS/session issues that made homepage photo/video
+    // uploads silently fail, and returns a public URL.
     async function uploadToStorage(file: File, bucket: string, folder: string): Promise<string | null> {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `${folder}/${fileName}`;
         try {
-            const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
-            if (uploadError) throw uploadError;
-            const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(filePath);
-            return publicUrl;
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('bucket', bucket);
+            fd.append('folder', folder);
+            const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+            return json.url as string;
         } catch (err: any) {
             console.error('Upload error:', err);
             toast.error(`Помилка завантаження: ${err.message || err}`);
@@ -131,6 +136,49 @@ export default function ContentManagementPage() {
     useEffect(() => {
         fetchAllContent();
     }, []);
+
+    // ---- Homepage articles ("Статті на головній" / featured_articles) ----
+    async function fetchFeaturedArticles() {
+        try {
+            const res = await fetch('/api/admin/featured-articles?section=travel');
+            const json = await res.json().catch(() => ({}));
+            if (res.ok) { setFeaturedArticles(json.articles || []); setArticlesLoaded(true); }
+            else toast.error(json.error || 'Не вдалося завантажити статті');
+        } catch (e: any) { toast.error('Помилка: ' + (e.message || e)); }
+    }
+    function updateArticleField(id: string, field: string, value: any) {
+        setFeaturedArticles(prev => prev.map(a => a.id === id ? { ...a, [field]: value } : a));
+    }
+    async function saveArticle(a: any) {
+        const res = await fetch('/api/admin/featured-articles', {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(a),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (res.ok) toast.success('Збережено'); else toast.error(json.error || 'Помилка збереження');
+    }
+    async function addArticle() {
+        const res = await fetch('/api/admin/featured-articles', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ section: 'travel', title: 'Нова стаття', description: '', category_label: '', link_url: '/blog', position: featuredArticles.length + 1, is_active: true }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (res.ok && json.article) { setFeaturedArticles(prev => [...prev, json.article]); toast.success('Додано'); }
+        else toast.error(json.error || 'Помилка');
+    }
+    async function deleteArticle(id: string) {
+        if (!window.confirm('Видалити цю статтю з головної сторінки?')) return;
+        const res = await fetch('/api/admin/featured-articles?id=' + id, { method: 'DELETE' });
+        if (res.ok) { setFeaturedArticles(prev => prev.filter(a => a.id !== id)); toast.success('Видалено'); }
+        else toast.error('Помилка видалення');
+    }
+    async function handleArticleImageUpload(id: string, file: File) {
+        setUploading(true);
+        const tId = toast.loading('Завантаження фото...');
+        const url = await uploadToStorage(file, 'touch-memories-assets', 'content/articles');
+        toast.dismiss(tId);
+        if (url) { updateArticleField(id, 'image_url', url); toast.success('Фото завантажено — натисніть «Зберегти»'); }
+        setUploading(false);
+    }
 
     async function fetchAllContent() {
         setLoading(true);
@@ -463,6 +511,16 @@ export default function ContentManagementPage() {
                     }`}
                 >
                     Інші секції
+                </button>
+                <button
+                    onClick={() => { setActiveTab('articles'); if (!articlesLoaded) fetchFeaturedArticles(); }}
+                    className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                        activeTab === 'articles'
+                            ? 'border-[#1e2d7d] text-[#1e2d7d]'
+                            : 'border-transparent text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                    Статті на головній
                 </button>
             </div>
 
@@ -1105,6 +1163,142 @@ export default function ContentManagementPage() {
                             <p>Немає секцій для відображення</p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {activeTab === 'articles' && (
+                <div className="bg-white rounded-2xl border border-gray-200 p-6">
+                    <div className="flex items-start justify-between mb-2">
+                        <h2 className="text-2xl font-bold text-[#1e2d7d]">Статті на головній сторінці</h2>
+                        <button
+                            onClick={addArticle}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1e2d7d] text-white font-medium hover:bg-[#162056] transition-colors"
+                        >
+                            <Plus size={18} /> Додати статтю
+                        </button>
+                    </div>
+                    <p className="text-gray-500 mb-6">
+                        Це картки в секції Travel на головній. Показуються активні статті за порядком (поле «Позиція»), перші дві. «Всі статті» веде в блог окремо.
+                    </p>
+
+                    {featuredArticles.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                            <FileText size={48} className="mx-auto mb-4 opacity-50" />
+                            <p>Поки немає статей. Натисніть «Додати статтю».</p>
+                        </div>
+                    )}
+
+                    <div className="space-y-6">
+                        {featuredArticles.map((a) => (
+                            <div key={a.id} className="border border-gray-200 rounded-xl p-5">
+                                <div className="flex flex-col md:flex-row gap-5">
+                                    {/* Image */}
+                                    <div className="md:w-64 flex-shrink-0">
+                                        <div className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center mb-2">
+                                            {a.image_url ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img src={a.image_url} alt={a.title || ''} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <ImageIcon size={36} className="text-gray-300" />
+                                            )}
+                                        </div>
+                                        <label className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium cursor-pointer hover:bg-gray-50 ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                            <ImageIcon size={16} /> Завантажити фото
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                disabled={uploading}
+                                                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleArticleImageUpload(a.id, f); e.target.value = ''; }}
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {/* Fields */}
+                                    <div className="flex-1 space-y-3">
+                                        <div className="flex gap-3">
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Заголовок</label>
+                                                <input
+                                                    type="text"
+                                                    value={a.title || ''}
+                                                    onChange={(e) => updateArticleField(a.id, 'title', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1e2d7d]"
+                                                />
+                                            </div>
+                                            <div className="w-44">
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Бейдж (категорія)</label>
+                                                <input
+                                                    type="text"
+                                                    value={a.category_label || ''}
+                                                    placeholder="НАТХНЕННЯ"
+                                                    onChange={(e) => updateArticleField(a.id, 'category_label', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1e2d7d]"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">Опис</label>
+                                            <textarea
+                                                value={a.description || ''}
+                                                onChange={(e) => updateArticleField(a.id, 'description', e.target.value)}
+                                                rows={2}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1e2d7d] resize-y"
+                                            />
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Посилання (куди веде «Читати статтю»)</label>
+                                                <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg focus-within:border-[#1e2d7d]">
+                                                    <LinkIcon size={14} className="text-gray-400 flex-shrink-0" />
+                                                    <input
+                                                        type="text"
+                                                        value={a.link_url || ''}
+                                                        placeholder="/blog/your-article-slug"
+                                                        onChange={(e) => updateArticleField(a.id, 'link_url', e.target.value)}
+                                                        className="w-full focus:outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="w-28">
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Позиція</label>
+                                                <input
+                                                    type="number"
+                                                    value={a.position ?? 0}
+                                                    onChange={(e) => updateArticleField(a.id, 'position', parseInt(e.target.value || '0', 10))}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1e2d7d]"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-1">
+                                            <button
+                                                onClick={() => updateArticleField(a.id, 'is_active', !a.is_active)}
+                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${a.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                                            >
+                                                {a.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
+                                                {a.is_active ? 'Активна' : 'Прихована'}
+                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => deleteArticle(a.id)}
+                                                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50"
+                                                >
+                                                    <Trash2 size={16} /> Видалити
+                                                </button>
+                                                <button
+                                                    onClick={() => saveArticle(a)}
+                                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1e2d7d] text-white text-sm font-medium hover:bg-[#162056]"
+                                                >
+                                                    <Save size={16} /> Зберегти
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
