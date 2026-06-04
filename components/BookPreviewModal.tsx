@@ -8,6 +8,34 @@ import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from
 import type { QROverlay } from '@/lib/editor/qrOverlay';
 import { zIndexFor } from '@/lib/editor/zOrder';
 
+/**
+ * Renders a printed-cover caption the same way the editor's FitText does:
+ * one line, shrunk to fit the cover's safe width. Without this the preview
+ * used whiteSpace:'normal' + wordBreak, so a long caption wrapped onto two
+ * lines and looked much bigger than in the editor (which fits it to one line).
+ */
+function PreviewCoverText({ tb, maxWidthPx }: { tb: { text: string; fontSize: number; fontFamily: string; color: string; bold: boolean }; maxWidthPx: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const base = tb.fontSize * 0.85;
+  const [fit, setFit] = useState(base);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || maxWidthPx <= 0) { setFit(base); return; }
+    const prevWs = el.style.whiteSpace, prevFs = el.style.fontSize;
+    el.style.whiteSpace = 'nowrap';
+    el.style.fontSize = base + 'px';
+    const natural = el.scrollWidth;
+    let next = base;
+    if (natural > maxWidthPx && natural > 0) next = Math.max(8, Math.floor(base * (maxWidthPx / natural)));
+    el.style.whiteSpace = prevWs; el.style.fontSize = prevFs;
+    setFit(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tb.text, tb.fontSize, tb.fontFamily, tb.bold, maxWidthPx]);
+  return (
+    <span ref={ref} style={{ fontSize: fit + 'px', fontFamily: tb.fontFamily, color: tb.color, fontWeight: tb.bold ? 700 : 400, whiteSpace: 'nowrap', textAlign: 'center', lineHeight: 1.1, textShadow: '0 1px 3px rgba(0,0,0,0.5)', display: 'block' }}>{tb.text}</span>
+  );
+}
+
 //  Interfaces 
 
 interface SlotData {
@@ -383,7 +411,7 @@ export function BookPreviewModal({
       <div style={{ width: pageW, height: pageH, background: frontBg, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
         {/* Main photo slot */}
         <div style={{ position: 'absolute', left: `${slot.x / 100 * pageW}px`, top: `${slot.y / 100 * pageH}px`, width: `${slot.w / 100 * pageW}px`, height: `${slot.h / 100 * pageH}px`, borderRadius: br, overflow: 'hidden' }}>
-          {mainPhoto && <img src={mainPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />}
+          {mainPhoto && <img src={mainPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${(coverState as any)?.photoCropX ?? 50}% ${(coverState as any)?.photoCropY ?? 50}%`, transform: `scale(${(coverState as any)?.photoZoom ?? 1}) rotate(${(coverState as any)?.photoRotation ?? 0}deg)`, transformOrigin: `${(coverState as any)?.photoCropX ?? 50}% ${(coverState as any)?.photoCropY ?? 50}%` }} draggable={false} />}
         </div>
 
         {/* Multi-photo slots */}
@@ -409,7 +437,7 @@ export function BookPreviewModal({
           const safeY = Math.max(8, Math.min(92, tb.y));
           return (
             <div key={tb.id} style={{ position: 'absolute', left: `${safeX}%`, top: `${safeY}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 5, maxWidth: `${pageW * 0.84}px` }}>
-              <span style={{ fontSize: `${tb.fontSize * 0.85}px`, fontFamily: tb.fontFamily, color: tb.color, fontWeight: tb.bold ? 700 : 400, whiteSpace: 'normal', wordBreak: 'break-word', textAlign: 'center', lineHeight: 1.1, textShadow: '0 1px 3px rgba(0,0,0,0.5)', display: 'block' }}>{tb.text}</span>
+              <PreviewCoverText tb={tb} maxWidthPx={pageW * 0.84} />
             </div>
           );
         })}
