@@ -14,7 +14,9 @@ export function NewsletterPopup() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname !== '/') return;
+    // Home is locale-prefixed (/uk, /en, /ro, /pl, /de) and sometimes "/".
+    const isHome = pathname === '/' || /^\/(uk|en|ro|pl|de)$/.test(pathname);
+    if (!isHome) return;
     const hasSeen = localStorage.getItem('popup_shown');
     if (!hasSeen) {
       const timer = setTimeout(() => {
