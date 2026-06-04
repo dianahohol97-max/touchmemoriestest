@@ -25,16 +25,11 @@ export async function GET(req: Request) {
             .select('label, login, password, license_key')
             .eq('is_active', true);
         accounts = data || [];
-    } catch { /* fall through to env */ }
+    } catch { /* table read failed -> close nothing */ }
 
-    if (accounts.length === 0 && process.env.CHECKBOX_LOGIN && process.env.CHECKBOX_LICENSE_KEY) {
-        accounts = [{
-            label: 'env',
-            login: process.env.CHECKBOX_LOGIN,
-            password: process.env.CHECKBOX_PASSWORD,
-            license_key: process.env.CHECKBOX_LICENSE_KEY,
-        }];
-    }
+    // NOTE: no env fallback. Shift management is driven solely by fiscal_accounts
+    // so this cron can't touch a cash register that another system (e.g. KeyCRM)
+    // still owns during the transition. Until accounts are added, this is a no-op.
 
     for (const acc of accounts) {
         try {
