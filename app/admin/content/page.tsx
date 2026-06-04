@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { SectionLivePreview } from '@/components/admin/SectionLivePreview';
 import { toast } from 'sonner';
 import {
  Save,
@@ -974,6 +975,11 @@ export default function ContentManagementPage() {
                                                 </button>
                                             ) : null}
                                         </div>
+                                    </div>
+
+                                    {/* Live preview — reflects the current (unsaved) edits */}
+                                    <div className="mb-4">
+                                        <SectionLivePreview section={section} />
                                     </div>
 
                                     {isEditing ? (
