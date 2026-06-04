@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import ProductClient from './ProductClient';
 import { getLocalized } from '@/lib/i18n/localize';
 import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
+import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 
 interface Props {
   params: Promise<{ slug: string; locale: string }>;
@@ -167,7 +168,7 @@ export default async function ProductPage({ params }: Props) {
         '@type': 'ListItem',
         position: 3,
         name: category.name || 'Категорія',
-        item: getCanonicalUrl(locale, `/catalog?category=${category.slug}`),
+        item: getCanonicalUrl(locale, `/category/${toPublicCategorySlug(category.slug)}`),
       });
     }
     crumbs.push({ '@type': 'ListItem', position: crumbs.length + 1, name });

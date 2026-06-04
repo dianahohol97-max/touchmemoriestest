@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { LOCALES, getCanonicalUrl, HREFLANG_MAP } from '@/lib/seo/locales';
+import { LOCALES, getCanonicalUrl, getAlternateLanguages } from '@/lib/seo/locales';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 
 export const dynamic = 'force-dynamic';
@@ -24,10 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const route of STATIC_ROUTES) {
     for (const locale of LOCALES) {
-      const alternates: Record<string, string> = {};
-      for (const altLoc of LOCALES) {
-        alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, route.path);
-      }
+      const alternates = getAlternateLanguages(route.path);
       entries.push({
         url: getCanonicalUrl(locale, route.path),
         lastModified: new Date(),
@@ -45,10 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const p of products || []) {
     const path = `/catalog/${p.slug}`;
-    const alternates: Record<string, string> = {};
-    for (const altLoc of LOCALES) {
-      alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, path);
-    }
+    const alternates = getAlternateLanguages(path);
     for (const locale of LOCALES) {
       entries.push({
         url: getCanonicalUrl(locale, path),
@@ -67,10 +61,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const c of categories || []) {
     const path = `/category/${toPublicCategorySlug(c.slug)}`;
-    const alternates: Record<string, string> = {};
-    for (const altLoc of LOCALES) {
-      alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, path);
-    }
+    const alternates = getAlternateLanguages(path);
     for (const locale of LOCALES) {
       entries.push({
         url: getCanonicalUrl(locale, path),
@@ -89,10 +80,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const post of posts || []) {
     const path = `/blog/${post.slug}`;
-    const alternates: Record<string, string> = {};
-    for (const altLoc of LOCALES) {
-      alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, path);
-    }
+    const alternates = getAlternateLanguages(path);
     for (const locale of LOCALES) {
       entries.push({
         url: getCanonicalUrl(locale, path),
@@ -111,10 +99,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const lp of landings || []) {
     const path = `/category/${toPublicCategorySlug(lp.category_slug)}/${lp.occasion}`;
-    const alternates: Record<string, string> = {};
-    for (const altLoc of LOCALES) {
-      alternates[HREFLANG_MAP[altLoc]] = getCanonicalUrl(altLoc, path);
-    }
+    const alternates = getAlternateLanguages(path);
     for (const locale of LOCALES) {
       entries.push({
         url: getCanonicalUrl(locale, path),
