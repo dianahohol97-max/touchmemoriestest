@@ -325,10 +325,32 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
         const newX = cxSnap !== cxRaw ? cxSnap - orig.w/2 : rawX;
         const newY = cySnap !== cyRaw ? cySnap - orig.h/2 : rawY;
         onChange({ printedPhotoSlot: {...orig, x:Math.max(0,Math.min(100-orig.w,newX)), y:Math.max(0,Math.min(100-orig.h,newY)) }});
-      } else if (type==='se') onChange({ printedPhotoSlot: {...orig, w:Math.max(10,orig.w+ddx), h:Math.max(10,orig.h+ddy) }});
-      else if (type==='sw') onChange({ printedPhotoSlot: {...orig, x:orig.x+ddx, w:Math.max(10,orig.w-ddx), h:Math.max(10,orig.h+ddy) }});
-      else if (type==='ne') onChange({ printedPhotoSlot: {...orig, y:orig.y+ddy, w:Math.max(10,orig.w+ddx), h:Math.max(10,orig.h-ddy) }});
-      else if (type==='nw') onChange({ printedPhotoSlot: {...orig, x:orig.x+ddx, y:orig.y+ddy, w:Math.max(10,orig.w-ddx), h:Math.max(10,orig.h-ddy) }});
+      } else {
+        // Resize: keep the OPPOSITE corner anchored and clamp the slot fully
+        // inside the canvas. Previously x/y/w/h were unclamped, so dragging a
+        // corner could push the slot past the page edge and the photo would
+        // vanish from view mid-drag.
+        const MIN = 10;
+        const right = orig.x + orig.w;   // fixed edge for nw / sw
+        const bottom = orig.y + orig.h;  // fixed edge for nw / ne
+        if (type==='se') {
+          const w = Math.max(MIN, Math.min(100 - orig.x, orig.w + ddx));
+          const h = Math.max(MIN, Math.min(100 - orig.y, orig.h + ddy));
+          onChange({ printedPhotoSlot: {...orig, w, h }});
+        } else if (type==='sw') {
+          const x = Math.max(0, Math.min(right - MIN, orig.x + ddx));
+          const h = Math.max(MIN, Math.min(100 - orig.y, orig.h + ddy));
+          onChange({ printedPhotoSlot: {...orig, x, w: right - x, h }});
+        } else if (type==='ne') {
+          const y = Math.max(0, Math.min(bottom - MIN, orig.y + ddy));
+          const w = Math.max(MIN, Math.min(100 - orig.x, orig.w + ddx));
+          onChange({ printedPhotoSlot: {...orig, y, w, h: bottom - y }});
+        } else if (type==='nw') {
+          const x = Math.max(0, Math.min(right - MIN, orig.x + ddx));
+          const y = Math.max(0, Math.min(bottom - MIN, orig.y + ddy));
+          onChange({ printedPhotoSlot: {...orig, x, y, w: right - x, h: bottom - y }});
+        }
+      }
     }, () => setSnapLines({})); // clear on release
   };
 
