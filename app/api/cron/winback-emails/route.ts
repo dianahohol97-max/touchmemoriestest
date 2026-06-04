@@ -61,7 +61,7 @@ export async function GET(request: Request) {
                     toName: c.customer_name || c.email,
                     subject: 'Ми скучили — ваша знижка -10% на наступну фотокнигу',
                     html,
-                    fromEmail: 'hello@touchmemories.com.ua',
+                    fromEmail: 'touch.memories3@gmail.com',
                 });
                 await supabase.from('email_automation_log').insert({
                     email: c.email,

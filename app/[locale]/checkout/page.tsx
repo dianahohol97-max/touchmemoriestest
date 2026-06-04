@@ -141,6 +141,26 @@ export default function CheckoutPage() {
         }
     }, [items, currentStep, router, rawTotal]);
 
+    // Capture the cart for abandoned-cart recovery once a valid email is typed.
+    // Debounced; the server keeps only the latest snapshot per email and the
+    // cron reminds them if no order follows.
+    useEffect(() => {
+        const email = formData.email.trim().toLowerCase();
+        if (!/.+@.+\..+/.test(email) || items.length === 0) return;
+        const t = setTimeout(() => {
+            fetch('/api/cart/capture', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email,
+                    items: items.map((it: any) => ({ name: it.name, qty: it.qty, price: it.price, image: it.image })),
+                    total: getTotal(),
+                }),
+            }).catch(() => {});
+        }, 1500);
+        return () => clearTimeout(t);
+    }, [formData.email, items, getTotal]);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
