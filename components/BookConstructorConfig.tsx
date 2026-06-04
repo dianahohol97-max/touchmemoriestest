@@ -992,6 +992,36 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         router.push(`/editor/book/upload?${params.toString()}`);
     };
 
+    // Decoration types available per cover material. Mirrors the product page
+    // (ProductOptionsSelector): availability is a property of the COVER, not the
+    // selected size. decoration_variants only drive a type's sub-options (e.g.
+    // metal-insert sizes, which currently exist for leatherette only), so the
+    // type list must NOT be gated on a size/variant match — that hid every
+    // decoration until a size was picked and hid velour/fabric decorations
+    // entirely (they have no variant rows).
+    const availableDecorationTypes = (): any[] => {
+        const coverLc = (selectedCoverType || '').toLowerCase();
+        const isLeatherCover = coverLc.includes('шкір') || coverLc.includes('leather');
+        const isFabricCover = coverLc.includes('ткан') || coverLc.includes('fabric');
+        // Leatherette: no flex print / engraving. Fabric: no engraving. Velour: all.
+        const blocked = isLeatherCover
+            ? ['Друк кольором', 'Гравірування']
+            : isFabricCover
+                ? ['Гравірування']
+                : [];
+        return decorationTypes.filter((dt: any) => !blocked.includes(dt.name));
+    };
+
+    // Whether the currently-selected decoration type has selectable variants for
+    // this cover. Only then is picking a variant mandatory before continuing.
+    const selectedDecorationRequiresVariant = (): boolean => {
+        if (selectedDecorationType === 'none') return false;
+        return decorationVariants.some((dv: any) =>
+            dv.decoration_type?.name === selectedDecorationType &&
+            dv.cover_type?.name === selectedCoverType
+        );
+    };
+
     const isFormValid = (): boolean => {
         const pt = getProductType();
 
@@ -1000,7 +1030,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             if (!selectedCoverType) return false;
             if (!selectedPageCount) return false;
             if (selectedCoverType === 'Друкована' && !selectedLamination) return false;
-            if (selectedDecorationType !== 'none' && !selectedDecorationVariant) return false;
+            if (selectedDecorationRequiresVariant() && !selectedDecorationVariant) return false;
             if (selectedCoverType !== 'Друкована' && !selectedCoverColor) return false;
             return true;
         }
@@ -1011,7 +1041,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             if (!selectedCoverType) return false;
             if (selectedCoverType !== 'Друкована' && !selectedCoverColor) return false;
             if (selectedCoverType === 'Друкована' && !selectedLamination) return false;
-            if (selectedDecorationType !== 'none' && !selectedDecorationVariant) return false;
+            if (selectedDecorationRequiresVariant() && !selectedDecorationVariant) return false;
             return true;
         }
 
@@ -1220,13 +1250,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     }`}>
                                     <span className="block font-bold">{t('book_config.no_decoration')}</span>
                                 </button>
-                                {decorationTypes.map((dt: any) => {
-                                    const hasVariants = decorationVariants.some(
-                                        (dv: any) => dv.decoration_type?.name === dt.name &&
-                                        dv.cover_type?.name === selectedCoverType &&
-                                        dv.size?.name === selectedSize
-                                    );
-                                    if (!hasVariants) return null;
+                                {availableDecorationTypes().map((dt: any) => {
                                     return (
                                         <button key={dt.id} type="button"
                                             onClick={() => { setSelectedDecorationType(dt.name); setSelectedDecorationVariant(''); }}
@@ -1423,14 +1447,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 >
                                     <span className="block font-bold">{t('book_config.no_decoration')}</span>
                                 </button>
-                                {decorationTypes.map((dt: any) => {
-                                    // Check if this decoration type has variants for selected cover+size
-                                    const hasVariants = decorationVariants.some(
-                                        (dv: any) => dv.decoration_type?.name === dt.name &&
-                                        dv.cover_type?.name === selectedCoverType &&
-                                        dv.size?.name === selectedSize
-                                    );
-                                    if (!hasVariants) return null;
+                                {availableDecorationTypes().map((dt: any) => {
                                     return (
                                         <button
                                             key={dt.id}
