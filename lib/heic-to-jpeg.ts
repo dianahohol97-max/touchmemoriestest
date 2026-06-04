@@ -7,7 +7,7 @@
 // when a HEIC actually appears so the editor bundle stays light for everyone
 // else.
 
-function isHeic(file: File): boolean {
+export function isHeic(file: File): boolean {
   const type = (file.type || '').toLowerCase();
   if (
     type === 'image/heic' ||

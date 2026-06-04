@@ -58,7 +58,7 @@ const CYRILLIC_DECORATIVE_FONTS = [
   { label:'Ubuntu', value:'Ubuntu', style:'sans' },
 ];
 import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from './BackgroundLayer';
-import { normalizeImageFile } from '@/lib/heic-to-jpeg';
+import { normalizeImageFile, isHeic } from '@/lib/heic-to-jpeg';
 import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
@@ -2337,6 +2337,19 @@ export default function BookLayoutEditor() {
     const results: { idx: number; photo: PhotoData | null }[] = [];
     let done = 0;
 
+    // HEIC (iPhone) files are converted via libheif, which can take a second or
+    // two each — show a converting toast so the batch doesn't look frozen, and
+    // clear it once every file has been normalized (not waited on full decode).
+    const heicCount = files.filter(f => isHeic(f)).length;
+    const convToastId = heicCount > 0
+      ? toast.loading(heicCount === 1 ? 'Конвертую фото з iPhone…' : `Конвертую ${heicCount} фото з iPhone…`)
+      : undefined;
+    let normRemaining = total;
+    const finishNormalize = () => {
+      normRemaining--;
+      if (normRemaining <= 0 && convToastId !== undefined) toast.dismiss(convToastId);
+    };
+
     const tryCommit = () => {
       done++;
       if (done < total) return;
@@ -2357,6 +2370,7 @@ export default function BookLayoutEditor() {
       // Convert HEIC/HEIF (iPhone) to JPEG before the decode pipeline, so
       // those photos load instead of being silently dropped by img.onerror.
       normalizeImageFile(origFile).then((file: File) => {
+      finishNormalize();
       const reader = new FileReader();
       reader.onload = ev => {
         const originalDataUrl = ev.target!.result as string;
@@ -2429,7 +2443,7 @@ export default function BookLayoutEditor() {
         tryCommit();
       };
       reader.readAsDataURL(file);
-      }).catch(() => { results.push({ idx, photo: null }); tryCommit(); });
+      }).catch(() => { finishNormalize(); results.push({ idx, photo: null }); tryCommit(); });
     });
     e.target.value = '';
   };

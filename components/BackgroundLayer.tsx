@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import { ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { normalizeImageFile } from '@/lib/heic-to-jpeg';
+import { normalizeImageFile, isHeic } from '@/lib/heic-to-jpeg';
 
 export interface PageBackground {
   type: 'color' | 'image';
@@ -67,8 +67,12 @@ export function BackgroundControls({ bg, onChange }: BgControlsProps) {
     if (!picked) return;
     e.target.value = '';
     // Convert HEIC/HEIF (iPhone) to JPEG up front so the decode step below
-    // succeeds instead of falling into the "unsupported" branch.
+    // succeeds instead of falling into the "unsupported" branch. Decoding a
+    // large HEIC via libheif can take a second or two, so surface a toast —
+    // otherwise it looks like the picker did nothing.
+    const convToastId = isHeic(picked) ? toast.loading('Конвертую фото з iPhone…') : undefined;
     const file = await normalizeImageFile(picked);
+    if (convToastId !== undefined) toast.dismiss(convToastId);
     const reader = new FileReader();
     reader.onload = ev => {
       const dataUrl = ev.target?.result as string;
