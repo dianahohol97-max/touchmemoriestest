@@ -85,6 +85,7 @@ export async function generateMetadata({
     .trim()
     .slice(0, 160);
   const path = `/category/${toPublicCategorySlug(lp.category_slug)}/${occasion}`;
+  const ogImage = lp.hero_image || `${getBaseUrl()}/og-image.jpg`;
 
   return {
     title: title.includes('Touch.Memories') ? title : `${title} | Touch.Memories`,
@@ -100,7 +101,13 @@ export async function generateMetadata({
       siteName: 'Touch.Memories',
       locale: OG_LOCALE_MAP[locale],
       type: 'website',
-      ...(lp.hero_image ? { images: [{ url: lp.hero_image }] } : {}),
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
     },
   };
 }
