@@ -48,7 +48,10 @@ export async function GET(request: Request) {
         let errors = 0;
 
         for (const c of candidates as Array<{ email: string; customer_name: string | null }>) {
-            const firstName = (c.customer_name || '').trim().split(/\s+/)[0] || '';
+            const nameParts = (c.customer_name || '').trim().split(/\s+/).filter(Boolean);
+            // Legacy CRM stores "Прізвище Імʼя", so the given name is the last token
+            // (matches the |last convention used in the KeyCRM templates).
+            const firstName = nameParts.length ? nameParts[nameParts.length - 1] : '';
             try {
                 const html = await render(
                     WinBackEmail({ firstName, promoCode: 'WINBACK10', discount: '-10%', appUrl })
