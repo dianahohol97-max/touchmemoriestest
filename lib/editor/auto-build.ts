@@ -100,11 +100,19 @@ function pickBestLayout(
   const compatible = allLayouts.filter(l => l.slots === slotCount);
   if (compatible.length === 0) return allLayouts[0]?.id || 'p-full';
 
-  // Score each layout
-  const scored = compatible.map(l => {
+  // Orientation fit is a HARD preference, not just a bonus. If any compatible
+  // layout matches the group's orientation, we only ever choose among those.
+  // This stops a run of portrait photos from spilling onto a landscape-only
+  // layout (e.g. sp-full) just because the portrait-friendly layouts picked up
+  // variety penalties for repeating. Landscape photos go to spread/wide layouts,
+  // portrait photos stay on portrait layouts. Variety only breaks ties WITHIN
+  // the orientation-matched pool.
+  const orientationFit = compatible.filter(l => LAYOUT_ORIENTATION_SCORE[l.id]?.includes(orientation));
+  const pool = orientationFit.length > 0 ? orientationFit : compatible;
+
+  // Score each layout in the pool (variety penalty + small jitter)
+  const scored = pool.map(l => {
     let score = 0;
-    const orientations = LAYOUT_ORIENTATION_SCORE[l.id];
-    if (orientations?.includes(orientation)) score += 10;
     // Variety penalty
     const recentIdx = usedRecently.lastIndexOf(l.id);
     if (recentIdx >= 0) {
