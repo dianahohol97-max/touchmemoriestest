@@ -403,7 +403,8 @@ export function BookPreviewModal({
 
     const frontBg = coverState?.printedBgColor || '#fff';
     const overlay = coverState?.printedOverlay ?? { type: 'none', color: '#000', opacity: 40, gradient: '' };
-    const slot = coverState?.printedPhotoSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' };
+    const rawSlot = coverState?.printedPhotoSlot as any;
+    const slot = (rawSlot && (rawSlot.w ?? 0) > 0 && (rawSlot.h ?? 0) > 0) ? rawSlot : { x: 0, y: 0, w: 100, h: 100, shape: 'rect' };
     const mainPhoto = coverState?.photoId ? getPhoto(coverState.photoId) : null;
     const br = slot.shape === 'circle' ? '50%' : slot.shape === 'rounded' ? '12px' : slot.shape === 'heart' ? '50%' : '0px';
 
