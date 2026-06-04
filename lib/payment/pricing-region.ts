@@ -60,18 +60,17 @@ export interface IntlShippingConfig {
   flatFeeEur: number;
 }
 export const DEFAULT_INTL_SHIPPING: IntlShippingConfig = {
-  freeThresholdEur: 50,
-  flatFeeEur: 15,
+  freeThresholdEur: 0,
+  flatFeeEur: 25,
 };
 
 /**
  * Compute the international delivery fee, in UAH, for an order.
  *
- * The free-shipping threshold and the flat fee are defined in EUR (that's how
- * the customer sees "free shipping from €50"); the order's marked-up UAH
- * subtotal is converted to EUR with the same buffered rate used everywhere, so
- * the decision is currency-consistent. Charge is always UAH, so the EUR fee is
- * converted back to UAH for the actual Monobank charge.
+ * Free shipping is OFF when freeThresholdEur <= 0 (always charge the flat fee).
+ * When it's > 0, orders whose marked subtotal (converted to EUR with the same
+ * buffered rate used everywhere) reaches the threshold ship free. Charge is
+ * always UAH, so the EUR flat fee is converted back to UAH.
  *
  * Pure: pass the rate (UAH-per-EUR) and config in.
  */
@@ -81,8 +80,7 @@ export function computeIntlShippingUah(
   cfg: IntlShippingConfig = DEFAULT_INTL_SHIPPING,
 ): number {
   if (!eurRate || eurRate <= 0) return Math.round(cfg.flatFeeEur * 50); // defensive
-  const subtotalEur = markedSubtotalUah / eurRate;
-  if (subtotalEur >= cfg.freeThresholdEur) return 0;
+  if (cfg.freeThresholdEur > 0 && markedSubtotalUah / eurRate >= cfg.freeThresholdEur) return 0;
   return Math.round(cfg.flatFeeEur * eurRate);
 }
 

@@ -703,7 +703,9 @@ export default function CheckoutPage() {
                                                 />
                                             </div>
                                             <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.5 }}>
-                                                Міжнародна доставка — повна передоплата онлайн. Безкоштовно від €{intlCfg.freeThresholdEur}, інакше €{intlCfg.flatFeeEur}. Орієнтовний строк — 1–2 тижні (економна доставка).
+                                                Міжнародна доставка — повна передоплата онлайн. {intlCfg.freeThresholdEur > 0
+                                                    ? `Безкоштовно від €${intlCfg.freeThresholdEur}, інакше €${intlCfg.flatFeeEur}.`
+                                                    : `Вартість доставки — €${intlCfg.flatFeeEur}.`} Орієнтовний строк — 1–2 тижні.
                                             </div>
                                         </>)}
                                     </div>
