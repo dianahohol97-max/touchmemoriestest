@@ -6,6 +6,7 @@ import DesignerProjectBlock from './DesignerProjectBlock';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
+import { transliterateUk } from '@/lib/shipping/transliterate';
 import {
     ArrowLeft,
     User,
@@ -150,6 +151,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
     const [isEditingTTN, setIsEditingTTN] = useState(false);
     const [ttnValue, setTtnValue] = useState('');
+    const [intlTrackingValue, setIntlTrackingValue] = useState('');
+    const [savingIntl, setSavingIntl] = useState(false);
 
     // Nova Poshta TTN
     const [showTTNModal, setShowTTNModal] = useState(false);
@@ -302,6 +305,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             toast.dismiss(loadingToast);
             toast.error(e.message || 'Помилка');
         }
+    };
+
+    const saveIntlTracking = async () => {
+        const value = intlTrackingValue.trim();
+        if (!value) { toast.error('Введіть міжнародний трек-номер'); return; }
+        setSavingIntl(true);
+        const { error } = await supabase
+            .from('orders')
+            .update({
+                ttn: value,
+                tracking_carrier: 'nova_global',
+                tracking_url: `https://novaposhtaglobal.ua/tracking/${encodeURIComponent(value)}`,
+                order_status: order.order_status === 'new' || order.order_status === 'processing' ? 'shipped' : order.order_status,
+            })
+            .eq('id', id);
+        if (!error) {
+            toast.success('Міжнародний трек-номер збережено');
+            fetchOrder();
+        } else {
+            toast.error('Помилка збереження');
+        }
+        setSavingIntl(false);
     };
 
     const saveTTN = async () => {
@@ -617,6 +642,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     if (!order) return <div style={{ padding: '100px', textAlign: 'center' }}>Замовлення не знайдено</div>;
 
     const currentStatus = STATUS_OPTS.find(s => s.id === order.order_status) || STATUS_OPTS[0];
+    const isIntl = order.ship_region === 'INTL' || order.delivery_method === 'international';
+    const addr = (order.delivery_address || {}) as any;
 
     return (
         <div style={{ maxWidth: '1280px', margin: '0 auto', color: '#263A99' }}>
@@ -789,7 +816,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <div style={cardStyle}>
                             <div style={cardHeaderStyle}>
                                 <h3 style={cardTitleStyle}><Truck size={20} /> Доставка</h3>
-                                {!(order.tracking_number || order.ttn) && (
+                                {!(order.tracking_number || order.ttn) && !isIntl && (
                                     <button
                                         onClick={openTTNModal}
                                         style={{
@@ -849,6 +876,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             >
                                                 <Copy size={14} />
                                             </button>
+                                            {!isIntl && (
                                             <button
                                                 onClick={trackTTN}
                                                 disabled={trackingTTN}
@@ -863,9 +891,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             >
                                                 {trackingTTN ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                                             </button>
+                                            )}
                                         </div>
                                         <a
-                                            href={`https://novaposhta.ua/tracking/?cargo_number=${order.tracking_number || order.ttn}`}
+                                            href={order.tracking_carrier === 'nova_global'
+                                                ? (order.tracking_url || `https://novaposhtaglobal.ua/tracking/${order.ttn}`)
+                                                : `https://novaposhta.ua/tracking/?cargo_number=${order.tracking_number || order.ttn}`}
                                             target="_blank"
                                             style={{
                                                 fontSize: '13px',
@@ -876,7 +907,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 gap: '4px'
                                             }}
                                         >
-                                            Відстежити на novaposhta.ua <ExternalLink size={12} />
+                                            {order.tracking_carrier === 'nova_global'
+                                                ? <>Відстежити на Nova Global <ExternalLink size={12} /></>
+                                                : <>Відстежити на novaposhta.ua <ExternalLink size={12} /></>}
                                         </a>
                                         {trackingInfo && (
                                             <div style={{
@@ -901,6 +934,63 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     <div style={{ ...infoValueStyle, color: '#94a3b8' }}>—</div>
                                 )}
                             </div>
+
+                            {isIntl && (
+                                <div style={{ marginTop: 16, padding: 14, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        🌍 Міжнародне відправлення (Nova Global)
+                                    </div>
+                                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12, lineHeight: 1.5 }}>
+                                        Накладну створюєш вручну в кабінеті Nova Global. Дані нижче вже транслітеровані — скопіюй у заявку, потім встав отриманий трек-номер.
+                                    </div>
+                                    {(() => {
+                                        const rows: [string, string][] = [
+                                            ['Отримувач', transliterateUk(order.customer_name)],
+                                            ['Країна', transliterateUk(addr.country)],
+                                            ['Місто', transliterateUk(addr.city)],
+                                            ['Індекс', addr.postal || ''],
+                                            ['Адреса', transliterateUk(addr.address)],
+                                            ['Телефон', (order.customer_phone || '').replace(/\s/g, '')],
+                                            ['Опис (митниця)', 'Photo products / Photo book'],
+                                            ['Вартість, UAH', String(order.total ?? '')],
+                                        ];
+                                        const block = rows.map(([k, v]) => `${k}: ${v}`).join('\n');
+                                        return (
+                                            <div style={{ marginBottom: 12 }}>
+                                                {rows.map(([k, v]) => (
+                                                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, padding: '3px 0', borderBottom: '1px solid #eef2f7' }}>
+                                                        <span style={{ color: '#94a3b8' }}>{k}</span>
+                                                        <span style={{ fontWeight: 600, textAlign: 'right', wordBreak: 'break-word' }}>{v || '—'}</span>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={() => { navigator.clipboard.writeText(block); toast.success('Дані скопійовано'); }}
+                                                    style={{ marginTop: 8, padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: 7, background: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                                                >
+                                                    <Copy size={13} /> Скопіювати все
+                                                </button>
+                                            </div>
+                                        );
+                                    })()}
+                                    {!order.ttn && (
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <input
+                                                value={intlTrackingValue}
+                                                onChange={e => setIntlTrackingValue(e.target.value)}
+                                                placeholder="Міжнародний трек-номер"
+                                                style={{ flex: 1, padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, outline: 'none' }}
+                                            />
+                                            <button
+                                                onClick={saveIntlTracking}
+                                                disabled={savingIntl}
+                                                style={{ padding: '9px 14px', background: '#263A99', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: savingIntl ? 'wait' : 'pointer' }}
+                                            >
+                                                {savingIntl ? '...' : 'Зберегти'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div style={cardStyle}>
