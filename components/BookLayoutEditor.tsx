@@ -5186,8 +5186,8 @@ export default function BookLayoutEditor() {
                 </button>
                 {currentIdx !== 0 && (
                   <button onClick={removeCurrentSpread} title="Видалити поточний розворот" disabled={pages.length <= minPagesLen}
-                    style={{ display:'flex', alignItems:'center', gap:3, padding:'5px 10px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:pages.length<=3?'not-allowed':'pointer', color:pages.length<=3?'#fca5a5':'#ef4444', fontWeight:700, fontSize:12, opacity:pages.length<=3?0.5:1 }}>
-                    {t('constructor.remove_spread')}
+                    style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', border:'1px solid #fee2e2', borderRadius:8, background:'#fff7f7', cursor:pages.length<=3?'not-allowed':'pointer', color:pages.length<=3?'#fca5a5':'#ef4444', fontWeight:700, fontSize:12, opacity:pages.length<=3?0.5:1 }}>
+                    <Trash2 size={13} /> {t('constructor.remove_spread')}
                   </button>
                 )}
               </>
@@ -6958,6 +6958,14 @@ export default function BookLayoutEditor() {
                 </button>
               );
             })}
+            {/* Add-spread card — sits at the bottom of the spreads list */}
+            <button onClick={addSpread} title="Додати новий розворот в кінець"
+              style={{ width:'100%', padding:'4px', border:'2px dashed #a7f3d0', borderRadius:6, background:'#f0fdf4', cursor:'pointer', textAlign:'center' }}>
+              <div style={{ width:'100%', aspectRatio:`${prop.w*2}/${prop.h}`, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:3, marginBottom:3, color:'#059669' }}>
+                <Plus size={26} strokeWidth={2.5} />
+              </div>
+              <span style={{ fontSize:9, fontWeight:800, color:'#059669' }}>+ додати розворот</span>
+            </button>
           </div>
         </div>
         }{/* end right panel */}
