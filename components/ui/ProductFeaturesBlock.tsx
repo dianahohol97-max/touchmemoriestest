@@ -141,7 +141,7 @@ function PhotobookCoversSection() {
       </div>
 
       {/* Cover content */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'start', maxWidth: 1000, margin: '0 auto' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-start max-w-[1000px] mx-auto">
 
         {/* Left — visual */}
         <div>
@@ -310,8 +310,7 @@ function JournalCoversSection() {
       </div>
 
       {/* Content */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'start',
-        maxWidth: 1000, margin: '0 auto' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-start max-w-[1000px] mx-auto">
 
         {/* Left — visual mockup */}
         <div style={{ borderRadius: 16, padding: 40, background: active.bgGradient,
@@ -409,8 +408,8 @@ export function ProductFeaturesBlock({ features, isPhotobook, isJournal }: Produ
             {features!.map((feat, i) => {
               const imgLeft = (i % 2 === 0) !== (feat.imagePosition === 'right');
               return (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center',
-                  ...(imgLeft ? {} : { direction: 'rtl' }) }}>
+                <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-7 md:gap-12 items-center"
+                  style={{ ...(imgLeft ? {} : { direction: 'rtl' }) }}>
                   {/* Image */}
                   {feat.imageUrl ? (
                     <div style={{ borderRadius: 16, overflow: 'hidden', aspectRatio: '4/3', position: 'relative', direction: 'ltr' }}>
