@@ -1144,6 +1144,10 @@ export default function ContentManagementPage() {
                                                                                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionEditorImageUpload(section.id, key, f); e.target.value = ''; }} />
                                                                         </label>
                                                                         {imgurl && <img src={imgurl} alt="" className="h-16 rounded border border-gray-200 object-cover" />}
+                                                                        {imgurl && (
+                                                                            <button type="button" onClick={() => updateConstructorMeta(section.id, key, { image_url: null, image_position: null, ...(vurl ? { media_type: 'video' } : {}) })}
+                                                                                className="px-2.5 py-1 rounded text-xs font-semibold border border-red-200 bg-white text-red-600 hover:bg-red-50">Видалити фото</button>
+                                                                        )}
                                                                     </div>
 
                                                                     {(vurl || imgurl) && (
