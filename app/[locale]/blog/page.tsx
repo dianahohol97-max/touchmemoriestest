@@ -131,7 +131,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                 {/* Hero Featured Article */}
                 {!category && featuredPost && currentPage === 1 && (
                     <Link href={`/blog/${featuredPost.slug}`} style={{ display: 'block', textDecoration: 'none', marginBottom: '60px' }}>
-                        <div style={{ position: 'relative', borderRadius: "12px", overflow: 'hidden', height: '500px', display: 'flex', alignItems: 'flex-end', backgroundColor: '#e2e8f0', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+                        <div style={{ position: 'relative', borderRadius: "12px", overflow: 'hidden', height: '500px', display: 'flex', alignItems: 'flex-end', background: featuredPost.cover_image ? '#e2e8f0' : 'linear-gradient(135deg, #263A99 0%, #4254b5 100%)', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
                             {featuredPost.cover_image && (
                                 <Image src={featuredPost.cover_image} alt={getLocalized(featuredPost, locale, "title")} fill style={{ objectFit: 'cover' }} priority />
                             )}
@@ -182,11 +182,19 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                         </div>
 
                         {/* Article Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '28px' }}>
                             {(posts && posts.length > 0 ? posts : ARTICLES as any).map((post: any, index: number) => (
                                 <Link key={post.id || post.slug} href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%', group: 'article' } as any}>
                                     <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "12px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
-                                        {(post.cover_image || post.image) && <Image src={post.cover_image || post.image} alt={getLocalized(post, locale, "title")} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
+                                        {(post.cover_image || post.image) ? (
+                                            <Image src={post.cover_image || post.image} alt={getLocalized(post, locale, "title")} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />
+                                        ) : (
+                                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #263A99 0%, #4254b5 55%, #aeb8e8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px' }}>
+                                                <span style={{ fontFamily: 'var(--font-heading)', color: 'white', fontWeight: 800, fontSize: '22px', lineHeight: 1.25, textAlign: 'center', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                    {getLocalized(post, locale, "title")}
+                                                </span>
+                                            </div>
+                                        )}
                                         {(post.blog_categories || post.category) && (
                                             <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '6px 14px', borderRadius: "12px", fontSize: '12px', fontWeight: 800, color: '#263A99', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                                                 {stripEmoji(getLocalized(post.blog_categories, locale, 'name') || post.category)}
