@@ -161,13 +161,13 @@ export default function ProductsAdminPage() {
     }
     function delOpt(i: number) { upd('options', (sel?.options||[]).filter((_,j) => j!==i)); }
     function addItem(i: number) {
-        upd('options', (sel?.options||[]).map((o,j) => j===i ? {...o,options:[...o.options,{label:'Варіант',value:`v${Date.now()}`,price:0}]} : o));
+        upd('options', (sel?.options||[]).map((o,j) => j===i ? {...o,options:[...(o.options||[]),{label:'Варіант',value:`v${Date.now()}`,price:0}]} : o));
     }
     function updItem(oi: number, ii: number, f: string, v: any) {
-        upd('options', (sel?.options||[]).map((o,j) => j===oi ? {...o,options:o.options.map((it,k) => k===ii ? {...it,[f]:v} : it)} : o));
+        upd('options', (sel?.options||[]).map((o,j) => j===oi ? {...o,options:(o.options||[]).map((it,k) => k===ii ? {...it,[f]:v} : it)} : o));
     }
     function delItem(oi: number, ii: number) {
-        upd('options', (sel?.options||[]).map((o,j) => j===oi ? {...o,options:o.options.filter((_,k) => k!==ii)} : o));
+        upd('options', (sel?.options||[]).map((o,j) => j===oi ? {...o,options:(o.options||[]).filter((_,k) => k!==ii)} : o));
     }
     function addTag(t: string) {
         if (!t.trim() || !sel) return;
@@ -784,7 +784,7 @@ export default function ProductsAdminPage() {
                                                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 80px 70px 56px 28px', gap:6, marginBottom:6 }}>
                                                         {['Назва','Value','Ціна ₴','Склад','Текст',''].map((h,i)=><div key={i} style={{ fontSize:10, fontWeight:700, color:(i===2||i===3)?'#1e2d7d':'#9ca3af', textTransform:'uppercase', textAlign: i===4?'center':'left' }} title={h==='Текст' ? 'Якщо увімкнено — клієнт побачить поле для введення тексту (напр. напис на обкладинці) при виборі цього варіанту' : (h==='Склад' ? 'Залишок для цього варіанту. Порожньо = без обмеження (виготовлення під замовлення).' : undefined)}>{h}</div>)}
                                                     </div>
-                                                    {opt.options.map((it,ii)=>(
+                                                    {(opt.options||[]).map((it,ii)=>(
                                                         <div key={ii} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 80px 70px 56px 28px', gap:6, marginBottom:6, alignItems:'center' }}>
                                                             <input value={it.label} onChange={e=>updItem(oi,ii,'label',e.target.value)} style={{...IS,fontSize:13,padding:'7px 10px'}}/>
                                                             <input value={it.value} onChange={e=>updItem(oi,ii,'value',e.target.value)} style={{...IS,fontSize:13,padding:'7px 10px',fontFamily:'monospace'}}/>
