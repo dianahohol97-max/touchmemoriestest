@@ -1,6 +1,8 @@
 'use client';
 import { useT, useLocale } from '@/lib/i18n/context';
 import { getLocalized } from '@/lib/i18n/localize';
+import { detectCurrency } from '@/lib/i18n/currency';
+import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -171,6 +173,11 @@ function counterValueLabel(opt: any, n: number): string {
 export default function ProductPage({ params, initialProduct, initialReviews }: { params: Promise<{ slug: string }>; initialProduct?: any; initialReviews?: any[] }) {
   const t = useT();
     const locale = useLocale();
+    const displayCurrency = detectCurrency(locale);
+    // Format a base-UAH amount in the visitor's currency, applying the same
+    // (locale × default ship region) markup the storefront cards use — so the
+    // product page and the catalog cards never disagree.
+    const showPrice = (uah: number | null | undefined) => formatDisplayPrice(uah, locale, displayCurrency);
     const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
     const optValueLabel = (label: string) => {
         // First try full-string translation
@@ -983,14 +990,14 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                             <div className={styles.priceContainer} style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)' }}>
                                 {product.slug?.includes('polaroid') || product.slug?.includes('поляроїд') || product.slug?.includes('полароїд')
-                                    ? `від ${product.price} ₴/шт`
+                                    ? `${t('product_page.from_price')} ${showPrice(product.price)}/шт`
                                     : product.slug?.includes('photoprint')
-                                        ? `${finalPrice} ₴`
-                                        : `${product.price_from ? t('product_page.from_price') + ' ' : ''}${finalPrice} ₴`}
+                                        ? `${showPrice(finalPrice)}`
+                                        : `${product.price_from ? t('product_page.from_price') + ' ' : ''}${showPrice(finalPrice)}`}
                             </div>
                             {product.sale_price && (
                                 <div style={{ fontSize: '20px', fontWeight: 600, color: '#94a3b8', textDecoration: 'line-through' }}>
-                                    {product.sale_price} ₴
+                                    {showPrice(product.sale_price)}
                                 </div>
                             )}
                         </div>
