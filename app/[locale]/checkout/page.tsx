@@ -18,7 +18,8 @@ import {
     Loader2,
     ChevronLeft,
     ShoppingBag,
-    ShieldCheck
+    ShieldCheck,
+    ImageIcon
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { createOrderFileRecords, type OrderFileRecord } from '@/lib/export-utils';
@@ -131,6 +132,7 @@ export default function CheckoutPage() {
     // such item count as full_only and hid the 50% split option. The DB is the
     // source of truth (and the server re-validates on submit anyway).
     const [dbModes, setDbModes] = useState<Record<string, string>>({});
+    const [catalogImages, setCatalogImages] = useState<Record<string, string>>({});
     useEffect(() => {
         const slugs = Array.from(new Set(items.map((i: any) => i.slug).filter(Boolean)));
         const ids = Array.from(new Set(items.map((i: any) => i.product_id).filter(Boolean)));
@@ -142,14 +144,21 @@ export default function CheckoutPage() {
                 const ors: string[] = [];
                 if (slugs.length) ors.push(`slug.in.(${slugs.join(',')})`);
                 if (ids.length) ors.push(`id.in.(${ids.join(',')})`);
-                const { data } = await sb.from('products').select('id, slug, payment_mode').or(ors.join(','));
+                const { data } = await sb.from('products').select('id, slug, payment_mode, images, og_image').or(ors.join(','));
                 if (cancelled || !data) return;
                 const map: Record<string, string> = {};
+                const imgMap: Record<string, string> = {};
                 for (const p of data as any[]) {
                     if (p.slug && p.payment_mode) map[p.slug] = p.payment_mode;
                     if (p.id && p.payment_mode) map[p.id] = p.payment_mode;
+                    const img = p.og_image || (Array.isArray(p.images) && p.images[0]) || '';
+                    if (img) {
+                        if (p.slug) imgMap[p.slug] = img;
+                        if (p.id) imgMap[p.id] = img;
+                    }
                 }
                 setDbModes(map);
+                setCatalogImages(imgMap);
             } catch { /* fall back to cart-item payment_mode */ }
         })();
         return () => { cancelled = true; };
@@ -821,7 +830,12 @@ export default function CheckoutPage() {
                                 {items.map(item => (
                                     <div key={item.id} style={{ display: 'flex', gap: '12px' }}>
                                         <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: "3px", overflow: 'hidden', flexShrink: 0 }}>
-                                            <Image src={item.image || ''} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                                            {(() => {
+                                                const imgSrc = item.image || catalogImages[item.product_id || ''] || catalogImages[item.slug || ''] || '';
+                                                return imgSrc
+                                                    ? <Image src={imgSrc} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                                                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', color: '#94a3b8' }}><ImageIcon size={20} /></div>;
+                                            })()}
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: '13px', fontWeight: 700, lineHeight: 1.2, marginBottom: '4px' }}>{item.name}</div>

@@ -1,13 +1,14 @@
 'use client';
 import { useTranslation } from '@/lib/i18n/context';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './cart.module.css';
 import { useCartStore } from '@/store/cart-store';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import Image from 'next/image';
-import { Trash2, Plus, Minus, ChevronRight } from 'lucide-react';
+import { Trash2, Plus, Minus, ChevronRight, ImageIcon } from 'lucide-react';
 import { logCartEvent } from '@/lib/analytics';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
 
@@ -29,6 +30,30 @@ export default function CartPage() {
     };
 
     const total = getTotal();
+
+    // Some items (built in the constructor) are added without an image. Fall back
+    // to the product's catalog image so the cart always shows an illustration.
+    const [catalogImages, setCatalogImages] = useState<Record<string, string>>({});
+    useEffect(() => {
+        const missing = Array.from(new Set(
+            items.filter((i) => !i.image && i.product_id).map((i) => i.product_id as string)
+        ));
+        if (missing.length === 0) return;
+        const supabase = createClient();
+        (async () => {
+            const { data } = await supabase
+                .from('products')
+                .select('id, images, og_image')
+                .in('id', missing);
+            if (!data) return;
+            const map: Record<string, string> = {};
+            for (const p of data as any[]) {
+                const img = p.og_image || (Array.isArray(p.images) && p.images[0]) || '';
+                if (img) map[p.id] = img;
+            }
+            if (Object.keys(map).length) setCatalogImages((prev) => ({ ...prev, ...map }));
+        })();
+    }, [items]);
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#fcfcfc' }}>
@@ -58,8 +83,13 @@ export default function CartPage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                     {items.map((item) => (
                                         <div key={item.id} style={{ display: 'flex', gap: '20px', alignItems: 'center', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
-                                            <div style={{ width: '80px', height: '80px', borderRadius: "3px", overflow: 'hidden', position: 'relative' }}>
-                                                <Image src={item.image || ''} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                                            <div style={{ width: '80px', height: '80px', borderRadius: "3px", overflow: 'hidden', position: 'relative', background: '#f1f5f9' }}>
+                                                {(() => {
+                                                    const imgSrc = item.image || (item.product_id ? catalogImages[item.product_id] : '') || '';
+                                                    return imgSrc
+                                                        ? <Image src={imgSrc} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                                                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}><ImageIcon size={24} /></div>;
+                                                })()}
                                             </div>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: 800, fontSize: '16px', marginBottom: '4px' }}>{item.name}</div>
