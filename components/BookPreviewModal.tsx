@@ -248,7 +248,7 @@ export function BookPreviewModal({
     if (!page) return <div style={{ width: cW, height: cH, background: '#f8f9fa', flexShrink: 0 }} />;
 
     const layout = page.layout || (isSpreadMode ? 'sp-full' : 'p-full');
-    const defs = getSlotDefs(layout, cW, cH);
+    const defs = getSlotDefs(layout, cW, cH, slotGap);
     const bg = getBg(pageIdx);
     const fc = getFrame(pageIdx);
     const shapes = pageShapes[pageIdx] || [];

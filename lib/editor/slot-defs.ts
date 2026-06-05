@@ -5,8 +5,8 @@ export interface SlotDef {
   s: React.CSSProperties;
 }
 
-export function getSlotDefs(layout: string, W: number, H: number): SlotDef[] {
-  const g = 4;
+export function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): SlotDef[] {
+  const g = gap;
   const w2 = (W - g) / 2, h2 = (H - g) / 2;
   const w3 = (W - 2 * g) / 3, h3 = (H - 2 * g) / 3;
   const w4 = (W - 3 * g) / 4, h4 = (H - 3 * g) / 4;
