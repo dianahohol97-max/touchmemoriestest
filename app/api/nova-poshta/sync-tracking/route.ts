@@ -147,6 +147,18 @@ export async function GET(req: NextRequest) {
                     })
                     .eq('id', order.id);
 
+                // On the delivered transition, settle a 50/50 split order's
+                // remainder (NP collected the rest) → postpayment receipt.
+                // fire-and-forget + idempotent + gated (only split w/ prepayment).
+                if (newOrderStatus === 'delivered' && order.order_status !== 'delivered') {
+                    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+                    fetch(`${baseUrl}/api/fiscalize`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
+                        body: JSON.stringify({ orderId: order.id, stage: 'postpayment' }),
+                    }).catch(err => console.error('[NP] postpayment fiscalize trigger failed:', err));
+                }
+
                 // Send SMS if needed
                 if (shouldSendSMS && smsMessage && order.customer_phone) {
                     try {

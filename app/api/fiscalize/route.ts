@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
-import { fiscalizeOrder } from '@/lib/fiscalize';
+import { fiscalizeOrder, fiscalizePostpayment } from '@/lib/fiscalize';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Internal fiscalisation trigger. Called fire-and-forget from the Monobank
- * webhook and the admin "mark paid" flow. Guarded by the cron secret (same
- * shared secret the transactional-email route uses) so it can't be invoked
- * by the public. Idempotent downstream.
+ * webhook (payment), the admin "mark paid" flow, and the tracking cron
+ * (postpayment on delivery). Guarded by the cron secret. Idempotent downstream.
+ *
+ * body: { orderId, stage?: 'payment' | 'postpayment' }  (default 'payment')
  */
 export async function POST(req: Request) {
   const secret = req.headers.get('x-cron-secret');
@@ -15,13 +16,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   let orderId: string | undefined;
+  let stage: string | undefined;
   try {
-    ({ orderId } = await req.json());
+    ({ orderId, stage } = await req.json());
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
   if (!orderId) return NextResponse.json({ error: 'orderId required' }, { status: 400 });
 
-  const result = await fiscalizeOrder(orderId);
+  const result = stage === 'postpayment'
+    ? await fiscalizePostpayment(orderId)
+    : await fiscalizeOrder(orderId);
   return NextResponse.json(result);
 }

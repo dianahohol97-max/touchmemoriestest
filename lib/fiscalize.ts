@@ -111,3 +111,78 @@ export async function fiscalizeOrder(orderId: string): Promise<{ ok: boolean; re
     return { ok: false, reason: e?.message || 'error' };
   }
 }
+
+/**
+ * Close a 50/50 split order's prepayment chain when the remainder is collected
+ * at delivery (Nova Poshta COD). Fires a postpayment receipt for (total −
+ * prepaid_amount) and lets Checkbox email it to the customer.
+ *
+ * Triggered on the delivered transition (sync-tracking). Guards:
+ *  - only split orders that already have a prepayment receipt (fiscal_id)
+ *  - skips if already postpaid (fiscal_status === 'postpaid')
+ *  - gated by the 'postpayment' fiscal_rule being enabled
+ * Idempotent + non-throwing.
+ */
+export async function fiscalizePostpayment(orderId: string): Promise<{ ok: boolean; reason?: string }> {
+  const supabase = getAdminClient();
+  try {
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, order_number, total, prepaid_amount, items, customer_email, payment_region, payment_type, fiscal_id, fiscal_status')
+      .eq('id', orderId)
+      .single();
+
+    if (!order) return { ok: false, reason: 'order_not_found' };
+    if (order.payment_type !== 'split') return { ok: false, reason: 'not_split' };
+    if (!order.fiscal_id) return { ok: false, reason: 'no_prepayment_receipt' };
+    if (order.fiscal_status === 'postpaid') return { ok: true, reason: 'already_postpaid' };
+
+    const { data: rule } = await supabase
+      .from('fiscal_rules')
+      .select('is_enabled')
+      .eq('payment_type', 'postpayment')
+      .maybeSingle();
+    if (!rule || !rule.is_enabled) return { ok: false, reason: 'postpayment_disabled' };
+
+    const region = order.payment_region === 'international' ? 'international' : 'ua';
+    const { data: account } = await supabase
+      .from('fiscal_accounts')
+      .select('login, password, license_key, cashier_name')
+      .eq('region', region)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (!account || !account.login || !account.license_key) {
+      return { ok: false, reason: 'no_fiscal_account' };
+    }
+
+    const remainder = Math.max(0, (Number(order.total) || 0) - (Number(order.prepaid_amount) || 0));
+    if (remainder <= 0) return { ok: false, reason: 'nothing_to_settle' };
+
+    const checkbox = new CheckboxService({
+      login: account.login,
+      password: account.password,
+      licenseKey: account.license_key,
+      cashierName: account.cashier_name,
+    });
+
+    const receipt = await checkbox.createPostpaymentReceipt(order, remainder);
+
+    await supabase.from('orders').update({ fiscal_status: 'postpaid', updated_at: new Date().toISOString() }).eq('id', orderId);
+    await supabase.from('order_history').insert({
+      order_id: orderId,
+      action: 'fiscal_postpayment_created',
+      notes: `Чек післяплати пробито на ${remainder} грн. ID: ${receipt.id}`,
+    });
+    return { ok: true };
+  } catch (e: any) {
+    try {
+      await supabase.from('order_history').insert({
+        order_id: orderId,
+        action: 'fiscal_error',
+        notes: `Помилка чека післяплати: ${e?.message || 'unknown'}`.slice(0, 500),
+      });
+    } catch { /* swallow */ }
+    console.error('[fiscalizePostpayment] failed:', e);
+    return { ok: false, reason: e?.message || 'error' };
+  }
+}

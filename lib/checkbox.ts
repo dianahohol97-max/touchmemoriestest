@@ -120,6 +120,9 @@ export class CheckboxService {
 
         const payload: any = {
             id: (globalThis.crypto?.randomUUID?.() || `${order.id}-${Date.now()}`),
+            // Stable chain key so a later postpayment receipt can close this
+            // prepayment (Checkbox links the chain by relation_id).
+            relation_id: String(order.order_number || order.id),
             goods,
             payments: [{
                 type: 'CASHLESS',
@@ -142,6 +145,59 @@ export class CheckboxService {
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             throw new Error(`Checkbox Receipt Failed: ${error.message || JSON.stringify(error)}`);
+        }
+        const data = await response.json();
+        return {
+            id: data.id,
+            status: data.status,
+            fiscalUrl: data.id ? `https://check.checkbox.ua/${data.id}` : '',
+            raw: data,
+        };
+    }
+
+    /**
+     * Close a 50/50 prepayment chain: register the postpayment (the remainder
+     * collected at Nova Poshta on delivery). Same relation_id as the prepayment
+     * receipt; Checkbox settles the chain (left_to_pay → 0). The remainder is a
+     * cash-on-delivery (накладений платіж), so payment type CASH / "Післяплата".
+     * delivery.email makes Checkbox send the receipt to the customer.
+     *
+     * NOTE: validate against Checkbox TEST mode before relying on it — the
+     * prepayment-chain payload has nuances that must be confirmed live.
+     */
+    async createPostpaymentReceipt(order: any, remainderUah: number): Promise<CheckboxReceiptResult> {
+        await this.openShift();
+
+        const goods = (order.items || []).map((item: any) => ({
+            good: {
+                code: String(item.product_id || item.product_type || item.slug || 'PRODUCT'),
+                name: (item.product_name || item.name || 'Товар').slice(0, 250),
+                price: Math.round((item.unit_price || item.price || 0) * 100),
+            },
+            quantity: Math.round((item.quantity || 1) * 1000),
+        }));
+
+        const payload: any = {
+            id: (globalThis.crypto?.randomUUID?.() || `${order.id}-post-${Date.now()}`),
+            relation_id: String(order.order_number || order.id),
+            goods,
+            payments: [{
+                type: 'CASH',
+                value: Math.round(remainderUah * 100),
+                label: 'Післяплата',
+            }],
+        };
+        if (this.config.cashierName) payload.cashier_name = this.config.cashierName;
+        if (order.customer_email) payload.delivery = { email: order.customer_email };
+
+        const response = await fetch(`${CHECKBOX_API_URL}/prepayment-receipts`, {
+            method: 'POST',
+            headers: this.authHeaders(true),
+            body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(`Checkbox Postpayment Failed: ${error.message || JSON.stringify(error)}`);
         }
         const data = await response.json();
         return {
